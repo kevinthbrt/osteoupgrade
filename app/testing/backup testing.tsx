@@ -23,105 +23,82 @@ import {
   Edit,
   Trash2,
   Clipboard,
-  BarChart,
-  Brain,
-  Droplet
+  BarChart
 } from 'lucide-react'
 
-// Zones cliquables sur le bonhomme
+// Définition des zones cliquables sur le bonhomme
 const BODY_ZONES = {
-  head: {
-    name: 'Tête et Cou',
+  head: { 
+    name: 'Tête et Cou', 
     regions: ['Cervical', 'ATM', 'Crâne'],
     position: { top: '5%', left: '45%', width: '10%', height: '8%' }
   },
-  leftShoulder: {
-    name: 'Épaule gauche',
+  leftShoulder: { 
+    name: 'Épaule gauche', 
     regions: ['Épaule'],
     position: { top: '18%', left: '28%', width: '8%', height: '8%' }
   },
-  rightShoulder: {
-    name: 'Épaule droite',
+  rightShoulder: { 
+    name: 'Épaule droite', 
     regions: ['Épaule'],
     position: { top: '18%', right: '28%', width: '8%', height: '8%' }
   },
-  leftElbow: {
-    name: 'Coude gauche',
+  leftElbow: { 
+    name: 'Coude gauche', 
     regions: ['Coude'],
     position: { top: '28%', left: '25%', width: '6%', height: '6%' }
   },
-  rightElbow: {
-    name: 'Coude droit',
+  rightElbow: { 
+    name: 'Coude droit', 
     regions: ['Coude'],
     position: { top: '28%', right: '25%', width: '6%', height: '6%' }
   },
-  leftWrist: {
-    name: 'Poignet / Main gauche',
+  leftWrist: { 
+    name: 'Poignet/Main gauche', 
     regions: ['Poignet', 'Main'],
     position: { top: '38%', left: '22%', width: '6%', height: '8%' }
   },
-  rightWrist: {
-    name: 'Poignet / Main droite',
+  rightWrist: { 
+    name: 'Poignet/Main droite', 
     regions: ['Poignet', 'Main'],
     position: { top: '38%', right: '22%', width: '6%', height: '8%' }
   },
-  trunk: {
-    name: 'Tronc',
-    regions: ['Thoracique', 'Lombaire', 'Sacro-iliaque', 'Côtes'],
-    position: { top: '24%', left: '42%', width: '16%', height: '24%' }
+  spine: { 
+    name: 'Colonne vertébrale', 
+    regions: ['Thoracique', 'Lombaire', 'Sacro-iliaque'],
+    position: { top: '20%', left: '46%', width: '8%', height: '25%' }
   },
-  leftHip: {
-    name: 'Hanche gauche',
+  leftHip: { 
+    name: 'Hanche gauche', 
     regions: ['Hanche'],
-    position: { top: '48%', left: '40%', width: '8%', height: '8%' }
+    position: { top: '42%', left: '38%', width: '8%', height: '8%' }
   },
-  rightHip: {
-    name: 'Hanche droite',
+  rightHip: { 
+    name: 'Hanche droite', 
     regions: ['Hanche'],
-    position: { top: '48%', right: '40%', width: '8%', height: '8%' }
+    position: { top: '42%', right: '38%', width: '8%', height: '8%' }
   },
-  leftKnee: {
-    name: 'Genou gauche',
+  leftKnee: { 
+    name: 'Genou gauche', 
     regions: ['Genou'],
-    position: { top: '60%', left: '40%', width: '8%', height: '8%' }
+    position: { top: '58%', left: '38%', width: '8%', height: '8%' }
   },
-  rightKnee: {
-    name: 'Genou droit',
+  rightKnee: { 
+    name: 'Genou droit', 
     regions: ['Genou'],
-    position: { top: '60%', right: '40%', width: '8%', height: '8%' }
+    position: { top: '58%', right: '38%', width: '8%', height: '8%' }
   },
-  leftAnkle: {
-    name: 'Cheville / Pied gauche',
+  leftAnkle: { 
+    name: 'Cheville/Pied gauche', 
     regions: ['Cheville', 'Pied'],
-    position: { top: '78%', left: '40%', width: '8%', height: '10%' }
+    position: { top: '78%', left: '38%', width: '8%', height: '10%' }
   },
-  rightAnkle: {
-    name: 'Cheville / Pied droit',
+  rightAnkle: { 
+    name: 'Cheville/Pied droit', 
     regions: ['Cheville', 'Pied'],
-    position: { top: '78%', right: '40%', width: '8%', height: '10%' }
+    position: { top: '78%', right: '38%', width: '8%', height: '10%' }
   }
-} as const
-
-const GENERAL_CATEGORIES = [
-  {
-    key: 'Neurologique',
-    label: 'Neuro',
-    description: 'Tests neurologiques',
-    icon: Brain
-  },
-  {
-    key: 'Vasculaire',
-    label: 'Vascu',
-    description: 'Tests vasculaires',
-    icon: Activity
-  },
-  {
-    key: 'Systémique',
-    label: 'Systémique',
-    description: 'Tests systémiques',
-    icon: Droplet
-  }
-] as const
+}
 
 interface TestResult {
   testId: string
@@ -147,8 +124,6 @@ export default function TestingModulePage() {
   const [profile, setProfile] = useState<any>(null)
   const [tests, setTests] = useState<any[]>([])
   const [selectedZone, setSelectedZone] = useState<string | null>(null)
-  const [hoveredZone, setHoveredZone] = useState<string | null>(null)
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null) // Neuro / Vascu / Systémique
   const [selectedTests, setSelectedTests] = useState<any[]>([])
   const [searchQuery, setSearchQuery] = useState('')
   const [showTestModal, setShowTestModal] = useState(false)
@@ -172,7 +147,7 @@ export default function TestingModulePage() {
 
   const checkAccess = async () => {
     const { data: { user } } = await supabase.auth.getUser()
-
+    
     if (!user) {
       router.push('/')
       return
@@ -183,13 +158,13 @@ export default function TestingModulePage() {
       .select('*')
       .eq('id', user.id)
       .single()
-
+    
     if (profileData?.role === 'free') {
       alert('Cette fonctionnalité est réservée aux utilisateurs Premium')
       router.push('/dashboard')
       return
     }
-
+    
     setProfile(profileData)
     setLoading(false)
   }
@@ -199,7 +174,7 @@ export default function TestingModulePage() {
       .from('orthopedic_tests')
       .select('*')
       .order('name')
-
+    
     setTests(data || [])
   }
 
@@ -210,33 +185,20 @@ export default function TestingModulePage() {
     }
   }
 
-  // --- Sélection des zones du bonhomme ---
-
   const handleZoneClick = (zoneKey: string) => {
     const zone = BODY_ZONES[zoneKey as keyof typeof BODY_ZONES]
     setSelectedZone(zoneKey)
-    setSelectedCategory(null)
-
-    const regionTests = tests.filter(test =>
+    
+    const regionTests = tests.filter(test => 
       zone.regions.includes(test.category)
     )
     setSelectedTests(regionTests)
     setShowTestModal(true)
   }
 
-  const handleGeneralCategoryClick = (categoryKey: string) => {
-    setSelectedZone(null)
-    setSelectedCategory(categoryKey)
-    const regionTests = tests.filter(test => test.category === categoryKey)
-    setSelectedTests(regionTests)
-    setShowTestModal(true)
-  }
-
-  // --- Gestion des résultats ---
-
   const addTestResult = (test: any) => {
     const existingIndex = currentSession.results.findIndex(r => r.testId === test.id)
-
+    
     if (existingIndex >= 0) {
       const newResults = [...currentSession.results]
       newResults[existingIndex] = {
@@ -262,14 +224,14 @@ export default function TestingModulePage() {
   }
 
   const updateTestResult = (testId: string, result: 'positive' | 'negative' | 'uncertain' | null) => {
-    const newResults = currentSession.results.map(r =>
+    const newResults = currentSession.results.map(r => 
       r.testId === testId ? { ...r, result } : r
     )
     setCurrentSession({ ...currentSession, results: newResults })
   }
 
   const updateTestNotes = (testId: string, notes: string) => {
-    const newResults = currentSession.results.map(r =>
+    const newResults = currentSession.results.map(r => 
       r.testId === testId ? { ...r, notes } : r
     )
     setCurrentSession({ ...currentSession, results: newResults })
@@ -279,8 +241,6 @@ export default function TestingModulePage() {
     const newResults = currentSession.results.filter(r => r.testId !== testId)
     setCurrentSession({ ...currentSession, results: newResults })
   }
-
-  // --- Sauvegarde / export ---
 
   const saveSession = () => {
     if (!currentSession.patientName) {
@@ -293,11 +253,11 @@ export default function TestingModulePage() {
       ...currentSession,
       id: Date.now().toString()
     }
-
+    
     const newSessions = [...savedSessions, sessionToSave]
     setSavedSessions(newSessions)
     localStorage.setItem('testingSessions', JSON.stringify(newSessions))
-
+    
     setCurrentSession({
       patientName: '',
       patientAge: '',
@@ -305,7 +265,7 @@ export default function TestingModulePage() {
       results: [],
       notes: ''
     })
-
+    
     setSaving(false)
     alert('Session sauvegardée avec succès !')
   }
@@ -315,7 +275,7 @@ export default function TestingModulePage() {
       alert('Aucun test à exporter')
       return
     }
-
+    
     generateTestingPDF(currentSession)
   }
 
@@ -331,8 +291,6 @@ export default function TestingModulePage() {
     }
   }
 
-  // --- Lien résultats <-> zones ---
-
   const getZonesWithResults = () => {
     const zonesWithTests: Set<string> = new Set()
     currentSession.results.forEach(result => {
@@ -347,17 +305,6 @@ export default function TestingModulePage() {
 
   const stats = generateStatsSummary(currentSession.results)
   const zonesWithResults = getZonesWithResults()
-
-  const hasTestsForGeneralCategory = (categoryKey: string) =>
-    currentSession.results.some(r => r.region === categoryKey)
-
-  const getSelectionLabel = () => {
-    if (selectedZone && BODY_ZONES[selectedZone as keyof typeof BODY_ZONES]) {
-      return BODY_ZONES[selectedZone as keyof typeof BODY_ZONES].name
-    }
-    if (selectedCategory) return selectedCategory
-    return 'la sélection'
-  }
 
   if (loading) {
     return (
@@ -421,55 +368,39 @@ export default function TestingModulePage() {
                 Sélectionnez une zone
               </h2>
               <div className="relative mx-auto" style={{ maxWidth: '300px' }}>
-                {/* Silhouette */}
-                <svg viewBox="0 0 200 400" className="w-full h-auto drop-shadow-sm">
-                  {/* Corps simplifié */}
+                <svg viewBox="0 0 200 400" className="w-full h-auto">
                   <g>
-                    <circle cx="100" cy="40" r="25" fill="#e5e7eb" stroke="#6b7280" strokeWidth="2" />
-                    <rect x="90" y="60" width="20" height="20" fill="#e5e7eb" stroke="#6b7280" strokeWidth="2" />
-                    <rect x="70" y="80" width="60" height="80" fill="#e5e7eb" stroke="#6b7280" strokeWidth="2" />
-                    <rect x="40" y="85" width="25" height="60" fill="#e5e7eb" stroke="#6b7280" strokeWidth="2" />
-                    <rect x="35" y="145" width="20" height="50" fill="#e5e7eb" stroke="#6b7280" strokeWidth="2" />
-                    <rect x="135" y="85" width="25" height="60" fill="#e5e7eb" stroke="#6b7280" strokeWidth="2" />
-                    <rect x="145" y="145" width="20" height="50" fill="#e5e7eb" stroke="#6b7280" strokeWidth="2" />
-                    <rect x="70" y="160" width="60" height="40" fill="#e5e7eb" stroke="#6b7280" strokeWidth="2" />
-                    <rect x="75" y="200" width="20" height="80" fill="#e5e7eb" stroke="#6b7280" strokeWidth="2" />
-                    <rect x="70" y="280" width="20" height="70" fill="#e5e7eb" stroke="#6b7280" strokeWidth="2" />
-                    <rect x="65" y="350" width="25" height="30" fill="#e5e7eb" stroke="#6b7280" strokeWidth="2" />
-                    <rect x="105" y="200" width="20" height="80" fill="#e5e7eb" stroke="#6b7280" strokeWidth="2" />
-                    <rect x="110" y="280" width="20" height="70" fill="#e5e7eb" stroke="#6b7280" strokeWidth="2" />
-                    <rect x="110" y="350" width="25" height="30" fill="#e5e7eb" stroke="#6b7280" strokeWidth="2" />
+                    <circle cx="100" cy="40" r="25" fill="#e5e7eb" stroke="#6b7280" strokeWidth="2"/>
+                    <rect x="90" y="60" width="20" height="20" fill="#e5e7eb" stroke="#6b7280" strokeWidth="2"/>
+                    <rect x="70" y="80" width="60" height="80" fill="#e5e7eb" stroke="#6b7280" strokeWidth="2"/>
+                    <rect x="40" y="85" width="25" height="60" fill="#e5e7eb" stroke="#6b7280" strokeWidth="2"/>
+                    <rect x="35" y="145" width="20" height="50" fill="#e5e7eb" stroke="#6b7280" strokeWidth="2"/>
+                    <rect x="135" y="85" width="25" height="60" fill="#e5e7eb" stroke="#6b7280" strokeWidth="2"/>
+                    <rect x="145" y="145" width="20" height="50" fill="#e5e7eb" stroke="#6b7280" strokeWidth="2"/>
+                    <rect x="70" y="160" width="60" height="40" fill="#e5e7eb" stroke="#6b7280" strokeWidth="2"/>
+                    <rect x="75" y="200" width="20" height="80" fill="#e5e7eb" stroke="#6b7280" strokeWidth="2"/>
+                    <rect x="70" y="280" width="20" height="70" fill="#e5e7eb" stroke="#6b7280" strokeWidth="2"/>
+                    <rect x="65" y="350" width="25" height="30" fill="#e5e7eb" stroke="#6b7280" strokeWidth="2"/>
+                    <rect x="105" y="200" width="20" height="80" fill="#e5e7eb" stroke="#6b7280" strokeWidth="2"/>
+                    <rect x="110" y="280" width="20" height="70" fill="#e5e7eb" stroke="#6b7280" strokeWidth="2"/>
+                    <rect x="110" y="350" width="25" height="30" fill="#e5e7eb" stroke="#6b7280" strokeWidth="2"/>
                   </g>
-
-                  {/* Zones interactives */}
+                  
                   {Object.entries(BODY_ZONES).map(([key, zone]) => {
                     const hasResults = zonesWithResults.has(key)
-                    const position = zone.position as any
-                    const isSelected = selectedZone === key
+                    const position = zone.position
 
                     let x = 0
+
                     if ('left' in position) {
-                      x = (parseFloat(position.left) / 100) * 200
+                      x = parseFloat(position.left) * 2
                     } else if ('right' in position) {
-                      x =
-                        200 -
-                        (parseFloat(position.right) / 100) * 200 -
-                        (parseFloat(position.width) / 100) * 200
+                      x = 200 - (parseFloat(position.right) * 2) - (parseFloat(position.width) * 2)
                     }
 
-                    const y = (parseFloat(position.top) / 100) * 400
-                    const width = (parseFloat(position.width) / 100) * 200
-                    const height = (parseFloat(position.height) / 100) * 400
-
-                    const baseFill = hasResults
-                      ? 'rgba(34,197,94,0.25)'
-                      : 'rgba(59,130,246,0.18)'
-                    const selectedFill = 'rgba(37,99,235,0.38)'
-                    const strokeColor = isSelected
-                      ? '#2563eb'
-                      : hasResults
-                      ? '#22c55e'
-                      : '#3b82f6'
+                    const y = parseFloat(position.top) * 4
+                    const width = parseFloat(position.width) * 2
+                    const height = parseFloat(position.height) * 4
 
                     return (
                       <g key={key}>
@@ -478,20 +409,17 @@ export default function TestingModulePage() {
                           y={y}
                           width={width}
                           height={height}
-                          fill={isSelected ? selectedFill : baseFill}
-                          stroke={strokeColor}
+                          fill={hasResults ? 'rgba(34, 197, 94, 0.3)' : 'rgba(59, 130, 246, 0.2)'}
+                          stroke={hasResults ? '#22c55e' : '#3b82f6'}
                           strokeWidth="2"
-                          rx="6"
-                          className="cursor-pointer transition-all hover:opacity-80"
+                          className="cursor-pointer hover:opacity-80"
                           onClick={() => handleZoneClick(key)}
-                          onMouseEnter={() => setHoveredZone(zone.name)}
-                          onMouseLeave={() => setHoveredZone(null)}
                         />
                         {hasResults && (
                           <circle
                             cx={x + width / 2}
                             cy={y + height / 2}
-                            r="7"
+                            r="8"
                             fill="#22c55e"
                             className="pointer-events-none"
                           />
@@ -500,68 +428,22 @@ export default function TestingModulePage() {
                     )
                   })}
                 </svg>
-
-                {/* Légende dynamique */}
-                <div className="mt-3 text-center text-xs text-gray-500 min-h-[1.25rem]">
-                  {hoveredZone
-                    ? hoveredZone
-                    : selectedZone
-                    ? BODY_ZONES[selectedZone as keyof typeof BODY_ZONES].name
-                    : 'Survolez ou cliquez une zone pour voir le détail'}
-                </div>
-
-                {/* Légende couleurs */}
-                <div className="mt-3 space-y-2 text-xs">
+                
+                <div className="mt-4 space-y-2 text-sm">
                   <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 bg-blue-200 border-2 border-blue-500 rounded-sm" />
+                    <div className="w-4 h-4 bg-blue-200 border-2 border-blue-500"></div>
                     <span className="text-gray-600">Zone sélectionnable</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 bg-green-200 border-2 border-green-500 rounded-sm" />
-                    <span className="text-gray-600">Zone avec tests réalisés</span>
-                  </div>
-                </div>
-
-                {/* Tests généraux : Neuro / Vascu / Systémique */}
-                <div className="mt-4">
-                  <p className="text-xs font-medium text-gray-700 mb-2 text-center">
-                    Tests généraux
-                  </p>
-                  <div className="flex items-center justify-center gap-3">
-                    {GENERAL_CATEGORIES.map(cat => {
-                      const Icon = cat.icon
-                      const hasTests = hasTestsForGeneralCategory(cat.key)
-                      const isSelected = selectedCategory === cat.key
-
-                      return (
-                        <button
-                          key={cat.key}
-                          onClick={() => handleGeneralCategoryClick(cat.key)}
-                          className={`relative flex flex-col items-center justify-center w-16 h-16 rounded-full border text-xs transition-all
-                            ${
-                              isSelected
-                                ? 'bg-primary-50 border-primary-500 text-primary-700'
-                                : 'bg-gray-50 border-gray-200 text-gray-700 hover:bg-gray-100'
-                            }`}
-                          title={cat.description}
-                        >
-                          <Icon className="h-5 w-5 mb-1" />
-                          <span>{cat.label}</span>
-                          {hasTests && (
-                            <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-green-500 text-[10px] text-white flex items-center justify-center">
-                              ✓
-                            </span>
-                          )}
-                        </button>
-                      )
-                    })}
+                    <div className="w-4 h-4 bg-green-200 border-2 border-green-500"></div>
+                    <span className="text-gray-600">Tests effectués</span>
                   </div>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Infos session + résultats */}
+          {/* Informations de session et résultats */}
           <div className="lg:col-span-2 space-y-6">
             {/* Informations patient */}
             <div className="bg-white rounded-xl shadow-sm p-6">
@@ -576,9 +458,7 @@ export default function TestingModulePage() {
                   <input
                     type="text"
                     value={currentSession.patientName}
-                    onChange={(e) =>
-                      setCurrentSession({ ...currentSession, patientName: e.target.value })
-                    }
+                    onChange={(e) => setCurrentSession({...currentSession, patientName: e.target.value})}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
                     placeholder="Jean Dupont"
                   />
@@ -590,9 +470,7 @@ export default function TestingModulePage() {
                   <input
                     type="text"
                     value={currentSession.patientAge}
-                    onChange={(e) =>
-                      setCurrentSession({ ...currentSession, patientAge: e.target.value })
-                    }
+                    onChange={(e) => setCurrentSession({...currentSession, patientAge: e.target.value})}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
                     placeholder="45 ans"
                   />
@@ -604,9 +482,7 @@ export default function TestingModulePage() {
                   <input
                     type="date"
                     value={currentSession.sessionDate}
-                    onChange={(e) =>
-                      setCurrentSession({ ...currentSession, sessionDate: e.target.value })
-                    }
+                    onChange={(e) => setCurrentSession({...currentSession, sessionDate: e.target.value})}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
                   />
                 </div>
@@ -617,9 +493,7 @@ export default function TestingModulePage() {
                 </label>
                 <textarea
                   value={currentSession.notes}
-                  onChange={(e) =>
-                    setCurrentSession({ ...currentSession, notes: e.target.value })
-                  }
+                  onChange={(e) => setCurrentSession({...currentSession, notes: e.target.value})}
                   rows={2}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
                   placeholder="Observations générales..."
@@ -632,14 +506,12 @@ export default function TestingModulePage() {
               <h2 className="text-lg font-semibold text-gray-900 mb-4">
                 Tests effectués ({currentSession.results.length})
               </h2>
-
+              
               {currentSession.results.length === 0 ? (
                 <div className="text-center py-8 text-gray-500">
                   <Clipboard className="h-12 w-12 mx-auto mb-3 text-gray-400" />
                   <p>Aucun test effectué pour le moment</p>
-                  <p className="text-sm mt-1">
-                    Cliquez sur une zone du corps ou une icône générale pour ajouter des tests
-                  </p>
+                  <p className="text-sm mt-1">Cliquez sur une zone du corps pour ajouter des tests</p>
                 </div>
               ) : (
                 <div className="space-y-3">
@@ -653,16 +525,16 @@ export default function TestingModulePage() {
                               {result.region}
                             </span>
                           </div>
-
-                          <div className="mt-3 flex items-center gap-4 flex-wrap">
+                          
+                          <div className="mt-3 flex items-center gap-4">
                             <div className="flex items-center gap-2">
                               <span className="text-sm text-gray-600">Résultat :</span>
                               <div className="flex gap-1">
                                 <button
                                   onClick={() => updateTestResult(result.testId, 'positive')}
                                   className={`p-2 rounded-lg transition-colors ${
-                                    result.result === 'positive'
-                                      ? 'bg-green-100 text-green-700'
+                                    result.result === 'positive' 
+                                      ? 'bg-green-100 text-green-700' 
                                       : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
                                   }`}
                                   title="Positif"
@@ -672,8 +544,8 @@ export default function TestingModulePage() {
                                 <button
                                   onClick={() => updateTestResult(result.testId, 'negative')}
                                   className={`p-2 rounded-lg transition-colors ${
-                                    result.result === 'negative'
-                                      ? 'bg-red-100 text-red-700'
+                                    result.result === 'negative' 
+                                      ? 'bg-red-100 text-red-700' 
                                       : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
                                   }`}
                                   title="Négatif"
@@ -683,8 +555,8 @@ export default function TestingModulePage() {
                                 <button
                                   onClick={() => updateTestResult(result.testId, 'uncertain')}
                                   className={`p-2 rounded-lg transition-colors ${
-                                    result.result === 'uncertain'
-                                      ? 'bg-yellow-100 text-yellow-700'
+                                    result.result === 'uncertain' 
+                                      ? 'bg-yellow-100 text-yellow-700' 
                                       : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
                                   }`}
                                   title="Incertain"
@@ -693,7 +565,7 @@ export default function TestingModulePage() {
                                 </button>
                               </div>
                             </div>
-
+                            
                             {result.sensitivity && (
                               <span className="text-xs text-gray-500">
                                 Se: {result.sensitivity}%
@@ -705,7 +577,7 @@ export default function TestingModulePage() {
                               </span>
                             )}
                           </div>
-
+                          
                           <div className="mt-2">
                             <input
                               type="text"
@@ -716,7 +588,7 @@ export default function TestingModulePage() {
                             />
                           </div>
                         </div>
-
+                        
                         <button
                           onClick={() => removeTestResult(result.testId)}
                           className="ml-4 p-1 text-gray-400 hover:text-red-600"
@@ -740,10 +612,7 @@ export default function TestingModulePage() {
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {savedSessions.map((session) => (
-                <div
-                  key={session.id}
-                  className="border rounded-lg p-4 hover:shadow-md transition-shadow"
-                >
+                <div key={session.id} className="border rounded-lg p-4 hover:shadow-md transition-shadow">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <h3 className="font-medium text-gray-900">{session.patientName}</h3>
@@ -756,14 +625,14 @@ export default function TestingModulePage() {
                       </p>
                     </div>
                     <div className="flex gap-1">
-                      <button
+                      <button 
                         onClick={() => loadSession(session)}
                         className="p-1 text-gray-400 hover:text-primary-600"
                         title="Charger"
                       >
                         <Edit className="h-4 w-4" />
                       </button>
-                      <button
+                      <button 
                         onClick={() => {
                           const tempSession = currentSession
                           setCurrentSession(session)
@@ -775,7 +644,7 @@ export default function TestingModulePage() {
                       >
                         <FileText className="h-4 w-4" />
                       </button>
-                      <button
+                      <button 
                         onClick={() => deleteSession(session.id!)}
                         className="p-1 text-gray-400 hover:text-red-600"
                         title="Supprimer"
@@ -798,7 +667,7 @@ export default function TestingModulePage() {
             <div className="p-6 border-b">
               <div className="flex items-center justify-between">
                 <h3 className="text-lg font-semibold">
-                  Tests pour {getSelectionLabel()}
+                  Tests pour {selectedZone && BODY_ZONES[selectedZone as keyof typeof BODY_ZONES].name}
                 </h3>
                 <button
                   onClick={() => {
@@ -810,7 +679,7 @@ export default function TestingModulePage() {
                   <X className="h-5 w-5" />
                 </button>
               </div>
-
+              
               <div className="mt-4 relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
                 <input
@@ -822,18 +691,17 @@ export default function TestingModulePage() {
                 />
               </div>
             </div>
-
+            
             <div className="p-4 max-h-[60vh] overflow-y-auto">
               <div className="grid gap-2">
                 {selectedTests
-                  .filter(
-                    (test) =>
-                      test.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                      test.description?.toLowerCase().includes(searchQuery.toLowerCase())
+                  .filter(test => 
+                    test.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                    test.description?.toLowerCase().includes(searchQuery.toLowerCase())
                   )
-                  .map((test) => {
-                    const isAdded = currentSession.results.some((r) => r.testId === test.id)
-
+                  .map(test => {
+                    const isAdded = currentSession.results.some(r => r.testId === test.id)
+                    
                     return (
                       <button
                         key={test.id}
@@ -843,16 +711,16 @@ export default function TestingModulePage() {
                           setSearchQuery('')
                         }}
                         className={`p-3 text-left border rounded-lg transition-colors ${
-                          isAdded ? 'bg-green-50 border-green-300' : 'hover:bg-gray-50'
+                          isAdded 
+                            ? 'bg-green-50 border-green-300' 
+                            : 'hover:bg-gray-50'
                         }`}
                       >
                         <div className="flex items-center justify-between">
                           <div>
                             <p className="font-medium text-gray-900">
                               {test.name}
-                              {isAdded && (
-                                <span className="ml-2 text-green-600 text-sm">(Ajouté)</span>
-                              )}
+                              {isAdded && <span className="ml-2 text-green-600 text-sm">(Ajouté)</span>}
                             </p>
                             <p className="text-sm text-gray-600 mt-1">{test.description}</p>
                           </div>
@@ -880,7 +748,7 @@ export default function TestingModulePage() {
                 <X className="h-5 w-5" />
               </button>
             </div>
-
+            
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="bg-gray-50 rounded-lg p-3">
@@ -900,7 +768,7 @@ export default function TestingModulePage() {
                   <p className="text-2xl font-bold text-yellow-600">{stats.uncertain}</p>
                 </div>
               </div>
-
+              
               <div>
                 <p className="text-sm font-medium text-gray-700 mb-2">Par région :</p>
                 <div className="space-y-1">
@@ -919,3 +787,9 @@ export default function TestingModulePage() {
     </AuthLayout>
   )
 }
+
+const Circle = ({ className }: { className: string }) => (
+  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <circle cx="12" cy="12" r="10" strokeWidth="2" />
+  </svg>
+)
