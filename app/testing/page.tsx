@@ -100,7 +100,7 @@ const BODY_ZONES = {
     regions: ['Cheville', 'Pied'],
     position: { top: '78%', right: '40%', width: '8%', height: '10%' }
   }
-} as const
+} 
 
 const GENERAL_CATEGORIES = [
   {
