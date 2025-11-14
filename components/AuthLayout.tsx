@@ -1,0 +1,20 @@
+'use client'
+
+import Navigation from '@/components/Navigation'
+
+export default function AuthLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <Navigation />
+      <main className="lg:ml-64 transition-all duration-300">
+        <div className="p-4 lg:p-8">
+          {children}
+        </div>
+      </main>
+    </div>
+  )
+}
