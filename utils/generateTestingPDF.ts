@@ -24,10 +24,10 @@ export const generateTestingPDF = (session: TestingSession) => {
   const doc = new jsPDF()
   
   // Couleurs
-  const primaryColor = [37, 99, 235] // Bleu
-  const greenColor = [34, 197, 94]
-  const redColor = [239, 68, 68]
-  const yellowColor = [250, 204, 21]
+  const primaryColor: [number, number, number] = [37, 99, 235] // Bleu
+  const greenColor: [number, number, number] = [34, 197, 94]
+  const redColor: [number, number, number] = [239, 68, 68]
+  const yellowColor: [number, number, number] = [250, 204, 21]
   
   // En-tête
   doc.setFillColor(...primaryColor)
@@ -49,10 +49,10 @@ export const generateTestingPDF = (session: TestingSession) => {
   doc.setTextColor(100, 100, 100)
   doc.text('Patient:', 20, 65)
   doc.setTextColor(0, 0, 0)
-  doc.setFont(undefined, 'bold')
+  doc.setFont('helvetica', 'bold')
   doc.text(session.patientName || 'Non renseigné', 50, 65)
   
-  doc.setFont(undefined, 'normal')
+  doc.setFont('helvetica', 'normal')
   doc.setTextColor(100, 100, 100)
   doc.text('Âge:', 20, 72)
   doc.setTextColor(0, 0, 0)
@@ -99,7 +99,7 @@ export const generateTestingPDF = (session: TestingSession) => {
     doc.setFillColor(240, 240, 240)
     doc.rect(20, yPosition, 170, 8, 'F')
     doc.setFontSize(12)
-    doc.setFont(undefined, 'bold')
+    doc.setFont('helvetica', 'bold')
     doc.text(region, 22, yPosition + 5)
     yPosition += 12
     
@@ -110,7 +110,7 @@ export const generateTestingPDF = (session: TestingSession) => {
         yPosition = 20
       }
       
-      doc.setFont(undefined, 'normal')
+      doc.setFont('helvetica', 'normal')
       doc.setFontSize(10)
       
       // Nom du test
@@ -119,7 +119,7 @@ export const generateTestingPDF = (session: TestingSession) => {
       
       // Résultat avec couleur
       let resultText = 'Non testé'
-      let resultColor = [150, 150, 150]
+      let resultColor: [number, number, number] = [150, 150, 150]
       
       if (test.result === 'positive') {
         resultText = 'Positif'
@@ -151,7 +151,7 @@ export const generateTestingPDF = (session: TestingSession) => {
       if (test.notes) {
         doc.setTextColor(80, 80, 80)
         doc.setFontSize(9)
-        doc.setFont(undefined, 'italic')
+        doc.setFont('helvetica', 'italic')
         const lines = doc.splitTextToSize(`Notes: ${test.notes}`, 160)
         lines.forEach((line: string) => {
           if (yPosition > 270) {
@@ -161,7 +161,7 @@ export const generateTestingPDF = (session: TestingSession) => {
           doc.text(line, 30, yPosition)
           yPosition += 4
         })
-        doc.setFont(undefined, 'normal')
+        doc.setFont('helvetica', 'normal')
       }
       
       yPosition += 4
@@ -182,12 +182,12 @@ export const generateTestingPDF = (session: TestingSession) => {
     yPosition += 10
     
     doc.setFontSize(12)
-    doc.setFont(undefined, 'bold')
+    doc.setFont('helvetica', 'bold')
     doc.setTextColor(0, 0, 0)
     doc.text('Notes Générales', 20, yPosition)
     yPosition += 8
     
-    doc.setFont(undefined, 'normal')
+    doc.setFont('helvetica', 'normal')
     doc.setFontSize(10)
     doc.setTextColor(60, 60, 60)
     const lines = doc.splitTextToSize(session.notes, 170)
