@@ -16,7 +16,8 @@ import {
   Users,
   ChevronRight,
   Stethoscope,
-  Crown
+  Crown,
+  Activity
 } from 'lucide-react'
 
 export default function Navigation() {
@@ -54,6 +55,7 @@ export default function Navigation() {
     { href: '/dashboard', label: 'Tableau de bord', icon: Home },
     { href: '/trees', label: 'Arbres décisionnels', icon: TreePine },
     { href: '/tests', label: 'Tests orthopédiques', icon: Clipboard },
+    { href: '/testing', label: 'Module Testing', icon: Activity },
     { href: '/settings', label: 'Paramètres', icon: Settings },
   ]
 
