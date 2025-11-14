@@ -12,7 +12,6 @@ import {
   ChevronRight,
   ChevronDown,
   Circle,
-  Square,
   Diamond,
   AlertCircle,
   X,
@@ -20,7 +19,15 @@ import {
   Clipboard,
   Search,
   ArrowRight,
-  Loader2
+  Loader2,
+  AlertTriangle,
+  CheckCircle,
+  Info,
+  Zap,
+  Hospital,
+  FileText,
+  Target,
+  Activity
 } from 'lucide-react'
 
 interface TreeNode {
@@ -30,15 +37,68 @@ interface TreeNode {
   testId?: string
   answers?: Answer[]
   expanded?: boolean
+  // Nouveaux champs pour les diagnostics
+  diagnosisType?: 'red_flag' | 'normal' | 'caution'
+  recommendations?: string
+  urgency?: 'immediate' | 'urgent' | 'routine'
+  referral?: string
+  // Champs pour rendre plus visuel
+  icon?: string
+  color?: string
 }
 
 interface Answer {
   id: string
   label: string
   nextNode?: TreeNode
+  icon?: string // Icône pour la réponse
 }
 
-export default function ImprovedTreeEditorPage() {
+const DIAGNOSIS_PRESETS = [
+  {
+    type: 'red_flag',
+    name: '🚨 Drapeau Rouge',
+    examples: [
+      'Syndrome de la queue de cheval',
+      'Fracture suspectée',
+      'Infection systémique',
+      'Pathologie tumorale'
+    ]
+  },
+  {
+    type: 'normal',
+    name: '✅ Prise en charge classique',
+    examples: [
+      'Lombalgie mécanique simple',
+      'Cervicalgie non spécifique',
+      'Tendinopathie d\'insertion'
+    ]
+  },
+  {
+    type: 'caution',
+    name: '⚠️ Vigilance particulière',
+    examples: [
+      'Symptômes mixtes',
+      'Évolution atypique',
+      'Facteurs de risque présents'
+    ]
+  }
+]
+
+const ANSWER_PRESETS = [
+  { label: 'Oui', icon: '✅' },
+  { label: 'Non', icon: '❌' },
+  { label: 'Positif', icon: '➕' },
+  { label: 'Négatif', icon: '➖' },
+  { label: 'Incertain', icon: '❓' },
+  { label: 'Douleur présente', icon: '😣' },
+  { label: 'Pas de douleur', icon: '😊' },
+  { label: 'Amélioration', icon: '📈' },
+  { label: 'Aggravation', icon: '📉' },
+  { label: 'Stable', icon: '➡️' }
+]
+
+export default function CreateTreePage() {
   const router = useRouter()
   const [treeName, setTreeName] = useState('')
   const [treeDescription, setTreeDescription] = useState('')
@@ -55,11 +115,13 @@ export default function ImprovedTreeEditorPage() {
   const [filteredTests, setFilteredTests] = useState<any[]>([])
   const [testSearch, setTestSearch] = useState('')
   const [selectedNode, setSelectedNode] = useState<TreeNode | null>(null)
-  const [selectedAnswer, setSelectedAnswer] = useState<Answer | null>(null)
   const [editingNode, setEditingNode] = useState<string | null>(null)
   const [editingAnswer, setEditingAnswer] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [showTestSelector, setShowTestSelector] = useState(false)
+  const [showDiagnosisEditor, setShowDiagnosisEditor] = useState(false)
+  const [showAnswerPresets, setShowAnswerPresets] = useState(false)
+  const [currentAnswerNode, setCurrentAnswerNode] = useState<TreeNode | null>(null)
 
   useEffect(() => {
     checkAdminAccess()
@@ -67,7 +129,6 @@ export default function ImprovedTreeEditorPage() {
   }, [])
 
   useEffect(() => {
-    // Filtrer les tests selon la recherche
     if (testSearch) {
       setFilteredTests(
         tests.filter(test =>
@@ -115,10 +176,13 @@ export default function ImprovedTreeEditorPage() {
     
     const newAnswer: Answer = {
       id: generateId(),
-      label: `Réponse ${node.answers.length + 1}`
+      label: `Réponse ${node.answers.length + 1}`,
+      icon: ''
     }
     
     node.answers.push(newAnswer)
+    setCurrentAnswerNode(node)
+    setShowAnswerPresets(true)
     setRootNode({ ...rootNode })
   }
 
@@ -130,10 +194,17 @@ export default function ImprovedTreeEditorPage() {
                type === 'test' ? 'Sélectionner un test' :
                'Diagnostic',
       answers: type === 'diagnosis' ? undefined : [],
-      expanded: true
+      expanded: true,
+      diagnosisType: type === 'diagnosis' ? 'normal' : undefined
     }
 
     answer.nextNode = newNode
+    
+    if (type === 'diagnosis') {
+      setSelectedNode(newNode)
+      setShowDiagnosisEditor(true)
+    }
+    
     setRootNode({ ...rootNode })
   }
 
@@ -159,14 +230,14 @@ export default function ImprovedTreeEditorPage() {
     setRootNode(updateRecursive(rootNode))
   }
 
-  const updateAnswer = (answerId: string, label: string) => {
+  const updateAnswer = (answerId: string, label: string, icon?: string) => {
     const updateRecursive = (node: TreeNode): TreeNode => {
       if (node.answers) {
         return {
           ...node,
           answers: node.answers.map(answer => {
             if (answer.id === answerId) {
-              return { ...answer, label }
+              return { ...answer, label, icon: icon || answer.icon }
             }
             return {
               ...answer,
@@ -243,7 +314,7 @@ export default function ImprovedTreeEditorPage() {
   }
 
   const saveTree = async () => {
-    if (!treeName) {
+    if (!treeName || !rootNode) {
       alert('Veuillez donner un nom à l\'arbre')
       return
     }
@@ -252,9 +323,9 @@ export default function ImprovedTreeEditorPage() {
     
     try {
       const { data: { user } } = await supabase.auth.getUser()
-      
-      // Create the tree
-      const { data: tree, error: treeError } = await supabase
+
+      // Créer l'arbre principal
+      const { data: treeData, error: treeError } = await supabase
         .from('decision_trees')
         .insert({
           name: treeName,
@@ -268,19 +339,30 @@ export default function ImprovedTreeEditorPage() {
 
       if (treeError) throw treeError
 
-      // Save nodes recursively with answers as JSON
+      // Sauvegarder les nœuds
       const saveNodes = async (node: TreeNode, parentId: string | null = null, index: number = 0) => {
+        // Préparer le contenu avec les nouveaux champs
+        const content = node.type === 'diagnosis' 
+          ? JSON.stringify({
+              text: node.content,
+              diagnosisType: node.diagnosisType,
+              recommendations: node.recommendations,
+              urgency: node.urgency,
+              referral: node.referral
+            })
+          : node.content
+
         const nodeData = {
-          tree_id: tree.id,
+          tree_id: treeData.id,
           parent_id: parentId,
           node_type: node.type,
-          content: node.content,
+          content: content,
           test_id: node.testId || null,
           order_index: index,
-          // Store answers structure in content as JSON for now
           responses: node.answers ? JSON.stringify(node.answers.map(a => ({
             id: a.id,
-            label: a.label
+            label: a.label,
+            icon: a.icon
           }))) : null
         }
 
@@ -292,7 +374,7 @@ export default function ImprovedTreeEditorPage() {
 
         if (nodeError) throw nodeError
 
-        // Save child nodes from answers
+        // Sauvegarder les nœuds enfants
         if (node.answers) {
           for (const answer of node.answers) {
             if (answer.nextNode) {
@@ -304,8 +386,8 @@ export default function ImprovedTreeEditorPage() {
 
       await saveNodes(rootNode)
 
-      alert('Arbre sauvegardé avec succès!')
-      router.push('/admin')
+      alert('Arbre créé avec succès!')
+      router.push('/trees')
     } catch (error) {
       console.error('Error saving tree:', error)
       alert('Erreur lors de la sauvegarde')
@@ -314,14 +396,26 @@ export default function ImprovedTreeEditorPage() {
     }
   }
 
+  const getNodeIcon = (node: TreeNode) => {
+    if (node.type === 'question') return '❓'
+    if (node.type === 'test') return '🧪'
+    if (node.type === 'diagnosis') {
+      if (node.diagnosisType === 'red_flag') return '🚨'
+      if (node.diagnosisType === 'caution') return '⚠️'
+      return '✅'
+    }
+    return '📝'
+  }
+
   const renderNode = (node: TreeNode, depth: number = 0) => {
     const isEditing = editingNode === node.id
+    const nodeIcon = getNodeIcon(node)
     
     return (
       <div key={node.id} className="ml-4">
         <div className={`flex items-center space-x-2 p-3 rounded-lg mb-2 transition-all ${
           selectedNode?.id === node.id ? 'bg-primary-100 border-2 border-primary-500' : 'bg-white border-2 border-gray-200'
-        }`}>
+        } hover:shadow-md`}>
           {node.answers && node.answers.length > 0 && (
             <button
               onClick={() => toggleExpand(node.id)}
@@ -331,13 +425,9 @@ export default function ImprovedTreeEditorPage() {
             </button>
           )}
 
-          <div className="flex items-center space-x-2">
-            {node.type === 'question' && <Circle className="h-5 w-5 text-blue-500" />}
-            {node.type === 'test' && <Clipboard className="h-5 w-5 text-green-500" />}
-            {node.type === 'diagnosis' && <Diamond className="h-5 w-5 text-purple-500" />}
-          </div>
+          <div className="text-2xl">{nodeIcon}</div>
 
-          {isEditing ? (
+          {isEditing && node.type !== 'diagnosis' ? (
             <input
               type="text"
               value={node.content}
@@ -353,8 +443,13 @@ export default function ImprovedTreeEditorPage() {
           ) : (
             <div
               className="flex-1 cursor-pointer"
-              onClick={() => setSelectedNode(node)}
-              onDoubleClick={() => node.type !== 'test' && setEditingNode(node.id)}
+              onClick={() => {
+                setSelectedNode(node)
+                if (node.type === 'diagnosis') {
+                  setShowDiagnosisEditor(true)
+                }
+              }}
+              onDoubleClick={() => node.type !== 'test' && node.type !== 'diagnosis' && setEditingNode(node.id)}
             >
               <p className="font-medium text-gray-900">{node.content}</p>
               {node.testId && (
@@ -362,41 +457,54 @@ export default function ImprovedTreeEditorPage() {
                   Test: {tests.find(t => t.id === node.testId)?.name}
                 </p>
               )}
-              {node.type === 'question' && node.answers && (
-                <p className="text-xs text-gray-500">
-                  {node.answers.length} réponse(s)
-                </p>
+              {node.type === 'diagnosis' && node.diagnosisType && (
+                <div className="flex items-center gap-2 mt-1">
+                  <span className={`text-xs px-2 py-0.5 rounded-full ${
+                    node.diagnosisType === 'red_flag' ? 'bg-red-100 text-red-700' :
+                    node.diagnosisType === 'caution' ? 'bg-yellow-100 text-yellow-700' :
+                    'bg-green-100 text-green-700'
+                  }`}>
+                    {node.diagnosisType === 'red_flag' ? 'Drapeau rouge' :
+                     node.diagnosisType === 'caution' ? 'Vigilance' :
+                     'Normal'}
+                  </span>
+                  {node.urgency && (
+                    <span className="text-xs text-gray-500">
+                      Urgence: {node.urgency}
+                    </span>
+                  )}
+                </div>
               )}
             </div>
           )}
 
           <div className="flex items-center space-x-1">
-            {node.type === 'test' && !node.testId && (
+            {node.type === 'test' && (
               <button
                 onClick={() => {
                   setSelectedNode(node)
                   setShowTestSelector(true)
                 }}
-                className="p-1.5 text-yellow-600 hover:bg-yellow-50 rounded"
-                title="Sélectionner un test"
+                className={`p-1.5 ${node.testId ? 'text-blue-600 hover:bg-blue-50' : 'text-yellow-600 hover:bg-yellow-50'} rounded`}
+                title={node.testId ? 'Changer le test' : 'Sélectionner un test'}
               >
-                <AlertCircle className="h-4 w-4" />
+                {node.testId ? <Edit2 className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
               </button>
             )}
             
-            {node.type === 'test' && node.testId && (
+            {node.type === 'diagnosis' && (
               <button
                 onClick={() => {
                   setSelectedNode(node)
-                  setShowTestSelector(true)
+                  setShowDiagnosisEditor(true)
                 }}
-                className="p-1.5 text-blue-600 hover:bg-blue-50 rounded"
-                title="Changer le test"
+                className="p-1.5 text-purple-600 hover:bg-purple-50 rounded"
+                title="Éditer le diagnostic"
               >
                 <Edit2 className="h-4 w-4" />
               </button>
             )}
-            
+
             {node.type === 'question' && (
               <button
                 onClick={() => setEditingNode(node.id)}
@@ -422,10 +530,10 @@ export default function ImprovedTreeEditorPage() {
         {/* Réponses */}
         {node.expanded && node.answers && node.type !== 'diagnosis' && (
           <div className="ml-8 space-y-2">
-            {node.answers.map((answer, index) => (
+            {node.answers.map((answer) => (
               <div key={answer.id} className="relative">
                 <div className="flex items-center space-x-2">
-                  <ArrowRight className="h-4 w-4 text-gray-400" />
+                  <span className="text-lg">{answer.icon || '➡️'}</span>
                   
                   {editingAnswer === answer.id ? (
                     <input
@@ -442,7 +550,7 @@ export default function ImprovedTreeEditorPage() {
                     />
                   ) : (
                     <div
-                      className="bg-gray-100 px-3 py-1 rounded-lg text-sm cursor-pointer hover:bg-gray-200"
+                      className="bg-gradient-to-r from-gray-50 to-gray-100 px-3 py-1 rounded-lg text-sm cursor-pointer hover:from-gray-100 hover:to-gray-200 shadow-sm"
                       onDoubleClick={() => setEditingAnswer(answer.id)}
                     >
                       {answer.label}
@@ -474,21 +582,24 @@ export default function ImprovedTreeEditorPage() {
                     <div className="flex space-x-2">
                       <button
                         onClick={() => addNodeToAnswer(answer, 'question')}
-                        className="px-2 py-1 bg-blue-50 text-blue-600 rounded text-xs hover:bg-blue-100"
+                        className="px-2 py-1 bg-blue-50 text-blue-600 rounded text-xs hover:bg-blue-100 flex items-center gap-1"
                       >
-                        + Question
+                        <Plus className="h-3 w-3" />
+                        Question
                       </button>
                       <button
                         onClick={() => addNodeToAnswer(answer, 'test')}
-                        className="px-2 py-1 bg-green-50 text-green-600 rounded text-xs hover:bg-green-100"
+                        className="px-2 py-1 bg-green-50 text-green-600 rounded text-xs hover:bg-green-100 flex items-center gap-1"
                       >
-                        + Test
+                        <Plus className="h-3 w-3" />
+                        Test
                       </button>
                       <button
                         onClick={() => addNodeToAnswer(answer, 'diagnosis')}
-                        className="px-2 py-1 bg-purple-50 text-purple-600 rounded text-xs hover:bg-purple-100"
+                        className="px-2 py-1 bg-purple-50 text-purple-600 rounded text-xs hover:bg-purple-100 flex items-center gap-1"
                       >
-                        + Diagnostic
+                        <Plus className="h-3 w-3" />
+                        Diagnostic
                       </button>
                     </div>
                   </div>
@@ -499,7 +610,7 @@ export default function ImprovedTreeEditorPage() {
             {/* Bouton pour ajouter une réponse */}
             <button
               onClick={() => addAnswer(node)}
-              className="flex items-center space-x-1 px-3 py-1 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 text-sm"
+              className="flex items-center space-x-1 px-3 py-1 bg-gradient-to-r from-primary-50 to-primary-100 text-primary-600 rounded-lg hover:from-primary-100 hover:to-primary-200 text-sm shadow-sm"
             >
               <Plus className="h-3 w-3" />
               <span>Ajouter une réponse</span>
@@ -597,46 +708,150 @@ export default function ImprovedTreeEditorPage() {
           </div>
         </div>
 
-        {/* Instructions */}
-        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
-          <h3 className="font-semibold text-blue-900 mb-2">Comment créer votre arbre :</h3>
-          <ol className="text-sm text-blue-800 space-y-1 list-decimal list-inside">
-            <li>Commencez par modifier la question initiale (double-clic)</li>
-            <li>Ajoutez des réponses possibles (bouton "Ajouter une réponse")</li>
-            <li>Pour chaque réponse, ajoutez soit une question, un test ou un diagnostic</li>
-            <li>Les questions peuvent avoir plusieurs réponses (a, b, c...)</li>
-            <li>Les tests orthopédiques se sélectionnent dans la liste</li>
-            <li>Les diagnostics sont les conclusions finales</li>
-          </ol>
+        {/* Légende visuelle */}
+        <div className="bg-white rounded-xl shadow-sm p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-6 text-sm">
+              <div className="flex items-center space-x-2">
+                <span className="text-2xl">❓</span>
+                <span className="text-gray-600">Question</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <span className="text-2xl">🧪</span>
+                <span className="text-gray-600">Test</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <span className="text-2xl">✅</span>
+                <span className="text-gray-600">Diagnostic normal</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <span className="text-2xl">⚠️</span>
+                <span className="text-gray-600">Vigilance</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <span className="text-2xl">🚨</span>
+                <span className="text-gray-600">Drapeau rouge</span>
+              </div>
+            </div>
+            <div className="text-sm text-gray-500">
+              Double-cliquez pour éditer • Glissez pour réorganiser
+            </div>
+          </div>
         </div>
 
         {/* Tree Editor */}
-        <div className="bg-white rounded-xl shadow-sm p-6">
+        <div className="bg-gradient-to-b from-gray-50 to-white rounded-xl shadow-sm p-6">
           <div className="mb-4">
-            <h2 className="text-lg font-semibold text-gray-900 mb-2">Structure de l'arbre</h2>
-            <div className="flex items-center space-x-4 text-sm text-gray-600">
-              <div className="flex items-center space-x-1">
-                <Circle className="h-4 w-4 text-blue-500" />
-                <span>Question</span>
-              </div>
-              <div className="flex items-center space-x-1">
-                <Clipboard className="h-4 w-4 text-green-500" />
-                <span>Test</span>
-              </div>
-              <div className="flex items-center space-x-1">
-                <Diamond className="h-4 w-4 text-purple-500" />
-                <span>Diagnostic</span>
-              </div>
-            </div>
+            <h2 className="text-lg font-semibold text-gray-900">Structure de l'arbre</h2>
           </div>
 
-          <div className="border-2 border-gray-200 rounded-lg p-4 bg-gray-50 min-h-[400px] overflow-auto">
+          <div className="border-2 border-gray-200 rounded-lg p-4 bg-white min-h-[400px] overflow-auto">
             {renderNode(rootNode)}
           </div>
         </div>
       </div>
 
-      {/* Test Selector Modal with Search */}
+      {/* Modal d'édition de diagnostic */}
+      {showDiagnosisEditor && selectedNode && selectedNode.type === 'diagnosis' && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-hidden">
+            <div className="p-6 border-b">
+              <h3 className="text-lg font-semibold">Configurer le diagnostic</h3>
+            </div>
+            
+            <div className="p-6 overflow-y-auto">
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Type de diagnostic
+                  </label>
+                  <div className="grid grid-cols-3 gap-3">
+                    {DIAGNOSIS_PRESETS.map(preset => (
+                      <button
+                        key={preset.type}
+                        onClick={() => updateNode(selectedNode.id, { diagnosisType: preset.type as any })}
+                        className={`p-3 rounded-lg border-2 transition-all ${
+                          selectedNode.diagnosisType === preset.type
+                            ? 'border-primary-500 bg-primary-50'
+                            : 'border-gray-200 hover:border-gray-300'
+                        }`}
+                      >
+                        <div className="text-2xl mb-1">{preset.name.split(' ')[0]}</div>
+                        <div className="text-xs font-medium">{preset.name.substring(2)}</div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Diagnostic
+                  </label>
+                  <textarea
+                    value={selectedNode.content}
+                    onChange={(e) => updateNode(selectedNode.id, { content: e.target.value })}
+                    rows={3}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                    placeholder="Description du diagnostic..."
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Niveau d'urgence
+                  </label>
+                  <select
+                    value={selectedNode.urgency || 'routine'}
+                    onChange={(e) => updateNode(selectedNode.id, { urgency: e.target.value as any })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                  >
+                    <option value="routine">Routine</option>
+                    <option value="urgent">Urgent (sous 48h)</option>
+                    <option value="immediate">Immédiat</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Recommandations de prise en charge
+                  </label>
+                  <textarea
+                    value={selectedNode.recommendations || ''}
+                    onChange={(e) => updateNode(selectedNode.id, { recommendations: e.target.value })}
+                    rows={3}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                    placeholder="Ex: Repos, glace, mobilisations douces..."
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Orientation suggérée (si nécessaire)
+                  </label>
+                  <input
+                    type="text"
+                    value={selectedNode.referral || ''}
+                    onChange={(e) => updateNode(selectedNode.id, { referral: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                    placeholder="Ex: Médecin généraliste, Urgences, Rhumatologue..."
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="p-6 border-t flex justify-end gap-3">
+              <button
+                onClick={() => setShowDiagnosisEditor(false)}
+                className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
+              >
+                Valider
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de sélection de test */}
       {showTestSelector && selectedNode && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-xl max-w-3xl w-full max-h-[80vh] overflow-hidden">
@@ -654,7 +869,6 @@ export default function ImprovedTreeEditorPage() {
                 </button>
               </div>
               
-              {/* Barre de recherche */}
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
                 <input
@@ -692,16 +906,54 @@ export default function ImprovedTreeEditorPage() {
                     >
                       <p className="font-medium">{test.name}</p>
                       <p className="text-sm text-gray-600 mt-1">{test.description}</p>
-                      {(test.sensitivity || test.specificity) && (
-                        <div className="flex gap-4 mt-2 text-xs text-gray-500">
-                          {test.sensitivity && <span>Sensibilité: {test.sensitivity}%</span>}
-                          {test.specificity && <span>Spécificité: {test.specificity}%</span>}
-                        </div>
+                      {test.category && (
+                        <p className="text-xs text-primary-600 mt-1">
+                          Région: {test.category}
+                        </p>
                       )}
                     </button>
                   ))}
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de présets de réponses */}
+      {showAnswerPresets && currentAnswerNode && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl max-w-md w-full">
+            <div className="p-6 border-b">
+              <h3 className="text-lg font-semibold">Choisir un type de réponse</h3>
+            </div>
+            
+            <div className="p-4 max-h-[60vh] overflow-y-auto">
+              <div className="grid grid-cols-2 gap-2">
+                {ANSWER_PRESETS.map(preset => (
+                  <button
+                    key={preset.label}
+                    onClick={() => {
+                      const lastAnswer = currentAnswerNode.answers?.[currentAnswerNode.answers.length - 1]
+                      if (lastAnswer) {
+                        updateAnswer(lastAnswer.id, preset.label, preset.icon)
+                      }
+                      setShowAnswerPresets(false)
+                    }}
+                    className="p-3 text-left border rounded-lg hover:bg-gray-50 flex items-center gap-2"
+                  >
+                    <span className="text-xl">{preset.icon}</span>
+                    <span className="font-medium">{preset.label}</span>
+                  </button>
+                ))}
+              </div>
+              
+              <button
+                onClick={() => setShowAnswerPresets(false)}
+                className="w-full mt-4 p-2 text-gray-600 hover:bg-gray-100 rounded-lg"
+              >
+                Personnalisé
+              </button>
             </div>
           </div>
         </div>

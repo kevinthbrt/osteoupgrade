@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useParams, useRouter } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import AuthLayout from '@/components/AuthLayout'
 import {
@@ -20,7 +20,14 @@ import {
   Search,
   ArrowRight,
   Loader2,
-  ArrowLeft
+  AlertTriangle,
+  CheckCircle,
+  Info,
+  Zap,
+  Hospital,
+  FileText,
+  Target,
+  Activity
 } from 'lucide-react'
 
 interface TreeNode {
@@ -30,25 +37,80 @@ interface TreeNode {
   testId?: string
   answers?: Answer[]
   expanded?: boolean
-  dbId?: string // ID dans la base de données
+  // Nouveaux champs pour les diagnostics
+  diagnosisType?: 'red_flag' | 'normal' | 'caution'
+  recommendations?: string
+  urgency?: 'immediate' | 'urgent' | 'routine'
+  referral?: string
+  // Champs pour rendre plus visuel
+  icon?: string
+  color?: string
 }
 
 interface Answer {
   id: string
   label: string
   nextNode?: TreeNode
+  icon?: string // Icône pour la réponse
 }
 
-export default function EditTreePage() {
-  const params = useParams()
-  const router = useRouter()
-  const treeId = params?.id as string
+const DIAGNOSIS_PRESETS = [
+  {
+    type: 'red_flag',
+    name: '🚨 Drapeau Rouge',
+    examples: [
+      'Syndrome de la queue de cheval',
+      'Fracture suspectée',
+      'Infection systémique',
+      'Pathologie tumorale'
+    ]
+  },
+  {
+    type: 'normal',
+    name: '✅ Prise en charge classique',
+    examples: [
+      'Lombalgie mécanique simple',
+      'Cervicalgie non spécifique',
+      'Tendinopathie d\'insertion'
+    ]
+  },
+  {
+    type: 'caution',
+    name: '⚠️ Vigilance particulière',
+    examples: [
+      'Symptômes mixtes',
+      'Évolution atypique',
+      'Facteurs de risque présents'
+    ]
+  }
+]
 
+const ANSWER_PRESETS = [
+  { label: 'Oui', icon: '✅' },
+  { label: 'Non', icon: '❌' },
+  { label: 'Positif', icon: '➕' },
+  { label: 'Négatif', icon: '➖' },
+  { label: 'Incertain', icon: '❓' },
+  { label: 'Douleur présente', icon: '😣' },
+  { label: 'Pas de douleur', icon: '😊' },
+  { label: 'Amélioration', icon: '📈' },
+  { label: 'Aggravation', icon: '📉' },
+  { label: 'Stable', icon: '➡️' }
+]
+
+export default function CreateTreePage() {
+  const router = useRouter()
   const [treeName, setTreeName] = useState('')
   const [treeDescription, setTreeDescription] = useState('')
   const [treeCategory, setTreeCategory] = useState('')
   const [isFree, setIsFree] = useState(false)
-  const [rootNode, setRootNode] = useState<TreeNode | null>(null)
+  const [rootNode, setRootNode] = useState<TreeNode>({
+    id: 'root',
+    type: 'question',
+    content: 'Question initiale',
+    answers: [],
+    expanded: true
+  })
   const [tests, setTests] = useState<any[]>([])
   const [filteredTests, setFilteredTests] = useState<any[]>([])
   const [testSearch, setTestSearch] = useState('')
@@ -56,16 +118,15 @@ export default function EditTreePage() {
   const [editingNode, setEditingNode] = useState<string | null>(null)
   const [editingAnswer, setEditingAnswer] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
-  const [loading, setLoading] = useState(true)
   const [showTestSelector, setShowTestSelector] = useState(false)
+  const [showDiagnosisEditor, setShowDiagnosisEditor] = useState(false)
+  const [showAnswerPresets, setShowAnswerPresets] = useState(false)
+  const [currentAnswerNode, setCurrentAnswerNode] = useState<TreeNode | null>(null)
 
   useEffect(() => {
-    if (treeId) {
-      checkAdminAccess()
-      loadTree()
-      loadTests()
-    }
-  }, [treeId])
+    checkAdminAccess()
+    loadTests()
+  }, [])
 
   useEffect(() => {
     if (testSearch) {
@@ -99,102 +160,6 @@ export default function EditTreePage() {
     }
   }
 
-  const loadTree = async () => {
-    try {
-      // Charger les informations de l'arbre
-      const { data: treeData } = await supabase
-        .from('decision_trees')
-        .select('*')
-        .eq('id', treeId)
-        .single()
-
-      if (!treeData) {
-        alert('Arbre non trouvé')
-        router.push('/admin')
-        return
-      }
-
-      setTreeName(treeData.name)
-      setTreeDescription(treeData.description || '')
-      setTreeCategory(treeData.category || '')
-      setIsFree(treeData.is_free)
-
-      // Charger les nœuds
-      const { data: nodesData } = await supabase
-        .from('tree_nodes')
-        .select('*')
-        .eq('tree_id', treeId)
-        .order('parent_id', { ascending: true })
-        .order('order_index', { ascending: true })
-
-      if (nodesData && nodesData.length > 0) {
-        // Reconstruire l'arbre
-        const nodeMap = new Map<string, TreeNode>()
-        const rootNodes: TreeNode[] = []
-
-        // Créer tous les nœuds
-        nodesData.forEach(node => {
-          const treeNode: TreeNode = {
-            id: node.id,
-            dbId: node.id,
-            type: node.node_type as 'question' | 'test' | 'diagnosis',
-            content: node.content,
-            testId: node.test_id,
-            answers: node.responses ? JSON.parse(node.responses) : [],
-            expanded: true
-          }
-          nodeMap.set(node.id, treeNode)
-        })
-
-        // Établir les relations via les réponses
-        nodesData.forEach(node => {
-          const currentNode = nodeMap.get(node.id)!
-          
-          if (!node.parent_id) {
-            rootNodes.push(currentNode)
-          } else {
-            // Trouver le parent et l'ajouter comme nextNode d'une réponse
-            const parent = nodeMap.get(node.parent_id)
-            if (parent && parent.answers) {
-              const answerIndex = node.order_index
-              if (parent.answers[answerIndex]) {
-                parent.answers[answerIndex].nextNode = currentNode
-              }
-            }
-          }
-        })
-
-        // Définir le nœud racine
-        if (rootNodes.length > 0) {
-          setRootNode(rootNodes[0])
-        } else {
-          // Créer un nœud racine par défaut si vide
-          setRootNode({
-            id: 'root',
-            type: 'question',
-            content: 'Question initiale',
-            answers: [],
-            expanded: true
-          })
-        }
-      } else {
-        // Arbre vide, créer un nœud racine
-        setRootNode({
-          id: 'root',
-          type: 'question',
-          content: 'Question initiale',
-          answers: [],
-          expanded: true
-        })
-      }
-    } catch (error) {
-      console.error('Error loading tree:', error)
-      alert('Erreur lors du chargement de l\'arbre')
-    } finally {
-      setLoading(false)
-    }
-  }
-
   const loadTests = async () => {
     const { data } = await supabase
       .from('orthopedic_tests')
@@ -211,11 +176,14 @@ export default function EditTreePage() {
     
     const newAnswer: Answer = {
       id: generateId(),
-      label: `Réponse ${node.answers.length + 1}`
+      label: `Réponse ${node.answers.length + 1}`,
+      icon: ''
     }
     
     node.answers.push(newAnswer)
-    setRootNode({ ...rootNode! })
+    setCurrentAnswerNode(node)
+    setShowAnswerPresets(true)
+    setRootNode({ ...rootNode })
   }
 
   const addNodeToAnswer = (answer: Answer, type: 'question' | 'test' | 'diagnosis') => {
@@ -226,11 +194,18 @@ export default function EditTreePage() {
                type === 'test' ? 'Sélectionner un test' :
                'Diagnostic',
       answers: type === 'diagnosis' ? undefined : [],
-      expanded: true
+      expanded: true,
+      diagnosisType: type === 'diagnosis' ? 'normal' : undefined
     }
 
     answer.nextNode = newNode
-    setRootNode({ ...rootNode! })
+    
+    if (type === 'diagnosis') {
+      setSelectedNode(newNode)
+      setShowDiagnosisEditor(true)
+    }
+    
+    setRootNode({ ...rootNode })
   }
 
   const updateNode = (nodeId: string, updates: Partial<TreeNode>) => {
@@ -252,19 +227,17 @@ export default function EditTreePage() {
       return node
     }
     
-    if (rootNode) {
-      setRootNode(updateRecursive(rootNode))
-    }
+    setRootNode(updateRecursive(rootNode))
   }
 
-  const updateAnswer = (answerId: string, label: string) => {
+  const updateAnswer = (answerId: string, label: string, icon?: string) => {
     const updateRecursive = (node: TreeNode): TreeNode => {
       if (node.answers) {
         return {
           ...node,
           answers: node.answers.map(answer => {
             if (answer.id === answerId) {
-              return { ...answer, label }
+              return { ...answer, label, icon: icon || answer.icon }
             }
             return {
               ...answer,
@@ -276,9 +249,7 @@ export default function EditTreePage() {
       return node
     }
     
-    if (rootNode) {
-      setRootNode(updateRecursive(rootNode))
-    }
+    setRootNode(updateRecursive(rootNode))
   }
 
   const deleteAnswer = (answerId: string) => {
@@ -297,9 +268,7 @@ export default function EditTreePage() {
       return node
     }
     
-    if (rootNode) {
-      setRootNode(deleteRecursive(rootNode))
-    }
+    setRootNode(deleteRecursive(rootNode))
   }
 
   const deleteNode = (nodeId: string) => {
@@ -318,10 +287,8 @@ export default function EditTreePage() {
       return node
     }
     
-    if (rootNode) {
-      const result = deleteRecursive(rootNode)
-      if (result) setRootNode(result)
-    }
+    const result = deleteRecursive(rootNode)
+    if (result) setRootNode(result)
   }
 
   const toggleExpand = (nodeId: string) => {
@@ -343,9 +310,7 @@ export default function EditTreePage() {
       return node
     }
     
-    if (rootNode) {
-      setRootNode(toggleRecursive(rootNode))
-    }
+    setRootNode(toggleRecursive(rootNode))
   }
 
   const saveTree = async () => {
@@ -357,40 +322,47 @@ export default function EditTreePage() {
     setSaving(true)
     
     try {
-      // Mettre à jour les infos de l'arbre
-      const { error: updateError } = await supabase
+      const { data: { user } } = await supabase.auth.getUser()
+
+      // Créer l'arbre principal
+      const { data: treeData, error: treeError } = await supabase
         .from('decision_trees')
-        .update({
+        .insert({
           name: treeName,
           description: treeDescription,
           category: treeCategory,
           is_free: isFree,
-          updated_at: new Date().toISOString()
+          created_by: user?.id
         })
-        .eq('id', treeId)
+        .select()
+        .single()
 
-      if (updateError) throw updateError
+      if (treeError) throw treeError
 
-      // Supprimer les anciens nœuds
-      const { error: deleteError } = await supabase
-        .from('tree_nodes')
-        .delete()
-        .eq('tree_id', treeId)
-
-      if (deleteError) throw deleteError
-
-      // Sauvegarder les nouveaux nœuds
+      // Sauvegarder les nœuds
       const saveNodes = async (node: TreeNode, parentId: string | null = null, index: number = 0) => {
+        // Préparer le contenu avec les nouveaux champs
+        const content = node.type === 'diagnosis' 
+          ? JSON.stringify({
+              text: node.content,
+              diagnosisType: node.diagnosisType,
+              recommendations: node.recommendations,
+              urgency: node.urgency,
+              referral: node.referral
+            })
+          : node.content
+
         const nodeData = {
-          tree_id: treeId,
+          tree_id: treeData.id,
           parent_id: parentId,
           node_type: node.type,
-          content: node.content,
+          content: content,
           test_id: node.testId || null,
           order_index: index,
           responses: node.answers ? JSON.stringify(node.answers.map(a => ({
             id: a.id,
-            label: a.label
+            label: a.label,
+            icon: a.icon
           }))) : null
         }
 
@@ -414,7 +386,7 @@ export default function EditTreePage() {
 
       await saveNodes(rootNode)
 
-      alert('Arbre mis à jour avec succès!')
+      alert('Arbre créé avec succès!')
       router.push('/trees')
     } catch (error) {
       console.error('Error saving tree:', error)
@@ -424,14 +396,26 @@ export default function EditTreePage() {
     }
   }
 
+  const getNodeIcon = (node: TreeNode) => {
+    if (node.type === 'question') return '❓'
+    if (node.type === 'test') return '🧪'
+    if (node.type === 'diagnosis') {
+      if (node.diagnosisType === 'red_flag') return '🚨'
+      if (node.diagnosisType === 'caution') return '⚠️'
+      return '✅'
+    }
+    return '📝'
+  }
+
   const renderNode = (node: TreeNode, depth: number = 0) => {
     const isEditing = editingNode === node.id
+    const nodeIcon = getNodeIcon(node)
     
     return (
       <div key={node.id} className="ml-4">
         <div className={`flex items-center space-x-2 p-3 rounded-lg mb-2 transition-all ${
           selectedNode?.id === node.id ? 'bg-primary-100 border-2 border-primary-500' : 'bg-white border-2 border-gray-200'
-        }`}>
+        } hover:shadow-md`}>
           {node.answers && node.answers.length > 0 && (
             <button
               onClick={() => toggleExpand(node.id)}
@@ -441,13 +425,9 @@ export default function EditTreePage() {
             </button>
           )}
 
-          <div className="flex items-center space-x-2">
-            {node.type === 'question' && <Circle className="h-5 w-5 text-blue-500" />}
-            {node.type === 'test' && <Clipboard className="h-5 w-5 text-green-500" />}
-            {node.type === 'diagnosis' && <Diamond className="h-5 w-5 text-purple-500" />}
-          </div>
+          <div className="text-2xl">{nodeIcon}</div>
 
-          {isEditing ? (
+          {isEditing && node.type !== 'diagnosis' ? (
             <input
               type="text"
               value={node.content}
@@ -463,8 +443,13 @@ export default function EditTreePage() {
           ) : (
             <div
               className="flex-1 cursor-pointer"
-              onClick={() => setSelectedNode(node)}
-              onDoubleClick={() => node.type !== 'test' && setEditingNode(node.id)}
+              onClick={() => {
+                setSelectedNode(node)
+                if (node.type === 'diagnosis') {
+                  setShowDiagnosisEditor(true)
+                }
+              }}
+              onDoubleClick={() => node.type !== 'test' && node.type !== 'diagnosis' && setEditingNode(node.id)}
             >
               <p className="font-medium text-gray-900">{node.content}</p>
               {node.testId && (
@@ -472,10 +457,23 @@ export default function EditTreePage() {
                   Test: {tests.find(t => t.id === node.testId)?.name}
                 </p>
               )}
-              {node.type === 'question' && node.answers && (
-                <p className="text-xs text-gray-500">
-                  {node.answers.length} réponse(s)
-                </p>
+              {node.type === 'diagnosis' && node.diagnosisType && (
+                <div className="flex items-center gap-2 mt-1">
+                  <span className={`text-xs px-2 py-0.5 rounded-full ${
+                    node.diagnosisType === 'red_flag' ? 'bg-red-100 text-red-700' :
+                    node.diagnosisType === 'caution' ? 'bg-yellow-100 text-yellow-700' :
+                    'bg-green-100 text-green-700'
+                  }`}>
+                    {node.diagnosisType === 'red_flag' ? 'Drapeau rouge' :
+                     node.diagnosisType === 'caution' ? 'Vigilance' :
+                     'Normal'}
+                  </span>
+                  {node.urgency && (
+                    <span className="text-xs text-gray-500">
+                      Urgence: {node.urgency}
+                    </span>
+                  )}
+                </div>
               )}
             </div>
           )}
@@ -494,6 +492,19 @@ export default function EditTreePage() {
               </button>
             )}
             
+            {node.type === 'diagnosis' && (
+              <button
+                onClick={() => {
+                  setSelectedNode(node)
+                  setShowDiagnosisEditor(true)
+                }}
+                className="p-1.5 text-purple-600 hover:bg-purple-50 rounded"
+                title="Éditer le diagnostic"
+              >
+                <Edit2 className="h-4 w-4" />
+              </button>
+            )}
+
             {node.type === 'question' && (
               <button
                 onClick={() => setEditingNode(node.id)}
@@ -504,7 +515,7 @@ export default function EditTreePage() {
               </button>
             )}
 
-            {node.id !== 'root' && node.dbId !== rootNode?.dbId && (
+            {node.id !== 'root' && (
               <button
                 onClick={() => deleteNode(node.id)}
                 className="p-1.5 text-red-600 hover:bg-red-50 rounded"
@@ -522,7 +533,7 @@ export default function EditTreePage() {
             {node.answers.map((answer) => (
               <div key={answer.id} className="relative">
                 <div className="flex items-center space-x-2">
-                  <ArrowRight className="h-4 w-4 text-gray-400" />
+                  <span className="text-lg">{answer.icon || '➡️'}</span>
                   
                   {editingAnswer === answer.id ? (
                     <input
@@ -539,7 +550,7 @@ export default function EditTreePage() {
                     />
                   ) : (
                     <div
-                      className="bg-gray-100 px-3 py-1 rounded-lg text-sm cursor-pointer hover:bg-gray-200"
+                      className="bg-gradient-to-r from-gray-50 to-gray-100 px-3 py-1 rounded-lg text-sm cursor-pointer hover:from-gray-100 hover:to-gray-200 shadow-sm"
                       onDoubleClick={() => setEditingAnswer(answer.id)}
                     >
                       {answer.label}
@@ -571,21 +582,24 @@ export default function EditTreePage() {
                     <div className="flex space-x-2">
                       <button
                         onClick={() => addNodeToAnswer(answer, 'question')}
-                        className="px-2 py-1 bg-blue-50 text-blue-600 rounded text-xs hover:bg-blue-100"
+                        className="px-2 py-1 bg-blue-50 text-blue-600 rounded text-xs hover:bg-blue-100 flex items-center gap-1"
                       >
-                        + Question
+                        <Plus className="h-3 w-3" />
+                        Question
                       </button>
                       <button
                         onClick={() => addNodeToAnswer(answer, 'test')}
-                        className="px-2 py-1 bg-green-50 text-green-600 rounded text-xs hover:bg-green-100"
+                        className="px-2 py-1 bg-green-50 text-green-600 rounded text-xs hover:bg-green-100 flex items-center gap-1"
                       >
-                        + Test
+                        <Plus className="h-3 w-3" />
+                        Test
                       </button>
                       <button
                         onClick={() => addNodeToAnswer(answer, 'diagnosis')}
-                        className="px-2 py-1 bg-purple-50 text-purple-600 rounded text-xs hover:bg-purple-100"
+                        className="px-2 py-1 bg-purple-50 text-purple-600 rounded text-xs hover:bg-purple-100 flex items-center gap-1"
                       >
-                        + Diagnostic
+                        <Plus className="h-3 w-3" />
+                        Diagnostic
                       </button>
                     </div>
                   </div>
@@ -596,7 +610,7 @@ export default function EditTreePage() {
             {/* Bouton pour ajouter une réponse */}
             <button
               onClick={() => addAnswer(node)}
-              className="flex items-center space-x-1 px-3 py-1 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 text-sm"
+              className="flex items-center space-x-1 px-3 py-1 bg-gradient-to-r from-primary-50 to-primary-100 text-primary-600 rounded-lg hover:from-primary-100 hover:to-primary-200 text-sm shadow-sm"
             >
               <Plus className="h-3 w-3" />
               <span>Ajouter une réponse</span>
@@ -607,37 +621,6 @@ export default function EditTreePage() {
     )
   }
 
-  if (loading) {
-    return (
-      <AuthLayout>
-        <div className="flex items-center justify-center h-96">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-        </div>
-      </AuthLayout>
-    )
-  }
-
-  if (!rootNode) {
-    return (
-      <AuthLayout>
-        <div className="max-w-2xl mx-auto">
-          <div className="bg-white rounded-xl shadow-sm p-8 text-center">
-            <TreePine className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <h2 className="text-xl font-semibold text-gray-900 mb-2">
-              Arbre non trouvé
-            </h2>
-            <button
-              onClick={() => router.push('/admin')}
-              className="bg-primary-600 hover:bg-primary-700 text-white px-6 py-2 rounded-lg font-medium"
-            >
-              Retour
-            </button>
-          </div>
-        </div>
-      </AuthLayout>
-    )
-  }
-
   return (
     <AuthLayout>
       <div className="max-w-7xl mx-auto space-y-6">
@@ -645,15 +628,9 @@ export default function EditTreePage() {
         <div className="bg-white rounded-xl shadow-sm p-6">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center space-x-3">
-              <button
-                onClick={() => router.push('/trees')}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-              >
-                <ArrowLeft className="h-5 w-5 text-gray-600" />
-              </button>
               <TreePine className="h-8 w-8 text-primary-600" />
               <h1 className="text-2xl font-bold text-gray-900">
-                Éditer l'arbre décisionnel
+                Créer un arbre décisionnel
               </h1>
             </div>
             <button
@@ -731,33 +708,150 @@ export default function EditTreePage() {
           </div>
         </div>
 
-        {/* Tree Editor */}
-        <div className="bg-white rounded-xl shadow-sm p-6">
-          <div className="mb-4">
-            <h2 className="text-lg font-semibold text-gray-900 mb-2">Structure de l'arbre</h2>
-            <div className="flex items-center space-x-4 text-sm text-gray-600">
-              <div className="flex items-center space-x-1">
-                <Circle className="h-4 w-4 text-blue-500" />
-                <span>Question</span>
+        {/* Légende visuelle */}
+        <div className="bg-white rounded-xl shadow-sm p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-6 text-sm">
+              <div className="flex items-center space-x-2">
+                <span className="text-2xl">❓</span>
+                <span className="text-gray-600">Question</span>
               </div>
-              <div className="flex items-center space-x-1">
-                <Clipboard className="h-4 w-4 text-green-500" />
-                <span>Test</span>
+              <div className="flex items-center space-x-2">
+                <span className="text-2xl">🧪</span>
+                <span className="text-gray-600">Test</span>
               </div>
-              <div className="flex items-center space-x-1">
-                <Diamond className="h-4 w-4 text-purple-500" />
-                <span>Diagnostic</span>
+              <div className="flex items-center space-x-2">
+                <span className="text-2xl">✅</span>
+                <span className="text-gray-600">Diagnostic normal</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <span className="text-2xl">⚠️</span>
+                <span className="text-gray-600">Vigilance</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <span className="text-2xl">🚨</span>
+                <span className="text-gray-600">Drapeau rouge</span>
               </div>
             </div>
+            <div className="text-sm text-gray-500">
+              Double-cliquez pour éditer • Glissez pour réorganiser
+            </div>
+          </div>
+        </div>
+
+        {/* Tree Editor */}
+        <div className="bg-gradient-to-b from-gray-50 to-white rounded-xl shadow-sm p-6">
+          <div className="mb-4">
+            <h2 className="text-lg font-semibold text-gray-900">Structure de l'arbre</h2>
           </div>
 
-          <div className="border-2 border-gray-200 rounded-lg p-4 bg-gray-50 min-h-[400px] overflow-auto">
+          <div className="border-2 border-gray-200 rounded-lg p-4 bg-white min-h-[400px] overflow-auto">
             {renderNode(rootNode)}
           </div>
         </div>
       </div>
 
-      {/* Test Selector Modal */}
+      {/* Modal d'édition de diagnostic */}
+      {showDiagnosisEditor && selectedNode && selectedNode.type === 'diagnosis' && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-hidden">
+            <div className="p-6 border-b">
+              <h3 className="text-lg font-semibold">Configurer le diagnostic</h3>
+            </div>
+            
+            <div className="p-6 overflow-y-auto">
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Type de diagnostic
+                  </label>
+                  <div className="grid grid-cols-3 gap-3">
+                    {DIAGNOSIS_PRESETS.map(preset => (
+                      <button
+                        key={preset.type}
+                        onClick={() => updateNode(selectedNode.id, { diagnosisType: preset.type as any })}
+                        className={`p-3 rounded-lg border-2 transition-all ${
+                          selectedNode.diagnosisType === preset.type
+                            ? 'border-primary-500 bg-primary-50'
+                            : 'border-gray-200 hover:border-gray-300'
+                        }`}
+                      >
+                        <div className="text-2xl mb-1">{preset.name.split(' ')[0]}</div>
+                        <div className="text-xs font-medium">{preset.name.substring(2)}</div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Diagnostic
+                  </label>
+                  <textarea
+                    value={selectedNode.content}
+                    onChange={(e) => updateNode(selectedNode.id, { content: e.target.value })}
+                    rows={3}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                    placeholder="Description du diagnostic..."
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Niveau d'urgence
+                  </label>
+                  <select
+                    value={selectedNode.urgency || 'routine'}
+                    onChange={(e) => updateNode(selectedNode.id, { urgency: e.target.value as any })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                  >
+                    <option value="routine">Routine</option>
+                    <option value="urgent">Urgent (sous 48h)</option>
+                    <option value="immediate">Immédiat</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Recommandations de prise en charge
+                  </label>
+                  <textarea
+                    value={selectedNode.recommendations || ''}
+                    onChange={(e) => updateNode(selectedNode.id, { recommendations: e.target.value })}
+                    rows={3}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                    placeholder="Ex: Repos, glace, mobilisations douces..."
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Orientation suggérée (si nécessaire)
+                  </label>
+                  <input
+                    type="text"
+                    value={selectedNode.referral || ''}
+                    onChange={(e) => updateNode(selectedNode.id, { referral: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                    placeholder="Ex: Médecin généraliste, Urgences, Rhumatologue..."
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="p-6 border-t flex justify-end gap-3">
+              <button
+                onClick={() => setShowDiagnosisEditor(false)}
+                className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
+              >
+                Valider
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de sélection de test */}
       {showTestSelector && selectedNode && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-xl max-w-3xl w-full max-h-[80vh] overflow-hidden">
@@ -821,6 +915,45 @@ export default function EditTreePage() {
                   ))}
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de présets de réponses */}
+      {showAnswerPresets && currentAnswerNode && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl max-w-md w-full">
+            <div className="p-6 border-b">
+              <h3 className="text-lg font-semibold">Choisir un type de réponse</h3>
+            </div>
+            
+            <div className="p-4 max-h-[60vh] overflow-y-auto">
+              <div className="grid grid-cols-2 gap-2">
+                {ANSWER_PRESETS.map(preset => (
+                  <button
+                    key={preset.label}
+                    onClick={() => {
+                      const lastAnswer = currentAnswerNode.answers?.[currentAnswerNode.answers.length - 1]
+                      if (lastAnswer) {
+                        updateAnswer(lastAnswer.id, preset.label, preset.icon)
+                      }
+                      setShowAnswerPresets(false)
+                    }}
+                    className="p-3 text-left border rounded-lg hover:bg-gray-50 flex items-center gap-2"
+                  >
+                    <span className="text-xl">{preset.icon}</span>
+                    <span className="font-medium">{preset.label}</span>
+                  </button>
+                ))}
+              </div>
+              
+              <button
+                onClick={() => setShowAnswerPresets(false)}
+                className="w-full mt-4 p-2 text-gray-600 hover:bg-gray-100 rounded-lg"
+              >
+                Personnalisé
+              </button>
             </div>
           </div>
         </div>
