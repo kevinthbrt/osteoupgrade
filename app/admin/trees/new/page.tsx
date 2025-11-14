@@ -209,26 +209,35 @@ export default function CreateTreePage() {
   }
 
   const updateNode = (nodeId: string, updates: Partial<TreeNode>) => {
-    const updateRecursive = (node: TreeNode): TreeNode => {
-      if (node.id === nodeId) {
-        return { ...node, ...updates }
-      }
-      
-      if (node.answers) {
-        return {
-          ...node,
-          answers: node.answers.map(answer => ({
-            ...answer,
-            nextNode: answer.nextNode ? updateRecursive(answer.nextNode) : undefined
-          }))
-        }
-      }
-      
+  const updateRecursive = (node: TreeNode): TreeNode => {
+    if (node.id === nodeId) {
+      return { ...node, ...updates }
+    }
+
+    if (!node.answers || node.answers.length === 0) {
       return node
     }
-    
-    setRootNode(updateRecursive(rootNode))
+
+    return {
+      ...node,
+      answers: node.answers.map(answer => ({
+        ...answer,
+        nextNode: answer.nextNode ? updateRecursive(answer.nextNode) : undefined
+      }))
+    }
   }
+
+  // Met à jour l'arbre
+  setRootNode(prev => updateRecursive(prev))
+
+  // Et on garde selectedNode en phase
+  setSelectedNode(prev => {
+    if (!prev) return prev
+    if (prev.id !== nodeId) return prev
+    return { ...prev, ...updates }
+  })
+}
+
 
   const updateAnswer = (answerId: string, label: string, icon?: string) => {
     const updateRecursive = (node: TreeNode): TreeNode => {
