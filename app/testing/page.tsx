@@ -389,13 +389,19 @@ export default function TestingModulePage() {
                   {Object.entries(BODY_ZONES).map(([key, zone]) => {
                     const hasResults = zonesWithResults.has(key)
                     const position = zone.position
-                    
-                    const x = position.left ? parseFloat(position.left) * 2 : 
-                              position.right ? 200 - (parseFloat(position.right) * 2) - (parseFloat(zone.position.width!) * 2) : 0
+
+                    let x = 0
+
+                    if ('left' in position) {
+                      x = parseFloat(position.left) * 2
+                    } else if ('right' in position) {
+                      x = 200 - (parseFloat(position.right) * 2) - (parseFloat(position.width) * 2)
+                    }
+
                     const y = parseFloat(position.top) * 4
-                    const width = parseFloat(zone.position.width!) * 2
-                    const height = parseFloat(zone.position.height!) * 4
-                    
+                    const width = parseFloat(position.width) * 2
+                    const height = parseFloat(position.height) * 4
+
                     return (
                       <g key={key}>
                         <rect
@@ -410,10 +416,10 @@ export default function TestingModulePage() {
                           onClick={() => handleZoneClick(key)}
                         />
                         {hasResults && (
-                          <circle 
-                            cx={x + width/2} 
-                            cy={y + height/2} 
-                            r="8" 
+                          <circle
+                            cx={x + width / 2}
+                            cy={y + height / 2}
+                            r="8"
                             fill="#22c55e"
                             className="pointer-events-none"
                           />
