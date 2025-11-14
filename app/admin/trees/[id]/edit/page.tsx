@@ -24,7 +24,7 @@ import {
   CheckCircle,
   Info,
   Zap,
-  Hospital,
+  Building2,
   FileText,
   Target,
   Activity
@@ -825,7 +825,8 @@ export default function CreateTreePage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
+                    <Building2 className="h-4 w-4" />
                     Orientation suggérée (si nécessaire)
                   </label>
                   <input

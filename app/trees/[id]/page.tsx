@@ -24,7 +24,9 @@ import {
   Shield,
   Target,
   TrendingUp,
-  Home
+  Home,
+  Building2,
+  XCircle
 } from 'lucide-react'
 
 interface TreeNode {
@@ -33,17 +35,17 @@ interface TreeNode {
   content: string
   testId?: string
   answers?: Answer[]
-  diagnosisType?: 'red_flag' | 'normal' | 'caution' // Nouveau
-  recommendations?: string // Nouveau
-  urgency?: 'immediate' | 'urgent' | 'routine' // Nouveau
-  referral?: string // Nouveau - orientation suggérée
+  diagnosisType?: 'red_flag' | 'normal' | 'caution'
+  recommendations?: string
+  urgency?: 'immediate' | 'urgent' | 'routine'
+  referral?: string
 }
 
 interface Answer {
   id: string
   label: string
   nextNode?: TreeNode
-  icon?: string // Nouveau - pour des icônes sur les réponses
+  icon?: string
 }
 
 interface HistoryItem {
@@ -69,9 +71,6 @@ const DIAGNOSIS_BG_COLORS = {
   normal: 'bg-green-50 border-green-200',
   caution: 'bg-yellow-50 border-yellow-200'
 }
-
-// Animation de pulsation pour les boutons importants
-const pulseAnimation = "animate-pulse"
 
 export default function TreeVisualizerPage() {
   const params = useParams()
@@ -128,20 +127,33 @@ export default function TreeVisualizerPage() {
 
         // Créer les nœuds avec les nouveaux champs
         nodesData.forEach(node => {
-          const nodeContent = typeof node.content === 'string' 
-            ? node.content 
-            : JSON.parse(node.content || '{}')
+          let nodeContent = node.content
+          let diagnosisType, recommendations, urgency, referral
+          
+          // Vérifier si le contenu est un JSON pour les diagnostics
+          try {
+            const parsed = JSON.parse(node.content)
+            if (parsed && typeof parsed === 'object' && parsed.text) {
+              nodeContent = parsed.text
+              diagnosisType = parsed.diagnosisType
+              recommendations = parsed.recommendations
+              urgency = parsed.urgency
+              referral = parsed.referral
+            }
+          } catch (e) {
+            // Le contenu n'est pas un JSON, c'est du texte simple
+          }
             
           const treeNode: TreeNode = {
             id: node.id,
             type: node.node_type as 'question' | 'test' | 'diagnosis',
-            content: typeof nodeContent === 'string' ? nodeContent : nodeContent.text || '',
+            content: nodeContent,
             testId: node.test_id,
             answers: node.responses ? JSON.parse(node.responses) : [],
-            diagnosisType: nodeContent.diagnosisType,
-            recommendations: nodeContent.recommendations,
-            urgency: nodeContent.urgency,
-            referral: nodeContent.referral
+            diagnosisType: diagnosisType,
+            recommendations: recommendations,
+            urgency: urgency,
+            referral: referral
           }
           nodeMap.set(node.id, treeNode)
         })
@@ -511,8 +523,9 @@ export default function TreeVisualizerPage() {
 
                   {currentNode.referral && (
                     <div className="p-4 bg-purple-50 rounded-lg">
-                      <h3 className="font-semibold text-gray-900 mb-2">
-                        🏥 Orientation suggérée :
+                      <h3 className="font-semibold text-gray-900 mb-2 flex items-center gap-2">
+                        <Building2 className="h-5 w-5" />
+                        Orientation suggérée :
                       </h3>
                       <p className="text-gray-700">{currentNode.referral}</p>
                     </div>
@@ -582,3 +595,6 @@ export default function TreeVisualizerPage() {
     </AuthLayout>
   )
 }
+
+// Ajout de React.Fragment pour éviter l'erreur
+import React from 'react'
