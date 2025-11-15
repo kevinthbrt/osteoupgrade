@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import AuthLayout from '@/components/AuthLayout'
 import {
@@ -24,9 +24,12 @@ const BODY_REGIONS = {
   'Général': ['Neurologique', 'Vasculaire', 'Systémique']
 }
 
-export default function NewTestPage() {
+export default function EditTestPage() {
   const router = useRouter()
+  const params = useParams<{ id: string }>()
+  const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -36,35 +39,77 @@ export default function NewTestPage() {
     specificity: '',
     rv_positive: '',
     rv_negative: '',
+    indications: '',
     interest: ''
   })
 
   useEffect(() => {
-    checkAdminAccess()
-  }, [])
+    if (!params?.id) return
+    init()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params?.id])
 
-  const checkAdminAccess = async () => {
-    const { data: { user } } = await supabase.auth.getUser()
-    
-    if (!user) {
-      router.push('/')
-      return
-    }
+  const init = async () => {
+    try {
+      // Vérif user
+      const {
+        data: { user }
+      } = await supabase.auth.getUser()
 
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single()
+      if (!user) {
+        router.push('/')
+        return
+      }
 
-    if (profile?.role !== 'admin') {
-      router.push('/dashboard')
+      // Vérif admin
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single()
+
+      if (profile?.role !== 'admin') {
+        router.push('/dashboard')
+        return
+      }
+
+      // Récup du test
+      const { data: test, error } = await supabase
+        .from('orthopedic_tests')
+        .select('*')
+        .eq('id', params.id)
+        .single()
+
+      if (error || !test) {
+        alert("Impossible de charger ce test.")
+        router.push('/tests')
+        return
+      }
+
+      setFormData({
+        name: test.name || '',
+        description: test.description || '',
+        category: test.category || '',
+        video_url: test.video_url || '',
+        sensitivity: test.sensitivity !== null && test.sensitivity !== undefined ? String(test.sensitivity) : '',
+        specificity: test.specificity !== null && test.specificity !== undefined ? String(test.specificity) : '',
+        rv_positive: test.rv_positive !== null && test.rv_positive !== undefined ? String(test.rv_positive) : '',
+        rv_negative: test.rv_negative !== null && test.rv_negative !== undefined ? String(test.rv_negative) : '',
+        indications: test.indications || '',
+        interest: test.interest || ''
+      })
+    } catch (err: any) {
+      console.error(err)
+      alert('Erreur lors du chargement du test')
+      router.push('/tests')
+    } finally {
+      setLoading(false)
     }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     if (!formData.name || !formData.description || !formData.category) {
       alert('Le nom, la description et la région sont obligatoires')
       return
@@ -73,9 +118,7 @@ export default function NewTestPage() {
     setSaving(true)
 
     try {
-      const { data: { user } } = await supabase.auth.getUser()
-
-      const { error } = await supabase.from('orthopedic_tests').insert({
+      const updatePayload: any = {
         name: formData.name,
         description: formData.description,
         category: formData.category,
@@ -84,13 +127,18 @@ export default function NewTestPage() {
         specificity: formData.specificity ? parseFloat(formData.specificity) : null,
         rv_positive: formData.rv_positive ? parseFloat(formData.rv_positive) : null,
         rv_negative: formData.rv_negative ? parseFloat(formData.rv_negative) : null,
-        interest: formData.interest || null,
-        created_by: user?.id
-      })
+        indications: formData.indications || null,
+        interest: formData.interest || null
+      }
+
+      const { error } = await supabase
+        .from('orthopedic_tests')
+        .update(updatePayload)
+        .eq('id', params.id)
 
       if (error) throw error
 
-      alert('Test créé avec succès !')
+      alert('Test mis à jour avec succès !')
       router.push('/tests')
     } catch (error: any) {
       alert('Erreur: ' + error.message)
@@ -100,8 +148,18 @@ export default function NewTestPage() {
   }
 
   const extractYoutubeId = (url: string) => {
-    const match = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\n?]*)/);
+    const match = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\n?]*)/)
     return match ? match[1] : null
+  }
+
+  if (loading) {
+    return (
+      <AuthLayout>
+        <div className="flex items-center justify-center h-96">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600" />
+        </div>
+      </AuthLayout>
+    )
   }
 
   return (
@@ -119,10 +177,10 @@ export default function NewTestPage() {
                 </button>
                 <div>
                   <h1 className="text-2xl font-bold text-gray-900">
-                    Nouveau test orthopédique
+                    Modifier un test orthopédique
                   </h1>
                   <p className="text-gray-600 mt-1">
-                    Ajoutez un test à la base de données
+                    Mettez à jour les informations du test
                   </p>
                 </div>
               </div>
@@ -137,7 +195,7 @@ export default function NewTestPage() {
                 <Info className="h-5 w-5 text-primary-600" />
                 Informations générales
               </h2>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -146,7 +204,7 @@ export default function NewTestPage() {
                   <input
                     type="text"
                     value={formData.name}
-                    onChange={(e) => setFormData({...formData, name: e.target.value})}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                     placeholder="Ex: Test de Lachman"
                     required
@@ -160,23 +218,27 @@ export default function NewTestPage() {
                   </label>
                   <select
                     value={formData.category}
-                    onChange={(e) => setFormData({...formData, category: e.target.value})}
+                    onChange={(e) =>
+                      setFormData({ ...formData, category: e.target.value })
+                    }
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                     required
                   >
                     <option value="">Sélectionner une région...</option>
-                    {Object.entries(BODY_REGIONS).map(([mainCategory, subCategories]) => (
-                      <optgroup key={mainCategory} label={mainCategory}>
-                        {subCategories.map(category => (
-                          <option key={category} value={category}>
-                            {category}
-                          </option>
-                        ))}
-                      </optgroup>
-                    ))}
+                    {Object.entries(BODY_REGIONS).map(
+                      ([mainCategory, subCategories]) => (
+                        <optgroup key={mainCategory} label={mainCategory}>
+                          {subCategories.map((category) => (
+                            <option key={category} value={category}>
+                              {category}
+                            </option>
+                          ))}
+                        </optgroup>
+                      )
+                    )}
                   </select>
                   <p className="text-xs text-gray-500 mt-1">
-                    Cette catégorie permettra d'organiser les tests par région
+                    Cette catégorie permettra d&apos;organiser les tests par région
                   </p>
                 </div>
               </div>
@@ -187,7 +249,9 @@ export default function NewTestPage() {
                 </label>
                 <textarea
                   value={formData.description}
-                  onChange={(e) => setFormData({...formData, description: e.target.value})}
+                  onChange={(e) =>
+                    setFormData({ ...formData, description: e.target.value })
+                  }
                   rows={4}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                   placeholder="Description détaillée du test et de sa réalisation..."
@@ -204,7 +268,9 @@ export default function NewTestPage() {
                   <input
                     type="url"
                     value={formData.video_url}
-                    onChange={(e) => setFormData({...formData, video_url: e.target.value})}
+                    onChange={(e) =>
+                      setFormData({ ...formData, video_url: e.target.value })
+                    }
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                     placeholder="https://www.youtube.com/watch?v=..."
                   />
@@ -214,7 +280,9 @@ export default function NewTestPage() {
                     <p className="text-sm text-gray-600 mb-2">Aperçu :</p>
                     <div className="aspect-video max-w-md rounded-lg overflow-hidden bg-gray-100">
                       <iframe
-                        src={`https://www.youtube.com/embed/${extractYoutubeId(formData.video_url)}`}
+                        src={`https://www.youtube.com/embed/${extractYoutubeId(
+                          formData.video_url
+                        )}`}
                         className="w-full h-full"
                         allowFullScreen
                       />
@@ -230,7 +298,7 @@ export default function NewTestPage() {
                 <Activity className="h-5 w-5 text-primary-600" />
                 Statistiques du test
               </h2>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -242,7 +310,9 @@ export default function NewTestPage() {
                     max="100"
                     step="0.1"
                     value={formData.sensitivity}
-                    onChange={(e) => setFormData({...formData, sensitivity: e.target.value})}
+                    onChange={(e) =>
+                      setFormData({ ...formData, sensitivity: e.target.value })
+                    }
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                     placeholder="Ex: 85.5"
                   />
@@ -261,7 +331,9 @@ export default function NewTestPage() {
                     max="100"
                     step="0.1"
                     value={formData.specificity}
-                    onChange={(e) => setFormData({...formData, specificity: e.target.value})}
+                    onChange={(e) =>
+                      setFormData({ ...formData, specificity: e.target.value })
+                    }
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                     placeholder="Ex: 92.3"
                   />
@@ -279,7 +351,9 @@ export default function NewTestPage() {
                     min="0"
                     step="0.01"
                     value={formData.rv_positive}
-                    onChange={(e) => setFormData({...formData, rv_positive: e.target.value})}
+                    onChange={(e) =>
+                      setFormData({ ...formData, rv_positive: e.target.value })
+                    }
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                     placeholder="Ex: 5.2"
                   />
@@ -297,7 +371,9 @@ export default function NewTestPage() {
                     min="0"
                     step="0.01"
                     value={formData.rv_negative}
-                    onChange={(e) => setFormData({...formData, rv_negative: e.target.value})}
+                    onChange={(e) =>
+                      setFormData({ ...formData, rv_negative: e.target.value })
+                    }
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                     placeholder="Ex: 0.15"
                   />
@@ -308,23 +384,42 @@ export default function NewTestPage() {
               </div>
             </div>
 
-            {/* Intérêt clinique */}
+            {/* Intérêt clinique + Indications */}
             <div className="space-y-4">
               <h2 className="text-lg font-semibold text-gray-900 pb-2 border-b">
-                Intérêt clinique
+                Intérêt clinique & indications
               </h2>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Intérêt et indications
-                </label>
-                <textarea
-                  value={formData.interest}
-                  onChange={(e) => setFormData({...formData, interest: e.target.value})}
-                  rows={3}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                  placeholder="Décrivez l'intérêt clinique du test et ses principales indications..."
-                />
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Indications principales
+                  </label>
+                  <textarea
+                    value={formData.indications}
+                    onChange={(e) =>
+                      setFormData({ ...formData, indications: e.target.value })
+                    }
+                    rows={3}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                    placeholder="Ex : Suspicion de conflit sous-acromial, douleurs mécaniques d'épaule..."
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Intérêt clinique global
+                  </label>
+                  <textarea
+                    value={formData.interest}
+                    onChange={(e) =>
+                      setFormData({ ...formData, interest: e.target.value })
+                    }
+                    rows={3}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                    placeholder="Décrivez l'intérêt clinique du test, sa place dans la batterie de tests..."
+                  />
+                </div>
               </div>
             </div>
 
@@ -344,7 +439,7 @@ export default function NewTestPage() {
               >
                 {saving && <Loader2 className="animate-spin h-4 w-4" />}
                 <Save className="h-4 w-4" />
-                <span>{saving ? 'Création...' : 'Créer le test'}</span>
+                <span>{saving ? 'Mise à jour...' : 'Mettre à jour le test'}</span>
               </button>
             </div>
           </form>
