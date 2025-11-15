@@ -76,6 +76,7 @@ export default function ImprovedTestsPage() {
         .select('*')
         .order('name', { ascending: true })
       
+      // Ajouter des régions fictives pour la démo (normalement dans la DB)
       const testsWithRegions = testsData?.map(test => ({
         ...test,
         region: test.category || assignRegion(test.name)
@@ -115,12 +116,10 @@ export default function ImprovedTestsPage() {
 
     // Filtre par recherche
     if (searchQuery) {
-      const q = searchQuery.toLowerCase()
       filtered = filtered.filter(test =>
-        test.name.toLowerCase().includes(q) ||
-        test.description?.toLowerCase().includes(q) ||
-        test.interest?.toLowerCase().includes(q) ||
-        test.indications?.toLowerCase().includes(q) // <- recherche aussi sur indications
+        test.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        test.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        test.interest?.toLowerCase().includes(searchQuery.toLowerCase())
       )
     }
 
@@ -166,7 +165,7 @@ export default function ImprovedTestsPage() {
   }
 
   const getStatBadge = (value: number | null, type: string) => {
-    if (value === null || value === undefined) return null
+    if (value === null) return null
 
     let bgColor = 'bg-gray-100'
     let textColor = 'text-gray-700'
@@ -359,26 +358,20 @@ export default function ImprovedTestsPage() {
                                   )}
                                 </div>
                                 
-                                <p className="text-sm text-gray-600 line-clamp-2 mb-2">
+                                <p className="text-sm text-gray-600 line-clamp-2 mb-3">
                                   {test.description}
                                 </p>
-
-                                {test.indications && (
-                                  <p className="text-xs text-gray-500 line-clamp-2 mb-3">
-                                    <span className="font-medium">Indications :</span> {test.indications}
-                                  </p>
-                                )}
                                 
                                 <div className="space-y-2">
                                   {(test.sensitivity !== null || test.specificity !== null) && (
                                     <div className="flex items-center gap-2">
-                                      {test.sensitivity !== null && test.sensitivity !== undefined && (
+                                      {test.sensitivity !== null && (
                                         <div className="flex items-center gap-1">
                                           <span className="text-xs text-gray-500">Se:</span>
                                           {getStatBadge(test.sensitivity, 'sensitivity')}
                                         </div>
                                       )}
-                                      {test.specificity !== null && test.specificity !== undefined && (
+                                      {test.specificity !== null && (
                                         <div className="flex items-center gap-1">
                                           <span className="text-xs text-gray-500">Sp:</span>
                                           {getStatBadge(test.specificity, 'specificity')}
@@ -435,21 +428,16 @@ export default function ImprovedTestsPage() {
                                   <p className="text-sm text-gray-600 mt-1">
                                     {test.description}
                                   </p>
-                                  {test.indications && (
-                                    <p className="text-xs text-gray-500 mt-1">
-                                      <span className="font-medium">Indications :</span> {test.indications}
-                                    </p>
-                                  )}
                                 </div>
                                 
                                 <div className="flex items-center space-x-4 ml-4">
-                                  {test.sensitivity !== null && test.sensitivity !== undefined && (
+                                  {test.sensitivity !== null && (
                                     <div>
                                       <p className="text-xs text-gray-500">Sensibilité</p>
                                       {getStatBadge(test.sensitivity, 'sensitivity')}
                                     </div>
                                   )}
-                                  {test.specificity !== null && test.specificity !== undefined && (
+                                  {test.specificity !== null && (
                                     <div>
                                       <p className="text-xs text-gray-500">Spécificité</p>
                                       {getStatBadge(test.specificity, 'specificity')}
@@ -503,13 +491,8 @@ export default function ImprovedTestsPage() {
                   <h2 className="text-xl font-bold text-gray-900">
                     {selectedTest.name}
                   </h2>
-                  {selectedTest.indications && (
-                    <p className="text-sm text-gray-500 mt-1">
-                      <span className="font-medium">Indications :</span> {selectedTest.indications}
-                    </p>
-                  )}
-                  <p className="text-xs text-gray-400 mt-1">
-                    Région : {selectedTest.region}
+                  <p className="text-sm text-gray-500 mt-1">
+                    Région: {selectedTest.region}
                   </p>
                 </div>
                 <button
@@ -553,7 +536,7 @@ export default function ImprovedTestsPage() {
               )}
 
               <div className="grid grid-cols-2 gap-4">
-                {selectedTest.sensitivity !== null && selectedTest.sensitivity !== undefined && (
+                {selectedTest.sensitivity !== null && (
                   <div className="bg-gray-50 rounded-lg p-4">
                     <div className="flex items-center justify-between mb-1">
                       <span className="text-sm font-medium text-gray-700">Sensibilité</span>
@@ -564,7 +547,7 @@ export default function ImprovedTestsPage() {
                   </div>
                 )}
 
-                {selectedTest.specificity !== null && selectedTest.specificity !== undefined && (
+                {selectedTest.specificity !== null && (
                   <div className="bg-gray-50 rounded-lg p-4">
                     <div className="flex items-center justify-between mb-1">
                       <span className="text-sm font-medium text-gray-700">Spécificité</span>
@@ -575,7 +558,7 @@ export default function ImprovedTestsPage() {
                   </div>
                 )}
 
-                {selectedTest.rv_positive !== null && selectedTest.rv_positive !== undefined && (
+                {selectedTest.rv_positive !== null && (
                   <div className="bg-blue-50 rounded-lg p-4">
                     <div className="flex items-center justify-between mb-1">
                       <span className="text-sm font-medium text-gray-700">RV+</span>
@@ -586,7 +569,7 @@ export default function ImprovedTestsPage() {
                   </div>
                 )}
 
-                {selectedTest.rv_negative !== null && selectedTest.rv_negative !== undefined && (
+                {selectedTest.rv_negative !== null && (
                   <div className="bg-indigo-50 rounded-lg p-4">
                     <div className="flex items-center justify-between mb-1">
                       <span className="text-sm font-medium text-gray-700">RV-</span>
@@ -597,13 +580,6 @@ export default function ImprovedTestsPage() {
                   </div>
                 )}
               </div>
-
-              {selectedTest.indications && (
-                <div>
-                  <h3 className="font-semibold text-gray-900 mb-2">Indications</h3>
-                  <p className="text-gray-600">{selectedTest.indications}</p>
-                </div>
-              )}
 
               {selectedTest.interest && (
                 <div>
