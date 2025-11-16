@@ -33,15 +33,12 @@ const BODY_REGIONS = {
 export default function ImprovedTestsPage() {
   const router = useRouter()
 
-  // Tests isolés
   const [tests, setTests] = useState<any[]>([])
-  const [filteredTests, setFilteredTests] = useState<any[]>([])
-
-  // Clusters
   const [clusters, setClusters] = useState<any[]>([])
+
+  const [filteredTests, setFilteredTests] = useState<any[]>([])
   const [filteredClusters, setFilteredClusters] = useState<any[]>([])
 
-  // Profil & UI
   const [profile, setProfile] = useState<any>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedRegion, setSelectedRegion] = useState<string>('all')
@@ -49,10 +46,9 @@ export default function ImprovedTestsPage() {
     Object.keys(BODY_REGIONS)
   )
 
-  // Modals
   const [selectedTest, setSelectedTest] = useState<any>(null)
-  const [showModal, setShowModal] = useState(false)
   const [selectedCluster, setSelectedCluster] = useState<any>(null)
+  const [showTestModal, setShowTestModal] = useState(false)
   const [showClusterModal, setShowClusterModal] = useState(false)
 
   const [loading, setLoading] = useState(true)
@@ -63,7 +59,7 @@ export default function ImprovedTestsPage() {
   }, [])
 
   useEffect(() => {
-    filterAll()
+    filterData()
   }, [searchQuery, selectedRegion, tests, clusters])
 
   const loadData = async () => {
@@ -86,7 +82,7 @@ export default function ImprovedTestsPage() {
 
       setProfile(profileData)
 
-      // Récupération des tests
+      // Tous les tests
       const { data: testsData } = await supabase
         .from('orthopedic_tests')
         .select('*')
@@ -100,35 +96,43 @@ export default function ImprovedTestsPage() {
 
       setTests(testsWithRegions)
 
-      // Récupération des clusters + pivot
-      const [{ data: clustersData }, { data: clusterTestsData }] = await Promise.all([
-        supabase
-          .from('orthopedic_clusters')
-          .select('*')
-          .order('name', { ascending: true }),
-        supabase
-          .from('orthopedic_cluster_tests')
-          .select('cluster_id, test_id')
-      ])
+      // Tous les clusters
+      const { data: clustersData, error: clustersError } = await supabase
+        .from('orthopedic_test_clusters')
+        .select('*')
+        .order('name', { ascending: true })
+
+      if (clustersError) {
+        console.error('Error loading clusters:', clustersError)
+      }
+
+      // Liens clusters <-> tests
+      const { data: clusterItems, error: itemsError } = await supabase
+        .from('orthopedic_test_cluster_items')
+        .select('cluster_id, test_id')
+
+      if (itemsError) {
+        console.error('Error loading cluster items:', itemsError)
+      }
 
       const testsMap = new Map(
         (testsWithRegions || []).map((t: any) => [t.id, t])
       )
 
       const clustersWithTests =
-        (clustersData || []).map((cluster: any) => ({
+        clustersData?.map((cluster: any) => ({
           ...cluster,
           region: cluster.region || 'Général',
           tests:
-            (clusterTestsData || [])
-              .filter((ct: any) => ct.cluster_id === cluster.id)
-              .map((ct: any) => testsMap.get(ct.test_id))
+            (clusterItems || [])
+              .filter((ci: any) => ci.cluster_id === cluster.id)
+              .map((ci: any) => testsMap.get(ci.test_id))
               .filter(Boolean) || []
         })) || []
 
       setClusters(clustersWithTests)
 
-      // Initial filtered states
+      // états filtrés initiaux
       setFilteredTests(testsWithRegions)
       setFilteredClusters(clustersWithTests)
     } catch (error) {
@@ -157,15 +161,14 @@ export default function ImprovedTestsPage() {
     return 'Général'
   }
 
-  const filterAll = () => {
-    let filteredT = [...tests]
-    let filteredC = [...clusters]
+  const filterData = () => {
+    let t = [...tests]
+    let c = [...clusters]
 
     if (searchQuery) {
       const q = searchQuery.toLowerCase()
 
-      // Tests
-      filteredT = filteredT.filter((test) =>
+      t = t.filter((test) =>
         test.name.toLowerCase().includes(q) ||
         test.description?.toLowerCase().includes(q) ||
         test.indications?.toLowerCase().includes(q) ||
@@ -173,42 +176,37 @@ export default function ImprovedTestsPage() {
         test.sources?.toLowerCase().includes(q)
       )
 
-      // Clusters (nom, desc, indications, interest, sources + noms de tests du cluster)
-      filteredC = filteredC.filter((cluster: any) => {
-        const inFields =
-          cluster.name?.toLowerCase().includes(q) ||
-          cluster.description?.toLowerCase().includes(q) ||
-          cluster.indications?.toLowerCase().includes(q) ||
-          cluster.interest?.toLowerCase().includes(q) ||
-          cluster.sources?.toLowerCase().includes(q)
-
-        const inTests =
-          cluster.tests &&
-          cluster.tests.some(
-            (t: any) =>
-              t?.name?.toLowerCase().includes(q) ||
-              t?.description?.toLowerCase().includes(q)
-          )
-
-        return inFields || inTests
-      })
+      c = c.filter((cluster) =>
+        cluster.name.toLowerCase().includes(q) ||
+        cluster.description?.toLowerCase().includes(q) ||
+        cluster.indications?.toLowerCase().includes(q) ||
+        cluster.interest?.toLowerCase().includes(q) ||
+        cluster.sources?.toLowerCase().includes(q) ||
+        (cluster.tests || []).some(
+          (test: any) =>
+            test?.name?.toLowerCase().includes(q) ||
+            test?.description?.toLowerCase().includes(q)
+        )
+      )
     }
 
     if (selectedRegion !== 'all') {
-      filteredT = filteredT.filter((test) => test.region === selectedRegion)
-      filteredC = filteredC.filter((cluster) => cluster.region === selectedRegion)
+      t = t.filter((test) => test.region === selectedRegion)
+      c = c.filter((cluster) => cluster.region === selectedRegion)
     }
 
-    setFilteredTests(filteredT)
-    setFilteredClusters(filteredC)
+    setFilteredTests(t)
+    setFilteredClusters(c)
   }
 
   const handleTestClick = (test: any) => {
+    setSelectedCluster(null)
     setSelectedTest(test)
-    setShowModal(true)
+    setShowTestModal(true)
   }
 
   const handleClusterClick = (cluster: any) => {
+    setSelectedTest(null)
     setSelectedCluster(cluster)
     setShowClusterModal(true)
   }
@@ -220,36 +218,38 @@ export default function ImprovedTestsPage() {
     }
   }
 
+  const handleDeleteCluster = async (clusterId: string) => {
+    if (!confirm('Supprimer ce cluster et ses liens avec les tests ?')) return
+
+    // si tu as mis ON DELETE CASCADE sur cluster_id, cette partie peut être simplifiée
+    await supabase
+      .from('orthopedic_test_cluster_items')
+      .delete()
+      .eq('cluster_id', clusterId)
+
+    await supabase
+      .from('orthopedic_test_clusters')
+      .delete()
+      .eq('id', clusterId)
+
+    loadData()
+  }
+
   const toggleRegion = (region: string) => {
     setExpandedRegions((prev) =>
       prev.includes(region) ? prev.filter((r) => r !== region) : [...prev, region]
     )
   }
 
-  const getTestsByCategory = () => {
-    const testsByCategory: Record<string, any[]> = {}
-
-    Object.keys(BODY_REGIONS).forEach((category) => {
-      testsByCategory[category] = filteredTests.filter((test) => {
-        const subRegions = BODY_REGIONS[category as keyof typeof BODY_REGIONS]
-        return subRegions.includes(test.region)
-      })
-    })
-
-    return testsByCategory
-  }
-
-  const getClustersByCategory = () => {
-    const clustersByCategory: Record<string, any[]> = {}
-
-    Object.keys(BODY_REGIONS).forEach((category) => {
-      const subRegions = BODY_REGIONS[category as keyof typeof BODY_REGIONS]
-      clustersByCategory[category] = filteredClusters.filter((cluster: any) =>
-        subRegions.includes(cluster.region || 'Général')
-      )
-    })
-
-    return clustersByCategory
+  const getRegionIcon = (region: string) => {
+    const icons: Record<string, JSX.Element> = {
+      'Tête et Cou': <User className="h-5 w-5" />,
+      'Membre Supérieur': <Activity className="h-5 w-5" />,
+      'Tronc': <User className="h-5 w-5" />,
+      'Membre Inférieur': <Activity className="h-5 w-5" />,
+      'Général': <Clipboard className="h-5 w-5" />
+    }
+    return icons[region] || <Clipboard className="h-5 w-5" />
   }
 
   const getStatBadge = (value: number | null, type: string) => {
@@ -284,17 +284,6 @@ export default function ImprovedTestsPage() {
     )
   }
 
-  const getRegionIcon = (region: string) => {
-    const icons: Record<string, JSX.Element> = {
-      'Tête et Cou': <User className="h-5 w-5" />,
-      'Membre Supérieur': <Activity className="h-5 w-5" />,
-      'Tronc': <User className="h-5 w-5" />,
-      'Membre Inférieur': <Activity className="h-5 w-5" />,
-      'Général': <Clipboard className="h-5 w-5" />
-    }
-    return icons[region] || <Clipboard className="h-5 w-5" />
-  }
-
   if (loading) {
     return (
       <AuthLayout>
@@ -305,8 +294,15 @@ export default function ImprovedTestsPage() {
     )
   }
 
-  const testsByCategory = getTestsByCategory()
-  const clustersByCategory = getClustersByCategory()
+  // Regroupement par grandes catégories
+  const categories = Object.keys(BODY_REGIONS).map((category) => {
+    const subRegions = BODY_REGIONS[category as keyof typeof BODY_REGIONS]
+    return {
+      name: category,
+      tests: filteredTests.filter((t) => subRegions.includes(t.region)),
+      clusters: filteredClusters.filter((c) => subRegions.includes(c.region))
+    }
+  })
 
   return (
     <AuthLayout>
@@ -330,8 +326,8 @@ export default function ImprovedTestsPage() {
                   <span>Nouveau test</span>
                 </button>
                 <button
-                  onClick={() => router.push('/admin/tests')}
-                  className="border border-primary-600 text-primary-600 hover:bg-primary-50 px-4 py-2 rounded-lg font-medium transition-colors flex items-center space-x-2"
+                  onClick={() => router.push('/admin/clusters/new')}
+                  className="bg-primary-100 hover:bg-primary-200 text-primary-700 px-4 py-2 rounded-lg font-medium transition-colors flex items-center space-x-2"
                 >
                   <Plus className="h-4 w-4" />
                   <span>Nouveau cluster</span>
@@ -411,13 +407,12 @@ export default function ImprovedTestsPage() {
         {filteredTests.length === 0 && filteredClusters.length === 0 ? (
           <div className="bg-white rounded-xl shadow-sm p-12 text-center">
             <Clipboard className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">Aucun résultat</h3>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">Aucun élément trouvé</h3>
             <p className="text-gray-600">Modifiez vos critères de recherche</p>
           </div>
         ) : (
           <div className="space-y-4">
-            {Object.entries(testsByCategory).map(([category, categoryTests]) => {
-              const categoryClusters = clustersByCategory[category] || []
+            {categories.map(({ name: category, tests: categoryTests, clusters: categoryClusters }) => {
               if (categoryTests.length === 0 && categoryClusters.length === 0) return null
 
               const isExpanded = expandedRegions.includes(category)
@@ -447,87 +442,126 @@ export default function ImprovedTestsPage() {
                   </button>
 
                   {isExpanded && (
-                    <div className="px-6 pb-6 space-y-6">
-                      {/* Clusters pour cette région */}
+                    <div className="px-6 pb-6 space-y-4">
+                      {/* Clusters */}
                       {categoryClusters.length > 0 && (
                         <div>
-                          <h3 className="text-sm font-semibold text-gray-800 mb-2">
+                          <h3 className="text-sm font-semibold text-gray-700 mb-2">
                             Clusters recommandés
                           </h3>
-                          <div className="flex flex-col gap-3">
-                            {categoryClusters.map((cluster: any) => (
-                              <div
-                                key={cluster.id}
-                                className="border border-primary-100 bg-primary-50/40 rounded-lg p-4 hover:shadow-md transition-all cursor-pointer"
-                                onClick={() => handleClusterClick(cluster)}
-                              >
-                                <div className="flex items-start justify-between gap-3">
-                                  <div className="flex-1">
-                                    <p className="text-sm font-semibold text-gray-900">
-                                      {cluster.name}
-                                    </p>
+                          {viewMode === 'grid' ? (
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                              {categoryClusters.map((cluster) => (
+                                <div
+                                  key={cluster.id}
+                                  className="border border-indigo-100 rounded-lg hover:shadow-md transition-all cursor-pointer bg-indigo-50/40"
+                                  onClick={() => handleClusterClick(cluster)}
+                                >
+                                  <div className="p-4">
+                                    <div className="flex items-start justify-between mb-1">
+                                      <h3 className="font-semibold text-gray-900">
+                                        {cluster.name}
+                                      </h3>
+                                    </div>
+
                                     {cluster.indications && (
-                                      <p className="text-xs text-gray-600 mt-1">
+                                      <p className="text-xs text-gray-500 mb-2">
                                         <span className="font-medium">Indications :</span>{' '}
                                         {cluster.indications}
                                       </p>
                                     )}
-                                    {cluster.description && (
-                                      <p className="text-xs text-gray-600 mt-1 line-clamp-2">
-                                        {cluster.description}
+
+                                    <p className="text-sm text-gray-600 line-clamp-2 mb-2">
+                                      {cluster.description}
+                                    </p>
+
+                                    {cluster.tests && cluster.tests.length > 0 && (
+                                      <p className="text-xs text-gray-500 mb-2">
+                                        <span className="font-medium">Inclut :</span>{' '}
+                                        {cluster.tests.map((t: any) => t?.name).join(', ')}
                                       </p>
                                     )}
-                                    {cluster.tests && cluster.tests.length > 0 && (
-                                      <div className="mt-2 flex flex-wrap gap-1">
-                                        {cluster.tests.map((t: any) => (
-                                          <span
-                                            key={t.id}
-                                            className="text-[11px] px-2 py-0.5 rounded-full bg-white border border-primary-100 text-primary-700"
-                                          >
-                                            {t.name}
-                                          </span>
-                                        ))}
+
+                                    {profile?.role === 'admin' && (
+                                      <div className="flex items-center justify-end gap-2 mt-3 pt-3 border-t">
+                                        {/* Édition éventuelle plus tard */}
+                                        <button
+                                          type="button"
+                                          onClick={(e) => {
+                                            e.stopPropagation()
+                                            handleDeleteCluster(cluster.id)
+                                          }}
+                                          className="p-1.5 text-gray-600 hover:text-red-600 transition-colors"
+                                        >
+                                          <Trash2 className="h-4 w-4" />
+                                        </button>
                                       </div>
                                     )}
                                   </div>
-                                  <div className="flex flex-col items-end gap-1">
-                                    {cluster.sensitivity !== null &&
-                                      cluster.sensitivity !== undefined && (
-                                        <div className="text-right">
-                                          <p className="text-[11px] text-gray-500">Se</p>
-                                          {getStatBadge(
-                                            cluster.sensitivity,
-                                            'sensitivity'
-                                          )}
-                                        </div>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="space-y-2">
+                              {categoryClusters.map((cluster) => (
+                                <div
+                                  key={cluster.id}
+                                  className="border border-indigo-100 rounded-lg p-4 hover:shadow-md transition-all cursor-pointer bg-indigo-50/40"
+                                  onClick={() => handleClusterClick(cluster)}
+                                >
+                                  <div className="flex items-center justify-between">
+                                    <div className="flex-1">
+                                      <h3 className="font-semibold text-gray-900">
+                                        {cluster.name}
+                                      </h3>
+                                      {cluster.indications && (
+                                        <p className="text-xs text-gray-500 mt-1">
+                                          <span className="font-medium">Indications :</span>{' '}
+                                          {cluster.indications}
+                                        </p>
                                       )}
-                                    {cluster.specificity !== null &&
-                                      cluster.specificity !== undefined && (
-                                        <div className="text-right">
-                                          <p className="text-[11px] text-gray-500">Sp</p>
-                                          {getStatBadge(
-                                            cluster.specificity,
-                                            'specificity'
-                                          )}
-                                        </div>
+                                      <p className="text-sm text-gray-600 mt-1">
+                                        {cluster.description}
+                                      </p>
+                                      {cluster.tests && cluster.tests.length > 0 && (
+                                        <p className="text-xs text-gray-500 mt-1">
+                                          <span className="font-medium">Inclut :</span>{' '}
+                                          {cluster.tests.map((t: any) => t?.name).join(', ')}
+                                        </p>
                                       )}
+                                    </div>
+
+                                    {profile?.role === 'admin' && (
+                                      <div className="flex items-center gap-1 ml-4">
+                                        <button
+                                          type="button"
+                                          onClick={(e) => {
+                                            e.stopPropagation()
+                                            handleDeleteCluster(cluster.id)
+                                          }}
+                                          className="p-1.5 text-gray-600 hover:text-red-600"
+                                        >
+                                          <Trash2 className="h-4 w-4" />
+                                        </button>
+                                      </div>
+                                    )}
                                   </div>
                                 </div>
-                              </div>
-                            ))}
-                          </div>
+                              ))}
+                            </div>
+                          )}
                         </div>
                       )}
 
-                      {/* Tests isolés pour cette région */}
+                      {/* Tests individuels */}
                       {categoryTests.length > 0 && (
                         <div>
-                          <h3 className="text-sm font-semibold text-gray-800 mb-2">
+                          <h3 className="text-sm font-semibold text-gray-700 mb-2">
                             Tests individuels
                           </h3>
                           {viewMode === 'grid' ? (
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                              {categoryTests.map((test: any) => (
+                              {categoryTests.map((test) => (
                                 <div
                                   key={test.id}
                                   className="border border-gray-200 rounded-lg hover:shadow-md transition-all cursor-pointer"
@@ -560,24 +594,14 @@ export default function ImprovedTestsPage() {
                                         <div className="flex items-center gap-2">
                                           {test.sensitivity !== null && (
                                             <div className="flex items-center gap-1">
-                                              <span className="text-xs text-gray-500">
-                                                Se:
-                                              </span>
-                                              {getStatBadge(
-                                                test.sensitivity,
-                                                'sensitivity'
-                                              )}
+                                              <span className="text-xs text-gray-500">Se:</span>
+                                              {getStatBadge(test.sensitivity, 'sensitivity')}
                                             </div>
                                           )}
                                           {test.specificity !== null && (
                                             <div className="flex items-center gap-1">
-                                              <span className="text-xs text-gray-500">
-                                                Sp:
-                                              </span>
-                                              {getStatBadge(
-                                                test.specificity,
-                                                'specificity'
-                                              )}
+                                              <span className="text-xs text-gray-500">Sp:</span>
+                                              {getStatBadge(test.specificity, 'specificity')}
                                             </div>
                                           )}
                                         </div>
@@ -614,7 +638,7 @@ export default function ImprovedTestsPage() {
                             </div>
                           ) : (
                             <div className="space-y-2">
-                              {categoryTests.map((test: any) => (
+                              {categoryTests.map((test) => (
                                 <div
                                   key={test.id}
                                   className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-all cursor-pointer"
@@ -633,9 +657,7 @@ export default function ImprovedTestsPage() {
 
                                       {test.indications && (
                                         <p className="text-xs text-gray-500 mt-1">
-                                          <span className="font-medium">
-                                            Indications :
-                                          </span>{' '}
+                                          <span className="font-medium">Indications :</span>{' '}
                                           {test.indications}
                                         </p>
                                       )}
@@ -648,24 +670,14 @@ export default function ImprovedTestsPage() {
                                     <div className="flex items-center space-x-4 ml-4">
                                       {test.sensitivity !== null && (
                                         <div>
-                                          <p className="text-xs text-gray-500">
-                                            Sensibilité
-                                          </p>
-                                          {getStatBadge(
-                                            test.sensitivity,
-                                            'sensitivity'
-                                          )}
+                                          <p className="text-xs text-gray-500">Sensibilité</p>
+                                          {getStatBadge(test.sensitivity, 'sensitivity')}
                                         </div>
                                       )}
                                       {test.specificity !== null && (
                                         <div>
-                                          <p className="text-xs text-gray-500">
-                                            Spécificité
-                                          </p>
-                                          {getStatBadge(
-                                            test.specificity,
-                                            'specificity'
-                                          )}
+                                          <p className="text-xs text-gray-500">Spécificité</p>
+                                          {getStatBadge(test.specificity, 'specificity')}
                                         </div>
                                       )}
 
@@ -710,8 +722,8 @@ export default function ImprovedTestsPage() {
         )}
       </div>
 
-      {/* Modal de détail TEST */}
-      {showModal && selectedTest && (
+      {/* Modal détail TEST */}
+      {showTestModal && selectedTest && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="sticky top-0 bg-white border-b p-6">
@@ -732,7 +744,7 @@ export default function ImprovedTestsPage() {
                 </div>
                 <button
                   type="button"
-                  onClick={() => setShowModal(false)}
+                  onClick={() => setShowTestModal(false)}
                   className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
                 >
                   <X className="h-5 w-5 text-gray-500" />
@@ -873,7 +885,7 @@ export default function ImprovedTestsPage() {
         </div>
       )}
 
-      {/* Modal de détail CLUSTER */}
+      {/* Modal détail CLUSTER */}
       {showClusterModal && selectedCluster && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
@@ -881,13 +893,11 @@ export default function ImprovedTestsPage() {
               <div className="flex items-start justify-between">
                 <div>
                   <h2 className="text-xl font-bold text-gray-900">
-                    Cluster : {selectedCluster.name}
+                    {selectedCluster.name}
                   </h2>
-                  {selectedCluster.region && (
-                    <p className="text-sm text-gray-500 mt-1">
-                      Région : {selectedCluster.region}
-                    </p>
-                  )}
+                  <p className="text-sm text-gray-500 mt-1">
+                    Région : {selectedCluster.region}
+                  </p>
                   {selectedCluster.indications && (
                     <p className="text-sm text-gray-500 mt-1">
                       <span className="font-medium">Indications :</span>{' '}
@@ -908,8 +918,29 @@ export default function ImprovedTestsPage() {
             <div className="p-6 space-y-6">
               {selectedCluster.description && (
                 <div>
-                  <h3 className="font-semibold text-gray-900 mb-2">Description</h3>
+                  <h3 className="font-semibold text-gray-900 mb-2">
+                    Description du cluster
+                  </h3>
                   <p className="text-gray-600">{selectedCluster.description}</p>
+                </div>
+              )}
+
+              {selectedCluster.tests && selectedCluster.tests.length > 0 && (
+                <div>
+                  <h3 className="font-semibold text-gray-900 mb-2">Tests inclus</h3>
+                  <ul className="list-disc list-inside text-gray-700 text-sm space-y-1">
+                    {selectedCluster.tests.map((t: any) => (
+                      <li key={t.id}>
+                        <span className="font-medium">{t.name}</span>
+                        {t.indications && (
+                          <span className="text-gray-500">
+                            {' '}
+                            – {t.indications}
+                          </span>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
                 </div>
               )}
 
@@ -919,15 +950,12 @@ export default function ImprovedTestsPage() {
                     <div className="bg-gray-50 rounded-lg p-4">
                       <div className="flex items-center justify-between mb-1">
                         <span className="text-sm font-medium text-gray-700">
-                          Sensibilité (cluster)
+                          Sensibilité globale
                         </span>
                         <Info className="h-4 w-4 text-gray-400" />
                       </div>
                       <p className="text-2xl font-bold text-gray-900">
                         {selectedCluster.sensitivity}%
-                      </p>
-                      <p className="text-xs text-gray-500 mt-1">
-                        Capacité globale du cluster à détecter les vrais positifs
                       </p>
                     </div>
                   )}
@@ -937,51 +965,12 @@ export default function ImprovedTestsPage() {
                     <div className="bg-gray-50 rounded-lg p-4">
                       <div className="flex items-center justify-between mb-1">
                         <span className="text-sm font-medium text-gray-700">
-                          Spécificité (cluster)
+                          Spécificité globale
                         </span>
                         <Info className="h-4 w-4 text-gray-400" />
                       </div>
                       <p className="text-2xl font-bold text-gray-900">
                         {selectedCluster.specificity}%
-                      </p>
-                      <p className="text-xs text-gray-500 mt-1">
-                        Capacité globale du cluster à détecter les vrais négatifs
-                      </p>
-                    </div>
-                  )}
-
-                {selectedCluster.rv_positive !== null &&
-                  selectedCluster.rv_positive !== undefined && (
-                    <div className="bg-blue-50 rounded-lg p-4">
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="text-sm font-medium text-gray-700">
-                          RV+ (cluster)
-                        </span>
-                        <Info className="h-4 w-4 text-gray-400" />
-                      </div>
-                      <p className="text-2xl font-bold text-blue-900">
-                        {selectedCluster.rv_positive}
-                      </p>
-                      <p className="text-xs text-gray-500 mt-1">
-                        Rapport de vraisemblance positif global
-                      </p>
-                    </div>
-                  )}
-
-                {selectedCluster.rv_negative !== null &&
-                  selectedCluster.rv_negative !== undefined && (
-                    <div className="bg-indigo-50 rounded-lg p-4">
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="text-sm font-medium text-gray-700">
-                          RV- (cluster)
-                        </span>
-                        <Info className="h-4 w-4 text-gray-400" />
-                      </div>
-                      <p className="text-2xl font-bold text-indigo-900">
-                        {selectedCluster.rv_negative}
-                      </p>
-                      <p className="text-xs text-gray-500 mt-1">
-                        Rapport de vraisemblance négatif global
                       </p>
                     </div>
                   )}
@@ -996,48 +985,9 @@ export default function ImprovedTestsPage() {
                 </div>
               )}
 
-              {selectedCluster.tests && selectedCluster.tests.length > 0 && (
-                <div>
-                  <h3 className="font-semibold text-gray-900 mb-2">
-                    Tests composant ce cluster
-                  </h3>
-                  <div className="space-y-2">
-                    {selectedCluster.tests.map((test: any) => (
-                      <div
-                        key={test.id}
-                        className="flex items-start justify-between border border-gray-200 rounded-lg p-3 bg-gray-50"
-                      >
-                        <div className="flex-1">
-                          <p className="text-sm font-semibold text-gray-900">
-                            {test.name}
-                          </p>
-                          {test.indications && (
-                            <p className="text-xs text-gray-500 mt-1">
-                              <span className="font-medium">Indications :</span>{' '}
-                              {test.indications}
-                            </p>
-                          )}
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setSelectedTest(test)
-                            setShowModal(true)
-                            setShowClusterModal(false)
-                          }}
-                          className="text-xs px-3 py-1 rounded-full border border-primary-600 text-primary-600 hover:bg-primary-50 transition-colors"
-                        >
-                          Voir le test
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
               {selectedCluster.sources && (
                 <div>
-                  <h3 className="font-semibold text-gray-900 mb-2">Sources du cluster</h3>
+                  <h3 className="font-semibold text-gray-900 mb-2">Sources</h3>
                   <div className="text-gray-600 text-sm space-y-1">
                     {String(selectedCluster.sources)
                       .split('\n')
