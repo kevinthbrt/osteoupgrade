@@ -37,7 +37,9 @@ export default function ImprovedTestsPage() {
   const [profile, setProfile] = useState<any>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedRegion, setSelectedRegion] = useState<string>('all')
-  const [expandedRegions, setExpandedRegions] = useState<string[]>(Object.keys(BODY_REGIONS))
+  const [expandedRegions, setExpandedRegions] = useState<string[]>(
+    Object.keys(BODY_REGIONS)
+  )
   const [selectedTest, setSelectedTest] = useState<any>(null)
   const [showModal, setShowModal] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -53,7 +55,9 @@ export default function ImprovedTestsPage() {
 
   const loadTests = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser()
+      const {
+        data: { user }
+      } = await supabase.auth.getUser()
 
       if (!user) {
         router.push('/')
@@ -117,8 +121,9 @@ export default function ImprovedTestsPage() {
       filtered = filtered.filter((test) =>
         test.name.toLowerCase().includes(q) ||
         test.description?.toLowerCase().includes(q) ||
-        test.indications?.toLowerCase().includes(q) || // 🔍 recherche dans les indications
-        test.interest?.toLowerCase().includes(q)
+        test.indications?.toLowerCase().includes(q) ||
+        test.interest?.toLowerCase().includes(q) ||
+        test.sources?.toLowerCase().includes(q) // 🔍 recherche aussi dans les sources
       )
     }
 
@@ -363,7 +368,7 @@ export default function ImprovedTestsPage() {
                                   )}
                                 </div>
 
-                                {/* 🔹 Indications juste sous le nom */}
+                                {/* Indications sous le nom */}
                                 {test.indications && (
                                   <p className="text-xs text-gray-500 mb-2">
                                     <span className="font-medium">Indications :</span>{' '}
@@ -442,7 +447,6 @@ export default function ImprovedTestsPage() {
                                     )}
                                   </div>
 
-                                  {/* 🔹 Indications sous le nom (vue liste) */}
                                   {test.indications && (
                                     <p className="text-xs text-gray-500 mt-1">
                                       <span className="font-medium">Indications :</span>{' '}
@@ -650,6 +654,20 @@ export default function ImprovedTestsPage() {
                     Intérêt clinique
                   </h3>
                   <p className="text-gray-600">{selectedTest.interest}</p>
+                </div>
+              )}
+
+              {selectedTest.sources && (
+                <div>
+                  <h3 className="font-semibold text-gray-900 mb-2">Sources</h3>
+                  <div className="text-gray-600 text-sm space-y-1">
+                    {String(selectedTest.sources)
+                      .split('\n')
+                      .filter((s: string) => s.trim().length > 0)
+                      .map((line: string, idx: number) => (
+                        <p key={idx}>• {line}</p>
+                      ))}
+                  </div>
                 </div>
               )}
             </div>

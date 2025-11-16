@@ -13,12 +13,11 @@ import {
   Plus,
   Edit,
   Trash2,
-  Filter,
-  X,
   ChevronRight,
   ChevronDown,
   User,
-  Activity
+  Activity,
+  X
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 
@@ -55,36 +54,35 @@ export default function ImprovedTestsPage() {
   const loadTests = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser()
-      
+
       if (!user) {
         router.push('/')
         return
       }
 
-      // Get user profile
+      // Profil utilisateur
       const { data: profileData } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', user.id)
         .single()
-      
+
       setProfile(profileData)
 
-      // Get all tests with regions
+      // Tous les tests
       const { data: testsData } = await supabase
         .from('orthopedic_tests')
         .select('*')
         .order('name', { ascending: true })
-      
-      // Ajouter des régions fictives pour la démo (normalement dans la DB)
-      const testsWithRegions = testsData?.map(test => ({
-        ...test,
-        region: test.category || assignRegion(test.name)
-      })) || []
-      
+
+      const testsWithRegions =
+        testsData?.map((test) => ({
+          ...test,
+          region: test.category || assignRegion(test.name)
+        })) || []
+
       setTests(testsWithRegions)
       setFilteredTests(testsWithRegions)
-
     } catch (error) {
       console.error('Error loading tests:', error)
     } finally {
@@ -92,10 +90,10 @@ export default function ImprovedTestsPage() {
     }
   }
 
-  // Fonction pour assigner une région basée sur le nom (temporaire)
+  // Assignation de région de secours si category vide
   const assignRegion = (name: string): string => {
     const lowerName = name.toLowerCase()
-    
+
     if (lowerName.includes('cervical') || lowerName.includes('cou')) return 'Cervical'
     if (lowerName.includes('épaule') || lowerName.includes('shoulder')) return 'Épaule'
     if (lowerName.includes('genou') || lowerName.includes('knee')) return 'Genou'
@@ -107,25 +105,25 @@ export default function ImprovedTestsPage() {
     if (lowerName.includes('thoracique')) return 'Thoracique'
     if (lowerName.includes('pied') || lowerName.includes('foot')) return 'Pied'
     if (lowerName.includes('main') || lowerName.includes('hand')) return 'Main'
-    
+
     return 'Général'
   }
 
   const filterTests = () => {
     let filtered = [...tests]
 
-    // Filtre par recherche
     if (searchQuery) {
-      filtered = filtered.filter(test =>
-        test.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        test.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        test.interest?.toLowerCase().includes(searchQuery.toLowerCase())
+      const q = searchQuery.toLowerCase()
+      filtered = filtered.filter((test) =>
+        test.name.toLowerCase().includes(q) ||
+        test.description?.toLowerCase().includes(q) ||
+        test.indications?.toLowerCase().includes(q) || // 🔍 recherche dans les indications
+        test.interest?.toLowerCase().includes(q)
       )
     }
 
-    // Filtre par région
     if (selectedRegion !== 'all') {
-      filtered = filtered.filter(test => test.region === selectedRegion)
+      filtered = filtered.filter((test) => test.region === selectedRegion)
     }
 
     setFilteredTests(filtered)
@@ -144,23 +142,21 @@ export default function ImprovedTestsPage() {
   }
 
   const toggleRegion = (region: string) => {
-    setExpandedRegions(prev => 
-      prev.includes(region) 
-        ? prev.filter(r => r !== region)
-        : [...prev, region]
+    setExpandedRegions((prev) =>
+      prev.includes(region) ? prev.filter((r) => r !== region) : [...prev, region]
     )
   }
 
   const getTestsByCategory = () => {
     const testsByCategory: Record<string, any[]> = {}
-    
-    Object.keys(BODY_REGIONS).forEach(category => {
-      testsByCategory[category] = filteredTests.filter(test => {
+
+    Object.keys(BODY_REGIONS).forEach((category) => {
+      testsByCategory[category] = filteredTests.filter((test) => {
         const subRegions = BODY_REGIONS[category as keyof typeof BODY_REGIONS]
         return subRegions.includes(test.region)
       })
     })
-    
+
     return testsByCategory
   }
 
@@ -187,7 +183,9 @@ export default function ImprovedTestsPage() {
     }
 
     return (
-      <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${bgColor} ${textColor}`}>
+      <span
+        className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${bgColor} ${textColor}`}
+      >
         {icon}
         {value}%
       </span>
@@ -209,7 +207,7 @@ export default function ImprovedTestsPage() {
     return (
       <AuthLayout>
         <div className="flex items-center justify-center h-96">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600" />
         </div>
       </AuthLayout>
     )
@@ -224,9 +222,7 @@ export default function ImprovedTestsPage() {
         <div className="bg-white rounded-xl shadow-sm p-6">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">
-                Tests orthopédiques
-              </h1>
+              <h1 className="text-2xl font-bold text-gray-900">Tests orthopédiques</h1>
               <p className="mt-1 text-gray-600">
                 Base de données complète organisée par région anatomique
               </p>
@@ -243,7 +239,7 @@ export default function ImprovedTestsPage() {
           </div>
         </div>
 
-        {/* Search and Filters */}
+        {/* Search + filtres */}
         <div className="bg-white rounded-xl shadow-sm p-4">
           <div className="flex flex-col lg:flex-row gap-4">
             <div className="flex-1 relative">
@@ -256,7 +252,7 @@ export default function ImprovedTestsPage() {
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
               />
             </div>
-            
+
             <div className="flex gap-2">
               <select
                 value={selectedRegion}
@@ -266,31 +262,42 @@ export default function ImprovedTestsPage() {
                 <option value="all">Toutes les régions</option>
                 {Object.entries(BODY_REGIONS).map(([category, regions]) => (
                   <optgroup key={category} label={category}>
-                    {regions.map(region => (
-                      <option key={region} value={region}>{region}</option>
+                    {regions.map((region) => (
+                      <option key={region} value={region}>
+                        {region}
+                      </option>
                     ))}
                   </optgroup>
                 ))}
               </select>
-              
+
               <div className="flex border border-gray-300 rounded-lg overflow-hidden">
                 <button
+                  type="button"
                   onClick={() => setViewMode('grid')}
-                  className={`px-3 py-2 ${viewMode === 'grid' ? 'bg-primary-100 text-primary-700' : 'bg-white text-gray-700'}`}
+                  className={`px-3 py-2 ${
+                    viewMode === 'grid'
+                      ? 'bg-primary-100 text-primary-700'
+                      : 'bg-white text-gray-700'
+                  }`}
                 >
                   Grille
                 </button>
                 <button
+                  type="button"
                   onClick={() => setViewMode('list')}
-                  className={`px-3 py-2 ${viewMode === 'list' ? 'bg-primary-100 text-primary-700' : 'bg-white text-gray-700'}`}
+                  className={`px-3 py-2 ${
+                    viewMode === 'list'
+                      ? 'bg-primary-100 text-primary-700'
+                      : 'bg-white text-gray-700'
+                  }`}
                 >
                   Liste
                 </button>
               </div>
             </div>
           </div>
-          
-          {/* Résultats */}
+
           <div className="mt-4 text-sm text-gray-600">
             {filteredTests.length} test(s) trouvé(s)
             {searchQuery && ` pour "${searchQuery}"`}
@@ -298,35 +305,33 @@ export default function ImprovedTestsPage() {
           </div>
         </div>
 
-        {/* Tests par catégorie */}
+        {/* Liste par catégorie */}
         {filteredTests.length === 0 ? (
           <div className="bg-white rounded-xl shadow-sm p-12 text-center">
             <Clipboard className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">
-              Aucun test trouvé
-            </h3>
-            <p className="text-gray-600">
-              Modifiez vos critères de recherche
-            </p>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">Aucun test trouvé</h3>
+            <p className="text-gray-600">Modifiez vos critères de recherche</p>
           </div>
         ) : (
           <div className="space-y-4">
             {Object.entries(testsByCategory).map(([category, categoryTests]) => {
               if (categoryTests.length === 0) return null
-              
+
               const isExpanded = expandedRegions.includes(category)
-              
+
               return (
-                <div key={category} className="bg-white rounded-xl shadow-sm overflow-hidden">
+                <div
+                  key={category}
+                  className="bg-white rounded-xl shadow-sm overflow-hidden"
+                >
                   <button
+                    type="button"
                     onClick={() => toggleRegion(category)}
                     className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
                   >
                     <div className="flex items-center space-x-3">
                       {getRegionIcon(category)}
-                      <h2 className="text-lg font-semibold text-gray-900">
-                        {category}
-                      </h2>
+                      <h2 className="text-lg font-semibold text-gray-900">{category}</h2>
                       <span className="px-2 py-1 bg-primary-100 text-primary-700 text-xs rounded-full">
                         {categoryTests.length}
                       </span>
@@ -337,7 +342,7 @@ export default function ImprovedTestsPage() {
                       <ChevronRight className="h-5 w-5 text-gray-400" />
                     )}
                   </button>
-                  
+
                   {isExpanded && (
                     <div className="px-6 pb-6">
                       {viewMode === 'grid' ? (
@@ -349,7 +354,7 @@ export default function ImprovedTestsPage() {
                               onClick={() => handleTestClick(test)}
                             >
                               <div className="p-4">
-                                <div className="flex items-start justify-between mb-2">
+                                <div className="flex items-start justify-between mb-1">
                                   <h3 className="font-semibold text-gray-900">
                                     {test.name}
                                   </h3>
@@ -357,13 +362,22 @@ export default function ImprovedTestsPage() {
                                     <PlayCircle className="h-5 w-5 text-primary-600 flex-shrink-0" />
                                   )}
                                 </div>
-                                
+
+                                {/* 🔹 Indications juste sous le nom */}
+                                {test.indications && (
+                                  <p className="text-xs text-gray-500 mb-2">
+                                    <span className="font-medium">Indications :</span>{' '}
+                                    {test.indications}
+                                  </p>
+                                )}
+
                                 <p className="text-sm text-gray-600 line-clamp-2 mb-3">
                                   {test.description}
                                 </p>
-                                
+
                                 <div className="space-y-2">
-                                  {(test.sensitivity !== null || test.specificity !== null) && (
+                                  {(test.sensitivity !== null ||
+                                    test.specificity !== null) && (
                                     <div className="flex items-center gap-2">
                                       {test.sensitivity !== null && (
                                         <div className="flex items-center gap-1">
@@ -380,10 +394,11 @@ export default function ImprovedTestsPage() {
                                     </div>
                                   )}
                                 </div>
-                                
+
                                 {profile?.role === 'admin' && (
                                   <div className="flex items-center justify-end gap-2 mt-3 pt-3 border-t">
                                     <button
+                                      type="button"
                                       onClick={(e) => {
                                         e.stopPropagation()
                                         router.push(`/admin/tests/${test.id}/edit`)
@@ -393,6 +408,7 @@ export default function ImprovedTestsPage() {
                                       <Edit className="h-4 w-4" />
                                     </button>
                                     <button
+                                      type="button"
                                       onClick={(e) => {
                                         e.stopPropagation()
                                         handleDeleteTest(test.id)
@@ -425,11 +441,20 @@ export default function ImprovedTestsPage() {
                                       <PlayCircle className="h-4 w-4 text-primary-600" />
                                     )}
                                   </div>
+
+                                  {/* 🔹 Indications sous le nom (vue liste) */}
+                                  {test.indications && (
+                                    <p className="text-xs text-gray-500 mt-1">
+                                      <span className="font-medium">Indications :</span>{' '}
+                                      {test.indications}
+                                    </p>
+                                  )}
+
                                   <p className="text-sm text-gray-600 mt-1">
                                     {test.description}
                                   </p>
                                 </div>
-                                
+
                                 <div className="flex items-center space-x-4 ml-4">
                                   {test.sensitivity !== null && (
                                     <div>
@@ -443,10 +468,11 @@ export default function ImprovedTestsPage() {
                                       {getStatBadge(test.specificity, 'specificity')}
                                     </div>
                                   )}
-                                  
+
                                   {profile?.role === 'admin' && (
                                     <div className="flex items-center gap-1">
                                       <button
+                                        type="button"
                                         onClick={(e) => {
                                           e.stopPropagation()
                                           router.push(`/admin/tests/${test.id}/edit`)
@@ -456,6 +482,7 @@ export default function ImprovedTestsPage() {
                                         <Edit className="h-4 w-4" />
                                       </button>
                                       <button
+                                        type="button"
                                         onClick={(e) => {
                                           e.stopPropagation()
                                           handleDeleteTest(test.id)
@@ -481,7 +508,7 @@ export default function ImprovedTestsPage() {
         )}
       </div>
 
-      {/* Test Detail Modal */}
+      {/* Modal de détail */}
       {showModal && selectedTest && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
@@ -492,10 +519,17 @@ export default function ImprovedTestsPage() {
                     {selectedTest.name}
                   </h2>
                   <p className="text-sm text-gray-500 mt-1">
-                    Région: {selectedTest.region}
+                    Région : {selectedTest.region}
                   </p>
+                  {selectedTest.indications && (
+                    <p className="text-sm text-gray-500 mt-1">
+                      <span className="font-medium">Indications :</span>{' '}
+                      {selectedTest.indications}
+                    </p>
+                  )}
                 </div>
                 <button
+                  type="button"
                   onClick={() => setShowModal(false)}
                   className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
                 >
@@ -512,11 +546,16 @@ export default function ImprovedTestsPage() {
 
               {selectedTest.video_url && (
                 <div>
-                  <h3 className="font-semibold text-gray-900 mb-2">Démonstration vidéo</h3>
-                  {selectedTest.video_url.includes('youtube.com') || selectedTest.video_url.includes('youtu.be') ? (
+                  <h3 className="font-semibold text-gray-900 mb-2">
+                    Démonstration vidéo
+                  </h3>
+                  {selectedTest.video_url.includes('youtube.com') ||
+                  selectedTest.video_url.includes('youtu.be') ? (
                     <div className="aspect-video rounded-lg overflow-hidden bg-gray-100">
                       <iframe
-                        src={selectedTest.video_url.replace('watch?v=', 'embed/').replace('youtu.be/', 'youtube.com/embed/')}
+                        src={selectedTest.video_url
+                          .replace('watch?v=', 'embed/')
+                          .replace('youtu.be/', 'youtube.com/embed/')}
                         className="w-full h-full"
                         allowFullScreen
                       />
@@ -539,51 +578,77 @@ export default function ImprovedTestsPage() {
                 {selectedTest.sensitivity !== null && (
                   <div className="bg-gray-50 rounded-lg p-4">
                     <div className="flex items-center justify-between mb-1">
-                      <span className="text-sm font-medium text-gray-700">Sensibilité</span>
+                      <span className="text-sm font-medium text-gray-700">
+                        Sensibilité
+                      </span>
                       <Info className="h-4 w-4 text-gray-400" />
                     </div>
-                    <p className="text-2xl font-bold text-gray-900">{selectedTest.sensitivity}%</p>
-                    <p className="text-xs text-gray-500 mt-1">Capacité à détecter les vrais positifs</p>
+                    <p className="text-2xl font-bold text-gray-900">
+                      {selectedTest.sensitivity}%
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Capacité à détecter les vrais positifs
+                    </p>
                   </div>
                 )}
 
                 {selectedTest.specificity !== null && (
                   <div className="bg-gray-50 rounded-lg p-4">
                     <div className="flex items-center justify-between mb-1">
-                      <span className="text-sm font-medium text-gray-700">Spécificité</span>
+                      <span className="text-sm font-medium text-gray-700">
+                        Spécificité
+                      </span>
                       <Info className="h-4 w-4 text-gray-400" />
                     </div>
-                    <p className="text-2xl font-bold text-gray-900">{selectedTest.specificity}%</p>
-                    <p className="text-xs text-gray-500 mt-1">Capacité à détecter les vrais négatifs</p>
+                    <p className="text-2xl font-bold text-gray-900">
+                      {selectedTest.specificity}%
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Capacité à détecter les vrais négatifs
+                    </p>
                   </div>
                 )}
 
                 {selectedTest.rv_positive !== null && (
                   <div className="bg-blue-50 rounded-lg p-4">
                     <div className="flex items-center justify-between mb-1">
-                      <span className="text-sm font-medium text-gray-700">RV+</span>
+                      <span className="text-sm font-medium text-gray-700">
+                        RV+
+                      </span>
                       <Info className="h-4 w-4 text-gray-400" />
                     </div>
-                    <p className="text-2xl font-bold text-blue-900">{selectedTest.rv_positive}</p>
-                    <p className="text-xs text-gray-500 mt-1">Rapport de vraisemblance positif</p>
+                    <p className="text-2xl font-bold text-blue-900">
+                      {selectedTest.rv_positive}
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Rapport de vraisemblance positif
+                    </p>
                   </div>
                 )}
 
                 {selectedTest.rv_negative !== null && (
                   <div className="bg-indigo-50 rounded-lg p-4">
                     <div className="flex items-center justify-between mb-1">
-                      <span className="text-sm font-medium text-gray-700">RV-</span>
+                      <span className="text-sm font-medium text-gray-700">
+                        RV-
+                      </span>
                       <Info className="h-4 w-4 text-gray-400" />
                     </div>
-                    <p className="text-2xl font-bold text-indigo-900">{selectedTest.rv_negative}</p>
-                    <p className="text-xs text-gray-500 mt-1">Rapport de vraisemblance négatif</p>
+                    <p className="text-2xl font-bold text-indigo-900">
+                      {selectedTest.rv_negative}
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Rapport de vraisemblance négatif
+                    </p>
                   </div>
                 )}
               </div>
 
               {selectedTest.interest && (
                 <div>
-                  <h3 className="font-semibold text-gray-900 mb-2">Intérêt clinique</h3>
+                  <h3 className="font-semibold text-gray-900 mb-2">
+                    Intérêt clinique
+                  </h3>
                   <p className="text-gray-600">{selectedTest.interest}</p>
                 </div>
               )}

@@ -40,7 +40,8 @@ export default function EditTestPage() {
     rv_positive: '',
     rv_negative: '',
     indications: '',
-    interest: ''
+    interest: '',
+    sources: '' // 🔹 nouveau champ
   })
 
   useEffect(() => {
@@ -81,7 +82,7 @@ export default function EditTestPage() {
         .single()
 
       if (error || !test) {
-        alert("Impossible de charger ce test.")
+        alert('Impossible de charger ce test.')
         router.push('/tests')
         return
       }
@@ -91,12 +92,25 @@ export default function EditTestPage() {
         description: test.description || '',
         category: test.category || '',
         video_url: test.video_url || '',
-        sensitivity: test.sensitivity !== null && test.sensitivity !== undefined ? String(test.sensitivity) : '',
-        specificity: test.specificity !== null && test.specificity !== undefined ? String(test.specificity) : '',
-        rv_positive: test.rv_positive !== null && test.rv_positive !== undefined ? String(test.rv_positive) : '',
-        rv_negative: test.rv_negative !== null && test.rv_negative !== undefined ? String(test.rv_negative) : '',
+        sensitivity:
+          test.sensitivity !== null && test.sensitivity !== undefined
+            ? String(test.sensitivity)
+            : '',
+        specificity:
+          test.specificity !== null && test.specificity !== undefined
+            ? String(test.specificity)
+            : '',
+        rv_positive:
+          test.rv_positive !== null && test.rv_positive !== undefined
+            ? String(test.rv_positive)
+            : '',
+        rv_negative:
+          test.rv_negative !== null && test.rv_negative !== undefined
+            ? String(test.rv_negative)
+            : '',
         indications: test.indications || '',
-        interest: test.interest || ''
+        interest: test.interest || '',
+        sources: test.sources || '' // 🔹 remplissage depuis la DB
       })
     } catch (err: any) {
       console.error(err)
@@ -128,7 +142,8 @@ export default function EditTestPage() {
         rv_positive: formData.rv_positive ? parseFloat(formData.rv_positive) : null,
         rv_negative: formData.rv_negative ? parseFloat(formData.rv_negative) : null,
         indications: formData.indications || null,
-        interest: formData.interest || null
+        interest: formData.interest || null,
+        sources: formData.sources || null // 🔹 update des sources
       }
 
       const { error } = await supabase
@@ -204,7 +219,9 @@ export default function EditTestPage() {
                   <input
                     type="text"
                     value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, name: e.target.value })
+                    }
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                     placeholder="Ex: Test de Lachman"
                     required
@@ -420,6 +437,31 @@ export default function EditTestPage() {
                     placeholder="Décrivez l'intérêt clinique du test, sa place dans la batterie de tests..."
                   />
                 </div>
+              </div>
+            </div>
+
+            {/* Sources */}
+            <div className="space-y-4">
+              <h2 className="text-lg font-semibold text-gray-900 pb-2 border-b">
+                Sources
+              </h2>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Références / Sources
+                </label>
+                <textarea
+                  value={formData.sources}
+                  onChange={(e) =>
+                    setFormData({ ...formData, sources: e.target.value })
+                  }
+                  rows={4}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                  placeholder={'Ex :\nHegedus EJ et al., 2012, J Orthop Sports Phys Ther...\nCook C et al., 2010, Manual Therapy...'}
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Une source par ligne (articles, livres, sites…)
+                </p>
               </div>
             </div>
 

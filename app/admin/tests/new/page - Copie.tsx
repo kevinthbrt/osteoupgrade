@@ -37,8 +37,7 @@ export default function NewTestPage() {
     rv_positive: '',
     rv_negative: '',
     interest: '',
-    indications: '',
-    sources: '' // 🔹 nouveau champ
+    indications: '' // <- nouveau champ
   })
 
   useEffect(() => {
@@ -46,10 +45,8 @@ export default function NewTestPage() {
   }, [])
 
   const checkAdminAccess = async () => {
-    const {
-      data: { user }
-    } = await supabase.auth.getUser()
-
+    const { data: { user } } = await supabase.auth.getUser()
+    
     if (!user) {
       router.push('/')
       return
@@ -68,7 +65,7 @@ export default function NewTestPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-
+    
     if (!formData.name || !formData.description || !formData.category) {
       alert('Le nom, la description et la région sont obligatoires')
       return
@@ -77,9 +74,7 @@ export default function NewTestPage() {
     setSaving(true)
 
     try {
-      const {
-        data: { user }
-      } = await supabase.auth.getUser()
+      const { data: { user } } = await supabase.auth.getUser()
 
       const { error } = await supabase.from('orthopedic_tests').insert({
         name: formData.name,
@@ -91,8 +86,7 @@ export default function NewTestPage() {
         rv_positive: formData.rv_positive ? parseFloat(formData.rv_positive) : null,
         rv_negative: formData.rv_negative ? parseFloat(formData.rv_negative) : null,
         interest: formData.interest || null,
-        indications: formData.indications || null,
-        sources: formData.sources || null, // 🔹 envoyé à Supabase
+        indications: formData.indications || null, // <- envoyé à Supabase
         created_by: user?.id
       })
 
@@ -145,7 +139,7 @@ export default function NewTestPage() {
                 <Info className="h-5 w-5 text-primary-600" />
                 Informations générales
               </h2>
-
+              
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -154,9 +148,7 @@ export default function NewTestPage() {
                   <input
                     type="text"
                     value={formData.name}
-                    onChange={(e) =>
-                      setFormData({ ...formData, name: e.target.value })
-                    }
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                     placeholder="Ex: Test de Lachman"
                     required
@@ -170,27 +162,23 @@ export default function NewTestPage() {
                   </label>
                   <select
                     value={formData.category}
-                    onChange={(e) =>
-                      setFormData({ ...formData, category: e.target.value })
-                    }
+                    onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                     required
                   >
                     <option value="">Sélectionner une région...</option>
-                    {Object.entries(BODY_REGIONS).map(
-                      ([mainCategory, subCategories]) => (
-                        <optgroup key={mainCategory} label={mainCategory}>
-                          {subCategories.map((category) => (
-                            <option key={category} value={category}>
-                              {category}
-                            </option>
-                          ))}
-                        </optgroup>
-                      )
-                    )}
+                    {Object.entries(BODY_REGIONS).map(([mainCategory, subCategories]) => (
+                      <optgroup key={mainCategory} label={mainCategory}>
+                        {subCategories.map(category => (
+                          <option key={category} value={category}>
+                            {category}
+                          </option>
+                        ))}
+                      </optgroup>
+                    ))}
                   </select>
                   <p className="text-xs text-gray-500 mt-1">
-                    Cette catégorie permettra d&apos;organiser les tests par région
+                    Cette catégorie permettra d'organiser les tests par région
                   </p>
                 </div>
               </div>
@@ -201,9 +189,7 @@ export default function NewTestPage() {
                 </label>
                 <textarea
                   value={formData.description}
-                  onChange={(e) =>
-                    setFormData({ ...formData, description: e.target.value })
-                  }
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   rows={4}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                   placeholder="Description détaillée du test et de sa réalisation..."
@@ -220,9 +206,7 @@ export default function NewTestPage() {
                   <input
                     type="url"
                     value={formData.video_url}
-                    onChange={(e) =>
-                      setFormData({ ...formData, video_url: e.target.value })
-                    }
+                    onChange={(e) => setFormData({ ...formData, video_url: e.target.value })}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                     placeholder="https://www.youtube.com/watch?v=..."
                   />
@@ -232,9 +216,7 @@ export default function NewTestPage() {
                     <p className="text-sm text-gray-600 mb-2">Aperçu :</p>
                     <div className="aspect-video max-w-md rounded-lg overflow-hidden bg-gray-100">
                       <iframe
-                        src={`https://www.youtube.com/embed/${extractYoutubeId(
-                          formData.video_url
-                        )}`}
+                        src={`https://www.youtube.com/embed/${extractYoutubeId(formData.video_url)}`}
                         className="w-full h-full"
                         allowFullScreen
                       />
@@ -250,7 +232,7 @@ export default function NewTestPage() {
                 <Activity className="h-5 w-5 text-primary-600" />
                 Statistiques du test
               </h2>
-
+              
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -262,9 +244,7 @@ export default function NewTestPage() {
                     max="100"
                     step="0.1"
                     value={formData.sensitivity}
-                    onChange={(e) =>
-                      setFormData({ ...formData, sensitivity: e.target.value })
-                    }
+                    onChange={(e) => setFormData({ ...formData, sensitivity: e.target.value })}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                     placeholder="Ex: 85.5"
                   />
@@ -283,9 +263,7 @@ export default function NewTestPage() {
                     max="100"
                     step="0.1"
                     value={formData.specificity}
-                    onChange={(e) =>
-                      setFormData({ ...formData, specificity: e.target.value })
-                    }
+                    onChange={(e) => setFormData({ ...formData, specificity: e.target.value })}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                     placeholder="Ex: 92.3"
                   />
@@ -303,9 +281,7 @@ export default function NewTestPage() {
                     min="0"
                     step="0.01"
                     value={formData.rv_positive}
-                    onChange={(e) =>
-                      setFormData({ ...formData, rv_positive: e.target.value })
-                    }
+                    onChange={(e) => setFormData({ ...formData, rv_positive: e.target.value })}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                     placeholder="Ex: 5.2"
                   />
@@ -323,9 +299,7 @@ export default function NewTestPage() {
                     min="0"
                     step="0.01"
                     value={formData.rv_negative}
-                    onChange={(e) =>
-                      setFormData({ ...formData, rv_negative: e.target.value })
-                    }
+                    onChange={(e) => setFormData({ ...formData, rv_negative: e.target.value })}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                     placeholder="Ex: 0.15"
                   />
@@ -341,7 +315,7 @@ export default function NewTestPage() {
               <h2 className="text-lg font-semibold text-gray-900 pb-2 border-b">
                 Intérêt clinique & Indications
               </h2>
-
+              
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -349,9 +323,7 @@ export default function NewTestPage() {
                   </label>
                   <textarea
                     value={formData.interest}
-                    onChange={(e) =>
-                      setFormData({ ...formData, interest: e.target.value })
-                    }
+                    onChange={(e) => setFormData({ ...formData, interest: e.target.value })}
                     rows={4}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                     placeholder="Précisez l'intérêt clinique du test..."
@@ -364,39 +336,12 @@ export default function NewTestPage() {
                   </label>
                   <textarea
                     value={formData.indications}
-                    onChange={(e) =>
-                      setFormData({ ...formData, indications: e.target.value })
-                    }
+                    onChange={(e) => setFormData({ ...formData, indications: e.target.value })}
                     rows={4}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                     placeholder="Situations cliniques où le test est particulièrement utile..."
                   />
                 </div>
-              </div>
-            </div>
-
-            {/* Sources */}
-            <div className="space-y-4">
-              <h2 className="text-lg font-semibold text-gray-900 pb-2 border-b">
-                Sources
-              </h2>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Références / Sources
-                </label>
-                <textarea
-                  value={formData.sources}
-                  onChange={(e) =>
-                    setFormData({ ...formData, sources: e.target.value })
-                  }
-                  rows={4}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                  placeholder={'Ex :\nHegedus EJ et al., 2012, J Orthop Sports Phys Ther...\nCook C et al., 2010, Manual Therapy...'}
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  Tu peux mettre une source par ligne (article, livre, site…)
-                </p>
               </div>
             </div>
 
