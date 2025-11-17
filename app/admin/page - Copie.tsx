@@ -6,15 +6,21 @@ import { supabase } from '@/lib/supabase'
 import AuthLayout from '@/components/AuthLayout'
 import {
   Users,
+  TreePine,
   Clipboard,
+  TrendingUp,
+  Crown,
   Activity,
+  Settings,
+  Plus,
+  ChevronRight,
+  DollarSign,
+  Calendar,
   Shield,
   Eye,
-  Plus,
+  Edit,
   BarChart,
-  Crown,
-  Stethoscope,
-  Box
+  FileText
 } from 'lucide-react'
 
 export default function AdminPage() {
@@ -23,13 +29,14 @@ export default function AdminPage() {
     totalUsers: 0,
     freeUsers: 0,
     premiumUsers: 0,
-    totalZones: 0,
-    totalStructures: 0,
-    totalPathologies: 0,
+    totalTrees: 0,
     totalTests: 0,
+    totalSessions: 0,
     monthlyRevenue: 0,
     activeUsers: 0,
   })
+  const [recentSessions, setRecentSessions] = useState<any[]>([])
+  const [recentUsers, setRecentUsers] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -69,26 +76,46 @@ export default function AdminPage() {
       const { data: profiles } = await supabase.from('profiles').select('*')
       const freeCount = profiles?.filter(p => p.role === 'free').length || 0
       const premiumCount = profiles?.filter(p => p.role === 'premium').length || 0
+      
+      // Get recent users
+      const recentProfiles = profiles?.slice(0, 3).sort((a, b) => 
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      ) || []
 
-      // Get anatomy system statistics
-      const [zonesResponse, structuresResponse, pathologiesResponse, testsResponse] = await Promise.all([
-        supabase.from('anatomical_zones').select('*'),
-        supabase.from('anatomical_structures').select('*'),
-        supabase.from('pathologies').select('*'),
-        supabase.from('orthopedic_tests').select('*')
+      // Get other statistics
+      const [treesResponse, testsResponse, sessionsResponse] = await Promise.all([
+        supabase.from('decision_trees').select('*'),
+        supabase.from('orthopedic_tests').select('*'),
+        supabase.from('user_sessions').select('*')
       ])
+
+      // Get recent sessions with details
+      const recentSessionsData = sessionsResponse.data?.slice(0, 3).sort((a, b) =>
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      ) || []
+
+      // Calculate monthly active users
+      const thirtyDaysAgo = new Date()
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+      const activeUserIds = new Set(
+        sessionsResponse.data?.filter(s => 
+          new Date(s.created_at) > thirtyDaysAgo
+        ).map(s => s.user_id)
+      )
 
       setStats({
         totalUsers: profiles?.length || 0,
         freeUsers: freeCount,
         premiumUsers: premiumCount,
-        totalZones: zonesResponse.data?.length || 0,
-        totalStructures: structuresResponse.data?.length || 0,
-        totalPathologies: pathologiesResponse.data?.length || 0,
+        totalTrees: treesResponse.data?.length || 0,
         totalTests: testsResponse.data?.length || 0,
+        totalSessions: sessionsResponse.data?.length || 0,
         monthlyRevenue: premiumCount * 29.99,
-        activeUsers: 0, // À calculer si besoin
+        activeUsers: activeUserIds.size,
       })
+      
+      setRecentUsers(recentProfiles)
+      setRecentSessions(recentSessionsData)
     } catch (error) {
       console.error('Error loading admin data:', error)
     } finally {
@@ -106,74 +133,66 @@ export default function AdminPage() {
       href: '/admin/users'
     },
     {
-      label: 'Zones Anatomiques',
-      value: stats.totalZones,
-      icon: Box,
+      label: 'Arbres',
+      value: stats.totalTrees,
+      icon: TreePine,
       color: 'from-purple-500 to-purple-600',
-      detail: 'Régions cliquables',
-      href: '/admin/anatomy-builder'
-    },
-    {
-      label: 'Structures',
-      value: stats.totalStructures,
-      icon: Stethoscope,
-      color: 'from-green-500 to-green-600',
-      detail: 'Structures anatomiques',
-      href: '/admin/structures'
-    },
-    {
-      label: 'Pathologies',
-      value: stats.totalPathologies,
-      icon: Activity,
-      color: 'from-red-500 to-red-600',
-      detail: 'Pathologies répertoriées',
-      href: '/admin/pathologies'
+      detail: 'Arbres décisionnels',
+      href: '/admin/trees'
     },
     {
       label: 'Tests',
       value: stats.totalTests,
       icon: Clipboard,
-      color: 'from-orange-500 to-orange-600',
+      color: 'from-green-500 to-green-600',
       detail: 'Tests orthopédiques',
       href: '/admin/tests'
+    },
+    {
+      label: 'Sessions',
+      value: stats.totalSessions,
+      icon: Activity,
+      color: 'from-orange-500 to-orange-600',
+      detail: `${stats.activeUsers} utilisateurs actifs`,
+      href: null
     },
   ]
 
   const managementActions = [
     {
-      title: 'Anatomy Builder',
-      description: 'Créer et placer les zones anatomiques sur le modèle 3D',
-      icon: Box,
-      href: '/admin/anatomy-builder',
+      title: 'Arbres décisionnels',
+      description: 'Gérer tous les arbres',
+      icon: TreePine,
+      href: '/admin/trees',
       color: 'from-purple-500 to-purple-600',
-      stats: `${stats.totalZones} zones`,
+      stats: `${stats.totalTrees} arbres`,
       actions: [
-        { label: 'Gérer', href: '/admin/anatomy-builder' },
-        { label: 'Nouvelle zone', href: '/admin/anatomy-builder/new' }
+        { label: 'Voir tous', href: '/admin/trees' },
+        { label: 'Créer', href: '/admin/trees/new' }
       ]
     },
     {
-      title: 'Structures & Pathologies',
-      description: 'Gérer les structures anatomiques et leurs pathologies',
-      icon: Stethoscope,
-      href: '/admin/structures',
-      color: 'from-green-500 to-green-600',
-      stats: `${stats.totalStructures} structures, ${stats.totalPathologies} pathologies`,
-      actions: [
-        { label: 'Structures', href: '/admin/structures' },
-        { label: 'Pathologies', href: '/admin/pathologies' }
-      ]
-    },
-    {
-      title: 'Tests Orthopédiques',
+      title: 'Tests orthopédiques',
       description: 'Gérer la base de tests',
       icon: Clipboard,
       href: '/admin/tests',
-      color: 'from-orange-500 to-orange-600',
+      color: 'from-green-500 to-green-600',
       stats: `${stats.totalTests} tests`,
       actions: [
         { label: 'Voir tous', href: '/admin/tests' },
         { label: 'Créer', href: '/admin/tests/new' }
+      ]
+    },
+    {
+      title: 'Utilisateurs',
+      description: 'Gérer les comptes',
+      icon: Users,
+      href: '/admin/users',
+      color: 'from-blue-500 to-blue-600',
+      stats: `${stats.totalUsers} utilisateurs`,
+      actions: [
+        { label: 'Voir tous', href: '/admin/users' },
+        { label: 'Export CSV', href: '#' }
       ]
     },
   ]
@@ -200,7 +219,7 @@ export default function AdminPage() {
                 <h1 className="text-2xl font-bold">Administration</h1>
               </div>
               <p className="text-purple-100">
-                Centre de contrôle OsteoUpgrade - Système d'anatomie dynamique
+                Centre de contrôle OsteoUpgrade
               </p>
             </div>
             <div className="text-right">
@@ -211,7 +230,7 @@ export default function AdminPage() {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {statsCards.map((stat, index) => {
             const Icon = stat.icon
             return (
@@ -258,7 +277,7 @@ export default function AdminPage() {
                       <p className="text-sm text-gray-600 mt-1">
                         {action.description}
                       </p>
-                      <p className="text-sm font-bold text-gray-900 mt-2">
+                      <p className="text-lg font-bold text-gray-900 mt-2">
                         {action.stats}
                       </p>
                     </div>
@@ -268,10 +287,10 @@ export default function AdminPage() {
                     {action.actions.map((act, i) => (
                       <button
                         key={i}
-                        onClick={() => router.push(act.href)}
+                        onClick={() => act.href !== '#' && router.push(act.href)}
                         className="flex-1 px-3 py-2 bg-gray-50 hover:bg-gray-100 rounded-lg text-sm font-medium text-gray-700 transition-colors flex items-center justify-center gap-1"
                       >
-                        {i === 0 ? <Eye className="h-3 w-3" /> : <Plus className="h-3 w-3" />}
+                        {i === 0 ? <Eye className="h-3 w-3" /> : i === 1 ? <Plus className="h-3 w-3" /> : <FileText className="h-3 w-3" />}
                         {act.label}
                       </button>
                     ))}
@@ -282,78 +301,82 @@ export default function AdminPage() {
           })}
         </div>
 
-        {/* Quick Info */}
-        <div className="bg-blue-50 border border-blue-200 rounded-xl p-6">
-          <div className="flex items-start space-x-4">
-            <div className="bg-blue-100 p-3 rounded-lg">
-              <Shield className="h-6 w-6 text-blue-600" />
-            </div>
-            <div className="flex-1">
-              <h3 className="font-semibold text-gray-900 mb-2">
-                Nouveau système d'anatomie dynamique
-              </h3>
-              <p className="text-sm text-gray-700 mb-3">
-                Créez et gérez les zones anatomiques, structures et pathologies directement depuis l'interface. 
-                Aucun code nécessaire !
-              </p>
-              <div className="flex gap-2">
+        {/* Quick Access */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Recent Users */}
+          <div className="bg-white rounded-xl shadow-sm">
+            <div className="p-6 border-b border-gray-200">
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-semibold text-gray-900">
+                  Utilisateurs récents
+                </h2>
                 <button
-                  onClick={() => router.push('/admin/anatomy-builder')}
-                  className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
+                  onClick={() => router.push('/admin/users')}
+                  className="text-sm text-purple-600 hover:text-purple-700 font-medium"
                 >
-                  Commencer →
-                </button>
-                <button
-                  onClick={() => router.push('/testing')}
-                  className="bg-white text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors border border-gray-300"
-                >
-                  Voir le résultat
+                  Voir tous →
                 </button>
               </div>
+            </div>
+            <div className="divide-y divide-gray-200">
+              {recentUsers.map((user, index) => (
+                <div key={index} className="p-4 hover:bg-gray-50 transition-colors">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-medium ${
+                        user.role === 'admin' ? 'bg-purple-600' :
+                        user.role === 'premium' ? 'bg-yellow-500' :
+                        'bg-gray-400'
+                      }`}>
+                        {user.full_name ? user.full_name.charAt(0).toUpperCase() : user.email.charAt(0).toUpperCase()}
+                      </div>
+                      <div>
+                        <p className="font-medium text-gray-900">
+                          {user.full_name || user.email}
+                        </p>
+                        <p className="text-sm text-gray-600">
+                          {user.email}
+                        </p>
+                      </div>
+                    </div>
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                      user.role === 'admin' ? 'bg-purple-100 text-purple-700' :
+                      user.role === 'premium' ? 'bg-yellow-100 text-yellow-700' :
+                      'bg-gray-100 text-gray-700'
+                    }`}>
+                      {user.role}
+                    </span>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
-        </div>
 
-        {/* System Stats */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="bg-white rounded-xl shadow-sm p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">
-              Statistiques du système
-            </h2>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <Box className="h-5 w-5 text-gray-400" />
-                  <span className="text-sm text-gray-600">Zones anatomiques</span>
-                </div>
-                <span className="font-semibold text-gray-900">{stats.totalZones}</span>
-              </div>
-              
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <Stethoscope className="h-5 w-5 text-gray-400" />
-                  <span className="text-sm text-gray-600">Structures</span>
-                </div>
-                <span className="font-semibold text-gray-900">{stats.totalStructures}</span>
-              </div>
-              
+          {/* System Stats */}
+          <div className="bg-white rounded-xl shadow-sm">
+            <div className="p-6 border-b border-gray-200">
+              <h2 className="text-lg font-semibold text-gray-900">
+                Statistiques système
+              </h2>
+            </div>
+            <div className="p-6 space-y-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
                   <Activity className="h-5 w-5 text-gray-400" />
-                  <span className="text-sm text-gray-600">Pathologies</span>
+                  <span className="text-sm text-gray-600">Utilisateurs actifs (30j)</span>
                 </div>
-                <span className="font-semibold text-gray-900">{stats.totalPathologies}</span>
+                <span className="font-semibold text-gray-900">{stats.activeUsers}</span>
               </div>
               
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
-                  <Clipboard className="h-5 w-5 text-gray-400" />
-                  <span className="text-sm text-gray-600">Tests orthopédiques</span>
+                  <BarChart className="h-5 w-5 text-gray-400" />
+                  <span className="text-sm text-gray-600">Sessions totales</span>
                 </div>
-                <span className="font-semibold text-gray-900">{stats.totalTests}</span>
+                <span className="font-semibold text-gray-900">{stats.totalSessions}</span>
               </div>
               
-              <div className="flex items-center justify-between pt-4 border-t">
+              <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
                   <Crown className="h-5 w-5 text-gray-400" />
                   <span className="text-sm text-gray-600">Taux de conversion</span>
@@ -364,52 +387,17 @@ export default function AdminPage() {
                     : 0}%
                 </span>
               </div>
-            </div>
-          </div>
-
-          <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl shadow-sm p-6 text-white">
-            <h2 className="text-lg font-semibold mb-4">
-              Workflow de création
-            </h2>
-            <div className="space-y-3">
-              <div className="flex items-start space-x-3">
-                <div className="bg-white/20 rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold flex-shrink-0">
-                  1
-                </div>
-                <div>
-                  <p className="font-medium">Créer les zones anatomiques</p>
-                  <p className="text-sm text-purple-100">Placer sur le modèle 3D</p>
-                </div>
-              </div>
               
-              <div className="flex items-start space-x-3">
-                <div className="bg-white/20 rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold flex-shrink-0">
-                  2
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <DollarSign className="h-5 w-5 text-gray-400" />
+                  <span className="text-sm text-gray-600">Revenu par utilisateur</span>
                 </div>
-                <div>
-                  <p className="font-medium">Ajouter des structures</p>
-                  <p className="text-sm text-purple-100">Définir les éléments anatomiques</p>
-                </div>
-              </div>
-              
-              <div className="flex items-start space-x-3">
-                <div className="bg-white/20 rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold flex-shrink-0">
-                  3
-                </div>
-                <div>
-                  <p className="font-medium">Créer les pathologies</p>
-                  <p className="text-sm text-purple-100">Associer aux structures</p>
-                </div>
-              </div>
-              
-              <div className="flex items-start space-x-3">
-                <div className="bg-white/20 rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold flex-shrink-0">
-                  4
-                </div>
-                <div>
-                  <p className="font-medium">Lier aux tests</p>
-                  <p className="text-sm text-purple-100">Connecter tests orthopédiques</p>
-                </div>
+                <span className="font-semibold text-gray-900">
+                  {stats.totalUsers > 0 
+                    ? (stats.monthlyRevenue / stats.totalUsers).toFixed(2)
+                    : '0.00'}€
+                </span>
               </div>
             </div>
           </div>
