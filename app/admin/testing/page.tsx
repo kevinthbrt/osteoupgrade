@@ -8,14 +8,14 @@ export default function TestingPage() {
     <div className="min-h-screen bg-gray-900 p-8">
       <div className="max-w-7xl mx-auto">
         <h1 className="text-4xl font-bold text-white mb-8 text-center">
-          Mode Création Anatomique (Admin)
+          Mode Admin – Édition Anatomique
         </h1>
-        <div className="bg-white rounded-2xl shadow-2xl p-4">
+        <div className="bg-white rounded-2xl shadow-2xl overflow-hidden">
           <AnatomyViewer3DRealistic isAdmin={true} />
         </div>
-        <div className="mt-6 text-center">
-          <p className="text-gray-400">
-            Déplace les zones • Ajoute des structures/pathologies • Sauvegarde les positions
+        <div className="mt-8 text-center">
+          <p className="text-gray-400 text-lg">
+            Déplace les zones • Ajoute des structures • Sauvegarde les positions dans Supabase
           </p>
         </div>
       </div>
