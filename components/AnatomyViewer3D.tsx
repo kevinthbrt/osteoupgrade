@@ -1,16 +1,17 @@
 'use client'
 
 import { Canvas } from '@react-three/fiber'
-import { OrbitControls, PerspectiveCamera, Text, Html } from '@react-three/drei'
+import { OrbitControls, PerspectiveCamera, Html, useGLTF, Environment } from '@react-three/drei'
 import { useState, useRef, Suspense } from 'react'
 import * as THREE from 'three'
 
-// Définition des régions anatomiques avec leurs structures
+// Définition des régions anatomiques (identique au précédent)
 const ANATOMICAL_REGIONS = {
   cervical: {
     name: 'Région Cervicale',
     color: '#60a5fa',
-    position: [0, 7, 0],
+    position: [0, 1.6, 0] as [number, number, number],
+    size: [0.15, 0.25, 0.15] as [number, number, number],
     structures: [
       { id: 'c-vertebrae', name: 'Vertèbres Cervicales', position: [0, 0, 0] },
       { id: 'c-discs', name: 'Disques Intervertébraux', position: [0, -0.3, 0] },
@@ -27,7 +28,8 @@ const ANATOMICAL_REGIONS = {
   lumbar: {
     name: 'Région Lombaire',
     color: '#f59e0b',
-    position: [0, 3, 0],
+    position: [0, 0.5, 0] as [number, number, number],
+    size: [0.2, 0.3, 0.15] as [number, number, number],
     structures: [
       { id: 'l-vertebrae', name: 'Vertèbres Lombaires', position: [0, 0, 0] },
       { id: 'l-discs', name: 'Disques L1-S1', position: [0, -0.3, 0] },
@@ -46,7 +48,8 @@ const ANATOMICAL_REGIONS = {
   shoulder: {
     name: 'Épaule',
     color: '#8b5cf6',
-    position: [2.5, 6, 0],
+    position: [0.35, 1.3, 0] as [number, number, number],
+    size: [0.12, 0.15, 0.12] as [number, number, number],
     isSymmetric: true,
     structures: [
       { id: 's-rotator-cuff', name: 'Coiffe des Rotateurs', position: [0, 0, 0] },
@@ -66,7 +69,8 @@ const ANATOMICAL_REGIONS = {
   knee: {
     name: 'Genou',
     color: '#10b981',
-    position: [1, 0.5, 0],
+    position: [0.12, -0.4, 0] as [number, number, number],
+    size: [0.12, 0.2, 0.12] as [number, number, number],
     isSymmetric: true,
     structures: [
       { id: 'k-meniscus', name: 'Ménisques', position: [0, 0, 0] },
@@ -87,27 +91,24 @@ const ANATOMICAL_REGIONS = {
   },
 }
 
-// Composant pour afficher une région anatomique 3D
-function AnatomicalRegion({ 
+// Zone cliquable invisible superposée au modèle
+function ClickableZone({ 
   region, 
   regionKey, 
   onClick, 
   isHovered,
   onHover,
-  isSymmetric = false,
   side = 'center'
 }: any) {
-  const meshRef = useRef<THREE.Mesh>(null)
-  
   let position = [...region.position]
-  if (isSymmetric && side === 'right') {
+  if (region.isSymmetric && side === 'right') {
     position[0] = -position[0]
   }
 
   return (
     <group position={position as [number, number, number]}>
+      {/* Zone invisible mais cliquable */}
       <mesh
-        ref={meshRef}
         onClick={(e) => {
           e.stopPropagation()
           onClick(regionKey, side)
@@ -122,21 +123,28 @@ function AnatomicalRegion({
           document.body.style.cursor = 'auto'
         }}
       >
-        <sphereGeometry args={[0.5, 16, 16]} />
-        <meshStandardMaterial 
-          color={region.color} 
-          opacity={isHovered ? 0.9 : 0.6}
+        <boxGeometry args={region.size} />
+        <meshBasicMaterial 
+          color={region.color}
           transparent
-          emissive={region.color}
-          emissiveIntensity={isHovered ? 0.4 : 0.1}
+          opacity={isHovered ? 0.3 : 0}
+          wireframe={isHovered}
         />
       </mesh>
       
+      {/* Label qui apparaît au survol */}
       {isHovered && (
-        <Html center>
-          <div className="bg-white px-3 py-2 rounded-lg shadow-lg border-2 border-gray-200 whitespace-nowrap">
-            <p className="font-semibold text-gray-900">{region.name}</p>
-            {isSymmetric && <p className="text-xs text-gray-600">{side === 'left' ? 'Gauche' : 'Droite'}</p>}
+        <Html center distanceFactor={8}>
+          <div className="bg-white px-4 py-2 rounded-lg shadow-xl border-2 whitespace-nowrap pointer-events-none"
+            style={{ borderColor: region.color }}>
+            <p className="font-bold text-gray-900" style={{ color: region.color }}>
+              {region.name}
+            </p>
+            {region.isSymmetric && (
+              <p className="text-xs text-gray-600">
+                {side === 'left' ? 'Gauche' : 'Droite'}
+              </p>
+            )}
           </div>
         </Html>
       )}
@@ -144,79 +152,44 @@ function AnatomicalRegion({
   )
 }
 
-// Composant pour le corps humain simplifié
-function HumanBodyModel({ onRegionClick, hoveredRegion, setHoveredRegion }: any) {
+// Modèle 3D réaliste chargé depuis un fichier GLTF
+function RealisticBodyModel({ 
+  onRegionClick, 
+  hoveredRegion, 
+  setHoveredRegion,
+  modelPath 
+}: any) {
+  const { scene } = useGLTF(modelPath)
+  
   return (
     <group>
-      {/* Tête */}
-      <mesh position={[0, 8, 0]}>
-        <sphereGeometry args={[0.6, 16, 16]} />
-        <meshStandardMaterial color="#fca5a5" />
-      </mesh>
+      {/* Le modèle 3D réaliste */}
+      <primitive 
+        object={scene} 
+        scale={0.01}
+        position={[0, -1, 0]}
+        rotation={[0, Math.PI, 0]}
+      />
 
-      {/* Cou */}
-      <mesh position={[0, 7.2, 0]}>
-        <cylinderGeometry args={[0.3, 0.4, 0.8, 16]} />
-        <meshStandardMaterial color="#fed7aa" />
-      </mesh>
-
-      {/* Torse */}
-      <mesh position={[0, 5, 0]}>
-        <boxGeometry args={[2, 3, 1]} />
-        <meshStandardMaterial color="#bfdbfe" />
-      </mesh>
-
-      {/* Bassin */}
-      <mesh position={[0, 3, 0]}>
-        <boxGeometry args={[2.2, 1.5, 1.2]} />
-        <meshStandardMaterial color="#93c5fd" />
-      </mesh>
-
-      {/* Bras gauche */}
-      <mesh position={[1.5, 5.5, 0]} rotation={[0, 0, 0.3]}>
-        <cylinderGeometry args={[0.2, 0.18, 2, 16]} />
-        <meshStandardMaterial color="#fed7aa" />
-      </mesh>
-
-      {/* Bras droit */}
-      <mesh position={[-1.5, 5.5, 0]} rotation={[0, 0, -0.3]}>
-        <cylinderGeometry args={[0.2, 0.18, 2, 16]} />
-        <meshStandardMaterial color="#fed7aa" />
-      </mesh>
-
-      {/* Jambe gauche */}
-      <mesh position={[0.5, 1, 0]}>
-        <cylinderGeometry args={[0.3, 0.25, 4, 16]} />
-        <meshStandardMaterial color="#93c5fd" />
-      </mesh>
-
-      {/* Jambe droite */}
-      <mesh position={[-0.5, 1, 0]}>
-        <cylinderGeometry args={[0.3, 0.25, 4, 16]} />
-        <meshStandardMaterial color="#93c5fd" />
-      </mesh>
-
-      {/* Régions interactives */}
+      {/* Zones cliquables invisibles superposées */}
       {Object.entries(ANATOMICAL_REGIONS).map(([key, region]: [string, any]) => {
         if (region.isSymmetric) {
           return (
             <group key={key}>
-              <AnatomicalRegion
+              <ClickableZone
                 region={region}
                 regionKey={key}
                 onClick={onRegionClick}
                 isHovered={hoveredRegion === `${key}-left`}
                 onHover={(hovered: boolean) => setHoveredRegion(hovered ? `${key}-left` : null)}
-                isSymmetric={true}
                 side="left"
               />
-              <AnatomicalRegion
+              <ClickableZone
                 region={region}
                 regionKey={key}
                 onClick={onRegionClick}
                 isHovered={hoveredRegion === `${key}-right`}
                 onHover={(hovered: boolean) => setHoveredRegion(hovered ? `${key}-right` : null)}
-                isSymmetric={true}
                 side="right"
               />
             </group>
@@ -224,7 +197,7 @@ function HumanBodyModel({ onRegionClick, hoveredRegion, setHoveredRegion }: any)
         }
         
         return (
-          <AnatomicalRegion
+          <ClickableZone
             key={key}
             region={region}
             regionKey={key}
@@ -238,7 +211,7 @@ function HumanBodyModel({ onRegionClick, hoveredRegion, setHoveredRegion }: any)
   )
 }
 
-// Vue détaillée d'une région avec ses structures
+// Vue détaillée d'une région (identique à la version précédente)
 function RegionDetailView({ 
   region, 
   regionKey,
@@ -250,8 +223,7 @@ function RegionDetailView({
 
   return (
     <group>
-      {/* Titre de la région */}
-      <Html position={[0, 3, 0]} center>
+      <Html position={[0, 2, 0]} center>
         <div className="bg-white px-6 py-3 rounded-xl shadow-lg border-2">
           <h2 className="text-xl font-bold" style={{ color: region.color }}>
             {region.name} {side && `(${side === 'left' ? 'Gauche' : 'Droite'})`}
@@ -265,10 +237,9 @@ function RegionDetailView({
         </div>
       </Html>
 
-      {/* Structures anatomiques */}
       {region.structures.map((structure: any, index: number) => {
         const angle = (index / region.structures.length) * Math.PI * 2
-        const radius = 2
+        const radius = 1.5
         const x = Math.cos(angle) * radius
         const z = Math.sin(angle) * radius
         const isHovered = hoveredStructure === structure.id
@@ -290,7 +261,7 @@ function RegionDetailView({
                 document.body.style.cursor = 'auto'
               }}
             >
-              <boxGeometry args={[0.4, 0.4, 0.4]} />
+              <boxGeometry args={[0.3, 0.3, 0.3]} />
               <meshStandardMaterial 
                 color={region.color}
                 opacity={isHovered ? 1 : 0.7}
@@ -300,7 +271,7 @@ function RegionDetailView({
               />
             </mesh>
 
-            <Html center>
+            <Html center distanceFactor={6}>
               <div 
                 className={`px-3 py-2 rounded-lg shadow-md transition-all ${
                   isHovered 
@@ -326,11 +297,27 @@ function RegionDetailView({
   )
 }
 
+// Loader pendant le chargement du modèle 3D
+function LoadingScreen() {
+  return (
+    <Html center>
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-blue-600 mx-auto mb-4"></div>
+        <p className="text-white text-lg font-semibold">
+          Chargement du modèle anatomique 3D...
+        </p>
+      </div>
+    </Html>
+  )
+}
+
 // Composant principal
-export default function AnatomyViewer3D({ 
-  onPathologySelect 
+export default function AnatomyViewer3DRealistic({ 
+  onPathologySelect,
+  modelPath = '/models/human-skeleton.glb' // Chemin vers ton modèle 3D
 }: { 
-  onPathologySelect: (pathologies: string[], structureName: string) => void 
+  onPathologySelect: (pathologies: string[], structureName: string) => void
+  modelPath?: string
 }) {
   const [viewMode, setViewMode] = useState<'global' | 'region'>('global')
   const [selectedRegion, setSelectedRegion] = useState<string | null>(null)
@@ -359,31 +346,40 @@ export default function AnatomyViewer3D({
   }
 
   return (
-    <div className="w-full h-[600px] bg-gradient-to-b from-gray-50 to-gray-100 rounded-xl overflow-hidden">
+    <div className="w-full h-[600px] bg-gradient-to-b from-gray-900 to-gray-800 rounded-xl overflow-hidden relative">
       <Canvas shadows>
-        <PerspectiveCamera makeDefault position={[0, 5, 10]} />
+        <PerspectiveCamera makeDefault position={[0, 1, 3]} />
         <OrbitControls 
           enablePan={true}
           enableZoom={true}
           enableRotate={true}
-          minDistance={3}
-          maxDistance={15}
+          minDistance={1}
+          maxDistance={5}
+          target={[0, 0.8, 0]}
         />
         
-        {/* Éclairage */}
-        <ambientLight intensity={0.6} />
-        <directionalLight position={[5, 10, 5]} intensity={1} castShadow />
-        <pointLight position={[-5, 5, -5]} intensity={0.5} />
+        {/* Éclairage optimisé pour modèle réaliste */}
+        <ambientLight intensity={0.4} />
+        <directionalLight position={[5, 5, 5]} intensity={0.8} castShadow />
+        <directionalLight position={[-5, 3, -5]} intensity={0.4} />
+        <pointLight position={[0, 3, 0]} intensity={0.3} />
+        
+        {/* Environnement HDRI pour reflets réalistes */}
+        <Environment preset="studio" />
 
-        {/* Grille de sol */}
-        <gridHelper args={[20, 20, '#e5e7eb', '#f3f4f6']} position={[0, -1, 0]} />
+        {/* Sol avec reflets */}
+        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -1, 0]} receiveShadow>
+          <planeGeometry args={[10, 10]} />
+          <meshStandardMaterial color="#1a1a1a" metalness={0.3} roughness={0.7} />
+        </mesh>
 
-        <Suspense fallback={null}>
+        <Suspense fallback={<LoadingScreen />}>
           {viewMode === 'global' && (
-            <HumanBodyModel 
+            <RealisticBodyModel 
               onRegionClick={handleRegionClick}
               hoveredRegion={hoveredRegion}
               setHoveredRegion={setHoveredRegion}
+              modelPath={modelPath}
             />
           )}
 
@@ -399,20 +395,22 @@ export default function AnatomyViewer3D({
         </Suspense>
       </Canvas>
 
-      {/* Instructions */}
-      <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur px-4 py-3 rounded-lg shadow-lg">
-        <p className="text-sm font-semibold text-gray-900">
+      {/* Instructions overlay */}
+      <div className="absolute bottom-4 left-4 bg-black/70 backdrop-blur-sm px-4 py-3 rounded-lg shadow-lg">
+        <p className="text-sm font-semibold text-white">
           {viewMode === 'global' 
-            ? '🖱️ Cliquez sur une région pour zoomer' 
+            ? '🖱️ Survolez et cliquez sur une région anatomique' 
             : '🎯 Cliquez sur une structure pour voir les pathologies'}
         </p>
-        <p className="text-xs text-gray-600 mt-1">
-          Utilisez la souris pour pivoter et zoomer
+        <p className="text-xs text-gray-300 mt-1">
+          Glissez pour pivoter • Molette pour zoomer
         </p>
       </div>
     </div>
   )
 }
 
-// Export des régions pour utilisation externe
+// Preload du modèle pour performance
+useGLTF.preload('/models/human-skeleton.glb')
+
 export { ANATOMICAL_REGIONS }
