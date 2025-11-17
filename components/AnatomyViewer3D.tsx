@@ -168,8 +168,8 @@ function RealisticBodyModel({
       {/* Le modèle 3D réaliste */}
       <primitive 
         object={scene} 
-        scale={0.25}              // squelette 2x plus petit
-        position={[0, 0.55, 0]}    // léger recentrage vertical
+        scale={0.15}              // squelette 2x plus petit
+        position={[0, 0.7, 0]}    // léger recentrage vertical
         rotation={[0, Math.PI, 0]}
       />
 
