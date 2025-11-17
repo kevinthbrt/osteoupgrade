@@ -168,12 +168,11 @@ function RealisticBodyModel({
       {/* Le modèle 3D réaliste */}
       <primitive 
         object={scene} 
-        // modèle à taille "humaine"
-        scale={0.7}
-        // on le remonte pour que le bassin soit vers y ≈ 0.8
-        position={[0, 0.9, 0]}
-        rotation={[0, Math.PI, 0]}  // tu peux enlever la rotation si tu veux
+        scale={0.35}              // squelette 2x plus petit
+        position={[0, 0.6, 0]}    // léger recentrage vertical
+        rotation={[0, Math.PI, 0]}
       />
+
 
 
       {/* Zones cliquables invisibles superposées */}
@@ -355,14 +354,14 @@ export default function AnatomyViewer3DRealistic({
   return (
     <div className="w-full h-[600px] bg-gradient-to-b from-gray-900 to-gray-800 rounded-xl overflow-hidden relative">
       <Canvas shadows>
-        <PerspectiveCamera makeDefault position={[0, 1, 3]} />
+        <PerspectiveCamera makeDefault position={[0, 1.4, 5]} />
         <OrbitControls 
           enablePan={true}
           enableZoom={true}
           enableRotate={true}
-          minDistance={1}
-          maxDistance={5}
-          target={[0, 0.8, 0]}
+          minDistance={2}
+          maxDistance={8}
+          target={[0, 0.9, 0]}
         />
         
         {/* Éclairage optimisé pour modèle réaliste */}
