@@ -153,13 +153,15 @@ function ClickableZone({
 }
 
 // Modèle 3D réaliste chargé depuis un fichier GLTF
+// Modèle 3D réaliste chargé depuis un fichier GLTF
 function RealisticBodyModel({ 
   onRegionClick, 
   hoveredRegion, 
   setHoveredRegion,
   modelPath 
 }: any) {
-  const { scene } = useGLTF(modelPath)
+  // ✅ on caste pour éviter l’erreur de type
+  const { scene } = useGLTF(modelPath) as any
   
   return (
     <group>
@@ -195,6 +197,22 @@ function RealisticBodyModel({
             </group>
           )
         }
+        
+        return (
+          <ClickableZone
+            key={key}
+            region={region}
+            regionKey={key}
+            onClick={onRegionClick}
+            isHovered={hoveredRegion === key}
+            onHover={(hovered: boolean) => setHoveredRegion(hovered ? key : null)}
+          />
+        )
+      })}
+    </group>
+  )
+}
+
         
         return (
           <ClickableZone
@@ -314,7 +332,7 @@ function LoadingScreen() {
 // Composant principal
 export default function AnatomyViewer3DRealistic({ 
   onPathologySelect,
-  modelPath = '/models/human-skeleton.glb' // Chemin vers ton modèle 3D
+  modelPath = '/models/human-skeleton.gltf' // Chemin vers ton modèle 3D
 }: { 
   onPathologySelect: (pathologies: string[], structureName: string) => void
   modelPath?: string
@@ -411,6 +429,6 @@ export default function AnatomyViewer3DRealistic({
 }
 
 // Preload du modèle pour performance
-useGLTF.preload('/models/human-skeleton.glb')
+useGLTF.preload('/models/human-skeleton.gltf')
 
 export { ANATOMICAL_REGIONS }
