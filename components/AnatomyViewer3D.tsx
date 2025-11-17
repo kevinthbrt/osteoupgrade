@@ -214,20 +214,6 @@ function RealisticBodyModel({
 }
 
         
-        return (
-          <ClickableZone
-            key={key}
-            region={region}
-            regionKey={key}
-            onClick={onRegionClick}
-            isHovered={hoveredRegion === key}
-            onHover={(hovered: boolean) => setHoveredRegion(hovered ? key : null)}
-          />
-        )
-      })}
-    </group>
-  )
-}
 
 // Vue détaillée d'une région (identique à la version précédente)
 function RegionDetailView({ 
