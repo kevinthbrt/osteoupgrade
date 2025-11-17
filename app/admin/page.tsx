@@ -1,10 +1,12 @@
 'use client'
+
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import AuthLayout from '@/components/AuthLayout'
 import {
   Users,
+  TreePine,
   Clipboard,
   TrendingUp,
   Crown,
@@ -18,8 +20,7 @@ import {
   Eye,
   Edit,
   BarChart,
-  FileText,
-  Bone, // Nouvel icon pour régions anatomiques (de lucide-react)
+  FileText
 } from 'lucide-react'
 
 export default function AdminPage() {
@@ -28,7 +29,7 @@ export default function AdminPage() {
     totalUsers: 0,
     freeUsers: 0,
     premiumUsers: 0,
-    totalRegions: 0, // Nouveau
+    totalTrees: 0,
     totalTests: 0,
     totalSessions: 0,
     monthlyRevenue: 0,
@@ -45,19 +46,23 @@ export default function AdminPage() {
   const checkAdminAccess = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser()
+      
       if (!user) {
         router.push('/')
         return
       }
+
       const { data: profile } = await supabase
         .from('profiles')
         .select('role')
         .eq('id', user.id)
         .single()
+
       if (profile?.role !== 'admin') {
         router.push('/dashboard')
         return
       }
+
       loadAdminData()
     } catch (error) {
       console.error('Error checking admin access:', error)
@@ -67,41 +72,48 @@ export default function AdminPage() {
 
   const loadAdminData = async () => {
     try {
+      // Get users statistics
       const { data: profiles } = await supabase.from('profiles').select('*')
       const freeCount = profiles?.filter(p => p.role === 'free').length || 0
       const premiumCount = profiles?.filter(p => p.role === 'premium').length || 0
-
-      const recentProfiles = profiles?.sort((a, b) =>
+      
+      // Get recent users
+      const recentProfiles = profiles?.slice(0, 3).sort((a, b) => 
         new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-      ).slice(0, 3) || []
+      ) || []
 
-      const [regionsResponse, testsResponse, sessionsResponse] = await Promise.all([
-        supabase.from('anatomical_regions').select('*', { count: 'exact' }),
-        supabase.from('orthopedic_tests').select('*', { count: 'exact' }),
+      // Get other statistics
+      const [treesResponse, testsResponse, sessionsResponse] = await Promise.all([
+        supabase.from('decision_trees').select('*'),
+        supabase.from('orthopedic_tests').select('*'),
         supabase.from('user_sessions').select('*')
       ])
 
-      const recentSessionsData = sessionsResponse.data?.sort((a, b) =>
+      // Get recent sessions with details
+      const recentSessionsData = sessionsResponse.data?.slice(0, 3).sort((a, b) =>
         new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-      ).slice(0, 3) || []
+      ) || []
 
+      // Calculate monthly active users
       const thirtyDaysAgo = new Date()
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
       const activeUserIds = new Set(
-        sessionsResponse.data?.filter(s => new Date(s.created_at) > thirtyDaysAgo).map(s => s.user_id)
+        sessionsResponse.data?.filter(s => 
+          new Date(s.created_at) > thirtyDaysAgo
+        ).map(s => s.user_id)
       )
 
       setStats({
         totalUsers: profiles?.length || 0,
         freeUsers: freeCount,
         premiumUsers: premiumCount,
-        totalRegions: regionsResponse.count || 0,
-        totalTests: testsResponse.count || 0,
+        totalTrees: treesResponse.data?.length || 0,
+        totalTests: testsResponse.data?.length || 0,
         totalSessions: sessionsResponse.data?.length || 0,
         monthlyRevenue: premiumCount * 29.99,
         activeUsers: activeUserIds.size,
       })
-
+      
       setRecentUsers(recentProfiles)
       setRecentSessions(recentSessionsData)
     } catch (error) {
@@ -121,12 +133,12 @@ export default function AdminPage() {
       href: '/admin/users'
     },
     {
-      label: 'Régions',
-      value: stats.totalRegions,
-      icon: Bone,
+      label: 'Arbres',
+      value: stats.totalTrees,
+      icon: TreePine,
       color: 'from-purple-500 to-purple-600',
-      detail: 'Régions anatomiques',
-      href: '/admin/regions'
+      detail: 'Arbres décisionnels',
+      href: '/admin/trees'
     },
     {
       label: 'Tests',
@@ -148,15 +160,15 @@ export default function AdminPage() {
 
   const managementActions = [
     {
-      title: 'Régions anatomiques',
-      description: 'Gérer les régions et zones 3D',
-      icon: Bone,
-      href: '/admin/regions',
+      title: 'Arbres décisionnels',
+      description: 'Gérer tous les arbres',
+      icon: TreePine,
+      href: '/admin/trees',
       color: 'from-purple-500 to-purple-600',
-      stats: `${stats.totalRegions} régions`,
+      stats: `${stats.totalTrees} arbres`,
       actions: [
-        { label: 'Voir tous', href: '/admin/regions' },
-        { label: 'Créer', href: '/admin/regions/new' }
+        { label: 'Voir tous', href: '/admin/trees' },
+        { label: 'Créer', href: '/admin/trees/new' }
       ]
     },
     {
@@ -181,17 +193,6 @@ export default function AdminPage() {
       actions: [
         { label: 'Voir tous', href: '/admin/users' },
         { label: 'Export CSV', href: '#' }
-      ]
-    },
-    {
-      title: 'Mode Création Anatomique',
-      description: 'Éditer zones 3D en direct',
-      icon: Edit,
-      href: '/admin/testing',
-      color: 'from-red-500 to-red-600',
-      stats: 'Mode interactif',
-      actions: [
-        { label: 'Lancer', href: '/admin/testing' },
       ]
     },
   ]
@@ -227,13 +228,14 @@ export default function AdminPage() {
             </div>
           </div>
         </div>
+
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {statsCards.map((stat, index) => {
             const Icon = stat.icon
             return (
-              <div
-                key={index}
+              <div 
+                key={index} 
                 className={`bg-white rounded-xl shadow-sm p-6 ${stat.href ? 'cursor-pointer hover:shadow-md transition-shadow' : ''}`}
                 onClick={() => stat.href && router.push(stat.href)}
               >
@@ -255,8 +257,9 @@ export default function AdminPage() {
             )
           })}
         </div>
+
         {/* Management Actions */}
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6"> {/* Changé à 4 cols pour le nouveau */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {managementActions.map((action, index) => {
             const Icon = action.icon
             return (
@@ -279,6 +282,7 @@ export default function AdminPage() {
                       </p>
                     </div>
                   </div>
+                  
                   <div className="mt-4 pt-4 border-t flex gap-2">
                     {action.actions.map((act, i) => (
                       <button
@@ -286,7 +290,7 @@ export default function AdminPage() {
                         onClick={() => act.href !== '#' && router.push(act.href)}
                         className="flex-1 px-3 py-2 bg-gray-50 hover:bg-gray-100 rounded-lg text-sm font-medium text-gray-700 transition-colors flex items-center justify-center gap-1"
                       >
-                        {i === 0 ? <Eye className="h-3 w-3" /> : <Plus className="h-3 w-3" />}
+                        {i === 0 ? <Eye className="h-3 w-3" /> : i === 1 ? <Plus className="h-3 w-3" /> : <FileText className="h-3 w-3" />}
                         {act.label}
                       </button>
                     ))}
@@ -296,8 +300,10 @@ export default function AdminPage() {
             )
           })}
         </div>
-        {/* Quick Access (inchangé) */}
+
+        {/* Quick Access */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Recent Users */}
           <div className="bg-white rounded-xl shadow-sm">
             <div className="p-6 border-b border-gray-200">
               <div className="flex items-center justify-between">
@@ -345,6 +351,8 @@ export default function AdminPage() {
               ))}
             </div>
           </div>
+
+          {/* System Stats */}
           <div className="bg-white rounded-xl shadow-sm">
             <div className="p-6 border-b border-gray-200">
               <h2 className="text-lg font-semibold text-gray-900">
@@ -359,6 +367,7 @@ export default function AdminPage() {
                 </div>
                 <span className="font-semibold text-gray-900">{stats.activeUsers}</span>
               </div>
+              
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
                   <BarChart className="h-5 w-5 text-gray-400" />
@@ -366,22 +375,28 @@ export default function AdminPage() {
                 </div>
                 <span className="font-semibold text-gray-900">{stats.totalSessions}</span>
               </div>
+              
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
                   <Crown className="h-5 w-5 text-gray-400" />
                   <span className="text-sm text-gray-600">Taux de conversion</span>
                 </div>
                 <span className="font-semibold text-gray-900">
-                  {stats.totalUsers > 0 ? Math.round((stats.premiumUsers / stats.totalUsers) * 100) : 0}%
+                  {stats.totalUsers > 0 
+                    ? Math.round((stats.premiumUsers / stats.totalUsers) * 100)
+                    : 0}%
                 </span>
               </div>
+              
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
                   <DollarSign className="h-5 w-5 text-gray-400" />
                   <span className="text-sm text-gray-600">Revenu par utilisateur</span>
                 </div>
                 <span className="font-semibold text-gray-900">
-                  {stats.totalUsers > 0 ? (stats.monthlyRevenue / stats.totalUsers).toFixed(2) : '0.00'}€
+                  {stats.totalUsers > 0 
+                    ? (stats.monthlyRevenue / stats.totalUsers).toFixed(2)
+                    : '0.00'}€
                 </span>
               </div>
             </div>
