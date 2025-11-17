@@ -168,10 +168,13 @@ function RealisticBodyModel({
       {/* Le modèle 3D réaliste */}
       <primitive 
         object={scene} 
-        scale={0.01}
-        position={[0, -1, 0]}
-        rotation={[0, Math.PI, 0]}
+        // modèle à taille "humaine"
+        scale={0.7}
+        // on le remonte pour que le bassin soit vers y ≈ 0.8
+        position={[0, 0.9, 0]}
+        rotation={[0, Math.PI, 0]}  // tu peux enlever la rotation si tu veux
       />
+
 
       {/* Zones cliquables invisibles superposées */}
       {Object.entries(ANATOMICAL_REGIONS).map(([key, region]: [string, any]) => {
