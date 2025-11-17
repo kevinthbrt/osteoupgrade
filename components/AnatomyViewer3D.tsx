@@ -168,8 +168,8 @@ function RealisticBodyModel({
       {/* Le modèle 3D réaliste */}
       <primitive 
         object={scene} 
-        scale={0.35}              // squelette 2x plus petit
-        position={[0, 0.6, 0]}    // léger recentrage vertical
+        scale={0.25}              // squelette 2x plus petit
+        position={[0, 0.55, 0]}    // léger recentrage vertical
         rotation={[0, Math.PI, 0]}
       />
 
@@ -354,15 +354,20 @@ export default function AnatomyViewer3DRealistic({
   return (
     <div className="w-full h-[600px] bg-gradient-to-b from-gray-900 to-gray-800 rounded-xl overflow-hidden relative">
       <Canvas shadows>
-        <PerspectiveCamera makeDefault position={[0, 1.4, 5]} />
+        <PerspectiveCamera 
+          makeDefault 
+          position={[0, 1.6, 6]}   // caméra plus loin
+          fov={40}                  // champ un peu plus large
+        />
         <OrbitControls 
           enablePan={true}
           enableZoom={true}
           enableRotate={true}
           minDistance={2}
           maxDistance={8}
-          target={[0, 0.9, 0]}
+          target={[0, 0.9, 0]}      // vise le centre du bassin
         />
+
         
         {/* Éclairage optimisé pour modèle réaliste */}
         <ambientLight intensity={0.4} />
