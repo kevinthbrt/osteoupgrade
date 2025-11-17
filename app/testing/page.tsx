@@ -200,7 +200,7 @@ function LoadingScreen() {
 }
 
 // COMPOSANT PRINCIPAL – VERSION FINALE
-export default function AnatomyViewer3DRealistic({
+export default function AnatomyViewer3D({
   modelPath = '/models/human-skeleton.gltf',
   isAdmin = false,
   onPathologySelect, // ← Optionnel : pour la page /testing
