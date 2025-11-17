@@ -80,16 +80,17 @@ function ZoneBox({ zone, isSelected, isEditing }: {
   )
 }
 
-// Modèle 3D du corps
+// Modèle 3D du corps - IDENTIQUE à AnatomyViewer3D.tsx
 function BodyModel({ modelPath }: { modelPath: string }) {
   try {
-    const { scene } = useGLTF(modelPath)
+    // ✅ Cast pour éviter l'erreur de type
+    const { scene } = useGLTF(modelPath) as any
     
     return (
       <primitive 
         object={scene} 
-        scale={0.01}
-        position={[0, -1, 0]}
+        scale={0.2}              // Même échelle que AnatomyViewer3D
+        position={[0, 0.9, 0]}   // Même position que AnatomyViewer3D
         rotation={[0, Math.PI, 0]}
       />
     )
@@ -152,7 +153,7 @@ function LoadingScreen() {
     <Html center>
       <div className="text-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-3"></div>
-        <p className="text-gray-600">Chargement...</p>
+        <p className="text-white text-lg font-semibold">Chargement du modèle anatomique 3D...</p>
       </div>
     </Html>
   )
@@ -163,29 +164,39 @@ export default function AnatomyZonePlacer({
   selectedZone,
   onPositionChange,
   editMode = false,
-  modelPath = '/models/human-skeleton.glb'
+  modelPath = '/models/human-skeleton.gltf' // Même chemin que AnatomyViewer3D
 }: AnatomyZonePlacerProps) {
   return (
     <div className="w-full h-[600px] bg-gradient-to-b from-gray-900 to-gray-800 rounded-xl overflow-hidden relative">
       <Canvas shadows>
-        <PerspectiveCamera makeDefault position={[0, 1, 3]} />
+        <PerspectiveCamera 
+          makeDefault 
+          position={[0, 1.6, 6]}   // Même position que AnatomyViewer3D
+          fov={40}                  // Même FOV
+        />
         <OrbitControls 
           enablePan={true}
           enableZoom={true}
           enableRotate={true}
-          minDistance={1}
-          maxDistance={5}
-          target={[0, 0.8, 0]}
+          minDistance={2}           // Même que AnatomyViewer3D
+          maxDistance={8}           // Même que AnatomyViewer3D
+          target={[0, 0.9, 0]}      // Même cible que AnatomyViewer3D
         />
         
-        {/* Éclairage */}
+        {/* Éclairage optimisé pour modèle réaliste - IDENTIQUE à AnatomyViewer3D */}
         <ambientLight intensity={0.4} />
         <directionalLight position={[5, 5, 5]} intensity={0.8} castShadow />
         <directionalLight position={[-5, 3, -5]} intensity={0.4} />
         <pointLight position={[0, 3, 0]} intensity={0.3} />
         
-        {/* Environnement HDRI */}
+        {/* Environnement HDRI pour reflets réalistes */}
         <Environment preset="studio" />
+
+        {/* Sol avec reflets */}
+        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -1, 0]} receiveShadow>
+          <planeGeometry args={[10, 10]} />
+          <meshStandardMaterial color="#1a1a1a" metalness={0.3} roughness={0.7} />
+        </mesh>
 
         <Suspense fallback={<LoadingScreen />}>
           {/* Modèle du corps */}
@@ -244,7 +255,7 @@ export default function AnatomyZonePlacer({
   )
 }
 
-// Preload
+// Preload du modèle pour performance
 if (typeof window !== 'undefined') {
-  useGLTF.preload('/models/human-skeleton.glb')
+  useGLTF.preload('/models/human-skeleton.gltf')
 }
