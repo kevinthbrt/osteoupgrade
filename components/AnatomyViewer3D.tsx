@@ -346,7 +346,7 @@ export default function AnatomyViewer3D({
   const handleStructureClick = (structureId: string) => {
     if (selectedRegion) {
       const region = ANATOMICAL_REGIONS[selectedRegion as keyof typeof ANATOMICAL_REGIONS]
-      const pathologies = region.pathologies[structureId] || []
+      const pathologies = (region.pathologies as Record<string, string[]>)[structureId] || []
       const structure = region.structures.find((s: any) => s.id === structureId)
       onPathologySelect(pathologies, structure?.name || structureId)
     }
