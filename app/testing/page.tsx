@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import AuthLayout from '@/components/AuthLayout'
-import { generateTestingPDF, generateStatsSummary } from '@/utils/generateTestingPDF'
+import { generateTestingPDF } from '@/utils/generateTestingPDF'
+import dynamic from 'next/dynamic'
 import {
   Activity,
   Search,
@@ -25,82 +26,22 @@ import {
   Clipboard,
   BarChart,
   Brain,
-  Droplet
+  Droplet,
+  Maximize2
 } from 'lucide-react'
 
-// Zones cliquables sur le bonhomme
-const BODY_ZONES = {
-  head: {
-    name: 'Tête et Cou',
-    regions: ['Cervical', 'ATM', 'Crâne'],
-    position: { top: '5%', left: '45%', width: '10%', height: '8%' }
-  },
-  leftShoulder: {
-    name: 'Épaule gauche',
-    regions: ['Épaule'],
-    position: { top: '18%', left: '28%', width: '8%', height: '8%' }
-  },
-  rightShoulder: {
-    name: 'Épaule droite',
-    regions: ['Épaule'],
-    position: { top: '18%', right: '28%', width: '8%', height: '8%' }
-  },
-  leftElbow: {
-    name: 'Coude gauche',
-    regions: ['Coude'],
-    position: { top: '28%', left: '25%', width: '6%', height: '6%' }
-  },
-  rightElbow: {
-    name: 'Coude droit',
-    regions: ['Coude'],
-    position: { top: '28%', right: '25%', width: '6%', height: '6%' }
-  },
-  leftWrist: {
-    name: 'Poignet / Main gauche',
-    regions: ['Poignet', 'Main'],
-    position: { top: '38%', left: '22%', width: '6%', height: '8%' }
-  },
-  rightWrist: {
-    name: 'Poignet / Main droite',
-    regions: ['Poignet', 'Main'],
-    position: { top: '38%', right: '22%', width: '6%', height: '8%' }
-  },
-  trunk: {
-    name: 'Tronc',
-    regions: ['Thoracique', 'Lombaire', 'Sacro-iliaque', 'Côtes'],
-    position: { top: '24%', left: '42%', width: '16%', height: '24%' }
-  },
-  leftHip: {
-    name: 'Hanche gauche',
-    regions: ['Hanche'],
-    position: { top: '48%', left: '40%', width: '8%', height: '8%' }
-  },
-  rightHip: {
-    name: 'Hanche droite',
-    regions: ['Hanche'],
-    position: { top: '48%', right: '40%', width: '8%', height: '8%' }
-  },
-  leftKnee: {
-    name: 'Genou gauche',
-    regions: ['Genou'],
-    position: { top: '60%', left: '40%', width: '8%', height: '8%' }
-  },
-  rightKnee: {
-    name: 'Genou droit',
-    regions: ['Genou'],
-    position: { top: '60%', right: '40%', width: '8%', height: '8%' }
-  },
-  leftAnkle: {
-    name: 'Cheville / Pied gauche',
-    regions: ['Cheville', 'Pied'],
-    position: { top: '78%', left: '40%', width: '8%', height: '10%' }
-  },
-  rightAnkle: {
-    name: 'Cheville / Pied droit',
-    regions: ['Cheville', 'Pied'],
-    position: { top: '78%', right: '40%', width: '8%', height: '10%' }
-  }
-} 
+// Charger le composant 3D uniquement côté client
+const AnatomyViewer3D = dynamic(() => import('@/components/AnatomyViewer3D'), {
+  ssr: false,
+  loading: () => (
+    <div className="w-full h-[600px] bg-gradient-to-b from-gray-50 to-gray-100 rounded-xl flex items-center justify-center">
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
+        <p className="text-gray-600">Chargement du modèle anatomique 3D...</p>
+      </div>
+    </div>
+  )
+})
 
 const GENERAL_CATEGORIES = [
   {
@@ -146,13 +87,14 @@ export default function TestingModulePage() {
   const router = useRouter()
   const [profile, setProfile] = useState<any>(null)
   const [tests, setTests] = useState<any[]>([])
-  const [selectedZone, setSelectedZone] = useState<string | null>(null)
-  const [hoveredZone, setHoveredZone] = useState<string | null>(null)
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null) // Neuro / Vascu / Systémique
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
   const [selectedTests, setSelectedTests] = useState<any[]>([])
   const [searchQuery, setSearchQuery] = useState('')
   const [showTestModal, setShowTestModal] = useState(false)
   const [showStatsModal, setShowStatsModal] = useState(false)
+  const [showPathologyModal, setShowPathologyModal] = useState(false)
+  const [selectedPathologies, setSelectedPathologies] = useState<string[]>([])
+  const [selectedStructure, setSelectedStructure] = useState<string>('')
   const [currentSession, setCurrentSession] = useState<TestingSession>({
     patientName: '',
     patientAge: '',
@@ -163,6 +105,7 @@ export default function TestingModulePage() {
   const [savedSessions, setSavedSessions] = useState<TestingSession[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [is3DView, setIs3DView] = useState(true)
 
   useEffect(() => {
     checkAccess()
@@ -210,77 +153,60 @@ export default function TestingModulePage() {
     }
   }
 
-  // --- Sélection des zones du bonhomme ---
-
-  const handleZoneClick = (zoneKey: string) => {
-    const zone = BODY_ZONES[zoneKey as keyof typeof BODY_ZONES]
-    setSelectedZone(zoneKey)
-    setSelectedCategory(null)
-
-    const regionTests = tests.filter(test =>
-      zone.regions.includes(test.category)
-    )
-    setSelectedTests(regionTests)
-    setShowTestModal(true)
+  const handlePathologySelect = (pathologies: string[], structureName: string) => {
+    setSelectedPathologies(pathologies)
+    setSelectedStructure(structureName)
+    setShowPathologyModal(true)
   }
 
-  const handleGeneralCategoryClick = (categoryKey: string) => {
-    setSelectedZone(null)
+  const handleCategoryClick = (categoryKey: string) => {
     setSelectedCategory(categoryKey)
-    const regionTests = tests.filter(test => test.category === categoryKey)
-    setSelectedTests(regionTests)
+    const categoryTests = tests.filter(test => test.category === categoryKey)
+    setSelectedTests(categoryTests)
     setShowTestModal(true)
   }
-
-  // --- Gestion des résultats ---
 
   const addTestResult = (test: any) => {
-    const existingIndex = currentSession.results.findIndex(r => r.testId === test.id)
-
-    if (existingIndex >= 0) {
-      const newResults = [...currentSession.results]
-      newResults[existingIndex] = {
-        ...newResults[existingIndex],
-        testName: test.name
-      }
-      setCurrentSession({ ...currentSession, results: newResults })
-    } else {
-      const newResult: TestResult = {
-        testId: test.id,
-        testName: test.name,
-        region: test.category,
-        result: null,
-        notes: '',
-        sensitivity: test.sensitivity,
-        specificity: test.specificity
-      }
-      setCurrentSession({
-        ...currentSession,
-        results: [...currentSession.results, newResult]
-      })
+    const newResult: TestResult = {
+      testId: test.id,
+      testName: test.name,
+      region: test.category,
+      result: null,
+      notes: '',
+      sensitivity: test.sensitivity,
+      specificity: test.specificity
     }
+
+    setCurrentSession(prev => ({
+      ...prev,
+      results: [...prev.results, newResult]
+    }))
   }
 
-  const updateTestResult = (testId: string, result: 'positive' | 'negative' | 'uncertain' | null) => {
-    const newResults = currentSession.results.map(r =>
-      r.testId === testId ? { ...r, result } : r
-    )
-    setCurrentSession({ ...currentSession, results: newResults })
+  const updateTestResult = (testId: string, result: 'positive' | 'negative' | 'uncertain') => {
+    setCurrentSession(prev => ({
+      ...prev,
+      results: prev.results.map(r =>
+        r.testId === testId ? { ...r, result } : r
+      )
+    }))
   }
 
   const updateTestNotes = (testId: string, notes: string) => {
-    const newResults = currentSession.results.map(r =>
-      r.testId === testId ? { ...r, notes } : r
-    )
-    setCurrentSession({ ...currentSession, results: newResults })
+    setCurrentSession(prev => ({
+      ...prev,
+      results: prev.results.map(r =>
+        r.testId === testId ? { ...r, notes } : r
+      )
+    }))
   }
 
   const removeTestResult = (testId: string) => {
-    const newResults = currentSession.results.filter(r => r.testId !== testId)
-    setCurrentSession({ ...currentSession, results: newResults })
+    setCurrentSession(prev => ({
+      ...prev,
+      results: prev.results.filter(r => r.testId !== testId)
+    }))
   }
-
-  // --- Sauvegarde / export ---
 
   const saveSession = () => {
     if (!currentSession.patientName) {
@@ -291,12 +217,44 @@ export default function TestingModulePage() {
     setSaving(true)
     const sessionToSave = {
       ...currentSession,
-      id: Date.now().toString()
+      id: currentSession.id || Date.now().toString()
     }
 
-    const newSessions = [...savedSessions, sessionToSave]
-    setSavedSessions(newSessions)
-    localStorage.setItem('testingSessions', JSON.stringify(newSessions))
+    const existingIndex = savedSessions.findIndex(s => s.id === sessionToSave.id)
+    let updatedSessions
+
+    if (existingIndex >= 0) {
+      updatedSessions = [...savedSessions]
+      updatedSessions[existingIndex] = sessionToSave
+    } else {
+      updatedSessions = [sessionToSave, ...savedSessions]
+    }
+
+    localStorage.setItem('testingSessions', JSON.stringify(updatedSessions))
+    setSavedSessions(updatedSessions)
+    setSaving(false)
+    alert('Session sauvegardée avec succès')
+  }
+
+  const loadSession = (session: TestingSession) => {
+    setCurrentSession(session)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  const deleteSession = (sessionId: string) => {
+    if (confirm('Êtes-vous sûr de vouloir supprimer cette session ?')) {
+      const updated = savedSessions.filter(s => s.id !== sessionId)
+      localStorage.setItem('testingSessions', JSON.stringify(updated))
+      setSavedSessions(updated)
+    }
+  }
+
+  const newSession = () => {
+    if (currentSession.results.length > 0) {
+      if (!confirm('Créer une nouvelle session ? Les données non sauvegardées seront perdues.')) {
+        return
+      }
+    }
 
     setCurrentSession({
       patientName: '',
@@ -305,65 +263,27 @@ export default function TestingModulePage() {
       results: [],
       notes: ''
     })
-
-    setSaving(false)
-    alert('Session sauvegardée avec succès !')
   }
 
-  const exportToPDF = () => {
-    if (currentSession.results.length === 0) {
-      alert('Aucun test à exporter')
-      return
-    }
-
-    generateTestingPDF(currentSession)
-  }
-
-  const loadSession = (session: TestingSession) => {
-    setCurrentSession(session)
-  }
-
-  const deleteSession = (sessionId: string) => {
-    if (confirm('Êtes-vous sûr de vouloir supprimer cette session ?')) {
-      const newSessions = savedSessions.filter(s => s.id !== sessionId)
-      setSavedSessions(newSessions)
-      localStorage.setItem('testingSessions', JSON.stringify(newSessions))
-    }
-  }
-
-  // --- Lien résultats <-> zones ---
-
-  const getZonesWithResults = () => {
-    const zonesWithTests: Set<string> = new Set()
-    currentSession.results.forEach(result => {
-      Object.entries(BODY_ZONES).forEach(([key, zone]) => {
-        if (zone.regions.includes(result.region)) {
-          zonesWithTests.add(key)
-        }
-      })
-    })
-    return zonesWithTests
-  }
-
-  const stats = generateStatsSummary(currentSession.results)
-  const zonesWithResults = getZonesWithResults()
-
-  const hasTestsForGeneralCategory = (categoryKey: string) =>
-    currentSession.results.some(r => r.region === categoryKey)
-
-  const getSelectionLabel = () => {
-    if (selectedZone && BODY_ZONES[selectedZone as keyof typeof BODY_ZONES]) {
-      return BODY_ZONES[selectedZone as keyof typeof BODY_ZONES].name
-    }
-    if (selectedCategory) return selectedCategory
-    return 'la sélection'
+  const stats = {
+    total: currentSession.results.length,
+    positive: currentSession.results.filter(r => r.result === 'positive').length,
+    negative: currentSession.results.filter(r => r.result === 'negative').length,
+    uncertain: currentSession.results.filter(r => r.result === 'uncertain').length,
+    byRegion: currentSession.results.reduce((acc, r) => {
+      acc[r.region] = (acc[r.region] || 0) + 1
+      return acc
+    }, {} as Record<string, number>)
   }
 
   if (loading) {
     return (
       <AuthLayout>
-        <div className="flex items-center justify-center h-96">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Chargement...</p>
+          </div>
         </div>
       </AuthLayout>
     )
@@ -372,219 +292,117 @@ export default function TestingModulePage() {
   return (
     <AuthLayout>
       <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="bg-white rounded-xl shadow-sm p-6">
+        {/* En-tête */}
+        <div className="bg-gradient-to-r from-primary-600 to-primary-700 rounded-xl p-8 text-white">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-                <Activity className="h-6 w-6 text-primary-600" />
-                Module de Testing
-              </h1>
-              <p className="mt-1 text-gray-600">
-                Réalisez et documentez vos tests orthopédiques
+              <h1 className="text-3xl font-bold mb-2">🧪 Module de Testing</h1>
+              <p className="text-primary-100">
+                Sélectionnez une région anatomique pour effectuer vos tests
               </p>
             </div>
             <div className="flex gap-3">
               <button
-                onClick={() => setShowStatsModal(true)}
-                disabled={currentSession.results.length === 0}
-                className="bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-lg font-medium hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                onClick={() => setIs3DView(!is3DView)}
+                className="bg-white/20 hover:bg-white/30 px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
               >
-                <BarChart className="h-4 w-4" />
-                Stats
-              </button>
-              <button
-                onClick={exportToPDF}
-                disabled={currentSession.results.length === 0}
-                className="bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-lg font-medium hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-              >
-                <Download className="h-4 w-4" />
-                Export PDF
-              </button>
-              <button
-                onClick={saveSession}
-                disabled={currentSession.results.length === 0 || saving}
-                className="bg-primary-600 hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg font-medium flex items-center gap-2"
-              >
-                <Save className="h-4 w-4" />
-                {saving ? 'Sauvegarde...' : 'Sauvegarder'}
+                <Maximize2 className="h-5 w-5" />
+                {is3DView ? 'Vue 2D' : 'Vue 3D'}
               </button>
             </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Bonhomme anatomique */}
-          <div className="lg:col-span-1">
-            <div className="bg-white rounded-xl shadow-sm p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">
-                Sélectionnez une zone
+        {/* Section principale */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Visualisation anatomique 3D */}
+          <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+            <div className="p-4 border-b bg-gradient-to-r from-primary-50 to-primary-100">
+              <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                <Activity className="h-5 w-5 text-primary-600" />
+                Modèle Anatomique Interactif
               </h2>
-              <div className="relative mx-auto" style={{ maxWidth: '300px' }}>
-                {/* Silhouette */}
-                <svg viewBox="0 0 200 400" className="w-full h-auto drop-shadow-sm">
-                  {/* Corps simplifié */}
-                  <g>
-                    <circle cx="100" cy="40" r="25" fill="#e5e7eb" stroke="#6b7280" strokeWidth="2" />
-                    <rect x="90" y="60" width="20" height="20" fill="#e5e7eb" stroke="#6b7280" strokeWidth="2" />
-                    <rect x="70" y="80" width="60" height="80" fill="#e5e7eb" stroke="#6b7280" strokeWidth="2" />
-                    <rect x="40" y="85" width="25" height="60" fill="#e5e7eb" stroke="#6b7280" strokeWidth="2" />
-                    <rect x="35" y="145" width="20" height="50" fill="#e5e7eb" stroke="#6b7280" strokeWidth="2" />
-                    <rect x="135" y="85" width="25" height="60" fill="#e5e7eb" stroke="#6b7280" strokeWidth="2" />
-                    <rect x="145" y="145" width="20" height="50" fill="#e5e7eb" stroke="#6b7280" strokeWidth="2" />
-                    <rect x="70" y="160" width="60" height="40" fill="#e5e7eb" stroke="#6b7280" strokeWidth="2" />
-                    <rect x="75" y="200" width="20" height="80" fill="#e5e7eb" stroke="#6b7280" strokeWidth="2" />
-                    <rect x="70" y="280" width="20" height="70" fill="#e5e7eb" stroke="#6b7280" strokeWidth="2" />
-                    <rect x="65" y="350" width="25" height="30" fill="#e5e7eb" stroke="#6b7280" strokeWidth="2" />
-                    <rect x="105" y="200" width="20" height="80" fill="#e5e7eb" stroke="#6b7280" strokeWidth="2" />
-                    <rect x="110" y="280" width="20" height="70" fill="#e5e7eb" stroke="#6b7280" strokeWidth="2" />
-                    <rect x="110" y="350" width="25" height="30" fill="#e5e7eb" stroke="#6b7280" strokeWidth="2" />
-                  </g>
+              <p className="text-sm text-gray-600 mt-1">
+                Cliquez sur une région puis sur une structure pour voir les pathologies
+              </p>
+            </div>
 
-                  {/* Zones interactives */}
-                  {Object.entries(BODY_ZONES).map(([key, zone]) => {
-                    const hasResults = zonesWithResults.has(key)
-                    const position = zone.position as any
-                    const isSelected = selectedZone === key
+            {is3DView ? (
+              <AnatomyViewer3D onPathologySelect={handlePathologySelect} />
+            ) : (
+              <div className="p-8 text-center text-gray-500">
+                <p>Vue 2D à venir...</p>
+              </div>
+            )}
 
-                    let x = 0
-                    if ('left' in position) {
-                      x = (parseFloat(position.left) / 100) * 200
-                    } else if ('right' in position) {
-                      x =
-                        200 -
-                        (parseFloat(position.right) / 100) * 200 -
-                        (parseFloat(position.width) / 100) * 200
-                    }
-
-                    const y = (parseFloat(position.top) / 100) * 400
-                    const width = (parseFloat(position.width) / 100) * 200
-                    const height = (parseFloat(position.height) / 100) * 400
-
-                    const baseFill = hasResults
-                      ? 'rgba(34,197,94,0.25)'
-                      : 'rgba(59,130,246,0.18)'
-                    const selectedFill = 'rgba(37,99,235,0.38)'
-                    const strokeColor = isSelected
-                      ? '#2563eb'
-                      : hasResults
-                      ? '#22c55e'
-                      : '#3b82f6'
-
-                    return (
-                      <g key={key}>
-                        <rect
-                          x={x}
-                          y={y}
-                          width={width}
-                          height={height}
-                          fill={isSelected ? selectedFill : baseFill}
-                          stroke={strokeColor}
-                          strokeWidth="2"
-                          rx="6"
-                          className="cursor-pointer transition-all hover:opacity-80"
-                          onClick={() => handleZoneClick(key)}
-                          onMouseEnter={() => setHoveredZone(zone.name)}
-                          onMouseLeave={() => setHoveredZone(null)}
-                        />
-                        {hasResults && (
-                          <circle
-                            cx={x + width / 2}
-                            cy={y + height / 2}
-                            r="7"
-                            fill="#22c55e"
-                            className="pointer-events-none"
-                          />
-                        )}
-                      </g>
-                    )
-                  })}
-                </svg>
-
-                {/* Légende dynamique */}
-                <div className="mt-3 text-center text-xs text-gray-500 min-h-[1.25rem]">
-                  {hoveredZone
-                    ? hoveredZone
-                    : selectedZone
-                    ? BODY_ZONES[selectedZone as keyof typeof BODY_ZONES].name
-                    : 'Survolez ou cliquez une zone pour voir le détail'}
-                </div>
-
-                {/* Légende couleurs */}
-                <div className="mt-3 space-y-2 text-xs">
-                  <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 bg-blue-200 border-2 border-blue-500 rounded-sm" />
-                    <span className="text-gray-600">Zone sélectionnable</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 bg-green-200 border-2 border-green-500 rounded-sm" />
-                    <span className="text-gray-600">Zone avec tests réalisés</span>
-                  </div>
-                </div>
-
-                {/* Tests généraux : Neuro / Vascu / Systémique */}
-                <div className="mt-4">
-                  <p className="text-xs font-medium text-gray-700 mb-2 text-center">
-                    Tests généraux
-                  </p>
-                  <div className="flex items-center justify-center gap-3">
-                    {GENERAL_CATEGORIES.map(cat => {
-                      const Icon = cat.icon
-                      const hasTests = hasTestsForGeneralCategory(cat.key)
-                      const isSelected = selectedCategory === cat.key
-
-                      return (
-                        <button
-                          key={cat.key}
-                          onClick={() => handleGeneralCategoryClick(cat.key)}
-                          className={`relative flex flex-col items-center justify-center w-16 h-16 rounded-full border text-xs transition-all
-                            ${
-                              isSelected
-                                ? 'bg-primary-50 border-primary-500 text-primary-700'
-                                : 'bg-gray-50 border-gray-200 text-gray-700 hover:bg-gray-100'
-                            }`}
-                          title={cat.description}
-                        >
-                          <Icon className="h-5 w-5 mb-1" />
-                          <span>{cat.label}</span>
-                          {hasTests && (
-                            <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-green-500 text-[10px] text-white flex items-center justify-center">
-                              ✓
-                            </span>
-                          )}
-                        </button>
-                      )
-                    })}
-                  </div>
-                </div>
+            {/* Catégories générales */}
+            <div className="p-4 border-t bg-gray-50">
+              <h3 className="text-sm font-semibold text-gray-700 mb-3">Tests Généraux</h3>
+              <div className="grid grid-cols-3 gap-2">
+                {GENERAL_CATEGORIES.map((cat) => {
+                  const Icon = cat.icon
+                  return (
+                    <button
+                      key={cat.key}
+                      onClick={() => handleCategoryClick(cat.key)}
+                      className="p-3 bg-white rounded-lg border-2 border-gray-200 hover:border-primary-500 hover:bg-primary-50 transition-all group"
+                    >
+                      <Icon className="h-5 w-5 mx-auto mb-1 text-gray-600 group-hover:text-primary-600" />
+                      <p className="text-xs font-medium text-gray-900">{cat.label}</p>
+                    </button>
+                  )
+                })}
               </div>
             </div>
           </div>
 
-          {/* Infos session + résultats */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Informations patient */}
-            <div className="bg-white rounded-xl shadow-sm p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">
-                Informations de la session
+          {/* Session en cours */}
+          <div className="bg-white rounded-xl shadow-sm p-6">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                <Clipboard className="h-5 w-5 text-primary-600" />
+                Session en cours
               </h2>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="flex gap-2">
+                <button
+                  onClick={newSession}
+                  className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg"
+                  title="Nouvelle session"
+                >
+                  <Plus className="h-5 w-5" />
+                </button>
+                <button
+                  onClick={() => setShowStatsModal(true)}
+                  className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg"
+                  title="Statistiques"
+                >
+                  <BarChart className="h-5 w-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Infos patient */}
+            <div className="space-y-4 mb-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <User className="inline h-4 w-4 mr-1" />
+                  Nom du patient
+                </label>
+                <input
+                  type="text"
+                  value={currentSession.patientName}
+                  onChange={(e) =>
+                    setCurrentSession({ ...currentSession, patientName: e.target.value })
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                  placeholder="Nom complet"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Nom du patient
-                  </label>
-                  <input
-                    type="text"
-                    value={currentSession.patientName}
-                    onChange={(e) =>
-                      setCurrentSession({ ...currentSession, patientName: e.target.value })
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-                    placeholder="Jean Dupont"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <Calendar className="inline h-4 w-4 mr-1" />
                     Âge
                   </label>
                   <input
@@ -594,11 +412,13 @@ export default function TestingModulePage() {
                       setCurrentSession({ ...currentSession, patientAge: e.target.value })
                     }
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-                    placeholder="45 ans"
+                    placeholder="ex: 45 ans"
                   />
                 </div>
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <Clock className="inline h-4 w-4 mr-1" />
                     Date
                   </label>
                   <input
@@ -611,89 +431,71 @@ export default function TestingModulePage() {
                   />
                 </div>
               </div>
-              <div className="mt-4">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Notes générales
-                </label>
-                <textarea
-                  value={currentSession.notes}
-                  onChange={(e) =>
-                    setCurrentSession({ ...currentSession, notes: e.target.value })
-                  }
-                  rows={2}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-                  placeholder="Observations générales..."
-                />
-              </div>
             </div>
 
-            {/* Résultats des tests */}
-            <div className="bg-white rounded-xl shadow-sm p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">
-                Tests effectués ({currentSession.results.length})
-              </h2>
+            {/* Tests effectués */}
+            <div className="mb-6">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-semibold text-gray-900">
+                  Tests effectués ({currentSession.results.length})
+                </h3>
+              </div>
 
               {currentSession.results.length === 0 ? (
                 <div className="text-center py-8 text-gray-500">
-                  <Clipboard className="h-12 w-12 mx-auto mb-3 text-gray-400" />
-                  <p>Aucun test effectué pour le moment</p>
-                  <p className="text-sm mt-1">
-                    Cliquez sur une zone du corps ou une icône générale pour ajouter des tests
-                  </p>
+                  <Activity className="h-12 w-12 mx-auto mb-3 text-gray-300" />
+                  <p>Aucun test effectué</p>
+                  <p className="text-sm">Cliquez sur une région pour commencer</p>
                 </div>
               ) : (
-                <div className="space-y-3">
+                <div className="space-y-3 max-h-[400px] overflow-y-auto">
                   {currentSession.results.map((result) => (
-                    <div key={result.testId} className="border rounded-lg p-4">
+                    <div
+                      key={result.testId}
+                      className="border rounded-lg p-3 hover:shadow-md transition-shadow"
+                    >
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
-                          <div className="flex items-center gap-2">
-                            <h3 className="font-medium text-gray-900">{result.testName}</h3>
-                            <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">
-                              {result.region}
-                            </span>
+                          <p className="font-medium text-gray-900">{result.testName}</p>
+                          <p className="text-sm text-gray-600 mb-2">{result.region}</p>
+
+                          <div className="flex gap-2 mb-2">
+                            <button
+                              onClick={() => updateTestResult(result.testId, 'positive')}
+                              className={`flex-1 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                                result.result === 'positive'
+                                  ? 'bg-green-500 text-white'
+                                  : 'bg-gray-100 text-gray-700 hover:bg-green-50'
+                              }`}
+                            >
+                              <CheckCircle className="inline h-4 w-4 mr-1" />
+                              Positif
+                            </button>
+                            <button
+                              onClick={() => updateTestResult(result.testId, 'negative')}
+                              className={`flex-1 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                                result.result === 'negative'
+                                  ? 'bg-red-500 text-white'
+                                  : 'bg-gray-100 text-gray-700 hover:bg-red-50'
+                              }`}
+                            >
+                              <XCircle className="inline h-4 w-4 mr-1" />
+                              Négatif
+                            </button>
+                            <button
+                              onClick={() => updateTestResult(result.testId, 'uncertain')}
+                              className={`flex-1 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                                result.result === 'uncertain'
+                                  ? 'bg-yellow-500 text-white'
+                                  : 'bg-gray-100 text-gray-700 hover:bg-yellow-50'
+                              }`}
+                            >
+                              <AlertCircle className="inline h-4 w-4 mr-1" />
+                              Incertain
+                            </button>
                           </div>
 
-                          <div className="mt-3 flex items-center gap-4 flex-wrap">
-                            <div className="flex items-center gap-2">
-                              <span className="text-sm text-gray-600">Résultat :</span>
-                              <div className="flex gap-1">
-                                <button
-                                  onClick={() => updateTestResult(result.testId, 'positive')}
-                                  className={`p-2 rounded-lg transition-colors ${
-                                    result.result === 'positive'
-                                      ? 'bg-green-100 text-green-700'
-                                      : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
-                                  }`}
-                                  title="Positif"
-                                >
-                                  <CheckCircle className="h-4 w-4" />
-                                </button>
-                                <button
-                                  onClick={() => updateTestResult(result.testId, 'negative')}
-                                  className={`p-2 rounded-lg transition-colors ${
-                                    result.result === 'negative'
-                                      ? 'bg-red-100 text-red-700'
-                                      : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
-                                  }`}
-                                  title="Négatif"
-                                >
-                                  <XCircle className="h-4 w-4" />
-                                </button>
-                                <button
-                                  onClick={() => updateTestResult(result.testId, 'uncertain')}
-                                  className={`p-2 rounded-lg transition-colors ${
-                                    result.result === 'uncertain'
-                                      ? 'bg-yellow-100 text-yellow-700'
-                                      : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
-                                  }`}
-                                  title="Incertain"
-                                >
-                                  <AlertCircle className="h-4 w-4" />
-                                </button>
-                              </div>
-                            </div>
-
+                          <div className="flex gap-3">
                             {result.sensitivity && (
                               <span className="text-xs text-gray-500">
                                 Se: {result.sensitivity}%
@@ -728,6 +530,43 @@ export default function TestingModulePage() {
                   ))}
                 </div>
               )}
+            </div>
+
+            {/* Notes de session */}
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Notes de session
+              </label>
+              <textarea
+                value={currentSession.notes}
+                onChange={(e) =>
+                  setCurrentSession({ ...currentSession, notes: e.target.value })
+                }
+                rows={4}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                placeholder="Observations générales, conclusions..."
+              />
+            </div>
+
+            {/* Actions */}
+            <div className="flex gap-3">
+              <button
+                onClick={saveSession}
+                disabled={saving || !currentSession.patientName}
+                className="flex-1 bg-primary-600 text-white px-4 py-2.5 rounded-lg font-medium hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                <Save className="h-5 w-5" />
+                {saving ? 'Sauvegarde...' : 'Sauvegarder'}
+              </button>
+
+              <button
+                onClick={() => generateTestingPDF(currentSession)}
+                disabled={currentSession.results.length === 0}
+                className="flex-1 bg-blue-600 text-white px-4 py-2.5 rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                <Download className="h-5 w-5" />
+                Exporter PDF
+              </button>
             </div>
           </div>
         </div>
@@ -791,6 +630,62 @@ export default function TestingModulePage() {
         )}
       </div>
 
+      {/* Modal de pathologies */}
+      {showPathologyModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl max-w-2xl w-full max-h-[80vh] overflow-hidden">
+            <div className="p-6 border-b bg-gradient-to-r from-primary-50 to-primary-100">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-xl font-bold text-gray-900">
+                    Pathologies - {selectedStructure}
+                  </h3>
+                  <p className="text-sm text-gray-600 mt-1">
+                    Cliquez sur une pathologie pour ajouter les tests associés
+                  </p>
+                </div>
+                <button
+                  onClick={() => setShowPathologyModal(false)}
+                  className="p-2 hover:bg-white rounded-lg transition-colors"
+                >
+                  <X className="h-6 w-6" />
+                </button>
+              </div>
+            </div>
+
+            <div className="p-6 max-h-[60vh] overflow-y-auto">
+              {selectedPathologies.length === 0 ? (
+                <div className="text-center py-12 text-gray-500">
+                  <AlertCircle className="h-12 w-12 mx-auto mb-3 text-gray-300" />
+                  <p>Aucune pathologie définie pour cette structure</p>
+                </div>
+              ) : (
+                <div className="grid gap-3">
+                  {selectedPathologies.map((pathology, index) => (
+                    <div
+                      key={index}
+                      className="p-4 border-2 border-gray-200 rounded-lg hover:border-primary-500 hover:bg-primary-50 transition-all cursor-pointer group"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <p className="font-semibold text-gray-900 group-hover:text-primary-700">
+                            {pathology}
+                          </p>
+                          <p className="text-sm text-gray-600 mt-1">
+                            Cliquez pour voir les tests diagnostiques
+                          </p>
+                        </div>
+                        <ChevronRight className="h-6 w-6 text-gray-400 group-hover:text-primary-600" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Modal de sélection de tests */}
       {showTestModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
@@ -798,7 +693,7 @@ export default function TestingModulePage() {
             <div className="p-6 border-b">
               <div className="flex items-center justify-between">
                 <h3 className="text-lg font-semibold">
-                  Tests pour {getSelectionLabel()}
+                  Tests - {selectedCategory}
                 </h3>
                 <button
                   onClick={() => {
@@ -901,17 +796,19 @@ export default function TestingModulePage() {
                 </div>
               </div>
 
-              <div>
-                <p className="text-sm font-medium text-gray-700 mb-2">Par région :</p>
-                <div className="space-y-1">
-                  {Object.entries(stats.byRegion).map(([region, count]) => (
-                    <div key={region} className="flex justify-between text-sm">
-                      <span className="text-gray-600">{region}</span>
-                      <span className="font-medium">{count}</span>
-                    </div>
-                  ))}
+              {Object.keys(stats.byRegion).length > 0 && (
+                <div>
+                  <p className="text-sm font-medium text-gray-700 mb-2">Par région :</p>
+                  <div className="space-y-1">
+                    {Object.entries(stats.byRegion).map(([region, count]) => (
+                      <div key={region} className="flex justify-between text-sm">
+                        <span className="text-gray-600">{region}</span>
+                        <span className="font-medium">{count}</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           </div>
         </div>
