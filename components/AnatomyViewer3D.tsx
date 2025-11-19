@@ -123,7 +123,7 @@ function ClickableZone({
   )
 }
 
-// Pathologie cliquable dans la vue zoomée
+// Pathologie cliquable dans la vue zoomée - CORRIGÉ
 function PathologyMarker({ 
   pathology, 
   zoneColor,
@@ -139,11 +139,11 @@ function PathologyMarker({
 
   const size = pathology.size || 0.08
 
-  // Label décalé sur le côté
+  // ✅ CORRECTION: Label AU-DESSUS de la sphère (pas sur le côté)
   const labelOffset = [
-    position[0] + size * 2,
-    position[1],
-    position[2]
+    position[0],              // Même X que la sphère
+    position[1] + size * 1.8, // AU-DESSUS de la sphère
+    position[2]               // Même Z que la sphère
   ]
 
   const severityColor = 
@@ -178,27 +178,25 @@ function PathologyMarker({
         />
       </mesh>
 
-      {/* Label sur le côté */}
+      {/* ✅ CORRECTION: Label compact AU-DESSUS avec distanceFactor réduit */}
       {isHovered && (
         <Html 
           position={labelOffset as [number, number, number]}
-          distanceFactor={6}
+          distanceFactor={3}  // RÉDUIT de 6 à 3 pour éviter qu'il devienne trop grand
+          center
         >
           <div 
-            className="bg-white px-3 py-2 rounded-lg shadow-lg border-2 min-w-[150px]"
-            style={{ borderColor: severityColor }}
+            className="bg-white px-2 py-1 rounded-lg shadow-lg border whitespace-nowrap pointer-events-none"
+            style={{ borderColor: severityColor, maxWidth: '180px' }}
           >
-            <p className="font-semibold text-sm" style={{ color: severityColor }}>
+            <p className="font-semibold text-xs" style={{ color: severityColor }}>
               {pathology.name}
             </p>
             {pathology.description && (
-              <p className="text-xs text-gray-600 mt-1">
-                {pathology.description.substring(0, 50)}...
+              <p className="text-[10px] text-gray-600 mt-0.5 truncate">
+                {pathology.description.substring(0, 30)}...
               </p>
             )}
-            <p className="text-xs text-gray-500 mt-1">
-              Cliquez pour voir les tests
-            </p>
           </div>
         </Html>
       )}
@@ -452,7 +450,7 @@ export default function AnatomyViewer3D({
           <p className="text-sm font-semibold text-white">
             {viewMode === 'global' 
               ? '🖱️ Survolez et cliquez sur une région anatomique' 
-              : '🎯 Cliquez sur une pathologie (sphères colorées)'}
+              : '🎯 Survolez les pathologies (sphères) pour voir leurs détails'}
           </p>
           <p className="text-xs text-gray-300 mt-1">
             Glissez pour pivoter • Molette pour zoomer

@@ -404,15 +404,6 @@ export default function PathologyManagerPage() {
                         {zonePathologies.length} pathologie(s) configurée(s)
                       </p>
                     </div>
-                    {selectedPathology && (
-                      <button
-                        onClick={() => setShowTestLinker(true)}
-                        className="px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm flex items-center gap-1"
-                      >
-                        <LinkIcon className="h-4 w-4" />
-                        Lier aux tests
-                      </button>
-                    )}
                   </div>
                 </div>
 
@@ -473,6 +464,17 @@ export default function PathologyManagerPage() {
                                 </p>
                               </div>
                               <div className="flex gap-1">
+                                {/* NOUVEAU : Bouton Lier aux tests directement dans la carte */}
+                                <button
+                                  onClick={() => {
+                                    setSelectedPathology(pathology)
+                                    setShowTestLinker(true)
+                                  }}
+                                  className="p-1 text-gray-400 hover:text-blue-600"
+                                  title="Lier aux tests"
+                                >
+                                  <LinkIcon className="h-4 w-4" />
+                                </button>
                                 <button
                                   onClick={() => handleToggleActive(pathology.id, pathology.is_active)}
                                   className="p-1 text-gray-400 hover:text-gray-600"
