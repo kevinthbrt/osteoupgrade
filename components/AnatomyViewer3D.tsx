@@ -2,108 +2,65 @@
 
 import { Canvas } from '@react-three/fiber'
 import { OrbitControls, PerspectiveCamera, Html, useGLTF, Environment } from '@react-three/drei'
-import { useState, useRef, Suspense } from 'react'
-import * as THREE from 'three'
+import { useState, Suspense } from 'react'
 
-// Définition des régions anatomiques (identique au précédent)
-const ANATOMICAL_REGIONS = {
-  cervical: {
-    name: 'Région Cervicale',
-    color: '#60a5fa',
-    position: [0, 1.6, 0] as [number, number, number],
-    size: [0.15, 0.25, 0.15] as [number, number, number],
-    structures: [
-      { id: 'c-vertebrae', name: 'Vertèbres Cervicales', position: [0, 0, 0] },
-      { id: 'c-discs', name: 'Disques Intervertébraux', position: [0, -0.3, 0] },
-      { id: 'c-facets', name: 'Facettes Articulaires', position: [0.3, 0, 0] },
-      { id: 'c-muscles', name: 'Muscles Cervicaux', position: [0.5, 0, 0] },
-    ],
-    pathologies: {
-      'c-vertebrae': ['Fracture vertébrale', 'Spondylose cervicale', 'Sténose'],
-      'c-discs': ['Hernie discale', 'Discopathie dégénérative', 'Protrusion'],
-      'c-facets': ['Syndrome facettaire', 'Arthrose facettaire'],
-      'c-muscles': ['Contracture', 'Trigger points', 'Entorse cervicale'],
-    }
-  },
-  lumbar: {
-    name: 'Région Lombaire',
-    color: '#f59e0b',
-    position: [0, 0.5, 0] as [number, number, number],
-    size: [0.2, 0.3, 0.15] as [number, number, number],
-    structures: [
-      { id: 'l-vertebrae', name: 'Vertèbres Lombaires', position: [0, 0, 0] },
-      { id: 'l-discs', name: 'Disques L1-S1', position: [0, -0.3, 0] },
-      { id: 'l-facets', name: 'Facettes Articulaires', position: [0.3, 0, 0] },
-      { id: 'l-muscles', name: 'Muscles Paravertébraux', position: [0.5, 0, 0] },
-      { id: 'l-si-joint', name: 'Articulation Sacro-Iliaque', position: [0.4, -0.5, 0] },
-    ],
-    pathologies: {
-      'l-vertebrae': ['Spondylolisthésis', 'Fracture', 'Sténose canalaire'],
-      'l-discs': ['Hernie discale L4-L5', 'Hernie L5-S1', 'Discopathie'],
-      'l-facets': ['Syndrome facettaire', 'Arthrose facettaire'],
-      'l-muscles': ['Lombalgie musculaire', 'Contracture', 'Trigger points'],
-      'l-si-joint': ['Dysfonction sacro-iliaque', 'Inflammation SI'],
-    }
-  },
-  shoulder: {
-    name: 'Épaule',
-    color: '#8b5cf6',
-    position: [0.35, 1.3, 0] as [number, number, number],
-    size: [0.12, 0.15, 0.12] as [number, number, number],
-    isSymmetric: true,
-    structures: [
-      { id: 's-rotator-cuff', name: 'Coiffe des Rotateurs', position: [0, 0, 0] },
-      { id: 's-biceps', name: 'Tendon du Long Biceps', position: [0.2, -0.3, 0] },
-      { id: 's-ac-joint', name: 'Articulation AC', position: [0.3, 0.2, 0] },
-      { id: 's-labrum', name: 'Labrum Glénoïdien', position: [0, 0, -0.2] },
-      { id: 's-bursa', name: 'Bourse Sous-Acromiale', position: [0, 0.2, 0] },
-    ],
-    pathologies: {
-      's-rotator-cuff': ['Tendinopathie', 'Rupture partielle', 'Rupture complète', 'Calcification'],
-      's-biceps': ['Tendinite bicipitale', 'Rupture', 'SLAP lesion'],
-      's-ac-joint': ['Arthrose AC', 'Disjonction AC', 'Ostéolyse clavicule'],
-      's-labrum': ['Lésion SLAP', 'Instabilité antérieure', 'Lésion Bankart'],
-      's-bursa': ['Bursite sous-acromiale', 'Conflit sous-acromial'],
-    }
-  },
-  knee: {
-    name: 'Genou',
-    color: '#10b981',
-    position: [0.12, -0.4, 0] as [number, number, number],
-    size: [0.12, 0.2, 0.12] as [number, number, number],
-    isSymmetric: true,
-    structures: [
-      { id: 'k-meniscus', name: 'Ménisques', position: [0, 0, 0] },
-      { id: 'k-acl', name: 'LCA', position: [0, 0, -0.1] },
-      { id: 'k-pcl', name: 'LCP', position: [0, 0, 0.1] },
-      { id: 'k-mcl', name: 'LLI', position: [0.2, 0, 0] },
-      { id: 'k-lcl', name: 'LLE', position: [-0.2, 0, 0] },
-      { id: 'k-patella', name: 'Rotule / Tendon Rotulien', position: [0, 0.3, 0.2] },
-    ],
-    pathologies: {
-      'k-meniscus': ['Lésion méniscale interne', 'Lésion méniscale externe', 'Kyste méniscal'],
-      'k-acl': ['Rupture LCA', 'Entorse LCA', 'Laxité chronique'],
-      'k-pcl': ['Rupture LCP', 'Entorse LCP'],
-      'k-mcl': ['Entorse LLI grade I-III', 'Laxité LLI'],
-      'k-lcl': ['Entorse LLE', 'Rupture LLE'],
-      'k-patella': ['Tendinopathie rotulienne', 'Syndrome fémoro-patellaire', 'Chondropathie'],
-    }
-  },
+// Interface pour les zones chargées depuis la DB
+interface AnatomyZone {
+  id: string
+  name: string
+  display_name: string
+  color: string
+  position_x: number
+  position_y: number
+  position_z: number
+  size_x: number
+  size_y: number
+  size_z: number
+  is_symmetric: boolean
+}
+
+interface AnatomyStructure {
+  id: string
+  zone_id: string
+  name: string
+  description: string | null
+  position_x: number
+  position_y: number
+  position_z: number
+}
+
+interface Pathology {
+  id: string
+  structure_id: string
+  name: string
+  description: string | null
+  severity: 'low' | 'medium' | 'high' | null
+}
+
+interface AnatomyViewer3DProps {
+  zones: AnatomyZone[]
+  structures: Record<string, AnatomyStructure[]>
+  pathologies: Record<string, Pathology[]>
+  onPathologySelect: (pathologies: Pathology[], structureName: string) => void
+  modelPath?: string
 }
 
 // Zone cliquable invisible superposée au modèle
 function ClickableZone({ 
-  region, 
-  regionKey, 
+  zone, 
   onClick, 
   isHovered,
   onHover,
   side = 'center'
 }: any) {
-  let position = [...region.position]
-  if (region.isSymmetric && side === 'right') {
-    position[0] = -position[0]
+  let position = [zone.position_x, zone.position_y, zone.position_z]
+  
+  // Si la zone est symétrique et c'est le côté droit, inverser X
+  if (zone.is_symmetric && side === 'right') {
+    position = [-zone.position_x, zone.position_y, zone.position_z]
   }
+
+  const size = [zone.size_x, zone.size_y, zone.size_z]
 
   return (
     <group position={position as [number, number, number]}>
@@ -111,7 +68,7 @@ function ClickableZone({
       <mesh
         onClick={(e) => {
           e.stopPropagation()
-          onClick(regionKey, side)
+          onClick(zone.id, side)
         }}
         onPointerOver={(e) => {
           e.stopPropagation()
@@ -123,9 +80,9 @@ function ClickableZone({
           document.body.style.cursor = 'auto'
         }}
       >
-        <boxGeometry args={region.size} />
+        <boxGeometry args={size as [number, number, number]} />
         <meshBasicMaterial 
-          color={region.color}
+          color={zone.color}
           transparent
           opacity={isHovered ? 0.3 : 0}
           wireframe={isHovered}
@@ -136,11 +93,11 @@ function ClickableZone({
       {isHovered && (
         <Html center distanceFactor={8}>
           <div className="bg-white px-4 py-2 rounded-lg shadow-xl border-2 whitespace-nowrap pointer-events-none"
-            style={{ borderColor: region.color }}>
-            <p className="font-bold text-gray-900" style={{ color: region.color }}>
-              {region.name}
+            style={{ borderColor: zone.color }}>
+            <p className="font-bold text-gray-900" style={{ color: zone.color }}>
+              {zone.display_name}
             </p>
-            {region.isSymmetric && (
+            {zone.is_symmetric && (
               <p className="text-xs text-gray-600">
                 {side === 'left' ? 'Gauche' : 'Droite'}
               </p>
@@ -153,47 +110,43 @@ function ClickableZone({
 }
 
 // Modèle 3D réaliste chargé depuis un fichier GLTF
-// Modèle 3D réaliste chargé depuis un fichier GLTF
 function RealisticBodyModel({ 
+  zones,
   onRegionClick, 
   hoveredRegion, 
   setHoveredRegion,
   modelPath 
 }: any) {
-  // ✅ on caste pour éviter l’erreur de type
+  // ✅ Cast pour éviter l'erreur de type
   const { scene } = useGLTF(modelPath) as any
   
   return (
     <group>
-      {/* Le modèle 3D réaliste */}
+      {/* Le modèle 3D réaliste - MÊMES paramètres que AnatomyZonePlacer */}
       <primitive 
         object={scene} 
-        scale={0.2}              // squelette 2x plus petit
-        position={[0, 0.9, 0]}    // léger recentrage vertical
+        scale={0.2}
+        position={[0, 0.9, 0]}
         rotation={[0, Math.PI, 0]}
       />
 
-
-
-      {/* Zones cliquables invisibles superposées */}
-      {Object.entries(ANATOMICAL_REGIONS).map(([key, region]: [string, any]) => {
-        if (region.isSymmetric) {
+      {/* Zones cliquables invisibles superposées - CHARGÉES DEPUIS LA DB */}
+      {zones.map((zone: AnatomyZone) => {
+        if (zone.is_symmetric) {
           return (
-            <group key={key}>
+            <group key={zone.id}>
               <ClickableZone
-                region={region}
-                regionKey={key}
+                zone={zone}
                 onClick={onRegionClick}
-                isHovered={hoveredRegion === `${key}-left`}
-                onHover={(hovered: boolean) => setHoveredRegion(hovered ? `${key}-left` : null)}
+                isHovered={hoveredRegion === `${zone.id}-left`}
+                onHover={(hovered: boolean) => setHoveredRegion(hovered ? `${zone.id}-left` : null)}
                 side="left"
               />
               <ClickableZone
-                region={region}
-                regionKey={key}
+                zone={zone}
                 onClick={onRegionClick}
-                isHovered={hoveredRegion === `${key}-right`}
-                onHover={(hovered: boolean) => setHoveredRegion(hovered ? `${key}-right` : null)}
+                isHovered={hoveredRegion === `${zone.id}-right`}
+                onHover={(hovered: boolean) => setHoveredRegion(hovered ? `${zone.id}-right` : null)}
                 side="right"
               />
             </group>
@@ -202,12 +155,11 @@ function RealisticBodyModel({
         
         return (
           <ClickableZone
-            key={key}
-            region={region}
-            regionKey={key}
+            key={zone.id}
+            zone={zone}
             onClick={onRegionClick}
-            isHovered={hoveredRegion === key}
-            onHover={(hovered: boolean) => setHoveredRegion(hovered ? key : null)}
+            isHovered={hoveredRegion === zone.id}
+            onHover={(hovered: boolean) => setHoveredRegion(hovered ? zone.id : null)}
           />
         )
       })}
@@ -215,24 +167,49 @@ function RealisticBodyModel({
   )
 }
 
-        
-
-// Vue détaillée d'une région (identique à la version précédente)
+// Vue détaillée d'une zone avec ses structures
 function RegionDetailView({ 
-  region, 
-  regionKey,
+  zone,
+  structures,
+  pathologies,
   onStructureClick,
   onBack,
   side 
 }: any) {
   const [hoveredStructure, setHoveredStructure] = useState<string | null>(null)
 
+  // Structures de cette zone
+  const zoneStructures = structures[zone.id] || []
+
+  if (zoneStructures.length === 0) {
+    return (
+      <group>
+        <Html position={[0, 2, 0]} center>
+          <div className="bg-white px-6 py-3 rounded-xl shadow-lg border-2">
+            <h2 className="text-xl font-bold" style={{ color: zone.color }}>
+              {zone.display_name} {side && `(${side === 'left' ? 'Gauche' : 'Droite'})`}
+            </h2>
+            <p className="text-sm text-gray-600 mt-2">
+              Aucune structure définie pour cette zone
+            </p>
+            <button 
+              onClick={onBack}
+              className="mt-2 text-sm text-gray-600 hover:text-gray-900 underline"
+            >
+              ← Retour à la vue globale
+            </button>
+          </div>
+        </Html>
+      </group>
+    )
+  }
+
   return (
     <group>
       <Html position={[0, 2, 0]} center>
         <div className="bg-white px-6 py-3 rounded-xl shadow-lg border-2">
-          <h2 className="text-xl font-bold" style={{ color: region.color }}>
-            {region.name} {side && `(${side === 'left' ? 'Gauche' : 'Droite'})`}
+          <h2 className="text-xl font-bold" style={{ color: zone.color }}>
+            {zone.display_name} {side && `(${side === 'left' ? 'Gauche' : 'Droite'})`}
           </h2>
           <button 
             onClick={onBack}
@@ -243,8 +220,8 @@ function RegionDetailView({
         </div>
       </Html>
 
-      {region.structures.map((structure: any, index: number) => {
-        const angle = (index / region.structures.length) * Math.PI * 2
+      {zoneStructures.map((structure: AnatomyStructure, index: number) => {
+        const angle = (index / zoneStructures.length) * Math.PI * 2
         const radius = 1.5
         const x = Math.cos(angle) * radius
         const z = Math.sin(angle) * radius
@@ -255,7 +232,7 @@ function RegionDetailView({
             <mesh
               onClick={(e) => {
                 e.stopPropagation()
-                onStructureClick(structure.id)
+                onStructureClick(structure)
               }}
               onPointerOver={(e) => {
                 e.stopPropagation()
@@ -269,10 +246,10 @@ function RegionDetailView({
             >
               <boxGeometry args={[0.3, 0.3, 0.3]} />
               <meshStandardMaterial 
-                color={region.color}
+                color={zone.color}
                 opacity={isHovered ? 1 : 0.7}
                 transparent
-                emissive={region.color}
+                emissive={zone.color}
                 emissiveIntensity={isHovered ? 0.5 : 0.2}
               />
             </mesh>
@@ -285,7 +262,7 @@ function RegionDetailView({
                     : 'bg-gray-50 border border-gray-200'
                 }`}
                 style={{ 
-                  borderColor: isHovered ? region.color : undefined,
+                  borderColor: isHovered ? zone.color : undefined,
                   minWidth: '150px'
                 }}
               >
@@ -318,46 +295,45 @@ function LoadingScreen() {
 }
 
 // Composant principal
-export default function AnatomyViewer3DRealistic({ 
+export default function AnatomyViewer3D({ 
+  zones,
+  structures,
+  pathologies,
   onPathologySelect,
-  modelPath = '/models/human-skeleton.gltf' // Chemin vers ton modèle 3D
-}: { 
-  onPathologySelect: (pathologies: string[], structureName: string) => void
-  modelPath?: string
-}) {
+  modelPath = '/models/human-skeleton.gltf'
+}: AnatomyViewer3DProps) {
   const [viewMode, setViewMode] = useState<'global' | 'region'>('global')
-  const [selectedRegion, setSelectedRegion] = useState<string | null>(null)
+  const [selectedZoneId, setSelectedZoneId] = useState<string | null>(null)
   const [selectedSide, setSelectedSide] = useState<string>('center')
   const [hoveredRegion, setHoveredRegion] = useState<string | null>(null)
 
-  const handleRegionClick = (regionKey: string, side: string = 'center') => {
-    setSelectedRegion(regionKey)
+  const handleRegionClick = (zoneId: string, side: string = 'center') => {
+    setSelectedZoneId(zoneId)
     setSelectedSide(side)
     setViewMode('region')
   }
 
-  const handleStructureClick = (structureId: string) => {
-    if (selectedRegion) {
-      const region = ANATOMICAL_REGIONS[selectedRegion as keyof typeof ANATOMICAL_REGIONS]
-      const pathologies = (region.pathologies as Record<string, string[]>)[structureId] || []
-      const structure = region.structures.find((s: any) => s.id === structureId)
-      onPathologySelect(pathologies, structure?.name || structureId)
-    }
+  const handleStructureClick = (structure: AnatomyStructure) => {
+    // Récupérer les pathologies de cette structure
+    const structurePathologies = pathologies[structure.id] || []
+    onPathologySelect(structurePathologies, structure.name)
   }
 
   const handleBack = () => {
     setViewMode('global')
-    setSelectedRegion(null)
+    setSelectedZoneId(null)
     setSelectedSide('center')
   }
+
+  const selectedZone = zones.find(z => z.id === selectedZoneId)
 
   return (
     <div className="w-full h-[600px] bg-gradient-to-b from-gray-900 to-gray-800 rounded-xl overflow-hidden relative">
       <Canvas shadows>
         <PerspectiveCamera 
           makeDefault 
-          position={[0, 1.6, 6]}   // caméra plus loin
-          fov={40}                  // champ un peu plus large
+          position={[0, 1.6, 6]}
+          fov={40}
         />
         <OrbitControls 
           enablePan={true}
@@ -365,10 +341,9 @@ export default function AnatomyViewer3DRealistic({
           enableRotate={true}
           minDistance={2}
           maxDistance={8}
-          target={[0, 0.9, 0]}      // vise le centre du bassin
+          target={[0, 0.9, 0]}
         />
 
-        
         {/* Éclairage optimisé pour modèle réaliste */}
         <ambientLight intensity={0.4} />
         <directionalLight position={[5, 5, 5]} intensity={0.8} castShadow />
@@ -387,6 +362,7 @@ export default function AnatomyViewer3DRealistic({
         <Suspense fallback={<LoadingScreen />}>
           {viewMode === 'global' && (
             <RealisticBodyModel 
+              zones={zones}
               onRegionClick={handleRegionClick}
               hoveredRegion={hoveredRegion}
               setHoveredRegion={setHoveredRegion}
@@ -394,10 +370,11 @@ export default function AnatomyViewer3DRealistic({
             />
           )}
 
-          {viewMode === 'region' && selectedRegion && (
+          {viewMode === 'region' && selectedZone && (
             <RegionDetailView
-              region={ANATOMICAL_REGIONS[selectedRegion as keyof typeof ANATOMICAL_REGIONS]}
-              regionKey={selectedRegion}
+              zone={selectedZone}
+              structures={structures}
+              pathologies={pathologies}
               onStructureClick={handleStructureClick}
               onBack={handleBack}
               side={selectedSide}
@@ -417,11 +394,21 @@ export default function AnatomyViewer3DRealistic({
           Glissez pour pivoter • Molette pour zoomer
         </p>
       </div>
+
+      {/* Message si aucune zone */}
+      {viewMode === 'global' && zones.length === 0 && (
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white/90 backdrop-blur-sm px-6 py-4 rounded-xl shadow-lg text-center">
+          <p className="text-gray-900 font-semibold mb-2">Aucune zone anatomique configurée</p>
+          <p className="text-sm text-gray-600">
+            Les zones doivent être créées via l'interface admin
+          </p>
+        </div>
+      )}
     </div>
   )
 }
 
 // Preload du modèle pour performance
-useGLTF.preload('/models/human-skeleton.gltf')
-
-export { ANATOMICAL_REGIONS }
+if (typeof window !== 'undefined') {
+  useGLTF.preload('/models/human-skeleton.gltf')
+}
