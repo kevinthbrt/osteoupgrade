@@ -8,9 +8,7 @@ import { generateTestingPDF } from '@/utils/generateTestingPDF'
 import dynamic from 'next/dynamic'
 import {
   Activity,
-  Search,
   Plus,
-  FileText,
   Download,
   Save,
   User,
@@ -19,19 +17,14 @@ import {
   CheckCircle,
   XCircle,
   AlertCircle,
-  ChevronRight,
-  X,
   Edit,
   Trash2,
-  Clipboard,
   BarChart,
-  Brain,
-  Droplet,
-  Maximize2,
+  FileText,
   Loader2
 } from 'lucide-react'
 
-// Charger le composant 3D DYNAMIQUE uniquement côté client
+// Charger le composant 3D v2 uniquement côté client
 const AnatomyViewer3D = dynamic(() => import('@/components/AnatomyViewer3D'), {
   ssr: false,
   loading: () => (
@@ -44,31 +37,10 @@ const AnatomyViewer3D = dynamic(() => import('@/components/AnatomyViewer3D'), {
   )
 })
 
-const GENERAL_CATEGORIES = [
-  {
-    key: 'Neurologique',
-    label: 'Neuro',
-    description: 'Tests neurologiques',
-    icon: Brain
-  },
-  {
-    key: 'Vasculaire',
-    label: 'Vascu',
-    description: 'Tests vasculaires',
-    icon: Activity
-  },
-  {
-    key: 'Systémique',
-    label: 'Systémique',
-    description: 'Tests systémiques',
-    icon: Droplet
-  }
-] as const
-
 interface TestResult {
   testId: string
   testName: string
-  region: string
+  pathologyName: string
   result: 'positive' | 'negative' | 'uncertain' | null
   notes: string
   sensitivity?: number
@@ -87,23 +59,13 @@ interface TestingSession {
 export default function TestingModulePage() {
   const router = useRouter()
   const [profile, setProfile] = useState<any>(null)
-  const [tests, setTests] = useState<any[]>([])
   
   // Données anatomiques chargées depuis Supabase
   const [anatomyZones, setAnatomyZones] = useState<any[]>([])
-  const [anatomyStructures, setAnatomyStructures] = useState<Record<string, any[]>>({})
-  const [anatomyPathologies, setAnatomyPathologies] = useState<Record<string, any[]>>({})
+  const [pathologies, setPathologies] = useState<Record<string, any[]>>({})
   const [pathologyTests, setPathologyTests] = useState<Record<string, any[]>>({})
   const [loadingAnatomy, setLoadingAnatomy] = useState(true)
   
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
-  const [selectedTests, setSelectedTests] = useState<any[]>([])
-  const [searchQuery, setSearchQuery] = useState('')
-  const [showTestModal, setShowTestModal] = useState(false)
-  const [showStatsModal, setShowStatsModal] = useState(false)
-  const [showPathologyModal, setShowPathologyModal] = useState(false)
-  const [selectedPathologies, setSelectedPathologies] = useState<any[]>([])
-  const [selectedStructure, setSelectedStructure] = useState<string>('')
   const [currentSession, setCurrentSession] = useState<TestingSession>({
     patientName: '',
     patientAge: '',
@@ -114,13 +76,12 @@ export default function TestingModulePage() {
   const [savedSessions, setSavedSessions] = useState<TestingSession[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [is3DView, setIs3DView] = useState(true)
+  const [showStatsModal, setShowStatsModal] = useState(false)
 
   useEffect(() => {
     checkAccess()
-    loadTests()
-    loadSessions()
     loadAnatomyData()
+    loadSessions()
   }, [])
 
   const checkAccess = async () => {
@@ -147,15 +108,6 @@ export default function TestingModulePage() {
     setLoading(false)
   }
 
-  const loadTests = async () => {
-    const { data } = await supabase
-      .from('orthopedic_tests')
-      .select('*')
-      .order('name')
-
-    setTests(data || [])
-  }
-
   const loadSessions = () => {
     const saved = localStorage.getItem('testingSessions')
     if (saved) {
@@ -169,74 +121,39 @@ export default function TestingModulePage() {
       setLoadingAnatomy(true)
 
       // 1. Charger les zones actives
-      const { data: zonesData, error: zonesError } = await supabase
+      const { data: zonesData } = await supabase
         .from('anatomical_zones')
         .select('*')
         .eq('is_active', true)
         .order('display_order')
 
-      if (zonesError) {
-        console.error('Error loading zones:', zonesError)
-        setLoadingAnatomy(false)
-        return
-      }
-
       setAnatomyZones(zonesData || [])
 
-      // 2. Charger toutes les structures
-      const { data: structuresData, error: structuresError } = await supabase
-        .from('anatomical_structures')
-        .select('*')
-        .eq('is_active', true)
-        .order('display_order')
-
-      if (structuresError) {
-        console.error('Error loading structures:', structuresError)
-      }
-
-      // Grouper structures par zone
-      const structsByZone: Record<string, any[]> = {}
-      structuresData?.forEach(struct => {
-        if (!structsByZone[struct.zone_id]) {
-          structsByZone[struct.zone_id] = []
-        }
-        structsByZone[struct.zone_id].push(struct)
-      })
-      setAnatomyStructures(structsByZone)
-
-      // 3. Charger toutes les pathologies
-      const { data: pathologiesData, error: pathologiesError } = await supabase
+      // 2. Charger toutes les pathologies avec leur position
+      const { data: pathologiesData } = await supabase
         .from('pathologies')
         .select('*')
         .eq('is_active', true)
         .order('display_order')
 
-      if (pathologiesError) {
-        console.error('Error loading pathologies:', pathologiesError)
-      }
-
-      // Grouper pathologies par structure
-      const pathosByStruct: Record<string, any[]> = {}
+      // Grouper pathologies par zone
+      const pathosByZone: Record<string, any[]> = {}
       pathologiesData?.forEach(patho => {
-        if (!pathosByStruct[patho.structure_id]) {
-          pathosByStruct[patho.structure_id] = []
+        if (!pathosByZone[patho.zone_id]) {
+          pathosByZone[patho.zone_id] = []
         }
-        pathosByStruct[patho.structure_id].push(patho)
+        pathosByZone[patho.zone_id].push(patho)
       })
-      setAnatomyPathologies(pathosByStruct)
+      setPathologies(pathosByZone)
 
-      // 4. Charger les liens pathologie-tests
-      const { data: linksData, error: linksError } = await supabase
+      // 3. Charger les liens pathologie-tests
+      const { data: linksData } = await supabase
         .from('pathology_tests')
         .select(`
           *,
           test:orthopedic_tests(*)
         `)
         .order('recommended_order')
-
-      if (linksError) {
-        console.error('Error loading pathology tests:', linksError)
-      }
 
       // Grouper tests par pathologie
       const testsByPatho: Record<string, any[]> = {}
@@ -261,46 +178,23 @@ export default function TestingModulePage() {
     }
   }
 
-  const handlePathologySelect = (pathologies: any[], structureName: string) => {
-    setSelectedPathologies(pathologies)
-    setSelectedStructure(structureName)
-    setShowPathologyModal(true)
-  }
-
-  const handleAddPathologyTests = (pathology: any) => {
-    // Récupérer les tests liés à cette pathologie
-    const relatedTests = pathologyTests[pathology.id] || []
-    
-    if (relatedTests.length === 0) {
-      alert('Aucun test lié à cette pathologie')
-      return
-    }
-
-    // Ajouter tous les tests recommandés
-    relatedTests.forEach(test => {
-      // Vérifier que le test n'est pas déjà ajouté
+  const handleTestSelect = (tests: any[], pathologyName: string) => {
+    // Ajouter les tests à la session
+    tests.forEach(test => {
       const isAlreadyAdded = currentSession.results.some(r => r.testId === test.id)
       if (!isAlreadyAdded) {
-        addTestResult(test)
+        addTestResult(test, pathologyName)
       }
     })
 
-    setShowPathologyModal(false)
-    alert(`${relatedTests.length} test(s) ajouté(s) pour ${pathology.name}`)
+    alert(`${tests.length} test(s) ajouté(s) pour ${pathologyName}`)
   }
 
-  const handleCategoryClick = (categoryKey: string) => {
-    setSelectedCategory(categoryKey)
-    const categoryTests = tests.filter(test => test.category === categoryKey)
-    setSelectedTests(categoryTests)
-    setShowTestModal(true)
-  }
-
-  const addTestResult = (test: any) => {
+  const addTestResult = (test: any, pathologyName: string) => {
     const newResult: TestResult = {
       testId: test.id,
       testName: test.name,
-      region: test.category,
+      pathologyName: pathologyName,
       result: null,
       notes: '',
       sensitivity: test.sensitivity,
@@ -399,11 +293,7 @@ export default function TestingModulePage() {
     total: currentSession.results.length,
     positive: currentSession.results.filter(r => r.result === 'positive').length,
     negative: currentSession.results.filter(r => r.result === 'negative').length,
-    uncertain: currentSession.results.filter(r => r.result === 'uncertain').length,
-    byRegion: currentSession.results.reduce((acc: Record<string, number>, r) => {
-      acc[r.region] = (acc[r.region] || 0) + 1
-      return acc
-    }, {})
+    uncertain: currentSession.results.filter(r => r.result === 'uncertain').length
   }
 
   if (loading) {
@@ -425,87 +315,51 @@ export default function TestingModulePage() {
             <div>
               <h1 className="text-2xl font-bold text-gray-900">Module de Testing</h1>
               <p className="text-gray-600 mt-1">
-                Sélectionnez une région anatomique pour voir les pathologies et tests associés
+                Cliquez sur une zone anatomique pour voir les pathologies et leurs tests
               </p>
             </div>
-            <div className="flex gap-2">
-              <button
-                onClick={() => setIs3DView(!is3DView)}
-                className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors flex items-center gap-2"
-              >
-                <Maximize2 className="h-4 w-4" />
-                {is3DView ? 'Vue Catégories' : 'Vue 3D'}
-              </button>
-              <button
-                onClick={newSession}
-                className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors flex items-center gap-2"
-              >
-                <Plus className="h-5 w-5" />
-                Nouvelle Session
-              </button>
-            </div>
+            <button
+              onClick={newSession}
+              className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors flex items-center gap-2"
+            >
+              <Plus className="h-5 w-5" />
+              Nouvelle Session
+            </button>
           </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Vue principale */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Sélection anatomique 3D OU catégories */}
-            {is3DView ? (
-              <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-                <div className="p-4 border-b bg-gradient-to-r from-primary-50 to-primary-100">
-                  <h2 className="text-lg font-semibold text-gray-900">
-                    Sélection Anatomique 3D
-                  </h2>
-                  <p className="text-sm text-gray-600 mt-1">
-                    {loadingAnatomy ? 'Chargement des zones anatomiques...' : 
-                     anatomyZones.length > 0 ? 'Cliquez sur une région pour voir les structures' :
-                     'Aucune zone configurée - Utilisez l\'interface admin'}
-                  </p>
-                </div>
-                
-                {loadingAnatomy ? (
-                  <div className="flex items-center justify-center h-[600px]">
-                    <div className="text-center">
-                      <Loader2 className="h-12 w-12 animate-spin text-primary-600 mx-auto mb-3" />
-                      <p className="text-gray-600">Chargement...</p>
-                    </div>
-                  </div>
-                ) : (
-                  <AnatomyViewer3D
-                    zones={anatomyZones}
-                    structures={anatomyStructures}
-                    pathologies={anatomyPathologies}
-                    onPathologySelect={handlePathologySelect}
-                  />
-                )}
-              </div>
-            ) : (
-              <div className="bg-white rounded-xl shadow-sm p-6">
-                <h2 className="text-lg font-semibold text-gray-900 mb-4">
-                  Catégories Générales
+            {/* Sélection anatomique 3D */}
+            <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+              <div className="p-4 border-b bg-gradient-to-r from-primary-50 to-primary-100">
+                <h2 className="text-lg font-semibold text-gray-900">
+                  Visualisateur Anatomique 3D
                 </h2>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {GENERAL_CATEGORIES.map((cat) => {
-                    const Icon = cat.icon
-                    const count = tests.filter(t => t.category === cat.key).length
-                    
-                    return (
-                      <button
-                        key={cat.key}
-                        onClick={() => handleCategoryClick(cat.key)}
-                        className="p-4 border-2 border-gray-200 rounded-lg hover:border-primary-500 hover:bg-primary-50 transition-all text-left group"
-                      >
-                        <Icon className="h-8 w-8 text-gray-400 group-hover:text-primary-600 mb-2" />
-                        <h3 className="font-semibold text-gray-900">{cat.label}</h3>
-                        <p className="text-sm text-gray-600 mt-1">{cat.description}</p>
-                        <p className="text-xs text-gray-500 mt-2">{count} tests disponibles</p>
-                      </button>
-                    )
-                  })}
-                </div>
+                <p className="text-sm text-gray-600 mt-1">
+                  {loadingAnatomy ? 'Chargement des zones anatomiques...' : 
+                   anatomyZones.length > 0 ? 'Cliquez sur une zone → puis sur une pathologie (sphère colorée)' :
+                   'Aucune zone configurée - Utilisez l\'interface admin'}
+                </p>
               </div>
-            )}
+              
+              {loadingAnatomy ? (
+                <div className="flex items-center justify-center h-[600px]">
+                  <div className="text-center">
+                    <Loader2 className="h-12 w-12 animate-spin text-primary-600 mx-auto mb-3" />
+                    <p className="text-gray-600">Chargement...</p>
+                  </div>
+                </div>
+              ) : (
+                <AnatomyViewer3D
+                  zones={anatomyZones}
+                  pathologies={pathologies}
+                  pathologyTests={pathologyTests}
+                  onTestSelect={handleTestSelect}
+                />
+              )}
+            </div>
 
             {/* Liste des tests sélectionnés */}
             {currentSession.results.length > 0 && (
@@ -528,7 +382,7 @@ export default function TestingModulePage() {
                       <div className="flex items-start justify-between mb-2">
                         <div className="flex-1">
                           <h3 className="font-medium text-gray-900">{result.testName}</h3>
-                          <p className="text-sm text-gray-600">{result.region}</p>
+                          <p className="text-sm text-primary-600">{result.pathologyName}</p>
                         </div>
                         <button
                           onClick={() => removeTestResult(result.testId)}
@@ -735,164 +589,6 @@ export default function TestingModulePage() {
         </div>
       </div>
 
-      {/* Modal de pathologies */}
-      {showPathologyModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl max-w-2xl w-full max-h-[80vh] overflow-hidden">
-            <div className="p-6 border-b bg-gradient-to-r from-primary-50 to-primary-100">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-xl font-bold text-gray-900">
-                    Pathologies - {selectedStructure}
-                  </h3>
-                  <p className="text-sm text-gray-600 mt-1">
-                    Cliquez sur une pathologie pour ajouter les tests associés
-                  </p>
-                </div>
-                <button
-                  onClick={() => setShowPathologyModal(false)}
-                  className="p-2 hover:bg-white rounded-lg transition-colors"
-                >
-                  <X className="h-6 w-6" />
-                </button>
-              </div>
-            </div>
-
-            <div className="p-6 max-h-[60vh] overflow-y-auto">
-              {selectedPathologies.length === 0 ? (
-                <div className="text-center py-12 text-gray-500">
-                  <AlertCircle className="h-12 w-12 mx-auto mb-3 text-gray-300" />
-                  <p>Aucune pathologie définie pour cette structure</p>
-                  <p className="text-sm mt-2">Configurez les pathologies via l'interface admin</p>
-                </div>
-              ) : (
-                <div className="grid gap-3">
-                  {selectedPathologies.map((pathology) => {
-                    const testsCount = pathologyTests[pathology.id]?.length || 0
-                    
-                    return (
-                      <button
-                        key={pathology.id}
-                        onClick={() => handleAddPathologyTests(pathology)}
-                        disabled={testsCount === 0}
-                        className="p-4 border-2 border-gray-200 rounded-lg hover:border-primary-500 hover:bg-primary-50 transition-all text-left group disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        <div className="flex items-center justify-between">
-                          <div className="flex-1">
-                            <p className="font-semibold text-gray-900 group-hover:text-primary-700">
-                              {pathology.name}
-                            </p>
-                            {pathology.description && (
-                              <p className="text-sm text-gray-600 mt-1">
-                                {pathology.description}
-                              </p>
-                            )}
-                            <div className="flex items-center gap-4 mt-2">
-                              {pathology.severity && (
-                                <span className={`px-2 py-0.5 rounded text-xs font-medium ${
-                                  pathology.severity === 'high' ? 'bg-red-100 text-red-700' :
-                                  pathology.severity === 'medium' ? 'bg-yellow-100 text-yellow-700' :
-                                  'bg-green-100 text-green-700'
-                                }`}>
-                                  {pathology.severity === 'high' ? 'Grave' :
-                                   pathology.severity === 'medium' ? 'Modéré' : 'Léger'}
-                                </span>
-                              )}
-                              <span className="text-sm text-gray-600">
-                                {testsCount > 0 ? `${testsCount} test(s) disponible(s)` : 'Aucun test lié'}
-                              </span>
-                            </div>
-                          </div>
-                          {testsCount > 0 && (
-                            <ChevronRight className="h-6 w-6 text-gray-400 group-hover:text-primary-600" />
-                          )}
-                        </div>
-                      </button>
-                    )
-                  })}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Modal de sélection de tests */}
-      {showTestModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl max-w-3xl w-full max-h-[80vh] overflow-hidden">
-            <div className="p-6 border-b">
-              <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold">
-                  Tests - {selectedCategory}
-                </h3>
-                <button
-                  onClick={() => {
-                    setShowTestModal(false)
-                    setSearchQuery('')
-                  }}
-                  className="p-2 hover:bg-gray-100 rounded-lg"
-                >
-                  <X className="h-5 w-5" />
-                </button>
-              </div>
-
-              <div className="mt-4 relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Rechercher un test..."
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-                />
-              </div>
-            </div>
-
-            <div className="p-4 max-h-[60vh] overflow-y-auto">
-              <div className="grid gap-2">
-                {selectedTests
-                  .filter(
-                    (test) =>
-                      test.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                      test.description?.toLowerCase().includes(searchQuery.toLowerCase())
-                  )
-                  .map((test) => {
-                    const isAdded = currentSession.results.some((r) => r.testId === test.id)
-
-                    return (
-                      <button
-                        key={test.id}
-                        onClick={() => {
-                          addTestResult(test)
-                          setShowTestModal(false)
-                          setSearchQuery('')
-                        }}
-                        className={`p-3 text-left border rounded-lg transition-colors ${
-                          isAdded ? 'bg-green-50 border-green-300' : 'hover:bg-gray-50'
-                        }`}
-                      >
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="font-medium text-gray-900">
-                              {test.name}
-                              {isAdded && (
-                                <span className="ml-2 text-green-600 text-sm">(Ajouté)</span>
-                              )}
-                            </p>
-                            <p className="text-sm text-gray-600 mt-1">{test.description}</p>
-                          </div>
-                          <ChevronRight className="h-5 w-5 text-gray-400" />
-                        </div>
-                      </button>
-                    )
-                  })}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Modal de statistiques */}
       {showStatsModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
@@ -926,20 +622,6 @@ export default function TestingModulePage() {
                   <p className="text-2xl font-bold text-yellow-600">{stats.uncertain}</p>
                 </div>
               </div>
-
-              {Object.keys(stats.byRegion).length > 0 && (
-                <div>
-                  <p className="text-sm font-medium text-gray-700 mb-2">Par région :</p>
-                  <div className="space-y-1">
-                    {Object.entries(stats.byRegion).map(([region, count]) => (
-                      <div key={region} className="flex justify-between text-sm">
-                        <span className="text-gray-600">{region}</span>
-                        <span className="font-medium">{count}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
             </div>
           </div>
         </div>
