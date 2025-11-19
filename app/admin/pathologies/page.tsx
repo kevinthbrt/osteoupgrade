@@ -279,12 +279,13 @@ export default function PathologyManagerPage() {
       .insert({
         pathology_id: selectedPathology.id,
         test_id: testId,
-        relevance_score: 80,
+        relevance_score: 8,  // Corrigé : doit être entre 1 et 10 (contrainte CHECK)
         recommended_order: pathologyTests.filter(pt => pt.pathology_id === selectedPathology.id).length + 1
       })
 
     if (error) {
-      alert('Erreur lors de la liaison')
+      console.error('Erreur lors de la liaison:', error)
+      alert('Erreur lors de la liaison: ' + error.message)
       return
     }
 

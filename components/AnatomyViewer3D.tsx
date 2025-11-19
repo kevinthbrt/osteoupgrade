@@ -131,7 +131,7 @@ function PathologyMarker({
   isHovered,
   onHover 
 }: any) {
-  const position = [
+  const position: [number, number, number] = [
     pathology.position_x,
     pathology.position_y,
     pathology.position_z
@@ -139,10 +139,10 @@ function PathologyMarker({
 
   const size = pathology.size || 0.08
 
-  // ✅ CORRECTION: Label AU-DESSUS de la sphère (pas sur le côté)
-  const labelOffset = [
+  // ✅ CORRECTION: Label AU-DESSUS de la sphère avec un offset adapté
+  const labelOffset: [number, number, number] = [
     position[0],              // Même X que la sphère
-    position[1] + size * 1.8, // AU-DESSUS de la sphère
+    position[1] + size * 2.5, // AU-DESSUS de la sphère (augmenté de 1.8 à 2.5)
     position[2]               // Même Z que la sphère
   ]
 
@@ -152,7 +152,7 @@ function PathologyMarker({
     '#10b981'
 
   return (
-    <group position={position as [number, number, number]}>
+    <group position={position}>
       <mesh
         onClick={(e) => {
           e.stopPropagation()
@@ -178,23 +178,24 @@ function PathologyMarker({
         />
       </mesh>
 
-      {/* ✅ CORRECTION: Label compact AU-DESSUS avec distanceFactor réduit */}
+      {/* ✅ CORRECTION: Label compact AU-DESSUS avec distanceFactor plus petit */}
       {isHovered && (
         <Html 
-          position={labelOffset as [number, number, number]}
-          distanceFactor={3}  // RÉDUIT de 6 à 3 pour éviter qu'il devienne trop grand
+          position={labelOffset}
+          distanceFactor={2}  // RÉDUIT de 3 à 2 pour éviter qu'il devienne trop grand
           center
+          style={{ pointerEvents: 'none' }}
         >
           <div 
-            className="bg-white px-2 py-1 rounded-lg shadow-lg border whitespace-nowrap pointer-events-none"
-            style={{ borderColor: severityColor, maxWidth: '180px' }}
+            className="bg-white px-2 py-1 rounded-lg shadow-lg border whitespace-nowrap"
+            style={{ borderColor: severityColor, maxWidth: '200px' }}
           >
             <p className="font-semibold text-xs" style={{ color: severityColor }}>
               {pathology.name}
             </p>
             {pathology.description && (
               <p className="text-[10px] text-gray-600 mt-0.5 truncate">
-                {pathology.description.substring(0, 30)}...
+                {pathology.description.substring(0, 40)}...
               </p>
             )}
           </div>
