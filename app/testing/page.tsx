@@ -21,7 +21,8 @@ import {
   Trash2,
   BarChart,
   FileText,
-  Loader2
+  Loader2,
+  X
 } from 'lucide-react'
 
 // Charger le composant 3D v2 uniquement côté client
@@ -41,11 +42,13 @@ interface TestResult {
   testId: string
   testName: string
   pathologyName: string
+  region: string          // <--- ajouté
   result: 'positive' | 'negative' | 'uncertain' | null
   notes: string
   sensitivity?: number
   specificity?: number
 }
+
 
 interface TestingSession {
   id?: string
@@ -190,22 +193,24 @@ export default function TestingModulePage() {
     alert(`${tests.length} test(s) ajouté(s) pour ${pathologyName}`)
   }
 
-  const addTestResult = (test: any, pathologyName: string) => {
-    const newResult: TestResult = {
-      testId: test.id,
-      testName: test.name,
-      pathologyName: pathologyName,
-      result: null,
-      notes: '',
-      sensitivity: test.sensitivity,
-      specificity: test.specificity
-    }
-
-    setCurrentSession(prev => ({
-      ...prev,
-      results: [...prev.results, newResult]
-    }))
+  const addTestResult = (test: any, pathologyName: string, region = '') => {
+  const newResult: TestResult = {
+    testId: test.id,
+    testName: test.name,
+    pathologyName,
+    region: (test.region as string) || region || '', // on remplit toujours une string
+    result: null,
+    notes: '',
+    sensitivity: test.sensitivity,
+    specificity: test.specificity
   }
+
+  setCurrentSession(prev => ({
+    ...prev,
+    results: [...prev.results, newResult]
+  }))
+}
+
 
   const updateTestResult = (testId: string, result: 'positive' | 'negative' | 'uncertain') => {
     setCurrentSession(prev => ({
