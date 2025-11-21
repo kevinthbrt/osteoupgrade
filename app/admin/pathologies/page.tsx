@@ -885,7 +885,7 @@ export default function UnifiedPathologyManagerPage() {
                 )}
 
                 {/* Formulaire pathologie */}
-                {showPathologyForm && selectedPathology && (
+                {showPathologyForm &&  (
                   <div className="bg-white rounded-xl shadow-sm p-6">
                     <div className="flex items-center justify-between mb-6">
                       <h2 className="text-lg font-semibold text-gray-900">
