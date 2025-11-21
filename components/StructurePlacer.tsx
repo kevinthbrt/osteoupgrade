@@ -5,17 +5,18 @@ import { OrbitControls, PerspectiveCamera, Html, useGLTF, Environment, Transform
 import { Suspense, useState, useRef } from 'react'
 import * as THREE from 'three'
 
-interface Pathology {
+interface Structure {
   id: string
   name: string
+  type: 'musculaire' | 'osseuse' | 'articulaire' | 'neuro' | 'vasculaire' | 'ligamentaire' | 'cutanée'
   description?: string | null
-  severity?: 'low' | 'medium' | 'high' | null
   position_x: number
   position_y: number
   position_z: number
   size?: number
   is_active?: boolean
   color?: string
+  pathology_count?: number // Nombre de pathologies associées
 }
 
 interface Zone {
@@ -31,13 +32,25 @@ interface Zone {
   size_z: number
 }
 
-interface PathologyPlacerProps {
+interface StructurePlacerProps {
   zone: Zone
-  pathologies: Pathology[]
-  selectedPathology?: Pathology | null
+  structures: Structure[]
+  selectedStructure?: Structure | null
   onPositionChange?: (x: number, y: number, z: number) => void
+  onStructureSelect?: (structure: Structure) => void
   editMode?: boolean
   modelPath?: string
+}
+
+// Couleurs par type de structure
+const structureTypeColors: Record<string, string> = {
+  musculaire: '#ef4444',    // Rouge
+  osseuse: '#f59e0b',       // Orange
+  articulaire: '#3b82f6',   // Bleu
+  neuro: '#8b5cf6',         // Violet
+  vasculaire: '#ec4899',    // Rose
+  ligamentaire: '#10b981',  // Vert
+  cutanée: '#6366f1'        // Indigo
 }
 
 // Zone de référence (wireframe)
@@ -72,64 +85,68 @@ function ZoneBox({ zone, onHover }: { zone: Zone, onHover: (zone: Zone | null) =
   )
 }
 
-// Pathologie visualisée avec couleur personnalisée
-function PathologyMarker({ 
-  pathology, 
+// Structure visualisée (sphère cliquable)
+function StructureMarker({ 
+  structure, 
   isSelected,
-  zoneColor,
-  onHover
+  onHover,
+  onClick
 }: { 
-  pathology: Pathology
+  structure: Structure
   isSelected: boolean
-  zoneColor: string
-  onHover: (pathology: Pathology | null) => void
+  onHover: (structure: Structure | null) => void
+  onClick: (structure: Structure) => void
 }) {
   const position: [number, number, number] = [
-    pathology.position_x,
-    pathology.position_y,
-    pathology.position_z
+    structure.position_x,
+    structure.position_y,
+    structure.position_z
   ]
   
-  const size = pathology.size || 0.08
+  const size = structure.size || 0.08
 
-  // Utiliser la couleur custom si définie, sinon la couleur de sévérité, sinon la couleur de la zone
-  const pathologyColor = pathology.color || (
-    pathology.severity === 'high' ? '#ef4444' :
-    pathology.severity === 'medium' ? '#f59e0b' :
-    pathology.severity === 'low' ? '#10b981' :
-    zoneColor
-  )
+  // Utiliser la couleur custom si définie, sinon la couleur du type
+  const structureColor = structure.color || structureTypeColors[structure.type] || '#3b82f6'
 
   return (
     <group position={position}>
       <mesh
-        onPointerOver={() => onHover(pathology)}
+        onPointerOver={() => onHover(structure)}
         onPointerOut={() => onHover(null)}
+        onClick={() => onClick(structure)}
       >
         <sphereGeometry args={[size, 16, 16]} />
         <meshStandardMaterial
-          color={isSelected ? '#8b5cf6' : pathologyColor}
+          color={isSelected ? '#8b5cf6' : structureColor}
           transparent
-          opacity={isSelected ? 0.8 : 0.6}
-          emissive={isSelected ? '#8b5cf6' : pathologyColor}
-          emissiveIntensity={isSelected ? 0.6 : 0.3}
+          opacity={isSelected ? 0.9 : 0.7}
+          emissive={isSelected ? '#8b5cf6' : structureColor}
+          emissiveIntensity={isSelected ? 0.7 : 0.4}
         />
       </mesh>
+      
+      {/* Badge avec nombre de pathologies */}
+      {structure.pathology_count && structure.pathology_count > 0 && (
+        <Html position={[0, size * 1.5, 0]} center>
+          <div className="bg-white/90 backdrop-blur-sm px-2 py-0.5 rounded-full text-xs font-bold shadow-lg border-2" 
+               style={{ borderColor: structureColor }}>
+            {structure.pathology_count}
+          </div>
+        </Html>
+      )}
     </group>
   )
 }
 
-// Pathologie éditable avec TransformControls (SANS boutons flottants)
-function EditablePathology({ 
-  pathology, 
-  zoneColor,
+// Structure éditable avec TransformControls
+function EditableStructure({ 
+  structure, 
   onPositionChange, 
   onSizeChange,
   orbitControlsRef,
   mode
 }: { 
-  pathology: Pathology
-  zoneColor: string
+  structure: Structure
   onPositionChange: (x: number, y: number, z: number) => void
   onSizeChange?: (size: number) => void
   orbitControlsRef: any
@@ -138,30 +155,24 @@ function EditablePathology({
   const meshRef = useRef<THREE.Mesh>(null!)
 
   const position: [number, number, number] = [
-    pathology.position_x,
-    pathology.position_y,
-    pathology.position_z
+    structure.position_x,
+    structure.position_y,
+    structure.position_z
   ]
   
-  const size = pathology.size || 0.08
-
-  const pathologyColor = pathology.color || (
-    pathology.severity === 'high' ? '#ef4444' :
-    pathology.severity === 'medium' ? '#f59e0b' :
-    pathology.severity === 'low' ? '#10b981' :
-    zoneColor
-  )
+  const size = structure.size || 0.08
+  const structureColor = structure.color || structureTypeColors[structure.type] || '#3b82f6'
 
   return (
     <group>
       <mesh ref={meshRef} position={position}>
         <sphereGeometry args={[size, 16, 16]} />
         <meshStandardMaterial
-          color={pathologyColor}
+          color={structureColor}
           transparent
-          opacity={0.8}
-          emissive={pathologyColor}
-          emissiveIntensity={0.5}
+          opacity={0.9}
+          emissive={structureColor}
+          emissiveIntensity={0.6}
         />
       </mesh>
       
@@ -257,15 +268,16 @@ function LoadingScreen() {
   )
 }
 
-export default function PathologyPlacer({
+export default function StructurePlacer({
   zone,
-  pathologies,
-  selectedPathology,
+  structures,
+  selectedStructure,
   onPositionChange,
+  onStructureSelect,
   editMode = false,
   modelPath = '/models/human-skeleton.gltf'
-}: PathologyPlacerProps) {
-  const [hoveredItem, setHoveredItem] = useState<{ type: 'zone' | 'pathology', data: Zone | Pathology } | null>(null)
+}: StructurePlacerProps) {
+  const [hoveredItem, setHoveredItem] = useState<{ type: 'zone' | 'structure', data: Zone | Structure } | null>(null)
   const [mode, setMode] = useState<'translate' | 'scale'>('translate')
   const orbitControlsRef = useRef<any>(null)
 
@@ -277,11 +289,17 @@ export default function PathologyPlacer({
     }
   }
 
-  const handlePathologyHover = (pathology: Pathology | null) => {
-    if (pathology) {
-      setHoveredItem({ type: 'pathology', data: pathology })
-    } else if (hoveredItem?.type === 'pathology') {
+  const handleStructureHover = (structure: Structure | null) => {
+    if (structure) {
+      setHoveredItem({ type: 'structure', data: structure })
+    } else if (hoveredItem?.type === 'structure') {
       setHoveredItem(null)
+    }
+  }
+
+  const handleStructureClick = (structure: Structure) => {
+    if (onStructureSelect) {
+      onStructureSelect(structure)
     }
   }
 
@@ -296,7 +314,7 @@ export default function PathologyPlacer({
     zone.position_z
   ]
 
-  // Position de la caméra (plus proche pour zoomer)
+  // Position de la caméra
   const cameraPosition: [number, number, number] = [
     zone.position_x,
     zone.position_y,
@@ -341,27 +359,26 @@ export default function PathologyPlacer({
           {/* Zone de référence */}
           <ZoneBox zone={zone} onHover={handleZoneHover} />
 
-          {/* Pathologies existantes (non sélectionnées) */}
-          {pathologies.map((pathology) => {
-            const isSelected = selectedPathology?.id === pathology.id
-            if (editMode && isSelected && selectedPathology) return null
+          {/* Structures existantes (non sélectionnées) */}
+          {structures.map((structure) => {
+            const isSelected = selectedStructure?.id === structure.id
+            if (editMode && isSelected && selectedStructure) return null
             
             return (
-              <PathologyMarker
-                key={pathology.id}
-                pathology={pathology}
+              <StructureMarker
+                key={structure.id}
+                structure={structure}
                 isSelected={false}
-                zoneColor={zone.color}
-                onHover={handlePathologyHover}
+                onHover={handleStructureHover}
+                onClick={handleStructureClick}
               />
             )
           })}
 
-          {/* Pathologie en cours d'édition (avec TransformControls) */}
-          {editMode && selectedPathology && onPositionChange && (
-            <EditablePathology
-              pathology={selectedPathology}
-              zoneColor={zone.color}
+          {/* Structure en cours d'édition (avec TransformControls) */}
+          {editMode && selectedStructure && onPositionChange && (
+            <EditableStructure
+              structure={selectedStructure}
               onPositionChange={onPositionChange}
               onSizeChange={handleSizeChange}
               orbitControlsRef={orbitControlsRef}
@@ -376,12 +393,12 @@ export default function PathologyPlacer({
         <p className="text-sm font-semibold text-white">
           {editMode 
             ? '🎯 Mode édition : Utilisez les contrôles en haut à droite pour positionner' 
-            : '👁️ Vue des pathologies configurées'}
+            : '👁️ Cliquez sur une structure (sphère) pour voir ses pathologies'}
         </p>
         <p className="text-xs text-gray-300 mt-1">
           {editMode 
-            ? 'Les flèches 3D apparaissent sur la pathologie • Contrôles dans l\'encart violet'
-            : 'Glissez pour pivoter • Molette pour zoomer • Survolez pour voir les détails'
+            ? 'Les flèches 3D apparaissent sur la structure • Contrôles dans l\'encart violet'
+            : 'Glissez pour pivoter • Molette pour zoomer • Le badge indique le nombre de pathologies'
           }
         </p>
       </div>
@@ -389,17 +406,17 @@ export default function PathologyPlacer({
       {/* Compteur */}
       <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-sm px-3 py-2 rounded-lg shadow-lg">
         <p className="text-xs text-gray-600">
-          <span className="font-semibold text-gray-900">{pathologies.length}</span> pathologie(s)
+          <span className="font-semibold text-gray-900">{structures.length}</span> structure(s)
         </p>
       </div>
 
-      {/* Encadré d'info au survol - position fixe en haut à droite */}
+      {/* Encadré d'info au survol - en mode visualisation seulement */}
       {hoveredItem && !editMode && (
         <div className="absolute top-4 right-4 bg-white/95 backdrop-blur-sm px-4 py-3 rounded-lg shadow-xl border-2 transition-all max-w-xs"
              style={{ 
                borderColor: hoveredItem.type === 'zone' 
                  ? (hoveredItem.data as Zone).color 
-                 : (hoveredItem.data as Pathology).color || zone.color 
+                 : (hoveredItem.data as Structure).color || structureTypeColors[(hoveredItem.data as Structure).type] || '#3b82f6'
              }}>
           {hoveredItem.type === 'zone' ? (
             // Info de la zone
@@ -419,46 +436,42 @@ export default function PathologyPlacer({
               </div>
             </>
           ) : (
-            // Info de la pathologie
+            // Info de la structure
             <>
               <div className="flex items-center gap-2 mb-2">
                 <div 
                   className="w-4 h-4 rounded-full border border-gray-300"
                   style={{ 
-                    backgroundColor: (hoveredItem.data as Pathology).color || (
-                      (hoveredItem.data as Pathology).severity === 'high' ? '#ef4444' :
-                      (hoveredItem.data as Pathology).severity === 'medium' ? '#f59e0b' :
-                      (hoveredItem.data as Pathology).severity === 'low' ? '#10b981' :
-                      zone.color
-                    )
+                    backgroundColor: (hoveredItem.data as Structure).color || structureTypeColors[(hoveredItem.data as Structure).type] || '#3b82f6'
                   }}
                 />
                 <p className="text-sm font-bold text-gray-900">
-                  {(hoveredItem.data as Pathology).name}
+                  {(hoveredItem.data as Structure).name}
                 </p>
               </div>
               <div className="space-y-1 text-xs">
-                {(hoveredItem.data as Pathology).description && (
-                  <p className="text-gray-600 mb-2">{(hoveredItem.data as Pathology).description}</p>
+                <span className="inline-block px-2 py-0.5 rounded bg-gray-100 text-gray-700 font-medium">
+                  {(hoveredItem.data as Structure).type}
+                </span>
+                {(hoveredItem.data as Structure).description && (
+                  <p className="text-gray-600 mt-2">{(hoveredItem.data as Structure).description}</p>
                 )}
-                {(hoveredItem.data as Pathology).severity && (
-                  <span className={`inline-block px-2 py-0.5 rounded ${
-                    (hoveredItem.data as Pathology).severity === 'high' ? 'bg-red-100 text-red-700' :
-                    (hoveredItem.data as Pathology).severity === 'medium' ? 'bg-yellow-100 text-yellow-700' :
-                    'bg-green-100 text-green-700'
-                  }`}>
-                    {(hoveredItem.data as Pathology).severity === 'high' ? 'Grave' :
-                     (hoveredItem.data as Pathology).severity === 'medium' ? 'Modéré' : 'Léger'}
-                  </span>
+                {(hoveredItem.data as Structure).pathology_count !== undefined && (
+                  <p className="text-primary-600 font-semibold mt-2">
+                    {(hoveredItem.data as Structure).pathology_count} pathologie(s)
+                  </p>
                 )}
+                <p className="text-gray-500 italic mt-2">
+                  Cliquez pour gérer les pathologies
+                </p>
               </div>
             </>
           )}
         </div>
       )}
 
-      {/* NOUVEAU : Encart avec contrôles 3D en mode édition */}
-      {editMode && selectedPathology && (
+      {/* Encart avec contrôles 3D en mode édition */}
+      {editMode && selectedStructure && (
         <div className="absolute top-4 right-4 bg-purple-50/95 backdrop-blur-sm px-4 py-3 rounded-lg shadow-lg max-w-xs border-2 border-purple-300">
           <p className="text-xs font-semibold text-purple-900 mb-3">✏️ Mode édition 3D</p>
           
@@ -486,17 +499,20 @@ export default function PathologyPlacer({
             </button>
           </div>
 
-          {/* Info pathologie */}
+          {/* Info structure */}
           <div className="space-y-2 text-xs border-t border-purple-200 pt-2">
             <div className="flex items-center gap-2">
               <div 
                 className="w-4 h-4 rounded-full border border-gray-300"
-                style={{ backgroundColor: selectedPathology.color || '#3b82f6' }}
+                style={{ backgroundColor: selectedStructure.color || structureTypeColors[selectedStructure.type] || '#3b82f6' }}
               />
               <span className="text-gray-700 font-medium truncate">
-                {selectedPathology.name || 'Nouvelle pathologie'}
+                {selectedStructure.name || 'Nouvelle structure'}
               </span>
             </div>
+            <span className="inline-block px-2 py-0.5 rounded bg-white text-gray-700 text-xs border border-gray-200">
+              {selectedStructure.type}
+            </span>
             <p className="text-gray-500 italic">
               {mode === 'translate' 
                 ? 'Utilisez les flèches pour déplacer' 
@@ -505,6 +521,21 @@ export default function PathologyPlacer({
             <p className="text-purple-700 font-medium">
               Les valeurs se mettent à jour en temps réel
             </p>
+          </div>
+        </div>
+      )}
+
+      {/* Légende des types de structures */}
+      {!editMode && !hoveredItem && structures.length > 0 && (
+        <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm px-3 py-2 rounded-lg shadow-lg max-w-xs">
+          <p className="text-xs font-semibold text-gray-900 mb-2">🏥 Types de structures</p>
+          <div className="grid grid-cols-2 gap-1 text-xs">
+            {Object.entries(structureTypeColors).map(([type, color]) => (
+              <div key={type} className="flex items-center gap-1">
+                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: color }} />
+                <span className="text-gray-700 capitalize">{type}</span>
+              </div>
+            ))}
           </div>
         </div>
       )}
