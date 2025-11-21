@@ -2,7 +2,7 @@
 
 import { Canvas } from '@react-three/fiber'
 import { OrbitControls, PerspectiveCamera, Html, useGLTF, Environment } from '@react-three/drei'
-import { Suspense } from 'react'
+import { useState, Suspense } from 'react'
 
 interface Zone {
   id?: string
@@ -27,11 +27,12 @@ interface AnatomyZonePlacerProps {
   modelPath?: string
 }
 
-// Zone visualisée sur le modèle (SANS label 3D)
-function ZoneBox({ zone, isSelected, isEditing }: { 
+// Zone cliquable visualisée sur le modèle
+function ZoneBox({ zone, isSelected, isEditing, onHover }: { 
   zone: Zone
   isSelected: boolean
   isEditing: boolean
+  onHover: (zone: Zone | null) => void
 }) {
   const position: [number, number, number] = [
     zone.position_x,
@@ -49,7 +50,10 @@ function ZoneBox({ zone, isSelected, isEditing }: {
 
   return (
     <group position={position}>
-      <mesh>
+      <mesh
+        onPointerOver={() => onHover(zone)}
+        onPointerOut={() => onHover(null)}
+      >
         <boxGeometry args={size} />
         <meshStandardMaterial
           color={zone.color || '#3b82f6'}
@@ -62,16 +66,17 @@ function ZoneBox({ zone, isSelected, isEditing }: {
   )
 }
 
-// Modèle 3D du corps
+// Modèle 3D du corps - IDENTIQUE à AnatomyViewer3D.tsx
 function BodyModel({ modelPath }: { modelPath: string }) {
   try {
+    // ✅ Cast pour éviter l'erreur de type
     const { scene } = useGLTF(modelPath) as any
     
     return (
       <primitive 
         object={scene} 
-        scale={0.2}              // Même échelle que AnatomyViewer3D
-        position={[0, 0.9, 0]}   // Même position que AnatomyViewer3D
+        scale={1.3}              // Même échelle que AnatomyViewer3D
+        position={[0, -0.6, 0]}   // Même position que AnatomyViewer3D
         rotation={[0, Math.PI, 0]}
       />
     )
@@ -145,15 +150,17 @@ export default function AnatomyZonePlacer({
   selectedZone,
   onPositionChange,
   editMode = false,
-  modelPath = '/models/human-skeleton.gltf'
+  modelPath = '/models/human-skeleton.gltf' // Même chemin que AnatomyViewer3D
 }: AnatomyZonePlacerProps) {
+  const [hoveredZone, setHoveredZone] = useState<Zone | null>(null)
+
   return (
     <div className="w-full h-[600px] bg-gradient-to-b from-gray-900 to-gray-800 rounded-xl overflow-hidden relative">
       <Canvas shadows>
         <PerspectiveCamera 
           makeDefault 
           position={[0, 1.6, 6]}   // Même position que AnatomyViewer3D
-          fov={40}                  // Même FOV
+          fov={25}                  // Même FOV
         />
         <OrbitControls 
           enablePan={true}
@@ -183,45 +190,28 @@ export default function AnatomyZonePlacer({
           {/* Modèle du corps */}
           <BodyModel modelPath={modelPath} />
 
-          {/* Zones existantes (SANS labels) */}
+          {/* Zones existantes */}
           {zones.map((zone) => (
             <ZoneBox
               key={zone.id || zone.name}
               zone={zone}
               isSelected={selectedZone?.id === zone.id || selectedZone?.name === zone.name}
               isEditing={editMode}
+              onHover={setHoveredZone}
             />
           ))}
 
-          {/* Zone en cours d'édition (si nouvelle) (SANS label) */}
+          {/* Zone en cours d'édition (si nouvelle) */}
           {editMode && selectedZone && !selectedZone.id && (
             <ZoneBox
               zone={selectedZone}
               isSelected={true}
               isEditing={true}
+              onHover={setHoveredZone}
             />
           )}
         </Suspense>
       </Canvas>
-
-      {/* ✨ NOUVEAU : Affichage fixe de la zone en édition en haut de l'écran */}
-      {editMode && selectedZone && (
-        <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-white/95 backdrop-blur-sm px-6 py-3 rounded-lg shadow-xl border-2 max-w-md"
-             style={{ borderColor: selectedZone.color || '#3b82f6' }}>
-          <p className="font-bold text-lg" style={{ color: selectedZone.color || '#3b82f6' }}>
-            {selectedZone.display_name || selectedZone.name || 'Nouvelle zone'}
-          </p>
-          {selectedZone.is_symmetric && (
-            <p className="text-sm text-gray-600 mt-1">Zone symétrique (G/D)</p>
-          )}
-          <div className="text-xs text-gray-600 mt-2 font-mono">
-            Position: [{selectedZone.position_x.toFixed(2)}, {selectedZone.position_y.toFixed(2)}, {selectedZone.position_z.toFixed(2)}]
-          </div>
-          <div className="text-xs text-gray-600 font-mono">
-            Taille: [{selectedZone.size_x.toFixed(2)}, {selectedZone.size_y.toFixed(2)}, {selectedZone.size_z.toFixed(2)}]
-          </div>
-        </div>
-      )}
 
       {/* Instructions */}
       <div className="absolute bottom-4 left-4 bg-black/70 backdrop-blur-sm px-4 py-3 rounded-lg">
@@ -231,16 +221,61 @@ export default function AnatomyZonePlacer({
             : '🖱️ Visualisation des zones configurées'}
         </p>
         <p className="text-xs text-gray-300 mt-1">
-          Glissez pour pivoter • Molette pour zoomer
+          Glissez pour pivoter • Molette pour zoomer • Survolez une zone pour voir ses détails
         </p>
       </div>
 
-      {/* Compteur */}
-      <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-sm px-3 py-2 rounded-lg shadow-lg">
-        <p className="text-xs text-gray-600">
-          <span className="font-semibold text-gray-900">{zones.length}</span> zone(s)
-        </p>
-      </div>
+      {/* Encadré d'info au survol - position fixe en haut à droite */}
+      {hoveredZone && (
+        <div className="absolute top-4 right-4 bg-white/95 backdrop-blur-sm px-4 py-3 rounded-lg shadow-xl border-2 transition-all"
+             style={{ borderColor: hoveredZone.color || '#3b82f6' }}>
+          <div className="flex items-center gap-2 mb-2">
+            <div 
+              className="w-4 h-4 rounded"
+              style={{ backgroundColor: hoveredZone.color || '#3b82f6' }}
+            />
+            <p className="text-sm font-bold text-gray-900">
+              {hoveredZone.display_name || hoveredZone.name}
+            </p>
+          </div>
+          <div className="space-y-1 text-xs text-gray-600">
+            <p><span className="font-medium">ID:</span> {hoveredZone.name}</p>
+            {editMode && (
+              <>
+                <p><span className="font-medium">Position:</span> [{hoveredZone.position_x.toFixed(2)}, {hoveredZone.position_y.toFixed(2)}, {hoveredZone.position_z.toFixed(2)}]</p>
+                <p><span className="font-medium">Taille:</span> [{hoveredZone.size_x.toFixed(2)}, {hoveredZone.size_y.toFixed(2)}, {hoveredZone.size_z.toFixed(2)}]</p>
+              </>
+            )}
+            {hoveredZone.is_symmetric && (
+              <span className="inline-block mt-1 px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded">
+                Symétrique
+              </span>
+            )}
+            {hoveredZone.is_active === false && (
+              <span className="inline-block mt-1 px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded">
+                Inactive
+              </span>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Légende des couleurs (seulement en mode édition et si pas de survol) */}
+      {editMode && !hoveredZone && (
+        <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm px-4 py-3 rounded-lg shadow-lg">
+          <p className="text-xs font-semibold text-gray-900 mb-2">Légende</p>
+          <div className="space-y-1 text-xs text-gray-700">
+            <div className="flex items-center space-x-2">
+              <div className="w-3 h-3 rounded bg-purple-600"></div>
+              <span>Zone sélectionnée</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <div className="w-3 h-3 rounded bg-gray-400 opacity-30"></div>
+              <span>Autres zones</span>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

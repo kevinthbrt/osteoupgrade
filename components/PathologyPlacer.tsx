@@ -2,7 +2,7 @@
 
 import { Canvas } from '@react-three/fiber'
 import { OrbitControls, PerspectiveCamera, Html, useGLTF, Environment } from '@react-three/drei'
-import { Suspense } from 'react'
+import { Suspense, useState } from 'react'
 
 interface Pathology {
   id: string
@@ -40,7 +40,7 @@ interface PathologyPlacerProps {
 }
 
 // Zone de référence (wireframe)
-function ZoneBox({ zone }: { zone: Zone }) {
+function ZoneBox({ zone, onHover }: { zone: Zone, onHover: (zone: Zone | null) => void }) {
   const position: [number, number, number] = [
     zone.position_x,
     zone.position_y,
@@ -55,7 +55,10 @@ function ZoneBox({ zone }: { zone: Zone }) {
 
   return (
     <group position={position}>
-      <mesh>
+      <mesh
+        onPointerOver={() => onHover(zone)}
+        onPointerOut={() => onHover(null)}
+      >
         <boxGeometry args={size} />
         <meshStandardMaterial
           color={zone.color}
@@ -64,21 +67,6 @@ function ZoneBox({ zone }: { zone: Zone }) {
           wireframe={true}
         />
       </mesh>
-      
-      {/* Label de la zone - SUR LE CÔTÉ */}
-      <Html 
-        position={[size[0] * 0.7, 0, 0] as [number, number, number]}
-        distanceFactor={8}
-      >
-        <div 
-          className="px-3 py-1 rounded-lg shadow-lg whitespace-nowrap pointer-events-none bg-white border-2"
-          style={{ borderColor: zone.color }}
-        >
-          <p className="text-sm font-semibold" style={{ color: zone.color }}>
-            {zone.display_name}
-          </p>
-        </div>
-      </Html>
     </group>
   )
 }
@@ -87,11 +75,13 @@ function ZoneBox({ zone }: { zone: Zone }) {
 function PathologyMarker({ 
   pathology, 
   isSelected,
-  zoneColor
+  zoneColor,
+  onHover
 }: { 
   pathology: Pathology
   isSelected: boolean
   zoneColor: string
+  onHover: (pathology: Pathology | null) => void
 }) {
   const position: [number, number, number] = [
     pathology.position_x,
@@ -109,16 +99,12 @@ function PathologyMarker({
     zoneColor
   )
 
-  // Label décalé sur le côté
-  const labelOffset: [number, number, number] = [
-    position[0] + size * 2.5,
-    position[1],
-    position[2]
-  ]
-
   return (
     <group position={position}>
-      <mesh>
+      <mesh
+        onPointerOver={() => onHover(pathology)}
+        onPointerOut={() => onHover(null)}
+      >
         <sphereGeometry args={[size, 16, 16]} />
         <meshStandardMaterial
           color={isSelected ? '#8b5cf6' : pathologyColor}
@@ -128,24 +114,6 @@ function PathologyMarker({
           emissiveIntensity={isSelected ? 0.6 : 0.3}
         />
       </mesh>
-      
-      {/* Label sur le côté */}
-      <Html 
-        position={labelOffset}
-        distanceFactor={6}
-      >
-        <div 
-          className={`px-3 py-1 rounded-lg shadow-lg whitespace-nowrap pointer-events-none ${
-            isSelected ? 'bg-purple-600 text-white border-2 border-white' : 'bg-white border border-gray-200'
-          }`}
-          style={!isSelected ? { borderColor: pathologyColor } : {}}
-        >
-          <p className={`text-xs font-semibold ${isSelected ? 'text-white' : ''}`} 
-             style={!isSelected ? { color: pathologyColor } : {}}>
-            {pathology.name}
-          </p>
-        </div>
-      </Html>
     </group>
   )
 }
@@ -221,6 +189,24 @@ export default function PathologyPlacer({
   editMode = false,
   modelPath = '/models/human-skeleton.gltf'
 }: PathologyPlacerProps) {
+  const [hoveredItem, setHoveredItem] = useState<{ type: 'zone' | 'pathology', data: Zone | Pathology } | null>(null)
+
+  const handleZoneHover = (zone: Zone | null) => {
+    if (zone) {
+      setHoveredItem({ type: 'zone', data: zone })
+    } else if (hoveredItem?.type === 'zone') {
+      setHoveredItem(null)
+    }
+  }
+
+  const handlePathologyHover = (pathology: Pathology | null) => {
+    if (pathology) {
+      setHoveredItem({ type: 'pathology', data: pathology })
+    } else if (hoveredItem?.type === 'pathology') {
+      setHoveredItem(null)
+    }
+  }
+
   // Calculer la cible de la caméra (centre de la zone)
   const cameraTarget: [number, number, number] = [
     zone.position_x,
@@ -270,7 +256,7 @@ export default function PathologyPlacer({
           <BodyModel modelPath={modelPath} />
 
           {/* Zone de référence */}
-          <ZoneBox zone={zone} />
+          <ZoneBox zone={zone} onHover={handleZoneHover} />
 
           {/* Pathologies existantes */}
           {pathologies.map((pathology) => (
@@ -279,6 +265,7 @@ export default function PathologyPlacer({
               pathology={pathology}
               isSelected={selectedPathology?.id === pathology.id}
               zoneColor={zone.color}
+              onHover={handlePathologyHover}
             />
           ))}
 
@@ -288,6 +275,7 @@ export default function PathologyPlacer({
               pathology={selectedPathology}
               isSelected={true}
               zoneColor={zone.color}
+              onHover={handlePathologyHover}
             />
           )}
         </Suspense>
@@ -301,7 +289,7 @@ export default function PathologyPlacer({
             : '👁️ Vue des pathologies configurées'}
         </p>
         <p className="text-xs text-gray-300 mt-1">
-          Glissez pour pivoter • Molette pour zoomer
+          Glissez pour pivoter • Molette pour zoomer • Survolez pour voir les détails
         </p>
       </div>
 
@@ -312,10 +300,82 @@ export default function PathologyPlacer({
         </p>
       </div>
 
-      {/* Info sur la pathologie sélectionnée */}
-      {editMode && selectedPathology && (
-        <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm px-4 py-3 rounded-lg shadow-lg max-w-xs">
-          <p className="text-xs font-semibold text-gray-900 mb-2">En édition</p>
+      {/* Encadré d'info au survol - position fixe en haut à droite */}
+      {hoveredItem && (
+        <div className="absolute top-4 right-4 bg-white/95 backdrop-blur-sm px-4 py-3 rounded-lg shadow-xl border-2 transition-all max-w-xs"
+             style={{ 
+               borderColor: hoveredItem.type === 'zone' 
+                 ? (hoveredItem.data as Zone).color 
+                 : (hoveredItem.data as Pathology).color || zone.color 
+             }}>
+          {hoveredItem.type === 'zone' ? (
+            // Info de la zone
+            <>
+              <div className="flex items-center gap-2 mb-2">
+                <div 
+                  className="w-4 h-4 rounded"
+                  style={{ backgroundColor: (hoveredItem.data as Zone).color }}
+                />
+                <p className="text-sm font-bold text-gray-900">
+                  {(hoveredItem.data as Zone).display_name}
+                </p>
+              </div>
+              <div className="space-y-1 text-xs text-gray-600">
+                <p><span className="font-medium">Zone anatomique</span></p>
+                <p className="text-gray-500">Cadre de référence</p>
+              </div>
+            </>
+          ) : (
+            // Info de la pathologie
+            <>
+              <div className="flex items-center gap-2 mb-2">
+                <div 
+                  className="w-4 h-4 rounded-full border border-gray-300"
+                  style={{ 
+                    backgroundColor: (hoveredItem.data as Pathology).color || (
+                      (hoveredItem.data as Pathology).severity === 'high' ? '#ef4444' :
+                      (hoveredItem.data as Pathology).severity === 'medium' ? '#f59e0b' :
+                      (hoveredItem.data as Pathology).severity === 'low' ? '#10b981' :
+                      zone.color
+                    )
+                  }}
+                />
+                <p className="text-sm font-bold text-gray-900">
+                  {(hoveredItem.data as Pathology).name}
+                </p>
+              </div>
+              <div className="space-y-1 text-xs">
+                {(hoveredItem.data as Pathology).description && (
+                  <p className="text-gray-600 mb-2">{(hoveredItem.data as Pathology).description}</p>
+                )}
+                {(hoveredItem.data as Pathology).severity && (
+                  <span className={`inline-block px-2 py-0.5 rounded ${
+                    (hoveredItem.data as Pathology).severity === 'high' ? 'bg-red-100 text-red-700' :
+                    (hoveredItem.data as Pathology).severity === 'medium' ? 'bg-yellow-100 text-yellow-700' :
+                    'bg-green-100 text-green-700'
+                  }`}>
+                    {(hoveredItem.data as Pathology).severity === 'high' ? 'Grave' :
+                     (hoveredItem.data as Pathology).severity === 'medium' ? 'Modéré' : 'Léger'}
+                  </span>
+                )}
+                {editMode && (
+                  <p className="text-gray-500 mt-2">
+                    <span className="font-medium">Position:</span> [
+                    {(hoveredItem.data as Pathology).position_x.toFixed(2)}, 
+                    {(hoveredItem.data as Pathology).position_y.toFixed(2)}, 
+                    {(hoveredItem.data as Pathology).position_z.toFixed(2)}]
+                  </p>
+                )}
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
+      {/* Info sur la pathologie sélectionnée (seulement si pas de survol et en mode édition) */}
+      {editMode && selectedPathology && !hoveredItem && (
+        <div className="absolute top-4 right-4 bg-purple-50/95 backdrop-blur-sm px-4 py-3 rounded-lg shadow-lg max-w-xs border-2 border-purple-300">
+          <p className="text-xs font-semibold text-purple-900 mb-2">✏️ En édition</p>
           <div className="space-y-1 text-xs">
             <div className="flex items-center gap-2">
               <div 
