@@ -5,8 +5,8 @@ import './globals.css'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'OsteoUpgrade - Aide au diagnostic pour ostéopathes',
-  description: 'Plateforme professionnelle d\'aide au diagnostic avec arbres décisionnels et tests orthopédiques',
+  title: 'OsteoUpgrade - Aide au raisonnement pour ostéopathes',
+  description: 'Plateforme professionnelle d\'aide au raisonnement avec tests orthopédiques',
 }
 
 export default function RootLayout({

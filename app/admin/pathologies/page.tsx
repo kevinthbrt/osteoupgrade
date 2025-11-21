@@ -127,9 +127,11 @@ export default function PathologyManagerPage() {
       .order('name')
     setClusters(clustersData || [])
 
-    // TODO: Créer une table pathology_clusters si elle n'existe pas encore
-    // Pour l'instant, on simule avec un array vide
-    setPathologyClusters([])
+    // Charger les liens pathologie-clusters
+    const { data: clusterLinksData } = await supabase
+      .from('pathology_clusters')
+      .select('*')
+    setPathologyClusters(clusterLinksData || [])
   }
 
   const handleZoneSelect = (zone: any) => {
@@ -328,12 +330,6 @@ export default function PathologyManagerPage() {
   const handleLinkCluster = async (clusterId: string) => {
     if (!selectedPathology) return
 
-    // TODO: Implémenter la liaison avec les clusters
-    // Pour l'instant, notification
-    alert('Fonctionnalité en cours de développement - Créez d\'abord la table pathology_clusters dans Supabase')
-    
-    // Code à implémenter quand la table existera:
-    /*
     const existing = pathologyClusters.find(
       pc => pc.pathology_id === selectedPathology.id && pc.cluster_id === clusterId
     )
@@ -360,7 +356,20 @@ export default function PathologyManagerPage() {
 
     await loadData()
     alert('Cluster lié avec succès')
-    */
+  }
+
+  const handleUnlinkCluster = async (linkId: string) => {
+    const { error } = await supabase
+      .from('pathology_clusters')
+      .delete()
+      .eq('id', linkId)
+
+    if (error) {
+      alert('Erreur lors de la suppression du lien')
+      return
+    }
+
+    await loadData()
   }
 
   const zonePathologies = selectedZone 
@@ -930,10 +939,44 @@ export default function PathologyManagerPage() {
                   {/* Clusters liés */}
                   <div>
                     <h4 className="font-semibold text-gray-900 mb-3">Clusters liés</h4>
-                    <div className="text-center py-8 text-gray-500">
-                      <p>Fonctionnalité en développement</p>
-                      <p className="text-sm mt-2">Créez d'abord la table pathology_clusters dans Supabase</p>
-                    </div>
+                    {linkedClusters.length === 0 ? (
+                      <div className="text-center py-8 text-gray-500">
+                        <p>Aucun cluster lié</p>
+                        <p className="text-sm mt-2">Cliquez sur un cluster à gauche pour le lier</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        {linkedClusters.map((cluster: any) => {
+                          if (!cluster) return null
+                          const link = pathologyClusters.find(
+                            pc => pc.pathology_id === selectedPathology.id && pc.cluster_id === cluster.id
+                          )
+                          return (
+                            <div 
+                              key={cluster.id}
+                              className="p-3 bg-purple-50 border-2 border-purple-200 rounded-lg"
+                            >
+                              <div className="flex items-start justify-between">
+                                <div className="flex-1">
+                                  <p className="font-medium text-sm">{cluster.name}</p>
+                                  <p className="text-xs text-gray-600 mt-1">{cluster.region}</p>
+                                  {cluster.description && (
+                                    <p className="text-xs text-gray-500 mt-1">{cluster.description.substring(0, 50)}...</p>
+                                  )}
+                                </div>
+                                <button
+                                  onClick={() => link && handleUnlinkCluster(link.id)}
+                                  className="p-1 text-red-400 hover:text-red-600"
+                                  title="Délier"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </button>
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    )}
                   </div>
                 </div>
               )}

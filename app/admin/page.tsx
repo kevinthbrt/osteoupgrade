@@ -9,12 +9,10 @@ import {
   Clipboard,
   Activity,
   Shield,
-  Eye,
-  Plus,
   BarChart,
   Crown,
-  Stethoscope,
-  Box
+  Box,
+  Layers
 } from 'lucide-react'
 
 export default function AdminPage() {
@@ -24,11 +22,10 @@ export default function AdminPage() {
     freeUsers: 0,
     premiumUsers: 0,
     totalZones: 0,
-    totalStructures: 0,
     totalPathologies: 0,
     totalTests: 0,
+    totalClusters: 0,
     monthlyRevenue: 0,
-    activeUsers: 0,
   })
   const [loading, setLoading] = useState(true)
 
@@ -71,11 +68,11 @@ export default function AdminPage() {
       const premiumCount = profiles?.filter(p => p.role === 'premium').length || 0
 
       // Get anatomy system statistics
-      const [zonesResponse, structuresResponse, pathologiesResponse, testsResponse] = await Promise.all([
+      const [zonesResponse, pathologiesResponse, testsResponse, clustersResponse] = await Promise.all([
         supabase.from('anatomical_zones').select('*'),
-        supabase.from('anatomical_structures').select('*'),
         supabase.from('pathologies').select('*'),
-        supabase.from('orthopedic_tests').select('*')
+        supabase.from('orthopedic_tests').select('*'),
+        supabase.from('orthopedic_test_clusters').select('*')
       ])
 
       setStats({
@@ -83,11 +80,10 @@ export default function AdminPage() {
         freeUsers: freeCount,
         premiumUsers: premiumCount,
         totalZones: zonesResponse.data?.length || 0,
-        totalStructures: structuresResponse.data?.length || 0,
         totalPathologies: pathologiesResponse.data?.length || 0,
         totalTests: testsResponse.data?.length || 0,
+        totalClusters: clustersResponse.data?.length || 0,
         monthlyRevenue: premiumCount * 29.99,
-        activeUsers: 0, // À calculer si besoin
       })
     } catch (error) {
       console.error('Error loading admin data:', error)
@@ -114,19 +110,11 @@ export default function AdminPage() {
       href: '/admin/anatomy-builder'
     },
     {
-      label: 'Structures',
-      value: stats.totalStructures,
-      icon: Stethoscope,
-      color: 'from-green-500 to-green-600',
-      detail: 'Structures anatomiques',
-      href: '/admin/structures'
-    },
-    {
       label: 'Pathologies',
       value: stats.totalPathologies,
       icon: Activity,
       color: 'from-red-500 to-red-600',
-      detail: 'Pathologies répertoriées',
+      detail: 'Pathologies configurées',
       href: '/admin/pathologies'
     },
     {
@@ -137,44 +125,40 @@ export default function AdminPage() {
       detail: 'Tests orthopédiques',
       href: '/admin/tests'
     },
+    {
+      label: 'Clusters',
+      value: stats.totalClusters,
+      icon: Layers,
+      color: 'from-indigo-500 to-indigo-600',
+      detail: 'Groupes de tests',
+      href: '/admin/clusters'
+    },
   ]
 
   const managementActions = [
     {
-      title: 'Anatomy Builder',
+      title: 'Zones anatomiques',
       description: 'Créer et placer les zones anatomiques sur le modèle 3D',
       icon: Box,
       href: '/admin/anatomy-builder',
       color: 'from-purple-500 to-purple-600',
-      stats: `${stats.totalZones} zones`,
-      actions: [
-        { label: 'Gérer', href: '/admin/anatomy-builder' },
-        { label: 'Nouvelle zone', href: '/admin/anatomy-builder/new' }
-      ]
+      stats: `${stats.totalZones} zones configurées`
     },
     {
-      title: 'Structures & Pathologies',
-      description: 'Gérer les structures anatomiques et leurs pathologies',
-      icon: Stethoscope,
-      href: '/admin/structures',
-      color: 'from-green-500 to-green-600',
-      stats: `${stats.totalStructures} structures, ${stats.totalPathologies} pathologies`,
-      actions: [
-        { label: 'Structures', href: '/admin/structures' },
-        { label: 'Pathologies', href: '/admin/pathologies' }
-      ]
+      title: 'Pathologies',
+      description: 'Gérer les pathologies et leurs associations aux tests',
+      icon: Activity,
+      href: '/admin/pathologies',
+      color: 'from-red-500 to-red-600',
+      stats: `${stats.totalPathologies} pathologies`
     },
     {
-      title: 'Tests Orthopédiques',
-      description: 'Gérer la base de tests',
+      title: 'Tests et Clusters',
+      description: 'Gérer les tests individuels et les groupes de tests',
       icon: Clipboard,
       href: '/admin/tests',
       color: 'from-orange-500 to-orange-600',
-      stats: `${stats.totalTests} tests`,
-      actions: [
-        { label: 'Voir tous', href: '/admin/tests' },
-        { label: 'Créer', href: '/admin/tests/new' }
-      ]
+      stats: `${stats.totalTests} tests, ${stats.totalClusters} clusters`
     },
   ]
 
@@ -200,7 +184,7 @@ export default function AdminPage() {
                 <h1 className="text-2xl font-bold">Administration</h1>
               </div>
               <p className="text-purple-100">
-                Centre de contrôle OsteoUpgrade - Système d'anatomie dynamique
+                Centre de contrôle OsteoUpgrade
               </p>
             </div>
             <div className="text-right">
@@ -247,7 +231,7 @@ export default function AdminPage() {
               <div key={index} className="bg-white rounded-xl shadow-sm overflow-hidden">
                 <div className={`h-2 bg-gradient-to-r ${action.color}`} />
                 <div className="p-6">
-                  <div className="flex items-start space-x-4">
+                  <div className="flex items-start space-x-4 mb-4">
                     <div className={`bg-gradient-to-br ${action.color} p-3 rounded-lg`}>
                       <Icon className="h-6 w-6 text-white" />
                     </div>
@@ -264,54 +248,16 @@ export default function AdminPage() {
                     </div>
                   </div>
                   
-                  <div className="mt-4 pt-4 border-t flex gap-2">
-                    {action.actions.map((act, i) => (
-                      <button
-                        key={i}
-                        onClick={() => router.push(act.href)}
-                        className="flex-1 px-3 py-2 bg-gray-50 hover:bg-gray-100 rounded-lg text-sm font-medium text-gray-700 transition-colors flex items-center justify-center gap-1"
-                      >
-                        {i === 0 ? <Eye className="h-3 w-3" /> : <Plus className="h-3 w-3" />}
-                        {act.label}
-                      </button>
-                    ))}
-                  </div>
+                  <button
+                    onClick={() => router.push(action.href)}
+                    className="w-full px-4 py-2 bg-gray-50 hover:bg-gray-100 rounded-lg text-sm font-medium text-gray-700 transition-colors"
+                  >
+                    Gérer
+                  </button>
                 </div>
               </div>
             )
           })}
-        </div>
-
-        {/* Quick Info */}
-        <div className="bg-blue-50 border border-blue-200 rounded-xl p-6">
-          <div className="flex items-start space-x-4">
-            <div className="bg-blue-100 p-3 rounded-lg">
-              <Shield className="h-6 w-6 text-blue-600" />
-            </div>
-            <div className="flex-1">
-              <h3 className="font-semibold text-gray-900 mb-2">
-                Nouveau système d'anatomie dynamique
-              </h3>
-              <p className="text-sm text-gray-700 mb-3">
-                Créez et gérez les zones anatomiques, structures et pathologies directement depuis l'interface. 
-                Aucun code nécessaire !
-              </p>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => router.push('/admin/anatomy-builder')}
-                  className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
-                >
-                  Commencer →
-                </button>
-                <button
-                  onClick={() => router.push('/testing')}
-                  className="bg-white text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors border border-gray-300"
-                >
-                  Voir le résultat
-                </button>
-              </div>
-            </div>
-          </div>
         </div>
 
         {/* System Stats */}
@@ -331,14 +277,6 @@ export default function AdminPage() {
               
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
-                  <Stethoscope className="h-5 w-5 text-gray-400" />
-                  <span className="text-sm text-gray-600">Structures</span>
-                </div>
-                <span className="font-semibold text-gray-900">{stats.totalStructures}</span>
-              </div>
-              
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
                   <Activity className="h-5 w-5 text-gray-400" />
                   <span className="text-sm text-gray-600">Pathologies</span>
                 </div>
@@ -351,6 +289,14 @@ export default function AdminPage() {
                   <span className="text-sm text-gray-600">Tests orthopédiques</span>
                 </div>
                 <span className="font-semibold text-gray-900">{stats.totalTests}</span>
+              </div>
+              
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <Layers className="h-5 w-5 text-gray-400" />
+                  <span className="text-sm text-gray-600">Clusters de tests</span>
+                </div>
+                <span className="font-semibold text-gray-900">{stats.totalClusters}</span>
               </div>
               
               <div className="flex items-center justify-between pt-4 border-t">
@@ -369,48 +315,40 @@ export default function AdminPage() {
 
           <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl shadow-sm p-6 text-white">
             <h2 className="text-lg font-semibold mb-4">
-              Workflow de création
+              Accès rapide
             </h2>
             <div className="space-y-3">
-              <div className="flex items-start space-x-3">
-                <div className="bg-white/20 rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold flex-shrink-0">
-                  1
-                </div>
-                <div>
-                  <p className="font-medium">Créer les zones anatomiques</p>
-                  <p className="text-sm text-purple-100">Placer sur le modèle 3D</p>
-                </div>
-              </div>
+              <button
+                onClick={() => router.push('/admin/anatomy-builder')}
+                className="w-full bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-lg p-3 text-left transition-colors"
+              >
+                <p className="font-medium">Zones anatomiques</p>
+                <p className="text-sm text-purple-100">Placer sur le modèle 3D</p>
+              </button>
               
-              <div className="flex items-start space-x-3">
-                <div className="bg-white/20 rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold flex-shrink-0">
-                  2
-                </div>
-                <div>
-                  <p className="font-medium">Ajouter des structures</p>
-                  <p className="text-sm text-purple-100">Définir les éléments anatomiques</p>
-                </div>
-              </div>
+              <button
+                onClick={() => router.push('/admin/pathologies')}
+                className="w-full bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-lg p-3 text-left transition-colors"
+              >
+                <p className="font-medium">Pathologies</p>
+                <p className="text-sm text-purple-100">Lier aux tests et clusters</p>
+              </button>
               
-              <div className="flex items-start space-x-3">
-                <div className="bg-white/20 rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold flex-shrink-0">
-                  3
-                </div>
-                <div>
-                  <p className="font-medium">Créer les pathologies</p>
-                  <p className="text-sm text-purple-100">Associer aux structures</p>
-                </div>
-              </div>
+              <button
+                onClick={() => router.push('/admin/tests')}
+                className="w-full bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-lg p-3 text-left transition-colors"
+              >
+                <p className="font-medium">Tests et Clusters</p>
+                <p className="text-sm text-purple-100">Gérer la bibliothèque</p>
+              </button>
               
-              <div className="flex items-start space-x-3">
-                <div className="bg-white/20 rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold flex-shrink-0">
-                  4
-                </div>
-                <div>
-                  <p className="font-medium">Lier aux tests</p>
-                  <p className="text-sm text-purple-100">Connecter tests orthopédiques</p>
-                </div>
-              </div>
+              <button
+                onClick={() => router.push('/testing')}
+                className="w-full bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-lg p-3 text-left transition-colors"
+              >
+                <p className="font-medium">Prévisualiser</p>
+                <p className="text-sm text-purple-100">Tester l'interface utilisateur</p>
+              </button>
             </div>
           </div>
         </div>

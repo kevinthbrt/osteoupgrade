@@ -326,7 +326,7 @@ export default function ImprovedTestsPage() {
                   <span>Nouveau test</span>
                 </button>
                 <button
-                  onClick={() => router.push('/admin/clusters/new')}
+                  onClick={() => router.push('/admin/tests/page')}
                   className="bg-primary-100 hover:bg-primary-200 text-primary-700 px-4 py-2 rounded-lg font-medium transition-colors flex items-center space-x-2"
                 >
                   <Plus className="h-4 w-4" />
