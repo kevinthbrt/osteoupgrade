@@ -1,8 +1,9 @@
 'use client'
 
 import { Canvas } from '@react-three/fiber'
-import { OrbitControls, PerspectiveCamera, Html, useGLTF, Environment } from '@react-three/drei'
-import { Suspense, useState } from 'react'
+import { OrbitControls, PerspectiveCamera, Html, useGLTF, Environment, TransformControls } from '@react-three/drei'
+import { Suspense, useState, useRef } from 'react'
+import * as THREE from 'three'
 
 interface Pathology {
   id: string
@@ -118,6 +119,106 @@ function PathologyMarker({
   )
 }
 
+// Pathologie éditable avec TransformControls
+function EditablePathology({ 
+  pathology, 
+  zoneColor,
+  onPositionChange, 
+  onSizeChange,
+  orbitControlsRef 
+}: { 
+  pathology: Pathology
+  zoneColor: string
+  onPositionChange: (x: number, y: number, z: number) => void
+  onSizeChange?: (size: number) => void
+  orbitControlsRef: any
+}) {
+  const meshRef = useRef<THREE.Mesh>(null)
+  const [mode, setMode] = useState<'translate' | 'scale'>('translate')
+
+  const position: [number, number, number] = [
+    pathology.position_x,
+    pathology.position_y,
+    pathology.position_z
+  ]
+  
+  const size = pathology.size || 0.08
+
+  const pathologyColor = pathology.color || (
+    pathology.severity === 'high' ? '#ef4444' :
+    pathology.severity === 'medium' ? '#f59e0b' :
+    pathology.severity === 'low' ? '#10b981' :
+    zoneColor
+  )
+
+  return (
+    <group>
+      <TransformControls
+        object={meshRef}
+        mode={mode}
+        onMouseDown={() => {
+          if (orbitControlsRef.current) {
+            orbitControlsRef.current.enabled = false
+          }
+        }}
+        onMouseUp={() => {
+          if (orbitControlsRef.current) {
+            orbitControlsRef.current.enabled = true
+          }
+        }}
+        onChange={(e) => {
+          if (meshRef.current) {
+            const pos = meshRef.current.position
+            onPositionChange(pos.x, pos.y, pos.z)
+            
+            if (mode === 'scale' && onSizeChange) {
+              const scale = meshRef.current.scale
+              onSizeChange(size * scale.x)
+            }
+          }
+        }}
+      >
+        <mesh ref={meshRef} position={position}>
+          <sphereGeometry args={[size, 16, 16]} />
+          <meshStandardMaterial
+            color={pathologyColor}
+            transparent
+            opacity={0.8}
+            emissive={pathologyColor}
+            emissiveIntensity={0.5}
+          />
+        </mesh>
+      </TransformControls>
+
+      {/* Boutons de contrôle */}
+      <Html position={[position[0], position[1] + size * 2, position[2]]} center>
+        <div className="flex gap-2 bg-black/80 backdrop-blur-sm px-3 py-2 rounded-lg">
+          <button
+            onClick={() => setMode('translate')}
+            className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
+              mode === 'translate' 
+                ? 'bg-blue-500 text-white' 
+                : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+            }`}
+          >
+            📍 Déplacer
+          </button>
+          <button
+            onClick={() => setMode('scale')}
+            className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
+              mode === 'scale' 
+                ? 'bg-purple-500 text-white' 
+                : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+            }`}
+          >
+            📏 Taille
+          </button>
+        </div>
+      </Html>
+    </group>
+  )
+}
+
 // Modèle 3D
 function BodyModel({ modelPath }: { modelPath: string }) {
   try {
@@ -190,6 +291,7 @@ export default function PathologyPlacer({
   modelPath = '/models/human-skeleton.gltf'
 }: PathologyPlacerProps) {
   const [hoveredItem, setHoveredItem] = useState<{ type: 'zone' | 'pathology', data: Zone | Pathology } | null>(null)
+  const orbitControlsRef = useRef<any>(null)
 
   const handleZoneHover = (zone: Zone | null) => {
     if (zone) {
@@ -205,6 +307,10 @@ export default function PathologyPlacer({
     } else if (hoveredItem?.type === 'pathology') {
       setHoveredItem(null)
     }
+  }
+
+  const handleSizeChange = (size: number) => {
+    console.log('New size:', size)
   }
 
   // Calculer la cible de la caméra (centre de la zone)
@@ -230,6 +336,7 @@ export default function PathologyPlacer({
           fov={25}
         />
         <OrbitControls 
+          ref={orbitControlsRef}
           enablePan={true}
           enableZoom={true}
           enableRotate={true}
@@ -258,24 +365,30 @@ export default function PathologyPlacer({
           {/* Zone de référence */}
           <ZoneBox zone={zone} onHover={handleZoneHover} />
 
-          {/* Pathologies existantes */}
-          {pathologies.map((pathology) => (
-            <PathologyMarker
-              key={pathology.id}
-              pathology={pathology}
-              isSelected={selectedPathology?.id === pathology.id}
-              zoneColor={zone.color}
-              onHover={handlePathologyHover}
-            />
-          ))}
+          {/* Pathologies existantes (non sélectionnées) */}
+          {pathologies.map((pathology) => {
+            const isSelected = selectedPathology?.id === pathology.id
+            if (editMode && isSelected && selectedPathology) return null
+            
+            return (
+              <PathologyMarker
+                key={pathology.id}
+                pathology={pathology}
+                isSelected={false}
+                zoneColor={zone.color}
+                onHover={handlePathologyHover}
+              />
+            )
+          })}
 
-          {/* Pathologie en cours d'édition (nouvelle) */}
-          {editMode && selectedPathology && !selectedPathology.id && (
-            <PathologyMarker
+          {/* Pathologie en cours d'édition (avec TransformControls) */}
+          {editMode && selectedPathology && onPositionChange && (
+            <EditablePathology
               pathology={selectedPathology}
-              isSelected={true}
               zoneColor={zone.color}
-              onHover={handlePathologyHover}
+              onPositionChange={onPositionChange}
+              onSizeChange={handleSizeChange}
+              orbitControlsRef={orbitControlsRef}
             />
           )}
         </Suspense>
@@ -285,11 +398,14 @@ export default function PathologyPlacer({
       <div className="absolute bottom-4 left-4 bg-black/70 backdrop-blur-sm px-4 py-3 rounded-lg">
         <p className="text-sm font-semibold text-white">
           {editMode 
-            ? '🎯 Mode édition : Ajustez les valeurs de position dans le formulaire' 
+            ? '🎯 Mode édition : Cliquez et déplacez la pathologie directement sur le modèle' 
             : '👁️ Vue des pathologies configurées'}
         </p>
         <p className="text-xs text-gray-300 mt-1">
-          Glissez pour pivoter • Molette pour zoomer • Survolez pour voir les détails
+          {editMode 
+            ? '📍 Déplacer • 📏 Ajuster la taille • Molette pour zoomer'
+            : 'Glissez pour pivoter • Molette pour zoomer • Survolez pour voir les détails'
+          }
         </p>
       </div>
 
@@ -375,7 +491,7 @@ export default function PathologyPlacer({
       {/* Info sur la pathologie sélectionnée (seulement si pas de survol et en mode édition) */}
       {editMode && selectedPathology && !hoveredItem && (
         <div className="absolute top-4 right-4 bg-purple-50/95 backdrop-blur-sm px-4 py-3 rounded-lg shadow-lg max-w-xs border-2 border-purple-300">
-          <p className="text-xs font-semibold text-purple-900 mb-2">✏️ En édition</p>
+          <p className="text-xs font-semibold text-purple-900 mb-2">✏️ Mode édition 3D</p>
           <div className="space-y-1 text-xs">
             <div className="flex items-center gap-2">
               <div 
@@ -386,6 +502,9 @@ export default function PathologyPlacer({
                 {selectedPathology.name || 'Nouvelle pathologie'}
               </span>
             </div>
+            <p className="text-gray-500 mt-2 italic">
+              Les valeurs se mettent à jour en temps réel
+            </p>
           </div>
         </div>
       )}
