@@ -272,7 +272,7 @@ function RealisticBodyModel({
     <group>
       <primitive 
         object={scene} 
-        scale={0.2}
+        scale={0.8}
         position={[0, 0.9, 0]}
         rotation={[0, Math.PI, 0]}
       />
