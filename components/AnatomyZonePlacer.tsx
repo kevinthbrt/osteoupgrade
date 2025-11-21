@@ -79,7 +79,7 @@ function EditableZone({
   onSizeChange?: (x: number, y: number, z: number) => void
   orbitControlsRef: any
 }) {
-  const meshRef = useRef<THREE.Mesh>(null)
+  const meshRef = useRef<THREE.Mesh>(null!)
   const [mode, setMode] = useState<'translate' | 'scale'>('translate')
 
   const position: [number, number, number] = [
@@ -96,8 +96,18 @@ function EditableZone({
 
   return (
     <group>
+      <mesh ref={meshRef} position={position}>
+        <boxGeometry args={size} />
+        <meshStandardMaterial
+          color={zone.color || '#3b82f6'}
+          transparent
+          opacity={0.6}
+          wireframe={true}
+        />
+      </mesh>
+      
       <TransformControls
-        object={meshRef}
+        object={meshRef.current}
         mode={mode}
         onMouseDown={() => {
           if (orbitControlsRef.current) {
@@ -124,17 +134,7 @@ function EditableZone({
             }
           }
         }}
-      >
-        <mesh ref={meshRef} position={position}>
-          <boxGeometry args={size} />
-          <meshStandardMaterial
-            color={zone.color || '#3b82f6'}
-            transparent
-            opacity={0.6}
-            wireframe={true}
-          />
-        </mesh>
-      </TransformControls>
+      />
 
       {/* Boutons de contrôle */}
       <Html position={[position[0], position[1] + size[1] * 0.7, position[2]]} center>

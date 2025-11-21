@@ -133,7 +133,7 @@ function EditablePathology({
   onSizeChange?: (size: number) => void
   orbitControlsRef: any
 }) {
-  const meshRef = useRef<THREE.Mesh>(null)
+  const meshRef = useRef<THREE.Mesh>(null!)
   const [mode, setMode] = useState<'translate' | 'scale'>('translate')
 
   const position: [number, number, number] = [
@@ -153,8 +153,19 @@ function EditablePathology({
 
   return (
     <group>
+      <mesh ref={meshRef} position={position}>
+        <sphereGeometry args={[size, 16, 16]} />
+        <meshStandardMaterial
+          color={pathologyColor}
+          transparent
+          opacity={0.8}
+          emissive={pathologyColor}
+          emissiveIntensity={0.5}
+        />
+      </mesh>
+      
       <TransformControls
-        object={meshRef}
+        object={meshRef.current}
         mode={mode}
         onMouseDown={() => {
           if (orbitControlsRef.current) {
@@ -177,18 +188,7 @@ function EditablePathology({
             }
           }
         }}
-      >
-        <mesh ref={meshRef} position={position}>
-          <sphereGeometry args={[size, 16, 16]} />
-          <meshStandardMaterial
-            color={pathologyColor}
-            transparent
-            opacity={0.8}
-            emissive={pathologyColor}
-            emissiveIntensity={0.5}
-          />
-        </mesh>
-      </TransformControls>
+      />
 
       {/* Boutons de contrôle */}
       <Html position={[position[0], position[1] + size * 2, position[2]]} center>
