@@ -14,6 +14,7 @@ interface Pathology {
   position_z: number
   size?: number
   is_active?: boolean
+  color?: string
 }
 
 interface Zone {
@@ -82,7 +83,7 @@ function ZoneBox({ zone }: { zone: Zone }) {
   )
 }
 
-// Pathologie visualisée
+// Pathologie visualisée avec couleur personnalisée
 function PathologyMarker({ 
   pathology, 
   isSelected,
@@ -100,10 +101,13 @@ function PathologyMarker({
   
   const size = pathology.size || 0.08
 
-  const severityColor = 
+  // Utiliser la couleur custom si définie, sinon la couleur de sévérité, sinon la couleur de la zone
+  const pathologyColor = pathology.color || (
     pathology.severity === 'high' ? '#ef4444' :
     pathology.severity === 'medium' ? '#f59e0b' :
-    '#10b981'
+    pathology.severity === 'low' ? '#10b981' :
+    zoneColor
+  )
 
   // Label décalé sur le côté
   const labelOffset: [number, number, number] = [
@@ -117,10 +121,10 @@ function PathologyMarker({
       <mesh>
         <sphereGeometry args={[size, 16, 16]} />
         <meshStandardMaterial
-          color={isSelected ? '#8b5cf6' : severityColor}
+          color={isSelected ? '#8b5cf6' : pathologyColor}
           transparent
           opacity={isSelected ? 0.8 : 0.6}
-          emissive={isSelected ? '#8b5cf6' : severityColor}
+          emissive={isSelected ? '#8b5cf6' : pathologyColor}
           emissiveIntensity={isSelected ? 0.6 : 0.3}
         />
       </mesh>
@@ -134,10 +138,10 @@ function PathologyMarker({
           className={`px-3 py-1 rounded-lg shadow-lg whitespace-nowrap pointer-events-none ${
             isSelected ? 'bg-purple-600 text-white border-2 border-white' : 'bg-white border border-gray-200'
           }`}
-          style={!isSelected ? { borderColor: severityColor } : {}}
+          style={!isSelected ? { borderColor: pathologyColor } : {}}
         >
           <p className={`text-xs font-semibold ${isSelected ? 'text-white' : ''}`} 
-             style={!isSelected ? { color: severityColor } : {}}>
+             style={!isSelected ? { color: pathologyColor } : {}}>
             {pathology.name}
           </p>
         </div>
@@ -154,8 +158,8 @@ function BodyModel({ modelPath }: { modelPath: string }) {
     return (
       <primitive 
         object={scene} 
-        scale={0.2}
-        position={[0, 0.9, 0]}
+        scale={1.3}
+        position={[0, -0.6, 0]}
         rotation={[0, Math.PI, 0]}
       />
     )
@@ -237,7 +241,7 @@ export default function PathologyPlacer({
         <PerspectiveCamera 
           makeDefault 
           position={cameraPosition}
-          fov={50}
+          fov={25}
         />
         <OrbitControls 
           enablePan={true}
@@ -301,39 +305,30 @@ export default function PathologyPlacer({
         </p>
       </div>
 
-      {/* Légende */}
-      {pathologies.length > 0 && (
-        <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm px-4 py-3 rounded-lg shadow-lg max-w-xs">
-          <p className="text-xs font-semibold text-gray-900 mb-2">Légende</p>
-          <div className="space-y-1 text-xs">
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-red-500"></div>
-              <span className="text-gray-700">Grave</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
-              <span className="text-gray-700">Modéré</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-green-500"></div>
-              <span className="text-gray-700">Léger</span>
-            </div>
-            {editMode && selectedPathology && (
-              <div className="flex items-center gap-2 pt-1 border-t">
-                <div className="w-3 h-3 rounded-full bg-purple-600"></div>
-                <span className="text-gray-700 font-semibold">En édition</span>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
       {/* Compteur */}
       <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-sm px-3 py-2 rounded-lg shadow-lg">
         <p className="text-xs text-gray-600">
           <span className="font-semibold text-gray-900">{pathologies.length}</span> pathologie(s)
         </p>
       </div>
+
+      {/* Info sur la pathologie sélectionnée */}
+      {editMode && selectedPathology && (
+        <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm px-4 py-3 rounded-lg shadow-lg max-w-xs">
+          <p className="text-xs font-semibold text-gray-900 mb-2">En édition</p>
+          <div className="space-y-1 text-xs">
+            <div className="flex items-center gap-2">
+              <div 
+                className="w-4 h-4 rounded-full border border-gray-300"
+                style={{ backgroundColor: selectedPathology.color || '#3b82f6' }}
+              />
+              <span className="text-gray-700 font-medium">
+                {selectedPathology.name || 'Nouvelle pathologie'}
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

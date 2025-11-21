@@ -89,8 +89,8 @@ function BodyModel({ modelPath }: { modelPath: string }) {
     return (
       <primitive 
         object={scene} 
-        scale={0.2}              // Même échelle que AnatomyViewer3D
-        position={[0, 0.9, 0]}   // Même position que AnatomyViewer3D
+        scale={1.3}              // Même échelle que AnatomyViewer3D
+        position={[0, -0.6, 0]}   // Même position que AnatomyViewer3D
         rotation={[0, Math.PI, 0]}
       />
     )
@@ -172,7 +172,7 @@ export default function AnatomyZonePlacer({
         <PerspectiveCamera 
           makeDefault 
           position={[0, 1.6, 6]}   // Même position que AnatomyViewer3D
-          fov={40}                  // Même FOV
+          fov={25}                  // Même FOV
         />
         <OrbitControls 
           enablePan={true}

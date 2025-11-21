@@ -14,10 +14,10 @@ import {
   AlertCircle,
   Link as LinkIcon,
   Eye,
-  EyeOff
+  EyeOff,
+  Palette
 } from 'lucide-react'
 
-// Charger le composant de placement 3D uniquement côté client
 const PathologyPlacer = dynamic(() => import('@/components/PathologyPlacer'), {
   ssr: false,
   loading: () => (
@@ -41,12 +41,15 @@ export default function PathologyManagerPage() {
   const [pathologies, setPathologies] = useState<any[]>([])
   const [orthopedicTests, setOrthopedicTests] = useState<any[]>([])
   const [pathologyTests, setPathologyTests] = useState<any[]>([])
+  const [clusters, setClusters] = useState<any[]>([])
+  const [pathologyClusters, setPathologyClusters] = useState<any[]>([])
 
   // État UI
   const [selectedZone, setSelectedZone] = useState<any>(null)
   const [selectedPathology, setSelectedPathology] = useState<any>(null)
   const [showForm, setShowForm] = useState(false)
   const [showTestLinker, setShowTestLinker] = useState(false)
+  const [linkerTab, setLinkerTab] = useState<'tests' | 'clusters'>('tests')
   const [formData, setFormData] = useState({
     id: '',
     zone_id: '',
@@ -57,7 +60,8 @@ export default function PathologyManagerPage() {
     position_y: 0,
     position_z: 0,
     size: 0.08,
-    is_active: true
+    is_active: true,
+    color: '#3b82f6'
   })
 
   useEffect(() => {
@@ -115,6 +119,17 @@ export default function PathologyManagerPage() {
       .from('pathology_tests')
       .select('*')
     setPathologyTests(linksData || [])
+
+    // Charger les clusters
+    const { data: clustersData } = await supabase
+      .from('orthopedic_test_clusters')
+      .select('*')
+      .order('name')
+    setClusters(clustersData || [])
+
+    // TODO: Créer une table pathology_clusters si elle n'existe pas encore
+    // Pour l'instant, on simule avec un array vide
+    setPathologyClusters([])
   }
 
   const handleZoneSelect = (zone: any) => {
@@ -134,7 +149,8 @@ export default function PathologyManagerPage() {
       position_y: pathology.position_y || 0,
       position_z: pathology.position_z || 0,
       size: pathology.size || 0.08,
-      is_active: pathology.is_active !== false
+      is_active: pathology.is_active !== false,
+      color: pathology.color || '#3b82f6'
     })
   }
 
@@ -163,7 +179,8 @@ export default function PathologyManagerPage() {
       position_y: selectedZone.position_y,
       position_z: selectedZone.position_z,
       size: 0.08,
-      is_active: true
+      is_active: true,
+      color: '#3b82f6'
     })
     setSelectedPathology(null)
     setShowForm(true)
@@ -190,7 +207,8 @@ export default function PathologyManagerPage() {
             position_y: formData.position_y,
             position_z: formData.position_z,
             size: formData.size,
-            is_active: formData.is_active
+            is_active: formData.is_active,
+            color: formData.color
           })
           .eq('id', formData.id)
 
@@ -210,7 +228,8 @@ export default function PathologyManagerPage() {
             position_z: formData.position_z,
             size: formData.size,
             is_active: formData.is_active,
-            display_order: pathologies.length
+            display_order: pathologies.length,
+            color: formData.color
           })
 
         if (error) throw error
@@ -264,7 +283,6 @@ export default function PathologyManagerPage() {
   const handleLinkTest = async (testId: string) => {
     if (!selectedPathology) return
 
-    // Vérifier si le lien existe déjà
     const existing = pathologyTests.find(
       pt => pt.pathology_id === selectedPathology.id && pt.test_id === testId
     )
@@ -279,7 +297,7 @@ export default function PathologyManagerPage() {
       .insert({
         pathology_id: selectedPathology.id,
         test_id: testId,
-        relevance_score: 8,  // Corrigé : doit être entre 1 et 10 (contrainte CHECK)
+        relevance_score: 8,
         recommended_order: pathologyTests.filter(pt => pt.pathology_id === selectedPathology.id).length + 1
       })
 
@@ -307,6 +325,44 @@ export default function PathologyManagerPage() {
     await loadData()
   }
 
+  const handleLinkCluster = async (clusterId: string) => {
+    if (!selectedPathology) return
+
+    // TODO: Implémenter la liaison avec les clusters
+    // Pour l'instant, notification
+    alert('Fonctionnalité en cours de développement - Créez d\'abord la table pathology_clusters dans Supabase')
+    
+    // Code à implémenter quand la table existera:
+    /*
+    const existing = pathologyClusters.find(
+      pc => pc.pathology_id === selectedPathology.id && pc.cluster_id === clusterId
+    )
+
+    if (existing) {
+      alert('Ce cluster est déjà lié à cette pathologie')
+      return
+    }
+
+    const { error } = await supabase
+      .from('pathology_clusters')
+      .insert({
+        pathology_id: selectedPathology.id,
+        cluster_id: clusterId,
+        relevance_score: 8,
+        recommended_order: pathologyClusters.filter(pc => pc.pathology_id === selectedPathology.id).length + 1
+      })
+
+    if (error) {
+      console.error('Erreur lors de la liaison:', error)
+      alert('Erreur lors de la liaison: ' + error.message)
+      return
+    }
+
+    await loadData()
+    alert('Cluster lié avec succès')
+    */
+  }
+
   const zonePathologies = selectedZone 
     ? pathologies.filter(p => p.zone_id === selectedZone.id)
     : []
@@ -315,6 +371,13 @@ export default function PathologyManagerPage() {
     ? pathologyTests
         .filter(pt => pt.pathology_id === selectedPathology.id)
         .map(pt => orthopedicTests.find(t => t.id === pt.test_id))
+        .filter(Boolean)
+    : []
+
+  const linkedClusters = selectedPathology
+    ? pathologyClusters
+        .filter(pc => pc.pathology_id === selectedPathology.id)
+        .map(pc => clusters.find(c => c.id === pc.cluster_id))
         .filter(Boolean)
     : []
 
@@ -446,6 +509,12 @@ export default function PathologyManagerPage() {
                             <div className="flex items-start justify-between">
                               <div className="flex-1">
                                 <div className="flex items-center gap-2">
+                                  {pathology.color && (
+                                    <div 
+                                      className="w-4 h-4 rounded-full border-2 border-gray-300"
+                                      style={{ backgroundColor: pathology.color }}
+                                    />
+                                  )}
                                   <p className="font-medium text-gray-900">{pathology.name}</p>
                                   <span className={`px-2 py-0.5 rounded text-xs ${severityColor}`}>
                                     {pathology.severity === 'high' ? 'Grave' :
@@ -465,14 +534,13 @@ export default function PathologyManagerPage() {
                                 </p>
                               </div>
                               <div className="flex gap-1">
-                                {/* NOUVEAU : Bouton Lier aux tests directement dans la carte */}
                                 <button
                                   onClick={() => {
                                     setSelectedPathology(pathology)
                                     setShowTestLinker(true)
                                   }}
                                   className="p-1 text-gray-400 hover:text-blue-600"
-                                  title="Lier aux tests"
+                                  title="Lier aux tests/clusters"
                                 >
                                   <LinkIcon className="h-4 w-4" />
                                 </button>
@@ -572,19 +640,43 @@ export default function PathologyManagerPage() {
                 />
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Sévérité
-                </label>
-                <select
-                  value={formData.severity}
-                  onChange={(e) => setFormData(prev => ({ ...prev, severity: e.target.value as any }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-                >
-                  <option value="low">Légère</option>
-                  <option value="medium">Modérée</option>
-                  <option value="high">Grave</option>
-                </select>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Sévérité
+                  </label>
+                  <select
+                    value={formData.severity}
+                    onChange={(e) => setFormData(prev => ({ ...prev, severity: e.target.value as any }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                  >
+                    <option value="low">Légère</option>
+                    <option value="medium">Modérée</option>
+                    <option value="high">Grave</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
+                    <Palette className="h-4 w-4" />
+                    Couleur visuelle
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="color"
+                      value={formData.color}
+                      onChange={(e) => setFormData(prev => ({ ...prev, color: e.target.value }))}
+                      className="h-10 w-20 border border-gray-300 rounded-lg cursor-pointer"
+                    />
+                    <input
+                      type="text"
+                      value={formData.color}
+                      onChange={(e) => setFormData(prev => ({ ...prev, color: e.target.value }))}
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                      placeholder="#3b82f6"
+                    />
+                  </div>
+                </div>
               </div>
 
               <div className="grid grid-cols-3 gap-3">
@@ -656,7 +748,7 @@ export default function PathologyManagerPage() {
               <div className="bg-blue-50 p-4 rounded-lg">
                 <p className="text-sm text-blue-800">
                   💡 <strong>Astuce :</strong> Ajustez la position en modifiant les valeurs ci-dessus.
-                  La sphère apparaîtra sur le modèle 3D en haut.
+                  La sphère apparaîtra sur le modèle 3D avec la couleur choisie.
                 </p>
               </div>
             </div>
@@ -684,7 +776,7 @@ export default function PathologyManagerPage() {
         </div>
       )}
 
-      {/* Modal liaison tests */}
+      {/* Modal liaison tests & clusters */}
       {showTestLinker && selectedPathology && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
@@ -692,10 +784,10 @@ export default function PathologyManagerPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-xl font-bold text-gray-900">
-                    Lier des tests à : {selectedPathology.name}
+                    Lier des tests/clusters à : {selectedPathology.name}
                   </h3>
                   <p className="text-sm text-gray-600 mt-1">
-                    {linkedTests.length} test(s) actuellement lié(s)
+                    {linkedTests.length} test(s) • {linkedClusters.length} cluster(s)
                   </p>
                 </div>
                 <button
@@ -705,78 +797,146 @@ export default function PathologyManagerPage() {
                   <X className="h-6 w-6" />
                 </button>
               </div>
+
+              {/* Onglets */}
+              <div className="flex gap-2 mt-4">
+                <button
+                  onClick={() => setLinkerTab('tests')}
+                  className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                    linkerTab === 'tests'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-white text-gray-700 hover:bg-gray-100'
+                  }`}
+                >
+                  Tests individuels ({linkedTests.length})
+                </button>
+                <button
+                  onClick={() => setLinkerTab('clusters')}
+                  className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                    linkerTab === 'clusters'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-white text-gray-700 hover:bg-gray-100'
+                  }`}
+                >
+                  Clusters de tests ({linkedClusters.length})
+                </button>
+              </div>
             </div>
 
             <div className="p-6 max-h-[70vh] overflow-y-auto">
-              <div className="grid grid-cols-2 gap-6">
-                {/* Tests disponibles */}
-                <div>
-                  <h4 className="font-semibold text-gray-900 mb-3">Tests disponibles</h4>
-                  <div className="space-y-2">
-                    {orthopedicTests.map(test => {
-                      const isLinked = linkedTests.some((t: any) => t?.id === test.id)
-                      return (
-                        <button
-                          key={test.id}
-                          onClick={() => !isLinked && handleLinkTest(test.id)}
-                          disabled={isLinked}
-                          className={`w-full p-3 text-left border-2 rounded-lg transition-all ${
-                            isLinked 
-                              ? 'bg-gray-50 border-gray-200 opacity-50 cursor-not-allowed' 
-                              : 'border-gray-200 hover:border-blue-500 hover:bg-blue-50'
-                          }`}
-                        >
-                          <p className="font-medium text-sm">{test.name}</p>
-                          <p className="text-xs text-gray-600 mt-1">{test.category}</p>
-                          {isLinked && (
-                            <span className="text-xs text-green-600 mt-1 block">✓ Déjà lié</span>
-                          )}
-                        </button>
-                      )
-                    })}
-                  </div>
-                </div>
-
-                {/* Tests liés */}
-                <div>
-                  <h4 className="font-semibold text-gray-900 mb-3">Tests liés</h4>
-                  {linkedTests.length === 0 ? (
-                    <div className="text-center py-8 text-gray-500">
-                      <p>Aucun test lié</p>
-                      <p className="text-sm mt-2">Cliquez sur un test à gauche pour le lier</p>
-                    </div>
-                  ) : (
+              {linkerTab === 'tests' ? (
+                <div className="grid grid-cols-2 gap-6">
+                  {/* Tests disponibles */}
+                  <div>
+                    <h4 className="font-semibold text-gray-900 mb-3">Tests disponibles</h4>
                     <div className="space-y-2">
-                      {linkedTests.map((test: any) => {
-                        if (!test) return null
-                        const link = pathologyTests.find(
-                          pt => pt.pathology_id === selectedPathology.id && pt.test_id === test.id
-                        )
+                      {orthopedicTests.map(test => {
+                        const isLinked = linkedTests.some((t: any) => t?.id === test.id)
                         return (
-                          <div 
+                          <button
                             key={test.id}
-                            className="p-3 bg-green-50 border-2 border-green-200 rounded-lg"
+                            onClick={() => !isLinked && handleLinkTest(test.id)}
+                            disabled={isLinked}
+                            className={`w-full p-3 text-left border-2 rounded-lg transition-all ${
+                              isLinked 
+                                ? 'bg-gray-50 border-gray-200 opacity-50 cursor-not-allowed' 
+                                : 'border-gray-200 hover:border-blue-500 hover:bg-blue-50'
+                            }`}
                           >
-                            <div className="flex items-start justify-between">
-                              <div className="flex-1">
-                                <p className="font-medium text-sm">{test.name}</p>
-                                <p className="text-xs text-gray-600 mt-1">{test.category}</p>
-                              </div>
-                              <button
-                                onClick={() => link && handleUnlinkTest(link.id)}
-                                className="p-1 text-red-400 hover:text-red-600"
-                                title="Délier"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </button>
-                            </div>
-                          </div>
+                            <p className="font-medium text-sm">{test.name}</p>
+                            <p className="text-xs text-gray-600 mt-1">{test.category}</p>
+                            {isLinked && (
+                              <span className="text-xs text-green-600 mt-1 block">✓ Déjà lié</span>
+                            )}
+                          </button>
                         )
                       })}
                     </div>
-                  )}
+                  </div>
+
+                  {/* Tests liés */}
+                  <div>
+                    <h4 className="font-semibold text-gray-900 mb-3">Tests liés</h4>
+                    {linkedTests.length === 0 ? (
+                      <div className="text-center py-8 text-gray-500">
+                        <p>Aucun test lié</p>
+                        <p className="text-sm mt-2">Cliquez sur un test à gauche pour le lier</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        {linkedTests.map((test: any) => {
+                          if (!test) return null
+                          const link = pathologyTests.find(
+                            pt => pt.pathology_id === selectedPathology.id && pt.test_id === test.id
+                          )
+                          return (
+                            <div 
+                              key={test.id}
+                              className="p-3 bg-green-50 border-2 border-green-200 rounded-lg"
+                            >
+                              <div className="flex items-start justify-between">
+                                <div className="flex-1">
+                                  <p className="font-medium text-sm">{test.name}</p>
+                                  <p className="text-xs text-gray-600 mt-1">{test.category}</p>
+                                </div>
+                                <button
+                                  onClick={() => link && handleUnlinkTest(link.id)}
+                                  className="p-1 text-red-400 hover:text-red-600"
+                                  title="Délier"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </button>
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-6">
+                  {/* Clusters disponibles */}
+                  <div>
+                    <h4 className="font-semibold text-gray-900 mb-3">Clusters disponibles</h4>
+                    <div className="space-y-2">
+                      {clusters.map(cluster => {
+                        const isLinked = linkedClusters.some((c: any) => c?.id === cluster.id)
+                        return (
+                          <button
+                            key={cluster.id}
+                            onClick={() => !isLinked && handleLinkCluster(cluster.id)}
+                            disabled={isLinked}
+                            className={`w-full p-3 text-left border-2 rounded-lg transition-all ${
+                              isLinked 
+                                ? 'bg-gray-50 border-gray-200 opacity-50 cursor-not-allowed' 
+                                : 'border-gray-200 hover:border-purple-500 hover:bg-purple-50'
+                            }`}
+                          >
+                            <p className="font-medium text-sm">{cluster.name}</p>
+                            <p className="text-xs text-gray-600 mt-1">{cluster.region}</p>
+                            {cluster.description && (
+                              <p className="text-xs text-gray-500 mt-1">{cluster.description.substring(0, 50)}...</p>
+                            )}
+                            {isLinked && (
+                              <span className="text-xs text-green-600 mt-1 block">✓ Déjà lié</span>
+                            )}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Clusters liés */}
+                  <div>
+                    <h4 className="font-semibold text-gray-900 mb-3">Clusters liés</h4>
+                    <div className="text-center py-8 text-gray-500">
+                      <p>Fonctionnalité en développement</p>
+                      <p className="text-sm mt-2">Créez d'abord la table pathology_clusters dans Supabase</p>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
