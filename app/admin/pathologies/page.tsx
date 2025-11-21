@@ -137,6 +137,7 @@ export default function PathologyManagerPage() {
   const handleZoneSelect = (zone: any) => {
     setSelectedZone(zone)
     setSelectedPathology(null)
+    setShowForm(false) // Fermer le formulaire quand on change de zone
   }
 
   const handlePathologySelect = (pathology: any) => {
@@ -462,7 +463,7 @@ export default function PathologyManagerPage() {
             </div>
           </div>
 
-          {/* Visualisateur 3D */}
+          {/* Visualisateur 3D et Formulaire */}
           <div className="lg:col-span-2 space-y-6">
             {selectedZone ? (
               <>
@@ -491,100 +492,282 @@ export default function PathologyManagerPage() {
                   />
                 </div>
 
-                {/* Liste des pathologies de la zone */}
-                <div className="bg-white rounded-xl shadow-sm">
-                  <div className="p-4 border-b">
-                    <h3 className="font-semibold text-gray-900">
-                      Pathologies de cette zone
-                    </h3>
-                  </div>
-                  <div className="divide-y max-h-[400px] overflow-y-auto">
-                    {zonePathologies.length === 0 ? (
-                      <div className="p-8 text-center text-gray-500">
-                        <AlertCircle className="h-12 w-12 mx-auto mb-3 text-gray-300" />
-                        <p>Aucune pathologie configurée</p>
-                        <p className="text-sm mt-2">Cliquez sur "Nouvelle Pathologie" pour commencer</p>
-                      </div>
-                    ) : (
-                      zonePathologies.map(pathology => {
-                        const testsCount = pathologyTests.filter(pt => pt.pathology_id === pathology.id).length
-                        const severityColor = 
-                          pathology.severity === 'high' ? 'bg-red-100 text-red-700' :
-                          pathology.severity === 'medium' ? 'bg-yellow-100 text-yellow-700' :
-                          'bg-green-100 text-green-700'
+                {/* Formulaire d'édition - EN DESSOUS du modèle 3D */}
+                {showForm && (
+                  <div className="bg-white rounded-xl shadow-sm p-6">
+                    <div className="flex items-center justify-between mb-6">
+                      <h2 className="text-lg font-semibold text-gray-900">
+                        {formData.id ? 'Modifier la pathologie' : 'Nouvelle pathologie'}
+                      </h2>
+                      <button
+                        onClick={() => {
+                          setShowForm(false)
+                          setSelectedPathology(null)
+                        }}
+                        className="p-2 text-gray-400 hover:text-gray-600 rounded-lg"
+                      >
+                        <X className="h-5 w-5" />
+                      </button>
+                    </div>
 
-                        return (
-                          <div key={pathology.id} className="p-4">
-                            <div className="flex items-start justify-between">
-                              <div className="flex-1">
-                                <div className="flex items-center gap-2">
-                                  {pathology.color && (
-                                    <div 
-                                      className="w-4 h-4 rounded-full border-2 border-gray-300"
-                                      style={{ backgroundColor: pathology.color }}
-                                    />
-                                  )}
-                                  <p className="font-medium text-gray-900">{pathology.name}</p>
-                                  <span className={`px-2 py-0.5 rounded text-xs ${severityColor}`}>
-                                    {pathology.severity === 'high' ? 'Grave' :
-                                     pathology.severity === 'medium' ? 'Modéré' : 'Léger'}
-                                  </span>
-                                  {!pathology.is_active && (
-                                    <span className="px-2 py-0.5 rounded text-xs bg-gray-100 text-gray-600">
-                                      Désactivée
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Nom de la pathologie *
+                        </label>
+                        <input
+                          type="text"
+                          value={formData.name}
+                          onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                          placeholder="Ex: Hernie discale L4-L5"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Description
+                        </label>
+                        <textarea
+                          value={formData.description}
+                          onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                          rows={3}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                          placeholder="Description clinique..."
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Sévérité
+                          </label>
+                          <select
+                            value={formData.severity}
+                            onChange={(e) => setFormData(prev => ({ ...prev, severity: e.target.value as any }))}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                          >
+                            <option value="low">Légère</option>
+                            <option value="medium">Modérée</option>
+                            <option value="high">Grave</option>
+                          </select>
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
+                            <Palette className="h-4 w-4" />
+                            Couleur visuelle
+                          </label>
+                          <div className="flex gap-2">
+                            <input
+                              type="color"
+                              value={formData.color}
+                              onChange={(e) => setFormData(prev => ({ ...prev, color: e.target.value }))}
+                              className="h-10 w-20 border border-gray-300 rounded-lg cursor-pointer"
+                            />
+                            <input
+                              type="text"
+                              value={formData.color}
+                              onChange={(e) => setFormData(prev => ({ ...prev, color: e.target.value }))}
+                              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                              placeholder="#3b82f6"
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-3 gap-3">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Position X
+                          </label>
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={formData.position_x}
+                            onChange={(e) => setFormData(prev => ({ ...prev, position_x: parseFloat(e.target.value) }))}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Position Y
+                          </label>
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={formData.position_y}
+                            onChange={(e) => setFormData(prev => ({ ...prev, position_y: parseFloat(e.target.value) }))}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Position Z
+                          </label>
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={formData.position_z}
+                            onChange={(e) => setFormData(prev => ({ ...prev, position_z: parseFloat(e.target.value) }))}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Taille (rayon de la sphère)
+                        </label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0.01"
+                          value={formData.size}
+                          onChange={(e) => setFormData(prev => ({ ...prev, size: parseFloat(e.target.value) }))}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                        />
+                      </div>
+
+                      <div className="flex items-center">
+                        <input
+                          type="checkbox"
+                          id="is_active"
+                          checked={formData.is_active}
+                          onChange={(e) => setFormData(prev => ({ ...prev, is_active: e.target.checked }))}
+                          className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
+                        />
+                        <label htmlFor="is_active" className="ml-2 text-sm text-gray-700">
+                          Pathologie active (visible dans l'interface utilisateur)
+                        </label>
+                      </div>
+
+                      <div className="bg-blue-50 p-4 rounded-lg">
+                        <p className="text-sm text-blue-800">
+                          💡 <strong>Astuce :</strong> Utilisez les contrôles 3D ci-dessus pour positionner visuellement la pathologie !
+                        </p>
+                      </div>
+
+                      {/* Actions */}
+                      <div className="flex gap-3 pt-4 border-t">
+                        <button
+                          onClick={handleSave}
+                          disabled={saving}
+                          className="flex-1 bg-primary-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-primary-700 disabled:opacity-50 flex items-center justify-center space-x-2"
+                        >
+                          <Save className="h-5 w-5" />
+                          <span>{saving ? 'Sauvegarde...' : 'Sauvegarder'}</span>
+                        </button>
+                        <button
+                          onClick={() => {
+                            setShowForm(false)
+                            setSelectedPathology(null)
+                          }}
+                          className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200"
+                        >
+                          Annuler
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Liste des pathologies de la zone - SEULEMENT SI FORMULAIRE FERMÉ */}
+                {!showForm && (
+                  <div className="bg-white rounded-xl shadow-sm">
+                    <div className="p-4 border-b">
+                      <h3 className="font-semibold text-gray-900">
+                        Pathologies de cette zone
+                      </h3>
+                    </div>
+                    <div className="divide-y max-h-[400px] overflow-y-auto">
+                      {zonePathologies.length === 0 ? (
+                        <div className="p-8 text-center text-gray-500">
+                          <AlertCircle className="h-12 w-12 mx-auto mb-3 text-gray-300" />
+                          <p>Aucune pathologie configurée</p>
+                          <p className="text-sm mt-2">Cliquez sur "Nouvelle Pathologie" pour commencer</p>
+                        </div>
+                      ) : (
+                        zonePathologies.map(pathology => {
+                          const testsCount = pathologyTests.filter(pt => pt.pathology_id === pathology.id).length
+                          const severityColor = 
+                            pathology.severity === 'high' ? 'bg-red-100 text-red-700' :
+                            pathology.severity === 'medium' ? 'bg-yellow-100 text-yellow-700' :
+                            'bg-green-100 text-green-700'
+
+                          return (
+                            <div key={pathology.id} className="p-4">
+                              <div className="flex items-start justify-between">
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-2">
+                                    {pathology.color && (
+                                      <div 
+                                        className="w-4 h-4 rounded-full border-2 border-gray-300"
+                                        style={{ backgroundColor: pathology.color }}
+                                      />
+                                    )}
+                                    <p className="font-medium text-gray-900">{pathology.name}</p>
+                                    <span className={`px-2 py-0.5 rounded text-xs ${severityColor}`}>
+                                      {pathology.severity === 'high' ? 'Grave' :
+                                       pathology.severity === 'medium' ? 'Modéré' : 'Léger'}
                                     </span>
+                                    {!pathology.is_active && (
+                                      <span className="px-2 py-0.5 rounded text-xs bg-gray-100 text-gray-600">
+                                        Désactivée
+                                      </span>
+                                    )}
+                                  </div>
+                                  {pathology.description && (
+                                    <p className="text-sm text-gray-600 mt-1">{pathology.description}</p>
                                   )}
+                                  <p className="text-xs text-gray-500 mt-2">
+                                    {testsCount} test(s) lié(s)
+                                  </p>
                                 </div>
-                                {pathology.description && (
-                                  <p className="text-sm text-gray-600 mt-1">{pathology.description}</p>
-                                )}
-                                <p className="text-xs text-gray-500 mt-2">
-                                  {testsCount} test(s) lié(s)
-                                </p>
-                              </div>
-                              <div className="flex gap-1">
-                                <button
-                                  onClick={() => {
-                                    setSelectedPathology(pathology)
-                                    setShowTestLinker(true)
-                                  }}
-                                  className="p-1 text-gray-400 hover:text-blue-600"
-                                  title="Lier aux tests/clusters"
-                                >
-                                  <LinkIcon className="h-4 w-4" />
-                                </button>
-                                <button
-                                  onClick={() => handleToggleActive(pathology.id, pathology.is_active)}
-                                  className="p-1 text-gray-400 hover:text-gray-600"
-                                  title={pathology.is_active ? 'Désactiver' : 'Activer'}
-                                >
-                                  {pathology.is_active ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
-                                </button>
-                                <button
-                                  onClick={() => {
-                                    handlePathologySelect(pathology)
-                                    setShowForm(true)
-                                  }}
-                                  className="p-1 text-gray-400 hover:text-blue-600"
-                                  title="Modifier"
-                                >
-                                  <Edit className="h-4 w-4" />
-                                </button>
-                                <button
-                                  onClick={() => handleDelete(pathology.id)}
-                                  className="p-1 text-gray-400 hover:text-red-600"
-                                  title="Supprimer"
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </button>
+                                <div className="flex gap-1">
+                                  <button
+                                    onClick={() => {
+                                      setSelectedPathology(pathology)
+                                      setShowTestLinker(true)
+                                    }}
+                                    className="p-1 text-gray-400 hover:text-blue-600"
+                                    title="Lier aux tests/clusters"
+                                  >
+                                    <LinkIcon className="h-4 w-4" />
+                                  </button>
+                                  <button
+                                    onClick={() => handleToggleActive(pathology.id, pathology.is_active)}
+                                    className="p-1 text-gray-400 hover:text-gray-600"
+                                    title={pathology.is_active ? 'Désactiver' : 'Activer'}
+                                  >
+                                    {pathology.is_active ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+                                  </button>
+                                  <button
+                                    onClick={() => {
+                                      handlePathologySelect(pathology)
+                                      setShowForm(true)
+                                    }}
+                                    className="p-1 text-gray-400 hover:text-blue-600"
+                                    title="Modifier"
+                                  >
+                                    <Edit className="h-4 w-4" />
+                                  </button>
+                                  <button
+                                    onClick={() => handleDelete(pathology.id)}
+                                    className="p-1 text-gray-400 hover:text-red-600"
+                                    title="Supprimer"
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </button>
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        )
-                      })
-                    )}
+                          )
+                        })
+                      )}
+                    </div>
                   </div>
-                </div>
+                )}
               </>
             ) : (
               <div className="bg-white rounded-xl shadow-sm p-12 text-center">
@@ -601,191 +784,7 @@ export default function PathologyManagerPage() {
         </div>
       </div>
 
-      {/* Modal formulaire */}
-      {showForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-hidden">
-            <div className="p-6 border-b bg-gradient-to-r from-primary-50 to-primary-100">
-              <div className="flex items-center justify-between">
-                <h3 className="text-xl font-bold text-gray-900">
-                  {formData.id ? 'Modifier la pathologie' : 'Nouvelle pathologie'}
-                </h3>
-                <button
-                  onClick={() => {
-                    setShowForm(false)
-                    setSelectedPathology(null)
-                  }}
-                  className="p-2 hover:bg-white rounded-lg transition-colors"
-                >
-                  <X className="h-6 w-6" />
-                </button>
-              </div>
-            </div>
-
-            <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Nom de la pathologie *
-                </label>
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-                  placeholder="Ex: Hernie discale L4-L5"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Description
-                </label>
-                <textarea
-                  value={formData.description}
-                  onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                  rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-                  placeholder="Description clinique..."
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Sévérité
-                  </label>
-                  <select
-                    value={formData.severity}
-                    onChange={(e) => setFormData(prev => ({ ...prev, severity: e.target.value as any }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-                  >
-                    <option value="low">Légère</option>
-                    <option value="medium">Modérée</option>
-                    <option value="high">Grave</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
-                    <Palette className="h-4 w-4" />
-                    Couleur visuelle
-                  </label>
-                  <div className="flex gap-2">
-                    <input
-                      type="color"
-                      value={formData.color}
-                      onChange={(e) => setFormData(prev => ({ ...prev, color: e.target.value }))}
-                      className="h-10 w-20 border border-gray-300 rounded-lg cursor-pointer"
-                    />
-                    <input
-                      type="text"
-                      value={formData.color}
-                      onChange={(e) => setFormData(prev => ({ ...prev, color: e.target.value }))}
-                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-                      placeholder="#3b82f6"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-3 gap-3">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Position X
-                  </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={formData.position_x}
-                    onChange={(e) => setFormData(prev => ({ ...prev, position_x: parseFloat(e.target.value) }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Position Y
-                  </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={formData.position_y}
-                    onChange={(e) => setFormData(prev => ({ ...prev, position_y: parseFloat(e.target.value) }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Position Z
-                  </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={formData.position_z}
-                    onChange={(e) => setFormData(prev => ({ ...prev, position_z: parseFloat(e.target.value) }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Taille (rayon de la sphère)
-                </label>
-                <input
-                  type="number"
-                  step="0.01"
-                  min="0.01"
-                  value={formData.size}
-                  onChange={(e) => setFormData(prev => ({ ...prev, size: parseFloat(e.target.value) }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-                />
-              </div>
-
-              <div className="flex items-center">
-                <input
-                  type="checkbox"
-                  id="is_active"
-                  checked={formData.is_active}
-                  onChange={(e) => setFormData(prev => ({ ...prev, is_active: e.target.checked }))}
-                  className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
-                />
-                <label htmlFor="is_active" className="ml-2 text-sm text-gray-700">
-                  Pathologie active (visible dans l'interface utilisateur)
-                </label>
-              </div>
-
-              <div className="bg-blue-50 p-4 rounded-lg">
-                <p className="text-sm text-blue-800">
-                  💡 <strong>Astuce :</strong> Ajustez la position en modifiant les valeurs ci-dessus.
-                  La sphère apparaîtra sur le modèle 3D avec la couleur choisie.
-                </p>
-              </div>
-            </div>
-
-            <div className="p-6 border-t bg-gray-50 flex justify-end gap-3">
-              <button
-                onClick={() => {
-                  setShowForm(false)
-                  setSelectedPathology(null)
-                }}
-                className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-              >
-                Annuler
-              </button>
-              <button
-                onClick={handleSave}
-                disabled={saving}
-                className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors flex items-center gap-2 disabled:opacity-50"
-              >
-                <Save className="h-5 w-5" />
-                {saving ? 'Sauvegarde...' : 'Sauvegarder'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Modal liaison tests & clusters */}
+      {/* Modal liaison tests & clusters - RESTE EN MODAL */}
       {showTestLinker && selectedPathology && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
