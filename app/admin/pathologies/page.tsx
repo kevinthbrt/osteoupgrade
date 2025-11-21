@@ -92,6 +92,7 @@ export default function UnifiedPathologyManagerPage() {
   const [pathologyFormData, setPathologyFormData] = useState({
     id: '',
     structure_id: '',
+    zone_id: '', 
     name: '',
     description: '',
     severity: 'medium' as 'low' | 'medium' | 'high',
@@ -359,6 +360,7 @@ export default function UnifiedPathologyManagerPage() {
     setPathologyFormData({
       id: '',
       structure_id: structure.id,
+      zone_id: structure.zone_id, 
       name: '',
       description: '',
       severity: 'medium',
@@ -375,6 +377,7 @@ export default function UnifiedPathologyManagerPage() {
     setPathologyFormData({
       id: pathology.id,
       structure_id: pathology.structure_id,
+      zone_id: pathology.zone_id, 
       name: pathology.name,
       description: pathology.description || '',
       severity: pathology.severity || 'medium',
@@ -415,6 +418,7 @@ export default function UnifiedPathologyManagerPage() {
           .from('pathologies')
           .insert({
             structure_id: pathologyFormData.structure_id,
+            zone_id: pathologyFormData.zone_id, 
             name: pathologyFormData.name,
             description: pathologyFormData.description || null,
             severity: pathologyFormData.severity,
