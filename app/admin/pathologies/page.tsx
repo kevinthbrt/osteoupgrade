@@ -15,10 +15,13 @@ import {
   Link as LinkIcon,
   Eye,
   EyeOff,
-  Palette
+  Palette,
+  ChevronRight,
+  ChevronDown
 } from 'lucide-react'
 
-const PathologyPlacer = dynamic(() => import('@/components/PathologyPlacer'), {
+// Composant 3D pour structures (chargement dynamique)
+const StructurePlacer = dynamic(() => import('@/components/StructurePlacer'), {
   ssr: false,
   loading: () => (
     <div className="w-full h-[600px] bg-gradient-to-b from-gray-50 to-gray-100 rounded-xl flex items-center justify-center">
@@ -30,7 +33,18 @@ const PathologyPlacer = dynamic(() => import('@/components/PathologyPlacer'), {
   )
 })
 
-export default function PathologyManagerPage() {
+// Types de structures disponibles
+const STRUCTURE_TYPES = [
+  { value: 'musculaire', label: 'Musculaire', color: '#ef4444', icon: '💪' },
+  { value: 'osseuse', label: 'Osseuse', color: '#f59e0b', icon: '🦴' },
+  { value: 'articulaire', label: 'Articulaire', color: '#3b82f6', icon: '🔵' },
+  { value: 'neuro', label: 'Neurologique', color: '#8b5cf6', icon: '⚡' },
+  { value: 'vasculaire', label: 'Vasculaire', color: '#ec4899', icon: '💓' },
+  { value: 'ligamentaire', label: 'Ligamentaire', color: '#10b981', icon: '🔗' },
+  { value: 'cutanée', label: 'Cutanée', color: '#6366f1', icon: '🎨' }
+]
+
+export default function UnifiedPathologyManagerPage() {
   const router = useRouter()
   const [profile, setProfile] = useState<any>(null)
   const [loading, setLoading] = useState(true)
@@ -38,30 +52,51 @@ export default function PathologyManagerPage() {
 
   // Données
   const [zones, setZones] = useState<any[]>([])
+  const [structures, setStructures] = useState<any[]>([])
   const [pathologies, setPathologies] = useState<any[]>([])
   const [orthopedicTests, setOrthopedicTests] = useState<any[]>([])
   const [pathologyTests, setPathologyTests] = useState<any[]>([])
   const [clusters, setClusters] = useState<any[]>([])
   const [pathologyClusters, setPathologyClusters] = useState<any[]>([])
 
-  // État UI
+  // État UI - Navigation
   const [selectedZone, setSelectedZone] = useState<any>(null)
+  const [selectedStructure, setSelectedStructure] = useState<any>(null)
   const [selectedPathology, setSelectedPathology] = useState<any>(null)
-  const [showForm, setShowForm] = useState(false)
+  
+  // État UI - Formulaires
+  const [showStructureForm, setShowStructureForm] = useState(false)
+  const [showPathologyForm, setShowPathologyForm] = useState(false)
   const [showTestLinker, setShowTestLinker] = useState(false)
   const [linkerTab, setLinkerTab] = useState<'tests' | 'clusters'>('tests')
-  const [formData, setFormData] = useState({
+  
+  // État UI - Expansion
+  const [expandedStructures, setExpandedStructures] = useState<Set<string>>(new Set())
+
+  // Formulaire structure
+  const [structureFormData, setStructureFormData] = useState({
     id: '',
     zone_id: '',
     name: '',
+    type: 'musculaire' as any,
     description: '',
-    severity: 'medium' as 'low' | 'medium' | 'high',
+    color: '#ef4444',
     position_x: 0,
     position_y: 0,
     position_z: 0,
     size: 0.08,
-    is_active: true,
-    color: '#3b82f6'
+    is_active: true
+  })
+
+  // Formulaire pathologie
+  const [pathologyFormData, setPathologyFormData] = useState({
+    id: '',
+    structure_id: '',
+    name: '',
+    description: '',
+    severity: 'medium' as 'low' | 'medium' | 'high',
+    icd_code: '',
+    is_active: true
   })
 
   useEffect(() => {
@@ -100,6 +135,13 @@ export default function PathologyManagerPage() {
       .order('display_order')
     setZones(zonesData || [])
 
+    // Charger les structures
+    const { data: structuresData } = await supabase
+      .from('structures')
+      .select('*')
+      .order('display_order')
+    setStructures(structuresData || [])
+
     // Charger les pathologies
     const { data: pathologiesData } = await supabase
       .from('pathologies')
@@ -134,31 +176,70 @@ export default function PathologyManagerPage() {
     setPathologyClusters(clusterLinksData || [])
   }
 
+  // ========================================
+  // GESTION DES ZONES
+  // ========================================
+
   const handleZoneSelect = (zone: any) => {
     setSelectedZone(zone)
+    setSelectedStructure(null)
     setSelectedPathology(null)
-    setShowForm(false) // Fermer le formulaire quand on change de zone
+    setShowStructureForm(false)
+    setShowPathologyForm(false)
   }
 
-  const handlePathologySelect = (pathology: any) => {
-    setSelectedPathology(pathology)
-    setFormData({
-      id: pathology.id,
-      zone_id: pathology.zone_id,
-      name: pathology.name,
-      description: pathology.description || '',
-      severity: pathology.severity || 'medium',
-      position_x: pathology.position_x || 0,
-      position_y: pathology.position_y || 0,
-      position_z: pathology.position_z || 0,
-      size: pathology.size || 0.08,
-      is_active: pathology.is_active !== false,
-      color: pathology.color || '#3b82f6'
+  // ========================================
+  // GESTION DES STRUCTURES
+  // ========================================
+
+  const handleNewStructure = () => {
+    if (!selectedZone) {
+      alert('Sélectionnez d\'abord une zone')
+      return
+    }
+
+    const defaultType = STRUCTURE_TYPES[0]
+    setStructureFormData({
+      id: '',
+      zone_id: selectedZone.id,
+      name: '',
+      type: defaultType.value,
+      description: '',
+      color: defaultType.color,
+      position_x: selectedZone.position_x,
+      position_y: selectedZone.position_y,
+      position_z: selectedZone.position_z,
+      size: 0.08,
+      is_active: true
     })
+    setSelectedStructure(null)
+    setSelectedPathology(null)
+    setShowStructureForm(true)
+    setShowPathologyForm(false)
   }
 
-  const handlePositionChange = (x: number, y: number, z: number) => {
-    setFormData(prev => ({
+  const handleStructureSelect = (structure: any) => {
+    setSelectedStructure(structure)
+    setSelectedPathology(null)
+    setStructureFormData({
+      id: structure.id,
+      zone_id: structure.zone_id,
+      name: structure.name,
+      type: structure.type,
+      description: structure.description || '',
+      color: structure.color || STRUCTURE_TYPES.find(t => t.value === structure.type)?.color || '#3b82f6',
+      position_x: structure.position_x,
+      position_y: structure.position_y,
+      position_z: structure.position_z,
+      size: structure.size || 0.08,
+      is_active: structure.is_active !== false
+    })
+    setShowStructureForm(true)
+    setShowPathologyForm(false)
+  }
+
+  const handleStructurePositionChange = (x: number, y: number, z: number) => {
+    setStructureFormData(prev => ({
       ...prev,
       position_x: x,
       position_y: y,
@@ -166,31 +247,17 @@ export default function PathologyManagerPage() {
     }))
   }
 
-  const handleNewPathology = () => {
-    if (!selectedZone) {
-      alert('Sélectionnez d\'abord une zone')
-      return
-    }
-
-    setFormData({
-      id: '',
-      zone_id: selectedZone.id,
-      name: '',
-      description: '',
-      severity: 'medium',
-      position_x: selectedZone.position_x,
-      position_y: selectedZone.position_y,
-      position_z: selectedZone.position_z,
-      size: 0.08,
-      is_active: true,
-      color: '#3b82f6'
-    })
-    setSelectedPathology(null)
-    setShowForm(true)
+  const handleStructureTypeChange = (type: string) => {
+    const typeInfo = STRUCTURE_TYPES.find(t => t.value === type)
+    setStructureFormData(prev => ({
+      ...prev,
+      type: type as any,
+      color: typeInfo?.color || prev.color
+    }))
   }
 
-  const handleSave = async () => {
-    if (!formData.name.trim()) {
+  const handleSaveStructure = async () => {
+    if (!structureFormData.name.trim()) {
       alert('Le nom est requis')
       return
     }
@@ -198,22 +265,147 @@ export default function PathologyManagerPage() {
     setSaving(true)
 
     try {
-      if (formData.id) {
+      if (structureFormData.id) {
+        // Mise à jour
+        const { error } = await supabase
+          .from('structures')
+          .update({
+            name: structureFormData.name,
+            type: structureFormData.type,
+            description: structureFormData.description || null,
+            color: structureFormData.color,
+            position_x: structureFormData.position_x,
+            position_y: structureFormData.position_y,
+            position_z: structureFormData.position_z,
+            size: structureFormData.size,
+            is_active: structureFormData.is_active
+          })
+          .eq('id', structureFormData.id)
+
+        if (error) throw error
+        alert('Structure mise à jour')
+      } else {
+        // Création
+        const { error } = await supabase
+          .from('structures')
+          .insert({
+            zone_id: structureFormData.zone_id,
+            name: structureFormData.name,
+            type: structureFormData.type,
+            description: structureFormData.description || null,
+            color: structureFormData.color,
+            position_x: structureFormData.position_x,
+            position_y: structureFormData.position_y,
+            position_z: structureFormData.position_z,
+            size: structureFormData.size,
+            is_active: structureFormData.is_active,
+            display_order: structures.length
+          })
+
+        if (error) throw error
+        alert('Structure créée')
+      }
+
+      await loadData()
+      setShowStructureForm(false)
+      setSelectedStructure(null)
+    } catch (error) {
+      console.error('Erreur:', error)
+      alert('Erreur lors de la sauvegarde')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleDeleteStructure = async (structureId: string) => {
+    if (!confirm('Supprimer cette structure ? Toutes les pathologies associées seront également supprimées.')) return
+
+    const { error } = await supabase
+      .from('structures')
+      .delete()
+      .eq('id', structureId)
+
+    if (error) {
+      alert('Erreur lors de la suppression')
+      return
+    }
+
+    await loadData()
+    setSelectedStructure(null)
+    setShowStructureForm(false)
+    alert('Structure supprimée')
+  }
+
+  const toggleStructureExpansion = (structureId: string) => {
+    const newExpanded = new Set(expandedStructures)
+    if (newExpanded.has(structureId)) {
+      newExpanded.delete(structureId)
+    } else {
+      newExpanded.add(structureId)
+    }
+    setExpandedStructures(newExpanded)
+  }
+
+  // ========================================
+  // GESTION DES PATHOLOGIES
+  // ========================================
+
+  const handleNewPathology = (structure: any) => {
+    if (!structure) {
+      alert('Sélectionnez d\'abord une structure')
+      return
+    }
+
+    setPathologyFormData({
+      id: '',
+      structure_id: structure.id,
+      name: '',
+      description: '',
+      severity: 'medium',
+      icd_code: '',
+      is_active: true
+    })
+    setSelectedPathology(null)
+    setShowPathologyForm(true)
+    setShowStructureForm(false)
+  }
+
+  const handlePathologySelect = (pathology: any) => {
+    setSelectedPathology(pathology)
+    setPathologyFormData({
+      id: pathology.id,
+      structure_id: pathology.structure_id,
+      name: pathology.name,
+      description: pathology.description || '',
+      severity: pathology.severity || 'medium',
+      icd_code: pathology.icd_code || '',
+      is_active: pathology.is_active !== false
+    })
+    setShowPathologyForm(true)
+    setShowStructureForm(false)
+  }
+
+  const handleSavePathology = async () => {
+    if (!pathologyFormData.name.trim()) {
+      alert('Le nom est requis')
+      return
+    }
+
+    setSaving(true)
+
+    try {
+      if (pathologyFormData.id) {
         // Mise à jour
         const { error } = await supabase
           .from('pathologies')
           .update({
-            name: formData.name,
-            description: formData.description || null,
-            severity: formData.severity,
-            position_x: formData.position_x,
-            position_y: formData.position_y,
-            position_z: formData.position_z,
-            size: formData.size,
-            is_active: formData.is_active,
-            color: formData.color
+            name: pathologyFormData.name,
+            description: pathologyFormData.description || null,
+            severity: pathologyFormData.severity,
+            icd_code: pathologyFormData.icd_code || null,
+            is_active: pathologyFormData.is_active
           })
-          .eq('id', formData.id)
+          .eq('id', pathologyFormData.id)
 
         if (error) throw error
         alert('Pathologie mise à jour')
@@ -222,17 +414,13 @@ export default function PathologyManagerPage() {
         const { error } = await supabase
           .from('pathologies')
           .insert({
-            zone_id: formData.zone_id,
-            name: formData.name,
-            description: formData.description || null,
-            severity: formData.severity,
-            position_x: formData.position_x,
-            position_y: formData.position_y,
-            position_z: formData.position_z,
-            size: formData.size,
-            is_active: formData.is_active,
-            display_order: pathologies.length,
-            color: formData.color
+            structure_id: pathologyFormData.structure_id,
+            name: pathologyFormData.name,
+            description: pathologyFormData.description || null,
+            severity: pathologyFormData.severity,
+            icd_code: pathologyFormData.icd_code || null,
+            is_active: pathologyFormData.is_active,
+            display_order: pathologies.length
           })
 
         if (error) throw error
@@ -240,7 +428,7 @@ export default function PathologyManagerPage() {
       }
 
       await loadData()
-      setShowForm(false)
+      setShowPathologyForm(false)
       setSelectedPathology(null)
     } catch (error) {
       console.error('Erreur:', error)
@@ -250,7 +438,7 @@ export default function PathologyManagerPage() {
     }
   }
 
-  const handleDelete = async (pathologyId: string) => {
+  const handleDeletePathology = async (pathologyId: string) => {
     if (!confirm('Supprimer cette pathologie ?')) return
 
     const { error } = await supabase
@@ -265,11 +453,11 @@ export default function PathologyManagerPage() {
 
     await loadData()
     setSelectedPathology(null)
-    setShowForm(false)
+    setShowPathologyForm(false)
     alert('Pathologie supprimée')
   }
 
-  const handleToggleActive = async (pathologyId: string, currentState: boolean) => {
+  const handleTogglePathologyActive = async (pathologyId: string, currentState: boolean) => {
     const { error } = await supabase
       .from('pathologies')
       .update({ is_active: !currentState })
@@ -282,6 +470,10 @@ export default function PathologyManagerPage() {
 
     await loadData()
   }
+
+  // ========================================
+  // GESTION DES LIENS TESTS/CLUSTERS
+  // ========================================
 
   const handleLinkTest = async (testId: string) => {
     if (!selectedPathology) return
@@ -305,8 +497,7 @@ export default function PathologyManagerPage() {
       })
 
     if (error) {
-      console.error('Erreur lors de la liaison:', error)
-      alert('Erreur lors de la liaison: ' + error.message)
+      alert('Erreur lors de la liaison')
       return
     }
 
@@ -350,8 +541,7 @@ export default function PathologyManagerPage() {
       })
 
     if (error) {
-      console.error('Erreur lors de la liaison:', error)
-      alert('Erreur lors de la liaison: ' + error.message)
+      alert('Erreur lors de la liaison')
       return
     }
 
@@ -373,9 +563,16 @@ export default function PathologyManagerPage() {
     await loadData()
   }
 
-  const zonePathologies = selectedZone 
-    ? pathologies.filter(p => p.zone_id === selectedZone.id)
+  // ========================================
+  // CALCULS ET FILTRES
+  // ========================================
+
+  const zoneStructures = selectedZone 
+    ? structures.filter(s => s.zone_id === selectedZone.id)
     : []
+
+  const structurePathologies = (structureId: string) =>
+    pathologies.filter(p => p.structure_id === structureId)
 
   const linkedTests = selectedPathology
     ? pathologyTests
@@ -408,18 +605,18 @@ export default function PathologyManagerPage() {
         <div className="bg-white rounded-xl shadow-sm p-6">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">Gestion des Pathologies</h1>
+              <h1 className="text-2xl font-bold text-gray-900">Gestion des Structures & Pathologies</h1>
               <p className="text-gray-600 mt-1">
-                Créez et positionnez visuellement les pathologies sur le modèle 3D
+                Créez des structures anatomiques positionnées en 3D, puis ajoutez-y des pathologies
               </p>
             </div>
             {selectedZone && (
               <button
-                onClick={handleNewPathology}
+                onClick={handleNewStructure}
                 className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors flex items-center gap-2"
               >
                 <Plus className="h-5 w-5" />
-                Nouvelle Pathologie
+                Nouvelle Structure
               </button>
             )}
           </div>
@@ -431,12 +628,12 @@ export default function PathologyManagerPage() {
             <div className="p-4 border-b">
               <h2 className="font-semibold text-gray-900">Zones Anatomiques</h2>
               <p className="text-sm text-gray-600 mt-1">
-                Sélectionnez une zone pour gérer ses pathologies
+                Sélectionnez une zone pour gérer ses structures
               </p>
             </div>
             <div className="divide-y max-h-[calc(100vh-300px)] overflow-y-auto">
               {zones.map(zone => {
-                const count = pathologies.filter(p => p.zone_id === zone.id).length
+                const count = structures.filter(s => s.zone_id === zone.id).length
                 return (
                   <button
                     key={zone.id}
@@ -449,7 +646,7 @@ export default function PathologyManagerPage() {
                       <div className="flex-1">
                         <p className="font-medium text-gray-900">{zone.display_name}</p>
                         <p className="text-sm text-gray-600 mt-1">
-                          {count} pathologie(s)
+                          {count} structure(s)
                         </p>
                       </div>
                       <div 
@@ -463,7 +660,7 @@ export default function PathologyManagerPage() {
             </div>
           </div>
 
-          {/* Visualisateur 3D et Formulaire */}
+          {/* Visualisateur 3D et Formulaires */}
           <div className="lg:col-span-2 space-y-6">
             {selectedZone ? (
               <>
@@ -475,7 +672,7 @@ export default function PathologyManagerPage() {
                         {selectedZone.display_name}
                       </h2>
                       <p className="text-sm text-gray-600 mt-1">
-                        {zonePathologies.length} pathologie(s) configurée(s)
+                        {zoneStructures.length} structure(s) • {pathologies.filter(p => structures.find(s => s.id === p.structure_id && s.zone_id === selectedZone.id)).length} pathologie(s)
                       </p>
                     </div>
                   </div>
@@ -483,25 +680,220 @@ export default function PathologyManagerPage() {
 
                 {/* Visualisateur 3D */}
                 <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-                  <PathologyPlacer
+                  <StructurePlacer
                     zone={selectedZone}
-                    pathologies={zonePathologies}
-                    selectedPathology={formData}
-                    onPositionChange={handlePositionChange}
-                    editMode={showForm}
+                    structures={zoneStructures.map(s => ({
+                      ...s,
+                      pathology_count: structurePathologies(s.id).length
+                    }))}
+                    selectedStructure={showStructureForm ? structureFormData : null}
+                    onPositionChange={handleStructurePositionChange}
+                    onStructureSelect={handleStructureSelect}
+                    editMode={showStructureForm}
                   />
                 </div>
 
-                {/* Formulaire d'édition - EN DESSOUS du modèle 3D */}
-                {showForm && (
+                {/* Formulaire structure - EN DESSOUS du 3D */}
+                {showStructureForm && (
                   <div className="bg-white rounded-xl shadow-sm p-6">
                     <div className="flex items-center justify-between mb-6">
                       <h2 className="text-lg font-semibold text-gray-900">
-                        {formData.id ? 'Modifier la pathologie' : 'Nouvelle pathologie'}
+                        {structureFormData.id ? 'Modifier la structure' : 'Nouvelle structure'}
                       </h2>
                       <button
                         onClick={() => {
-                          setShowForm(false)
+                          setShowStructureForm(false)
+                          setSelectedStructure(null)
+                        }}
+                        className="p-2 text-gray-400 hover:text-gray-600 rounded-lg"
+                      >
+                        <X className="h-5 w-5" />
+                      </button>
+                    </div>
+
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Nom de la structure *
+                        </label>
+                        <input
+                          type="text"
+                          value={structureFormData.name}
+                          onChange={(e) => setStructureFormData(prev => ({ ...prev, name: e.target.value }))}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                          placeholder="Ex: Muscle trapèze supérieur"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Type de structure *
+                        </label>
+                        <div className="grid grid-cols-2 gap-2">
+                          {STRUCTURE_TYPES.map(type => (
+                            <button
+                              key={type.value}
+                              type="button"
+                              onClick={() => handleStructureTypeChange(type.value)}
+                              className={`px-3 py-2 rounded-lg border-2 text-sm font-medium transition-all ${
+                                structureFormData.type === type.value
+                                  ? 'border-current'
+                                  : 'border-gray-200 hover:border-gray-300'
+                              }`}
+                              style={{
+                                color: structureFormData.type === type.value ? type.color : '#374151',
+                                backgroundColor: structureFormData.type === type.value ? `${type.color}15` : 'white'
+                              }}
+                            >
+                              <span className="mr-1">{type.icon}</span>
+                              {type.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Description
+                        </label>
+                        <textarea
+                          value={structureFormData.description}
+                          onChange={(e) => setStructureFormData(prev => ({ ...prev, description: e.target.value }))}
+                          rows={3}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                          placeholder="Description anatomique..."
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
+                            <Palette className="h-4 w-4" />
+                            Couleur visuelle
+                          </label>
+                          <div className="flex gap-2">
+                            <input
+                              type="color"
+                              value={structureFormData.color}
+                              onChange={(e) => setStructureFormData(prev => ({ ...prev, color: e.target.value }))}
+                              className="h-10 w-20 border border-gray-300 rounded-lg cursor-pointer"
+                            />
+                            <input
+                              type="text"
+                              value={structureFormData.color}
+                              onChange={(e) => setStructureFormData(prev => ({ ...prev, color: e.target.value }))}
+                              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                            />
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Taille (rayon de la sphère)
+                          </label>
+                          <input
+                            type="number"
+                            step="0.01"
+                            min="0.01"
+                            value={structureFormData.size}
+                            onChange={(e) => setStructureFormData(prev => ({ ...prev, size: parseFloat(e.target.value) }))}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-3 gap-3">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Position X
+                          </label>
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={structureFormData.position_x}
+                            onChange={(e) => setStructureFormData(prev => ({ ...prev, position_x: parseFloat(e.target.value) }))}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Position Y
+                          </label>
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={structureFormData.position_y}
+                            onChange={(e) => setStructureFormData(prev => ({ ...prev, position_y: parseFloat(e.target.value) }))}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Position Z
+                          </label>
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={structureFormData.position_z}
+                            onChange={(e) => setStructureFormData(prev => ({ ...prev, position_z: parseFloat(e.target.value) }))}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="flex items-center">
+                        <input
+                          type="checkbox"
+                          id="structure_active"
+                          checked={structureFormData.is_active}
+                          onChange={(e) => setStructureFormData(prev => ({ ...prev, is_active: e.target.checked }))}
+                          className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
+                        />
+                        <label htmlFor="structure_active" className="ml-2 text-sm text-gray-700">
+                          Structure active (visible dans l'interface utilisateur)
+                        </label>
+                      </div>
+
+                      <div className="bg-blue-50 p-4 rounded-lg">
+                        <p className="text-sm text-blue-800">
+                          💡 <strong>Astuce :</strong> Utilisez le visualisateur 3D ci-dessus pour positionner visuellement la structure !
+                        </p>
+                      </div>
+
+                      {/* Actions */}
+                      <div className="flex gap-3 pt-4 border-t">
+                        <button
+                          onClick={handleSaveStructure}
+                          disabled={saving}
+                          className="flex-1 bg-primary-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-primary-700 disabled:opacity-50 flex items-center justify-center space-x-2"
+                        >
+                          <Save className="h-5 w-5" />
+                          <span>{saving ? 'Sauvegarde...' : 'Sauvegarder'}</span>
+                        </button>
+                        <button
+                          onClick={() => {
+                            setShowStructureForm(false)
+                            setSelectedStructure(null)
+                          }}
+                          className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200"
+                        >
+                          Annuler
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Formulaire pathologie */}
+                {showPathologyForm && selectedPathology && (
+                  <div className="bg-white rounded-xl shadow-sm p-6">
+                    <div className="flex items-center justify-between mb-6">
+                      <h2 className="text-lg font-semibold text-gray-900">
+                        {pathologyFormData.id ? 'Modifier la pathologie' : 'Nouvelle pathologie'}
+                      </h2>
+                      <button
+                        onClick={() => {
+                          setShowPathologyForm(false)
                           setSelectedPathology(null)
                         }}
                         className="p-2 text-gray-400 hover:text-gray-600 rounded-lg"
@@ -517,10 +909,10 @@ export default function PathologyManagerPage() {
                         </label>
                         <input
                           type="text"
-                          value={formData.name}
-                          onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                          value={pathologyFormData.name}
+                          onChange={(e) => setPathologyFormData(prev => ({ ...prev, name: e.target.value }))}
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-                          placeholder="Ex: Hernie discale L4-L5"
+                          placeholder="Ex: Tendinopathie"
                         />
                       </div>
 
@@ -529,8 +921,8 @@ export default function PathologyManagerPage() {
                           Description
                         </label>
                         <textarea
-                          value={formData.description}
-                          onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                          value={pathologyFormData.description}
+                          onChange={(e) => setPathologyFormData(prev => ({ ...prev, description: e.target.value }))}
                           rows={3}
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
                           placeholder="Description clinique..."
@@ -543,8 +935,8 @@ export default function PathologyManagerPage() {
                             Sévérité
                           </label>
                           <select
-                            value={formData.severity}
-                            onChange={(e) => setFormData(prev => ({ ...prev, severity: e.target.value as any }))}
+                            value={pathologyFormData.severity}
+                            onChange={(e) => setPathologyFormData(prev => ({ ...prev, severity: e.target.value as any }))}
                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
                           >
                             <option value="low">Légère</option>
@@ -554,104 +946,36 @@ export default function PathologyManagerPage() {
                         </div>
 
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
-                            <Palette className="h-4 w-4" />
-                            Couleur visuelle
-                          </label>
-                          <div className="flex gap-2">
-                            <input
-                              type="color"
-                              value={formData.color}
-                              onChange={(e) => setFormData(prev => ({ ...prev, color: e.target.value }))}
-                              className="h-10 w-20 border border-gray-300 rounded-lg cursor-pointer"
-                            />
-                            <input
-                              type="text"
-                              value={formData.color}
-                              onChange={(e) => setFormData(prev => ({ ...prev, color: e.target.value }))}
-                              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-                              placeholder="#3b82f6"
-                            />
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-3 gap-3">
-                        <div>
                           <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Position X
+                            Code ICD (optionnel)
                           </label>
                           <input
-                            type="number"
-                            step="0.01"
-                            value={formData.position_x}
-                            onChange={(e) => setFormData(prev => ({ ...prev, position_x: parseFloat(e.target.value) }))}
+                            type="text"
+                            value={pathologyFormData.icd_code}
+                            onChange={(e) => setPathologyFormData(prev => ({ ...prev, icd_code: e.target.value }))}
                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                            placeholder="Ex: M75.1"
                           />
                         </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Position Y
-                          </label>
-                          <input
-                            type="number"
-                            step="0.01"
-                            value={formData.position_y}
-                            onChange={(e) => setFormData(prev => ({ ...prev, position_y: parseFloat(e.target.value) }))}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Position Z
-                          </label>
-                          <input
-                            type="number"
-                            step="0.01"
-                            value={formData.position_z}
-                            onChange={(e) => setFormData(prev => ({ ...prev, position_z: parseFloat(e.target.value) }))}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-                          />
-                        </div>
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Taille (rayon de la sphère)
-                        </label>
-                        <input
-                          type="number"
-                          step="0.01"
-                          min="0.01"
-                          value={formData.size}
-                          onChange={(e) => setFormData(prev => ({ ...prev, size: parseFloat(e.target.value) }))}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-                        />
                       </div>
 
                       <div className="flex items-center">
                         <input
                           type="checkbox"
-                          id="is_active"
-                          checked={formData.is_active}
-                          onChange={(e) => setFormData(prev => ({ ...prev, is_active: e.target.checked }))}
+                          id="pathology_active"
+                          checked={pathologyFormData.is_active}
+                          onChange={(e) => setPathologyFormData(prev => ({ ...prev, is_active: e.target.checked }))}
                           className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
                         />
-                        <label htmlFor="is_active" className="ml-2 text-sm text-gray-700">
+                        <label htmlFor="pathology_active" className="ml-2 text-sm text-gray-700">
                           Pathologie active (visible dans l'interface utilisateur)
                         </label>
-                      </div>
-
-                      <div className="bg-blue-50 p-4 rounded-lg">
-                        <p className="text-sm text-blue-800">
-                          💡 <strong>Astuce :</strong> Utilisez les contrôles 3D ci-dessus pour positionner visuellement la pathologie !
-                        </p>
                       </div>
 
                       {/* Actions */}
                       <div className="flex gap-3 pt-4 border-t">
                         <button
-                          onClick={handleSave}
+                          onClick={handleSavePathology}
                           disabled={saving}
                           className="flex-1 bg-primary-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-primary-700 disabled:opacity-50 flex items-center justify-center space-x-2"
                         >
@@ -660,7 +984,7 @@ export default function PathologyManagerPage() {
                         </button>
                         <button
                           onClick={() => {
-                            setShowForm(false)
+                            setShowPathologyForm(false)
                             setSelectedPathology(null)
                           }}
                           className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200"
@@ -672,95 +996,174 @@ export default function PathologyManagerPage() {
                   </div>
                 )}
 
-                {/* Liste des pathologies de la zone - SEULEMENT SI FORMULAIRE FERMÉ */}
-                {!showForm && (
+                {/* Liste des structures et leurs pathologies - SEULEMENT SI PAS DE FORMULAIRE */}
+                {!showStructureForm && !showPathologyForm && (
                   <div className="bg-white rounded-xl shadow-sm">
                     <div className="p-4 border-b">
                       <h3 className="font-semibold text-gray-900">
-                        Pathologies de cette zone
+                        Structures et pathologies
                       </h3>
                     </div>
-                    <div className="divide-y max-h-[400px] overflow-y-auto">
-                      {zonePathologies.length === 0 ? (
+                    <div className="divide-y max-h-[500px] overflow-y-auto">
+                      {zoneStructures.length === 0 ? (
                         <div className="p-8 text-center text-gray-500">
                           <AlertCircle className="h-12 w-12 mx-auto mb-3 text-gray-300" />
-                          <p>Aucune pathologie configurée</p>
-                          <p className="text-sm mt-2">Cliquez sur "Nouvelle Pathologie" pour commencer</p>
+                          <p>Aucune structure configurée</p>
+                          <p className="text-sm mt-2">Cliquez sur "Nouvelle Structure" pour commencer</p>
                         </div>
                       ) : (
-                        zonePathologies.map(pathology => {
-                          const testsCount = pathologyTests.filter(pt => pt.pathology_id === pathology.id).length
-                          const severityColor = 
-                            pathology.severity === 'high' ? 'bg-red-100 text-red-700' :
-                            pathology.severity === 'medium' ? 'bg-yellow-100 text-yellow-700' :
-                            'bg-green-100 text-green-700'
+                        zoneStructures.map(structure => {
+                          const pathologiesList = structurePathologies(structure.id)
+                          const isExpanded = expandedStructures.has(structure.id)
+                          const typeInfo = STRUCTURE_TYPES.find(t => t.value === structure.type)
 
                           return (
-                            <div key={pathology.id} className="p-4">
-                              <div className="flex items-start justify-between">
-                                <div className="flex-1">
-                                  <div className="flex items-center gap-2">
-                                    {pathology.color && (
-                                      <div 
-                                        className="w-4 h-4 rounded-full border-2 border-gray-300"
-                                        style={{ backgroundColor: pathology.color }}
-                                      />
-                                    )}
-                                    <p className="font-medium text-gray-900">{pathology.name}</p>
-                                    <span className={`px-2 py-0.5 rounded text-xs ${severityColor}`}>
-                                      {pathology.severity === 'high' ? 'Grave' :
-                                       pathology.severity === 'medium' ? 'Modéré' : 'Léger'}
-                                    </span>
-                                    {!pathology.is_active && (
-                                      <span className="px-2 py-0.5 rounded text-xs bg-gray-100 text-gray-600">
-                                        Désactivée
-                                      </span>
-                                    )}
+                            <div key={structure.id} className="border-b last:border-b-0">
+                              {/* En-tête structure */}
+                              <div className="p-4 hover:bg-gray-50">
+                                <div className="flex items-start justify-between">
+                                  <div className="flex-1 flex items-start gap-3">
+                                    <button
+                                      onClick={() => toggleStructureExpansion(structure.id)}
+                                      className="p-1 hover:bg-gray-200 rounded transition-colors"
+                                    >
+                                      {isExpanded ? (
+                                        <ChevronDown className="h-5 w-5 text-gray-600" />
+                                      ) : (
+                                        <ChevronRight className="h-5 w-5 text-gray-600" />
+                                      )}
+                                    </button>
+                                    <div className="flex-1">
+                                      <div className="flex items-center gap-2">
+                                        <div 
+                                          className="w-4 h-4 rounded-full border-2 border-gray-300"
+                                          style={{ backgroundColor: structure.color }}
+                                        />
+                                        <p className="font-medium text-gray-900">{structure.name}</p>
+                                        <span className="text-xs px-2 py-0.5 rounded bg-gray-100 text-gray-700">
+                                          {typeInfo?.icon} {typeInfo?.label}
+                                        </span>
+                                        {!structure.is_active && (
+                                          <span className="px-2 py-0.5 rounded text-xs bg-gray-100 text-gray-600">
+                                            Désactivée
+                                          </span>
+                                        )}
+                                      </div>
+                                      {structure.description && (
+                                        <p className="text-sm text-gray-600 mt-1">{structure.description}</p>
+                                      )}
+                                      <p className="text-xs text-gray-500 mt-2">
+                                        {pathologiesList.length} pathologie(s)
+                                      </p>
+                                    </div>
                                   </div>
-                                  {pathology.description && (
-                                    <p className="text-sm text-gray-600 mt-1">{pathology.description}</p>
-                                  )}
-                                  <p className="text-xs text-gray-500 mt-2">
-                                    {testsCount} test(s) lié(s)
-                                  </p>
-                                </div>
-                                <div className="flex gap-1">
-                                  <button
-                                    onClick={() => {
-                                      setSelectedPathology(pathology)
-                                      setShowTestLinker(true)
-                                    }}
-                                    className="p-1 text-gray-400 hover:text-blue-600"
-                                    title="Lier aux tests/clusters"
-                                  >
-                                    <LinkIcon className="h-4 w-4" />
-                                  </button>
-                                  <button
-                                    onClick={() => handleToggleActive(pathology.id, pathology.is_active)}
-                                    className="p-1 text-gray-400 hover:text-gray-600"
-                                    title={pathology.is_active ? 'Désactiver' : 'Activer'}
-                                  >
-                                    {pathology.is_active ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
-                                  </button>
-                                  <button
-                                    onClick={() => {
-                                      handlePathologySelect(pathology)
-                                      setShowForm(true)
-                                    }}
-                                    className="p-1 text-gray-400 hover:text-blue-600"
-                                    title="Modifier"
-                                  >
-                                    <Edit className="h-4 w-4" />
-                                  </button>
-                                  <button
-                                    onClick={() => handleDelete(pathology.id)}
-                                    className="p-1 text-gray-400 hover:text-red-600"
-                                    title="Supprimer"
-                                  >
-                                    <Trash2 className="h-4 w-4" />
-                                  </button>
+                                  <div className="flex gap-1">
+                                    <button
+                                      onClick={() => handleNewPathology(structure)}
+                                      className="p-1 text-gray-400 hover:text-green-600"
+                                      title="Ajouter pathologie"
+                                    >
+                                      <Plus className="h-4 w-4" />
+                                    </button>
+                                    <button
+                                      onClick={() => handleStructureSelect(structure)}
+                                      className="p-1 text-gray-400 hover:text-blue-600"
+                                      title="Modifier"
+                                    >
+                                      <Edit className="h-4 w-4" />
+                                    </button>
+                                    <button
+                                      onClick={() => handleDeleteStructure(structure.id)}
+                                      className="p-1 text-gray-400 hover:text-red-600"
+                                      title="Supprimer"
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </button>
+                                  </div>
                                 </div>
                               </div>
+
+                              {/* Liste des pathologies (si expanded) */}
+                              {isExpanded && (
+                                <div className="pl-12 pr-4 pb-4 space-y-2">
+                                  {pathologiesList.length === 0 ? (
+                                    <p className="text-sm text-gray-500 italic">
+                                      Aucune pathologie. Cliquez sur + pour en ajouter une.
+                                    </p>
+                                  ) : (
+                                    pathologiesList.map(pathology => {
+                                      const testsCount = pathologyTests.filter(pt => pt.pathology_id === pathology.id).length
+                                      const severityColor = 
+                                        pathology.severity === 'high' ? 'bg-red-100 text-red-700' :
+                                        pathology.severity === 'medium' ? 'bg-yellow-100 text-yellow-700' :
+                                        'bg-green-100 text-green-700'
+
+                                      return (
+                                        <div 
+                                          key={pathology.id}
+                                          className="p-3 bg-gray-50 rounded-lg border border-gray-200"
+                                        >
+                                          <div className="flex items-start justify-between">
+                                            <div className="flex-1">
+                                              <div className="flex items-center gap-2">
+                                                <p className="font-medium text-gray-900 text-sm">{pathology.name}</p>
+                                                <span className={`px-2 py-0.5 rounded text-xs ${severityColor}`}>
+                                                  {pathology.severity === 'high' ? 'Grave' :
+                                                   pathology.severity === 'medium' ? 'Modéré' : 'Léger'}
+                                                </span>
+                                                {!pathology.is_active && (
+                                                  <span className="px-2 py-0.5 rounded text-xs bg-gray-100 text-gray-600">
+                                                    Désactivée
+                                                  </span>
+                                                )}
+                                              </div>
+                                              {pathology.description && (
+                                                <p className="text-sm text-gray-600 mt-1">{pathology.description}</p>
+                                              )}
+                                              <p className="text-xs text-gray-500 mt-2">
+                                                {testsCount} test(s) lié(s)
+                                              </p>
+                                            </div>
+                                            <div className="flex gap-1">
+                                              <button
+                                                onClick={() => {
+                                                  setSelectedPathology(pathology)
+                                                  setShowTestLinker(true)
+                                                }}
+                                                className="p-1 text-gray-400 hover:text-blue-600"
+                                                title="Lier aux tests/clusters"
+                                              >
+                                                <LinkIcon className="h-4 w-4" />
+                                              </button>
+                                              <button
+                                                onClick={() => handleTogglePathologyActive(pathology.id, pathology.is_active)}
+                                                className="p-1 text-gray-400 hover:text-gray-600"
+                                                title={pathology.is_active ? 'Désactiver' : 'Activer'}
+                                              >
+                                                {pathology.is_active ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+                                              </button>
+                                              <button
+                                                onClick={() => handlePathologySelect(pathology)}
+                                                className="p-1 text-gray-400 hover:text-blue-600"
+                                                title="Modifier"
+                                              >
+                                                <Edit className="h-4 w-4" />
+                                              </button>
+                                              <button
+                                                onClick={() => handleDeletePathology(pathology.id)}
+                                                className="p-1 text-gray-400 hover:text-red-600"
+                                                title="Supprimer"
+                                              >
+                                                <Trash2 className="h-4 w-4" />
+                                              </button>
+                                            </div>
+                                          </div>
+                                        </div>
+                                      )
+                                    })
+                                  )}
+                                </div>
+                              )}
                             </div>
                           )
                         })
@@ -784,7 +1187,7 @@ export default function PathologyManagerPage() {
         </div>
       </div>
 
-      {/* Modal liaison tests & clusters - RESTE EN MODAL */}
+      {/* Modal liaison tests & clusters */}
       {showTestLinker && selectedPathology && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-xl max-w-4xl w-full max-h-[90vh] overflow-hidden">

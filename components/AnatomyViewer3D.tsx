@@ -20,17 +20,26 @@ interface AnatomyZone {
   is_symmetric: boolean
 }
 
-interface Pathology {
+interface Structure {
   id: string
   zone_id: string
   name: string
+  type: 'musculaire' | 'osseuse' | 'articulaire' | 'neuro' | 'vasculaire' | 'ligamentaire' | 'cutanée'
   description: string | null
-  severity: 'low' | 'medium' | 'high' | null
+  color: string
   position_x: number
   position_y: number
   position_z: number
-  size?: number
-  color?: string
+  size: number
+  pathology_count?: number
+}
+
+interface Pathology {
+  id: string
+  structure_id: string
+  name: string
+  description: string | null
+  severity: 'low' | 'medium' | 'high' | null
 }
 
 interface PathologyTest {
@@ -44,13 +53,25 @@ interface PathologyTest {
 
 interface AnatomyViewer3DProps {
   zones: AnatomyZone[]
-  pathologies: Record<string, Pathology[]>
-  pathologyTests: Record<string, PathologyTest[]>
+  structures: Record<string, Structure[]> // structures groupées par zone_id
+  pathologies: Record<string, Pathology[]> // pathologies groupées par structure_id
+  pathologyTests: Record<string, PathologyTest[]> // tests groupés par pathology_id
   onTestSelect?: (tests: PathologyTest[], pathologyName: string) => void
   modelPath?: string
 }
 
-// Zone cliquable (plus de label 3D)
+// Couleurs par type de structure
+const STRUCTURE_TYPE_COLORS: Record<string, string> = {
+  musculaire: '#ef4444',
+  osseuse: '#f59e0b',
+  articulaire: '#3b82f6',
+  neuro: '#8b5cf6',
+  vasculaire: '#ec4899',
+  ligamentaire: '#10b981',
+  cutanée: '#6366f1'
+}
+
+// Zone cliquable
 function ClickableZone({ 
   zone, 
   onClick, 
@@ -95,35 +116,28 @@ function ClickableZone({
   )
 }
 
-// Pathologie cliquable (SANS label 3D, juste la sphère)
-function PathologyMarker({ 
-  pathology, 
-  zoneColor,
+// Structure cliquable (sphère colorée)
+function StructureMarker({ 
+  structure,
   onClick, 
   isHovered,
   onHover 
 }: any) {
   const position: [number, number, number] = [
-    pathology.position_x,
-    pathology.position_y,
-    pathology.position_z
+    structure.position_x,
+    structure.position_y,
+    structure.position_z
   ]
 
-  const size = pathology.size || 0.08
-
-  // Utiliser la couleur custom si définie, sinon la couleur de sévérité
-  const pathologyColor = pathology.color || (
-    pathology.severity === 'high' ? '#ef4444' :
-    pathology.severity === 'medium' ? '#f59e0b' :
-    '#10b981'
-  )
+  const size = structure.size || 0.08
+  const color = structure.color || STRUCTURE_TYPE_COLORS[structure.type] || '#3b82f6'
 
   return (
     <group position={position}>
       <mesh
         onClick={(e) => {
           e.stopPropagation()
-          onClick(pathology)
+          onClick(structure)
         }}
         onPointerOver={(e) => {
           e.stopPropagation()
@@ -137,18 +151,28 @@ function PathologyMarker({
       >
         <sphereGeometry args={[size, 16, 16]} />
         <meshStandardMaterial 
-          color={isHovered ? pathologyColor : zoneColor}
+          color={color}
           transparent
-          opacity={isHovered ? 0.9 : 0.6}
-          emissive={pathologyColor}
-          emissiveIntensity={isHovered ? 0.5 : 0.2}
+          opacity={isHovered ? 0.9 : 0.7}
+          emissive={color}
+          emissiveIntensity={isHovered ? 0.6 : 0.4}
         />
       </mesh>
+      
+      {/* Badge avec nombre de pathologies */}
+      {structure.pathology_count && structure.pathology_count > 0 && (
+        <Html position={[0, size * 1.8, 0]} center>
+          <div className="bg-white/90 backdrop-blur-sm px-2 py-0.5 rounded-full text-xs font-bold shadow-lg border-2" 
+               style={{ borderColor: color }}>
+            {structure.pathology_count}
+          </div>
+        </Html>
+      )}
     </group>
   )
 }
 
-// Composant pour gérer le zoom de la caméra
+// Contrôle de la caméra pour zoom
 function CameraController({ 
   targetPosition, 
   targetZoom,
@@ -194,16 +218,16 @@ function CameraController({
   return null
 }
 
-// Modèle 3D
+// Modèle 3D avec zones et structures
 function RealisticBodyModel({ 
   zones,
-  pathologies,
+  structures,
   onRegionClick,
-  onPathologyClick,
+  onStructureClick,
   hoveredRegion, 
-  hoveredPathology,
+  hoveredStructure,
   setHoveredRegion,
-  setHoveredPathology,
+  setHoveredStructure,
   modelPath,
   viewMode,
   selectedZone
@@ -252,14 +276,13 @@ function RealisticBodyModel({
         )
       })}
 
-      {viewMode === 'zoomed' && selectedZone && pathologies[selectedZone.id]?.map((pathology: Pathology) => (
-        <PathologyMarker
-          key={pathology.id}
-          pathology={pathology}
-          zoneColor={selectedZone.color}
-          onClick={onPathologyClick}
-          isHovered={hoveredPathology === pathology.id}
-          onHover={(hovered: boolean) => setHoveredPathology(hovered ? pathology.id : null)}
+      {viewMode === 'zoomed' && selectedZone && structures[selectedZone.id]?.map((structure: Structure) => (
+        <StructureMarker
+          key={structure.id}
+          structure={structure}
+          onClick={onStructureClick}
+          isHovered={hoveredStructure === structure.id}
+          onHover={(hovered: boolean) => setHoveredStructure(hovered ? structure.id : null)}
         />
       ))}
     </group>
@@ -280,7 +303,7 @@ function LoadingScreen() {
   )
 }
 
-// Composant pour afficher une description de test avec "Afficher plus"
+// Composant pour description de test avec "Afficher plus"
 function TestDescription({ description }: { description: string | null }) {
   const [expanded, setExpanded] = useState(false)
   
@@ -309,6 +332,7 @@ function TestDescription({ description }: { description: string | null }) {
 // Composant principal
 export default function AnatomyViewer3D({ 
   zones,
+  structures,
   pathologies,
   pathologyTests,
   onTestSelect,
@@ -318,9 +342,13 @@ export default function AnatomyViewer3D({
   const [selectedZone, setSelectedZone] = useState<AnatomyZone | null>(null)
   const [selectedSide, setSelectedSide] = useState<string>('center')
   const [hoveredRegion, setHoveredRegion] = useState<string | null>(null)
-  const [hoveredPathology, setHoveredPathology] = useState<string | null>(null)
+  const [hoveredStructure, setHoveredStructure] = useState<string | null>(null)
   const [isZooming, setIsZooming] = useState(false)
   const [cameraTarget, setCameraTarget] = useState<[number, number, number] | null>(null)
+  
+  // Modals
+  const [showStructureModal, setShowStructureModal] = useState(false)
+  const [selectedStructure, setSelectedStructure] = useState<Structure | null>(null)
   const [showPathologyModal, setShowPathologyModal] = useState(false)
   const [selectedPathology, setSelectedPathology] = useState<Pathology | null>(null)
   const [showVideoModal, setShowVideoModal] = useState(false)
@@ -347,9 +375,15 @@ export default function AnatomyViewer3D({
     setTimeout(() => setIsZooming(false), 1100)
   }
 
+  const handleStructureClick = (structure: Structure) => {
+    setSelectedStructure(structure)
+    setShowStructureModal(true)
+  }
+
   const handlePathologyClick = (pathology: Pathology) => {
     setSelectedPathology(pathology)
     setShowPathologyModal(true)
+    setShowStructureModal(false)
   }
 
   const handleBack = () => {
@@ -358,11 +392,10 @@ export default function AnatomyViewer3D({
     setSelectedSide('center')
     setCameraTarget(null)
     setIsZooming(false)
-    setHoveredPathology(null)
+    setHoveredStructure(null)
   }
 
   const handleWatchVideo = (videoUrl: string) => {
-    // Extraire l'ID YouTube si c'est un lien YouTube
     let videoId = ''
     if (videoUrl.includes('youtube.com/watch?v=')) {
       videoId = videoUrl.split('v=')[1]?.split('&')[0]
@@ -374,23 +407,23 @@ export default function AnatomyViewer3D({
       setCurrentVideoUrl(`https://www.youtube.com/embed/${videoId}`)
       setShowVideoModal(true)
     } else {
-      // Si ce n'est pas un lien YouTube reconnu, ouvrir dans un nouvel onglet
       window.open(videoUrl, '_blank')
     }
   }
 
-  const zonePathologies = selectedZone ? pathologies[selectedZone.id] || [] : []
+  const zoneStructures = selectedZone ? structures[selectedZone.id] || [] : []
+  const structurePathologies = selectedStructure ? pathologies[selectedStructure.id] || [] : []
   
-  // Trouver la zone actuellement survolée pour l'affichage fixe
+  // Trouver la zone survolée pour affichage
   const hoveredZoneInfo = viewMode === 'global' ? zones.find(z => 
     hoveredRegion === z.id || 
     hoveredRegion === `${z.id}-left` || 
     hoveredRegion === `${z.id}-right`
   ) : null
 
-  // Trouver la pathologie actuellement survolée pour l'affichage fixe
-  const hoveredPathologyInfo = viewMode === 'zoomed' && hoveredPathology && selectedZone
-    ? pathologies[selectedZone.id]?.find(p => p.id === hoveredPathology)
+  // Trouver la structure survolée pour affichage
+  const hoveredStructureInfo = viewMode === 'zoomed' && hoveredStructure && selectedZone
+    ? structures[selectedZone.id]?.find(s => s.id === hoveredStructure)
     : null
 
   return (
@@ -432,13 +465,13 @@ export default function AnatomyViewer3D({
           <Suspense fallback={<LoadingScreen />}>
             <RealisticBodyModel 
               zones={zones}
-              pathologies={pathologies}
+              structures={structures}
               onRegionClick={handleRegionClick}
-              onPathologyClick={handlePathologyClick}
+              onStructureClick={handleStructureClick}
               hoveredRegion={hoveredRegion}
-              hoveredPathology={hoveredPathology}
+              hoveredStructure={hoveredStructure}
               setHoveredRegion={setHoveredRegion}
-              setHoveredPathology={setHoveredPathology}
+              setHoveredStructure={setHoveredStructure}
               modelPath={modelPath}
               viewMode={viewMode}
               selectedZone={selectedZone}
@@ -446,7 +479,7 @@ export default function AnatomyViewer3D({
           </Suspense>
         </Canvas>
 
-        {/* ✨ NOUVEAU : Encart fixe pour la zone survolée (mode global) */}
+        {/* Encart zone survolée (mode global) */}
         {viewMode === 'global' && hoveredZoneInfo && (
           <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-white/95 backdrop-blur-sm px-6 py-3 rounded-lg shadow-xl border-2 max-w-md"
                style={{ borderColor: hoveredZoneInfo.color }}>
@@ -459,34 +492,34 @@ export default function AnatomyViewer3D({
               </p>
             )}
             <p className="text-sm text-gray-600 mt-1">
-              {pathologies[hoveredZoneInfo.id]?.length || 0} pathologie(s) configurée(s)
+              {structures[hoveredZoneInfo.id]?.length || 0} structure(s) configurée(s)
             </p>
           </div>
         )}
 
-        {/* ✨ NOUVEAU : Encart fixe pour la pathologie survolée (mode zoomed) */}
-        {viewMode === 'zoomed' && hoveredPathologyInfo && (
+        {/* Encart structure survolée (mode zoomed) */}
+        {viewMode === 'zoomed' && hoveredStructureInfo && (
           <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-white/95 backdrop-blur-sm px-6 py-3 rounded-lg shadow-xl border-2 max-w-md"
-               style={{ borderColor: hoveredPathologyInfo.color || (
-                 hoveredPathologyInfo.severity === 'high' ? '#ef4444' :
-                 hoveredPathologyInfo.severity === 'medium' ? '#f59e0b' :
-                 '#10b981'
-               )}}>
-            <p className="font-bold text-lg" style={{ color: hoveredPathologyInfo.color || (
-              hoveredPathologyInfo.severity === 'high' ? '#ef4444' :
-              hoveredPathologyInfo.severity === 'medium' ? '#f59e0b' :
-              '#10b981'
-            )}}>
-              {hoveredPathologyInfo.name}
+               style={{ borderColor: hoveredStructureInfo.color }}>
+            <p className="font-bold text-lg" style={{ color: hoveredStructureInfo.color }}>
+              {hoveredStructureInfo.name}
             </p>
-            {hoveredPathologyInfo.description && (
+            <p className="text-sm text-gray-600 mt-1">
+              Type : {hoveredStructureInfo.type}
+            </p>
+            {hoveredStructureInfo.description && (
               <p className="text-sm text-gray-600 mt-1">
-                {hoveredPathologyInfo.description.substring(0, 80)}
-                {hoveredPathologyInfo.description.length > 80 ? '...' : ''}
+                {hoveredStructureInfo.description.substring(0, 60)}
+                {hoveredStructureInfo.description.length > 60 ? '...' : ''}
+              </p>
+            )}
+            {hoveredStructureInfo.pathology_count && (
+              <p className="text-xs text-primary-600 font-semibold mt-2">
+                {hoveredStructureInfo.pathology_count} pathologie(s)
               </p>
             )}
             <p className="text-xs text-gray-500 mt-2">
-              Cliquez pour voir les tests orthopédiques
+              Cliquez pour voir les pathologies
             </p>
           </div>
         )}
@@ -496,9 +529,10 @@ export default function AnatomyViewer3D({
           <p className="text-sm font-semibold text-white">
             {viewMode === 'global' 
               ? '🖱️ Survolez et cliquez sur une région anatomique' 
-              : '🎯 Survolez et cliquez sur les pathologies (sphères)'}
+              : '🎯 Survolez et cliquez sur les structures (sphères colorées)'}
           </p>
           <p className="text-xs text-gray-300 mt-1">
+            {viewMode === 'zoomed' ? 'Le badge indique le nombre de pathologies • ' : ''}
             Glissez pour pivoter • Molette pour zoomer
           </p>
         </div>
@@ -516,35 +550,129 @@ export default function AnatomyViewer3D({
           </button>
         )}
 
-        {/* Info zone zoomée (sans pathologie survolée) */}
-        {viewMode === 'zoomed' && selectedZone && !hoveredPathologyInfo && (
+        {/* Info zone zoomée (sans structure survolée) */}
+        {viewMode === 'zoomed' && selectedZone && !hoveredStructureInfo && (
           <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm px-4 py-3 rounded-lg shadow-lg">
             <p className="text-sm font-semibold" style={{ color: selectedZone.color }}>
               {selectedZone.display_name}
               {selectedSide !== 'center' && ` (${selectedSide === 'left' ? 'Gauche' : 'Droite'})`}
             </p>
             <p className="text-xs text-gray-600 mt-1">
-              {zonePathologies.length} pathologie(s)
+              {zoneStructures.length} structure(s)
             </p>
           </div>
         )}
 
-        {/* Message si aucune pathologie */}
-        {viewMode === 'zoomed' && zonePathologies.length === 0 && (
+        {/* Message si aucune structure */}
+        {viewMode === 'zoomed' && zoneStructures.length === 0 && (
           <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white/90 backdrop-blur-sm px-6 py-4 rounded-xl shadow-lg text-center">
-            <p className="text-gray-900 font-semibold mb-2">Aucune pathologie configurée</p>
+            <p className="text-gray-900 font-semibold mb-2">Aucune structure configurée</p>
             <p className="text-sm text-gray-600">
-              Les pathologies doivent être créées via l'interface admin
+              Les structures doivent être créées via l'interface admin
             </p>
           </div>
         )}
       </div>
 
-      {/* Modal pathologie avec vidéos */}
+      {/* Modal structure avec liste de pathologies */}
+      {showStructureModal && selectedStructure && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl max-w-2xl w-full max-h-[85vh] overflow-hidden">
+            <div className="p-6 border-b bg-gradient-to-r from-blue-50 to-blue-100">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="flex items-center gap-3">
+                    <div 
+                      className="w-6 h-6 rounded-full border-2 border-gray-300"
+                      style={{ backgroundColor: selectedStructure.color }}
+                    />
+                    <div>
+                      <h3 className="text-xl font-bold text-gray-900">
+                        {selectedStructure.name}
+                      </h3>
+                      <p className="text-sm text-gray-600 mt-1">
+                        Type : {selectedStructure.type}
+                      </p>
+                    </div>
+                  </div>
+                  {selectedStructure.description && (
+                    <p className="text-sm text-gray-600 mt-3">
+                      {selectedStructure.description}
+                    </p>
+                  )}
+                </div>
+                <button
+                  onClick={() => {
+                    setShowStructureModal(false)
+                    setSelectedStructure(null)
+                  }}
+                  className="p-2 hover:bg-white rounded-lg transition-colors"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            <div className="p-6 max-h-[65vh] overflow-y-auto">
+              <h4 className="font-semibold text-gray-900 mb-3">
+                Pathologies de cette structure
+              </h4>
+              
+              {structurePathologies.length > 0 ? (
+                <div className="space-y-2">
+                  {structurePathologies.map((pathology: Pathology) => {
+                    const severityColor = 
+                      pathology.severity === 'high' ? 'border-red-300 bg-red-50 hover:bg-red-100' :
+                      pathology.severity === 'medium' ? 'border-yellow-300 bg-yellow-50 hover:bg-yellow-100' :
+                      'border-green-300 bg-green-50 hover:bg-green-100'
+                    
+                    const severityLabel =
+                      pathology.severity === 'high' ? '🔴 Grave' :
+                      pathology.severity === 'medium' ? '🟡 Modérée' :
+                      '🟢 Légère'
+
+                    return (
+                      <button
+                        key={pathology.id}
+                        onClick={() => handlePathologyClick(pathology)}
+                        className={`w-full p-4 border-2 rounded-lg transition-all text-left ${severityColor}`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1">
+                            <p className="font-semibold text-gray-900">{pathology.name}</p>
+                            {pathology.description && (
+                              <p className="text-sm text-gray-600 mt-1 line-clamp-2">
+                                {pathology.description}
+                              </p>
+                            )}
+                            <p className="text-xs text-gray-500 mt-2">{severityLabel}</p>
+                          </div>
+                          <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                          </svg>
+                        </div>
+                      </button>
+                    )
+                  })}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  <p>Aucune pathologie configurée pour cette structure</p>
+                  <p className="text-sm mt-2">Configurez les pathologies via l'interface admin</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal pathologie avec tests */}
       {showPathologyModal && selectedPathology && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-xl max-w-3xl w-full max-h-[85vh] overflow-hidden">
-            <div className="p-6 border-b bg-gradient-to-r from-blue-50 to-blue-100">
+            <div className="p-6 border-b bg-gradient-to-r from-purple-50 to-purple-100">
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-xl font-bold text-gray-900">
@@ -562,8 +690,8 @@ export default function AnatomyViewer3D({
                       'bg-green-100 text-green-700'
                     }`}>
                       Sévérité : {
-                        selectedPathology.severity === 'high' ? 'Élevée' :
-                        selectedPathology.severity === 'medium' ? 'Modérée' : 'Faible'
+                        selectedPathology.severity === 'high' ? 'Grave' :
+                        selectedPathology.severity === 'medium' ? 'Modérée' : 'Légère'
                       }
                     </span>
                   )}
@@ -572,6 +700,7 @@ export default function AnatomyViewer3D({
                   onClick={() => {
                     setShowPathologyModal(false)
                     setSelectedPathology(null)
+                    setShowStructureModal(true)
                   }}
                   className="p-2 hover:bg-white rounded-lg transition-colors"
                 >
@@ -630,6 +759,7 @@ export default function AnatomyViewer3D({
                             if (onTestSelect) {
                               onTestSelect([test], selectedPathology.name)
                               setShowPathologyModal(false)
+                              setShowStructureModal(false)
                             }
                           }}
                           className="ml-3 px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm whitespace-nowrap"

@@ -66,6 +66,7 @@ export default function TestingModulePage() {
   // Données anatomiques chargées depuis Supabase
   const [anatomyZones, setAnatomyZones] = useState<any[]>([])
   const [pathologies, setPathologies] = useState<Record<string, any[]>>({})
+  const [structures, setStructures] = useState<Record<string, any[]>>({})
   const [pathologyTests, setPathologyTests] = useState<Record<string, any[]>>({})
   const [loadingAnatomy, setLoadingAnatomy] = useState(true)
   
@@ -120,66 +121,93 @@ export default function TestingModulePage() {
 
   // Charger toutes les données anatomiques depuis Supabase
   const loadAnatomyData = async () => {
-    try {
-      setLoadingAnatomy(true)
+  try {
+    setLoadingAnatomy(true)
 
-      // 1. Charger les zones actives
-      const { data: zonesData } = await supabase
-        .from('anatomical_zones')
-        .select('*')
-        .eq('is_active', true)
-        .order('display_order')
+    // 1. Charger les zones actives
+    const { data: zonesData } = await supabase
+      .from('anatomical_zones')
+      .select('*')
+      .eq('is_active', true)
+      .order('display_order')
 
-      setAnatomyZones(zonesData || [])
+    setAnatomyZones(zonesData || [])
 
-      // 2. Charger toutes les pathologies avec leur position
-      const { data: pathologiesData } = await supabase
-        .from('pathologies')
-        .select('*')
-        .eq('is_active', true)
-        .order('display_order')
+    // 2. Charger toutes les structures actives
+    const { data: structuresData } = await supabase
+      .from('structures')
+      .select('*')
+      .eq('is_active', true)
+      .order('display_order')
 
-      // Grouper pathologies par zone
-      const pathosByZone: Record<string, any[]> = {}
-      pathologiesData?.forEach(patho => {
-        if (!pathosByZone[patho.zone_id]) {
-          pathosByZone[patho.zone_id] = []
+    // Grouper structures par zone_id
+    const structuresByZone: Record<string, any[]> = {}
+    structuresData?.forEach(structure => {
+      if (!structuresByZone[structure.zone_id]) {
+        structuresByZone[structure.zone_id] = []
+      }
+      structuresByZone[structure.zone_id].push(structure)
+    })
+
+    // 3. Charger toutes les pathologies actives
+    const { data: pathologiesData } = await supabase
+      .from('pathologies')
+      .select('*')
+      .eq('is_active', true)
+      .order('display_order')
+
+    // Grouper pathologies par structure_id ET ajouter comptage aux structures
+    const pathosByStructure: Record<string, any[]> = {}
+    pathologiesData?.forEach(patho => {
+      if (patho.structure_id) {
+        if (!pathosByStructure[patho.structure_id]) {
+          pathosByStructure[patho.structure_id] = []
         }
-        pathosByZone[patho.zone_id].push(patho)
-      })
-      setPathologies(pathosByZone)
+        pathosByStructure[patho.structure_id].push(patho)
+      }
+    })
 
-      // 3. Charger les liens pathologie-tests
-      const { data: linksData } = await supabase
-        .from('pathology_tests')
-        .select(`
-          *,
-          test:orthopedic_tests(*)
-        `)
-        .order('recommended_order')
+    // Ajouter le comptage de pathologies aux structures
+    Object.keys(structuresByZone).forEach(zoneId => {
+      structuresByZone[zoneId] = structuresByZone[zoneId].map(structure => ({
+        ...structure,
+        pathology_count: pathosByStructure[structure.id]?.length || 0
+      }))
+    })
 
-      // Grouper tests par pathologie
-      const testsByPatho: Record<string, any[]> = {}
-      linksData?.forEach(link => {
-        if (!testsByPatho[link.pathology_id]) {
-          testsByPatho[link.pathology_id] = []
-        }
-        if (link.test) {
-          testsByPatho[link.pathology_id].push({
-            ...link.test,
-            relevance_score: link.relevance_score,
-            notes: link.notes
-          })
-        }
-      })
-      setPathologyTests(testsByPatho)
+    setStructures(structuresByZone)
+    setPathologies(pathosByStructure)
 
-    } catch (error) {
-      console.error('Error loading anatomy data:', error)
-    } finally {
-      setLoadingAnatomy(false)
-    }
+    // 4. Charger les liens pathologie-tests (INCHANGÉ)
+    const { data: linksData } = await supabase
+      .from('pathology_tests')
+      .select(`
+        *,
+        test:orthopedic_tests(*)
+      `)
+      .order('recommended_order')
+
+    const testsByPatho: Record<string, any[]> = {}
+    linksData?.forEach(link => {
+      if (!testsByPatho[link.pathology_id]) {
+        testsByPatho[link.pathology_id] = []
+      }
+      if (link.test) {
+        testsByPatho[link.pathology_id].push({
+          ...link.test,
+          relevance_score: link.relevance_score,
+          notes: link.notes
+        })
+      }
+    })
+    setPathologyTests(testsByPatho)
+
+  } catch (error) {
+    console.error('Error loading anatomy data:', error)
+  } finally {
+    setLoadingAnatomy(false)
   }
+}
 
   const handleTestSelect = (tests: any[], pathologyName: string) => {
     // Ajouter les tests à la session
@@ -359,6 +387,7 @@ export default function TestingModulePage() {
               ) : (
                 <AnatomyViewer3D
                   zones={anatomyZones}
+                  structures={structures}
                   pathologies={pathologies}
                   pathologyTests={pathologyTests}
                   onTestSelect={handleTestSelect}
