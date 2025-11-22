@@ -471,9 +471,10 @@ export default function ImprovedTestsPage() {
                                       </p>
                                     )}
 
-                                    <p className="text-sm text-gray-600 line-clamp-2 mb-2">
-                                      {cluster.description}
-                                    </p>
+                                    <p className="text-sm text-gray-600 line-clamp-2 mb-2 whitespace-pre-line">
+  					{cluster.description}
+				</p>
+
 
                                     {cluster.tests && cluster.tests.length > 0 && (
                                       <p className="text-xs text-gray-500 mb-2">
@@ -520,9 +521,10 @@ export default function ImprovedTestsPage() {
                                           {cluster.indications}
                                         </p>
                                       )}
-                                      <p className="text-sm text-gray-600 mt-1">
-                                        {cluster.description}
-                                      </p>
+                                      <p className="text-sm text-gray-600 mt-1 whitespace-pre-line">
+  {cluster.description}
+</p>
+
                                       {cluster.tests && cluster.tests.length > 0 && (
                                         <p className="text-xs text-gray-500 mt-1">
                                           <span className="font-medium">Inclut :</span>{' '}
@@ -918,13 +920,16 @@ export default function ImprovedTestsPage() {
 
             <div className="p-6 space-y-6">
               {selectedCluster.description && (
-                <div>
-                  <h3 className="font-semibold text-gray-900 mb-2">
-                    Description du cluster
-                  </h3>
-                  <p className="text-gray-600">{selectedCluster.description}</p>
-                </div>
-              )}
+  <div>
+    <h3 className="font-semibold text-gray-900 mb-2">
+      Description du cluster
+    </h3>
+    <p className="text-gray-600 whitespace-pre-line">
+      {selectedCluster.description}
+    </p>
+  </div>
+)}
+
 
               {selectedCluster.tests && selectedCluster.tests.length > 0 && (
                 <div>
