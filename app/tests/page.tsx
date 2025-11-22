@@ -755,7 +755,8 @@ export default function ImprovedTestsPage() {
             <div className="p-6 space-y-6">
               <div>
                 <h3 className="font-semibold text-gray-900 mb-2">Description</h3>
-                <p className="text-gray-600">{selectedTest.description}</p>
+                <p className="text-gray-600 whitespace-pre-line">
+    		{selectedTest.description}</p>
               </div>
 
               {selectedTest.video_url && (
