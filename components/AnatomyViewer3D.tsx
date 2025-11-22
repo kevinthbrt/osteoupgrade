@@ -159,15 +159,7 @@ function StructureMarker({
         />
       </mesh>
       
-      {/* Badge avec nombre de pathologies */}
-      {structure.pathology_count && structure.pathology_count > 0 && (
-        <Html position={[0, size * 1.8, 0]} center>
-          <div className="bg-white/90 backdrop-blur-sm px-2 py-0.5 rounded-full text-xs font-bold shadow-lg border-2" 
-               style={{ borderColor: color }}>
-            {structure.pathology_count}
-          </div>
-        </Html>
-      )}
+      
     </group>
   )
 }
