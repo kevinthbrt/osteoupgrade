@@ -42,13 +42,12 @@ interface TestResult {
   testId: string
   testName: string
   pathologyName: string
-  region: string          // <--- ajouté
+  region: string
   result: 'positive' | 'negative' | 'uncertain' | null
   notes: string
   sensitivity?: number
   specificity?: number
 }
-
 
 interface TestingSession {
   id?: string
@@ -68,6 +67,7 @@ export default function TestingModulePage() {
   const [pathologies, setPathologies] = useState<Record<string, any[]>>({})
   const [structures, setStructures] = useState<Record<string, any[]>>({})
   const [pathologyTests, setPathologyTests] = useState<Record<string, any[]>>({})
+  const [pathologyClusters, setPathologyClusters] = useState<Record<string, any[]>>({})
   const [loadingAnatomy, setLoadingAnatomy] = useState(true)
   
   const [currentSession, setCurrentSession] = useState<TestingSession>({
@@ -121,96 +121,143 @@ export default function TestingModulePage() {
 
   // Charger toutes les données anatomiques depuis Supabase
   const loadAnatomyData = async () => {
-  try {
-    setLoadingAnatomy(true)
+    try {
+      setLoadingAnatomy(true)
 
-    // 1. Charger les zones actives
-    const { data: zonesData } = await supabase
-      .from('anatomical_zones')
-      .select('*')
-      .eq('is_active', true)
-      .order('display_order')
+      // 1. Zones actives
+      const { data: zonesData } = await supabase
+        .from('anatomical_zones')
+        .select('*')
+        .eq('is_active', true)
+        .order('display_order')
 
-    setAnatomyZones(zonesData || [])
+      setAnatomyZones(zonesData || [])
 
-    // 2. Charger toutes les structures actives
-    const { data: structuresData } = await supabase
-      .from('structures')
-      .select('*')
-      .eq('is_active', true)
-      .order('display_order')
+      // 2. Structures actives
+      const { data: structuresData } = await supabase
+        .from('structures')
+        .select('*')
+        .eq('is_active', true)
+        .order('display_order')
 
-    // Grouper structures par zone_id
-    const structuresByZone: Record<string, any[]> = {}
-    structuresData?.forEach(structure => {
-      if (!structuresByZone[structure.zone_id]) {
-        structuresByZone[structure.zone_id] = []
-      }
-      structuresByZone[structure.zone_id].push(structure)
-    })
-
-    // 3. Charger toutes les pathologies actives
-    const { data: pathologiesData } = await supabase
-      .from('pathologies')
-      .select('*')
-      .eq('is_active', true)
-      .order('display_order')
-
-    // Grouper pathologies par structure_id ET ajouter comptage aux structures
-    const pathosByStructure: Record<string, any[]> = {}
-    pathologiesData?.forEach(patho => {
-      if (patho.structure_id) {
-        if (!pathosByStructure[patho.structure_id]) {
-          pathosByStructure[patho.structure_id] = []
+      const structuresByZone: Record<string, any[]> = {}
+      structuresData?.forEach(structure => {
+        if (!structuresByZone[structure.zone_id]) {
+          structuresByZone[structure.zone_id] = []
         }
-        pathosByStructure[patho.structure_id].push(patho)
-      }
-    })
+        structuresByZone[structure.zone_id].push(structure)
+      })
 
-    // Ajouter le comptage de pathologies aux structures
-    Object.keys(structuresByZone).forEach(zoneId => {
-      structuresByZone[zoneId] = structuresByZone[zoneId].map(structure => ({
-        ...structure,
-        pathology_count: pathosByStructure[structure.id]?.length || 0
-      }))
-    })
+      // 3. Pathologies actives
+      const { data: pathologiesData } = await supabase
+        .from('pathologies')
+        .select('*')
+        .eq('is_active', true)
+        .order('display_order')
 
-    setStructures(structuresByZone)
-    setPathologies(pathosByStructure)
+      const pathosByStructure: Record<string, any[]> = {}
+      pathologiesData?.forEach(patho => {
+        if (patho.structure_id) {
+          if (!pathosByStructure[patho.structure_id]) {
+            pathosByStructure[patho.structure_id] = []
+          }
+          pathosByStructure[patho.structure_id].push(patho)
+        }
+      })
 
-    // 4. Charger les liens pathologie-tests (INCHANGÉ)
-    const { data: linksData } = await supabase
-      .from('pathology_tests')
-      .select(`
-        *,
-        test:orthopedic_tests(*)
-      `)
-      .order('recommended_order')
+      // Ajouter le comptage de pathologies aux structures
+      Object.keys(structuresByZone).forEach(zoneId => {
+        structuresByZone[zoneId] = structuresByZone[zoneId].map(structure => ({
+          ...structure,
+          pathology_count: pathosByStructure[structure.id]?.length || 0
+        }))
+      })
 
-    const testsByPatho: Record<string, any[]> = {}
-    linksData?.forEach(link => {
-      if (!testsByPatho[link.pathology_id]) {
-        testsByPatho[link.pathology_id] = []
-      }
-      if (link.test) {
-        testsByPatho[link.pathology_id].push({
-          ...link.test,
-          relevance_score: link.relevance_score,
-          notes: link.notes
-        })
-      }
-    })
-    setPathologyTests(testsByPatho)
+      setStructures(structuresByZone)
+      setPathologies(pathosByStructure)
 
-  } catch (error) {
-    console.error('Error loading anatomy data:', error)
-  } finally {
-    setLoadingAnatomy(false)
+      // 4. Liens pathologie-tests
+      const { data: linksData } = await supabase
+        .from('pathology_tests')
+        .select(`
+          *,
+          test:orthopedic_tests(*)
+        `)
+        .order('recommended_order')
+
+      const testsByPatho: Record<string, any[]> = {}
+      linksData?.forEach(link => {
+        if (!testsByPatho[link.pathology_id]) {
+          testsByPatho[link.pathology_id] = []
+        }
+        if (link.test) {
+          testsByPatho[link.pathology_id].push({
+            ...link.test,
+            relevance_score: link.relevance_score,
+            notes: link.notes
+          })
+        }
+      })
+      setPathologyTests(testsByPatho)
+
+      // 5. Clusters + tests des clusters
+      // a) Tous les tests
+      const { data: allTests } = await supabase
+        .from('orthopedic_tests')
+        .select('*')
+
+      const testsMap = new Map(
+        (allTests || []).map((t: any) => [t.id, t])
+      )
+
+      // b) Items de clusters (cluster -> tests)
+      const { data: clusterItems } = await supabase
+        .from('orthopedic_test_cluster_items')
+        .select('cluster_id, test_id, order_index')
+        .order('order_index')
+
+      const testsByCluster: Record<string, any[]> = {}
+      clusterItems?.forEach((item: any) => {
+        const test = testsMap.get(item.test_id)
+        if (!test) return
+        if (!testsByCluster[item.cluster_id]) {
+          testsByCluster[item.cluster_id] = []
+        }
+        testsByCluster[item.cluster_id].push(test)
+      })
+
+      // c) Liens pathologie -> clusters
+      const { data: clusterLinks } = await supabase
+        .from('pathology_clusters')
+        .select(`
+          pathology_id,
+          cluster:orthopedic_test_clusters(*)
+        `)
+        .order('recommended_order')
+
+      const clustersByPatho: Record<string, any[]> = {}
+      clusterLinks?.forEach((link: any) => {
+        if (!link.cluster) return
+        const clusterWithTests = {
+          ...link.cluster,
+          tests: testsByCluster[link.cluster.id] || []
+        }
+        if (!clustersByPatho[link.pathology_id]) {
+          clustersByPatho[link.pathology_id] = []
+        }
+        clustersByPatho[link.pathology_id].push(clusterWithTests)
+      })
+
+      setPathologyClusters(clustersByPatho)
+
+    } catch (error) {
+      console.error('Error loading anatomy data:', error)
+    } finally {
+      setLoadingAnatomy(false)
+    }
   }
-}
 
   const handleTestSelect = (tests: any[], pathologyName: string) => {
-    // Ajouter les tests à la session
     tests.forEach(test => {
       const isAlreadyAdded = currentSession.results.some(r => r.testId === test.id)
       if (!isAlreadyAdded) {
@@ -222,23 +269,22 @@ export default function TestingModulePage() {
   }
 
   const addTestResult = (test: any, pathologyName: string, region = '') => {
-  const newResult: TestResult = {
-    testId: test.id,
-    testName: test.name,
-    pathologyName,
-    region: (test.region as string) || region || '', // on remplit toujours une string
-    result: null,
-    notes: '',
-    sensitivity: test.sensitivity,
-    specificity: test.specificity
+    const newResult: TestResult = {
+      testId: test.id,
+      testName: test.name,
+      pathologyName,
+      region: (test.region as string) || region || '',
+      result: null,
+      notes: '',
+      sensitivity: test.sensitivity,
+      specificity: test.specificity
+    }
+
+    setCurrentSession(prev => ({
+      ...prev,
+      results: [...prev.results, newResult]
+    }))
   }
-
-  setCurrentSession(prev => ({
-    ...prev,
-    results: [...prev.results, newResult]
-  }))
-}
-
 
   const updateTestResult = (testId: string, result: 'positive' | 'negative' | 'uncertain') => {
     setCurrentSession(prev => ({
@@ -371,9 +417,11 @@ export default function TestingModulePage() {
                   Visualisateur Anatomique 3D
                 </h2>
                 <p className="text-sm text-gray-600 mt-1">
-                  {loadingAnatomy ? 'Chargement des zones anatomiques...' : 
-                   anatomyZones.length > 0 ? 'Cliquez sur une zone → puis sur une pathologie (sphère colorée)' :
-                   'Aucune zone configurée - Utilisez l\'interface admin'}
+                  {loadingAnatomy
+                    ? 'Chargement des zones anatomiques...'
+                    : anatomyZones.length > 0
+                      ? 'Cliquez sur une zone → puis sur une pathologie (sphère colorée)'
+                      : 'Aucune zone configurée - Utilisez l\'interface admin'}
                 </p>
               </div>
               
@@ -390,6 +438,7 @@ export default function TestingModulePage() {
                   structures={structures}
                   pathologies={pathologies}
                   pathologyTests={pathologyTests}
+                  pathologyClusters={pathologyClusters}
                   onTestSelect={handleTestSelect}
                 />
               )}

@@ -53,9 +53,10 @@ interface PathologyTest {
 
 interface AnatomyViewer3DProps {
   zones: AnatomyZone[]
-  structures: Record<string, Structure[]> // structures groupées par zone_id
-  pathologies: Record<string, Pathology[]> // pathologies groupées par structure_id
-  pathologyTests: Record<string, PathologyTest[]> // tests groupés par pathology_id
+  structures: Record<string, Structure[]>
+  pathologies: Record<string, Pathology[]>
+  pathologyTests: Record<string, PathologyTest[]>
+  pathologyClusters?: Record<string, any[]>
   onTestSelect?: (tests: PathologyTest[], pathologyName: string) => void
   modelPath?: string
 }
@@ -116,7 +117,7 @@ function ClickableZone({
   )
 }
 
-// Structure cliquable (sphère colorée)
+// Structure cliquable (sphère colorée) – sans badge
 function StructureMarker({ 
   structure,
   onClick, 
@@ -158,8 +159,6 @@ function StructureMarker({
           emissiveIntensity={isHovered ? 0.6 : 0.4}
         />
       </mesh>
-      
-      
     </group>
   )
 }
@@ -327,6 +326,7 @@ export default function AnatomyViewer3D({
   structures,
   pathologies,
   pathologyTests,
+  pathologyClusters = {},
   onTestSelect,
   modelPath = '/models/human-skeleton.gltf'
 }: AnatomyViewer3DProps) {
@@ -405,15 +405,18 @@ export default function AnatomyViewer3D({
 
   const zoneStructures = selectedZone ? structures[selectedZone.id] || [] : []
   const structurePathologies = selectedStructure ? pathologies[selectedStructure.id] || [] : []
-  
-  // Trouver la zone survolée pour affichage
+  const pathologyClustersForSelected = selectedPathology
+    ? (pathologyClusters[selectedPathology.id] || [])
+    : []
+
+  // Zone survolée
   const hoveredZoneInfo = viewMode === 'global' ? zones.find(z => 
     hoveredRegion === z.id || 
     hoveredRegion === `${z.id}-left` || 
     hoveredRegion === `${z.id}-right`
   ) : null
 
-  // Trouver la structure survolée pour affichage
+  // Structure survolée
   const hoveredStructureInfo = viewMode === 'zoomed' && hoveredStructure && selectedZone
     ? structures[selectedZone.id]?.find(s => s.id === hoveredStructure)
     : null
@@ -473,8 +476,10 @@ export default function AnatomyViewer3D({
 
         {/* Encart zone survolée (mode global) */}
         {viewMode === 'global' && hoveredZoneInfo && (
-          <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-white/95 backdrop-blur-sm px-6 py-3 rounded-lg shadow-xl border-2 max-w-md"
-               style={{ borderColor: hoveredZoneInfo.color }}>
+          <div
+            className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-white/95 backdrop-blur-sm px-6 py-3 rounded-lg shadow-xl border-2 max-w-md"
+            style={{ borderColor: hoveredZoneInfo.color }}
+          >
             <p className="font-bold text-lg" style={{ color: hoveredZoneInfo.color }}>
               {hoveredZoneInfo.display_name}
             </p>
@@ -491,8 +496,10 @@ export default function AnatomyViewer3D({
 
         {/* Encart structure survolée (mode zoomed) */}
         {viewMode === 'zoomed' && hoveredStructureInfo && (
-          <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-white/95 backdrop-blur-sm px-6 py-3 rounded-lg shadow-xl border-2 max-w-md"
-               style={{ borderColor: hoveredStructureInfo.color }}>
+          <div
+            className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-white/95 backdrop-blur-sm px-6 py-3 rounded-lg shadow-xl border-2 max-w-md"
+            style={{ borderColor: hoveredStructureInfo.color }}
+          >
             <p className="font-bold text-lg" style={{ color: hoveredStructureInfo.color }}>
               {hoveredStructureInfo.name}
             </p>
@@ -524,7 +531,6 @@ export default function AnatomyViewer3D({
               : '🎯 Survolez et cliquez sur les structures (sphères colorées)'}
           </p>
           <p className="text-xs text-gray-300 mt-1">
-            {viewMode === 'zoomed' ? 'Le badge indique le nombre de pathologies • ' : ''}
             Glissez pour pivoter • Molette pour zoomer
           </p>
         </div>
@@ -533,7 +539,7 @@ export default function AnatomyViewer3D({
         {viewMode === 'zoomed' && (
           <button
             onClick={handleBack}
-            className="absolute top-4 left-4 bg-white/90 backdrop-blur-sm px-4 py-2 rounded-lg shadow-lg hover:bg-white transition-colors flex items-center gap-2"
+            className="absolute top-4 left-4 bg-white/90 backdrop-blur-sm px-4 py-2 rounded-lg shadow-lg hover:bg:white transition-colors flex items-center gap-2"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -588,7 +594,7 @@ export default function AnatomyViewer3D({
                     </div>
                   </div>
                   {selectedStructure.description && (
-                    <p className="text-sm text-gray-600 mt-3">
+                    <p className="text-sm text-gray-600 mt-3 whitespace-pre-line">
                       {selectedStructure.description}
                     </p>
                   )}
@@ -635,7 +641,7 @@ export default function AnatomyViewer3D({
                           <div className="flex-1">
                             <p className="font-semibold text-gray-900">{pathology.name}</p>
                             {pathology.description && (
-                              <p className="text-sm text-gray-600 mt-1 line-clamp-2">
+                              <p className="text-sm text-gray-600 mt-1 line-clamp-2 whitespace-pre-line">
                                 {pathology.description}
                               </p>
                             )}
@@ -660,7 +666,7 @@ export default function AnatomyViewer3D({
         </div>
       )}
 
-      {/* Modal pathologie avec tests */}
+      {/* Modal pathologie avec tests + clusters */}
       {showPathologyModal && selectedPathology && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-xl max-w-3xl w-full max-h-[85vh] overflow-hidden">
@@ -671,7 +677,7 @@ export default function AnatomyViewer3D({
                     {selectedPathology.name}
                   </h3>
                   {selectedPathology.description && (
-                    <p className="text-sm text-gray-600 mt-2">
+                    <p className="text-sm text-gray-600 mt-2 whitespace-pre-line">
                       {selectedPathology.description}
                     </p>
                   )}
@@ -704,7 +710,61 @@ export default function AnatomyViewer3D({
             </div>
 
             <div className="p-6 max-h-[65vh] overflow-y-auto">
-              <h4 className="font-semibold text-gray-900 mb-3">Tests orthopédiques recommandés</h4>
+              {/* CLUSTERS */}
+              {pathologyClustersForSelected.length > 0 && (
+                <div className="mb-6">
+                  <h4 className="font-semibold text-gray-900 mb-3">
+                    Clusters recommandés
+                  </h4>
+                  <div className="space-y-3">
+                    {pathologyClustersForSelected.map((cluster: any) => (
+                      <div
+                        key={cluster.id}
+                        className="p-4 border-2 border-indigo-200 rounded-lg hover:border-indigo-500 hover:bg-indigo-50 transition-all"
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex-1">
+                            <p className="font-semibold text-gray-900">{cluster.name}</p>
+                            {cluster.description && (
+                              <p className="text-sm text-gray-600 mt-1 whitespace-pre-line">
+                                {cluster.description}
+                              </p>
+                            )}
+                            {(cluster.sensitivity || cluster.specificity) && (
+                              <div className="flex gap-4 mt-2 text-xs text-gray-600">
+                                {cluster.sensitivity && <span>Se : {cluster.sensitivity}%</span>}
+                                {cluster.specificity && <span>Sp : {cluster.specificity}%</span>}
+                              </div>
+                            )}
+                            {cluster.tests && cluster.tests.length > 0 && (
+                              <p className="text-xs text-gray-500 mt-2">
+                                Inclut : {cluster.tests.map((t: any) => t.name).join(', ')}
+                              </p>
+                            )}
+                          </div>
+                          {cluster.tests && cluster.tests.length > 0 && onTestSelect && (
+                            <button
+                              onClick={() => {
+                                onTestSelect(cluster.tests, selectedPathology.name)
+                                setShowPathologyModal(false)
+                                setShowStructureModal(false)
+                              }}
+                              className="px-3 py-1 bg-indigo-600 text-white rounded hover:bg-indigo-700 text-sm whitespace-nowrap"
+                            >
+                              Ajouter le cluster
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* TESTS INDIVIDUELS */}
+              <h4 className="font-semibold text-gray-900 mb-3">
+                Tests orthopédiques recommandés
+              </h4>
               
               {pathologyTests[selectedPathology.id]?.length > 0 ? (
                 <div className="space-y-3">
