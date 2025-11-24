@@ -7,7 +7,8 @@ import {
   ArrowLeft,
   Save,
   Trash2,
-  Loader2
+  Loader2,
+  Search
 } from 'lucide-react'
 
 export default function EditClusterPage() {
@@ -20,6 +21,8 @@ export default function EditClusterPage() {
   const [deleting, setDeleting] = useState(false)
 
   const [tests, setTests] = useState<any[]>([])
+  const [testSearch, setTestSearch] = useState('')
+
   const [form, setForm] = useState({
     name: '',
     region: '',
@@ -28,6 +31,8 @@ export default function EditClusterPage() {
     interest: '',
     sensitivity: '',
     specificity: '',
+    rv_positive: '',
+    rv_negative: '',
     sources: '',
     selectedTests: [] as string[],
   })
@@ -35,6 +40,7 @@ export default function EditClusterPage() {
   // Charger cluster + tests
   useEffect(() => {
     loadData()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const loadData = async () => {
@@ -74,8 +80,10 @@ export default function EditClusterPage() {
         description: cluster.description || '',
         indications: cluster.indications || '',
         interest: cluster.interest || '',
-        sensitivity: cluster.sensitivity || '',
-        specificity: cluster.specificity || '',
+        sensitivity: cluster.sensitivity != null ? String(cluster.sensitivity) : '',
+        specificity: cluster.specificity != null ? String(cluster.specificity) : '',
+        rv_positive: cluster.rv_positive != null ? String(cluster.rv_positive) : '',
+        rv_negative: cluster.rv_negative != null ? String(cluster.rv_negative) : '',
         sources: cluster.sources || '',
         selectedTests: selected,
       })
@@ -120,6 +128,8 @@ export default function EditClusterPage() {
           interest: form.interest,
           sensitivity: form.sensitivity ? Number(form.sensitivity) : null,
           specificity: form.specificity ? Number(form.specificity) : null,
+          rv_positive: form.rv_positive ? Number(form.rv_positive) : null,
+          rv_negative: form.rv_negative ? Number(form.rv_negative) : null,
           sources: form.sources,
         })
         .eq('id', clusterId)
@@ -179,6 +189,8 @@ export default function EditClusterPage() {
     } catch (e) {
       console.error(e)
       alert('Erreur lors de la suppression')
+    } finally {
+      setDeleting(false)
     }
   }
 
@@ -189,6 +201,11 @@ export default function EditClusterPage() {
       </div>
     )
   }
+
+  // Filtre des tests selon la recherche
+  const filteredTests = tests.filter((t) =>
+    t.name.toLowerCase().includes(testSearch.toLowerCase())
+  )
 
   return (
     <div className="max-w-3xl mx-auto p-8 space-y-8">
@@ -261,7 +278,7 @@ export default function EditClusterPage() {
           />
         </div>
 
-        {/* SENSIBILITY */}
+        {/* SENSIBILITÉ / SPÉCIFICITÉ / RV+ / RV- */}
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="text-sm font-medium">Sensibilité (%)</label>
@@ -282,6 +299,28 @@ export default function EditClusterPage() {
               className="w-full mt-1 px-3 py-2 border rounded-lg"
             />
           </div>
+
+          <div>
+            <label className="text-sm font-medium">RV+</label>
+            <input
+              type="number"
+              step="0.01"
+              value={form.rv_positive}
+              onChange={(e) => updateField('rv_positive', e.target.value)}
+              className="w-full mt-1 px-3 py-2 border rounded-lg"
+            />
+          </div>
+
+          <div>
+            <label className="text-sm font-medium">RV-</label>
+            <input
+              type="number"
+              step="0.01"
+              value={form.rv_negative}
+              onChange={(e) => updateField('rv_negative', e.target.value)}
+              className="w-full mt-1 px-3 py-2 border rounded-lg"
+            />
+          </div>
         </div>
 
         {/* SOURCES */}
@@ -298,8 +337,27 @@ export default function EditClusterPage() {
         {/* TESTS INCLUS */}
         <div>
           <h3 className="text-lg font-semibold mb-2">Tests inclus</h3>
+
+          {/* Barre de recherche pour les tests */}
+          <div className="mb-3 relative">
+            <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Rechercher un test..."
+              value={testSearch}
+              onChange={(e) => setTestSearch(e.target.value)}
+              className="w-full pl-9 pr-3 py-2 border rounded-lg text-sm"
+            />
+          </div>
+
           <div className="border rounded-lg max-h-72 overflow-y-auto p-3 space-y-2">
-            {tests.map((t) => (
+            {filteredTests.length === 0 && (
+              <p className="text-sm text-gray-500">
+                Aucun test trouvé avec ce filtre.
+              </p>
+            )}
+
+            {filteredTests.map((t) => (
               <label
                 key={t.id}
                 className="flex items-center gap-3 p-2 rounded hover:bg-gray-50 cursor-pointer"
@@ -320,7 +378,7 @@ export default function EditClusterPage() {
           <button
             onClick={deleteCluster}
             disabled={deleting}
-            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 flex items-center gap-2"
+            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 flex items-center gap-2 disabled:opacity-70"
           >
             <Trash2 className="h-4 w-4" />
             {deleting ? 'Suppression...' : 'Supprimer'}
@@ -329,7 +387,7 @@ export default function EditClusterPage() {
           <button
             onClick={saveCluster}
             disabled={saving}
-            className="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 flex items-center gap-2"
+            className="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 flex items-center gap-2 disabled:opacity-70"
           >
             <Save className="h-5 w-5" />
             {saving ? 'Enregistrement...' : 'Enregistrer'}
