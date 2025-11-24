@@ -6,7 +6,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import {
   Home,
-  TreePine,
+  BookOpen,
   Clipboard,
   Settings,
   LogOut,
@@ -53,7 +53,7 @@ export default function Navigation() {
 
   const menuItems = [
     { href: '/dashboard', label: 'Tableau de bord', icon: Home },
-    { href: '/trees', label: 'Arbres décisionnels', icon: TreePine },
+    { href: '/elearning', label: 'E-Learning', icon: BookOpen },
     { href: '/tests', label: 'Tests orthopédiques', icon: Clipboard },
     { href: '/testing', label: 'Module Testing', icon: Activity },
     { href: '/settings', label: 'Paramètres', icon: Settings },
@@ -111,7 +111,7 @@ export default function Navigation() {
               </div>
               <div>
                 <h2 className="text-xl font-bold text-gray-900">OsteoUpgrade</h2>
-                <p className="text-xs text-gray-500">Aide au diagnostic</p>
+                <p className="text-xs text-gray-500">Aide au raisonnement</p>
               </div>
             </div>
           </div>
