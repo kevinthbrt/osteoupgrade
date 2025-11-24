@@ -511,9 +511,9 @@ export default function ImprovedTestsPage() {
                                           type="button"
                                           onClick={(e) => {
                                             e.stopPropagation()
-                                            setSelectedCluster(cluster)
-                                            setShowClusterModal(true) // 🟢 et tu passes le modal en mode édition
+                                            router.push(`/admin/tests/cluster/${cluster.id}/edit`)
                                           }}
+
                                           className="p-1.5 text-gray-600 hover:text-primary-600 transition-colors"
                                         >
                                           <Edit className="h-4 w-4" />
