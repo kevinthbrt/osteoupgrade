@@ -471,7 +471,7 @@ export default function ImprovedTestsPage() {
                                       </p>
                                     )}
 
-                                    <p className="text-sm text-gray-600 line-clamp-2 mb-2 whitespace-pre-line">
+                                    <p className="text-sm text-gray-600 mb-2 whitespace-pre-line">
   					{cluster.description}
 				</p>
 
@@ -483,9 +483,42 @@ export default function ImprovedTestsPage() {
                                       </p>
                                     )}
 
+                                    {/* Sensibilité / Spécificité du cluster */}
+                                    {(cluster.sensitivity || cluster.specificity) && (
+                                      <div className="flex items-center gap-3 mt-2">
+                                        {cluster.sensitivity && (
+                                          <div className="flex items-center gap-1">
+                                            <span className="text-xs text-gray-500">Se:</span>
+                                            {getStatBadge(cluster.sensitivity, 'sensitivity')}
+                                          </div>
+                                        )}
+                                        {cluster.specificity && (
+                                          <div className="flex items-center gap-1">
+                                            <span className="text-xs text-gray-500">Sp:</span>
+                                            {getStatBadge(cluster.specificity, 'specificity')}
+                                          </div>
+                                        )}
+                                      </div>
+                                    )}
+
+
+                                    {/* Mode admin : éditer + supprimer */}
                                     {profile?.role === 'admin' && (
                                       <div className="flex items-center justify-end gap-2 mt-3 pt-3 border-t">
-                                        {/* Édition éventuelle plus tard */}
+                                        
+                                        {/* EDIT cluster */}
+                                        <button
+                                          type="button"
+                                          onClick={(e) => {
+                                            e.stopPropagation()
+                                            router.push(`/admin/tests/cluster/${cluster.id}/edit`)
+                                          }}
+                                          className="p-1.5 text-gray-600 hover:text-primary-600 transition-colors"
+                                        >
+                                          <Edit className="h-4 w-4" />
+                                        </button>
+
+                                        {/* DELETE cluster */}
                                         <button
                                           type="button"
                                           onClick={(e) => {
@@ -498,6 +531,7 @@ export default function ImprovedTestsPage() {
                                         </button>
                                       </div>
                                     )}
+
                                   </div>
                                 </div>
                               ))}
@@ -522,8 +556,25 @@ export default function ImprovedTestsPage() {
                                         </p>
                                       )}
                                       <p className="text-sm text-gray-600 mt-1 whitespace-pre-line">
-  {cluster.description}
-</p>
+                                      {cluster.description}
+                                      </p>
+                                      {/* Sensibilité / Spécificité */}
+                                      {(cluster.sensitivity || cluster.specificity) && (
+                                        <div className="flex items-center gap-3 mt-2">
+                                          {cluster.sensitivity && (
+                                            <div className="flex items-center gap-1">
+                                              <span className="text-xs text-gray-500">Se:</span>
+                                              {getStatBadge(cluster.sensitivity, 'sensitivity')}
+                                            </div>
+                                          )}
+                                          {cluster.specificity && (
+                                            <div className="flex items-center gap-1">
+                                              <span className="text-xs text-gray-500">Sp:</span>
+                                              {getStatBadge(cluster.specificity, 'specificity')}
+                                            </div>
+                                          )}
+                                        </div>
+                                      )}
 
                                       {cluster.tests && cluster.tests.length > 0 && (
                                         <p className="text-xs text-gray-500 mt-1">
@@ -533,20 +584,36 @@ export default function ImprovedTestsPage() {
                                       )}
                                     </div>
 
+                                    {/* Mode admin : éditer + supprimer */}
                                     {profile?.role === 'admin' && (
-                                      <div className="flex items-center gap-1 ml-4">
+                                      <div className="flex items-center justify-end gap-2 mt-3 pt-3 border-t">
+                                        
+                                        {/* EDIT cluster */}
+                                        <button
+                                          type="button"
+                                          onClick={(e) => {
+                                            e.stopPropagation()
+                                            router.push(`/admin/tests/cluster/${cluster.id}/edit`)
+                                          }}
+                                          className="p-1.5 text-gray-600 hover:text-primary-600 transition-colors"
+                                        >
+                                          <Edit className="h-4 w-4" />
+                                        </button>
+
+                                        {/* DELETE cluster */}
                                         <button
                                           type="button"
                                           onClick={(e) => {
                                             e.stopPropagation()
                                             handleDeleteCluster(cluster.id)
                                           }}
-                                          className="p-1.5 text-gray-600 hover:text-red-600"
+                                          className="p-1.5 text-gray-600 hover:text-red-600 transition-colors"
                                         >
                                           <Trash2 className="h-4 w-4" />
                                         </button>
                                       </div>
                                     )}
+
                                   </div>
                                 </div>
                               ))}
