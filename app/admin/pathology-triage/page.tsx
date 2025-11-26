@@ -195,43 +195,42 @@ export default function PathologyTriageAdminPage() {
   }
 
   const handleImageUpload = async (pathologyId: string, file: File) => {
-    setUploadingImage(true)
-    try {
-      // Upload vers Supabase Storage
-      const fileExt = file.name.split('.').pop()
-      const fileName = `${pathologyId}-${Date.now()}.${fileExt}`
-      const filePath = `topographic-images/${fileName}`
+  setUploadingImage(true)
+  try {
+    const formData = new FormData()
+    formData.append('file', file)
+    formData.append('pathologyId', pathologyId)
 
-      const { error: uploadError, data } = await supabase.storage
-        .from('pathology-images')
-        .upload(filePath, file, {
-          upsert: true
-        })
+    // Appel de la route API Next -> Vercel Blob
+    const res = await fetch('/api/pathology-image-upload', {
+      method: 'POST',
+      body: formData,
+    })
 
-      if (uploadError) throw uploadError
-
-      // Obtenir l'URL publique
-      const { data: { publicUrl } } = supabase.storage
-        .from('pathology-images')
-        .getPublicUrl(filePath)
-
-      // Mettre à jour la pathologie avec l'URL de l'image
-      const { error: updateError } = await supabase
-        .from('pathologies')
-        .update({ topographic_image_url: publicUrl })
-        .eq('id', pathologyId)
-
-      if (updateError) throw updateError
-
-      alert('Image téléchargée avec succès')
-      loadPathologies()
-    } catch (error) {
-      console.error('Error uploading image:', error)
-      alert('Erreur lors du téléchargement de l\'image')
-    } finally {
-      setUploadingImage(false)
+    if (!res.ok) {
+      throw new Error('Erreur lors de l’upload vers Vercel Blob')
     }
+
+    const { url } = await res.json()
+
+    // Mettre à jour la pathologie dans Supabase avec l’URL Blob
+    const { error: updateError } = await supabase
+      .from('pathologies')
+      .update({ topographic_image_url: url })
+      .eq('id', pathologyId)
+
+    if (updateError) throw updateError
+
+    alert('Image téléchargée avec succès')
+    loadPathologies()
+  } catch (error) {
+    console.error('Error uploading image:', error)
+    alert("Erreur lors du téléchargement de l'image")
+  } finally {
+    setUploadingImage(false)
   }
+}
+
 
   const saveTriage = async () => {
     if (!selectedPathology) return
