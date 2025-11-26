@@ -61,6 +61,15 @@ interface ConsultationData {
   notes: string
 }
 
+interface ConsultationEpisode {
+  region: string
+  triageAnswers: TriageAnswers
+  filteredPathologies: PathologyMatch[]
+  selectedPathology: any
+  testResults: any[]
+}
+
+
 const REGIONS = [
   { value: 'cervical', label: 'Cervical', icon: '🔵', description: 'Cou et nuque' },
   { value: 'thoracique', label: 'Thoracique', icon: '🟢', description: 'Haut du dos' },
@@ -244,6 +253,7 @@ export default function TestingV2Page() {
   const [filteredPathologies, setFilteredPathologies] = useState<PathologyMatch[]>([])
   const [selectedPathology, setSelectedPathology] = useState<any>(null)
   const [testResults, setTestResults] = useState<any[]>([])
+  const [episodes, setEpisodes] = useState<ConsultationEpisode[]>([])
   
   // Données patient
   const [consultationData, setConsultationData] = useState<ConsultationData>({
@@ -335,6 +345,23 @@ export default function TestingV2Page() {
     } catch (error) {
       console.error('Error loading pathologies:', error)
     }
+  }
+
+  const buildCurrentEpisode = (): ConsultationEpisode => ({
+    region: selectedRegion,
+    triageAnswers,
+    filteredPathologies,
+    selectedPathology,
+    testResults,
+  })
+
+  const getAllEpisodes = (): ConsultationEpisode[] => {
+    const hasCurrentData =
+      filteredPathologies.length > 0 ||
+      selectedPathology ||
+      testResults.length > 0
+
+    return hasCurrentData ? [...episodes, buildCurrentEpisode()] : episodes
   }
 
   const handleRegionSelect = (region: string) => {
@@ -451,20 +478,36 @@ export default function TestingV2Page() {
     try {
       const { data: { user } } = await supabase.auth.getUser()
 
+      const allEpisodes = getAllEpisodes()
+
+      const evaluated_pathologies = allEpisodes.flatMap(ep =>
+        ep.filteredPathologies.map(p => ({
+          id: p.pathology.id,
+          name: p.pathology.name,
+          matchScore: p.matchScore,
+          region: ep.region,
+          selected: ep.selectedPathology?.id === p.pathology.id
+        }))
+      )
+
+      const allTestResults = allEpisodes.flatMap(ep =>
+        ep.testResults.map(r => ({
+          ...r,
+          region: ep.region,
+        }))
+      )
+
       const sessionData = {
         patient_name: consultationData.patientName,
         patient_age: consultationData.patientAge,
         consultation_date: consultationData.consultationDate,
-        anatomical_region: selectedRegion,
-        triage_answers: triageAnswers,
-        evaluated_pathologies: filteredPathologies.map(p => ({
-          id: p.pathology.id,
-          name: p.pathology.name,
-          matchScore: p.matchScore,
-          selected: selectedPathology?.id === p.pathology.id
-        })),
-        test_results: testResults,
-        final_diagnosis: selectedPathology?.name,
+        anatomical_region: selectedRegion, // ou allEpisodes[0]?.region si tu préfères
+        triage_answers: triageAnswers,     // tu peux laisser le dernier triage ou adapter
+        evaluated_pathologies,
+        test_results: allTestResults,
+        final_diagnosis: allEpisodes
+          .map(ep => ep.selectedPathology?.name)
+          .filter(Boolean),
         notes: consultationData.notes,
         created_by: user?.id
       }
@@ -484,14 +527,20 @@ export default function TestingV2Page() {
     }
   }
 
+
   const generatePDF = async () => {
-    await generateConsultationPDF({
-      ...consultationData,
-      selectedPathology,
-      testResults,
-      filteredPathologies
-    })
-  }
+  const allEpisodes = getAllEpisodes()
+
+  await generateConsultationPDF({
+    patientName: consultationData.patientName,
+    patientAge: consultationData.patientAge,
+    consultationDate: consultationData.consultationDate,
+    notes: consultationData.notes,
+    episodes: allEpisodes
+  })
+}
+
+
 
   if (loading) {
     return (
@@ -515,7 +564,7 @@ export default function TestingV2Page() {
                 Module de Consultation Guidée
               </h1>
               <p className="text-gray-600 mt-1">
-                Diagnostic assisté par questionnaire de triage
+                Aide au raisonnement
               </p>
             </div>
           </div>
@@ -699,14 +748,15 @@ export default function TestingV2Page() {
 
                       {/* Image topographique si disponible */}
                       {match.pathology.topographic_image_url && (
-                        <div className="h-40 bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden">
-                          <img 
-                            src={match.pathology.topographic_image_url} 
+                        <div className="h-56 bg-gray-50 flex items-center justify-center border-b">
+                          <img
+                            src={match.pathology.topographic_image_url}
                             alt={match.pathology.name}
-                            className="w-full h-full object-cover"
+                            className="max-h-full max-w-full object-contain"
                           />
                         </div>
                       )}
+
 
                       <div className="p-4">
                         <h3 className="font-semibold text-gray-900 mb-2">
@@ -714,10 +764,11 @@ export default function TestingV2Page() {
                         </h3>
                         
                         {match.pathology.description && (
-                          <p className="text-sm text-gray-600 mb-3 line-clamp-2">
+                          <p className="text-sm text-gray-600 mb-3 whitespace-pre-line">
                             {match.pathology.description}
                           </p>
                         )}
+
 
                         {/* Critères matchés */}
                         <div className="space-y-1 mb-3">
@@ -805,7 +856,7 @@ export default function TestingV2Page() {
                           <div>
                             <h4 className="font-medium text-gray-900">{test.name}</h4>
                             {test.description && (
-                              <p className="text-sm text-gray-600 mt-1">{test.description}</p>
+                              <p className="text-sm text-gray-600 mt-1 whitespace-pre-line">{test.description}</p>
                             )}
                             {test.relevance_score && (
                               <div className="flex items-center gap-2 mt-2">
@@ -944,6 +995,26 @@ export default function TestingV2Page() {
                   placeholder="Notes complémentaires..."
                 />
               </div>
+
+              <button
+                onClick={() => {
+                  const episode = buildCurrentEpisode()
+                  setEpisodes(prev => [...prev, episode])
+
+                  // reset pour un nouveau diagnostic dans la même séance
+                  setCurrentStep('region')
+                  setSelectedRegion('')
+                  setTriageAnswers({})
+                  setTriageStep(0)
+                  setFilteredPathologies([])
+                  setSelectedPathology(null)
+                  setTestResults([])
+                }}
+                className="mb-4 px-4 py-2 bg-gray-100 text-gray-800 rounded-lg hover:bg-gray-200 transition-colors"
+              >
+                + Ajouter un autre élément à cette consultation
+              </button>
+
 
               <div className="flex gap-3">
                 <button
