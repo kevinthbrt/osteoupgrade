@@ -42,8 +42,8 @@ interface PathologyWithTriage {
     relieving_movement?: string
     triage_weight?: number
   }
-  tests?: any[]
-  clusters?: any[]
+  tests: any[]
+  clusters: any[]
 }
 
 const REGIONS = [
@@ -159,25 +159,31 @@ export default function PathologyTriageAdminPage() {
 
       // Combiner les données
       const pathologiesWithTriage = pathologiesData?.map(pathology => {
-        const triage = triageData?.find(t => t.pathology_id === pathology.id)
-        const tests = testLinks?.filter(l => l.pathology_id === pathology.id).map(l => l.test)
-        const clusters = clusterLinks?.filter(l => l.pathology_id === pathology.id).map(l => l.cluster)
+      const triage = triageData?.find(t => t.pathology_id === pathology.id)
+      const tests = testLinks
+        ?.filter(l => l.pathology_id === pathology.id)
+        .map(l => l.test) ?? []
 
-        return {
-          ...pathology,
-          triage_criteria: triage ? {
-            pain_type: triage.pain_type,
-            pain_onset: triage.pain_onset,
-            aggravating_factors: triage.aggravating_factors,
-            radiation_pattern: triage.radiation_pattern,
-            neurological_symptoms: triage.neurological_symptoms,
-            relieving_movement: triage.relieving_movement,
-            triage_weight: triage.triage_weight
-          } : undefined,
-          tests,
-          clusters
-        }
-      }) || []
+      const clusters = clusterLinks
+        ?.filter(l => l.pathology_id === pathology.id)
+        .map(l => l.cluster) ?? []
+
+      return {
+        ...pathology,
+        triage_criteria: triage ? {
+          pain_type: triage.pain_type,
+          pain_onset: triage.pain_onset,
+          aggravating_factors: triage.aggravating_factors,
+          radiation_pattern: triage.radiation_pattern,
+          neurological_symptoms: triage.neurological_symptoms,
+          relieving_movement: triage.relieving_movement,
+          triage_weight: triage.triage_weight
+        } : undefined,
+        tests,
+        clusters
+      }
+    }) || []
+
 
       setPathologies(pathologiesWithTriage)
     } catch (error) {
@@ -411,10 +417,10 @@ export default function PathologyTriageAdminPage() {
                             </p>
                           )}
                           <div className="flex items-center gap-4 mt-2 ml-6 text-xs text-gray-500">
-                            {pathology.tests?.length > 0 && (
+                            {pathology.tests.length > 0 && (
                               <span>{pathology.tests.length} tests</span>
                             )}
-                            {pathology.clusters?.length > 0 && (
+                            {pathology.clusters.length > 0 && (
                               <span>{pathology.clusters.length} clusters</span>
                             )}
                           </div>
