@@ -605,9 +605,13 @@ export default function TestingV2Page() {
               <div className="mb-6">
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-                    {React.createElement(TRIAGE_QUESTIONS[triageStep].icon, { className: 'h-6 w-6 text-primary-600' })}
+                    {(() => {
+                      const Icon = TRIAGE_QUESTIONS[triageStep].icon
+                      return <Icon className="h-6 w-6 text-primary-600" />
+                    })()}
                     Question {triageStep + 1} sur {TRIAGE_QUESTIONS.length}
                   </h2>
+
                   {triageStep > 0 && (
                     <button
                       onClick={() => setTriageStep(triageStep - 1)}
@@ -627,7 +631,7 @@ export default function TestingV2Page() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {TRIAGE_QUESTIONS[triageStep].options.map(option => (
                   <button
-                    key={option.value}
+                    key={String(option.value)}
                     onClick={() => handleTriageAnswer(
                       TRIAGE_QUESTIONS[triageStep].id,
                       option.value
