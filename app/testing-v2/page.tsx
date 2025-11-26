@@ -1,0 +1,969 @@
+'use client'
+
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { supabase } from '@/lib/supabase'
+import AuthLayout from '@/components/AuthLayout'
+import { generateConsultationPDF } from '@/utils/generateConsultationPDF'
+import {
+  Activity,
+  ChevronRight,
+  ChevronLeft,
+  CheckCircle,
+  XCircle,
+  AlertCircle,
+  User,
+  Calendar,
+  Map,
+  Filter,
+  FileText,
+  Save,
+  Download,
+  Info,
+  Zap,
+  TrendingUp,
+  Clock,
+  Brain,
+  Move,
+  RefreshCw,
+  MapPin,
+  Target,
+  Sparkles,
+  Stethoscope
+} from 'lucide-react'
+
+interface TriageAnswers {
+  region?: string
+  painType?: string
+  painOnset?: string
+  aggravatingFactors?: string
+  radiationPattern?: string
+  neurologicalSymptoms?: boolean
+  relievingMovement?: string
+}
+
+interface PathologyMatch {
+  pathology: any
+  matchScore: number
+  matchedCriteria: string[]
+  tests: any[]
+  clusters: any[]
+}
+
+interface ConsultationData {
+  patientName: string
+  patientAge: string
+  consultationDate: string
+  region: string
+  triageAnswers: TriageAnswers
+  selectedPathologies: any[]
+  testResults: any[]
+  notes: string
+}
+
+const REGIONS = [
+  { value: 'cervical', label: 'Cervical', icon: '🔵', description: 'Cou et nuque' },
+  { value: 'thoracique', label: 'Thoracique', icon: '🟢', description: 'Haut du dos' },
+  { value: 'lombaire', label: 'Lombaire', icon: '🟠', description: 'Bas du dos' },
+  { value: 'epaule', label: 'Épaule', icon: '🔴', description: 'Articulation de l\'épaule' },
+  { value: 'coude', label: 'Coude', icon: '🟣', description: 'Articulation du coude' },
+  { value: 'poignet', label: 'Poignet', icon: '🟡', description: 'Poignet et main' },
+  { value: 'main', label: 'Main', icon: '✋', description: 'Main et doigts' },
+  { value: 'hanche', label: 'Hanche', icon: '🔶', description: 'Articulation de la hanche' },
+  { value: 'genou', label: 'Genou', icon: '🔷', description: 'Articulation du genou' },
+  { value: 'cheville', label: 'Cheville', icon: '🟤', description: 'Cheville' },
+  { value: 'pied', label: 'Pied', icon: '👣', description: 'Pied et orteils' }
+]
+
+const TRIAGE_QUESTIONS = [
+  {
+    id: 'painType',
+    question: 'La douleur est-elle mécanique ou inflammatoire ?',
+    icon: Activity,
+    color: 'from-blue-500 to-blue-600',
+    options: [
+      { 
+        value: 'mecanique', 
+        label: 'Mécanique',
+        description: 'Augmentée au mouvement, soulagée au repos',
+        icon: '⚙️'
+      },
+      { 
+        value: 'inflammatoire', 
+        label: 'Inflammatoire',
+        description: 'Réveils nocturnes, raideur matinale, soulagée par AINS',
+        icon: '🔥'
+      },
+      { 
+        value: 'mixte', 
+        label: 'Mixte',
+        description: 'Caractéristiques des deux',
+        icon: '⚡'
+      }
+    ]
+  },
+  {
+    id: 'painOnset',
+    question: 'Comment la douleur est-elle apparue ?',
+    icon: Clock,
+    color: 'from-purple-500 to-purple-600',
+    options: [
+      { 
+        value: 'brutale', 
+        label: 'Brutale / Précise',
+        description: 'Structurel (ligament, disque, articulation, déchirure)',
+        icon: '💥'
+      },
+      { 
+        value: 'progressive', 
+        label: 'Progressive',
+        description: 'Sans facteur déclenchant → inflammatoire ou dégénératif',
+        icon: '📈'
+      },
+      { 
+        value: 'charge_repetee', 
+        label: 'Charge répétée',
+        description: 'Après mouvements répétitifs → tendinopathie / surcharge',
+        icon: '🔄'
+      }
+    ]
+  },
+  {
+    id: 'aggravatingFactors',
+    question: 'Qu\'est-ce qui aggrave la douleur ?',
+    icon: TrendingUp,
+    color: 'from-orange-500 to-orange-600',
+    options: [
+      { 
+        value: 'mouvement', 
+        label: 'Mouvement / Charge',
+        description: 'Douleur mécanique',
+        icon: '🏃'
+      },
+      { 
+        value: 'repos', 
+        label: 'Repos / Position fixe',
+        description: 'Inflammatoire, discal, chimique',
+        icon: '🛋️'
+      },
+      { 
+        value: 'les_deux', 
+        label: 'Les deux',
+        description: 'Complexe ou mixte',
+        icon: '🔀'
+      }
+    ]
+  },
+  {
+    id: 'radiationPattern',
+    question: 'La douleur irradie-t-elle vers une autre zone ?',
+    icon: Zap,
+    color: 'from-green-500 to-green-600',
+    options: [
+      { 
+        value: 'radiculaire', 
+        label: 'Oui, trajet précis',
+        description: 'Radiculaire, suit un dermatome',
+        icon: '⚡'
+      },
+      { 
+        value: 'referree', 
+        label: 'Oui, flou / diffus',
+        description: 'Douleur référée (discale, facettaire, musculaire)',
+        icon: '☁️'
+      },
+      { 
+        value: 'locale', 
+        label: 'Non, locale',
+        description: 'Structure locale uniquement',
+        icon: '📍'
+      }
+    ]
+  },
+  {
+    id: 'neurologicalSymptoms',
+    question: 'Ressentez-vous des picotements, perte de force ou engourdissements ?',
+    icon: Brain,
+    color: 'from-red-500 to-red-600',
+    options: [
+      { 
+        value: true, 
+        label: 'Oui',
+        description: 'Suspicion neuro (radiculaire, canal, compression)',
+        icon: '⚠️'
+      },
+      { 
+        value: false, 
+        label: 'Non',
+        description: 'Loco-régional',
+        icon: '✅'
+      }
+    ]
+  },
+  {
+    id: 'relievingMovement',
+    question: 'Un mouvement particulier soulage-t-il la douleur ?',
+    icon: Move,
+    color: 'from-indigo-500 to-indigo-600',
+    options: [
+      { 
+        value: 'extension', 
+        label: 'Extension',
+        description: 'Suggère origine discale',
+        icon: '↗️'
+      },
+      { 
+        value: 'flexion', 
+        label: 'Flexion',
+        description: 'Suggère facettaire / sténose',
+        icon: '↙️'
+      },
+      { 
+        value: 'aucun', 
+        label: 'Aucun',
+        description: 'Musculaire / inflammatoire / complexe',
+        icon: '❌'
+      }
+    ]
+  }
+]
+
+export default function TestingV2Page() {
+  const router = useRouter()
+  const [loading, setLoading] = useState(true)
+  const [profile, setProfile] = useState<any>(null)
+  
+  // État de la consultation
+  const [currentStep, setCurrentStep] = useState<'region' | 'triage' | 'pathologies' | 'tests'>('region')
+  const [triageStep, setTriageStep] = useState(0)
+  const [triageAnswers, setTriageAnswers] = useState<TriageAnswers>({})
+  const [selectedRegion, setSelectedRegion] = useState<string>('')
+  
+  // Données chargées
+  const [allPathologies, setAllPathologies] = useState<any[]>([])
+  const [filteredPathologies, setFilteredPathologies] = useState<PathologyMatch[]>([])
+  const [selectedPathology, setSelectedPathology] = useState<any>(null)
+  const [testResults, setTestResults] = useState<any[]>([])
+  
+  // Données patient
+  const [consultationData, setConsultationData] = useState<ConsultationData>({
+    patientName: '',
+    patientAge: '',
+    consultationDate: new Date().toISOString().split('T')[0],
+    region: '',
+    triageAnswers: {},
+    selectedPathologies: [],
+    testResults: [],
+    notes: ''
+  })
+  
+  const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    checkAccess()
+    loadPathologies()
+  }, [])
+
+  const checkAccess = async () => {
+    const { data: { user } } = await supabase.auth.getUser()
+
+    if (!user) {
+      router.push('/')
+      return
+    }
+
+    const { data: profileData } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', user.id)
+      .single()
+
+    if (profileData?.role === 'free') {
+      alert('Cette fonctionnalité est réservée aux utilisateurs Premium')
+      router.push('/dashboard')
+      return
+    }
+
+    setProfile(profileData)
+    setLoading(false)
+  }
+
+  const loadPathologies = async () => {
+    try {
+      // Charger toutes les pathologies avec leurs critères et tests
+      const { data: pathologiesData } = await supabase
+        .from('pathologies')
+        .select('*')
+        .eq('is_active', true)
+
+      // Charger les critères de triage
+      const { data: triageData } = await supabase
+        .from('pathology_triage_criteria')
+        .select('*')
+
+      // Charger les liens pathologie-tests
+      const { data: testLinks } = await supabase
+        .from('pathology_tests')
+        .select('*, test:orthopedic_tests(*)')
+        .order('recommended_order')
+
+      // Charger les clusters
+      const { data: clusterLinks } = await supabase
+        .from('pathology_clusters')
+        .select('*, cluster:orthopedic_test_clusters(*)')
+        .order('recommended_order')
+
+      // Combiner les données
+      const pathologiesWithData = pathologiesData?.map(pathology => {
+        const triage = triageData?.find(t => t.pathology_id === pathology.id)
+        const tests = testLinks?.filter(l => l.pathology_id === pathology.id).map(l => ({
+          ...l.test,
+          relevance_score: l.relevance_score,
+          notes: l.notes
+        })) || []
+        const clusters = clusterLinks?.filter(l => l.pathology_id === pathology.id).map(l => l.cluster) || []
+
+        return {
+          ...pathology,
+          triage_criteria: triage,
+          tests,
+          clusters
+        }
+      }) || []
+
+      setAllPathologies(pathologiesWithData)
+    } catch (error) {
+      console.error('Error loading pathologies:', error)
+    }
+  }
+
+  const handleRegionSelect = (region: string) => {
+    setSelectedRegion(region)
+    setConsultationData(prev => ({ ...prev, region }))
+    setCurrentStep('triage')
+    setTriageStep(0)
+    setTriageAnswers({})
+  }
+
+  const handleTriageAnswer = (questionId: string, value: any) => {
+    const newAnswers = { ...triageAnswers, [questionId]: value }
+    setTriageAnswers(newAnswers)
+    setConsultationData(prev => ({ ...prev, triageAnswers: newAnswers }))
+
+    if (triageStep < TRIAGE_QUESTIONS.length - 1) {
+      setTriageStep(triageStep + 1)
+    } else {
+      // Fin du triage, filtrer les pathologies
+      filterPathologies(newAnswers)
+      setCurrentStep('pathologies')
+    }
+  }
+
+  const filterPathologies = (answers: TriageAnswers) => {
+    // Filtrer les pathologies de la région sélectionnée
+    const regionPathologies = allPathologies.filter(p => p.region === selectedRegion)
+
+    // Calculer le score de correspondance pour chaque pathologie
+    const matches: PathologyMatch[] = regionPathologies.map(pathology => {
+      let matchScore = 0
+      const matchedCriteria: string[] = []
+
+      if (pathology.triage_criteria) {
+        const criteria = pathology.triage_criteria
+
+        // Vérifier chaque critère
+        if (criteria.pain_type === answers.painType) {
+          matchScore += 20
+          matchedCriteria.push('Type de douleur')
+        } else if (criteria.pain_type === 'non_applicable') {
+          matchScore += 10
+        }
+
+        if (criteria.pain_onset === answers.painOnset) {
+          matchScore += 20
+          matchedCriteria.push('Apparition')
+        } else if (criteria.pain_onset === 'non_applicable') {
+          matchScore += 10
+        }
+
+        if (criteria.aggravating_factors === answers.aggravatingFactors) {
+          matchScore += 15
+          matchedCriteria.push('Facteurs aggravants')
+        } else if (criteria.aggravating_factors === 'non_applicable') {
+          matchScore += 7
+        }
+
+        if (criteria.radiation_pattern === answers.radiationPattern) {
+          matchScore += 15
+          matchedCriteria.push('Irradiation')
+        } else if (criteria.radiation_pattern === 'non_applicable') {
+          matchScore += 7
+        }
+
+        if (criteria.neurological_symptoms === answers.neurologicalSymptoms) {
+          matchScore += 15
+          matchedCriteria.push('Symptômes neuro')
+        }
+
+        if (criteria.relieving_movement === answers.relievingMovement) {
+          matchScore += 15
+          matchedCriteria.push('Mouvement soulageant')
+        } else if (criteria.relieving_movement === 'non_applicable') {
+          matchScore += 7
+        }
+
+        // Ajouter le poids de triage
+        if (criteria.triage_weight) {
+          matchScore = (matchScore * criteria.triage_weight) / 50
+        }
+      }
+
+      return {
+        pathology,
+        matchScore,
+        matchedCriteria,
+        tests: pathology.tests || [],
+        clusters: pathology.clusters || []
+      }
+    })
+
+    // Trier par score décroissant et garder ceux avec un score > 0
+    const filtered = matches
+      .filter(m => m.matchScore > 0)
+      .sort((a, b) => b.matchScore - a.matchScore)
+
+    setFilteredPathologies(filtered)
+  }
+
+  const handleTestResult = (testId: string, result: 'positive' | 'negative' | 'uncertain') => {
+    setTestResults(prev => {
+      const existing = prev.find(r => r.testId === testId)
+      if (existing) {
+        return prev.map(r => r.testId === testId ? { ...r, result } : r)
+      } else {
+        return [...prev, { testId, result }]
+      }
+    })
+  }
+
+  const saveConsultation = async () => {
+    setSaving(true)
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+
+      const sessionData = {
+        patient_name: consultationData.patientName,
+        patient_age: consultationData.patientAge,
+        consultation_date: consultationData.consultationDate,
+        anatomical_region: selectedRegion,
+        triage_answers: triageAnswers,
+        evaluated_pathologies: filteredPathologies.map(p => ({
+          id: p.pathology.id,
+          name: p.pathology.name,
+          matchScore: p.matchScore,
+          selected: selectedPathology?.id === p.pathology.id
+        })),
+        test_results: testResults,
+        final_diagnosis: selectedPathology?.name,
+        notes: consultationData.notes,
+        created_by: user?.id
+      }
+
+      const { error } = await supabase
+        .from('consultation_sessions')
+        .insert(sessionData)
+
+      if (error) throw error
+
+      alert('Consultation sauvegardée avec succès')
+    } catch (error) {
+      console.error('Error saving consultation:', error)
+      alert('Erreur lors de la sauvegarde')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const generatePDF = async () => {
+    await generateConsultationPDF({
+      ...consultationData,
+      selectedPathology,
+      testResults,
+      filteredPathologies
+    })
+  }
+
+  if (loading) {
+    return (
+      <AuthLayout>
+        <div className="flex items-center justify-center h-96">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+        </div>
+      </AuthLayout>
+    )
+  }
+
+  return (
+    <AuthLayout>
+      <div className="max-w-7xl mx-auto space-y-6">
+        {/* Header avec progression */}
+        <div className="bg-white rounded-xl shadow-sm p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                <Stethoscope className="h-7 w-7 text-primary-600" />
+                Module de Consultation Guidée
+              </h1>
+              <p className="text-gray-600 mt-1">
+                Diagnostic assisté par questionnaire de triage
+              </p>
+            </div>
+          </div>
+
+          {/* Barre de progression */}
+          <div className="flex items-center justify-between relative">
+            <div className="absolute left-0 right-0 top-5 h-1 bg-gray-200 rounded-full"></div>
+            <div 
+              className="absolute left-0 top-5 h-1 bg-gradient-to-r from-primary-500 to-primary-600 rounded-full transition-all duration-500"
+              style={{
+                width: currentStep === 'region' ? '25%' : 
+                       currentStep === 'triage' ? '50%' :
+                       currentStep === 'pathologies' ? '75%' : '100%'
+              }}
+            />
+            
+            {['Région', 'Triage', 'Pathologies', 'Tests'].map((step, index) => {
+              const isActive = 
+                (index === 0 && currentStep === 'region') ||
+                (index === 1 && currentStep === 'triage') ||
+                (index === 2 && currentStep === 'pathologies') ||
+                (index === 3 && currentStep === 'tests')
+              
+              const isCompleted = 
+                (index === 0 && currentStep !== 'region') ||
+                (index === 1 && (currentStep === 'pathologies' || currentStep === 'tests')) ||
+                (index === 2 && currentStep === 'tests')
+
+              return (
+                <div key={step} className="relative z-10 flex flex-col items-center">
+                  <div className={`
+                    w-10 h-10 rounded-full flex items-center justify-center font-semibold transition-all
+                    ${isActive ? 'bg-primary-600 text-white shadow-lg scale-110' : 
+                      isCompleted ? 'bg-green-600 text-white' : 
+                      'bg-white border-2 border-gray-300 text-gray-400'}
+                  `}>
+                    {isCompleted ? <CheckCircle className="h-5 w-5" /> : index + 1}
+                  </div>
+                  <span className={`mt-2 text-sm font-medium ${
+                    isActive ? 'text-primary-600' : 
+                    isCompleted ? 'text-green-600' : 'text-gray-400'
+                  }`}>
+                    {step}
+                  </span>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* Étape 1: Sélection de la région */}
+        {currentStep === 'region' && (
+          <div className="bg-white rounded-xl shadow-sm p-6">
+            <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+              <Map className="h-6 w-6 text-primary-600" />
+              Sélectionnez la région anatomique concernée
+            </h2>
+            
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              {REGIONS.map(region => (
+                <button
+                  key={region.value}
+                  onClick={() => handleRegionSelect(region.value)}
+                  className="group relative p-6 bg-gradient-to-br from-gray-50 to-gray-100 hover:from-primary-50 hover:to-primary-100 rounded-xl border-2 border-gray-200 hover:border-primary-400 transition-all transform hover:scale-105 hover:shadow-lg"
+                >
+                  <div className="text-4xl mb-3">{region.icon}</div>
+                  <h3 className="font-semibold text-gray-900 group-hover:text-primary-700">
+                    {region.label}
+                  </h3>
+                  <p className="text-sm text-gray-600 mt-1">
+                    {region.description}
+                  </p>
+                  <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <ChevronRight className="h-5 w-5 text-primary-600" />
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Étape 2: Questions de triage */}
+        {currentStep === 'triage' && (
+          <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+            <div className={`h-2 bg-gradient-to-r ${TRIAGE_QUESTIONS[triageStep].color}`} />
+            <div className="p-6">
+              <div className="mb-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                    {React.createElement(TRIAGE_QUESTIONS[triageStep].icon, { className: 'h-6 w-6 text-primary-600' })}
+                    Question {triageStep + 1} sur {TRIAGE_QUESTIONS.length}
+                  </h2>
+                  {triageStep > 0 && (
+                    <button
+                      onClick={() => setTriageStep(triageStep - 1)}
+                      className="text-gray-600 hover:text-primary-600 flex items-center gap-1"
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                      Précédent
+                    </button>
+                  )}
+                </div>
+                
+                <p className="text-lg text-gray-700">
+                  {TRIAGE_QUESTIONS[triageStep].question}
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {TRIAGE_QUESTIONS[triageStep].options.map(option => (
+                  <button
+                    key={option.value}
+                    onClick={() => handleTriageAnswer(
+                      TRIAGE_QUESTIONS[triageStep].id,
+                      option.value
+                    )}
+                    className="group relative p-6 bg-gradient-to-br from-gray-50 to-gray-100 hover:from-primary-50 hover:to-primary-100 rounded-xl border-2 border-gray-200 hover:border-primary-400 transition-all transform hover:scale-105 hover:shadow-lg text-left"
+                  >
+                    <div className="text-3xl mb-3">{option.icon}</div>
+                    <h3 className="font-semibold text-gray-900 group-hover:text-primary-700 mb-2">
+                      {option.label}
+                    </h3>
+                    <p className="text-sm text-gray-600">
+                      {option.description}
+                    </p>
+                    <Sparkles className="absolute top-3 right-3 h-5 w-5 text-primary-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Étape 3: Pathologies filtrées */}
+        {currentStep === 'pathologies' && (
+          <div className="space-y-6">
+            <div className="bg-white rounded-xl shadow-sm p-6">
+              <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                <Filter className="h-6 w-6 text-primary-600" />
+                Pathologies correspondantes
+              </h2>
+              
+              {filteredPathologies.length === 0 ? (
+                <div className="text-center py-12">
+                  <AlertCircle className="h-12 w-12 text-gray-400 mx-auto mb-3" />
+                  <p className="text-gray-600">
+                    Aucune pathologie ne correspond aux critères sélectionnés
+                  </p>
+                  <button
+                    onClick={() => {
+                      setCurrentStep('triage')
+                      setTriageStep(0)
+                      setTriageAnswers({})
+                    }}
+                    className="mt-4 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+                  >
+                    Refaire le triage
+                  </button>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {filteredPathologies.map((match) => (
+                    <div 
+                      key={match.pathology.id}
+                      className="relative bg-white rounded-xl border-2 border-gray-200 hover:border-primary-400 transition-all hover:shadow-lg cursor-pointer overflow-hidden"
+                      onClick={() => {
+                        setSelectedPathology(match.pathology)
+                        setCurrentStep('tests')
+                      }}
+                    >
+                      {/* Score de correspondance */}
+                      <div className="absolute top-3 right-3 z-10">
+                        <div className="bg-gradient-to-r from-green-500 to-green-600 text-white text-xs font-bold rounded-full px-3 py-1">
+                          {Math.round(match.matchScore)}%
+                        </div>
+                      </div>
+
+                      {/* Image topographique si disponible */}
+                      {match.pathology.topographic_image_url && (
+                        <div className="h-40 bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden">
+                          <img 
+                            src={match.pathology.topographic_image_url} 
+                            alt={match.pathology.name}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                      )}
+
+                      <div className="p-4">
+                        <h3 className="font-semibold text-gray-900 mb-2">
+                          {match.pathology.name}
+                        </h3>
+                        
+                        {match.pathology.description && (
+                          <p className="text-sm text-gray-600 mb-3 line-clamp-2">
+                            {match.pathology.description}
+                          </p>
+                        )}
+
+                        {/* Critères matchés */}
+                        <div className="space-y-1 mb-3">
+                          {match.matchedCriteria.slice(0, 3).map(criteria => (
+                            <div key={criteria} className="flex items-center gap-1 text-xs text-green-600">
+                              <CheckCircle className="h-3 w-3" />
+                              <span>{criteria}</span>
+                            </div>
+                          ))}
+                          {match.matchedCriteria.length > 3 && (
+                            <span className="text-xs text-gray-500">
+                              +{match.matchedCriteria.length - 3} autres critères
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Nombre de tests */}
+                        <div className="flex items-center justify-between text-xs text-gray-500">
+                          <span>{match.tests.length} tests</span>
+                          <span>{match.clusters.length} clusters</span>
+                        </div>
+
+                        <button className="mt-3 w-full bg-gradient-to-r from-primary-600 to-primary-700 text-white py-2 rounded-lg hover:from-primary-700 hover:to-primary-800 transition-all flex items-center justify-center gap-2">
+                          Évaluer
+                          <ChevronRight className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Étape 4: Tests de la pathologie sélectionnée */}
+        {currentStep === 'tests' && selectedPathology && (
+          <div className="space-y-6">
+            {/* Informations de la pathologie */}
+            <div className="bg-white rounded-xl shadow-sm p-6">
+              <div className="flex items-start justify-between mb-4">
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900">{selectedPathology.name}</h2>
+                  {selectedPathology.description && (
+                    <p className="text-gray-600 mt-2">{selectedPathology.description}</p>
+                  )}
+                </div>
+                <button
+                  onClick={() => {
+                    setCurrentStep('pathologies')
+                    setSelectedPathology(null)
+                  }}
+                  className="text-gray-600 hover:text-primary-600"
+                >
+                  <ChevronLeft className="h-5 w-5" />
+                </button>
+              </div>
+
+              {selectedPathology.recommendations && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                  <h3 className="font-semibold text-blue-900 mb-2 flex items-center gap-2">
+                    <Info className="h-5 w-5" />
+                    Recommandations
+                  </h3>
+                  <p className="text-blue-800 text-sm">{selectedPathology.recommendations}</p>
+                </div>
+              )}
+            </div>
+
+            {/* Tests orthopédiques */}
+            {selectedPathology.tests?.length > 0 && (
+              <div className="bg-white rounded-xl shadow-sm p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                  <Activity className="h-5 w-5 text-primary-600" />
+                  Tests orthopédiques ({selectedPathology.tests.length})
+                </h3>
+                
+                <div className="space-y-4">
+                  {selectedPathology.tests.map((test: any) => {
+                    const result = testResults.find(r => r.testId === test.id)
+                    
+                    return (
+                      <div key={test.id} className="border rounded-lg p-4">
+                        <div className="flex items-start justify-between mb-3">
+                          <div>
+                            <h4 className="font-medium text-gray-900">{test.name}</h4>
+                            {test.description && (
+                              <p className="text-sm text-gray-600 mt-1">{test.description}</p>
+                            )}
+                            {test.relevance_score && (
+                              <div className="flex items-center gap-2 mt-2">
+                                <span className="text-xs text-gray-500">Pertinence:</span>
+                                <div className="flex">
+                                  {[...Array(10)].map((_, i) => (
+                                    <div
+                                      key={i}
+                                      className={`h-2 w-6 ${
+                                        i < test.relevance_score
+                                          ? 'bg-gradient-to-r from-green-500 to-green-600'
+                                          : 'bg-gray-200'
+                                      } ${i === 0 ? 'rounded-l' : ''} ${i === 9 ? 'rounded-r' : ''}`}
+                                    />
+                                  ))}
+                                </div>
+                                <span className="text-xs font-medium text-gray-700">
+                                  {test.relevance_score}/10
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => handleTestResult(test.id, 'positive')}
+                            className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all ${
+                              result?.result === 'positive'
+                                ? 'bg-green-600 text-white'
+                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                            }`}
+                          >
+                            <CheckCircle className="h-4 w-4 inline mr-1" />
+                            Positif
+                          </button>
+                          <button
+                            onClick={() => handleTestResult(test.id, 'negative')}
+                            className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all ${
+                              result?.result === 'negative'
+                                ? 'bg-red-600 text-white'
+                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                            }`}
+                          >
+                            <XCircle className="h-4 w-4 inline mr-1" />
+                            Négatif
+                          </button>
+                          <button
+                            onClick={() => handleTestResult(test.id, 'uncertain')}
+                            className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all ${
+                              result?.result === 'uncertain'
+                                ? 'bg-yellow-600 text-white'
+                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                            }`}
+                          >
+                            <AlertCircle className="h-4 w-4 inline mr-1" />
+                            Incertain
+                          </button>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Informations patient et actions */}
+            <div className="bg-white rounded-xl shadow-sm p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                Informations de consultation
+              </h3>
+              
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <User className="inline h-4 w-4 mr-1" />
+                    Nom du patient
+                  </label>
+                  <input
+                    type="text"
+                    value={consultationData.patientName}
+                    onChange={(e) => setConsultationData(prev => ({ 
+                      ...prev, 
+                      patientName: e.target.value 
+                    }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                    placeholder="Jean Dupont"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Âge
+                  </label>
+                  <input
+                    type="text"
+                    value={consultationData.patientAge}
+                    onChange={(e) => setConsultationData(prev => ({ 
+                      ...prev, 
+                      patientAge: e.target.value 
+                    }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                    placeholder="45 ans"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <Calendar className="inline h-4 w-4 mr-1" />
+                    Date
+                  </label>
+                  <input
+                    type="date"
+                    value={consultationData.consultationDate}
+                    onChange={(e) => setConsultationData(prev => ({ 
+                      ...prev, 
+                      consultationDate: e.target.value 
+                    }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                  />
+                </div>
+              </div>
+
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Notes de consultation
+                </label>
+                <textarea
+                  value={consultationData.notes}
+                  onChange={(e) => setConsultationData(prev => ({ 
+                    ...prev, 
+                    notes: e.target.value 
+                  }))}
+                  rows={4}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                  placeholder="Notes complémentaires..."
+                />
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={saveConsultation}
+                  disabled={saving || !consultationData.patientName}
+                  className="flex-1 bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  <Save className="h-5 w-5" />
+                  {saving ? 'Sauvegarde...' : 'Sauvegarder'}
+                </button>
+                
+                <button
+                  onClick={generatePDF}
+                  disabled={!consultationData.patientName}
+                  className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  <Download className="h-5 w-5" />
+                  Générer PDF
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </AuthLayout>
+  )
+}

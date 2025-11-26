@@ -17,7 +17,8 @@ import {
   ChevronRight,
   Stethoscope,
   Crown,
-  Activity
+  Activity,
+  Filter
 } from 'lucide-react'
 
 export default function Navigation() {
@@ -55,13 +56,15 @@ export default function Navigation() {
     { href: '/dashboard', label: 'Tableau de bord', icon: Home },
     { href: '/elearning', label: 'E-Learning', icon: BookOpen },
     { href: '/tests', label: 'Tests orthopédiques', icon: Clipboard },
-    { href: '/testing', label: 'Module Testing', icon: Activity },
+    { href: '/testing', label: 'Module Testing 3D', icon: Activity },
+    { href: '/testing-v2', label: 'Consultation Guidée ✨', icon: Stethoscope },
     { href: '/settings', label: 'Paramètres', icon: Settings },
   ]
 
   const adminItems = [
     { href: '/admin', label: 'Administration', icon: Shield },
     { href: '/admin/users', label: 'Utilisateurs', icon: Users },
+    { href: '/admin/pathology-triage', label: 'Config. Triage', icon: Filter },
   ]
 
   const getRoleBadge = () => {
@@ -134,11 +137,12 @@ export default function Navigation() {
             {menuItems.map((item) => {
               const Icon = item.icon
               const isActive = pathname === item.href
+              const isNew = item.href === '/testing-v2'
               return (
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`flex items-center px-3 py-2.5 rounded-lg transition-all group ${
+                  className={`flex items-center px-3 py-2.5 rounded-lg transition-all group relative ${
                     isActive
                       ? 'bg-primary-50 text-primary-600 font-medium'
                       : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
@@ -148,6 +152,12 @@ export default function Navigation() {
                   <Icon className={`h-5 w-5 mr-3 ${isActive ? 'text-primary-600' : 'text-gray-400 group-hover:text-gray-600'}`} />
                   <span className="flex-1">{item.label}</span>
                   {isActive && <ChevronRight className="h-4 w-4" />}
+                  {isNew && (
+                    <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-3 w-3 bg-primary-500"></span>
+                    </span>
+                  )}
                 </Link>
               )
             })}

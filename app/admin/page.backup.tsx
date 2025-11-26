@@ -12,8 +12,7 @@ import {
   BarChart,
   Crown,
   Box,
-  Layers,
-  Filter
+  Layers
 } from 'lucide-react'
 
 export default function AdminPage() {
@@ -146,14 +145,6 @@ export default function AdminPage() {
       stats: `${stats.totalZones} zones configurées`
     },
     {
-      title: 'Configuration du Triage',
-      description: 'Configurer les critères de triage et images topographiques',
-      icon: Filter,
-      href: '/admin/pathology-triage',
-      color: 'from-indigo-500 to-indigo-600',
-      stats: `Système de diagnostic guidé`
-    },
-    {
       title: 'Pathologies',
       description: 'Gérer les pathologies et leurs associations aux tests',
       icon: Activity,
@@ -233,7 +224,7 @@ export default function AdminPage() {
         </div>
 
         {/* Management Actions */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {managementActions.map((action, index) => {
             const Icon = action.icon
             return (
@@ -328,14 +319,6 @@ export default function AdminPage() {
             </h2>
             <div className="space-y-3">
               <button
-                onClick={() => router.push('/admin/pathology-triage')}
-                className="w-full bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-lg p-3 text-left transition-colors"
-              >
-                <p className="font-medium">✨ Configuration du Triage</p>
-                <p className="text-sm text-purple-100">Nouveau système de diagnostic guidé</p>
-              </button>
-              
-              <button
                 onClick={() => router.push('/admin/anatomy-builder')}
                 className="w-full bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-lg p-3 text-left transition-colors"
               >
@@ -352,11 +335,19 @@ export default function AdminPage() {
               </button>
               
               <button
-                onClick={() => router.push('/testing-v2')}
+                onClick={() => router.push('/admin/tests')}
                 className="w-full bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-lg p-3 text-left transition-colors"
               >
-                <p className="font-medium">🎯 Tester le nouveau module</p>
-                <p className="text-sm text-purple-100">Consultation guidée par triage</p>
+                <p className="font-medium">Tests et Clusters</p>
+                <p className="text-sm text-purple-100">Gérer la bibliothèque</p>
+              </button>
+              
+              <button
+                onClick={() => router.push('/testing')}
+                className="w-full bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-lg p-3 text-left transition-colors"
+              >
+                <p className="font-medium">Prévisualiser</p>
+                <p className="text-sm text-purple-100">Tester l'interface utilisateur</p>
               </button>
             </div>
           </div>
