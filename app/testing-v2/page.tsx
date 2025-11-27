@@ -29,7 +29,8 @@ import {
   MapPin,
   Target,
   Sparkles,
-  Stethoscope
+  Stethoscope,
+  Image as ImageIcon
 } from 'lucide-react'
 
 interface TriageAnswers {
@@ -68,7 +69,6 @@ interface ConsultationEpisode {
   selectedPathology: any
   testResults: any[]
 }
-
 
 const REGIONS = [
   { value: 'cervical', label: 'Cervical', icon: '🔵', description: 'Cou et nuque' },
@@ -122,6 +122,12 @@ const TRIAGE_QUESTIONS = [
         label: 'Brutale / Précise',
         description: 'Structurel (ligament, disque, articulation, déchirure)',
         icon: '💥'
+      },
+      { 
+        value: 'brutale_fond_chronique', 
+        label: 'Brutale sous fond chronique',
+        description: 'Aggravation aiguë d\'une condition chronique',
+        icon: '⚡'
       },
       { 
         value: 'progressive', 
@@ -228,9 +234,57 @@ const TRIAGE_QUESTIONS = [
         icon: '↙️'
       },
       { 
+        value: 'rotation_gauche', 
+        label: 'Rotation gauche',
+        description: 'Rotation du tronc/cou vers la gauche',
+        icon: '↶'
+      },
+      { 
+        value: 'rotation_droite', 
+        label: 'Rotation droite',
+        description: 'Rotation du tronc/cou vers la droite',
+        icon: '↷'
+      },
+      { 
+        value: 'inclinaison_gauche', 
+        label: 'Inclinaison gauche',
+        description: 'Inclinaison latérale gauche',
+        icon: '⤺'
+      },
+      { 
+        value: 'inclinaison_droite', 
+        label: 'Inclinaison droite',
+        description: 'Inclinaison latérale droite',
+        icon: '⤻'
+      },
+      { 
+        value: 'appliquer_chaud', 
+        label: 'Appliquer du chaud',
+        description: 'Chaleur soulage (musculaire, inflammatoire)',
+        icon: '🔥'
+      },
+      { 
+        value: 'auto_massage', 
+        label: 'Auto-massage',
+        description: 'Massage de la zone douloureuse',
+        icon: '👐'
+      },
+      { 
+        value: 'mouvement', 
+        label: 'Le mouvement',
+        description: 'Mouvement en général soulage',
+        icon: '🚶'
+      },
+      { 
+        value: 'etirement_musculaire', 
+        label: 'Étirement musculaire',
+        description: 'Étirements soulagent',
+        icon: '🤸'
+      },
+      { 
         value: 'aucun', 
         label: 'Aucun',
-        description: 'Musculaire / inflammatoire / complexe',
+        description: 'Musculaire/inflammatoire/complexe',
         icon: '❌'
       }
     ]
@@ -242,20 +296,17 @@ export default function TestingV2Page() {
   const [loading, setLoading] = useState(true)
   const [profile, setProfile] = useState<any>(null)
   
-  // État de la consultation
   const [currentStep, setCurrentStep] = useState<'region' | 'triage' | 'pathologies' | 'tests'>('region')
   const [triageStep, setTriageStep] = useState(0)
   const [triageAnswers, setTriageAnswers] = useState<TriageAnswers>({})
   const [selectedRegion, setSelectedRegion] = useState<string>('')
   
-  // Données chargées
   const [allPathologies, setAllPathologies] = useState<any[]>([])
   const [filteredPathologies, setFilteredPathologies] = useState<PathologyMatch[]>([])
   const [selectedPathology, setSelectedPathology] = useState<any>(null)
   const [testResults, setTestResults] = useState<any[]>([])
   const [episodes, setEpisodes] = useState<ConsultationEpisode[]>([])
   
-  // Données patient
   const [consultationData, setConsultationData] = useState<ConsultationData>({
     patientName: '',
     patientAge: '',
@@ -300,30 +351,25 @@ export default function TestingV2Page() {
 
   const loadPathologies = async () => {
     try {
-      // Charger toutes les pathologies avec leurs critères et tests
       const { data: pathologiesData } = await supabase
         .from('pathologies')
         .select('*')
         .eq('is_active', true)
 
-      // Charger les critères de triage
       const { data: triageData } = await supabase
         .from('pathology_triage_criteria')
         .select('*')
 
-      // Charger les liens pathologie-tests
       const { data: testLinks } = await supabase
         .from('pathology_tests')
         .select('*, test:orthopedic_tests(*)')
         .order('recommended_order')
 
-      // Charger les clusters
       const { data: clusterLinks } = await supabase
         .from('pathology_clusters')
         .select('*, cluster:orthopedic_test_clusters(*)')
         .order('recommended_order')
 
-      // Combiner les données
       const pathologiesWithData = pathologiesData?.map(pathology => {
         const triage = triageData?.find(t => t.pathology_id === pathology.id)
         const tests = testLinks?.filter(l => l.pathology_id === pathology.id).map(l => ({
@@ -380,17 +426,14 @@ export default function TestingV2Page() {
     if (triageStep < TRIAGE_QUESTIONS.length - 1) {
       setTriageStep(triageStep + 1)
     } else {
-      // Fin du triage, filtrer les pathologies
       filterPathologies(newAnswers)
       setCurrentStep('pathologies')
     }
   }
 
   const filterPathologies = (answers: TriageAnswers) => {
-    // Filtrer les pathologies de la région sélectionnée
     const regionPathologies = allPathologies.filter(p => p.region === selectedRegion)
 
-    // Calculer le score de correspondance pour chaque pathologie
     const matches: PathologyMatch[] = regionPathologies.map(pathology => {
       let matchScore = 0
       const matchedCriteria: string[] = []
@@ -398,32 +441,39 @@ export default function TestingV2Page() {
       if (pathology.triage_criteria) {
         const criteria = pathology.triage_criteria
 
-        // Vérifier chaque critère
-        if (criteria.pain_type === answers.painType) {
+        // Convertir les critères en arrays s'ils ne le sont pas déjà
+        const painTypes = Array.isArray(criteria.pain_type) ? criteria.pain_type : (criteria.pain_type ? [criteria.pain_type] : [])
+        const painOnsets = Array.isArray(criteria.pain_onset) ? criteria.pain_onset : (criteria.pain_onset ? [criteria.pain_onset] : [])
+        const aggravatingFactors = Array.isArray(criteria.aggravating_factors) ? criteria.aggravating_factors : (criteria.aggravating_factors ? [criteria.aggravating_factors] : [])
+        const radiationPatterns = Array.isArray(criteria.radiation_pattern) ? criteria.radiation_pattern : (criteria.radiation_pattern ? [criteria.radiation_pattern] : [])
+        const relievingMovements = Array.isArray(criteria.relieving_movement) ? criteria.relieving_movement : (criteria.relieving_movement ? [criteria.relieving_movement] : [])
+
+        // Vérifier chaque critère avec support des choix multiples
+        if (painTypes.includes(answers.painType)) {
           matchScore += 20
           matchedCriteria.push('Type de douleur')
-        } else if (criteria.pain_type === 'non_applicable') {
+        } else if (painTypes.includes('non_applicable')) {
           matchScore += 10
         }
 
-        if (criteria.pain_onset === answers.painOnset) {
+        if (painOnsets.includes(answers.painOnset)) {
           matchScore += 20
           matchedCriteria.push('Apparition')
-        } else if (criteria.pain_onset === 'non_applicable') {
+        } else if (painOnsets.includes('non_applicable')) {
           matchScore += 10
         }
 
-        if (criteria.aggravating_factors === answers.aggravatingFactors) {
+        if (aggravatingFactors.includes(answers.aggravatingFactors)) {
           matchScore += 15
           matchedCriteria.push('Facteurs aggravants')
-        } else if (criteria.aggravating_factors === 'non_applicable') {
+        } else if (aggravatingFactors.includes('non_applicable')) {
           matchScore += 7
         }
 
-        if (criteria.radiation_pattern === answers.radiationPattern) {
+        if (radiationPatterns.includes(answers.radiationPattern)) {
           matchScore += 15
           matchedCriteria.push('Irradiation')
-        } else if (criteria.radiation_pattern === 'non_applicable') {
+        } else if (radiationPatterns.includes('non_applicable')) {
           matchScore += 7
         }
 
@@ -432,14 +482,13 @@ export default function TestingV2Page() {
           matchedCriteria.push('Symptômes neuro')
         }
 
-        if (criteria.relieving_movement === answers.relievingMovement) {
+        if (relievingMovements.includes(answers.relievingMovement)) {
           matchScore += 15
           matchedCriteria.push('Mouvement soulageant')
-        } else if (criteria.relieving_movement === 'non_applicable') {
+        } else if (relievingMovements.includes('non_applicable')) {
           matchScore += 7
         }
 
-        // Ajouter le poids de triage
         if (criteria.triage_weight) {
           matchScore = (matchScore * criteria.triage_weight) / 50
         }
@@ -454,7 +503,6 @@ export default function TestingV2Page() {
       }
     })
 
-    // Trier par score décroissant et garder ceux avec un score > 0
     const filtered = matches
       .filter(m => m.matchScore > 0)
       .sort((a, b) => b.matchScore - a.matchScore)
@@ -501,8 +549,8 @@ export default function TestingV2Page() {
         patient_name: consultationData.patientName,
         patient_age: consultationData.patientAge,
         consultation_date: consultationData.consultationDate,
-        anatomical_region: selectedRegion, // ou allEpisodes[0]?.region si tu préfères
-        triage_answers: triageAnswers,     // tu peux laisser le dernier triage ou adapter
+        anatomical_region: selectedRegion,
+        triage_answers: triageAnswers,
         evaluated_pathologies,
         test_results: allTestResults,
         final_diagnosis: allEpisodes
@@ -527,20 +575,17 @@ export default function TestingV2Page() {
     }
   }
 
-
   const generatePDF = async () => {
-  const allEpisodes = getAllEpisodes()
+    const allEpisodes = getAllEpisodes()
 
-  await generateConsultationPDF({
-    patientName: consultationData.patientName,
-    patientAge: consultationData.patientAge,
-    consultationDate: consultationData.consultationDate,
-    notes: consultationData.notes,
-    episodes: allEpisodes
-  })
-}
-
-
+    await generateConsultationPDF({
+      patientName: consultationData.patientName,
+      patientAge: consultationData.patientAge,
+      consultationDate: consultationData.consultationDate,
+      notes: consultationData.notes,
+      episodes: allEpisodes
+    })
+  }
 
   if (loading) {
     return (
@@ -564,7 +609,7 @@ export default function TestingV2Page() {
                 Module de Consultation Guidée
               </h1>
               <p className="text-gray-600 mt-1">
-                Aide au raisonnement
+                Aide au raisonnement clinique
               </p>
             </div>
           </div>
@@ -677,7 +722,11 @@ export default function TestingV2Page() {
                 </p>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className={`grid gap-4 ${
+                TRIAGE_QUESTIONS[triageStep].options.length > 6 
+                  ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3' 
+                  : 'grid-cols-1 md:grid-cols-3'
+              }`}>
                 {TRIAGE_QUESTIONS[triageStep].options.map(option => (
                   <button
                     key={String(option.value)}
@@ -702,7 +751,7 @@ export default function TestingV2Page() {
           </div>
         )}
 
-        {/* Étape 3: Pathologies filtrées */}
+        {/* Étape 3: Pathologies filtrées - DESIGN AMÉLIORÉ */}
         {currentStep === 'pathologies' && (
           <div className="space-y-6">
             <div className="bg-white rounded-xl shadow-sm p-6">
@@ -729,83 +778,90 @@ export default function TestingV2Page() {
                   </button>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {filteredPathologies.map((match) => (
                     <div 
                       key={match.pathology.id}
-                      className="relative bg-white rounded-xl border-2 border-gray-200 hover:border-primary-400 transition-all hover:shadow-lg cursor-pointer overflow-hidden"
+                      className="group relative bg-white rounded-2xl border-2 border-gray-200 hover:border-primary-400 transition-all hover:shadow-2xl cursor-pointer overflow-hidden"
                       onClick={() => {
                         setSelectedPathology(match.pathology)
                         setCurrentStep('tests')
                       }}
                     >
-
-                      {/* Image topographique */}
-                      {match.pathology.topographic_image_url && (
-                        <div className="h-48 w-full overflow-hidden border-b border-gray-200 bg-gray-50">
-                          <img
-                            src={match.pathology.topographic_image_url}
-                            alt={match.pathology.name}
-                            className="w-full h-full object-contain"
-                          />
-                        </div>
-                      )}
-
-                      {/* Score de correspondance */}
-                      <div className="absolute top-3 right-3 z-10">
-                        <div className="bg-gradient-to-r from-green-500 to-green-600 text-white text-xs font-bold rounded-full px-3 py-1">
+                      {/* Score de correspondance - en haut à droite */}
+                      <div className="absolute top-4 right-4 z-20">
+                        <div className="bg-gradient-to-r from-green-500 to-green-600 text-white text-sm font-bold rounded-full px-4 py-2 shadow-lg">
                           {Math.round(match.matchScore)}%
                         </div>
                       </div>
 
-                      {/* Image topographique si disponible */}
-                      {match.pathology.topographic_image_url && (
-                        <div className="h-56 bg-gray-50 flex items-center justify-center border-b">
+                      {/* Image topographique - MISE EN AVANT */}
+                      {match.pathology.topographic_image_url ? (
+                        <div className="relative h-72 w-full overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100 border-b-2 border-gray-200">
                           <img
                             src={match.pathology.topographic_image_url}
                             alt={match.pathology.name}
-                            className="max-h-full max-w-full object-contain"
+                            className="w-full h-full object-contain p-4 transition-transform group-hover:scale-110"
                           />
+                          {/* Overlay gradient au survol */}
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                        </div>
+                      ) : (
+                        <div className="h-72 bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center border-b-2 border-gray-200">
+                          <ImageIcon className="h-20 w-20 text-gray-300" />
                         </div>
                       )}
 
-
-                      <div className="p-4">
-                        <h3 className="font-semibold text-gray-900 mb-2">
+                      {/* Contenu de la carte */}
+                      <div className="p-5">
+                        <h3 className="font-bold text-xl text-gray-900 mb-3 group-hover:text-primary-600 transition-colors">
                           {match.pathology.name}
                         </h3>
                         
                         {match.pathology.description && (
-                          <p className="text-sm text-gray-600 mb-3 whitespace-pre-line">
+                          <p className="text-sm text-gray-600 mb-4 line-clamp-3">
                             {match.pathology.description}
                           </p>
                         )}
 
-
-                        {/* Critères matchés */}
-                        <div className="space-y-1 mb-3">
-                          {match.matchedCriteria.slice(0, 3).map(criteria => (
-                            <div key={criteria} className="flex items-center gap-1 text-xs text-green-600">
-                              <CheckCircle className="h-3 w-3" />
-                              <span>{criteria}</span>
+                        {/* Critères matchés - badges visuels */}
+                        {match.matchedCriteria.length > 0 && (
+                          <div className="mb-4">
+                            <p className="text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wide">
+                              Critères correspondants
+                            </p>
+                            <div className="flex flex-wrap gap-2">
+                              {match.matchedCriteria.slice(0, 3).map(criteria => (
+                                <div key={criteria} className="flex items-center gap-1 bg-green-50 text-green-700 px-3 py-1 rounded-full text-xs font-medium border border-green-200">
+                                  <CheckCircle className="h-3 w-3" />
+                                  <span>{criteria}</span>
+                                </div>
+                              ))}
+                              {match.matchedCriteria.length > 3 && (
+                                <div className="bg-gray-100 text-gray-600 px-3 py-1 rounded-full text-xs font-medium">
+                                  +{match.matchedCriteria.length - 3}
+                                </div>
+                              )}
                             </div>
-                          ))}
-                          {match.matchedCriteria.length > 3 && (
-                            <span className="text-xs text-gray-500">
-                              +{match.matchedCriteria.length - 3} autres critères
-                            </span>
-                          )}
+                          </div>
+                        )}
+
+                        {/* Statistiques */}
+                        <div className="flex items-center justify-between text-sm text-gray-500 pb-3 border-b border-gray-200 mb-4">
+                          <div className="flex items-center gap-1">
+                            <Activity className="h-4 w-4" />
+                            <span>{match.tests.length} tests</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <Target className="h-4 w-4" />
+                            <span>{match.clusters.length} clusters</span>
+                          </div>
                         </div>
 
-                        {/* Nombre de tests */}
-                        <div className="flex items-center justify-between text-xs text-gray-500">
-                          <span>{match.tests.length} tests</span>
-                          <span>{match.clusters.length} clusters</span>
-                        </div>
-
-                        <button className="mt-3 w-full bg-gradient-to-r from-primary-600 to-primary-700 text-white py-2 rounded-lg hover:from-primary-700 hover:to-primary-800 transition-all flex items-center justify-center gap-2">
-                          Évaluer
-                          <ChevronRight className="h-4 w-4" />
+                        {/* Bouton d'action */}
+                        <button className="w-full bg-gradient-to-r from-primary-600 to-primary-700 text-white py-3 rounded-xl hover:from-primary-700 hover:to-primary-800 transition-all flex items-center justify-center gap-2 font-semibold shadow-md hover:shadow-lg transform group-hover:translate-y-[-2px]">
+                          Évaluer cette pathologie
+                          <ChevronRight className="h-5 w-5" />
                         </button>
                       </div>
                     </div>
@@ -822,10 +878,21 @@ export default function TestingV2Page() {
             {/* Informations de la pathologie */}
             <div className="bg-white rounded-xl shadow-sm p-6">
               <div className="flex items-start justify-between mb-4">
-                <div>
-                  <h2 className="text-xl font-bold text-gray-900">{selectedPathology.name}</h2>
+                <div className="flex-1">
+                  <h2 className="text-2xl font-bold text-gray-900 mb-3">{selectedPathology.name}</h2>
+                  
+                  {selectedPathology.topographic_image_url && (
+                    <div className="mb-4">
+                      <img 
+                        src={selectedPathology.topographic_image_url} 
+                        alt={selectedPathology.name}
+                        className="h-40 object-contain rounded-lg border border-gray-200"
+                      />
+                    </div>
+                  )}
+                  
                   {selectedPathology.description && (
-                    <p className="text-gray-600 mt-2">{selectedPathology.description}</p>
+                    <p className="text-gray-600">{selectedPathology.description}</p>
                   )}
                 </div>
                 <button
@@ -833,14 +900,15 @@ export default function TestingV2Page() {
                     setCurrentStep('pathologies')
                     setSelectedPathology(null)
                   }}
-                  className="text-gray-600 hover:text-primary-600"
+                  className="text-gray-600 hover:text-primary-600 flex items-center gap-1"
                 >
                   <ChevronLeft className="h-5 w-5" />
+                  Retour
                 </button>
               </div>
 
               {selectedPathology.recommendations && (
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                   <h3 className="font-semibold text-blue-900 mb-2 flex items-center gap-2">
                     <Info className="h-5 w-5" />
                     Recommandations
@@ -863,16 +931,16 @@ export default function TestingV2Page() {
                     const result = testResults.find(r => r.testId === test.id)
                     
                     return (
-                      <div key={test.id} className="border rounded-lg p-4">
+                      <div key={test.id} className="border-2 border-gray-200 rounded-xl p-5 hover:border-primary-300 transition-colors">
                         <div className="flex items-start justify-between mb-3">
-                          <div>
-                            <h4 className="font-medium text-gray-900">{test.name}</h4>
+                          <div className="flex-1">
+                            <h4 className="font-semibold text-gray-900 text-lg">{test.name}</h4>
                             {test.description && (
-                              <p className="text-sm text-gray-600 mt-1 whitespace-pre-line">{test.description}</p>
+                              <p className="text-sm text-gray-600 mt-2 whitespace-pre-line">{test.description}</p>
                             )}
                             {test.relevance_score && (
-                              <div className="flex items-center gap-2 mt-2">
-                                <span className="text-xs text-gray-500">Pertinence:</span>
+                              <div className="flex items-center gap-2 mt-3">
+                                <span className="text-xs text-gray-500 font-medium">Pertinence:</span>
                                 <div className="flex">
                                   {[...Array(10)].map((_, i) => (
                                     <div
@@ -885,7 +953,7 @@ export default function TestingV2Page() {
                                     />
                                   ))}
                                 </div>
-                                <span className="text-xs font-medium text-gray-700">
+                                <span className="text-xs font-bold text-gray-700">
                                   {test.relevance_score}/10
                                 </span>
                               </div>
@@ -893,38 +961,38 @@ export default function TestingV2Page() {
                           </div>
                         </div>
 
-                        <div className="flex gap-2">
+                        <div className="flex gap-2 mt-4">
                           <button
                             onClick={() => handleTestResult(test.id, 'positive')}
-                            className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all ${
+                            className={`flex-1 py-3 px-4 rounded-lg text-sm font-semibold transition-all ${
                               result?.result === 'positive'
-                                ? 'bg-green-600 text-white'
+                                ? 'bg-green-600 text-white shadow-md'
                                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                             }`}
                           >
-                            <CheckCircle className="h-4 w-4 inline mr-1" />
+                            <CheckCircle className="h-5 w-5 inline mr-2" />
                             Positif
                           </button>
                           <button
                             onClick={() => handleTestResult(test.id, 'negative')}
-                            className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all ${
+                            className={`flex-1 py-3 px-4 rounded-lg text-sm font-semibold transition-all ${
                               result?.result === 'negative'
-                                ? 'bg-red-600 text-white'
+                                ? 'bg-red-600 text-white shadow-md'
                                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                             }`}
                           >
-                            <XCircle className="h-4 w-4 inline mr-1" />
+                            <XCircle className="h-5 w-5 inline mr-2" />
                             Négatif
                           </button>
                           <button
                             onClick={() => handleTestResult(test.id, 'uncertain')}
-                            className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all ${
+                            className={`flex-1 py-3 px-4 rounded-lg text-sm font-semibold transition-all ${
                               result?.result === 'uncertain'
-                                ? 'bg-yellow-600 text-white'
+                                ? 'bg-yellow-600 text-white shadow-md'
                                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                             }`}
                           >
-                            <AlertCircle className="h-4 w-4 inline mr-1" />
+                            <AlertCircle className="h-5 w-5 inline mr-2" />
                             Incertain
                           </button>
                         </div>
@@ -1013,7 +1081,6 @@ export default function TestingV2Page() {
                   const episode = buildCurrentEpisode()
                   setEpisodes(prev => [...prev, episode])
 
-                  // reset pour un nouveau diagnostic dans la même séance
                   setCurrentStep('region')
                   setSelectedRegion('')
                   setTriageAnswers({})
@@ -1027,12 +1094,11 @@ export default function TestingV2Page() {
                 + Ajouter un autre élément à cette consultation
               </button>
 
-
               <div className="flex gap-3">
                 <button
                   onClick={saveConsultation}
                   disabled={saving || !consultationData.patientName}
-                  className="flex-1 bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                  className="flex-1 bg-primary-600 text-white px-4 py-3 rounded-lg hover:bg-primary-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 font-semibold"
                 >
                   <Save className="h-5 w-5" />
                   {saving ? 'Sauvegarde...' : 'Sauvegarder'}
@@ -1041,7 +1107,7 @@ export default function TestingV2Page() {
                 <button
                   onClick={generatePDF}
                   disabled={!consultationData.patientName}
-                  className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                  className="flex-1 bg-blue-600 text-white px-4 py-3 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 font-semibold"
                 >
                   <Download className="h-5 w-5" />
                   Générer PDF
