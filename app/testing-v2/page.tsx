@@ -1056,7 +1056,7 @@ export default function TestingV2Page() {
                               <div className="bg-white rounded-lg p-3 border border-green-200">
                                 <p className="text-xs text-gray-600 mb-1">Sensibilité</p>
                                 <p className="text-lg font-bold text-green-700">
-                                  {Math.round(cluster.sensitivity * 100)}%
+                                  {Math.round(cluster.sensitivity)}%
                                 </p>
                               </div>
                             )}
@@ -1064,7 +1064,7 @@ export default function TestingV2Page() {
                               <div className="bg-white rounded-lg p-3 border border-blue-200">
                                 <p className="text-xs text-gray-600 mb-1">Spécificité</p>
                                 <p className="text-lg font-bold text-blue-700">
-                                  {Math.round(cluster.specificity * 100)}%
+                                  {Math.round(cluster.specificity)}%
                                 </p>
                               </div>
                             )}
