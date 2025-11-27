@@ -915,8 +915,11 @@ export default function TestingV2Page() {
                   )}
                   
                   {selectedPathology.description && (
-                    <p className="text-gray-600">{selectedPathology.description}</p>
+                    <p className="text-gray-600 whitespace-pre-line">
+                      {selectedPathology.description}
+                    </p>
                   )}
+
                 </div>
                 <button
                   onClick={() => {
