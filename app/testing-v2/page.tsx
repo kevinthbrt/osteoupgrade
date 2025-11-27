@@ -29,8 +29,7 @@ import {
   MapPin,
   Target,
   Sparkles,
-  Stethoscope,
-  Image
+  Stethoscope
 } from 'lucide-react'
 
 interface TriageAnswers {
@@ -370,6 +369,12 @@ export default function TestingV2Page() {
         .select('*, cluster:orthopedic_test_clusters(*)')
         .order('recommended_order')
 
+      // Charger les tests de chaque cluster
+      const { data: clusterItems } = await supabase
+        .from('orthopedic_test_cluster_items')
+        .select('*, test:orthopedic_tests(*)')
+        .order('order_index')
+
       const pathologiesWithData = pathologiesData?.map(pathology => {
         const triage = triageData?.find(t => t.pathology_id === pathology.id)
         const tests = testLinks?.filter(l => l.pathology_id === pathology.id).map(l => ({
@@ -377,7 +382,22 @@ export default function TestingV2Page() {
           relevance_score: l.relevance_score,
           notes: l.notes
         })) || []
-        const clusters = clusterLinks?.filter(l => l.pathology_id === pathology.id).map(l => l.cluster) || []
+        
+        // Enrichir les clusters avec leurs tests
+        const clusters = clusterLinks
+          ?.filter(l => l.pathology_id === pathology.id)
+          .map(l => {
+            const clusterTestItems = clusterItems
+              ?.filter(item => item.cluster_id === l.cluster.id)
+              .map(item => item.test) || []
+            
+            return {
+              ...l.cluster,
+              tests: clusterTestItems,
+              relevance_score: l.relevance_score,
+              notes: l.notes
+            }
+          }) || []
 
         return {
           ...pathology,
@@ -808,7 +828,9 @@ export default function TestingV2Page() {
                         </div>
                       ) : (
                         <div className="h-72 bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center border-b-2 border-gray-200">
-                          <Image className="h-20 w-20 text-gray-300" />
+                          <svg className="h-20 w-20 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                          </svg>
                         </div>
                       )}
 
@@ -999,6 +1021,135 @@ export default function TestingV2Page() {
                       </div>
                     )
                   })}
+                </div>
+              </div>
+            )}
+
+            {/* Clusters de tests orthopédiques */}
+            {selectedPathology.clusters?.length > 0 && (
+              <div className="bg-white rounded-xl shadow-sm p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                  <Target className="h-5 w-5 text-primary-600" />
+                  Clusters de tests ({selectedPathology.clusters.length})
+                </h3>
+                <p className="text-sm text-gray-600 mb-4">
+                  Les clusters regroupent plusieurs tests pour augmenter la fiabilité diagnostique
+                </p>
+                
+                <div className="space-y-6">
+                  {selectedPathology.clusters.map((cluster: any) => (
+                    <div key={cluster.id} className="border-2 border-purple-200 rounded-xl p-5 bg-purple-50/30">
+                      <div className="mb-4">
+                        <h4 className="font-bold text-gray-900 text-lg mb-2 flex items-center gap-2">
+                          <Sparkles className="h-5 w-5 text-purple-600" />
+                          {cluster.name}
+                        </h4>
+                        
+                        {cluster.description && (
+                          <p className="text-sm text-gray-700 mb-3">{cluster.description}</p>
+                        )}
+
+                        {/* Indicateurs statistiques du cluster */}
+                        {(cluster.sensitivity || cluster.specificity) && (
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
+                            {cluster.sensitivity && (
+                              <div className="bg-white rounded-lg p-3 border border-green-200">
+                                <p className="text-xs text-gray-600 mb-1">Sensibilité</p>
+                                <p className="text-lg font-bold text-green-700">
+                                  {Math.round(cluster.sensitivity * 100)}%
+                                </p>
+                              </div>
+                            )}
+                            {cluster.specificity && (
+                              <div className="bg-white rounded-lg p-3 border border-blue-200">
+                                <p className="text-xs text-gray-600 mb-1">Spécificité</p>
+                                <p className="text-lg font-bold text-blue-700">
+                                  {Math.round(cluster.specificity * 100)}%
+                                </p>
+                              </div>
+                            )}
+                            {cluster.rv_positive && (
+                              <div className="bg-white rounded-lg p-3 border border-purple-200">
+                                <p className="text-xs text-gray-600 mb-1">RV+</p>
+                                <p className="text-lg font-bold text-purple-700">
+                                  {cluster.rv_positive.toFixed(1)}
+                                </p>
+                              </div>
+                            )}
+                            {cluster.rv_negative && (
+                              <div className="bg-white rounded-lg p-3 border border-orange-200">
+                                <p className="text-xs text-gray-600 mb-1">RV-</p>
+                                <p className="text-lg font-bold text-orange-700">
+                                  {cluster.rv_negative.toFixed(2)}
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {cluster.indications && (
+                          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-3">
+                            <p className="text-xs font-semibold text-blue-900 mb-1">Indications</p>
+                            <p className="text-sm text-blue-800">{cluster.indications}</p>
+                          </div>
+                        )}
+
+                        {cluster.interest && (
+                          <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-3">
+                            <p className="text-xs font-semibold text-green-900 mb-1">Intérêt clinique</p>
+                            <p className="text-sm text-green-800">{cluster.interest}</p>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Tests du cluster */}
+                      {cluster.tests && cluster.tests.length > 0 ? (
+                        <div className="bg-white rounded-lg p-4 border-2 border-purple-100">
+                          <p className="text-xs font-semibold text-purple-900 mb-3 uppercase tracking-wide flex items-center gap-2">
+                            <Activity className="h-4 w-4" />
+                            Tests à réaliser en séquence ({cluster.tests.length})
+                          </p>
+                          <div className="space-y-3">
+                            {cluster.tests.map((test: any, index: number) => (
+                              <div key={test.id} className="flex items-start gap-3 p-3 bg-purple-50 rounded-lg">
+                                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-purple-600 text-white flex items-center justify-center font-bold text-sm">
+                                  {index + 1}
+                                </div>
+                                <div className="flex-1">
+                                  <h5 className="font-semibold text-gray-900 text-sm">{test.name}</h5>
+                                  {test.description && (
+                                    <p className="text-xs text-gray-600 mt-1 line-clamp-2">{test.description}</p>
+                                  )}
+                                  {test.video_url && (
+                                    <a 
+                                      href={test.video_url}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="text-xs text-primary-600 hover:text-primary-700 mt-1 inline-flex items-center gap-1"
+                                    >
+                                      <FileText className="h-3 w-3" />
+                                      Voir la vidéo
+                                    </a>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                          <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                            <p className="text-xs text-yellow-800">
+                              💡 <strong>Astuce :</strong> Réalisez tous les tests du cluster pour maximiser la précision diagnostique
+                            </p>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="bg-white rounded-lg p-4 border-2 border-purple-100">
+                          <p className="text-xs text-gray-500 italic">
+                            Les tests de ce cluster sont disponibles dans la section "Tests orthopédiques" ci-dessus
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  ))}
                 </div>
               </div>
             )}
