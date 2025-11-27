@@ -5,34 +5,25 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import AuthLayout from '@/components/AuthLayout'
 import {
+  Activity,
+  Plus,
+  Edit2,
+  Trash2,
+  Save,
+  X,
+  Upload,
+  Image,
   Filter,
+  CheckCircle,
+  AlertCircle,
   Info,
   ChevronDown,
   ChevronRight,
   Settings,
-  Map,
-  CheckCircle,
-  Image as ImageIcon,
-  X,
-  Save,
+  Map
 } from 'lucide-react'
 
-interface TriageCriteria {
-  pain_type: string[]
-  pain_onset: string[]
-  aggravating_factors: string[]
-  radiation_pattern: string[]
-  neurological_symptoms: boolean
-  relieving_movement: string[]
-  triage_weight: number
-}
-
-type MultipleChoiceField =
-  | 'pain_type'
-  | 'pain_onset'
-  | 'aggravating_factors'
-  | 'radiation_pattern'
-  | 'relieving_movement'
+type MultipleChoiceField = 'pain_type' | 'pain_onset' | 'aggravating_factors' | 'radiation_pattern' | 'relieving_movement'
 
 interface PathologyWithTriage {
   id: string
@@ -44,7 +35,15 @@ interface PathologyWithTriage {
   topographic_image_url?: string
   recommendations?: string
   is_active: boolean
-  triage_criteria: TriageCriteria
+  triage_criteria?: {
+    pain_type?: string[]
+    pain_onset?: string[]
+    aggravating_factors?: string[]
+    radiation_pattern?: string[]
+    neurological_symptoms?: boolean
+    relieving_movement?: string[]
+    triage_weight?: number
+  }
   tests: any[]
   clusters: any[]
 }
@@ -107,24 +106,6 @@ const RELIEVING_MOVEMENTS = [
   { value: 'non_applicable', label: 'Non applicable' }
 ]
 
-// Helpers
-
-const normalizeArray = (value: unknown): string[] => {
-  if (Array.isArray(value)) return value.filter((v): v is string => typeof v === 'string')
-  if (typeof value === 'string') return [value]
-  return []
-}
-
-const defaultTriageCriteria = (): TriageCriteria => ({
-  pain_type: [],
-  pain_onset: [],
-  aggravating_factors: [],
-  radiation_pattern: [],
-  neurological_symptoms: false,
-  relieving_movement: [],
-  triage_weight: 50
-})
-
 export default function PathologyTriageAdminPage() {
   const router = useRouter()
   const [pathologies, setPathologies] = useState<PathologyWithTriage[]>([])
@@ -183,40 +164,39 @@ export default function PathologyTriageAdminPage() {
         .from('pathology_clusters')
         .select('*, cluster:orthopedic_test_clusters(*)')
 
-      const pathologiesWithTriage: PathologyWithTriage[] =
-        pathologiesData?.map((pathology: any) => {
-          const triage = triageData?.find(t => t.pathology_id === pathology.id)
+      const pathologiesWithTriage = pathologiesData?.map(pathology => {
+        const triage = triageData?.find(t => t.pathology_id === pathology.id)
+        const tests = testLinks
+          ?.filter(l => l.pathology_id === pathology.id)
+          .map(l => l.test) ?? []
 
-          const tests = testLinks
-            ?.filter(l => l.pathology_id === pathology.id)
-            .map(l => l.test) ?? []
+        const clusters = clusterLinks
+          ?.filter(l => l.pathology_id === pathology.id)
+          .map(l => l.cluster) ?? []
 
-          const clusters = clusterLinks
-            ?.filter(l => l.pathology_id === pathology.id)
-            .map(l => l.cluster) ?? []
-
-          const triage_criteria: TriageCriteria = triage
-            ? {
-                pain_type: normalizeArray(triage.pain_type),
-                pain_onset: normalizeArray(triage.pain_onset),
-                aggravating_factors: normalizeArray(triage.aggravating_factors),
-                radiation_pattern: normalizeArray(triage.radiation_pattern),
-                neurological_symptoms: Boolean(triage.neurological_symptoms),
-                relieving_movement: normalizeArray(triage.relieving_movement),
-                triage_weight:
-                  typeof triage.triage_weight === 'number'
-                    ? triage.triage_weight
-                    : 50
-              }
-            : defaultTriageCriteria()
-
-          return {
-            ...pathology,
-            triage_criteria,
-            tests,
-            clusters
-          } as PathologyWithTriage
-        }) || []
+        return {
+          ...pathology,
+          triage_criteria: triage ? {
+            pain_type: Array.isArray(triage.pain_type) ? triage.pain_type : (triage.pain_type ? [triage.pain_type] : []),
+            pain_onset: Array.isArray(triage.pain_onset) ? triage.pain_onset : (triage.pain_onset ? [triage.pain_onset] : []),
+            aggravating_factors: Array.isArray(triage.aggravating_factors) ? triage.aggravating_factors : (triage.aggravating_factors ? [triage.aggravating_factors] : []),
+            radiation_pattern: Array.isArray(triage.radiation_pattern) ? triage.radiation_pattern : (triage.radiation_pattern ? [triage.radiation_pattern] : []),
+            neurological_symptoms: triage.neurological_symptoms,
+            relieving_movement: Array.isArray(triage.relieving_movement) ? triage.relieving_movement : (triage.relieving_movement ? [triage.relieving_movement] : []),
+            triage_weight: triage.triage_weight
+          } : {
+            pain_type: [],
+            pain_onset: [],
+            aggravating_factors: [],
+            radiation_pattern: [],
+            neurological_symptoms: false,
+            relieving_movement: [],
+            triage_weight: 50
+          },
+          tests,
+          clusters
+        }
+      }) || []
 
       setPathologies(pathologiesWithTriage)
     } catch (error) {
@@ -230,9 +210,12 @@ export default function PathologyTriageAdminPage() {
   const handleImageUpload = async (pathologyId: string, file: File) => {
     setUploadingImage(true)
     try {
+      // 1. Upload vers Vercel Blob
       const formData = new FormData()
       formData.append('file', file)
       formData.append('pathologyId', pathologyId)
+
+      console.log('📤 Upload en cours...', { pathologyId, fileName: file.name })
 
       const res = await fetch('/api/pathology-image-upload', {
         method: 'POST',
@@ -240,23 +223,67 @@ export default function PathologyTriageAdminPage() {
       })
 
       if (!res.ok) {
-        throw new Error('Erreur lors de l\'upload vers Vercel Blob')
+        const errorText = await res.text()
+        console.error('❌ Erreur API:', errorText)
+        throw new Error(`Erreur API: ${res.status}`)
       }
 
       const { url } = await res.json()
+      console.log('✅ URL reçue:', url)
 
-      const { error: updateError } = await supabase
+      if (!url || !url.startsWith('http')) {
+        throw new Error('URL invalide reçue de l\'API')
+      }
+
+      // 2. Sauvegarder dans Supabase AVEC .select() pour vérifier
+      console.log('💾 Sauvegarde dans Supabase...')
+      const { data: updatedData, error: updateError } = await supabase
         .from('pathologies')
         .update({ topographic_image_url: url })
         .eq('id', pathologyId)
+        .select()  // ← CRITIQUE : Retourne les données mises à jour
 
-      if (updateError) throw updateError
+      if (updateError) {
+        console.error('❌ Erreur Supabase:', updateError)
+        throw updateError
+      }
 
-      alert('Image téléchargée avec succès')
-      loadPathologies()
-    } catch (error) {
-      console.error('Error uploading image:', error)
-      alert("Erreur lors du téléchargement de l'image")
+      console.log('✅ Données mises à jour:', updatedData)
+
+      // 3. Vérification de sécurité
+      const { data: verifyData, error: verifyError } = await supabase
+        .from('pathologies')
+        .select('topographic_image_url')
+        .eq('id', pathologyId)
+        .single()
+
+      if (verifyError) {
+        console.error('❌ Erreur vérification:', verifyError)
+      }
+
+      console.log('🔍 Vérification:', verifyData)
+
+      if (verifyData?.topographic_image_url !== url) {
+        throw new Error('⚠️ L\'URL n\'a pas été sauvegardée correctement dans Supabase')
+      }
+
+      alert('✅ Image téléchargée et sauvegardée avec succès !\n\nURL: ' + url)
+      
+      // Recharger toutes les pathologies
+      await loadPathologies()
+      
+      // Mettre à jour la pathologie sélectionnée si nécessaire
+      if (selectedPathology?.id === pathologyId) {
+        setSelectedPathology({
+          ...selectedPathology,
+          topographic_image_url: url
+        })
+      }
+      
+    } catch (error: unknown) {
+      console.error('❌ Erreur complète:', error)
+      const errorMessage = error instanceof Error ? error.message : 'Erreur inconnue'
+      alert(`❌ Erreur lors du téléchargement :\n\n${errorMessage}`)
     } finally {
       setUploadingImage(false)
     }
@@ -265,8 +292,7 @@ export default function PathologyTriageAdminPage() {
   const toggleMultipleChoice = (field: MultipleChoiceField, value: string) => {
     if (!selectedPathology) return
 
-    const currentCriteria = selectedPathology.triage_criteria ?? defaultTriageCriteria()
-    const currentValues = currentCriteria[field] ?? []
+    const currentValues = (selectedPathology.triage_criteria?.[field] || []) as string[]
     const newValues = currentValues.includes(value)
       ? currentValues.filter(v => v !== value)
       : [...currentValues, value]
@@ -274,7 +300,7 @@ export default function PathologyTriageAdminPage() {
     setSelectedPathology({
       ...selectedPathology,
       triage_criteria: {
-        ...currentCriteria,
+        ...selectedPathology.triage_criteria,
         [field]: newValues
       }
     })
@@ -304,18 +330,17 @@ export default function PathologyTriageAdminPage() {
         .eq('pathology_id', selectedPathology.id)
         .single()
 
-      const triage = selectedPathology.triage_criteria ?? defaultTriageCriteria()
-
+      // Convertir les arrays en JSONB pour PostgreSQL
       const triageData = {
         pathology_id: selectedPathology.id,
-        pain_type: triage.pain_type,
-        pain_onset: triage.pain_onset,
-        aggravating_factors: triage.aggravating_factors,
-        radiation_pattern: triage.radiation_pattern,
-        neurological_symptoms: triage.neurological_symptoms,
-        relieving_movement: triage.relieving_movement,
+        pain_type: selectedPathology.triage_criteria?.pain_type || [],
+        pain_onset: selectedPathology.triage_criteria?.pain_onset || [],
+        aggravating_factors: selectedPathology.triage_criteria?.aggravating_factors || [],
+        radiation_pattern: selectedPathology.triage_criteria?.radiation_pattern || [],
+        neurological_symptoms: selectedPathology.triage_criteria?.neurological_symptoms,
+        relieving_movement: selectedPathology.triage_criteria?.relieving_movement || [],
         additional_criteria: {},
-        triage_weight: triage.triage_weight,
+        triage_weight: selectedPathology.triage_criteria?.triage_weight || 50,
         created_by: user?.id
       }
 
@@ -356,7 +381,7 @@ export default function PathologyTriageAdminPage() {
     return acc
   }, {} as Record<string, PathologyWithTriage[]>)
 
-  const getLabels = (values: string[] | undefined, options: { value: string; label: string }[]) => {
+  const getLabels = (values: string[] | undefined, options: any[]) => {
     if (!values || values.length === 0) return '-'
     return values.map(v => options.find(o => o.value === v)?.label || v).join(', ')
   }
@@ -451,12 +476,12 @@ export default function PathologyTriageAdminPage() {
                               <ChevronRight className="h-4 w-4 text-gray-500" />
                             }
                             <h3 className="font-medium text-gray-900">{pathology.name}</h3>
-                            {(
-                              pathology.triage_criteria.pain_type.length > 0 ||
-                              pathology.triage_criteria.pain_onset.length > 0 ||
-                              pathology.triage_criteria.aggravating_factors.length > 0 ||
-                              pathology.triage_criteria.radiation_pattern.length > 0 ||
-                              pathology.triage_criteria.relieving_movement.length > 0
+                            {pathology.triage_criteria && (
+                              (pathology.triage_criteria.pain_type?.length || 0) > 0 ||
+                              (pathology.triage_criteria.pain_onset?.length || 0) > 0 ||
+                              (pathology.triage_criteria.aggravating_factors?.length || 0) > 0 ||
+                              (pathology.triage_criteria.radiation_pattern?.length || 0) > 0 ||
+                              (pathology.triage_criteria.relieving_movement?.length || 0) > 0
                             ) && (
                               <span className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">
                                 Triage configuré
@@ -499,44 +524,50 @@ export default function PathologyTriageAdminPage() {
                     {/* Détails expandés */}
                     {expandedPathology === pathology.id && (
                       <div className="mt-4 ml-6 p-4 bg-gray-50 rounded-lg space-y-3">
-                        <div className="grid grid-cols-2 gap-4 text-sm">
-                          <div>
-                            <span className="font-medium text-gray-700">Type de douleur:</span>{' '}
-                            <span className="text-gray-900">
-                              {getLabels(pathology.triage_criteria.pain_type, PAIN_TYPES)}
-                            </span>
+                        {pathology.triage_criteria ? (
+                          <div className="grid grid-cols-2 gap-4 text-sm">
+                            <div>
+                              <span className="font-medium text-gray-700">Type de douleur:</span>{' '}
+                              <span className="text-gray-900">
+                                {getLabels(pathology.triage_criteria?.pain_type, PAIN_TYPES)}
+                              </span>
+                            </div>
+                            <div>
+                              <span className="font-medium text-gray-700">Apparition:</span>{' '}
+                              <span className="text-gray-900">
+                                {getLabels(pathology.triage_criteria?.pain_onset, PAIN_ONSETS)}
+                              </span>
+                            </div>
+                            <div>
+                              <span className="font-medium text-gray-700">Facteurs aggravants:</span>{' '}
+                              <span className="text-gray-900">
+                                {getLabels(pathology.triage_criteria?.aggravating_factors, AGGRAVATING_FACTORS)}
+                              </span>
+                            </div>
+                            <div>
+                              <span className="font-medium text-gray-700">Irradiation:</span>{' '}
+                              <span className="text-gray-900">
+                                {getLabels(pathology.triage_criteria?.radiation_pattern, RADIATION_PATTERNS)}
+                              </span>
+                            </div>
+                            <div>
+                              <span className="font-medium text-gray-700">Symptômes neuro:</span>{' '}
+                              <span className="text-gray-900">
+                                {pathology.triage_criteria?.neurological_symptoms ? 'Oui' : 'Non'}
+                              </span>
+                            </div>
+                            <div>
+                              <span className="font-medium text-gray-700">Mouvements soulageants:</span>{' '}
+                              <span className="text-gray-900">
+                                {getLabels(pathology.triage_criteria?.relieving_movement, RELIEVING_MOVEMENTS)}
+                              </span>
+                            </div>
                           </div>
-                          <div>
-                            <span className="font-medium text-gray-700">Apparition:</span>{' '}
-                            <span className="text-gray-900">
-                              {getLabels(pathology.triage_criteria.pain_onset, PAIN_ONSETS)}
-                            </span>
-                          </div>
-                          <div>
-                            <span className="font-medium text-gray-700">Facteurs aggravants:</span>{' '}
-                            <span className="text-gray-900">
-                              {getLabels(pathology.triage_criteria.aggravating_factors, AGGRAVATING_FACTORS)}
-                            </span>
-                          </div>
-                          <div>
-                            <span className="font-medium text-gray-700">Irradiation:</span>{' '}
-                            <span className="text-gray-900">
-                              {getLabels(pathology.triage_criteria.radiation_pattern, RADIATION_PATTERNS)}
-                            </span>
-                          </div>
-                          <div>
-                            <span className="font-medium text-gray-700">Symptômes neuro:</span>{' '}
-                            <span className="text-gray-900">
-                              {pathology.triage_criteria.neurological_symptoms ? 'Oui' : 'Non'}
-                            </span>
-                          </div>
-                          <div>
-                            <span className="font-medium text-gray-700">Mouvements soulageants:</span>{' '}
-                            <span className="text-gray-900">
-                              {getLabels(pathology.triage_criteria.relieving_movement, RELIEVING_MOVEMENTS)}
-                            </span>
-                          </div>
-                        </div>
+                        ) : (
+                          <p className="text-sm text-gray-600 italic">
+                            Aucun critère de triage configuré
+                          </p>
+                        )}
                         
                         {pathology.topographic_image_url && (
                           <div className="mt-3">
@@ -629,7 +660,7 @@ export default function PathologyTriageAdminPage() {
                           rel="noopener noreferrer"
                           className="p-2 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200"
                         >
-                          <ImageIcon className="h-4 w-4" />
+                          <Image className="h-4 w-4" />
                         </a>
                       )}
                     </div>
@@ -672,14 +703,14 @@ export default function PathologyTriageAdminPage() {
                           key={type.value}
                           onClick={() => toggleMultipleChoice('pain_type', type.value)}
                           className={`p-3 rounded-lg border-2 text-left transition-all ${
-                            selectedPathology.triage_criteria.pain_type.includes(type.value)
+                            selectedPathology.triage_criteria?.pain_type?.includes(type.value)
                               ? 'border-purple-600 bg-purple-50'
                               : 'border-gray-200 hover:border-gray-300'
                           }`}
                         >
                           <div className="flex items-center justify-between mb-1">
                             <p className="font-medium text-gray-900">{type.label}</p>
-                            {selectedPathology.triage_criteria.pain_type.includes(type.value) && (
+                            {selectedPathology.triage_criteria?.pain_type?.includes(type.value) && (
                               <CheckCircle className="h-5 w-5 text-purple-600" />
                             )}
                           </div>
@@ -702,14 +733,14 @@ export default function PathologyTriageAdminPage() {
                           key={onset.value}
                           onClick={() => toggleMultipleChoice('pain_onset', onset.value)}
                           className={`p-3 rounded-lg border-2 text-left transition-all ${
-                            selectedPathology.triage_criteria.pain_onset.includes(onset.value)
+                            selectedPathology.triage_criteria?.pain_onset?.includes(onset.value)
                               ? 'border-purple-600 bg-purple-50'
                               : 'border-gray-200 hover:border-gray-300'
                           }`}
                         >
                           <div className="flex items-center justify-between mb-1">
                             <p className="font-medium text-gray-900">{onset.label}</p>
-                            {selectedPathology.triage_criteria.pain_onset.includes(onset.value) && (
+                            {selectedPathology.triage_criteria?.pain_onset?.includes(onset.value) && (
                               <CheckCircle className="h-5 w-5 text-purple-600" />
                             )}
                           </div>
@@ -732,14 +763,14 @@ export default function PathologyTriageAdminPage() {
                           key={factor.value}
                           onClick={() => toggleMultipleChoice('aggravating_factors', factor.value)}
                           className={`p-3 rounded-lg border-2 text-left transition-all ${
-                            selectedPathology.triage_criteria.aggravating_factors.includes(factor.value)
+                            selectedPathology.triage_criteria?.aggravating_factors?.includes(factor.value)
                               ? 'border-purple-600 bg-purple-50'
                               : 'border-gray-200 hover:border-gray-300'
                           }`}
                         >
                           <div className="flex items-center justify-between mb-1">
                             <p className="font-medium text-gray-900">{factor.label}</p>
-                            {selectedPathology.triage_criteria.aggravating_factors.includes(factor.value) && (
+                            {selectedPathology.triage_criteria?.aggravating_factors?.includes(factor.value) && (
                               <CheckCircle className="h-5 w-5 text-purple-600" />
                             )}
                           </div>
@@ -762,14 +793,14 @@ export default function PathologyTriageAdminPage() {
                           key={pattern.value}
                           onClick={() => toggleMultipleChoice('radiation_pattern', pattern.value)}
                           className={`p-3 rounded-lg border-2 text-left transition-all ${
-                            selectedPathology.triage_criteria.radiation_pattern.includes(pattern.value)
+                            selectedPathology.triage_criteria?.radiation_pattern?.includes(pattern.value)
                               ? 'border-purple-600 bg-purple-50'
                               : 'border-gray-200 hover:border-gray-300'
                           }`}
                         >
                           <div className="flex items-center justify-between mb-1">
                             <p className="font-medium text-gray-900">{pattern.label}</p>
-                            {selectedPathology.triage_criteria.radiation_pattern.includes(pattern.value) && (
+                            {selectedPathology.triage_criteria?.radiation_pattern?.includes(pattern.value) && (
                               <CheckCircle className="h-5 w-5 text-purple-600" />
                             )}
                           </div>
@@ -796,7 +827,7 @@ export default function PathologyTriageAdminPage() {
                           }
                         })}
                         className={`p-3 rounded-lg border-2 text-left transition-all ${
-                          selectedPathology.triage_criteria.neurological_symptoms === true
+                          selectedPathology.triage_criteria?.neurological_symptoms === true
                             ? 'border-purple-600 bg-purple-50'
                             : 'border-gray-200 hover:border-gray-300'
                         }`}
@@ -813,7 +844,7 @@ export default function PathologyTriageAdminPage() {
                           }
                         })}
                         className={`p-3 rounded-lg border-2 text-left transition-all ${
-                          selectedPathology.triage_criteria.neurological_symptoms === false
+                          selectedPathology.triage_criteria?.neurological_symptoms === false
                             ? 'border-purple-600 bg-purple-50'
                             : 'border-gray-200 hover:border-gray-300'
                         }`}
@@ -835,14 +866,14 @@ export default function PathologyTriageAdminPage() {
                           key={movement.value}
                           onClick={() => toggleMultipleChoice('relieving_movement', movement.value)}
                           className={`p-3 rounded-lg border-2 text-left transition-all ${
-                            selectedPathology.triage_criteria.relieving_movement.includes(movement.value)
+                            selectedPathology.triage_criteria?.relieving_movement?.includes(movement.value)
                               ? 'border-purple-600 bg-purple-50'
                               : 'border-gray-200 hover:border-gray-300'
                           }`}
                         >
                           <div className="flex items-center justify-between mb-1">
                             <p className="font-medium text-gray-900">{movement.label}</p>
-                            {selectedPathology.triage_criteria.relieving_movement.includes(movement.value) && (
+                            {selectedPathology.triage_criteria?.relieving_movement?.includes(movement.value) && (
                               <CheckCircle className="h-5 w-5 text-purple-600" />
                             )}
                           </div>
@@ -863,7 +894,7 @@ export default function PathologyTriageAdminPage() {
                       type="range"
                       min="0"
                       max="100"
-                      value={selectedPathology.triage_criteria.triage_weight}
+                      value={selectedPathology.triage_criteria?.triage_weight || 50}
                       onChange={(e) => setSelectedPathology({
                         ...selectedPathology,
                         triage_criteria: {
@@ -876,7 +907,7 @@ export default function PathologyTriageAdminPage() {
                     <div className="flex justify-between text-xs text-gray-600 mt-1">
                       <span>Faible priorité</span>
                       <span className="font-medium text-purple-600">
-                        {selectedPathology.triage_criteria.triage_weight}
+                        {selectedPathology.triage_criteria?.triage_weight || 50}
                       </span>
                       <span>Haute priorité</span>
                     </div>
