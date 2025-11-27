@@ -739,6 +739,18 @@ export default function TestingV2Page() {
                         setCurrentStep('tests')
                       }}
                     >
+
+                      {/* Image topographique */}
+                      {match.pathology.topographic_image_url && (
+                        <div className="h-48 w-full overflow-hidden border-b border-gray-200 bg-gray-50">
+                          <img
+                            src={match.pathology.topographic_image_url}
+                            alt={match.pathology.name}
+                            className="w-full h-full object-contain"
+                          />
+                        </div>
+                      )}
+
                       {/* Score de correspondance */}
                       <div className="absolute top-3 right-3 z-10">
                         <div className="bg-gradient-to-r from-green-500 to-green-600 text-white text-xs font-bold rounded-full px-3 py-1">
