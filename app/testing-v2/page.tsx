@@ -30,7 +30,7 @@ import {
   Target,
   Sparkles,
   Stethoscope,
-  Image as ImageIcon
+  Image
 } from 'lucide-react'
 
 interface TriageAnswers {
@@ -808,7 +808,7 @@ export default function TestingV2Page() {
                         </div>
                       ) : (
                         <div className="h-72 bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center border-b-2 border-gray-200">
-                          <ImageIcon className="h-20 w-20 text-gray-300" />
+                          <Image className="h-20 w-20 text-gray-300" />
                         </div>
                       )}
 
