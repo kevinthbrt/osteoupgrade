@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
+import { supabase } from '@/lib/supabase'
 import AuthLayout from '@/components/AuthLayout'
 import {
   Activity,
@@ -80,7 +80,6 @@ const PAIN_LOCATIONS = [
 
 export default function PathologyTriageAdminSimplifiedPage() {
   const router = useRouter()
-  const supabase = createClient()
   
   const [pathologies, setPathologies] = useState<PathologyWithTriage[]>([])
   const [loading, setLoading] = useState(true)
@@ -138,15 +137,15 @@ export default function PathologyTriageAdminSimplifiedPage() {
         .from('pathology_clusters')
         .select('*, cluster:orthopedic_test_clusters(*)')
 
-      const pathologiesWithTriage = pathologiesData?.map(pathology => {
-        const triage = triageData?.find(t => t.pathology_id === pathology.id)
+      const pathologiesWithTriage = pathologiesData?.map((pathology: any) => {
+        const triage = triageData?.find((t: any) => t.pathology_id === pathology.id)
         const tests = testLinks
-          ?.filter(l => l.pathology_id === pathology.id)
-          .map(l => l.test) ?? []
+          ?.filter((l: any) => l.pathology_id === pathology.id)
+          .map((l: any) => l.test) ?? []
 
         const clusters = clusterLinks
-          ?.filter(l => l.pathology_id === pathology.id)
-          .map(l => l.cluster) ?? []
+          ?.filter((l: any) => l.pathology_id === pathology.id)
+          .map((l: any) => l.cluster) ?? []
 
         return {
           ...pathology,

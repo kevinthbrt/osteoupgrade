@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
+import { supabase } from '@/lib/supabase'
 import AuthLayout from '@/components/AuthLayout'
 import { generateConsultationPDF } from '@/utils/generateConsultationPDF'
 import {
@@ -180,7 +180,6 @@ const TRIAGE_QUESTIONS = [
 
 export default function TestingV2SimplifiedPage() {
   const router = useRouter()
-  const supabase = createClient()
   
   const [loading, setLoading] = useState(true)
   const [profile, setProfile] = useState<any>(null)
@@ -264,20 +263,20 @@ export default function TestingV2SimplifiedPage() {
         .select('*, test:orthopedic_tests(*)')
         .order('order_index')
 
-      const pathologiesWithData = pathologiesData?.map(pathology => {
-        const triage = triageData?.find(t => t.pathology_id === pathology.id)
-        const tests = testLinks?.filter(l => l.pathology_id === pathology.id).map(l => ({
+      const pathologiesWithData = pathologiesData?.map((pathology: any) => {
+        const triage = triageData?.find((t: any) => t.pathology_id === pathology.id)
+        const tests = testLinks?.filter((l: any) => l.pathology_id === pathology.id).map((l: any) => ({
           ...l.test,
           relevance_score: l.relevance_score,
           notes: l.notes
         })) || []
         
         const clusters = clusterLinks
-          ?.filter(l => l.pathology_id === pathology.id)
-          .map(l => {
+          ?.filter((l: any) => l.pathology_id === pathology.id)
+          .map((l: any) => {
             const clusterTestItems = clusterItems
-              ?.filter(item => item.cluster_id === l.cluster.id)
-              .map(item => item.test) || []
+              ?.filter((item: any) => item.cluster_id === l.cluster.id)
+              .map((item: any) => item.test) || []
             
             return {
               ...l.cluster,
