@@ -490,7 +490,7 @@ export default function TestingV2SimplifiedPage() {
             <div>
               <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
                 <Stethoscope className="h-7 w-7 text-primary-600" />
-                Consultation Guidée (Simplifié)
+                Consultation Guidée
               </h1>
               <p className="text-gray-600 mt-1">
                 3 questions simples pour un triage efficace
@@ -680,10 +680,26 @@ export default function TestingV2SimplifiedPage() {
                                   {Math.round(filteredPathologies[1].matchScore)}%
                                 </div>
                               </div>
+                              {/* Badge Drapeau Rouge */}
+                              {filteredPathologies[1].pathology.is_red_flag && (
+                                <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-red-600 text-white text-xs font-bold rounded-full px-2 py-0.5 shadow-lg animate-pulse flex items-center gap-1">
+                                  <span>🚨</span>
+                                </div>
+                              )}
                             </div>
                             
                             {/* Marche */}
                             <div className="w-40 bg-gradient-to-br from-gray-200 to-gray-300 rounded-t-xl p-4 shadow-lg border-t-4 border-gray-400 group-hover:shadow-2xl transition-shadow">
+                              {/* Badge Drapeau Rouge compact */}
+                              {filteredPathologies[1].pathology.is_red_flag && (
+                                <div className="mb-2 bg-red-50 border-2 border-red-500 rounded p-1.5">
+                                  <div className="flex items-center gap-1 text-red-700">
+                                    <AlertCircle className="h-3 w-3 flex-shrink-0" />
+                                    <span className="text-xs font-bold">URGENT</span>
+                                  </div>
+                                </div>
+                              )}
+                              
                               <div className="text-center">
                                 {filteredPathologies[1].pathology.topographic_image_url ? (
                                   <div className="h-32 mb-3 flex items-center justify-center">
@@ -731,10 +747,32 @@ export default function TestingV2SimplifiedPage() {
                                   {Math.round(filteredPathologies[0].matchScore)}%
                                 </div>
                               </div>
+                              {/* Badge Drapeau Rouge */}
+                              {filteredPathologies[0].pathology.is_red_flag && (
+                                <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 bg-red-600 text-white text-xs font-bold rounded-full px-3 py-1 shadow-lg animate-pulse flex items-center gap-1">
+                                  <span>🚨</span>
+                                  <span>URGENT</span>
+                                </div>
+                              )}
                             </div>
                             
                             {/* Marche */}
                             <div className="w-48 bg-gradient-to-br from-yellow-100 to-yellow-200 rounded-t-xl p-5 shadow-2xl border-t-4 border-yellow-400 group-hover:shadow-3xl transition-shadow">
+                              {/* Badge Drapeau Rouge dans la marche */}
+                              {filteredPathologies[0].pathology.is_red_flag && (
+                                <div className="mb-3 bg-red-50 border-2 border-red-500 rounded-lg p-2 animate-pulse">
+                                  <div className="flex items-center gap-2 text-red-700">
+                                    <AlertCircle className="h-4 w-4 flex-shrink-0" />
+                                    <span className="text-xs font-bold">DRAPEAU ROUGE</span>
+                                  </div>
+                                  {filteredPathologies[0].pathology.red_flag_reason && (
+                                    <p className="text-xs text-red-600 mt-1 leading-tight">
+                                      {filteredPathologies[0].pathology.red_flag_reason}
+                                    </p>
+                                  )}
+                                </div>
+                              )}
+                              
                               <div className="text-center">
                                 {filteredPathologies[0].pathology.topographic_image_url ? (
                                   <div className="h-40 mb-3 flex items-center justify-center">
@@ -779,10 +817,26 @@ export default function TestingV2SimplifiedPage() {
                                   {Math.round(filteredPathologies[2].matchScore)}%
                                 </div>
                               </div>
+                              {/* Badge Drapeau Rouge */}
+                              {filteredPathologies[2].pathology.is_red_flag && (
+                                <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-red-600 text-white text-xs font-bold rounded-full px-2 py-0.5 shadow-lg animate-pulse flex items-center gap-1">
+                                  <span>🚨</span>
+                                </div>
+                              )}
                             </div>
                             
                             {/* Marche */}
                             <div className="w-40 bg-gradient-to-br from-orange-100 to-orange-200 rounded-t-xl p-4 shadow-lg border-t-4 border-orange-400 group-hover:shadow-2xl transition-shadow">
+                              {/* Badge Drapeau Rouge compact */}
+                              {filteredPathologies[2].pathology.is_red_flag && (
+                                <div className="mb-2 bg-red-50 border-2 border-red-500 rounded p-1.5">
+                                  <div className="flex items-center gap-1 text-red-700">
+                                    <AlertCircle className="h-3 w-3 flex-shrink-0" />
+                                    <span className="text-xs font-bold">URGENT</span>
+                                  </div>
+                                </div>
+                              )}
+                              
                               <div className="text-center">
                                 {filteredPathologies[2].pathology.topographic_image_url ? (
                                   <div className="h-32 mb-3 flex items-center justify-center">
@@ -836,6 +890,14 @@ export default function TestingV2SimplifiedPage() {
                               </div>
                             </div>
 
+                            {/* Badge Drapeau Rouge */}
+                            {match.pathology.is_red_flag && (
+                              <div className="absolute top-3 left-3 bg-red-600 text-white text-xs font-bold rounded-full px-2 py-1 shadow-lg animate-pulse flex items-center gap-1 z-10">
+                                <AlertCircle className="h-3 w-3" />
+                                <span>URGENT</span>
+                              </div>
+                            )}
+
                             <div className="flex gap-4">
                               {/* Image miniature */}
                               {match.pathology.topographic_image_url ? (
@@ -857,6 +919,15 @@ export default function TestingV2SimplifiedPage() {
                                 <h4 className="font-bold text-sm text-gray-900 mb-2 line-clamp-2">
                                   {match.pathology.name}
                                 </h4>
+                                
+                                {/* Drapeau rouge raison */}
+                                {match.pathology.is_red_flag && match.pathology.red_flag_reason && (
+                                  <div className="mb-2 bg-red-50 border border-red-200 rounded p-2">
+                                    <p className="text-xs text-red-700 leading-tight">
+                                      {match.pathology.red_flag_reason}
+                                    </p>
+                                  </div>
+                                )}
                                 
                                 {/* Critères matchés */}
                                 {match.matchedCriteria.length > 0 && (
