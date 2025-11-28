@@ -131,8 +131,8 @@ const TRIAGE_QUESTIONS = [
         icon: '⚡'
       },
       { 
-        value: 'autre', 
-        label: 'Autre',
+        value: 'non_applicable', 
+        label: 'Non applicable',
         description: 'Neuropathique, référée, ou atypique',
         icon: '❓'
       }
