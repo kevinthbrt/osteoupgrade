@@ -369,8 +369,12 @@ export default function TestingV2SimplifiedPage() {
           matchedCriteria.push('Localisation')
         }
 
+        // Appliquer le poids de triage (normalisation correcte)
+        // matchScore = 0-100 (33+33+34 si 3 critères)
+        // triage_weight = 0-100 (fréquence de la pathologie)
+        // Résultat final = 0-100%
         if (criteria.triage_weight) {
-          matchScore = (matchScore * criteria.triage_weight) / 50
+          matchScore = (matchScore * criteria.triage_weight) / 100
         }
       }
 
@@ -647,84 +651,320 @@ export default function TestingV2SimplifiedPage() {
                   </button>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {filteredPathologies.map((match) => (
-                    <div 
-                      key={match.pathology.id}
-                      className="group relative bg-white rounded-2xl border-2 border-gray-200 hover:border-primary-400 transition-all hover:shadow-2xl cursor-pointer overflow-hidden"
-                      onClick={() => {
-                        setSelectedPathology(match.pathology)
-                        setCurrentStep('tests')
-                      }}
-                    >
-                      {/* Score */}
-                      <div className="absolute top-4 right-4 z-20">
-                        <div className="bg-gradient-to-r from-green-500 to-green-600 text-white text-sm font-bold rounded-full px-4 py-2 shadow-lg">
-                          {Math.round(match.matchScore)}%
-                        </div>
-                      </div>
-
-                      {/* Image topographique */}
-                      {match.pathology.topographic_image_url ? (
-                        <div className="relative h-72 w-full overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100 border-b-2 border-gray-200">
-                          <img
-                            src={match.pathology.topographic_image_url}
-                            alt={match.pathology.name}
-                            className="w-full h-full object-contain p-4 transition-transform group-hover:scale-110"
-                          />
-                        </div>
-                      ) : (
-                        <div className="h-72 bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center border-b-2 border-gray-200">
-                          <div className="text-gray-300 text-6xl">📋</div>
-                        </div>
-                      )}
-
-                      {/* Contenu */}
-                      <div className="p-5">
-                        <h3 className="font-bold text-xl text-gray-900 mb-3">
-                          {match.pathology.name}
-                        </h3>
-                        
-                        {match.pathology.description && (
-                          <p className="text-sm text-gray-600 mb-4 line-clamp-3">
-                            {match.pathology.description}
-                          </p>
-                        )}
-
-                        {/* Critères matchés */}
-                        {match.matchedCriteria.length > 0 && (
-                          <div className="mb-4">
-                            <div className="flex flex-wrap gap-2">
-                              {match.matchedCriteria.map(criteria => (
-                                <div key={criteria} className="flex items-center gap-1 bg-green-50 text-green-700 px-3 py-1 rounded-full text-xs font-medium">
-                                  <CheckCircle className="h-3 w-3" />
-                                  <span>{criteria}</span>
+                <div className="space-y-8">
+                  {/* PODIUM - Top 3 */}
+                  {filteredPathologies.length >= 3 && (
+                    <div className="relative">
+                      <h3 className="text-lg font-bold text-gray-900 mb-6 text-center">
+                        🏆 Pathologies les plus probables
+                      </h3>
+                      
+                      {/* Podium visuel */}
+                      <div className="flex items-end justify-center gap-4 mb-8">
+                        {/* 2ème place (Argent) - Gauche */}
+                        {filteredPathologies[1] && (
+                          <div 
+                            className="group flex flex-col items-center cursor-pointer"
+                            onClick={() => {
+                              setSelectedPathology(filteredPathologies[1].pathology)
+                              setCurrentStep('tests')
+                            }}
+                          >
+                            {/* Médaille */}
+                            <div className="relative mb-4 transform group-hover:scale-110 transition-transform">
+                              <div className="w-20 h-20 rounded-full bg-gradient-to-br from-gray-300 to-gray-500 flex items-center justify-center shadow-xl border-4 border-gray-200">
+                                <span className="text-3xl font-bold text-white">2</span>
+                              </div>
+                              <div className="absolute -top-2 -right-2 bg-white rounded-full p-1 shadow-lg">
+                                <div className="bg-gradient-to-r from-green-500 to-green-600 text-white text-xs font-bold rounded-full px-2 py-1">
+                                  {Math.round(filteredPathologies[1].matchScore)}%
                                 </div>
-                              ))}
+                              </div>
                             </div>
+                            
+                            {/* Marche */}
+                            <div className="w-40 bg-gradient-to-br from-gray-200 to-gray-300 rounded-t-xl p-4 shadow-lg border-t-4 border-gray-400 group-hover:shadow-2xl transition-shadow">
+                              <div className="text-center">
+                                {filteredPathologies[1].pathology.topographic_image_url ? (
+                                  <div className="h-32 mb-3 flex items-center justify-center">
+                                    <img
+                                      src={filteredPathologies[1].pathology.topographic_image_url}
+                                      alt={filteredPathologies[1].pathology.name}
+                                      className="max-h-full object-contain"
+                                    />
+                                  </div>
+                                ) : (
+                                  <div className="text-4xl mb-3">🥈</div>
+                                )}
+                                <h4 className="font-bold text-sm text-gray-900 line-clamp-2 mb-2">
+                                  {filteredPathologies[1].pathology.name}
+                                </h4>
+                                <div className="flex items-center justify-center gap-2 text-xs text-gray-600">
+                                  <Activity className="h-3 w-3" />
+                                  <span>{filteredPathologies[1].tests.length} tests</span>
+                                </div>
+                              </div>
+                            </div>
+                            <div className="w-40 h-32 bg-gradient-to-b from-gray-300 to-gray-400"></div>
                           </div>
                         )}
 
-                        {/* Statistiques */}
-                        <div className="flex items-center justify-between text-sm text-gray-500 pb-3 border-b border-gray-200 mb-4">
-                          <div className="flex items-center gap-1">
-                            <Activity className="h-4 w-4" />
-                            <span>{match.tests.length} tests</span>
+                        {/* 1ère place (Or) - Centre */}
+                        {filteredPathologies[0] && (
+                          <div 
+                            className="group flex flex-col items-center cursor-pointer"
+                            onClick={() => {
+                              setSelectedPathology(filteredPathologies[0].pathology)
+                              setCurrentStep('tests')
+                            }}
+                          >
+                            {/* Médaille avec couronne */}
+                            <div className="relative mb-4 transform group-hover:scale-110 transition-transform">
+                              <div className="absolute -top-6 left-1/2 -translate-x-1/2 text-3xl animate-bounce">
+                                👑
+                              </div>
+                              <div className="w-24 h-24 rounded-full bg-gradient-to-br from-yellow-300 via-yellow-400 to-yellow-600 flex items-center justify-center shadow-2xl border-4 border-yellow-200">
+                                <span className="text-4xl font-bold text-white">1</span>
+                              </div>
+                              <div className="absolute -top-2 -right-2 bg-white rounded-full p-1 shadow-lg">
+                                <div className="bg-gradient-to-r from-green-500 to-green-600 text-white text-sm font-bold rounded-full px-3 py-1">
+                                  {Math.round(filteredPathologies[0].matchScore)}%
+                                </div>
+                              </div>
+                            </div>
+                            
+                            {/* Marche */}
+                            <div className="w-48 bg-gradient-to-br from-yellow-100 to-yellow-200 rounded-t-xl p-5 shadow-2xl border-t-4 border-yellow-400 group-hover:shadow-3xl transition-shadow">
+                              <div className="text-center">
+                                {filteredPathologies[0].pathology.topographic_image_url ? (
+                                  <div className="h-40 mb-3 flex items-center justify-center">
+                                    <img
+                                      src={filteredPathologies[0].pathology.topographic_image_url}
+                                      alt={filteredPathologies[0].pathology.name}
+                                      className="max-h-full object-contain"
+                                    />
+                                  </div>
+                                ) : (
+                                  <div className="text-5xl mb-3">🥇</div>
+                                )}
+                                <h4 className="font-bold text-base text-gray-900 line-clamp-2 mb-3">
+                                  {filteredPathologies[0].pathology.name}
+                                </h4>
+                                <div className="flex items-center justify-center gap-2 text-sm text-gray-700">
+                                  <Activity className="h-4 w-4" />
+                                  <span>{filteredPathologies[0].tests.length} tests</span>
+                                </div>
+                              </div>
+                            </div>
+                            <div className="w-48 h-40 bg-gradient-to-b from-yellow-200 to-yellow-400"></div>
                           </div>
-                          <div className="flex items-center gap-1">
-                            <Target className="h-4 w-4" />
-                            <span>{match.clusters.length} clusters</span>
-                          </div>
-                        </div>
+                        )}
 
-                        {/* Bouton */}
-                        <button className="w-full bg-gradient-to-r from-primary-600 to-primary-700 text-white py-3 rounded-xl hover:from-primary-700 hover:to-primary-800 transition-all flex items-center justify-center gap-2 font-semibold">
-                          Évaluer
-                          <ChevronRight className="h-5 w-5" />
-                        </button>
+                        {/* 3ème place (Bronze) - Droite */}
+                        {filteredPathologies[2] && (
+                          <div 
+                            className="group flex flex-col items-center cursor-pointer"
+                            onClick={() => {
+                              setSelectedPathology(filteredPathologies[2].pathology)
+                              setCurrentStep('tests')
+                            }}
+                          >
+                            {/* Médaille */}
+                            <div className="relative mb-4 transform group-hover:scale-110 transition-transform">
+                              <div className="w-20 h-20 rounded-full bg-gradient-to-br from-orange-300 to-orange-600 flex items-center justify-center shadow-xl border-4 border-orange-200">
+                                <span className="text-3xl font-bold text-white">3</span>
+                              </div>
+                              <div className="absolute -top-2 -right-2 bg-white rounded-full p-1 shadow-lg">
+                                <div className="bg-gradient-to-r from-green-500 to-green-600 text-white text-xs font-bold rounded-full px-2 py-1">
+                                  {Math.round(filteredPathologies[2].matchScore)}%
+                                </div>
+                              </div>
+                            </div>
+                            
+                            {/* Marche */}
+                            <div className="w-40 bg-gradient-to-br from-orange-100 to-orange-200 rounded-t-xl p-4 shadow-lg border-t-4 border-orange-400 group-hover:shadow-2xl transition-shadow">
+                              <div className="text-center">
+                                {filteredPathologies[2].pathology.topographic_image_url ? (
+                                  <div className="h-32 mb-3 flex items-center justify-center">
+                                    <img
+                                      src={filteredPathologies[2].pathology.topographic_image_url}
+                                      alt={filteredPathologies[2].pathology.name}
+                                      className="max-h-full object-contain"
+                                    />
+                                  </div>
+                                ) : (
+                                  <div className="text-4xl mb-3">🥉</div>
+                                )}
+                                <h4 className="font-bold text-sm text-gray-900 line-clamp-2 mb-2">
+                                  {filteredPathologies[2].pathology.name}
+                                </h4>
+                                <div className="flex items-center justify-center gap-2 text-xs text-gray-600">
+                                  <Activity className="h-3 w-3" />
+                                  <span>{filteredPathologies[2].tests.length} tests</span>
+                                </div>
+                              </div>
+                            </div>
+                            <div className="w-40 h-24 bg-gradient-to-b from-orange-200 to-orange-400"></div>
+                          </div>
+                        )}
                       </div>
                     </div>
-                  ))}
+                  )}
+
+                  {/* Liste des pathologies restantes (si >3) */}
+                  {filteredPathologies.length > 3 && (
+                    <div>
+                      <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                        <Info className="h-5 w-5 text-primary-600" />
+                        Autres pathologies à considérer
+                      </h3>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {filteredPathologies.slice(3).map((match) => (
+                          <div 
+                            key={match.pathology.id}
+                            className="group relative bg-white rounded-xl border-2 border-gray-200 hover:border-primary-400 transition-all hover:shadow-lg cursor-pointer overflow-hidden p-4"
+                            onClick={() => {
+                              setSelectedPathology(match.pathology)
+                              setCurrentStep('tests')
+                            }}
+                          >
+                            {/* Score compact */}
+                            <div className="absolute top-3 right-3">
+                              <div className="bg-gradient-to-r from-blue-500 to-blue-600 text-white text-xs font-bold rounded-full px-3 py-1 shadow">
+                                {Math.round(match.matchScore)}%
+                              </div>
+                            </div>
+
+                            <div className="flex gap-4">
+                              {/* Image miniature */}
+                              {match.pathology.topographic_image_url ? (
+                                <div className="flex-shrink-0 w-20 h-20 bg-gray-50 rounded-lg flex items-center justify-center overflow-hidden">
+                                  <img
+                                    src={match.pathology.topographic_image_url}
+                                    alt={match.pathology.name}
+                                    className="w-full h-full object-contain p-1"
+                                  />
+                                </div>
+                              ) : (
+                                <div className="flex-shrink-0 w-20 h-20 bg-gray-100 rounded-lg flex items-center justify-center text-2xl">
+                                  📋
+                                </div>
+                              )}
+
+                              {/* Contenu */}
+                              <div className="flex-1 min-w-0">
+                                <h4 className="font-bold text-sm text-gray-900 mb-2 line-clamp-2">
+                                  {match.pathology.name}
+                                </h4>
+                                
+                                {/* Critères matchés */}
+                                {match.matchedCriteria.length > 0 && (
+                                  <div className="flex flex-wrap gap-1 mb-2">
+                                    {match.matchedCriteria.map(criteria => (
+                                      <div key={criteria} className="flex items-center gap-1 bg-green-50 text-green-700 px-2 py-0.5 rounded text-xs">
+                                        <CheckCircle className="h-2.5 w-2.5" />
+                                        <span className="truncate">{criteria}</span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+
+                                {/* Stats */}
+                                <div className="flex items-center gap-3 text-xs text-gray-500">
+                                  <div className="flex items-center gap-1">
+                                    <Activity className="h-3 w-3" />
+                                    <span>{match.tests.length}</span>
+                                  </div>
+                                  <div className="flex items-center gap-1">
+                                    <Target className="h-3 w-3" />
+                                    <span>{match.clusters.length}</span>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Si moins de 3 pathologies, affichage standard */}
+                  {filteredPathologies.length < 3 && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {filteredPathologies.map((match) => (
+                        <div 
+                          key={match.pathology.id}
+                          className="group relative bg-white rounded-2xl border-2 border-gray-200 hover:border-primary-400 transition-all hover:shadow-2xl cursor-pointer overflow-hidden"
+                          onClick={() => {
+                            setSelectedPathology(match.pathology)
+                            setCurrentStep('tests')
+                          }}
+                        >
+                          <div className="absolute top-4 right-4 z-20">
+                            <div className="bg-gradient-to-r from-green-500 to-green-600 text-white text-sm font-bold rounded-full px-4 py-2 shadow-lg">
+                              {Math.round(match.matchScore)}%
+                            </div>
+                          </div>
+
+                          {match.pathology.topographic_image_url ? (
+                            <div className="relative h-48 w-full overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100 border-b-2 border-gray-200">
+                              <img
+                                src={match.pathology.topographic_image_url}
+                                alt={match.pathology.name}
+                                className="w-full h-full object-contain p-4 transition-transform group-hover:scale-110"
+                              />
+                            </div>
+                          ) : (
+                            <div className="h-48 bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center border-b-2 border-gray-200">
+                              <div className="text-gray-300 text-5xl">📋</div>
+                            </div>
+                          )}
+
+                          <div className="p-5">
+                            <h3 className="font-bold text-xl text-gray-900 mb-3">
+                              {match.pathology.name}
+                            </h3>
+                            
+                            {match.pathology.description && (
+                              <p className="text-sm text-gray-600 mb-4 line-clamp-3">
+                                {match.pathology.description}
+                              </p>
+                            )}
+
+                            {match.matchedCriteria.length > 0 && (
+                              <div className="mb-4">
+                                <div className="flex flex-wrap gap-2">
+                                  {match.matchedCriteria.map(criteria => (
+                                    <div key={criteria} className="flex items-center gap-1 bg-green-50 text-green-700 px-3 py-1 rounded-full text-xs font-medium">
+                                      <CheckCircle className="h-3 w-3" />
+                                      <span>{criteria}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            <div className="flex items-center justify-between text-sm text-gray-500 pb-3 border-b border-gray-200 mb-4">
+                              <div className="flex items-center gap-1">
+                                <Activity className="h-4 w-4" />
+                                <span>{match.tests.length} tests</span>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <Target className="h-4 w-4" />
+                                <span>{match.clusters.length} clusters</span>
+                              </div>
+                            </div>
+
+                            <button className="w-full bg-gradient-to-r from-primary-600 to-primary-700 text-white py-3 rounded-xl hover:from-primary-700 hover:to-primary-800 transition-all flex items-center justify-center gap-2 font-semibold">
+                              Évaluer
+                              <ChevronRight className="h-5 w-5" />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
