@@ -490,7 +490,7 @@ export default function TestingV2SimplifiedPage() {
             <div>
               <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
                 <Stethoscope className="h-7 w-7 text-primary-600" />
-                Consultation Guidée
+                Consultation Guidée (Simplifié)
               </h1>
               <p className="text-gray-600 mt-1">
                 3 questions simples pour un triage efficace
@@ -1042,32 +1042,188 @@ export default function TestingV2SimplifiedPage() {
           </div>
         )}
 
-        {/* Étape 4: Tests (identique à la version complète) */}
+        {/* Étape 4: Tests */}
         {currentStep === 'tests' && selectedPathology && (
           <div className="space-y-6">
-            {/* [Même code que la version complète pour les tests] */}
+            {/* En-tête de la pathologie */}
             <div className="bg-white rounded-xl shadow-sm p-6">
               <div className="flex items-start justify-between mb-4">
-                <div>
-                  <h2 className="text-2xl font-bold text-gray-900 mb-3">{selectedPathology.name}</h2>
-                  {selectedPathology.topographic_image_url && (
-                    <img 
-                      src={selectedPathology.topographic_image_url} 
-                      alt={selectedPathology.name}
-                      className="h-40 object-contain rounded-lg border"
-                    />
+                <div className="flex-1">
+                  {/* Badge Drapeau Rouge en haut */}
+                  {selectedPathology.is_red_flag && (
+                    <div className="mb-4 bg-red-50 border-2 border-red-500 rounded-xl p-4 animate-pulse">
+                      <div className="flex items-start gap-3">
+                        <AlertCircle className="h-6 w-6 text-red-600 flex-shrink-0 mt-0.5" />
+                        <div className="flex-1">
+                          <h3 className="text-red-800 font-bold text-lg mb-2 flex items-center gap-2">
+                            🚨 DRAPEAU ROUGE - URGENCE
+                          </h3>
+                          <p className="text-red-700 text-sm leading-relaxed">
+                            {selectedPathology.red_flag_reason}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
                   )}
+
+                  {/* Titre et image */}
+                  <div className="flex items-start gap-6">
+                    <div className="flex-1">
+                      <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                        {selectedPathology.name}
+                      </h2>
+                      
+                      {/* Description complète */}
+                      {selectedPathology.description && (
+                        <div className="mt-4 bg-blue-50 border-l-4 border-blue-500 rounded-r-lg p-4">
+                          <div className="flex items-start gap-2">
+                            <Info className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                            <div className="flex-1">
+                              <h3 className="text-blue-900 font-semibold mb-2">Description</h3>
+                              <div className="text-sm text-blue-800 whitespace-pre-line leading-relaxed">
+                                {selectedPathology.description}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Image topographique à droite */}
+                    {selectedPathology.topographic_image_url && (
+                      <div className="flex-shrink-0">
+                        <img 
+                          src={selectedPathology.topographic_image_url} 
+                          alt={selectedPathology.name}
+                          className="h-48 w-48 object-contain rounded-lg border-2 border-gray-200 bg-white p-2"
+                        />
+                      </div>
+                    )}
+                  </div>
                 </div>
+                
                 <button
                   onClick={() => {
                     setCurrentStep('pathologies')
                     setSelectedPathology(null)
                   }}
-                  className="text-gray-600 hover:text-primary-600 flex items-center gap-1"
+                  className="ml-4 text-gray-600 hover:text-primary-600 flex items-center gap-1 flex-shrink-0"
                 >
                   <ChevronLeft className="h-5 w-5" />
                   Retour
                 </button>
+              </div>
+
+              {/* RÉSUMÉ DES CRITÈRES DE TRIAGE */}
+              <div className="mt-6 bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-300 rounded-xl p-6">
+                <div className="flex items-start gap-3">
+                  <div className="flex-shrink-0 mt-1">
+                    <CheckCircle className="h-6 w-6 text-green-600" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                      <Target className="h-5 w-5 text-green-600" />
+                      Correspondance avec vos réponses au triage
+                    </h3>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                      {/* Évolution temporelle */}
+                      <div className="bg-white rounded-lg p-4 border-2 border-green-200">
+                        <div className="flex items-center gap-2 mb-3">
+                          <div className="p-2 bg-blue-100 rounded-lg">
+                            <Clock className="h-5 w-5 text-blue-600" />
+                          </div>
+                          <h4 className="font-semibold text-gray-900">Évolution</h4>
+                        </div>
+                        <p className="text-xs text-gray-500 mb-2">Votre réponse :</p>
+                        <div className="bg-blue-50 px-3 py-2 rounded-lg border border-blue-200">
+                          <p className="text-sm font-bold text-blue-900">
+                            {TRIAGE_QUESTIONS[0].options.find(o => o.value === triageAnswers.temporalEvolution)?.label || 'Non renseigné'}
+                          </p>
+                          <p className="text-xs text-blue-700 mt-1">
+                            {TRIAGE_QUESTIONS[0].options.find(o => o.value === triageAnswers.temporalEvolution)?.description}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Type de douleur */}
+                      <div className="bg-white rounded-lg p-4 border-2 border-green-200">
+                        <div className="flex items-center gap-2 mb-3">
+                          <div className="p-2 bg-purple-100 rounded-lg">
+                            <Activity className="h-5 w-5 text-purple-600" />
+                          </div>
+                          <h4 className="font-semibold text-gray-900">Type douleur</h4>
+                        </div>
+                        <p className="text-xs text-gray-500 mb-2">Votre réponse :</p>
+                        <div className="bg-purple-50 px-3 py-2 rounded-lg border border-purple-200">
+                          <p className="text-sm font-bold text-purple-900">
+                            {TRIAGE_QUESTIONS[1].options.find(o => o.value === triageAnswers.painType)?.label || 'Non renseigné'}
+                          </p>
+                          <p className="text-xs text-purple-700 mt-1">
+                            {TRIAGE_QUESTIONS[1].options.find(o => o.value === triageAnswers.painType)?.description}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Localisation */}
+                      <div className="bg-white rounded-lg p-4 border-2 border-green-200">
+                        <div className="flex items-center gap-2 mb-3">
+                          <div className="p-2 bg-green-100 rounded-lg">
+                            <MapPin className="h-5 w-5 text-green-600" />
+                          </div>
+                          <h4 className="font-semibold text-gray-900">Localisation</h4>
+                        </div>
+                        <p className="text-xs text-gray-500 mb-2">Votre réponse :</p>
+                        <div className="bg-green-50 px-3 py-2 rounded-lg border border-green-200">
+                          <p className="text-sm font-bold text-green-900">
+                            {TRIAGE_QUESTIONS[2].options.find(o => o.value === triageAnswers.painLocation)?.label || 'Non renseigné'}
+                          </p>
+                          <p className="text-xs text-green-700 mt-1">
+                            {TRIAGE_QUESTIONS[2].options.find(o => o.value === triageAnswers.painLocation)?.description}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Score de correspondance */}
+                    {(() => {
+                      const match = filteredPathologies.find(p => p.pathology.id === selectedPathology.id)
+                      if (match) {
+                        return (
+                          <div className="bg-white rounded-lg p-4 border-2 border-green-300 shadow-sm">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-3">
+                                <div className="p-3 bg-green-100 rounded-xl">
+                                  <Target className="h-6 w-6 text-green-600" />
+                                </div>
+                                <div>
+                                  <p className="text-sm text-gray-600 font-medium">Score de correspondance</p>
+                                  <div className="flex items-center gap-2 mt-2">
+                                    {match.matchedCriteria.map(criteria => (
+                                      <div key={criteria} className="flex items-center gap-1 bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-semibold">
+                                        <CheckCircle className="h-3.5 w-3.5" />
+                                        <span>{criteria}</span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="text-right">
+                                <div className="text-4xl font-bold text-green-600">
+                                  {Math.round(match.matchScore)}%
+                                </div>
+                                <p className="text-xs text-gray-500 mt-1 font-medium">
+                                  {match.matchedCriteria.length}/3 critères matchés
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        )
+                      }
+                      return null
+                    })()}
+                  </div>
+                </div>
               </div>
 
               {/* Informations patient et sauvegarde */}
