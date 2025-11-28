@@ -67,7 +67,7 @@ const PAIN_TYPES = [
   { value: 'mecanique', label: 'Mécanique', description: 'Augmentée au mouvement, soulagée au repos', icon: '⚙️' },
   { value: 'inflammatoire', label: 'Inflammatoire', description: 'Réveils nocturnes, raideur matinale', icon: '🔥' },
   { value: 'mixte', label: 'Mixte', description: 'Caractéristiques mécaniques et inflammatoires', icon: '⚡' },
-  { value: 'non_applicable', label: 'Non applicable', description: 'Neuropathique, référée, ou atypique', icon: '❓' }
+  { value: 'autre', label: 'Autre', description: 'Neuropathique, référée, ou atypique', icon: '❓' }
 ]
 
 const PAIN_LOCATIONS = [
