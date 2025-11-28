@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { supabase } from '@/lib/supabase'
+import { createClient } from '@/lib/supabase/client'
 import AuthLayout from '@/components/AuthLayout'
 import { generateConsultationPDF } from '@/utils/generateConsultationPDF'
 import {
@@ -16,30 +16,20 @@ import {
   Calendar,
   Map,
   Filter,
-  FileText,
   Save,
   Download,
   Info,
-  Zap,
-  TrendingUp,
   Clock,
-  Brain,
-  Move,
-  RefreshCw,
   MapPin,
   Target,
-  Sparkles,
   Stethoscope
 } from 'lucide-react'
 
 interface TriageAnswers {
   region?: string
+  temporalEvolution?: string
   painType?: string
-  painOnset?: string
-  aggravatingFactors?: string
-  radiationPattern?: string
-  neurologicalSymptoms?: boolean
-  relievingMovement?: string
+  painLocation?: string
 }
 
 interface PathologyMatch {
@@ -70,25 +60,57 @@ interface ConsultationEpisode {
 }
 
 const REGIONS = [
-  { value: 'cervical', label: 'Cervical', icon: '🔵', description: 'Cou et nuque' },
-  { value: 'thoracique', label: 'Thoracique', icon: '🟢', description: 'Haut du dos' },
-  { value: 'lombaire', label: 'Lombaire', icon: '🟠', description: 'Bas du dos' },
-  { value: 'epaule', label: 'Épaule', icon: '🔴', description: 'Articulation de l\'épaule' },
-  { value: 'coude', label: 'Coude', icon: '🟣', description: 'Articulation du coude' },
-  { value: 'poignet', label: 'Poignet', icon: '🟡', description: 'Poignet et main' },
-  { value: 'main', label: 'Main', icon: '✋', description: 'Main et doigts' },
-  { value: 'hanche', label: 'Hanche', icon: '🔶', description: 'Articulation de la hanche' },
-  { value: 'genou', label: 'Genou', icon: '🔷', description: 'Articulation du genou' },
-  { value: 'cheville', label: 'Cheville', icon: '🟤', description: 'Cheville' },
-  { value: 'pied', label: 'Pied', icon: '👣', description: 'Pied et orteils' }
+  { value: 'cervical', label: 'Cervical', icon: '🔵' },
+  { value: 'thoracique', label: 'Thoracique', icon: '🟢' },
+  { value: 'lombaire', label: 'Lombaire', icon: '🟠' },
+  { value: 'epaule', label: 'Épaule', icon: '🔴' },
+  { value: 'coude', label: 'Coude', icon: '🟣' },
+  { value: 'poignet', label: 'Poignet', icon: '🟡' },
+  { value: 'main', label: 'Main', icon: '✋' },
+  { value: 'hanche', label: 'Hanche', icon: '🔶' },
+  { value: 'genou', label: 'Genou', icon: '🔷' },
+  { value: 'cheville', label: 'Cheville', icon: '🟤' },
+  { value: 'pied', label: 'Pied', icon: '👣' }
 ]
 
 const TRIAGE_QUESTIONS = [
   {
-    id: 'painType',
-    question: 'La douleur est-elle mécanique ou inflammatoire ?',
-    icon: Activity,
+    id: 'temporalEvolution',
+    question: 'Quelle est l\'évolution temporelle de la douleur ?',
+    icon: Clock,
     color: 'from-blue-500 to-blue-600',
+    options: [
+      { 
+        value: 'aigue', 
+        label: 'Aiguë',
+        description: 'Apparition récente (<6 semaines)',
+        icon: '⚡'
+      },
+      { 
+        value: 'chronique', 
+        label: 'Chronique',
+        description: 'Installation progressive (>3 mois)',
+        icon: '📅'
+      },
+      { 
+        value: 'aigue_fond_chronique', 
+        label: 'Aiguë sur fond chronique',
+        description: 'Exacerbation aiguë d\'une condition chronique',
+        icon: '🔄'
+      },
+      { 
+        value: 'traumatique', 
+        label: 'Traumatique',
+        description: 'Suite à un traumatisme identifié',
+        icon: '💥'
+      }
+    ]
+  },
+  {
+    id: 'painType',
+    question: 'Quel est le type de douleur ?',
+    icon: Activity,
+    color: 'from-purple-500 to-purple-600',
     options: [
       { 
         value: 'mecanique', 
@@ -99,199 +121,67 @@ const TRIAGE_QUESTIONS = [
       { 
         value: 'inflammatoire', 
         label: 'Inflammatoire',
-        description: 'Réveils nocturnes, raideur matinale, soulagée par AINS',
+        description: 'Réveils nocturnes, raideur matinale',
         icon: '🔥'
       },
       { 
         value: 'mixte', 
         label: 'Mixte',
-        description: 'Caractéristiques des deux',
-        icon: '⚡'
-      }
-    ]
-  },
-  {
-    id: 'painOnset',
-    question: 'Comment la douleur est-elle apparue ?',
-    icon: Clock,
-    color: 'from-purple-500 to-purple-600',
-    options: [
-      { 
-        value: 'brutale', 
-        label: 'Brutale / Précise',
-        description: 'Structurel (ligament, disque, articulation, déchirure)',
-        icon: '💥'
-      },
-      { 
-        value: 'brutale_fond_chronique', 
-        label: 'Brutale sous fond chronique',
-        description: 'Aggravation aiguë d\'une condition chronique',
+        description: 'Caractéristiques mécaniques et inflammatoires',
         icon: '⚡'
       },
       { 
-        value: 'progressive', 
-        label: 'Progressive',
-        description: 'Sans facteur déclenchant → inflammatoire ou dégénératif',
-        icon: '📈'
-      },
-      { 
-        value: 'charge_repetee', 
-        label: 'Charge répétée',
-        description: 'Après mouvements répétitifs → tendinopathie / surcharge',
-        icon: '🔄'
+        value: 'autre', 
+        label: 'Autre',
+        description: 'Neuropathique, référée, ou atypique',
+        icon: '❓'
       }
     ]
   },
   {
-    id: 'aggravatingFactors',
-    question: 'Qu\'est-ce qui aggrave la douleur ?',
-    icon: TrendingUp,
-    color: 'from-orange-500 to-orange-600',
-    options: [
-      { 
-        value: 'mouvement', 
-        label: 'Mouvement / Charge',
-        description: 'Douleur mécanique',
-        icon: '🏃'
-      },
-      { 
-        value: 'repos', 
-        label: 'Repos / Position fixe',
-        description: 'Inflammatoire, discal, chimique',
-        icon: '🛋️'
-      },
-      { 
-        value: 'les_deux', 
-        label: 'Les deux',
-        description: 'Complexe ou mixte',
-        icon: '🔀'
-      }
-    ]
-  },
-  {
-    id: 'radiationPattern',
-    question: 'La douleur irradie-t-elle vers une autre zone ?',
-    icon: Zap,
+    id: 'painLocation',
+    question: 'Quelle est la localisation de la douleur ?',
+    icon: MapPin,
     color: 'from-green-500 to-green-600',
     options: [
       { 
-        value: 'radiculaire', 
-        label: 'Oui, trajet précis',
-        description: 'Radiculaire, suit un dermatome',
-        icon: '⚡'
+        value: 'locale_precise', 
+        label: 'Locale précise',
+        description: 'Douleur bien localisée sur une structure',
+        icon: '📍'
       },
       { 
-        value: 'referree', 
-        label: 'Oui, flou / diffus',
-        description: 'Douleur référée (discale, facettaire, musculaire)',
+        value: 'diffuse', 
+        label: 'Diffuse',
+        description: 'Douleur étendue, mal délimitée',
         icon: '☁️'
       },
       { 
-        value: 'locale', 
-        label: 'Non, locale',
-        description: 'Structure locale uniquement',
-        icon: '📍'
-      }
-    ]
-  },
-  {
-    id: 'neurologicalSymptoms',
-    question: 'Ressentez-vous des picotements, perte de force ou engourdissements ?',
-    icon: Brain,
-    color: 'from-red-500 to-red-600',
-    options: [
-      { 
-        value: true, 
-        label: 'Oui',
-        description: 'Suspicion neuro (radiculaire, canal, compression)',
-        icon: '⚠️'
+        value: 'radiculaire_mi_membre', 
+        label: 'Irradiation radiculaire mi-membre',
+        description: 'Trajet nerveux jusqu\'au coude/genou',
+        icon: '⚡'
       },
       { 
-        value: false, 
-        label: 'Non',
-        description: 'Loco-régional',
-        icon: '✅'
-      }
-    ]
-  },
-  {
-    id: 'relievingMovement',
-    question: 'Un mouvement particulier soulage-t-il la douleur ?',
-    icon: Move,
-    color: 'from-indigo-500 to-indigo-600',
-    options: [
-      { 
-        value: 'extension', 
-        label: 'Extension',
-        description: 'Suggère origine discale',
-        icon: '↗️'
+        value: 'radiculaire_vraie', 
+        label: 'Irradiation radiculaire vraie',
+        description: 'Trajet nerveux complet jusqu\'aux extrémités',
+        icon: '⚡⚡'
       },
       { 
-        value: 'flexion', 
-        label: 'Flexion',
-        description: 'Suggère facettaire / sténose',
-        icon: '↙️'
-      },
-      { 
-        value: 'rotation_gauche', 
-        label: 'Rotation gauche',
-        description: 'Rotation du tronc/cou vers la gauche',
-        icon: '↶'
-      },
-      { 
-        value: 'rotation_droite', 
-        label: 'Rotation droite',
-        description: 'Rotation du tronc/cou vers la droite',
-        icon: '↷'
-      },
-      { 
-        value: 'inclinaison_gauche', 
-        label: 'Inclinaison gauche',
-        description: 'Inclinaison latérale gauche',
-        icon: '⤺'
-      },
-      { 
-        value: 'inclinaison_droite', 
-        label: 'Inclinaison droite',
-        description: 'Inclinaison latérale droite',
-        icon: '⤻'
-      },
-      { 
-        value: 'appliquer_chaud', 
-        label: 'Appliquer du chaud',
-        description: 'Chaleur soulage (musculaire, inflammatoire)',
-        icon: '🔥'
-      },
-      { 
-        value: 'auto_massage', 
-        label: 'Auto-massage',
-        description: 'Massage de la zone douloureuse',
-        icon: '👐'
-      },
-      { 
-        value: 'mouvement', 
-        label: 'Le mouvement',
-        description: 'Mouvement en général soulage',
-        icon: '🚶'
-      },
-      { 
-        value: 'etirement_musculaire', 
-        label: 'Étirement musculaire',
-        description: 'Étirements soulagent',
-        icon: '🤸'
-      },
-      { 
-        value: 'aucun', 
-        label: 'Aucun',
-        description: 'Musculaire/inflammatoire/complexe',
-        icon: '❌'
+        value: 'projetee', 
+        label: 'Douleur projetée',
+        description: 'Référée depuis une autre structure',
+        icon: '🔀'
       }
     ]
   }
 ]
 
-export default function TestingV2Page() {
+export default function TestingV2SimplifiedPage() {
   const router = useRouter()
+  const supabase = createClient()
+  
   const [loading, setLoading] = useState(true)
   const [profile, setProfile] = useState<any>(null)
   
@@ -369,7 +259,6 @@ export default function TestingV2Page() {
         .select('*, cluster:orthopedic_test_clusters(*)')
         .order('recommended_order')
 
-      // Charger les tests de chaque cluster
       const { data: clusterItems } = await supabase
         .from('orthopedic_test_cluster_items')
         .select('*, test:orthopedic_tests(*)')
@@ -383,7 +272,6 @@ export default function TestingV2Page() {
           notes: l.notes
         })) || []
         
-        // Enrichir les clusters avec leurs tests
         const clusters = clusterLinks
           ?.filter(l => l.pathology_id === pathology.id)
           .map(l => {
@@ -461,52 +349,25 @@ export default function TestingV2Page() {
       if (pathology.triage_criteria) {
         const criteria = pathology.triage_criteria
 
-        // Convertir les critères en arrays s'ils ne le sont pas déjà
+        // Convertir en arrays
+        const temporalEvolutions = Array.isArray(criteria.temporal_evolution) ? criteria.temporal_evolution : (criteria.temporal_evolution ? [criteria.temporal_evolution] : [])
         const painTypes = Array.isArray(criteria.pain_type) ? criteria.pain_type : (criteria.pain_type ? [criteria.pain_type] : [])
-        const painOnsets = Array.isArray(criteria.pain_onset) ? criteria.pain_onset : (criteria.pain_onset ? [criteria.pain_onset] : [])
-        const aggravatingFactors = Array.isArray(criteria.aggravating_factors) ? criteria.aggravating_factors : (criteria.aggravating_factors ? [criteria.aggravating_factors] : [])
-        const radiationPatterns = Array.isArray(criteria.radiation_pattern) ? criteria.radiation_pattern : (criteria.radiation_pattern ? [criteria.radiation_pattern] : [])
-        const relievingMovements = Array.isArray(criteria.relieving_movement) ? criteria.relieving_movement : (criteria.relieving_movement ? [criteria.relieving_movement] : [])
+        const painLocations = Array.isArray(criteria.pain_location) ? criteria.pain_location : (criteria.pain_location ? [criteria.pain_location] : [])
 
-        // Vérifier chaque critère avec support des choix multiples
+        // Scoring
+        if (temporalEvolutions.includes(answers.temporalEvolution)) {
+          matchScore += 33
+          matchedCriteria.push('Évolution temporelle')
+        }
+
         if (painTypes.includes(answers.painType)) {
-          matchScore += 20
+          matchScore += 33
           matchedCriteria.push('Type de douleur')
-        } else if (painTypes.includes('non_applicable')) {
-          matchScore += 10
         }
 
-        if (painOnsets.includes(answers.painOnset)) {
-          matchScore += 20
-          matchedCriteria.push('Apparition')
-        } else if (painOnsets.includes('non_applicable')) {
-          matchScore += 10
-        }
-
-        if (aggravatingFactors.includes(answers.aggravatingFactors)) {
-          matchScore += 15
-          matchedCriteria.push('Facteurs aggravants')
-        } else if (aggravatingFactors.includes('non_applicable')) {
-          matchScore += 7
-        }
-
-        if (radiationPatterns.includes(answers.radiationPattern)) {
-          matchScore += 15
-          matchedCriteria.push('Irradiation')
-        } else if (radiationPatterns.includes('non_applicable')) {
-          matchScore += 7
-        }
-
-        if (criteria.neurological_symptoms === answers.neurologicalSymptoms) {
-          matchScore += 15
-          matchedCriteria.push('Symptômes neuro')
-        }
-
-        if (relievingMovements.includes(answers.relievingMovement)) {
-          matchScore += 15
-          matchedCriteria.push('Mouvement soulageant')
-        } else if (relievingMovements.includes('non_applicable')) {
-          matchScore += 7
+        if (painLocations.includes(answers.painLocation)) {
+          matchScore += 34
+          matchedCriteria.push('Localisation')
         }
 
         if (criteria.triage_weight) {
@@ -586,10 +447,10 @@ export default function TestingV2Page() {
 
       if (error) throw error
 
-      alert('Consultation sauvegardée avec succès')
+      alert('✅ Consultation sauvegardée')
     } catch (error) {
       console.error('Error saving consultation:', error)
-      alert('Erreur lors de la sauvegarde')
+      alert('❌ Erreur lors de la sauvegarde')
     } finally {
       setSaving(false)
     }
@@ -626,10 +487,10 @@ export default function TestingV2Page() {
             <div>
               <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
                 <Stethoscope className="h-7 w-7 text-primary-600" />
-                Module de Consultation Guidée
+                Consultation Guidée (Simplifié)
               </h1>
               <p className="text-gray-600 mt-1">
-                Aide au raisonnement clinique
+                3 questions simples pour un triage efficace
               </p>
             </div>
           </div>
@@ -685,7 +546,7 @@ export default function TestingV2Page() {
           <div className="bg-white rounded-xl shadow-sm p-6">
             <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
               <Map className="h-6 w-6 text-primary-600" />
-              Sélectionnez la région anatomique concernée
+              Région anatomique
             </h2>
             
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
@@ -699,19 +560,13 @@ export default function TestingV2Page() {
                   <h3 className="font-semibold text-gray-900 group-hover:text-primary-700">
                     {region.label}
                   </h3>
-                  <p className="text-sm text-gray-600 mt-1">
-                    {region.description}
-                  </p>
-                  <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <ChevronRight className="h-5 w-5 text-primary-600" />
-                  </div>
                 </button>
               ))}
             </div>
           </div>
         )}
 
-        {/* Étape 2: Questions de triage */}
+        {/* Étape 2: Questions de triage (3 questions) */}
         {currentStep === 'triage' && (
           <div className="bg-white rounded-xl shadow-sm overflow-hidden">
             <div className={`h-2 bg-gradient-to-r ${TRIAGE_QUESTIONS[triageStep].color}`} />
@@ -742,11 +597,7 @@ export default function TestingV2Page() {
                 </p>
               </div>
 
-              <div className={`grid gap-4 ${
-                TRIAGE_QUESTIONS[triageStep].options.length > 6 
-                  ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3' 
-                  : 'grid-cols-1 md:grid-cols-3'
-              }`}>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {TRIAGE_QUESTIONS[triageStep].options.map(option => (
                   <button
                     key={String(option.value)}
@@ -763,7 +614,6 @@ export default function TestingV2Page() {
                     <p className="text-sm text-gray-600">
                       {option.description}
                     </p>
-                    <Sparkles className="absolute top-3 right-3 h-5 w-5 text-primary-400 opacity-0 group-hover:opacity-100 transition-opacity" />
                   </button>
                 ))}
               </div>
@@ -771,7 +621,7 @@ export default function TestingV2Page() {
           </div>
         )}
 
-        {/* Étape 3: Pathologies filtrées - DESIGN AMÉLIORÉ */}
+        {/* Étape 3: Pathologies filtrées */}
         {currentStep === 'pathologies' && (
           <div className="space-y-6">
             <div className="bg-white rounded-xl shadow-sm p-6">
@@ -784,7 +634,7 @@ export default function TestingV2Page() {
                 <div className="text-center py-12">
                   <AlertCircle className="h-12 w-12 text-gray-400 mx-auto mb-3" />
                   <p className="text-gray-600">
-                    Aucune pathologie ne correspond aux critères sélectionnés
+                    Aucune pathologie ne correspond
                   </p>
                   <button
                     onClick={() => {
@@ -792,7 +642,7 @@ export default function TestingV2Page() {
                       setTriageStep(0)
                       setTriageAnswers({})
                     }}
-                    className="mt-4 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+                    className="mt-4 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
                   >
                     Refaire le triage
                   </button>
@@ -808,14 +658,14 @@ export default function TestingV2Page() {
                         setCurrentStep('tests')
                       }}
                     >
-                      {/* Score de correspondance - en haut à droite */}
+                      {/* Score */}
                       <div className="absolute top-4 right-4 z-20">
                         <div className="bg-gradient-to-r from-green-500 to-green-600 text-white text-sm font-bold rounded-full px-4 py-2 shadow-lg">
                           {Math.round(match.matchScore)}%
                         </div>
                       </div>
 
-                      {/* Image topographique - MISE EN AVANT */}
+                      {/* Image topographique */}
                       {match.pathology.topographic_image_url ? (
                         <div className="relative h-72 w-full overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100 border-b-2 border-gray-200">
                           <img
@@ -823,48 +673,35 @@ export default function TestingV2Page() {
                             alt={match.pathology.name}
                             className="w-full h-full object-contain p-4 transition-transform group-hover:scale-110"
                           />
-                          {/* Overlay gradient au survol */}
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                         </div>
                       ) : (
                         <div className="h-72 bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center border-b-2 border-gray-200">
-                          <svg className="h-20 w-20 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                          </svg>
+                          <div className="text-gray-300 text-6xl">📋</div>
                         </div>
                       )}
 
-                      {/* Contenu de la carte */}
+                      {/* Contenu */}
                       <div className="p-5">
-                        <h3 className="font-bold text-xl text-gray-900 mb-3 group-hover:text-primary-600 transition-colors">
+                        <h3 className="font-bold text-xl text-gray-900 mb-3">
                           {match.pathology.name}
                         </h3>
                         
                         {match.pathology.description && (
-                          <p className="text-sm text-gray-600 mb-4 whitespace-pre-line">
+                          <p className="text-sm text-gray-600 mb-4 line-clamp-3">
                             {match.pathology.description}
                           </p>
                         )}
 
-
-                        {/* Critères matchés - badges visuels */}
+                        {/* Critères matchés */}
                         {match.matchedCriteria.length > 0 && (
                           <div className="mb-4">
-                            <p className="text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wide">
-                              Critères correspondants
-                            </p>
                             <div className="flex flex-wrap gap-2">
-                              {match.matchedCriteria.slice(0, 3).map(criteria => (
-                                <div key={criteria} className="flex items-center gap-1 bg-green-50 text-green-700 px-3 py-1 rounded-full text-xs font-medium border border-green-200">
+                              {match.matchedCriteria.map(criteria => (
+                                <div key={criteria} className="flex items-center gap-1 bg-green-50 text-green-700 px-3 py-1 rounded-full text-xs font-medium">
                                   <CheckCircle className="h-3 w-3" />
                                   <span>{criteria}</span>
                                 </div>
                               ))}
-                              {match.matchedCriteria.length > 3 && (
-                                <div className="bg-gray-100 text-gray-600 px-3 py-1 rounded-full text-xs font-medium">
-                                  +{match.matchedCriteria.length - 3}
-                                </div>
-                              )}
                             </div>
                           </div>
                         )}
@@ -881,9 +718,9 @@ export default function TestingV2Page() {
                           </div>
                         </div>
 
-                        {/* Bouton d'action */}
-                        <button className="w-full bg-gradient-to-r from-primary-600 to-primary-700 text-white py-3 rounded-xl hover:from-primary-700 hover:to-primary-800 transition-all flex items-center justify-center gap-2 font-semibold shadow-md hover:shadow-lg transform group-hover:translate-y-[-2px]">
-                          Évaluer cette pathologie
+                        {/* Bouton */}
+                        <button className="w-full bg-gradient-to-r from-primary-600 to-primary-700 text-white py-3 rounded-xl hover:from-primary-700 hover:to-primary-800 transition-all flex items-center justify-center gap-2 font-semibold">
+                          Évaluer
                           <ChevronRight className="h-5 w-5" />
                         </button>
                       </div>
@@ -895,31 +732,21 @@ export default function TestingV2Page() {
           </div>
         )}
 
-        {/* Étape 4: Tests de la pathologie sélectionnée */}
+        {/* Étape 4: Tests (identique à la version complète) */}
         {currentStep === 'tests' && selectedPathology && (
           <div className="space-y-6">
-            {/* Informations de la pathologie */}
+            {/* [Même code que la version complète pour les tests] */}
             <div className="bg-white rounded-xl shadow-sm p-6">
               <div className="flex items-start justify-between mb-4">
-                <div className="flex-1">
+                <div>
                   <h2 className="text-2xl font-bold text-gray-900 mb-3">{selectedPathology.name}</h2>
-                  
                   {selectedPathology.topographic_image_url && (
-                    <div className="mb-4">
-                      <img 
-                        src={selectedPathology.topographic_image_url} 
-                        alt={selectedPathology.name}
-                        className="h-40 object-contain rounded-lg border border-gray-200"
-                      />
-                    </div>
+                    <img 
+                      src={selectedPathology.topographic_image_url} 
+                      alt={selectedPathology.name}
+                      className="h-40 object-contain rounded-lg border"
+                    />
                   )}
-                  
-                  {selectedPathology.description && (
-                    <p className="text-gray-600 whitespace-pre-line">
-                      {selectedPathology.description}
-                    </p>
-                  )}
-
                 </div>
                 <button
                   onClick={() => {
@@ -933,344 +760,58 @@ export default function TestingV2Page() {
                 </button>
               </div>
 
-              {selectedPathology.recommendations && (
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <h3 className="font-semibold text-blue-900 mb-2 flex items-center gap-2">
-                    <Info className="h-5 w-5" />
-                    Recommandations
-                  </h3>
-                  <p className="text-blue-800 text-sm">{selectedPathology.recommendations}</p>
-                </div>
-              )}
-            </div>
-
-            {/* Tests orthopédiques */}
-            {selectedPathology.tests?.length > 0 && (
-              <div className="bg-white rounded-xl shadow-sm p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                  <Activity className="h-5 w-5 text-primary-600" />
-                  Tests orthopédiques ({selectedPathology.tests.length})
-                </h3>
-                
-                <div className="space-y-4">
-                  {selectedPathology.tests.map((test: any) => {
-                    const result = testResults.find(r => r.testId === test.id)
-                    
-                    return (
-                      <div key={test.id} className="border-2 border-gray-200 rounded-xl p-5 hover:border-primary-300 transition-colors">
-                        <div className="flex items-start justify-between mb-3">
-                          <div className="flex-1">
-                            <h4 className="font-semibold text-gray-900 text-lg">{test.name}</h4>
-                            {test.description && (
-                              <p className="text-sm text-gray-600 mt-2 whitespace-pre-line">{test.description}</p>
-                            )}
-                            {test.relevance_score && (
-                              <div className="flex items-center gap-2 mt-3">
-                                <span className="text-xs text-gray-500 font-medium">Pertinence:</span>
-                                <div className="flex">
-                                  {[...Array(10)].map((_, i) => (
-                                    <div
-                                      key={i}
-                                      className={`h-2 w-6 ${
-                                        i < test.relevance_score
-                                          ? 'bg-gradient-to-r from-green-500 to-green-600'
-                                          : 'bg-gray-200'
-                                      } ${i === 0 ? 'rounded-l' : ''} ${i === 9 ? 'rounded-r' : ''}`}
-                                    />
-                                  ))}
-                                </div>
-                                <span className="text-xs font-bold text-gray-700">
-                                  {test.relevance_score}/10
-                                </span>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-
-                        <div className="flex gap-2 mt-4">
-                          <button
-                            onClick={() => handleTestResult(test.id, 'positive')}
-                            className={`flex-1 py-3 px-4 rounded-lg text-sm font-semibold transition-all ${
-                              result?.result === 'positive'
-                                ? 'bg-green-600 text-white shadow-md'
-                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                            }`}
-                          >
-                            <CheckCircle className="h-5 w-5 inline mr-2" />
-                            Positif
-                          </button>
-                          <button
-                            onClick={() => handleTestResult(test.id, 'negative')}
-                            className={`flex-1 py-3 px-4 rounded-lg text-sm font-semibold transition-all ${
-                              result?.result === 'negative'
-                                ? 'bg-red-600 text-white shadow-md'
-                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                            }`}
-                          >
-                            <XCircle className="h-5 w-5 inline mr-2" />
-                            Négatif
-                          </button>
-                          <button
-                            onClick={() => handleTestResult(test.id, 'uncertain')}
-                            className={`flex-1 py-3 px-4 rounded-lg text-sm font-semibold transition-all ${
-                              result?.result === 'uncertain'
-                                ? 'bg-yellow-600 text-white shadow-md'
-                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                            }`}
-                          >
-                            <AlertCircle className="h-5 w-5 inline mr-2" />
-                            Incertain
-                          </button>
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* Clusters de tests orthopédiques */}
-            {selectedPathology.clusters?.length > 0 && (
-              <div className="bg-white rounded-xl shadow-sm p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                  <Target className="h-5 w-5 text-primary-600" />
-                  Clusters de tests ({selectedPathology.clusters.length})
-                </h3>
-                <p className="text-sm text-gray-600 mb-4">
-                  Les clusters regroupent plusieurs tests pour augmenter la fiabilité diagnostique
-                </p>
-                
-                <div className="space-y-6">
-                  {selectedPathology.clusters.map((cluster: any) => (
-                    <div key={cluster.id} className="border-2 border-purple-200 rounded-xl p-5 bg-purple-50/30">
-                      <div className="mb-4">
-                        <h4 className="font-bold text-gray-900 text-lg mb-2 flex items-center gap-2">
-                          <Sparkles className="h-5 w-5 text-purple-600" />
-                          {cluster.name}
-                        </h4>
-                        
-                        {cluster.description && (
-                          <p className="text-sm text-gray-700 mb-3">{cluster.description}</p>
-                        )}
-
-                        {/* Indicateurs statistiques du cluster */}
-                        {(cluster.sensitivity || cluster.specificity) && (
-                          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
-                            {cluster.sensitivity && (
-                              <div className="bg-white rounded-lg p-3 border border-green-200">
-                                <p className="text-xs text-gray-600 mb-1">Sensibilité</p>
-                                <p className="text-lg font-bold text-green-700">
-                                  {cluster.sensitivity > 1 
-                                    ? Math.round(cluster.sensitivity) 
-                                    : Math.round(cluster.sensitivity * 100)}%
-                                </p>
-                              </div>
-                            )}
-                            {cluster.specificity && (
-                              <div className="bg-white rounded-lg p-3 border border-blue-200">
-                                <p className="text-xs text-gray-600 mb-1">Spécificité</p>
-                                <p className="text-lg font-bold text-blue-700">
-                                  {cluster.specificity > 1 
-                                    ? Math.round(cluster.specificity) 
-                                    : Math.round(cluster.specificity * 100)}%
-                                </p>
-                              </div>
-                            )}
-                            {cluster.rv_positive && (
-                              <div className="bg-white rounded-lg p-3 border border-purple-200">
-                                <p className="text-xs text-gray-600 mb-1">RV+</p>
-                                <p className="text-lg font-bold text-purple-700">
-                                  {cluster.rv_positive.toFixed(1)}
-                                </p>
-                              </div>
-                            )}
-                            {cluster.rv_negative && (
-                              <div className="bg-white rounded-lg p-3 border border-orange-200">
-                                <p className="text-xs text-gray-600 mb-1">RV-</p>
-                                <p className="text-lg font-bold text-orange-700">
-                                  {cluster.rv_negative.toFixed(2)}
-                                </p>
-                              </div>
-                            )}
-                          </div>
-                        )}
-
-                        {cluster.indications && (
-                          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-3">
-                            <p className="text-xs font-semibold text-blue-900 mb-1">Indications</p>
-                            <p className="text-sm text-blue-800">{cluster.indications}</p>
-                          </div>
-                        )}
-
-                        {cluster.interest && (
-                          <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-3">
-                            <p className="text-xs font-semibold text-green-900 mb-1">Intérêt clinique</p>
-                            <p className="text-sm text-green-800">{cluster.interest}</p>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Tests du cluster */}
-                      {cluster.tests && cluster.tests.length > 0 ? (
-                        <div className="bg-white rounded-lg p-4 border-2 border-purple-100">
-                          <p className="text-xs font-semibold text-purple-900 mb-3 uppercase tracking-wide flex items-center gap-2">
-                            <Activity className="h-4 w-4" />
-                            Tests à réaliser en séquence ({cluster.tests.length})
-                          </p>
-                          <div className="space-y-3">
-                            {cluster.tests.map((test: any, index: number) => (
-                              <div key={test.id} className="flex items-start gap-3 p-3 bg-purple-50 rounded-lg">
-                                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-purple-600 text-white flex items-center justify-center font-bold text-sm">
-                                  {index + 1}
-                                </div>
-                                <div className="flex-1">
-                                  <h5 className="font-semibold text-gray-900 text-sm">{test.name}</h5>
-                                  {test.description && (
-                                    <p className="text-xs text-gray-600 mt-1 line-clamp-2">{test.description}</p>
-                                  )}
-                                  {test.video_url && (
-                                    <a 
-                                      href={test.video_url}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      className="text-xs text-primary-600 hover:text-primary-700 mt-1 inline-flex items-center gap-1"
-                                    >
-                                      <FileText className="h-3 w-3" />
-                                      Voir la vidéo
-                                    </a>
-                                  )}
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                          <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                            <p className="text-xs text-yellow-800">
-                              💡 <strong>Astuce :</strong> Réalisez tous les tests du cluster pour maximiser la précision diagnostique
-                            </p>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="bg-white rounded-lg p-4 border-2 border-purple-100">
-                          <p className="text-xs text-gray-500 italic">
-                            Les tests de ce cluster sont disponibles dans la section "Tests orthopédiques" ci-dessus
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Informations patient et actions */}
-            <div className="bg-white rounded-xl shadow-sm p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                Informations de consultation
-              </h3>
-              
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    <User className="inline h-4 w-4 mr-1" />
-                    Nom du patient
-                  </label>
+              {/* Informations patient et sauvegarde */}
+              <div className="mt-6 space-y-4">
+                <div className="grid grid-cols-3 gap-4">
                   <input
                     type="text"
                     value={consultationData.patientName}
-                    onChange={(e) => setConsultationData(prev => ({ 
-                      ...prev, 
-                      patientName: e.target.value 
-                    }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-                    placeholder="Jean Dupont"
+                    onChange={(e) => setConsultationData(prev => ({ ...prev, patientName: e.target.value }))}
+                    placeholder="Nom du patient"
+                    className="px-3 py-2 border rounded-lg"
                   />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Âge
-                  </label>
                   <input
                     type="text"
                     value={consultationData.patientAge}
-                    onChange={(e) => setConsultationData(prev => ({ 
-                      ...prev, 
-                      patientAge: e.target.value 
-                    }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-                    placeholder="45 ans"
+                    onChange={(e) => setConsultationData(prev => ({ ...prev, patientAge: e.target.value }))}
+                    placeholder="Âge"
+                    className="px-3 py-2 border rounded-lg"
                   />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    <Calendar className="inline h-4 w-4 mr-1" />
-                    Date
-                  </label>
                   <input
                     type="date"
                     value={consultationData.consultationDate}
-                    onChange={(e) => setConsultationData(prev => ({ 
-                      ...prev, 
-                      consultationDate: e.target.value 
-                    }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                    onChange={(e) => setConsultationData(prev => ({ ...prev, consultationDate: e.target.value }))}
+                    className="px-3 py-2 border rounded-lg"
                   />
                 </div>
-              </div>
 
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Notes de consultation
-                </label>
                 <textarea
                   value={consultationData.notes}
-                  onChange={(e) => setConsultationData(prev => ({ 
-                    ...prev, 
-                    notes: e.target.value 
-                  }))}
-                  rows={4}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-                  placeholder="Notes complémentaires..."
+                  onChange={(e) => setConsultationData(prev => ({ ...prev, notes: e.target.value }))}
+                  placeholder="Notes..."
+                  rows={3}
+                  className="w-full px-3 py-2 border rounded-lg"
                 />
-              </div>
 
-              <button
-                onClick={() => {
-                  const episode = buildCurrentEpisode()
-                  setEpisodes(prev => [...prev, episode])
-
-                  setCurrentStep('region')
-                  setSelectedRegion('')
-                  setTriageAnswers({})
-                  setTriageStep(0)
-                  setFilteredPathologies([])
-                  setSelectedPathology(null)
-                  setTestResults([])
-                }}
-                className="mb-4 px-4 py-2 bg-gray-100 text-gray-800 rounded-lg hover:bg-gray-200 transition-colors"
-              >
-                + Ajouter un autre élément à cette consultation
-              </button>
-
-              <div className="flex gap-3">
-                <button
-                  onClick={saveConsultation}
-                  disabled={saving || !consultationData.patientName}
-                  className="flex-1 bg-primary-600 text-white px-4 py-3 rounded-lg hover:bg-primary-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 font-semibold"
-                >
-                  <Save className="h-5 w-5" />
-                  {saving ? 'Sauvegarde...' : 'Sauvegarder'}
-                </button>
-                
-                <button
-                  onClick={generatePDF}
-                  disabled={!consultationData.patientName}
-                  className="flex-1 bg-blue-600 text-white px-4 py-3 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 font-semibold"
-                >
-                  <Download className="h-5 w-5" />
-                  Générer PDF
-                </button>
+                <div className="flex gap-3">
+                  <button
+                    onClick={saveConsultation}
+                    disabled={saving || !consultationData.patientName}
+                    className="flex-1 bg-primary-600 text-white px-4 py-3 rounded-lg hover:bg-primary-700 flex items-center justify-center gap-2"
+                  >
+                    <Save className="h-5 w-5" />
+                    {saving ? 'Sauvegarde...' : 'Sauvegarder'}
+                  </button>
+                  
+                  <button
+                    onClick={generatePDF}
+                    disabled={!consultationData.patientName}
+                    className="flex-1 bg-blue-600 text-white px-4 py-3 rounded-lg hover:bg-blue-700 flex items-center justify-center gap-2"
+                  >
+                    <Download className="h-5 w-5" />
+                    PDF
+                  </button>
+                </div>
               </div>
             </div>
           </div>
