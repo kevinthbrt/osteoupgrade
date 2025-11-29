@@ -24,6 +24,12 @@ import {
   Target,
   Stethoscope
 } from 'lucide-react'
+import { 
+  applyInclusionExclusion, 
+  filterPathologiesWithInclusionExclusion,
+  getInclusionBadgeProps,
+  type PatientData
+} from '@/lib/scoring-algorithm'
 
 interface TriageAnswers {
   region?: string
@@ -38,6 +44,7 @@ interface PathologyMatch {
   matchedCriteria: string[]
   tests: any[]
   clusters: any[]
+  inclusionModifier?: number
 }
 
 interface ConsultationData {
@@ -49,6 +56,7 @@ interface ConsultationData {
   selectedPathologies: any[]
   testResults: any[]
   notes: string
+  patientData?: PatientData
 }
 
 interface ConsultationEpisode {
@@ -57,6 +65,7 @@ interface ConsultationEpisode {
   filteredPathologies: PathologyMatch[]
   selectedPathology: any
   testResults: any[]
+  patientData?: PatientData
 }
 
 const REGIONS = [
@@ -71,6 +80,40 @@ const REGIONS = [
   { value: 'genou', label: 'Genou', icon: '🔷' },
   { value: 'cheville', label: 'Cheville', icon: '🟤' },
   { value: 'pied', label: 'Pied', icon: '👣' }
+]
+
+const AGE_RANGES = [
+  { value: '0-18', label: '0-18 ans', description: 'Enfant / Adolescent', icon: '👶' },
+  { value: '18-30', label: '18-30 ans', description: 'Jeune adulte', icon: '🧑' },
+  { value: '30-50', label: '30-50 ans', description: 'Adulte', icon: '👤' },
+  { value: '50-65', label: '50-65 ans', description: 'Adulte mature', icon: '👨' },
+  { value: '65+', label: '65 ans et plus', description: 'Senior', icon: '👴' }
+]
+
+const SEX_OPTIONS = [
+  { value: 'homme', label: 'Homme', icon: '♂️', color: 'blue' },
+  { value: 'femme', label: 'Femme', icon: '♀️', color: 'pink' }
+]
+
+const LIFESTYLE_OPTIONS = [
+  { 
+    value: 'sedentaire', 
+    label: 'Sédentaire', 
+    description: 'Activité physique faible ou nulle', 
+    icon: '💺' 
+  },
+  { 
+    value: 'actif', 
+    label: 'Actif', 
+    description: 'Activité modérée (1-3×/semaine)', 
+    icon: '🚶' 
+  },
+  { 
+    value: 'athlete', 
+    label: 'Athlète', 
+    description: 'Activité intense (>3×/semaine)', 
+    icon: '🏋️' 
+  }
 ]
 
 const TRIAGE_QUESTIONS = [
@@ -184,10 +227,15 @@ export default function TestingV2SimplifiedPage() {
   const [loading, setLoading] = useState(true)
   const [profile, setProfile] = useState<any>(null)
   
-  const [currentStep, setCurrentStep] = useState<'region' | 'triage' | 'pathologies' | 'tests'>('region')
+  const [currentStep, setCurrentStep] = useState<'region' | 'patient' | 'triage' | 'pathologies' | 'tests'>('region')
   const [triageStep, setTriageStep] = useState(0)
   const [triageAnswers, setTriageAnswers] = useState<TriageAnswers>({})
   const [selectedRegion, setSelectedRegion] = useState<string>('')
+  const [patientData, setPatientData] = useState<PatientData>({
+    age: '',
+    sex: '',
+    lifestyle: ''
+  })
   
   const [allPathologies, setAllPathologies] = useState<any[]>([])
   const [filteredPathologies, setFilteredPathologies] = useState<PathologyMatch[]>([])
@@ -306,6 +354,7 @@ export default function TestingV2SimplifiedPage() {
     filteredPathologies,
     selectedPathology,
     testResults,
+    patientData
   })
 
   const getAllEpisodes = (): ConsultationEpisode[] => {
@@ -320,7 +369,7 @@ export default function TestingV2SimplifiedPage() {
   const handleRegionSelect = (region: string) => {
     setSelectedRegion(region)
     setConsultationData(prev => ({ ...prev, region }))
-    setCurrentStep('triage')
+    setCurrentStep('patient')
     setTriageStep(0)
     setTriageAnswers({})
   }
@@ -340,56 +389,12 @@ export default function TestingV2SimplifiedPage() {
 
   const filterPathologies = (answers: TriageAnswers) => {
     const regionPathologies = allPathologies.filter(p => p.region === selectedRegion)
-
-    const matches: PathologyMatch[] = regionPathologies.map(pathology => {
-      let matchScore = 0
-      const matchedCriteria: string[] = []
-
-      if (pathology.triage_criteria) {
-        const criteria = pathology.triage_criteria
-
-        // Convertir en arrays
-        const temporalEvolutions = Array.isArray(criteria.temporal_evolution) ? criteria.temporal_evolution : (criteria.temporal_evolution ? [criteria.temporal_evolution] : [])
-        const painTypes = Array.isArray(criteria.pain_type) ? criteria.pain_type : (criteria.pain_type ? [criteria.pain_type] : [])
-        const painLocations = Array.isArray(criteria.pain_location) ? criteria.pain_location : (criteria.pain_location ? [criteria.pain_location] : [])
-
-        // Scoring
-        if (temporalEvolutions.includes(answers.temporalEvolution)) {
-          matchScore += 33
-          matchedCriteria.push('Évolution temporelle')
-        }
-
-        if (painTypes.includes(answers.painType)) {
-          matchScore += 33
-          matchedCriteria.push('Type de douleur')
-        }
-
-        if (painLocations.includes(answers.painLocation)) {
-          matchScore += 34
-          matchedCriteria.push('Localisation')
-        }
-
-        // Appliquer le poids de triage (normalisation correcte)
-        // matchScore = 0-100 (33+33+34 si 3 critères)
-        // triage_weight = 0-100 (fréquence de la pathologie)
-        // Résultat final = 0-100%
-        if (criteria.triage_weight) {
-          matchScore = (matchScore * criteria.triage_weight) / 100
-        }
-      }
-
-      return {
-        pathology,
-        matchScore,
-        matchedCriteria,
-        tests: pathology.tests || [],
-        clusters: pathology.clusters || []
-      }
-    })
-
-    const filtered = matches
-      .filter(m => m.matchScore > 0)
-      .sort((a, b) => b.matchScore - a.matchScore)
+    
+    const filtered = filterPathologiesWithInclusionExclusion(
+      regionPathologies,
+      answers,
+      patientData
+    )
 
     setFilteredPathologies(filtered)
   }
@@ -435,6 +440,7 @@ export default function TestingV2SimplifiedPage() {
         consultation_date: consultationData.consultationDate,
         anatomical_region: selectedRegion,
         triage_answers: triageAnswers,
+        patient_data: patientData,
         evaluated_pathologies,
         test_results: allTestResults,
         final_diagnosis: allEpisodes
@@ -493,7 +499,7 @@ export default function TestingV2SimplifiedPage() {
                 Consultation Guidée (Simplifié)
               </h1>
               <p className="text-gray-600 mt-1">
-                3 questions simples pour un triage efficace
+                Profil patient + 3 questions simples pour un triage efficace
               </p>
             </div>
           </div>
@@ -504,23 +510,26 @@ export default function TestingV2SimplifiedPage() {
             <div 
               className="absolute left-0 top-5 h-1 bg-gradient-to-r from-primary-500 to-primary-600 rounded-full transition-all duration-500"
               style={{
-                width: currentStep === 'region' ? '25%' : 
-                       currentStep === 'triage' ? '50%' :
-                       currentStep === 'pathologies' ? '75%' : '100%'
+                width: currentStep === 'region' ? '20%' : 
+                       currentStep === 'patient' ? '40%' :
+                       currentStep === 'triage' ? '60%' :
+                       currentStep === 'pathologies' ? '80%' : '100%'
               }}
             />
             
-            {['Région', 'Triage', 'Pathologies', 'Tests'].map((step, index) => {
+            {['Région', 'Patient', 'Triage', 'Pathologies', 'Tests'].map((step, index) => {
               const isActive = 
                 (index === 0 && currentStep === 'region') ||
-                (index === 1 && currentStep === 'triage') ||
-                (index === 2 && currentStep === 'pathologies') ||
-                (index === 3 && currentStep === 'tests')
+                (index === 1 && currentStep === 'patient') ||
+                (index === 2 && currentStep === 'triage') ||
+                (index === 3 && currentStep === 'pathologies') ||
+                (index === 4 && currentStep === 'tests')
               
               const isCompleted = 
                 (index === 0 && currentStep !== 'region') ||
-                (index === 1 && (currentStep === 'pathologies' || currentStep === 'tests')) ||
-                (index === 2 && currentStep === 'tests')
+                (index === 1 && (currentStep === 'triage' || currentStep === 'pathologies' || currentStep === 'tests')) ||
+                (index === 2 && (currentStep === 'pathologies' || currentStep === 'tests')) ||
+                (index === 3 && currentStep === 'tests')
 
               return (
                 <div key={step} className="relative z-10 flex flex-col items-center">
@@ -569,7 +578,162 @@ export default function TestingV2SimplifiedPage() {
           </div>
         )}
 
-        {/* Étape 2: Questions de triage (3 questions) */}
+        {/* Étape 2: Informations Patient */}
+        {currentStep === 'patient' && (
+          <div className="space-y-6">
+            <div className="bg-white rounded-xl shadow-sm p-8">
+              <div className="mb-6">
+                <h2 className="text-2xl font-bold text-gray-900 mb-2">Informations Patient</h2>
+                <p className="text-gray-600">
+                  Ces informations permettent d'affiner les recommandations diagnostiques
+                </p>
+              </div>
+
+              <div className="space-y-6">
+                {/* Âge */}
+                <div>
+                  <label className="block text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                    <span className="text-2xl">📅</span>
+                    Quel est l'âge du patient ?
+                  </label>
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                    {AGE_RANGES.map(range => (
+                      <button
+                        key={range.value}
+                        onClick={() => setPatientData(prev => ({ ...prev, age: range.value as any }))}
+                        className={`p-4 rounded-xl border-2 text-center transition-all ${
+                          patientData.age === range.value
+                            ? 'border-purple-600 bg-purple-50 shadow-lg scale-105'
+                            : 'border-gray-200 hover:border-purple-300 hover:shadow'
+                        }`}
+                      >
+                        <div className="text-3xl mb-2">{range.icon}</div>
+                        <div className="font-semibold text-gray-900 mb-1">{range.label}</div>
+                        <div className="text-xs text-gray-600">{range.description}</div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Sexe */}
+                <div>
+                  <label className="block text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                    <span className="text-2xl">⚧</span>
+                    Quel est le sexe biologique du patient ?
+                  </label>
+                  <div className="grid grid-cols-2 gap-4 max-w-2xl">
+                    {SEX_OPTIONS.map(option => (
+                      <button
+                        key={option.value}
+                        onClick={() => setPatientData(prev => ({ ...prev, sex: option.value as any }))}
+                        className={`p-6 rounded-xl border-2 text-center transition-all ${
+                          patientData.sex === option.value
+                            ? `border-${option.color}-600 bg-${option.color}-50 shadow-lg scale-105`
+                            : 'border-gray-200 hover:border-purple-300 hover:shadow'
+                        }`}
+                      >
+                        <div className="text-5xl mb-3">{option.icon}</div>
+                        <div className="font-bold text-xl text-gray-900">{option.label}</div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Mode de vie */}
+                <div>
+                  <label className="block text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                    <span className="text-2xl">🏃</span>
+                    Quel est le niveau d'activité physique du patient ?
+                  </label>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {LIFESTYLE_OPTIONS.map(option => (
+                      <button
+                        key={option.value}
+                        onClick={() => setPatientData(prev => ({ ...prev, lifestyle: option.value as any }))}
+                        className={`p-6 rounded-xl border-2 text-left transition-all ${
+                          patientData.lifestyle === option.value
+                            ? 'border-green-600 bg-green-50 shadow-lg scale-105'
+                            : 'border-gray-200 hover:border-green-300 hover:shadow'
+                        }`}
+                      >
+                        <div className="text-4xl mb-3">{option.icon}</div>
+                        <div className="font-bold text-lg text-gray-900 mb-2">{option.label}</div>
+                        <div className="text-sm text-gray-600">{option.description}</div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Boutons navigation */}
+              <div className="mt-8 flex justify-between items-center pt-6 border-t">
+                <button
+                  onClick={() => setCurrentStep('region')}
+                  className="px-6 py-3 text-gray-700 bg-gray-100 rounded-xl hover:bg-gray-200 transition-colors flex items-center gap-2"
+                >
+                  <ChevronLeft className="h-5 w-5" />
+                  Retour
+                </button>
+
+                <button
+                  onClick={() => {
+                    if (!patientData.age || !patientData.sex || !patientData.lifestyle) {
+                      alert('Veuillez renseigner toutes les informations patient')
+                      return
+                    }
+                    setCurrentStep('triage')
+                  }}
+                  disabled={!patientData.age || !patientData.sex || !patientData.lifestyle}
+                  className="px-8 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl hover:from-purple-700 hover:to-pink-700 transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
+                >
+                  Continuer vers le triage
+                  <ChevronRight className="h-5 w-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Carte récapitulatif en live */}
+            {(patientData.age || patientData.sex || patientData.lifestyle) && (
+              <div className="bg-gradient-to-br from-purple-50 to-pink-50 border-2 border-purple-200 rounded-xl p-6">
+                <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                  <User className="h-5 w-5 text-purple-600" />
+                  Profil Patient
+                </h3>
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="text-center bg-white rounded-lg p-4">
+                    <div className="text-3xl mb-2">
+                      {AGE_RANGES.find(r => r.value === patientData.age)?.icon || '📅'}
+                    </div>
+                    <div className="text-xs text-gray-600">Âge</div>
+                    <div className="font-bold text-purple-900">
+                      {AGE_RANGES.find(r => r.value === patientData.age)?.label || '-'}
+                    </div>
+                  </div>
+                  <div className="text-center bg-white rounded-lg p-4">
+                    <div className="text-3xl mb-2">
+                      {SEX_OPTIONS.find(s => s.value === patientData.sex)?.icon || '⚧'}
+                    </div>
+                    <div className="text-xs text-gray-600">Sexe</div>
+                    <div className="font-bold text-purple-900">
+                      {SEX_OPTIONS.find(s => s.value === patientData.sex)?.label || '-'}
+                    </div>
+                  </div>
+                  <div className="text-center bg-white rounded-lg p-4">
+                    <div className="text-3xl mb-2">
+                      {LIFESTYLE_OPTIONS.find(l => l.value === patientData.lifestyle)?.icon || '🏃'}
+                    </div>
+                    <div className="text-xs text-gray-600">Activité</div>
+                    <div className="font-bold text-purple-900">
+                      {LIFESTYLE_OPTIONS.find(l => l.value === patientData.lifestyle)?.label || '-'}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Étape 3: Questions de triage (3 questions) */}
         {currentStep === 'triage' && (
           <div className="bg-white rounded-xl shadow-sm overflow-hidden">
             <div className={`h-2 bg-gradient-to-r ${TRIAGE_QUESTIONS[triageStep].color}`} />
@@ -624,7 +788,7 @@ export default function TestingV2SimplifiedPage() {
           </div>
         )}
 
-        {/* Étape 3: Pathologies filtrées */}
+        {/* Étape 4: Pathologies filtrées */}
         {currentStep === 'pathologies' && (
           <div className="space-y-6">
             <div className="bg-white rounded-xl shadow-sm p-6">
@@ -670,6 +834,26 @@ export default function TestingV2SimplifiedPage() {
                               setCurrentStep('tests')
                             }}
                           >
+                            {/* Badge Inclusion/Exclusion */}
+                            {(() => {
+                              const badgeProps = getInclusionBadgeProps(
+                                filteredPathologies[1].pathology,
+                                patientData,
+                                filteredPathologies[1].inclusionModifier || 1.0
+                              )
+                              if (!badgeProps?.show) return null
+                              
+                              return (
+                                <div className={`mb-2 px-3 py-1 rounded-full text-xs font-bold ${
+                                  badgeProps.type === 'excluded' ? 'bg-red-600 text-white' :
+                                  badgeProps.type === 'bonus' ? 'bg-green-600 text-white' :
+                                  'bg-orange-500 text-white'
+                                }`}>
+                                  {badgeProps.label}
+                                </div>
+                              )
+                            })()}
+
                             {/* Médaille */}
                             <div className="relative mb-4 transform group-hover:scale-110 transition-transform">
                               <div className="w-20 h-20 rounded-full bg-gradient-to-br from-gray-300 to-gray-500 flex items-center justify-center shadow-xl border-4 border-gray-200">
@@ -680,7 +864,6 @@ export default function TestingV2SimplifiedPage() {
                                   {Math.round(filteredPathologies[1].matchScore)}%
                                 </div>
                               </div>
-                              {/* Badge Drapeau Rouge */}
                               {filteredPathologies[1].pathology.is_red_flag && (
                                 <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-red-600 text-white text-xs font-bold rounded-full px-2 py-0.5 shadow-lg animate-pulse flex items-center gap-1">
                                   <span>🚨</span>
@@ -688,9 +871,7 @@ export default function TestingV2SimplifiedPage() {
                               )}
                             </div>
                             
-                            {/* Marche */}
                             <div className="w-40 bg-gradient-to-br from-gray-200 to-gray-300 rounded-t-xl p-4 shadow-lg border-t-4 border-gray-400 group-hover:shadow-2xl transition-shadow">
-                              {/* Badge Drapeau Rouge compact */}
                               {filteredPathologies[1].pathology.is_red_flag && (
                                 <div className="mb-2 bg-red-50 border-2 border-red-500 rounded p-1.5">
                                   <div className="flex items-center gap-1 text-red-700">
@@ -734,6 +915,26 @@ export default function TestingV2SimplifiedPage() {
                               setCurrentStep('tests')
                             }}
                           >
+                            {/* Badge Inclusion/Exclusion */}
+                            {(() => {
+                              const badgeProps = getInclusionBadgeProps(
+                                filteredPathologies[0].pathology,
+                                patientData,
+                                filteredPathologies[0].inclusionModifier || 1.0
+                              )
+                              if (!badgeProps?.show) return null
+                              
+                              return (
+                                <div className={`mb-2 px-3 py-1 rounded-full text-xs font-bold ${
+                                  badgeProps.type === 'excluded' ? 'bg-red-600 text-white' :
+                                  badgeProps.type === 'bonus' ? 'bg-green-600 text-white' :
+                                  'bg-orange-500 text-white'
+                                }`}>
+                                  {badgeProps.label}
+                                </div>
+                              )
+                            })()}
+
                             {/* Médaille avec couronne */}
                             <div className="relative mb-4 transform group-hover:scale-110 transition-transform">
                               <div className="absolute -top-6 left-1/2 -translate-x-1/2 text-3xl animate-bounce">
@@ -747,7 +948,6 @@ export default function TestingV2SimplifiedPage() {
                                   {Math.round(filteredPathologies[0].matchScore)}%
                                 </div>
                               </div>
-                              {/* Badge Drapeau Rouge */}
                               {filteredPathologies[0].pathology.is_red_flag && (
                                 <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 bg-red-600 text-white text-xs font-bold rounded-full px-3 py-1 shadow-lg animate-pulse flex items-center gap-1">
                                   <span>🚨</span>
@@ -756,9 +956,7 @@ export default function TestingV2SimplifiedPage() {
                               )}
                             </div>
                             
-                            {/* Marche */}
                             <div className="w-48 bg-gradient-to-br from-yellow-100 to-yellow-200 rounded-t-xl p-5 shadow-2xl border-t-4 border-yellow-400 group-hover:shadow-3xl transition-shadow">
-                              {/* Badge Drapeau Rouge dans la marche */}
                               {filteredPathologies[0].pathology.is_red_flag && (
                                 <div className="mb-3 bg-red-50 border-2 border-red-500 rounded-lg p-2 animate-pulse">
                                   <div className="flex items-center gap-2 text-red-700">
@@ -807,6 +1005,26 @@ export default function TestingV2SimplifiedPage() {
                               setCurrentStep('tests')
                             }}
                           >
+                            {/* Badge Inclusion/Exclusion */}
+                            {(() => {
+                              const badgeProps = getInclusionBadgeProps(
+                                filteredPathologies[2].pathology,
+                                patientData,
+                                filteredPathologies[2].inclusionModifier || 1.0
+                              )
+                              if (!badgeProps?.show) return null
+                              
+                              return (
+                                <div className={`mb-2 px-3 py-1 rounded-full text-xs font-bold ${
+                                  badgeProps.type === 'excluded' ? 'bg-red-600 text-white' :
+                                  badgeProps.type === 'bonus' ? 'bg-green-600 text-white' :
+                                  'bg-orange-500 text-white'
+                                }`}>
+                                  {badgeProps.label}
+                                </div>
+                              )
+                            })()}
+
                             {/* Médaille */}
                             <div className="relative mb-4 transform group-hover:scale-110 transition-transform">
                               <div className="w-20 h-20 rounded-full bg-gradient-to-br from-orange-300 to-orange-600 flex items-center justify-center shadow-xl border-4 border-orange-200">
@@ -817,7 +1035,6 @@ export default function TestingV2SimplifiedPage() {
                                   {Math.round(filteredPathologies[2].matchScore)}%
                                 </div>
                               </div>
-                              {/* Badge Drapeau Rouge */}
                               {filteredPathologies[2].pathology.is_red_flag && (
                                 <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-red-600 text-white text-xs font-bold rounded-full px-2 py-0.5 shadow-lg animate-pulse flex items-center gap-1">
                                   <span>🚨</span>
@@ -825,9 +1042,7 @@ export default function TestingV2SimplifiedPage() {
                               )}
                             </div>
                             
-                            {/* Marche */}
                             <div className="w-40 bg-gradient-to-br from-orange-100 to-orange-200 rounded-t-xl p-4 shadow-lg border-t-4 border-orange-400 group-hover:shadow-2xl transition-shadow">
-                              {/* Badge Drapeau Rouge compact */}
                               {filteredPathologies[2].pathology.is_red_flag && (
                                 <div className="mb-2 bg-red-50 border-2 border-red-500 rounded p-1.5">
                                   <div className="flex items-center gap-1 text-red-700">
@@ -890,6 +1105,26 @@ export default function TestingV2SimplifiedPage() {
                               </div>
                             </div>
 
+                            {/* Badge Inclusion/Exclusion */}
+                            {(() => {
+                              const badgeProps = getInclusionBadgeProps(
+                                match.pathology,
+                                patientData,
+                                match.inclusionModifier || 1.0
+                              )
+                              if (!badgeProps?.show) return null
+                              
+                              return (
+                                <div className={`absolute top-3 left-3 z-10 px-2 py-1 rounded-full text-xs font-bold ${
+                                  badgeProps.type === 'excluded' ? 'bg-red-600 text-white' :
+                                  badgeProps.type === 'bonus' ? 'bg-green-600 text-white' :
+                                  'bg-orange-500 text-white'
+                                }`}>
+                                  {badgeProps.label}
+                                </div>
+                              )
+                            })()}
+
                             {/* Badge Drapeau Rouge */}
                             {match.pathology.is_red_flag && (
                               <div className="absolute top-3 left-3 bg-red-600 text-white text-xs font-bold rounded-full px-2 py-1 shadow-lg animate-pulse flex items-center gap-1 z-10">
@@ -899,7 +1134,6 @@ export default function TestingV2SimplifiedPage() {
                             )}
 
                             <div className="flex gap-4">
-                              {/* Image miniature */}
                               {match.pathology.topographic_image_url ? (
                                 <div className="flex-shrink-0 w-20 h-20 bg-gray-50 rounded-lg flex items-center justify-center overflow-hidden">
                                   <img
@@ -914,13 +1148,11 @@ export default function TestingV2SimplifiedPage() {
                                 </div>
                               )}
 
-                              {/* Contenu */}
                               <div className="flex-1 min-w-0">
                                 <h4 className="font-bold text-sm text-gray-900 mb-2 line-clamp-2">
                                   {match.pathology.name}
                                 </h4>
                                 
-                                {/* Drapeau rouge raison */}
                                 {match.pathology.is_red_flag && match.pathology.red_flag_reason && (
                                   <div className="mb-2 bg-red-50 border border-red-200 rounded p-2">
                                     <p className="text-xs text-red-700 leading-tight">
@@ -929,7 +1161,6 @@ export default function TestingV2SimplifiedPage() {
                                   </div>
                                 )}
                                 
-                                {/* Critères matchés */}
                                 {match.matchedCriteria.length > 0 && (
                                   <div className="flex flex-wrap gap-1 mb-2">
                                     {match.matchedCriteria.map(criteria => (
@@ -941,7 +1172,6 @@ export default function TestingV2SimplifiedPage() {
                                   </div>
                                 )}
 
-                                {/* Stats */}
                                 <div className="flex items-center gap-3 text-xs text-gray-500">
                                   <div className="flex items-center gap-1">
                                     <Activity className="h-3 w-3" />
@@ -1042,7 +1272,7 @@ export default function TestingV2SimplifiedPage() {
           </div>
         )}
 
-        {/* Étape 4: Tests */}
+        {/* Étape 5: Tests */}
         {currentStep === 'tests' && selectedPathology && (
           <div className="space-y-6">
             {/* En-tête de la pathologie */}
@@ -1066,6 +1296,47 @@ export default function TestingV2SimplifiedPage() {
                     </div>
                   )}
 
+                  {/* Profil Patient */}
+                  <div className="mb-6 bg-gradient-to-br from-purple-50 to-pink-50 border-2 border-purple-200 rounded-xl p-5">
+                    <div className="flex items-start gap-3">
+                      <div className="flex-shrink-0 mt-1">
+                        <User className="h-6 w-6 text-purple-600" />
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="text-lg font-bold text-gray-900 mb-3">Profil Patient</h3>
+                        <div className="grid grid-cols-3 gap-4">
+                          <div className="text-center bg-white rounded-lg p-3 border border-purple-200">
+                            <div className="text-3xl mb-1">
+                              {AGE_RANGES.find(r => r.value === patientData.age)?.icon}
+                            </div>
+                            <div className="text-xs text-gray-600">Âge</div>
+                            <div className="font-bold text-purple-900">
+                              {AGE_RANGES.find(r => r.value === patientData.age)?.label}
+                            </div>
+                          </div>
+                          <div className="text-center bg-white rounded-lg p-3 border border-purple-200">
+                            <div className="text-3xl mb-1">
+                              {SEX_OPTIONS.find(s => s.value === patientData.sex)?.icon}
+                            </div>
+                            <div className="text-xs text-gray-600">Sexe</div>
+                            <div className="font-bold text-purple-900">
+                              {SEX_OPTIONS.find(s => s.value === patientData.sex)?.label}
+                            </div>
+                          </div>
+                          <div className="text-center bg-white rounded-lg p-3 border border-purple-200">
+                            <div className="text-3xl mb-1">
+                              {LIFESTYLE_OPTIONS.find(l => l.value === patientData.lifestyle)?.icon}
+                            </div>
+                            <div className="text-xs text-gray-600">Activité</div>
+                            <div className="font-bold text-purple-900">
+                              {LIFESTYLE_OPTIONS.find(l => l.value === patientData.lifestyle)?.label}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
                   {/* Titre et image */}
                   <div className="flex items-start gap-6">
                     <div className="flex-1">
@@ -1073,7 +1344,6 @@ export default function TestingV2SimplifiedPage() {
                         {selectedPathology.name}
                       </h2>
                       
-                      {/* Description complète */}
                       {selectedPathology.description && (
                         <div className="mt-4 bg-blue-50 border-l-4 border-blue-500 rounded-r-lg p-4">
                           <div className="flex items-start gap-2">
@@ -1089,7 +1359,6 @@ export default function TestingV2SimplifiedPage() {
                       )}
                     </div>
 
-                    {/* Image topographique à droite */}
                     {selectedPathology.topographic_image_url && (
                       <div className="flex-shrink-0">
                         <img 

@@ -19,7 +19,8 @@ import {
   Map,
   Clock,
   MapPin,
-  Zap
+  Zap,
+  AlertCircle
 } from 'lucide-react'
 
 type MultipleChoiceField = 'temporal_evolution' | 'pain_type' | 'pain_location'
@@ -37,6 +38,7 @@ interface PathologyWithTriage {
     pain_type?: string[]
     pain_location?: string[]
     triage_weight?: number
+    additional_criteria?: any
   }
   tests: any[]
   clusters: any[]
@@ -153,12 +155,14 @@ export default function PathologyTriageAdminSimplifiedPage() {
             temporal_evolution: Array.isArray(triage.temporal_evolution) ? triage.temporal_evolution : (triage.temporal_evolution ? [triage.temporal_evolution] : []),
             pain_type: Array.isArray(triage.pain_type) ? triage.pain_type : (triage.pain_type ? [triage.pain_type] : []),
             pain_location: Array.isArray(triage.pain_location) ? triage.pain_location : (triage.pain_location ? [triage.pain_location] : []),
-            triage_weight: triage.triage_weight
+            triage_weight: triage.triage_weight,
+            additional_criteria: triage.additional_criteria
           } : {
             temporal_evolution: [],
             pain_type: [],
             pain_location: [],
-            triage_weight: 50
+            triage_weight: 50,
+            additional_criteria: {}
           },
           tests,
           clusters
@@ -252,7 +256,7 @@ export default function PathologyTriageAdminSimplifiedPage() {
 
       const { data: existingTriage } = await supabase
         .from('pathology_triage_criteria')
-        .select('id')
+        .select('id, additional_criteria')
         .eq('pathology_id', selectedPathology.id)
         .single()
 
@@ -261,7 +265,7 @@ export default function PathologyTriageAdminSimplifiedPage() {
         temporal_evolution: selectedPathology.triage_criteria?.temporal_evolution || [],
         pain_type: selectedPathology.triage_criteria?.pain_type || [],
         pain_location: selectedPathology.triage_criteria?.pain_location || [],
-        additional_criteria: {},
+        additional_criteria: existingTriage?.additional_criteria || {},
         triage_weight: selectedPathology.triage_criteria?.triage_weight || 50,
         created_by: user?.id
       }
@@ -678,6 +682,212 @@ export default function PathologyTriageAdminSimplifiedPage() {
                   </div>
                 </div>
               </div>
+
+              {/* CRITÈRES D'INCLUSION/EXCLUSION */}
+              {selectedPathology.triage_criteria && (
+                <div className="mt-8 border-t pt-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                    <CheckCircle className="h-5 w-5 text-green-600" />
+                    Critères d'Inclusion / Exclusion (Avancé)
+                  </h3>
+                  
+                  {/* Affichage read-only des critères existants */}
+                  {selectedPathology.triage_criteria.additional_criteria && 
+                   Object.keys(selectedPathology.triage_criteria.additional_criteria).length > 0 ? (
+                    <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-xl p-6 space-y-4">
+                      
+                      {/* INCLUSION */}
+                      {selectedPathology.triage_criteria.additional_criteria.inclusion && (
+                        <div>
+                          <h4 className="font-semibold text-blue-900 mb-3 flex items-center gap-2">
+                            <CheckCircle className="h-4 w-4" />
+                            ✅ Critères d'Inclusion
+                          </h4>
+                          <div className="grid grid-cols-3 gap-3">
+                            {/* Âge */}
+                            {selectedPathology.triage_criteria.additional_criteria.inclusion.age && (
+                              <div className="bg-white rounded-lg p-3 border border-blue-200">
+                                <div className="text-xs text-gray-600 mb-1">📅 Âge</div>
+                                <div className="flex flex-wrap gap-1">
+                                  {selectedPathology.triage_criteria.additional_criteria.inclusion.age.map((age: string) => (
+                                    <span key={age} className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full">
+                                      {age} ans
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                            
+                            {/* Sexe */}
+                            {selectedPathology.triage_criteria.additional_criteria.inclusion.sex && (
+                              <div className="bg-white rounded-lg p-3 border border-blue-200">
+                                <div className="text-xs text-gray-600 mb-1">⚧ Sexe</div>
+                                <div className="flex flex-wrap gap-1">
+                                  {selectedPathology.triage_criteria.additional_criteria.inclusion.sex.map((sex: string) => (
+                                    <span key={sex} className="px-2 py-1 bg-purple-100 text-purple-700 text-xs rounded-full">
+                                      {sex === 'homme' ? '♂️ Homme' : '♀️ Femme'}
+                                    </span>
+                                  ))}
+                                </div>
+                                {selectedPathology.triage_criteria.additional_criteria.sex_preference && (
+                                  <div className="mt-2 text-xs text-purple-600 font-medium">
+                                    ⭐ Préférence: {selectedPathology.triage_criteria.additional_criteria.sex_preference === 'homme' ? '♂️' : '♀️'}
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                            
+                            {/* Mode de vie */}
+                            {selectedPathology.triage_criteria.additional_criteria.inclusion.lifestyle && (
+                              <div className="bg-white rounded-lg p-3 border border-blue-200">
+                                <div className="text-xs text-gray-600 mb-1">🏃 Mode de vie</div>
+                                <div className="flex flex-wrap gap-1">
+                                  {selectedPathology.triage_criteria.additional_criteria.inclusion.lifestyle.map((lifestyle: string) => (
+                                    <span key={lifestyle} className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">
+                                      {lifestyle === 'athlete' ? '🏋️ Athlète' : lifestyle === 'actif' ? '🚶 Actif' : '💺 Sédentaire'}
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* EXCLUSION */}
+                      {selectedPathology.triage_criteria.additional_criteria.exclusion && (
+                        <div className="mt-4 pt-4 border-t border-blue-300">
+                          <h4 className="font-semibold text-red-900 mb-3 flex items-center gap-2">
+                            <X className="h-4 w-4" />
+                            ❌ Critères d'Exclusion
+                          </h4>
+                          <div className="grid grid-cols-3 gap-3">
+                            {/* Évolution temporelle */}
+                            {selectedPathology.triage_criteria.additional_criteria.exclusion.temporal_evolution && 
+                             selectedPathology.triage_criteria.additional_criteria.exclusion.temporal_evolution.length > 0 && (
+                              <div className="bg-white rounded-lg p-3 border border-red-200">
+                                <div className="text-xs text-gray-600 mb-1">⏱️ Évolution</div>
+                                <div className="flex flex-wrap gap-1">
+                                  {selectedPathology.triage_criteria.additional_criteria.exclusion.temporal_evolution.map((ev: string) => (
+                                    <span key={ev} className="px-2 py-1 bg-red-100 text-red-700 text-xs rounded-full">
+                                      {TEMPORAL_EVOLUTION.find(t => t.value === ev)?.label || ev}
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                            
+                            {/* Type douleur */}
+                            {selectedPathology.triage_criteria.additional_criteria.exclusion.pain_type && 
+                             selectedPathology.triage_criteria.additional_criteria.exclusion.pain_type.length > 0 && (
+                              <div className="bg-white rounded-lg p-3 border border-red-200">
+                                <div className="text-xs text-gray-600 mb-1">⚡ Type</div>
+                                <div className="flex flex-wrap gap-1">
+                                  {selectedPathology.triage_criteria.additional_criteria.exclusion.pain_type.map((pt: string) => (
+                                    <span key={pt} className="px-2 py-1 bg-red-100 text-red-700 text-xs rounded-full">
+                                      {PAIN_TYPES.find(t => t.value === pt)?.label || pt}
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                            
+                            {/* Localisation */}
+                            {selectedPathology.triage_criteria.additional_criteria.exclusion.pain_location && 
+                             selectedPathology.triage_criteria.additional_criteria.exclusion.pain_location.length > 0 && (
+                              <div className="bg-white rounded-lg p-3 border border-red-200">
+                                <div className="text-xs text-gray-600 mb-1">📍 Localisation</div>
+                                <div className="flex flex-wrap gap-1">
+                                  {selectedPathology.triage_criteria.additional_criteria.exclusion.pain_location.map((pl: string) => (
+                                    <span key={pl} className="px-2 py-1 bg-red-100 text-red-700 text-xs rounded-full">
+                                      {PAIN_LOCATIONS.find(t => t.value === pl)?.label || pl}
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* NOTES SPÉCIALES */}
+                      {(selectedPathology.triage_criteria.additional_criteria.temporal_note ||
+                        selectedPathology.triage_criteria.additional_criteria.age_note ||
+                        selectedPathology.triage_criteria.additional_criteria.lifestyle_note ||
+                        selectedPathology.triage_criteria.additional_criteria.special_note) && (
+                        <div className="mt-4 pt-4 border-t border-blue-300">
+                          <h4 className="font-semibold text-gray-900 mb-2 flex items-center gap-2">
+                            <Info className="h-4 w-4" />
+                            📝 Notes Spéciales
+                          </h4>
+                          <div className="space-y-2 text-sm">
+                            {selectedPathology.triage_criteria.additional_criteria.temporal_note && (
+                              <div className="bg-yellow-50 border-l-4 border-yellow-400 p-2 rounded">
+                                <span className="font-medium text-yellow-800">Temporalité:</span>{' '}
+                                <span className="text-yellow-700">{selectedPathology.triage_criteria.additional_criteria.temporal_note}</span>
+                              </div>
+                            )}
+                            {selectedPathology.triage_criteria.additional_criteria.age_note && (
+                              <div className="bg-blue-50 border-l-4 border-blue-400 p-2 rounded">
+                                <span className="font-medium text-blue-800">Âge:</span>{' '}
+                                <span className="text-blue-700">{selectedPathology.triage_criteria.additional_criteria.age_note}</span>
+                              </div>
+                            )}
+                            {selectedPathology.triage_criteria.additional_criteria.lifestyle_note && (
+                              <div className="bg-green-50 border-l-4 border-green-400 p-2 rounded">
+                                <span className="font-medium text-green-800">Mode de vie:</span>{' '}
+                                <span className="text-green-700">{selectedPathology.triage_criteria.additional_criteria.lifestyle_note}</span>
+                              </div>
+                            )}
+                            {selectedPathology.triage_criteria.additional_criteria.special_note && (
+                              <div className="bg-purple-50 border-l-4 border-purple-400 p-2 rounded">
+                                <span className="font-medium text-purple-800">Spécial:</span>{' '}
+                                <span className="text-purple-700">{selectedPathology.triage_criteria.additional_criteria.special_note}</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* CRITÈRES SPÉCIAUX (requires_one_of) */}
+                      {selectedPathology.triage_criteria.additional_criteria.requires_one_of && (
+                        <div className="mt-4 pt-4 border-t border-blue-300">
+                          <h4 className="font-semibold text-orange-900 mb-2 flex items-center gap-2">
+                            <Zap className="h-4 w-4" />
+                            ⚠️ Requiert AU MOINS UN de ces critères
+                          </h4>
+                          <div className="bg-orange-50 border border-orange-200 rounded-lg p-3">
+                            <ul className="list-disc list-inside space-y-1 text-sm text-orange-800">
+                              {selectedPathology.triage_criteria.additional_criteria.requires_one_of.map((req: any, idx: number) => (
+                                <li key={idx}>
+                                  {Object.entries(req).map(([key, value]) => (
+                                    <span key={key}>
+                                      <span className="font-medium">{key}:</span> {String(value)}
+                                    </span>
+                                  )).reduce((prev, curr) => [prev, ' ET ', curr] as any)}
+                                </li>
+                              ))}
+                            </ul>
+                            {selectedPathology.triage_criteria.additional_criteria.penalty_if_missing && (
+                              <div className="mt-2 text-xs text-orange-600 font-medium">
+                                Pénalité si non respecté: × {selectedPathology.triage_criteria.additional_criteria.penalty_if_missing}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="bg-gray-50 border-2 border-dashed border-gray-300 rounded-xl p-8 text-center">
+                      <Info className="h-12 w-12 text-gray-400 mx-auto mb-3" />
+                      <p className="text-gray-600 mb-2">Aucun critère d'inclusion/exclusion configuré</p>
+                      <p className="text-sm text-gray-500">
+                        Exécutez le script SQL pour ajouter les critères automatiquement
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Boutons d'action */}
               <div className="flex justify-end gap-3 pt-4 border-t">
