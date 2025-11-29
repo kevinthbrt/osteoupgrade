@@ -388,16 +388,46 @@ export default function TestingV2SimplifiedPage() {
   }
 
   const filterPathologies = (answers: TriageAnswers) => {
-    const regionPathologies = allPathologies.filter(p => p.region === selectedRegion)
-    
-    const filtered = filterPathologiesWithInclusionExclusion(
-      regionPathologies,
-      answers,
-      patientData
-    )
+  const regionPathologies = allPathologies.filter(p => p.region === selectedRegion)
 
-    setFilteredPathologies(filtered)
-  }
+  // 1. Score les pathos avec l'algo (matching_score)
+  const scored = filterPathologiesWithInclusionExclusion(
+    regionPathologies,
+    answers,
+    patientData
+  )
+
+  // 2. Re-map vers ton format PathologyMatch pour l'UI
+  const mapped: PathologyMatch[] = scored.map((p: any) => {
+    const matchedCriteria: string[] = []
+    const criteria = p.triage_criteria
+
+    if (criteria?.temporal_evolution && answers.temporalEvolution && criteria.temporal_evolution.includes(answers.temporalEvolution)) {
+      matchedCriteria.push('Évolution temporelle')
+    }
+    if (criteria?.pain_type && answers.painType && criteria.pain_type.includes(answers.painType)) {
+      matchedCriteria.push('Type de douleur')
+    }
+    if (criteria?.pain_location && answers.painLocation && criteria.pain_location.includes(answers.painLocation)) {
+      matchedCriteria.push('Localisation de la douleur')
+    }
+
+    // On garde le modificateur d’inclusion/exclusion si tu veux le loguer ou l'afficher plus tard
+    const inclusionModifier = applyInclusionExclusion(p, answers, patientData)
+
+    return {
+      pathology: p,
+      matchScore: p.matching_score,
+      matchedCriteria,
+      tests: p.tests || [],
+      clusters: p.clusters || [],
+      inclusionModifier
+    }
+  })
+
+  setFilteredPathologies(mapped)
+}
+
 
   const handleTestResult = (testId: string, result: 'positive' | 'negative' | 'uncertain') => {
     setTestResults(prev => {
@@ -838,9 +868,10 @@ export default function TestingV2SimplifiedPage() {
                             {(() => {
                               const badgeProps = getInclusionBadgeProps(
                                 filteredPathologies[1].pathology,
-                                patientData,
-                                filteredPathologies[1].inclusionModifier || 1.0
-                              )
+                                triageAnswers,
+                                patientData
+)
+
                               if (!badgeProps?.show) return null
                               
                               return (
@@ -919,9 +950,10 @@ export default function TestingV2SimplifiedPage() {
                             {(() => {
                               const badgeProps = getInclusionBadgeProps(
                                 filteredPathologies[0].pathology,
-                                patientData,
-                                filteredPathologies[0].inclusionModifier || 1.0
+                                triageAnswers,
+                                patientData
                               )
+
                               if (!badgeProps?.show) return null
                               
                               return (
@@ -1009,9 +1041,10 @@ export default function TestingV2SimplifiedPage() {
                             {(() => {
                               const badgeProps = getInclusionBadgeProps(
                                 filteredPathologies[2].pathology,
-                                patientData,
-                                filteredPathologies[2].inclusionModifier || 1.0
+                                triageAnswers,
+                                patientData
                               )
+
                               if (!badgeProps?.show) return null
                               
                               return (
@@ -1109,9 +1142,10 @@ export default function TestingV2SimplifiedPage() {
                             {(() => {
                               const badgeProps = getInclusionBadgeProps(
                                 match.pathology,
-                                patientData,
-                                match.inclusionModifier || 1.0
+                                triageAnswers,
+                                patientData
                               )
+
                               if (!badgeProps?.show) return null
                               
                               return (
