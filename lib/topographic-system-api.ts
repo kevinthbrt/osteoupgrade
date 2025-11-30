@@ -520,7 +520,7 @@ export async function validateDecisionTree(treeId: string): Promise<TreeValidati
   if (rootNodes.length === 1) {
     const reachableNodeIds = new Set<string>()
     
-    async function markReachable(nodeId: string) {
+    const markReachable = async (nodeId: string): Promise<void> => {
       if (reachableNodeIds.has(nodeId)) return
       reachableNodeIds.add(nodeId)
       
