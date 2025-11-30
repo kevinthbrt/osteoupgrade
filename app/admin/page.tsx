@@ -13,7 +13,8 @@ import {
   Crown,
   Box,
   Layers,
-  Filter
+  Filter,
+  Map
 } from 'lucide-react'
 
 export default function AdminPage() {
@@ -26,6 +27,8 @@ export default function AdminPage() {
     totalPathologies: 0,
     totalTests: 0,
     totalClusters: 0,
+    totalTopographicZones: 0,
+    totalDecisionTrees: 0,
     monthlyRevenue: 0,
   })
   const [loading, setLoading] = useState(true)
@@ -69,11 +72,20 @@ export default function AdminPage() {
       const premiumCount = profiles?.filter(p => p.role === 'premium').length || 0
 
       // Get anatomy system statistics
-      const [zonesResponse, pathologiesResponse, testsResponse, clustersResponse] = await Promise.all([
+      const [
+        zonesResponse, 
+        pathologiesResponse, 
+        testsResponse, 
+        clustersResponse,
+        topographicZonesResponse,
+        decisionTreesResponse
+      ] = await Promise.all([
         supabase.from('anatomical_zones').select('*'),
         supabase.from('pathologies').select('*'),
         supabase.from('orthopedic_tests').select('*'),
-        supabase.from('orthopedic_test_clusters').select('*')
+        supabase.from('orthopedic_test_clusters').select('*'),
+        supabase.from('topographic_zones').select('*'),
+        supabase.from('decision_trees').select('*')
       ])
 
       setStats({
@@ -84,6 +96,8 @@ export default function AdminPage() {
         totalPathologies: pathologiesResponse.data?.length || 0,
         totalTests: testsResponse.data?.length || 0,
         totalClusters: clustersResponse.data?.length || 0,
+        totalTopographicZones: topographicZonesResponse.data?.length || 0,
+        totalDecisionTrees: decisionTreesResponse.data?.length || 0,
         monthlyRevenue: premiumCount * 29.99,
       })
     } catch (error) {
@@ -103,12 +117,20 @@ export default function AdminPage() {
       href: '/admin/users'
     },
     {
-      label: 'Zones Anatomiques',
-      value: stats.totalZones,
-      icon: Box,
+      label: 'Zones Topographiques',
+      value: stats.totalTopographicZones,
+      icon: Map,
       color: 'from-purple-500 to-purple-600',
-      detail: 'Régions cliquables',
-      href: '/admin/anatomy-builder'
+      detail: 'Zones avec images',
+      href: '/admin/topographic-zones'
+    },
+    {
+      label: 'Arbres Décisionnels',
+      value: stats.totalDecisionTrees,
+      icon: Filter,
+      color: 'from-indigo-500 to-indigo-600',
+      detail: 'Arbres configurés',
+      href: '/admin/decision-trees'
     },
     {
       label: 'Pathologies',
@@ -126,32 +148,24 @@ export default function AdminPage() {
       detail: 'Tests orthopédiques',
       href: '/admin/tests'
     },
-    {
-      label: 'Clusters',
-      value: stats.totalClusters,
-      icon: Layers,
-      color: 'from-indigo-500 to-indigo-600',
-      detail: 'Groupes de tests',
-      href: '/admin/clusters'
-    },
   ]
 
   const managementActions = [
     {
-      title: 'Zones anatomiques',
-      description: 'Créer et placer les zones anatomiques sur le modèle 3D',
-      icon: Box,
-      href: '/admin/anatomy-builder',
+      title: '🆕 Zones Topographiques',
+      description: 'Créer des zones anatomiques avec images cliquables',
+      icon: Map,
+      href: '/admin/topographic-zones',
       color: 'from-purple-500 to-purple-600',
-      stats: `${stats.totalZones} zones configurées`
+      stats: `${stats.totalTopographicZones} zones créées`
     },
     {
-      title: 'Configuration du Triage',
-      description: 'Configurer les critères de triage et images topographiques',
+      title: '🆕 Arbres Décisionnels',
+      description: 'Créer des arbres de questions/réponses personnalisés',
       icon: Filter,
-      href: '/admin/pathology-triage',
+      href: '/admin/decision-trees',
       color: 'from-indigo-500 to-indigo-600',
-      stats: `Système de diagnostic guidé`
+      stats: `${stats.totalDecisionTrees} arbres configurés`
     },
     {
       title: 'Pathologies',
@@ -193,7 +207,7 @@ export default function AdminPage() {
                 <h1 className="text-2xl font-bold">Administration</h1>
               </div>
               <p className="text-purple-100">
-                Centre de contrôle OsteoUpgrade
+                Centre de contrôle OsteoUpgrade - Nouveau Système Topographique
               </p>
             </div>
             <div className="text-right">
@@ -278,10 +292,18 @@ export default function AdminPage() {
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
-                  <Box className="h-5 w-5 text-gray-400" />
-                  <span className="text-sm text-gray-600">Zones anatomiques</span>
+                  <Map className="h-5 w-5 text-gray-400" />
+                  <span className="text-sm text-gray-600">Zones topographiques</span>
                 </div>
-                <span className="font-semibold text-gray-900">{stats.totalZones}</span>
+                <span className="font-semibold text-gray-900">{stats.totalTopographicZones}</span>
+              </div>
+              
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <Filter className="h-5 w-5 text-gray-400" />
+                  <span className="text-sm text-gray-600">Arbres décisionnels</span>
+                </div>
+                <span className="font-semibold text-gray-900">{stats.totalDecisionTrees}</span>
               </div>
               
               <div className="flex items-center justify-between">
@@ -324,23 +346,23 @@ export default function AdminPage() {
 
           <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl shadow-sm p-6 text-white">
             <h2 className="text-lg font-semibold mb-4">
-              Accès rapide
+              Accès rapide - Nouveau Système
             </h2>
             <div className="space-y-3">
               <button
-                onClick={() => router.push('/admin/pathology-triage')}
+                onClick={() => router.push('/admin/topographic-zones')}
                 className="w-full bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-lg p-3 text-left transition-colors"
               >
-                <p className="font-medium">✨ Configuration du Triage</p>
-                <p className="text-sm text-purple-100">Nouveau système de diagnostic guidé</p>
+                <p className="font-medium">✨ Zones Topographiques</p>
+                <p className="text-sm text-purple-100">Créer des zones avec images cliquables</p>
               </button>
               
               <button
-                onClick={() => router.push('/admin/anatomy-builder')}
+                onClick={() => router.push('/admin/decision-trees')}
                 className="w-full bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-lg p-3 text-left transition-colors"
               >
-                <p className="font-medium">Zones anatomiques</p>
-                <p className="text-sm text-purple-100">Placer sur le modèle 3D</p>
+                <p className="font-medium">🌳 Arbres Décisionnels</p>
+                <p className="text-sm text-purple-100">Configurer les questions/réponses</p>
               </button>
               
               <button
@@ -348,15 +370,15 @@ export default function AdminPage() {
                 className="w-full bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-lg p-3 text-left transition-colors"
               >
                 <p className="font-medium">Pathologies</p>
-                <p className="text-sm text-purple-100">Lier aux tests et clusters</p>
+                <p className="text-sm text-purple-100">Lier aux arbres décisionnels</p>
               </button>
               
               <button
-                onClick={() => router.push('/testing-v2')}
+                onClick={() => router.push('/consultation-v3')}
                 className="w-full bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-lg p-3 text-left transition-colors"
               >
-                <p className="font-medium">🎯 Tester le nouveau module</p>
-                <p className="text-sm text-purple-100">Consultation guidée par triage</p>
+                <p className="font-medium">🎯 Tester le nouveau système</p>
+                <p className="text-sm text-purple-100">Consultation guidée par zones</p>
               </button>
             </div>
           </div>

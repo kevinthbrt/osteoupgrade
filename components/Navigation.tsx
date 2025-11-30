@@ -18,7 +18,8 @@ import {
   Stethoscope,
   Crown,
   Activity,
-  Filter
+  Filter,
+  Map
 } from 'lucide-react'
 
 export default function Navigation() {
@@ -57,14 +58,16 @@ export default function Navigation() {
     { href: '/elearning', label: 'E-Learning', icon: BookOpen },
     { href: '/tests', label: 'Tests orthopédiques', icon: Clipboard },
     { href: '/testing', label: 'Module Testing 3D', icon: Activity },
-    { href: '/testing-v2', label: 'Consultation Guidée ✨', icon: Stethoscope },
+    { href: '/testing-v2', label: 'Consultation Guidée', icon: Stethoscope },
+    { href: '/consultation-v3', label: 'Consultation V3 🌟', icon: Map },
     { href: '/settings', label: 'Paramètres', icon: Settings },
   ]
 
   const adminItems = [
     { href: '/admin', label: 'Administration', icon: Shield },
     { href: '/admin/users', label: 'Utilisateurs', icon: Users },
-    { href: '/admin/pathology-triage', label: 'Config. Triage', icon: Filter },
+    { href: '/admin/topographic-zones', label: 'Zones Topographiques', icon: Map },
+    { href: '/admin/decision-trees', label: 'Arbres Décisionnels', icon: Filter },
   ]
 
   const getRoleBadge = () => {
@@ -137,7 +140,7 @@ export default function Navigation() {
             {menuItems.map((item) => {
               const Icon = item.icon
               const isActive = pathname === item.href
-              const isNew = item.href === '/testing-v2'
+              const isNew = item.href === '/consultation-v3'
               return (
                 <Link
                   key={item.href}
