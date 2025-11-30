@@ -105,6 +105,7 @@ export default function DecisionTreesAdminPage() {
   const [selectedTree, setSelectedTree] = useState<DecisionTree | null>(null)
   const [treeNodes, setTreeNodes] = useState<DecisionNode[]>([])
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set())
+  const [nodeAnswers, setNodeAnswers] = useState<Map<string, DecisionAnswer[]>>(new Map())
   
   // Modals
   const [showTreeModal, setShowTreeModal] = useState(false)
@@ -205,12 +206,22 @@ export default function DecisionTreesAdminPage() {
 
   const loadTreeNodes = async (treeId: string) => {
     try {
-      const nodes = await getTreeNodes(treeId)
-      setTreeNodes(nodes)
+        const nodes = await getTreeNodes(treeId)
+        setTreeNodes(nodes)
+        
+        // Charger les réponses pour chaque nœud de type question
+        const answersMap = new Map<string, DecisionAnswer[]>()
+        for (const node of nodes) {
+        if (node.node_type === 'question') {
+            const answers = await getNodeAnswers(node.id)
+            answersMap.set(node.id, answers)
+        }
+        }
+        setNodeAnswers(answersMap)
     } catch (error) {
-      console.error('Error loading nodes:', error)
+        console.error('Error loading nodes:', error)
     }
-  }
+    }
 
   const handleValidateTree = async () => {
     if (!selectedTree) return
@@ -462,9 +473,9 @@ export default function DecisionTreesAdminPage() {
       }
       
       setShowAnswerModal(false)
-      if (selectedTree) {
-        loadTreeNodes(selectedTree.id)
-      }
+        if (selectedTree) {
+        await loadTreeNodes(selectedTree.id)
+        }
     } catch (error) {
       console.error('Error saving answer:', error)
       alert('❌ Erreur lors de la sauvegarde')
@@ -479,14 +490,29 @@ export default function DecisionTreesAdminPage() {
     try {
       await deleteDecisionAnswer(answer.id)
       alert('✅ Réponse supprimée')
-      if (selectedTree) {
-        loadTreeNodes(selectedTree.id)
-      }
+        if (selectedTree) {
+        await loadTreeNodes(selectedTree.id)
+        }
     } catch (error) {
       console.error('Error deleting answer:', error)
       alert('❌ Erreur')
     }
   }
+
+    const handleLinkNodeToAnswer = async (answer: DecisionAnswer, targetNodeId: string) => {
+  try {
+    await updateDecisionAnswer(answer.id, {
+      next_node_id: targetNodeId || undefined
+    })
+    alert('✅ Nœud suivant assigné')
+    if (selectedTree) {
+      await loadTreeNodes(selectedTree.id)
+    }
+  } catch (error) {
+    console.error('Error linking node:', error)
+    alert('❌ Erreur')
+  }
+}
 
   // SEARCH HANDLERS
   const handleSearchPathologies = useCallback(async (query: string) => {
@@ -645,6 +671,83 @@ export default function DecisionTreesAdminPage() {
                   </div>
                 )}
               </div>
+
+              {/* RÉPONSES (pour les nœuds questions) */}
+            {node.node_type === 'question' && nodeAnswers.get(node.id) && (
+              <div className="mt-4 space-y-2">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="h-px bg-blue-200 flex-1"></div>
+                  <span className="text-xs font-semibold text-blue-600 uppercase">
+                    Réponses ({nodeAnswers.get(node.id)?.length || 0})
+                  </span>
+                  <div className="h-px bg-blue-200 flex-1"></div>
+                </div>
+                
+                {nodeAnswers.get(node.id)?.map(answer => {
+                  const linkedNode = treeNodes.find(n => n.id === answer.next_node_id)
+                  
+                  return (
+                    <div 
+                      key={answer.id}
+                      className="ml-4 p-3 bg-blue-50 border-2 border-blue-200 rounded-lg"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-blue-900">
+                            {answer.answer_text}
+                          </p>
+                          
+                          {linkedNode ? (
+                            <div className="mt-2 flex items-center gap-2">
+                              <ChevronRight className="h-4 w-4 text-green-600" />
+                              <span className="text-xs text-green-700 font-medium">
+                                → {linkedNode.question_text || linkedNode.node_type}
+                              </span>
+                            </div>
+                          ) : (
+                            <div className="mt-2">
+                              <select
+                                onChange={(e) => {
+                                  if (e.target.value) {
+                                    handleLinkNodeToAnswer(answer, e.target.value)
+                                  }
+                                }}
+                                className="text-xs border-2 border-yellow-400 bg-yellow-50 text-yellow-800 rounded px-2 py-1 font-medium"
+                                defaultValue=""
+                              >
+                                <option value="">⚠️ Assigner un nœud suivant</option>
+                                {node.children.map(child => (
+                                  <option key={child.id} value={child.id}>
+                                    {child.question_text || `${child.node_type} - ${child.id.slice(0, 8)}`}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                          )}
+                        </div>
+                        
+                        <div className="flex gap-1">
+                          <button
+                            onClick={() => openEditAnswerModal(answer, node)}
+                            className="p-1 hover:bg-blue-100 rounded"
+                            title="Modifier"
+                          >
+                            <Edit className="h-3 w-3 text-blue-600" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteAnswer(answer)}
+                            className="p-1 hover:bg-blue-100 rounded"
+                            title="Supprimer"
+                          >
+                            <Trash2 className="h-3 w-3 text-red-600" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
               
               {/* Actions */}
               <div className="flex gap-1 flex-shrink-0">
