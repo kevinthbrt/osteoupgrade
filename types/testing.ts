@@ -137,6 +137,7 @@ export interface TestingSessionResult {
   testId: string
   testName: string
   category: string
+  region: string // Pour compatibilité avec generateTestingPDF
   result: TestResult | null
   notes: string
   sensitivity?: number
