@@ -52,12 +52,23 @@ interface TestingSessionResult {
   specificity?: number
 }
 
+interface TestingClusterResult {
+  clusterId: string
+  clusterName: string
+  region: string
+  result: 'positive' | 'negative' | 'uncertain' | null
+  notes: string
+  sensitivity?: number
+  specificity?: number
+}
+
 interface TestingSession {
   id?: string
   patientName: string
   patientAge: string
   sessionDate: string
   results: TestingSessionResult[]
+  clusterResults?: TestingClusterResult[]
   notes: string
 }
 
@@ -100,6 +111,20 @@ interface OrthopedicTest {
   updated_at: string
 }
 
+interface OrthopedicTestCluster {
+  id: string
+  name: string
+  region: string
+  description: string | null
+  indications: string | null
+  interest: string | null
+  sources: string | null
+  sensitivity: number | null
+  specificity: number | null
+  rv_positive: number | null
+  rv_negative: number | null
+}
+
 interface Profile {
   id: string
   role: string
@@ -122,25 +147,27 @@ const extractYoutubeId = (url: string) => {
 export default function TestingModulePage() {
   const router = useRouter()
   const [profile, setProfile] = useState<Profile | null>(null)
-  
+
   // Données
   const [zones, setZones] = useState<AnatomicalZone[]>([])
   const [tests, setTests] = useState<OrthopedicTest[]>([])
+  const [clusters, setClusters] = useState<OrthopedicTestCluster[]>([])
   const [loadingData, setLoadingData] = useState(true)
-  
+
   // Session en cours
   const [currentSession, setCurrentSession] = useState<TestingSession>({
     patientName: '',
     patientAge: '',
     sessionDate: new Date().toISOString().split('T')[0],
     results: [],
+    clusterResults: [],
     notes: ''
   })
-  
+
   // Sessions sauvegardées
   const [savedSessions, setSavedSessions] = useState<TestingSession[]>([])
   const [loading, setLoading] = useState(true)
-  
+
   // UI State
   const [selectedZone, setSelectedZone] = useState<AnatomicalZone | null>(null)
   const [showTestList, setShowTestList] = useState(false)
@@ -151,6 +178,11 @@ export default function TestingModulePage() {
   const [selectedTest, setSelectedTest] = useState<OrthopedicTest | null>(null)
   const [showTestModal, setShowTestModal] = useState(false)
 
+  // Modal Cluster
+  const [selectedCluster, setSelectedCluster] =
+    useState<OrthopedicTestCluster | null>(null)
+  const [showClusterModal, setShowClusterModal] = useState(false)
+
   useEffect(() => {
     checkAccess()
     loadData()
@@ -159,8 +191,10 @@ export default function TestingModulePage() {
 
   const checkAccess = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser()
-      
+      const {
+        data: { user }
+      } = await supabase.auth.getUser()
+
       if (!user) {
         router.push('/')
         return
@@ -205,6 +239,13 @@ export default function TestingModulePage() {
       if (testsError) throw testsError
       setTests(testsData || [])
 
+      const { data: clustersData, error: clustersError } = await supabase
+        .from('orthopedic_test_clusters')
+        .select('*')
+        .order('name')
+
+      if (clustersError) throw clustersError
+      setClusters(clustersData || [])
     } catch (error) {
       console.error('Error loading data:', error)
     } finally {
@@ -221,7 +262,7 @@ export default function TestingModulePage() {
     const isAlreadyAdded = currentSession.results.some(
       (r: TestingSessionResult) => r.testId === test.id
     )
-    
+
     if (isAlreadyAdded) {
       alert('Ce test est déjà dans la liste')
       return
@@ -250,11 +291,58 @@ export default function TestingModulePage() {
     }
   }
 
-  const updateTestResult = (testId: string, result: 'positive' | 'negative' | 'uncertain') => {
+  const addClusterToSession = (cluster: OrthopedicTestCluster) => {
+    const isAlreadyAdded = (currentSession.clusterResults || []).some(
+      (r: TestingClusterResult) => r.clusterId === cluster.id
+    )
+
+    if (isAlreadyAdded) {
+      alert('Ce cluster est déjà dans la liste')
+      return
+    }
+
+    const newClusterResult: TestingClusterResult = {
+      clusterId: cluster.id,
+      clusterName: cluster.name,
+      region: cluster.region,
+      result: null,
+      notes: '',
+      sensitivity: cluster.sensitivity || undefined,
+      specificity: cluster.specificity || undefined
+    }
+
     setCurrentSession((prev: TestingSession) => ({
       ...prev,
-      results: prev.results.map((r: TestingSessionResult) => 
+      clusterResults: [...(prev.clusterResults || []), newClusterResult]
+    }))
+
+    if (showClusterModal) {
+      setShowClusterModal(false)
+      setSelectedCluster(null)
+    }
+  }
+
+  const updateTestResult = (
+    testId: string,
+    result: 'positive' | 'negative' | 'uncertain'
+  ) => {
+    setCurrentSession((prev: TestingSession) => ({
+      ...prev,
+      results: prev.results.map((r: TestingSessionResult) =>
         r.testId === testId ? { ...r, result } : r
+      )
+    }))
+  }
+
+  const updateClusterResult = (
+    clusterId: string,
+    result: 'positive' | 'negative' | 'uncertain'
+  ) => {
+    setCurrentSession((prev: TestingSession) => ({
+      ...prev,
+      clusterResults: (prev.clusterResults || []).map(
+        (r: TestingClusterResult) =>
+          r.clusterId === clusterId ? { ...r, result } : r
       )
     }))
   }
@@ -262,8 +350,18 @@ export default function TestingModulePage() {
   const updateTestNotes = (testId: string, notes: string) => {
     setCurrentSession((prev: TestingSession) => ({
       ...prev,
-      results: prev.results.map((r: TestingSessionResult) => 
+      results: prev.results.map((r: TestingSessionResult) =>
         r.testId === testId ? { ...r, notes } : r
+      )
+    }))
+  }
+
+  const updateClusterNotes = (clusterId: string, notes: string) => {
+    setCurrentSession((prev: TestingSession) => ({
+      ...prev,
+      clusterResults: (prev.clusterResults || []).map(
+        (r: TestingClusterResult) =>
+          r.clusterId === clusterId ? { ...r, notes } : r
       )
     }))
   }
@@ -272,6 +370,15 @@ export default function TestingModulePage() {
     setCurrentSession((prev: TestingSession) => ({
       ...prev,
       results: prev.results.filter((r: TestingSessionResult) => r.testId !== testId)
+    }))
+  }
+
+  const removeClusterResult = (clusterId: string) => {
+    setCurrentSession((prev: TestingSession) => ({
+      ...prev,
+      clusterResults: (prev.clusterResults || []).filter(
+        (r: TestingClusterResult) => r.clusterId !== clusterId
+      )
     }))
   }
 
@@ -297,7 +404,9 @@ export default function TestingModulePage() {
       id: currentSession.id || Date.now().toString()
     }
 
-    const existingIndex = savedSessions.findIndex(s => s.id === sessionWithId.id)
+    const existingIndex = savedSessions.findIndex(
+      (s) => s.id === sessionWithId.id
+    )
     let updatedSessions: TestingSession[]
 
     if (existingIndex >= 0) {
@@ -309,17 +418,20 @@ export default function TestingModulePage() {
 
     setSavedSessions(updatedSessions)
     localStorage.setItem('testingSessions', JSON.stringify(updatedSessions))
-    
+
     alert('Session sauvegardée !')
   }
 
   const loadSession = (session: TestingSession) => {
-    setCurrentSession(session)
+    setCurrentSession({
+      ...session,
+      clusterResults: session.clusterResults || []
+    })
   }
 
   const deleteSession = (sessionId: string) => {
     if (confirm('Êtes-vous sûr de vouloir supprimer cette session ?')) {
-      const updatedSessions = savedSessions.filter(s => s.id !== sessionId)
+      const updatedSessions = savedSessions.filter((s) => s.id !== sessionId)
       setSavedSessions(updatedSessions)
       localStorage.setItem('testingSessions', JSON.stringify(updatedSessions))
     }
@@ -331,18 +443,23 @@ export default function TestingModulePage() {
       patientAge: '',
       sessionDate: new Date().toISOString().split('T')[0],
       results: [],
+      clusterResults: [],
       notes: ''
     })
   }
 
   const exportToPDF = () => {
     if (!currentSession.patientName.trim()) {
-      alert('Veuillez entrer le nom du patient avant d\'exporter')
+      alert("Veuillez entrer le nom du patient avant d'exporter")
       return
     }
 
-    if (currentSession.results.length === 0) {
-      alert('Aucun test dans la session')
+    if (
+      currentSession.results.length === 0 &&
+      (!currentSession.clusterResults ||
+        currentSession.clusterResults.length === 0)
+    ) {
+      alert('Aucun test ou cluster dans la session')
       return
     }
 
@@ -370,24 +487,63 @@ export default function TestingModulePage() {
 
     if (filterIndication) {
       filtered = filtered.filter((test: OrthopedicTest) =>
-        test.indications?.toLowerCase().includes(filterIndication.toLowerCase())
+        test.indications
+          ?.toLowerCase()
+          .includes(filterIndication.toLowerCase())
       )
     }
 
     return filtered
   }
 
+  const getFilteredClusters = () => {
+    if (!selectedZone) return []
+
+    let filtered = clusters.filter((cluster: OrthopedicTestCluster) => {
+      const region = cluster.region?.toLowerCase() || ''
+      const zoneName = selectedZone.name?.toLowerCase() || ''
+      const zoneDisplay = selectedZone.display_name?.toLowerCase() || ''
+
+      if (!region) return false
+
+      // On essaie de matcher strictement ou par inclusion (ex: "lombaire" vs "lombaire_basse")
+      return (
+        region === zoneName ||
+        region === zoneDisplay ||
+        zoneName.includes(region) ||
+        zoneDisplay.includes(region) ||
+        region.includes(zoneName) ||
+        region.includes(zoneDisplay)
+      )
+    })
+
+    if (searchQuery) {
+      filtered = filtered.filter((cluster: OrthopedicTestCluster) =>
+        cluster.name.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    }
+
+    if (filterIndication) {
+      filtered = filtered.filter((cluster: OrthopedicTestCluster) =>
+        (cluster.indications || cluster.description || '')
+          .toLowerCase()
+          .includes(filterIndication.toLowerCase())
+      )
+    }
+
+    return filtered
+  }
+
+  const statsBase = [
+    ...currentSession.results,
+    ...(currentSession.clusterResults || [])
+  ]
+
   const stats = {
-    total: currentSession.results.length,
-    positive: currentSession.results.filter(
-      (r: TestingSessionResult) => r.result === 'positive'
-    ).length,
-    negative: currentSession.results.filter(
-      (r: TestingSessionResult) => r.result === 'negative'
-    ).length,
-    uncertain: currentSession.results.filter(
-      (r: TestingSessionResult) => r.result === 'uncertain'
-    ).length
+    total: statsBase.length,
+    positive: statsBase.filter((r) => r.result === 'positive').length,
+    negative: statsBase.filter((r) => r.result === 'negative').length,
+    uncertain: statsBase.filter((r) => r.result === 'uncertain').length
   }
 
   const openTestModal = (test: OrthopedicTest) => {
@@ -398,6 +554,16 @@ export default function TestingModulePage() {
   const closeTestModal = () => {
     setShowTestModal(false)
     setSelectedTest(null)
+  }
+
+  const openClusterModal = (cluster: OrthopedicTestCluster) => {
+    setSelectedCluster(cluster)
+    setShowClusterModal(true)
+  }
+
+  const closeClusterModal = () => {
+    setShowClusterModal(false)
+    setSelectedCluster(null)
   }
 
   if (loading || loadingData) {
@@ -419,7 +585,8 @@ export default function TestingModulePage() {
             <div>
               <h1 className="text-2xl font-bold">Testing 3D</h1>
               <p className="text-green-100 mt-1">
-                Sélectionnez une zone anatomique pour voir les tests disponibles
+                Sélectionnez une zone anatomique pour voir les tests et
+                clusters disponibles
               </p>
             </div>
             <button
@@ -532,10 +699,10 @@ export default function TestingModulePage() {
         </div>
 
         {/* Stats */}
-        {currentSession.results.length > 0 && (
+        {stats.total > 0 && (
           <div className="grid grid-cols-4 gap-4">
             <div className="bg-white rounded-lg p-4 shadow-sm">
-              <p className="text-sm text-gray-600">Total</p>
+              <p className="text-sm text-gray-600">Total (tests + clusters)</p>
               <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
             </div>
             <div className="bg-green-50 rounded-lg p-4 shadow-sm">
@@ -682,16 +849,138 @@ export default function TestingModulePage() {
                 </div>
               </div>
             )}
+
+            {/* Clusters sélectionnés */}
+            {currentSession.clusterResults &&
+              currentSession.clusterResults.length > 0 && (
+                <div className="bg-white rounded-xl shadow-sm p-6">
+                  <h2 className="text-lg font-semibold text-gray-900 mb-4">
+                    Clusters de tests ({currentSession.clusterResults.length})
+                  </h2>
+                  <div className="space-y-4">
+                    {currentSession.clusterResults.map(
+                      (clusterResult: TestingClusterResult) => (
+                        <div
+                          key={clusterResult.clusterId}
+                          className="border rounded-lg p-4"
+                        >
+                          <div className="flex items-start justify-between mb-3">
+                            <div className="flex-1">
+                              <h3 className="font-medium text-gray-900">
+                                {clusterResult.clusterName}
+                              </h3>
+                              <p className="text-sm text-gray-600">
+                                {clusterResult.region}
+                              </p>
+                            </div>
+                            <button
+                              onClick={() =>
+                                removeClusterResult(clusterResult.clusterId)
+                              }
+                              className="text-red-600 hover:text-red-700"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </div>
+
+                          {/* Boutons résultat */}
+                          <div className="grid grid-cols-3 gap-2 mb-3">
+                            <button
+                              onClick={() =>
+                                updateClusterResult(
+                                  clusterResult.clusterId,
+                                  'positive'
+                                )
+                              }
+                              className={`px-3 py-2 rounded-lg flex items-center justify-center gap-2 text-sm font-medium transition-colors ${
+                                clusterResult.result === 'positive'
+                                  ? 'bg-green-100 text-green-700 border-2 border-green-600'
+                                  : 'bg-gray-50 text-gray-700 hover:bg-green-50'
+                              }`}
+                            >
+                              <CheckCircle className="h-4 w-4" />
+                              Positif
+                            </button>
+                            <button
+                              onClick={() =>
+                                updateClusterResult(
+                                  clusterResult.clusterId,
+                                  'negative'
+                                )
+                              }
+                              className={`px-3 py-2 rounded-lg flex items-center justify-center gap-2 text-sm font-medium transition-colors ${
+                                clusterResult.result === 'negative'
+                                  ? 'bg-red-100 text-red-700 border-2 border-red-600'
+                                  : 'bg-gray-50 text-gray-700 hover:bg-red-50'
+                              }`}
+                            >
+                              <XCircle className="h-4 w-4" />
+                              Négatif
+                            </button>
+                            <button
+                              onClick={() =>
+                                updateClusterResult(
+                                  clusterResult.clusterId,
+                                  'uncertain'
+                                )
+                              }
+                              className={`px-3 py-2 rounded-lg flex items-center justify-center gap-2 text-sm font-medium transition-colors ${
+                                clusterResult.result === 'uncertain'
+                                  ? 'bg-yellow-100 text-yellow-700 border-2 border-yellow-600'
+                                  : 'bg-gray-50 text-gray-700 hover:bg-yellow-50'
+                              }`}
+                            >
+                              <AlertCircle className="h-4 w-4" />
+                              Incertain
+                            </button>
+                          </div>
+
+                          {/* Commentaires */}
+                          <textarea
+                            value={clusterResult.notes}
+                            onChange={(e) =>
+                              updateClusterNotes(
+                                clusterResult.clusterId,
+                                e.target.value
+                              )
+                            }
+                            placeholder="Commentaires..."
+                            className="w-full px-3 py-2 border rounded-lg text-sm resize-none"
+                            rows={2}
+                          />
+
+                          {/* Stats cluster */}
+                          {(clusterResult.sensitivity ||
+                            clusterResult.specificity) && (
+                            <div className="flex gap-4 mt-2 text-xs text-gray-500">
+                              {clusterResult.sensitivity && (
+                                <span>
+                                  Sensibilité: {clusterResult.sensitivity}%
+                                </span>
+                              )}
+                              {clusterResult.specificity && (
+                                <span>
+                                  Spécificité: {clusterResult.specificity}%
+                                </span>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      )
+                    )}
+                  </div>
+                </div>
+              )}
           </div>
 
-          {/* TESTS À DROITE - 1 colonne */}
+          {/* TESTS / CLUSTERS À DROITE - 1 colonne */}
           <div className="space-y-6">
-            {/* Liste des tests de la zone */}
+            {/* Liste des tests / clusters de la zone */}
             {showTestList && selectedZone && (
               <div className="bg-white rounded-xl shadow-sm p-6">
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-lg font-semibold text-gray-900">
-                    Tests - {selectedZone.display_name}
+                    Tests & clusters - {selectedZone.display_name}
                   </h2>
                   <button
                     onClick={() => setShowTestList(false)}
@@ -707,7 +996,7 @@ export default function TestingModulePage() {
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                     <input
                       type="text"
-                      placeholder="Rechercher..."
+                      placeholder="Rechercher (tests ou clusters)..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       className="w-full pl-10 pr-4 py-2 border rounded-lg text-sm"
@@ -725,8 +1014,56 @@ export default function TestingModulePage() {
                   </div>
                 </div>
 
+                {/* Clusters */}
+                <div className="space-y-2 mb-4">
+                  {getFilteredClusters().length > 0 && (
+                    <p className="text-xs font-semibold text-gray-700 uppercase tracking-wide">
+                      Clusters validés
+                    </p>
+                  )}
+                  {getFilteredClusters().map(
+                    (cluster: OrthopedicTestCluster) => (
+                      <div
+                        key={cluster.id}
+                        className="border rounded-lg p-3 hover:bg-gray-50 cursor-pointer transition-colors"
+                        onClick={() => openClusterModal(cluster)}
+                      >
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <p className="font-medium text-gray-900 text-sm">
+                              {cluster.name}
+                            </p>
+                            {cluster.indications && (
+                              <p className="text-xs text-gray-600 mt-1">
+                                {cluster.indications}
+                              </p>
+                            )}
+                            {(cluster.sensitivity || cluster.specificity) && (
+                              <div className="flex gap-2 mt-2 text-xs text-gray-500">
+                                {cluster.sensitivity && (
+                                  <span>Se: {cluster.sensitivity}%</span>
+                                )}
+                                {cluster.specificity && (
+                                  <span>Sp: {cluster.specificity}%</span>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                          <Plus className="h-5 w-5 text-green-600 flex-shrink-0 ml-2" />
+                        </div>
+                      </div>
+                    )
+                  )}
+                </div>
+
                 {/* Tests */}
                 <div className="space-y-2 max-h-[600px] overflow-y-auto">
+                  {getFilteredTests().length > 0 && (
+                    <p className="text-xs font-semibold text-gray-700 uppercase tracking-wide">
+                      Tests individuels
+                    </p>
+                  )}
+
                   {getFilteredTests().map((test: OrthopedicTest) => (
                     <div
                       key={test.id}
@@ -758,42 +1095,50 @@ export default function TestingModulePage() {
                       </div>
                     </div>
                   ))}
-                  {getFilteredTests().length === 0 && (
-                    <div className="text-center py-8">
-                      <p className="text-gray-500 text-sm mb-3">
-                        Aucun test trouvé
-                      </p>
-                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-left">
-                        <p className="text-xs font-semibold text-blue-900 mb-2">
-                          💡 Aide au diagnostic :
+
+                  {getFilteredTests().length === 0 &&
+                    getFilteredClusters().length === 0 && (
+                      <div className="text-center py-8">
+                        <p className="text-gray-500 text-sm mb-3">
+                          Aucun test ou cluster trouvé
                         </p>
-                        <p className="text-xs text-blue-800 mb-1">
-                          • Zone :{' '}
-                          <span className="font-mono">
-                            {selectedZone.name}
-                          </span>{' '}
-                          /{' '}
-                          <span className="font-mono">
-                            {selectedZone.display_name}
-                          </span>
-                        </p>
-                        <p className="text-xs text-blue-800 mb-1">
-                          • Total tests chargés : {tests.length}
-                        </p>
-                        <p className="text-xs text-blue-800">
-                          • Vérifiez que les tests ont une{' '}
-                          <span className="font-mono">category</span> qui
-                          correspond
-                        </p>
-                        <button
-                          onClick={() => console.log('📊 Tous les tests:', tests)}
-                          className="mt-2 text-xs text-blue-600 hover:text-blue-700 underline"
-                        >
-                          Afficher détails dans console
-                        </button>
+                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-left">
+                          <p className="text-xs font-semibold text-blue-900 mb-2">
+                            💡 Aide au diagnostic :
+                          </p>
+                          <p className="text-xs text-blue-800 mb-1">
+                            • Zone :{' '}
+                            <span className="font-mono">
+                              {selectedZone.name}
+                            </span>{' '}
+                            /{' '}
+                            <span className="font-mono">
+                              {selectedZone.display_name}
+                            </span>
+                          </p>
+                          <p className="text-xs text-blue-800 mb-1">
+                            • Total tests chargés : {tests.length}
+                          </p>
+                          <p className="text-xs text-blue-800 mb-1">
+                            • Total clusters chargés : {clusters.length}
+                          </p>
+                          <p className="text-xs text-blue-800">
+                            • Vérifiez que les tests ont une{' '}
+                            <span className="font-mono">category</span> et les
+                            clusters une <span className="font-mono">region</span>{' '}
+                            qui correspondent
+                          </p>
+                          <button
+                            onClick={() =>
+                              console.log('📊 Tous les tests:', tests, '📊 Tous les clusters:', clusters)
+                            }
+                            className="mt-2 text-xs text-blue-600 hover:text-blue-700 underline"
+                          >
+                            Afficher détails dans console
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    )}
                 </div>
               </div>
             )}
@@ -806,47 +1151,53 @@ export default function TestingModulePage() {
                   Sessions sauvegardées
                 </h2>
                 <div className="space-y-2 max-h-96 overflow-y-auto">
-                  {savedSessions.map((session: TestingSession) => (
-                    <div
-                      key={session.id}
-                      className="border rounded-lg p-3 hover:bg-gray-50"
-                    >
-                      <div className="flex items-start justify-between mb-2">
-                        <div className="flex-1">
-                          <p className="font-medium text-gray-900 text-sm">
-                            {session.patientName}
-                          </p>
-                          <p className="text-xs text-gray-600">
-                            {new Date(
-                              session.sessionDate
-                            ).toLocaleDateString('fr-FR')}
-                          </p>
-                          <p className="text-xs text-gray-500 mt-1">
-                            {session.results.length} test
-                            {session.results.length > 1 ? 's' : ''}
-                          </p>
-                        </div>
-                        <div className="flex gap-1">
-                          <button
-                            onClick={() => loadSession(session)}
-                            className="p-1 text-blue-600 hover:bg-blue-50 rounded"
-                            title="Charger"
-                          >
-                            <Edit className="h-4 w-4" />
-                          </button>
-                          <button
-                            onClick={() =>
-                              session.id && deleteSession(session.id)
-                            }
-                            className="p-1 text-red-600 hover:bg-red-50 rounded"
-                            title="Supprimer"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
+                  {savedSessions.map((session: TestingSession) => {
+                    const testsCount = session.results?.length || 0
+                    const clustersCount = session.clusterResults?.length || 0
+                    return (
+                      <div
+                        key={session.id}
+                        className="border rounded-lg p-3 hover:bg-gray-50"
+                      >
+                        <div className="flex items-start justify-between mb-2">
+                          <div className="flex-1">
+                            <p className="font-medium text-gray-900 text-sm">
+                              {session.patientName}
+                            </p>
+                            <p className="text-xs text-gray-600">
+                              {new Date(
+                                session.sessionDate
+                              ).toLocaleDateString('fr-FR')}
+                            </p>
+                            <p className="text-xs text-gray-500 mt-1">
+                              {testsCount} test
+                              {testsCount > 1 ? 's' : ''} • {clustersCount}{' '}
+                              cluster
+                              {clustersCount > 1 ? 's' : ''}
+                            </p>
+                          </div>
+                          <div className="flex gap-1">
+                            <button
+                              onClick={() => loadSession(session)}
+                              className="p-1 text-blue-600 hover:bg-blue-50 rounded"
+                              title="Charger"
+                            >
+                              <Edit className="h-4 w-4" />
+                            </button>
+                            <button
+                              onClick={() =>
+                                session.id && deleteSession(session.id)
+                              }
+                              className="p-1 text-red-600 hover:bg-red-50 rounded"
+                              title="Supprimer"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
               </div>
             )}
@@ -996,6 +1347,127 @@ export default function TestingModulePage() {
               >
                 <Plus className="h-4 w-4" />
                 Ajouter ce test à la session
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL DÉTAIL CLUSTER */}
+      {showClusterModal && selectedCluster && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+          <div className="relative max-w-3xl w-full mx-4 max-h-[90vh] overflow-y-auto rounded-xl bg-white p-6 shadow-2xl">
+            <button
+              onClick={closeClusterModal}
+              className="absolute right-4 top-4 text-gray-400 hover:text-gray-600"
+            >
+              <X className="h-5 w-5" />
+            </button>
+
+            <h3 className="text-xl font-semibold text-gray-900 pr-10">
+              {selectedCluster.name}
+            </h3>
+
+            {selectedCluster.region && (
+              <p className="mt-1 text-sm text-gray-600">
+                Région :{' '}
+                <span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-800">
+                  {selectedCluster.region}
+                </span>
+              </p>
+            )}
+
+            {/* Statistiques */}
+            {(selectedCluster.sensitivity ||
+              selectedCluster.specificity ||
+              selectedCluster.rv_positive ||
+              selectedCluster.rv_negative) && (
+              <div className="mt-4 flex flex-wrap gap-2 text-xs text-gray-700">
+                {selectedCluster.sensitivity != null && (
+                  <span className="rounded bg-green-50 px-2 py-0.5">
+                    Se : {selectedCluster.sensitivity}%
+                  </span>
+                )}
+                {selectedCluster.specificity != null && (
+                  <span className="rounded bg-blue-50 px-2 py-0.5">
+                    Sp : {selectedCluster.specificity}%
+                  </span>
+                )}
+                {selectedCluster.rv_positive != null && (
+                  <span className="rounded bg-purple-50 px-2 py-0.5">
+                    RV+ : {selectedCluster.rv_positive}
+                  </span>
+                )}
+                {selectedCluster.rv_negative != null && (
+                  <span className="rounded bg-orange-50 px-2 py-0.5">
+                    RV- : {selectedCluster.rv_negative}
+                  </span>
+                )}
+              </div>
+            )}
+
+            {/* Description */}
+            {selectedCluster.description && (
+              <div className="mt-5">
+                <h4 className="text-sm font-semibold text-gray-800 mb-1">
+                  Description du cluster
+                </h4>
+                <p className="text-sm text-gray-700 whitespace-pre-line">
+                  {selectedCluster.description}
+                </p>
+              </div>
+            )}
+
+            {/* Indications */}
+            {selectedCluster.indications && (
+              <div className="mt-4">
+                <h4 className="text-sm font-semibold text-gray-800 mb-1">
+                  Indications principales
+                </h4>
+                <p className="text-sm text-gray-700 whitespace-pre-line">
+                  {selectedCluster.indications}
+                </p>
+              </div>
+            )}
+
+            {/* Intérêt clinique */}
+            {selectedCluster.interest && (
+              <div className="mt-4">
+                <h4 className="text-sm font-semibold text-gray-800 mb-1">
+                  Intérêt clinique
+                </h4>
+                <p className="text-sm text-gray-700 whitespace-pre-line">
+                  {selectedCluster.interest}
+                </p>
+              </div>
+            )}
+
+            {/* Sources */}
+            {selectedCluster.sources && (
+              <div className="mt-4">
+                <h4 className="text-sm font-semibold text-gray-800 mb-1">
+                  Sources / Références
+                </h4>
+                <p className="text-xs text-gray-600 whitespace-pre-line">
+                  {selectedCluster.sources}
+                </p>
+              </div>
+            )}
+
+            {/* Actions modal */}
+            <div className="mt-6 flex justify-end gap-2">
+              <button
+                onClick={closeClusterModal}
+                className="px-4 py-2 rounded-lg border border-gray-300 text-sm text-gray-700 hover:bg-gray-50"
+              >
+                Fermer
+              </button>
+              <button
+                onClick={() => addClusterToSession(selectedCluster)}
+                className="px-4 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-sm text-white flex items-center gap-2"
+              >
+                <Plus className="h-4 w-4" />
+                Ajouter ce cluster à la session
               </button>
             </div>
           </div>
