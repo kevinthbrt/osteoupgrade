@@ -4,11 +4,12 @@ import { Canvas } from '@react-three/fiber'
 import { OrbitControls, PerspectiveCamera, Html, useGLTF, Environment } from '@react-three/drei'
 import { useState, Suspense } from 'react'
 
-// Interface pour les zones anatomiques
+// Types partagés
 interface AnatomicalZone {
   id: string
   name: string
   display_name: string
+  description: string | null
   color: string
   position_x: number
   position_y: number
@@ -17,6 +18,12 @@ interface AnatomicalZone {
   size_y: number
   size_z: number
   is_symmetric: boolean
+  model_path: string | null
+  is_active: boolean
+  display_order: number
+  created_by: string | null
+  created_at: string
+  updated_at: string
 }
 
 interface TestingViewer3DProps {
@@ -161,7 +168,7 @@ export default function TestingViewer3D({
 
   return (
     <div className="relative">
-      <div className="w-full h-[600px] bg-gradient-to-b from-gray-900 to-gray-800 rounded-xl overflow-hidden relative">
+      <div className="w-full h-[500px] bg-gradient-to-b from-gray-900 to-gray-800 rounded-xl overflow-hidden relative">
         <Canvas shadows>
           <PerspectiveCamera 
             makeDefault 
@@ -200,23 +207,20 @@ export default function TestingViewer3D({
           </Suspense>
         </Canvas>
 
-        {/* Encart zone survolée */}
+        {/* Encart zone survolée - top left corner */}
         {hoveredZoneInfo && (
           <div
-            className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-white/95 backdrop-blur-sm px-6 py-3 rounded-lg shadow-xl border-2 max-w-md"
+            className="absolute top-4 left-4 bg-white/95 backdrop-blur-sm px-4 py-2 rounded-lg shadow-lg border-l-4"
             style={{ borderColor: hoveredZoneInfo.color }}
           >
-            <p className="font-bold text-lg" style={{ color: hoveredZoneInfo.color }}>
+            <p className="font-semibold text-sm" style={{ color: hoveredZoneInfo.color }}>
               {hoveredZoneInfo.display_name}
             </p>
             {hoveredZone?.includes('-') && (
-              <p className="text-sm text-gray-600 mt-1">
+              <p className="text-xs text-gray-600">
                 {hoveredZone.includes('left') ? 'Gauche' : 'Droite'}
               </p>
             )}
-            <p className="text-xs text-gray-500 mt-2">
-              Cliquez pour voir les tests orthopédiques
-            </p>
           </div>
         )}
 
