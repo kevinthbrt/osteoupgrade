@@ -107,6 +107,14 @@ interface Profile {
   email?: string
 }
 
+// Helper pour YouTube
+const extractYoutubeId = (url: string) => {
+  const match = url.match(
+    /(?:youtube\.com\/(?:watch\?v=|embed\/|v\/)|youtu\.be\/)([^&\n?#]+)/
+  )
+  return match ? match[1] : null
+}
+
 // ============================================================================
 // COMPOSANT PRINCIPAL
 // ============================================================================
@@ -138,6 +146,10 @@ export default function TestingModulePage() {
   const [showTestList, setShowTestList] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [filterIndication, setFilterIndication] = useState('')
+
+  // Modal Test
+  const [selectedTest, setSelectedTest] = useState<OrthopedicTest | null>(null)
+  const [showTestModal, setShowTestModal] = useState(false)
 
   useEffect(() => {
     checkAccess()
@@ -206,7 +218,9 @@ export default function TestingModulePage() {
   }
 
   const addTestToSession = (test: OrthopedicTest) => {
-    const isAlreadyAdded = currentSession.results.some((r: TestingSessionResult) => r.testId === test.id)
+    const isAlreadyAdded = currentSession.results.some(
+      (r: TestingSessionResult) => r.testId === test.id
+    )
     
     if (isAlreadyAdded) {
       alert('Ce test est déjà dans la liste')
@@ -229,7 +243,11 @@ export default function TestingModulePage() {
       results: [...prev.results, newResult]
     }))
 
-    setShowTestList(false)
+    // Si on est dans le modal, on le ferme après ajout
+    if (showTestModal) {
+      setShowTestModal(false)
+      setSelectedTest(null)
+    }
   }
 
   const updateTestResult = (testId: string, result: 'positive' | 'negative' | 'uncertain') => {
@@ -334,21 +352,15 @@ export default function TestingModulePage() {
   const getFilteredTests = () => {
     if (!selectedZone) return []
 
-    // Essayer de matcher avec name OU display_name pour plus de flexibilité
+    // Essayer de matcher avec name OU display_name
     let filtered = tests.filter((test: OrthopedicTest) => {
-      const matchName = test.category?.toLowerCase() === selectedZone.name?.toLowerCase()
-      const matchDisplayName = test.category?.toLowerCase() === selectedZone.display_name?.toLowerCase()
+      const matchName =
+        test.category?.toLowerCase() === selectedZone.name?.toLowerCase()
+      const matchDisplayName =
+        test.category?.toLowerCase() ===
+        selectedZone.display_name?.toLowerCase()
       return matchName || matchDisplayName
     })
-
-    // Debug: afficher dans la console
-    console.log('🔍 Zone sélectionnée:', {
-      name: selectedZone.name,
-      display_name: selectedZone.display_name
-    })
-    console.log('📊 Tests disponibles:', tests.length)
-    console.log('🎯 Tests filtrés:', filtered.length)
-    console.log('📝 Catégories des tests:', [...new Set(tests.map(t => t.category))])
 
     if (searchQuery) {
       filtered = filtered.filter((test: OrthopedicTest) =>
@@ -367,9 +379,25 @@ export default function TestingModulePage() {
 
   const stats = {
     total: currentSession.results.length,
-    positive: currentSession.results.filter((r: TestingSessionResult) => r.result === 'positive').length,
-    negative: currentSession.results.filter((r: TestingSessionResult) => r.result === 'negative').length,
-    uncertain: currentSession.results.filter((r: TestingSessionResult) => r.result === 'uncertain').length
+    positive: currentSession.results.filter(
+      (r: TestingSessionResult) => r.result === 'positive'
+    ).length,
+    negative: currentSession.results.filter(
+      (r: TestingSessionResult) => r.result === 'negative'
+    ).length,
+    uncertain: currentSession.results.filter(
+      (r: TestingSessionResult) => r.result === 'uncertain'
+    ).length
+  }
+
+  const openTestModal = (test: OrthopedicTest) => {
+    setSelectedTest(test)
+    setShowTestModal(true)
+  }
+
+  const closeTestModal = () => {
+    setShowTestModal(false)
+    setSelectedTest(null)
   }
 
   if (loading || loadingData) {
@@ -418,10 +446,12 @@ export default function TestingModulePage() {
               <input
                 type="text"
                 value={currentSession.patientName}
-                onChange={(e) => setCurrentSession((prev: TestingSession) => ({
-                  ...prev,
-                  patientName: e.target.value
-                }))}
+                onChange={(e) =>
+                  setCurrentSession((prev: TestingSession) => ({
+                    ...prev,
+                    patientName: e.target.value
+                  }))
+                }
                 className="w-full px-3 py-2 border rounded-lg"
                 placeholder="Nom complet"
               />
@@ -434,10 +464,12 @@ export default function TestingModulePage() {
               <input
                 type="text"
                 value={currentSession.patientAge}
-                onChange={(e) => setCurrentSession((prev: TestingSession) => ({
-                  ...prev,
-                  patientAge: e.target.value
-                }))}
+                onChange={(e) =>
+                  setCurrentSession((prev: TestingSession) => ({
+                    ...prev,
+                    patientAge: e.target.value
+                  }))
+                }
                 className="w-full px-3 py-2 border rounded-lg"
                 placeholder="ex: 45 ans"
               />
@@ -451,10 +483,12 @@ export default function TestingModulePage() {
               <input
                 type="date"
                 value={currentSession.sessionDate}
-                onChange={(e) => setCurrentSession((prev: TestingSession) => ({
-                  ...prev,
-                  sessionDate: e.target.value
-                }))}
+                onChange={(e) =>
+                  setCurrentSession((prev: TestingSession) => ({
+                    ...prev,
+                    sessionDate: e.target.value
+                  }))
+                }
                 className="w-full px-3 py-2 border rounded-lg"
               />
             </div>
@@ -466,10 +500,12 @@ export default function TestingModulePage() {
             </label>
             <textarea
               value={currentSession.notes}
-              onChange={(e) => setCurrentSession((prev: TestingSession) => ({
-                ...prev,
-                notes: e.target.value
-              }))}
+              onChange={(e) =>
+                setCurrentSession((prev: TestingSession) => ({
+                  ...prev,
+                  notes: e.target.value
+                }))
+              }
               className="w-full px-3 py-2 border rounded-lg resize-none"
               rows={2}
               placeholder="Observations générales..."
@@ -504,15 +540,21 @@ export default function TestingModulePage() {
             </div>
             <div className="bg-green-50 rounded-lg p-4 shadow-sm">
               <p className="text-sm text-green-600">Positifs</p>
-              <p className="text-2xl font-bold text-green-700">{stats.positive}</p>
+              <p className="text-2xl font-bold text-green-700">
+                {stats.positive}
+              </p>
             </div>
             <div className="bg-red-50 rounded-lg p-4 shadow-sm">
               <p className="text-sm text-red-600">Négatifs</p>
-              <p className="text-2xl font-bold text-red-700">{stats.negative}</p>
+              <p className="text-2xl font-bold text-red-700">
+                {stats.negative}
+              </p>
             </div>
             <div className="bg-yellow-50 rounded-lg p-4 shadow-sm">
               <p className="text-sm text-yellow-600">Incertains</p>
-              <p className="text-2xl font-bold text-yellow-700">{stats.uncertain}</p>
+              <p className="text-2xl font-bold text-yellow-700">
+                {stats.uncertain}
+              </p>
             </div>
           </div>
         )}
@@ -529,13 +571,12 @@ export default function TestingModulePage() {
               {zones.length === 0 ? (
                 <div className="text-center py-12 text-gray-500">
                   <p>Aucune zone anatomique configurée.</p>
-                  <p className="text-sm mt-2">Utilisez Anatomy Builder pour créer des zones.</p>
+                  <p className="text-sm mt-2">
+                    Utilisez Anatomy Builder pour créer des zones.
+                  </p>
                 </div>
               ) : (
-                <TestingViewer3D
-                  zones={zones}
-                  onZoneClick={handleZoneClick}
-                />
+                <TestingViewer3D zones={zones} onZoneClick={handleZoneClick} />
               )}
             </div>
 
@@ -546,80 +587,98 @@ export default function TestingModulePage() {
                   Tests de la session ({currentSession.results.length})
                 </h2>
                 <div className="space-y-4">
-                  {currentSession.results.map((result: TestingSessionResult) => (
-                    <div key={result.testId} className="border rounded-lg p-4">
-                      <div className="flex items-start justify-between mb-3">
-                        <div className="flex-1">
-                          <h3 className="font-medium text-gray-900">{result.testName}</h3>
-                          <p className="text-sm text-gray-600">{result.category}</p>
+                  {currentSession.results.map(
+                    (result: TestingSessionResult) => (
+                      <div key={result.testId} className="border rounded-lg p-4">
+                        <div className="flex items-start justify-between mb-3">
+                          <div className="flex-1">
+                            <h3 className="font-medium text-gray-900">
+                              {result.testName}
+                            </h3>
+                            <p className="text-sm text-gray-600">
+                              {result.category}
+                            </p>
+                          </div>
+                          <button
+                            onClick={() => removeTestResult(result.testId)}
+                            className="text-red-600 hover:text-red-700"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
                         </div>
-                        <button
-                          onClick={() => removeTestResult(result.testId)}
-                          className="text-red-600 hover:text-red-700"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </div>
 
-                      {/* Boutons résultat */}
-                      <div className="grid grid-cols-3 gap-2 mb-3">
-                        <button
-                          onClick={() => updateTestResult(result.testId, 'positive')}
-                          className={`px-3 py-2 rounded-lg flex items-center justify-center gap-2 text-sm font-medium transition-colors ${
-                            result.result === 'positive'
-                              ? 'bg-green-100 text-green-700 border-2 border-green-600'
-                              : 'bg-gray-50 text-gray-700 hover:bg-green-50'
-                          }`}
-                        >
-                          <CheckCircle className="h-4 w-4" />
-                          Positif
-                        </button>
-                        <button
-                          onClick={() => updateTestResult(result.testId, 'negative')}
-                          className={`px-3 py-2 rounded-lg flex items-center justify-center gap-2 text-sm font-medium transition-colors ${
-                            result.result === 'negative'
-                              ? 'bg-red-100 text-red-700 border-2 border-red-600'
-                              : 'bg-gray-50 text-gray-700 hover:bg-red-50'
-                          }`}
-                        >
-                          <XCircle className="h-4 w-4" />
-                          Négatif
-                        </button>
-                        <button
-                          onClick={() => updateTestResult(result.testId, 'uncertain')}
-                          className={`px-3 py-2 rounded-lg flex items-center justify-center gap-2 text-sm font-medium transition-colors ${
-                            result.result === 'uncertain'
-                              ? 'bg-yellow-100 text-yellow-700 border-2 border-yellow-600'
-                              : 'bg-gray-50 text-gray-700 hover:bg-yellow-50'
-                          }`}
-                        >
-                          <AlertCircle className="h-4 w-4" />
-                          Incertain
-                        </button>
-                      </div>
-
-                      {/* Commentaires */}
-                      <textarea
-                        value={result.notes}
-                        onChange={(e) => updateTestNotes(result.testId, e.target.value)}
-                        placeholder="Commentaires..."
-                        className="w-full px-3 py-2 border rounded-lg text-sm resize-none"
-                        rows={2}
-                      />
-
-                      {/* Stats test */}
-                      {(result.sensitivity || result.specificity) && (
-                        <div className="flex gap-4 mt-2 text-xs text-gray-500">
-                          {result.sensitivity && (
-                            <span>Sensibilité: {result.sensitivity}%</span>
-                          )}
-                          {result.specificity && (
-                            <span>Spécificité: {result.specificity}%</span>
-                          )}
+                        {/* Boutons résultat */}
+                        <div className="grid grid-cols-3 gap-2 mb-3">
+                          <button
+                            onClick={() =>
+                              updateTestResult(result.testId, 'positive')
+                            }
+                            className={`px-3 py-2 rounded-lg flex items-center justify-center gap-2 text-sm font-medium transition-colors ${
+                              result.result === 'positive'
+                                ? 'bg-green-100 text-green-700 border-2 border-green-600'
+                                : 'bg-gray-50 text-gray-700 hover:bg-green-50'
+                            }`}
+                          >
+                            <CheckCircle className="h-4 w-4" />
+                            Positif
+                          </button>
+                          <button
+                            onClick={() =>
+                              updateTestResult(result.testId, 'negative')
+                            }
+                            className={`px-3 py-2 rounded-lg flex items-center justify-center gap-2 text-sm font-medium transition-colors ${
+                              result.result === 'negative'
+                                ? 'bg-red-100 text-red-700 border-2 border-red-600'
+                                : 'bg-gray-50 text-gray-700 hover:bg-red-50'
+                            }`}
+                          >
+                            <XCircle className="h-4 w-4" />
+                            Négatif
+                          </button>
+                          <button
+                            onClick={() =>
+                              updateTestResult(result.testId, 'uncertain')
+                            }
+                            className={`px-3 py-2 rounded-lg flex items-center justify-center gap-2 text-sm font-medium transition-colors ${
+                              result.result === 'uncertain'
+                                ? 'bg-yellow-100 text-yellow-700 border-2 border-yellow-600'
+                                : 'bg-gray-50 text-gray-700 hover:bg-yellow-50'
+                            }`}
+                          >
+                            <AlertCircle className="h-4 w-4" />
+                            Incertain
+                          </button>
                         </div>
-                      )}
-                    </div>
-                  ))}
+
+                        {/* Commentaires */}
+                        <textarea
+                          value={result.notes}
+                          onChange={(e) =>
+                            updateTestNotes(result.testId, e.target.value)
+                          }
+                          placeholder="Commentaires..."
+                          className="w-full px-3 py-2 border rounded-lg text-sm resize-none"
+                          rows={2}
+                        />
+
+                        {/* Stats test */}
+                        {(result.sensitivity || result.specificity) && (
+                          <div className="flex gap-4 mt-2 text-xs text-gray-500">
+                            {result.sensitivity && (
+                              <span>
+                                Sensibilité: {result.sensitivity}%
+                              </span>
+                            )}
+                            {result.specificity && (
+                              <span>
+                                Spécificité: {result.specificity}%
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )
+                  )}
                 </div>
               </div>
             )}
@@ -672,18 +731,26 @@ export default function TestingModulePage() {
                     <div
                       key={test.id}
                       className="border rounded-lg p-3 hover:bg-gray-50 cursor-pointer transition-colors"
-                      onClick={() => addTestToSession(test)}
+                      onClick={() => openTestModal(test)}
                     >
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
-                          <p className="font-medium text-gray-900 text-sm">{test.name}</p>
+                          <p className="font-medium text-gray-900 text-sm">
+                            {test.name}
+                          </p>
                           {test.indications && (
-                            <p className="text-xs text-gray-600 mt-1">{test.indications}</p>
+                            <p className="text-xs text-gray-600 mt-1">
+                              {test.indications}
+                            </p>
                           )}
                           {(test.sensitivity || test.specificity) && (
                             <div className="flex gap-2 mt-2 text-xs text-gray-500">
-                              {test.sensitivity && <span>Se: {test.sensitivity}%</span>}
-                              {test.specificity && <span>Sp: {test.specificity}%</span>}
+                              {test.sensitivity && (
+                                <span>Se: {test.sensitivity}%</span>
+                              )}
+                              {test.specificity && (
+                                <span>Sp: {test.specificity}%</span>
+                              )}
                             </div>
                           )}
                         </div>
@@ -693,17 +760,30 @@ export default function TestingModulePage() {
                   ))}
                   {getFilteredTests().length === 0 && (
                     <div className="text-center py-8">
-                      <p className="text-gray-500 text-sm mb-3">Aucun test trouvé</p>
+                      <p className="text-gray-500 text-sm mb-3">
+                        Aucun test trouvé
+                      </p>
                       <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-left">
-                        <p className="text-xs font-semibold text-blue-900 mb-2">💡 Aide au diagnostic :</p>
+                        <p className="text-xs font-semibold text-blue-900 mb-2">
+                          💡 Aide au diagnostic :
+                        </p>
                         <p className="text-xs text-blue-800 mb-1">
-                          • Zone : <span className="font-mono">{selectedZone.name}</span> / <span className="font-mono">{selectedZone.display_name}</span>
+                          • Zone :{' '}
+                          <span className="font-mono">
+                            {selectedZone.name}
+                          </span>{' '}
+                          /{' '}
+                          <span className="font-mono">
+                            {selectedZone.display_name}
+                          </span>
                         </p>
                         <p className="text-xs text-blue-800 mb-1">
                           • Total tests chargés : {tests.length}
                         </p>
                         <p className="text-xs text-blue-800">
-                          • Vérifiez que les tests ont une <span className="font-mono">category</span> qui correspond
+                          • Vérifiez que les tests ont une{' '}
+                          <span className="font-mono">category</span> qui
+                          correspond
                         </p>
                         <button
                           onClick={() => console.log('📊 Tous les tests:', tests)}
@@ -737,10 +817,13 @@ export default function TestingModulePage() {
                             {session.patientName}
                           </p>
                           <p className="text-xs text-gray-600">
-                            {new Date(session.sessionDate).toLocaleDateString('fr-FR')}
+                            {new Date(
+                              session.sessionDate
+                            ).toLocaleDateString('fr-FR')}
                           </p>
                           <p className="text-xs text-gray-500 mt-1">
-                            {session.results.length} test{session.results.length > 1 ? 's' : ''}
+                            {session.results.length} test
+                            {session.results.length > 1 ? 's' : ''}
                           </p>
                         </div>
                         <div className="flex gap-1">
@@ -752,7 +835,9 @@ export default function TestingModulePage() {
                             <Edit className="h-4 w-4" />
                           </button>
                           <button
-                            onClick={() => session.id && deleteSession(session.id)}
+                            onClick={() =>
+                              session.id && deleteSession(session.id)
+                            }
                             className="p-1 text-red-600 hover:bg-red-50 rounded"
                             title="Supprimer"
                           >
@@ -768,6 +853,154 @@ export default function TestingModulePage() {
           </div>
         </div>
       </div>
+
+      {/* MODAL DÉTAIL TEST ORTHO */}
+      {showTestModal && selectedTest && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+          <div className="relative max-w-3xl w-full mx-4 max-h-[90vh] overflow-y-auto rounded-xl bg-white p-6 shadow-2xl">
+            <button
+              onClick={closeTestModal}
+              className="absolute right-4 top-4 text-gray-400 hover:text-gray-600"
+            >
+              <X className="h-5 w-5" />
+            </button>
+
+            <h3 className="text-xl font-semibold text-gray-900 pr-10">
+              {selectedTest.name}
+            </h3>
+
+            {selectedTest.category && (
+              <p className="mt-1 text-sm text-gray-600">
+                Région :{' '}
+                <span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-800">
+                  {selectedTest.category}
+                </span>
+              </p>
+            )}
+
+            {/* Statistiques */}
+            {(selectedTest.sensitivity ||
+              selectedTest.specificity ||
+              selectedTest.rv_positive ||
+              selectedTest.rv_negative) && (
+              <div className="mt-4 flex flex-wrap gap-2 text-xs text-gray-700">
+                {selectedTest.sensitivity != null && (
+                  <span className="rounded bg-green-50 px-2 py-0.5">
+                    Se : {selectedTest.sensitivity}%
+                  </span>
+                )}
+                {selectedTest.specificity != null && (
+                  <span className="rounded bg-blue-50 px-2 py-0.5">
+                    Sp : {selectedTest.specificity}%
+                  </span>
+                )}
+                {selectedTest.rv_positive != null && (
+                  <span className="rounded bg-purple-50 px-2 py-0.5">
+                    RV+ : {selectedTest.rv_positive}
+                  </span>
+                )}
+                {selectedTest.rv_negative != null && (
+                  <span className="rounded bg-orange-50 px-2 py-0.5">
+                    RV- : {selectedTest.rv_negative}
+                  </span>
+                )}
+              </div>
+            )}
+
+            {/* Vidéo */}
+            {selectedTest.video_url && (
+              <div className="mt-5">
+                <h4 className="text-sm font-semibold text-gray-800 mb-2">
+                  Vidéo de démonstration
+                </h4>
+                {extractYoutubeId(selectedTest.video_url) ? (
+                  <div className="aspect-video rounded-lg overflow-hidden bg-black">
+                    <iframe
+                      src={`https://www.youtube.com/embed/${extractYoutubeId(
+                        selectedTest.video_url
+                      )}`}
+                      className="w-full h-full"
+                      allowFullScreen
+                    />
+                  </div>
+                ) : (
+                  <a
+                    href={selectedTest.video_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-sm text-primary-600 underline"
+                  >
+                    Ouvrir la vidéo
+                  </a>
+                )}
+              </div>
+            )}
+
+            {/* Description */}
+            <div className="mt-5">
+              <h4 className="text-sm font-semibold text-gray-800 mb-1">
+                Description / Réalisation
+              </h4>
+              <p className="text-sm text-gray-700 whitespace-pre-line">
+                {selectedTest.description}
+              </p>
+            </div>
+
+            {/* Indications */}
+            {selectedTest.indications && (
+              <div className="mt-4">
+                <h4 className="text-sm font-semibold text-gray-800 mb-1">
+                  Indications principales
+                </h4>
+                <p className="text-sm text-gray-700 whitespace-pre-line">
+                  {selectedTest.indications}
+                </p>
+              </div>
+            )}
+
+            {/* Intérêt clinique */}
+            {selectedTest.interest && (
+              <div className="mt-4">
+                <h4 className="text-sm font-semibold text-gray-800 mb-1">
+                  Intérêt clinique
+                </h4>
+                <p className="text-sm text-gray-700 whitespace-pre-line">
+                  {selectedTest.interest}
+                </p>
+              </div>
+            )}
+
+            {/* Sources */}
+            {selectedTest.sources && (
+              <div className="mt-4">
+                <h4 className="text-sm font-semibold text-gray-800 mb-1">
+                  Sources / Références
+                </h4>
+                <p className="text-xs text-gray-600 whitespace-pre-line">
+                  {selectedTest.sources}
+                </p>
+              </div>
+            )}
+
+            {/* Actions modal */}
+            <div className="mt-6 flex justify-end gap-2">
+              <button
+                onClick={closeTestModal}
+                className="px-4 py-2 rounded-lg border border-gray-300 text-sm text-gray-700 hover:bg-gray-50"
+              >
+                Fermer
+              </button>
+              <button
+                onClick={() => addTestToSession(selectedTest)}
+                className="px-4 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-sm text-white flex items-center gap-2"
+              >
+                <Plus className="h-4 w-4" />
+                Ajouter ce test à la session
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </AuthLayout>
   )
 }
