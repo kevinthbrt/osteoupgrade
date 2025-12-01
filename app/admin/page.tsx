@@ -9,12 +9,12 @@ import {
   Clipboard,
   Activity,
   Shield,
-  BarChart,
   Crown,
-  Box,
   Layers,
   Filter,
-  Map
+  Map,
+  Box,
+  TestTube
 } from 'lucide-react'
 
 export default function AdminPage() {
@@ -23,7 +23,7 @@ export default function AdminPage() {
     totalUsers: 0,
     freeUsers: 0,
     premiumUsers: 0,
-    totalZones: 0,
+    totalAnatomicalZones: 0, // Pour Testing 3D
     totalPathologies: 0,
     totalTests: 0,
     totalClusters: 0,
@@ -71,9 +71,9 @@ export default function AdminPage() {
       const freeCount = profiles?.filter(p => p.role === 'free').length || 0
       const premiumCount = profiles?.filter(p => p.role === 'premium').length || 0
 
-      // Get anatomy system statistics
+      // Get system statistics
       const [
-        zonesResponse, 
+        anatomicalZonesResponse, // Pour Testing 3D
         pathologiesResponse, 
         testsResponse, 
         clustersResponse,
@@ -92,7 +92,7 @@ export default function AdminPage() {
         totalUsers: profiles?.length || 0,
         freeUsers: freeCount,
         premiumUsers: premiumCount,
-        totalZones: zonesResponse.data?.length || 0,
+        totalAnatomicalZones: anatomicalZonesResponse.data?.length || 0,
         totalPathologies: pathologiesResponse.data?.length || 0,
         totalTests: testsResponse.data?.length || 0,
         totalClusters: clustersResponse.data?.length || 0,
@@ -121,7 +121,7 @@ export default function AdminPage() {
       value: stats.totalTopographicZones,
       icon: Map,
       color: 'from-purple-500 to-purple-600',
-      detail: 'Zones avec images',
+      detail: 'Pour Consultation V3',
       href: '/admin/topographic-zones'
     },
     {
@@ -129,7 +129,7 @@ export default function AdminPage() {
       value: stats.totalDecisionTrees,
       icon: Filter,
       color: 'from-indigo-500 to-indigo-600',
-      detail: 'Arbres configurés',
+      detail: 'Pour Consultation V3',
       href: '/admin/decision-trees'
     },
     {
@@ -137,51 +137,59 @@ export default function AdminPage() {
       value: stats.totalPathologies,
       icon: Activity,
       color: 'from-red-500 to-red-600',
-      detail: 'Pathologies configurées',
+      detail: 'Diagnostics simples',
       href: '/admin/pathologies'
     },
     {
-      label: 'Tests',
+      label: 'Tests Orthopédiques',
       value: stats.totalTests,
       icon: Clipboard,
       color: 'from-orange-500 to-orange-600',
-      detail: 'Tests orthopédiques',
+      detail: 'Tests par zone',
       href: '/admin/tests'
     },
   ]
 
   const managementActions = [
     {
-      title: '🆕 Zones Topographiques',
-      description: 'Créer des zones anatomiques avec images cliquables',
-      icon: Map,
-      href: '/admin/topographic-zones',
-      color: 'from-purple-500 to-purple-600',
-      stats: `${stats.totalTopographicZones} zones créées`
+      title: '🎯 Tests Orthopédiques',
+      description: 'Gérer les tests organisés par zones anatomiques',
+      icon: Clipboard,
+      href: '/admin/tests',
+      color: 'from-orange-500 to-orange-600',
+      stats: `${stats.totalTests} tests, ${stats.totalClusters} clusters`
     },
     {
-      title: '🆕 Arbres Décisionnels',
-      description: 'Créer des arbres de questions/réponses personnalisés',
-      icon: Filter,
-      href: '/admin/decision-trees',
-      color: 'from-indigo-500 to-indigo-600',
-      stats: `${stats.totalDecisionTrees} arbres configurés`
-    },
-    {
-      title: 'Pathologies',
-      description: 'Gérer les pathologies et leurs associations aux tests',
+      title: '🩺 Pathologies',
+      description: 'Gérer les pathologies pour les diagnostics (Consultation V3)',
       icon: Activity,
       href: '/admin/pathologies',
       color: 'from-red-500 to-red-600',
       stats: `${stats.totalPathologies} pathologies`
     },
     {
-      title: 'Tests et Clusters',
-      description: 'Gérer les tests individuels et les groupes de tests',
-      icon: Clipboard,
-      href: '/admin/tests',
-      color: 'from-orange-500 to-orange-600',
-      stats: `${stats.totalTests} tests, ${stats.totalClusters} clusters`
+      title: '🗺️ Zones Topographiques',
+      description: 'Créer des zones avec images cliquables (Consultation V3)',
+      icon: Map,
+      href: '/admin/topographic-zones',
+      color: 'from-purple-500 to-purple-600',
+      stats: `${stats.totalTopographicZones} zones créées`
+    },
+    {
+      title: '🌳 Arbres Décisionnels',
+      description: 'Configurer les arbres de questions/réponses (Consultation V3)',
+      icon: Filter,
+      href: '/admin/decision-trees',
+      color: 'from-indigo-500 to-indigo-600',
+      stats: `${stats.totalDecisionTrees} arbres configurés`
+    },
+    {
+      title: '🧍 Anatomy Builder',
+      description: 'Positionner les zones 3D pour le module Testing 3D',
+      icon: Box,
+      href: '/admin/anatomy-builder',
+      color: 'from-green-500 to-green-600',
+      stats: `${stats.totalAnatomicalZones} zones 3D`
     },
   ]
 
@@ -207,7 +215,7 @@ export default function AdminPage() {
                 <h1 className="text-2xl font-bold">Administration</h1>
               </div>
               <p className="text-purple-100">
-                Centre de contrôle OsteoUpgrade - Nouveau Système Topographique
+                OsteoUpgrade - Architecture Simplifiée V2
               </p>
             </div>
             <div className="text-right">
@@ -283,56 +291,66 @@ export default function AdminPage() {
           })}
         </div>
 
-        {/* System Stats */}
+        {/* System Stats - Nouvelle architecture simplifiée */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div className="bg-white rounded-xl shadow-sm p-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">
-              Statistiques du système
+              📊 Architecture Simplifiée
             </h2>
             <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <Map className="h-5 w-5 text-gray-400" />
-                  <span className="text-sm text-gray-600">Zones topographiques</span>
+              <div className="border-b pb-3">
+                <p className="text-xs font-semibold text-gray-500 mb-2">MODULE CONSULTATION V3</p>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <Map className="h-4 w-4 text-purple-600" />
+                      <span className="text-sm text-gray-600">Zones topographiques</span>
+                    </div>
+                    <span className="font-semibold text-gray-900">{stats.totalTopographicZones}</span>
+                  </div>
+                  
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <Filter className="h-4 w-4 text-indigo-600" />
+                      <span className="text-sm text-gray-600">Arbres décisionnels</span>
+                    </div>
+                    <span className="font-semibold text-gray-900">{stats.totalDecisionTrees}</span>
+                  </div>
+                  
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <Activity className="h-4 w-4 text-red-600" />
+                      <span className="text-sm text-gray-600">Pathologies (diagnostics)</span>
+                    </div>
+                    <span className="font-semibold text-gray-900">{stats.totalPathologies}</span>
+                  </div>
                 </div>
-                <span className="font-semibold text-gray-900">{stats.totalTopographicZones}</span>
               </div>
               
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <Filter className="h-5 w-5 text-gray-400" />
-                  <span className="text-sm text-gray-600">Arbres décisionnels</span>
+              <div className="border-b pb-3">
+                <p className="text-xs font-semibold text-gray-500 mb-2">MODULE TESTING 3D</p>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <Box className="h-4 w-4 text-green-600" />
+                      <span className="text-sm text-gray-600">Zones anatomiques 3D</span>
+                    </div>
+                    <span className="font-semibold text-gray-900">{stats.totalAnatomicalZones}</span>
+                  </div>
+                  
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <Clipboard className="h-4 w-4 text-orange-600" />
+                      <span className="text-sm text-gray-600">Tests orthopédiques</span>
+                    </div>
+                    <span className="font-semibold text-gray-900">{stats.totalTests}</span>
+                  </div>
                 </div>
-                <span className="font-semibold text-gray-900">{stats.totalDecisionTrees}</span>
               </div>
               
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between pt-2">
                 <div className="flex items-center space-x-2">
-                  <Activity className="h-5 w-5 text-gray-400" />
-                  <span className="text-sm text-gray-600">Pathologies</span>
-                </div>
-                <span className="font-semibold text-gray-900">{stats.totalPathologies}</span>
-              </div>
-              
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <Clipboard className="h-5 w-5 text-gray-400" />
-                  <span className="text-sm text-gray-600">Tests orthopédiques</span>
-                </div>
-                <span className="font-semibold text-gray-900">{stats.totalTests}</span>
-              </div>
-              
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <Layers className="h-5 w-5 text-gray-400" />
-                  <span className="text-sm text-gray-600">Clusters de tests</span>
-                </div>
-                <span className="font-semibold text-gray-900">{stats.totalClusters}</span>
-              </div>
-              
-              <div className="flex items-center justify-between pt-4 border-t">
-                <div className="flex items-center space-x-2">
-                  <Crown className="h-5 w-5 text-gray-400" />
+                  <Crown className="h-5 w-5 text-yellow-500" />
                   <span className="text-sm text-gray-600">Taux de conversion</span>
                 </div>
                 <span className="font-semibold text-gray-900">
@@ -346,40 +364,86 @@ export default function AdminPage() {
 
           <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl shadow-sm p-6 text-white">
             <h2 className="text-lg font-semibold mb-4">
-              Accès rapide - Nouveau Système
+              🚀 Workflow Administrateur
             </h2>
             <div className="space-y-3">
-              <button
-                onClick={() => router.push('/admin/topographic-zones')}
-                className="w-full bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-lg p-3 text-left transition-colors"
-              >
-                <p className="font-medium">✨ Zones Topographiques</p>
-                <p className="text-sm text-purple-100">Créer des zones avec images cliquables</p>
-              </button>
+              <div className="bg-white/10 rounded-lg p-3">
+                <p className="font-semibold mb-2">1️⃣ Configuration Consultation V3</p>
+                <div className="space-y-1 text-sm text-purple-100">
+                  <button
+                    onClick={() => router.push('/admin/topographic-zones')}
+                    className="block w-full text-left hover:text-white transition-colors"
+                  >
+                    → Créer zones topographiques
+                  </button>
+                  <button
+                    onClick={() => router.push('/admin/decision-trees')}
+                    className="block w-full text-left hover:text-white transition-colors"
+                  >
+                    → Configurer arbres décisionnels
+                  </button>
+                  <button
+                    onClick={() => router.push('/admin/pathologies')}
+                    className="block w-full text-left hover:text-white transition-colors"
+                  >
+                    → Créer pathologies (diagnostics)
+                  </button>
+                </div>
+              </div>
+              
+              <div className="bg-white/10 rounded-lg p-3">
+                <p className="font-semibold mb-2">2️⃣ Configuration Testing 3D</p>
+                <div className="space-y-1 text-sm text-purple-100">
+                  <button
+                    onClick={() => router.push('/admin/anatomy-builder')}
+                    className="block w-full text-left hover:text-white transition-colors"
+                  >
+                    → Positionner zones 3D
+                  </button>
+                  <button
+                    onClick={() => router.push('/admin/tests')}
+                    className="block w-full text-left hover:text-white transition-colors"
+                  >
+                    → Gérer tests orthopédiques
+                  </button>
+                </div>
+              </div>
               
               <button
-                onClick={() => router.push('/admin/decision-trees')}
-                className="w-full bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-lg p-3 text-left transition-colors"
+                onClick={() => router.push('/testing')}
+                className="w-full bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-lg p-3 text-left transition-colors mt-4"
               >
-                <p className="font-medium">🌳 Arbres Décisionnels</p>
-                <p className="text-sm text-purple-100">Configurer les questions/réponses</p>
-              </button>
-              
-              <button
-                onClick={() => router.push('/admin/pathologies')}
-                className="w-full bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-lg p-3 text-left transition-colors"
-              >
-                <p className="font-medium">Pathologies</p>
-                <p className="text-sm text-purple-100">Lier aux arbres décisionnels</p>
+                <p className="font-medium">🧪 Tester Testing 3D</p>
+                <p className="text-sm text-purple-100">Module de testing interactif</p>
               </button>
               
               <button
                 onClick={() => router.push('/consultation-v3')}
                 className="w-full bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-lg p-3 text-left transition-colors"
               >
-                <p className="font-medium">🎯 Tester le nouveau système</p>
+                <p className="font-medium">🎯 Tester Consultation V3</p>
                 <p className="text-sm text-purple-100">Consultation guidée par zones</p>
               </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Architecture Info */}
+        <div className="bg-blue-50 border border-blue-200 rounded-xl p-6">
+          <div className="flex items-start space-x-3">
+            <div className="flex-shrink-0">
+              <TestTube className="h-6 w-6 text-blue-600" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-blue-900 mb-2">
+                ✨ Architecture Simplifiée V2
+              </h3>
+              <div className="text-sm text-blue-800 space-y-1">
+                <p>• <strong>Pathologies ⊥ Tests</strong> : Pathologies et tests sont maintenant indépendants</p>
+                <p>• <strong>2 Modules distincts</strong> : Consultation V3 (zones topo + arbres) et Testing 3D (zones 3D + tests)</p>
+                <p>• <strong>Tables supprimées</strong> : structures, pathology_tests, pathology_clusters</p>
+                <p>• <strong>Simplicité</strong> : Configuration rapide, maintenance facile</p>
+              </div>
             </div>
           </div>
         </div>

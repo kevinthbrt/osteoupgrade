@@ -15,11 +15,13 @@ import {
   Shield,
   Users,
   ChevronRight,
-  Stethoscope,
   Crown,
   Activity,
   Filter,
-  Map
+  Map,
+  Box,
+  TestTube,
+  Sparkles
 } from 'lucide-react'
 
 export default function Navigation() {
@@ -57,17 +59,47 @@ export default function Navigation() {
     { href: '/dashboard', label: 'Tableau de bord', icon: Home },
     { href: '/elearning', label: 'E-Learning', icon: BookOpen },
     { href: '/tests', label: 'Tests orthopédiques', icon: Clipboard },
-    { href: '/testing', label: 'Module Testing 3D', icon: Activity },
-    { href: '/testing-v2', label: 'Consultation Guidée', icon: Stethoscope },
-    { href: '/consultation-v3', label: 'Consultation V3 🌟', icon: Map },
+    { href: '/testing', label: 'Testing 3D', icon: TestTube, isNew: true },
+    { href: '/consultation-v3', label: 'Consultation V3', icon: Map, isNew: true },
     { href: '/settings', label: 'Paramètres', icon: Settings },
   ]
 
   const adminItems = [
-    { href: '/admin', label: 'Administration', icon: Shield },
+    { href: '/admin', label: 'Vue d\'ensemble', icon: Shield },
     { href: '/admin/users', label: 'Utilisateurs', icon: Users },
-    { href: '/admin/topographic-zones', label: 'Zones Topographiques', icon: Map },
-    { href: '/admin/decision-trees', label: 'Arbres Décisionnels', icon: Filter },
+    { 
+      href: '/admin/tests', 
+      label: 'Tests Orthopédiques', 
+      icon: Clipboard,
+      description: 'Tests par zones'
+    },
+    { 
+      href: '/admin/pathologies', 
+      label: 'Pathologies', 
+      icon: Activity,
+      description: 'Diagnostics simples'
+    },
+    { 
+      href: '/admin/topographic-zones', 
+      label: 'Zones Topographiques', 
+      icon: Map,
+      description: 'Pour Consultation V3',
+      badge: 'V3'
+    },
+    { 
+      href: '/admin/decision-trees', 
+      label: 'Arbres Décisionnels', 
+      icon: Filter,
+      description: 'Pour Consultation V3',
+      badge: 'V3'
+    },
+    { 
+      href: '/admin/anatomy-builder', 
+      label: 'Anatomy Builder', 
+      icon: Box,
+      description: 'Zones 3D Testing',
+      badge: '3D'
+    },
   ]
 
   const getRoleBadge = () => {
@@ -113,11 +145,11 @@ export default function Navigation() {
           <div className="p-6 border-b border-gray-200">
             <div className="flex items-center space-x-3">
               <div className="bg-gradient-to-br from-primary-500 to-primary-600 p-2 rounded-lg">
-                <Stethoscope className="h-6 w-6 text-white" />
+                <Sparkles className="h-6 w-6 text-white" />
               </div>
               <div>
                 <h2 className="text-xl font-bold text-gray-900">OsteoUpgrade</h2>
-                <p className="text-xs text-gray-500">Aide au raisonnement</p>
+                <p className="text-xs text-gray-500">Architecture V2</p>
               </div>
             </div>
           </div>
@@ -140,7 +172,6 @@ export default function Navigation() {
             {menuItems.map((item) => {
               const Icon = item.icon
               const isActive = pathname === item.href
-              const isNew = item.href === '/consultation-v3'
               return (
                 <Link
                   key={item.href}
@@ -155,10 +186,9 @@ export default function Navigation() {
                   <Icon className={`h-5 w-5 mr-3 ${isActive ? 'text-primary-600' : 'text-gray-400 group-hover:text-gray-600'}`} />
                   <span className="flex-1">{item.label}</span>
                   {isActive && <ChevronRight className="h-4 w-4" />}
-                  {isNew && (
-                    <span className="absolute -top-1 -right-1 flex h-3 w-3">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary-400 opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-3 w-3 bg-primary-500"></span>
+                  {item.isNew && (
+                    <span className="ml-2 px-1.5 py-0.5 bg-green-100 text-green-700 text-[10px] font-semibold rounded">
+                      NEW
                     </span>
                   )}
                 </Link>
@@ -179,16 +209,32 @@ export default function Navigation() {
                     <Link
                       key={item.href}
                       href={item.href}
-                      className={`flex items-center px-3 py-2.5 rounded-lg transition-all group ${
+                      className={`flex flex-col px-3 py-2.5 rounded-lg transition-all group ${
                         isActive
                           ? 'bg-purple-50 text-purple-600 font-medium'
                           : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
                       }`}
                       onClick={() => setIsOpen(false)}
                     >
-                      <Icon className={`h-5 w-5 mr-3 ${isActive ? 'text-purple-600' : 'text-gray-400 group-hover:text-gray-600'}`} />
-                      <span className="flex-1">{item.label}</span>
-                      {isActive && <ChevronRight className="h-4 w-4" />}
+                      <div className="flex items-center w-full">
+                        <Icon className={`h-5 w-5 mr-3 flex-shrink-0 ${isActive ? 'text-purple-600' : 'text-gray-400 group-hover:text-gray-600'}`} />
+                        <span className="flex-1">{item.label}</span>
+                        {item.badge && (
+                          <span className={`ml-2 px-1.5 py-0.5 text-[10px] font-semibold rounded ${
+                            item.badge === 'V3' 
+                              ? 'bg-purple-100 text-purple-700' 
+                              : 'bg-green-100 text-green-700'
+                          }`}>
+                            {item.badge}
+                          </span>
+                        )}
+                        {isActive && <ChevronRight className="h-4 w-4 ml-2" />}
+                      </div>
+                      {item.description && !isActive && (
+                        <p className="text-[10px] text-gray-500 ml-8 mt-0.5">
+                          {item.description}
+                        </p>
+                      )}
                     </Link>
                   )
                 })}
