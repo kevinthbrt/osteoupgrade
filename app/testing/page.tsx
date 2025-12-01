@@ -334,7 +334,21 @@ export default function TestingModulePage() {
   const getFilteredTests = () => {
     if (!selectedZone) return []
 
-    let filtered = tests.filter((test: OrthopedicTest) => test.category === selectedZone.name)
+    // Essayer de matcher avec name OU display_name pour plus de flexibilité
+    let filtered = tests.filter((test: OrthopedicTest) => {
+      const matchName = test.category?.toLowerCase() === selectedZone.name?.toLowerCase()
+      const matchDisplayName = test.category?.toLowerCase() === selectedZone.display_name?.toLowerCase()
+      return matchName || matchDisplayName
+    })
+
+    // Debug: afficher dans la console
+    console.log('🔍 Zone sélectionnée:', {
+      name: selectedZone.name,
+      display_name: selectedZone.display_name
+    })
+    console.log('📊 Tests disponibles:', tests.length)
+    console.log('🎯 Tests filtrés:', filtered.length)
+    console.log('📝 Catégories des tests:', [...new Set(tests.map(t => t.category))])
 
     if (searchQuery) {
       filtered = filtered.filter((test: OrthopedicTest) =>
@@ -678,9 +692,27 @@ export default function TestingModulePage() {
                     </div>
                   ))}
                   {getFilteredTests().length === 0 && (
-                    <p className="text-center text-gray-500 py-8 text-sm">
-                      Aucun test trouvé
-                    </p>
+                    <div className="text-center py-8">
+                      <p className="text-gray-500 text-sm mb-3">Aucun test trouvé</p>
+                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-left">
+                        <p className="text-xs font-semibold text-blue-900 mb-2">💡 Aide au diagnostic :</p>
+                        <p className="text-xs text-blue-800 mb-1">
+                          • Zone : <span className="font-mono">{selectedZone.name}</span> / <span className="font-mono">{selectedZone.display_name}</span>
+                        </p>
+                        <p className="text-xs text-blue-800 mb-1">
+                          • Total tests chargés : {tests.length}
+                        </p>
+                        <p className="text-xs text-blue-800">
+                          • Vérifiez que les tests ont une <span className="font-mono">category</span> qui correspond
+                        </p>
+                        <button
+                          onClick={() => console.log('📊 Tous les tests:', tests)}
+                          className="mt-2 text-xs text-blue-600 hover:text-blue-700 underline"
+                        >
+                          Afficher détails dans console
+                        </button>
+                      </div>
+                    </div>
                   )}
                 </div>
               </div>
