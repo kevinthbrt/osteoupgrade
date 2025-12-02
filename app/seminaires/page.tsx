@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import AuthLayout from '@/components/AuthLayout'
 import { supabase } from '@/lib/supabase'
 import { Calendar, MapPin, User, Plus, CheckCircle, Users, PenSquare, AlertTriangle } from 'lucide-react'
+import { formatCycleWindow, getCurrentSubscriptionCycle, isDateWithinCycle } from '@/utils/subscriptionCycle'
 
 interface Seminar {
   id: string
@@ -31,6 +32,8 @@ export default function SeminarsPage() {
   const [profile, setProfile] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [seminars, setSeminars] = useState<Seminar[]>([])
+  const [editingSeminarId, setEditingSeminarId] = useState<string | null>(null)
+  const [editedSeminar, setEditedSeminar] = useState<Seminar | null>(null)
   const [newSeminar, setNewSeminar] = useState<Seminar>({
     id: '',
     title: '',
@@ -136,9 +139,12 @@ export default function SeminarsPage() {
     loadData()
   }, [router])
 
-  const currentYear = useMemo(() => new Date().getFullYear(), [])
-  const yearlyRegistrations = userRegistrations.filter((r) => new Date(r.registeredAt).getFullYear() === currentYear)
-  const hasReachedLimit = yearlyRegistrations.length >= 2
+  const currentCycle = useMemo(
+    () => getCurrentSubscriptionCycle(profile?.subscription_start_date || profile?.created_at),
+    [profile?.subscription_start_date, profile?.created_at]
+  )
+  const cycleRegistrations = userRegistrations.filter((r) => isDateWithinCycle(r.registeredAt, currentCycle))
+  const hasReachedLimit = cycleRegistrations.length >= 1
 
   const handleRegister = async (id: string) => {
     if (profile?.role !== 'premium' && profile?.role !== 'admin') {
@@ -147,7 +153,7 @@ export default function SeminarsPage() {
     }
 
     if (hasReachedLimit) {
-      alert('Vous avez atteint la limite de 2 séminaires pour cette année')
+      alert("Vous avez atteint la limite d'1 séminaire (2 jours) pour ce cycle d'abonnement")
       return
     }
 
@@ -244,6 +250,68 @@ export default function SeminarsPage() {
     setNewSeminar({ id: '', title: '', date: '', location: '', theme: '', facilitator: '', capacity: null })
   }
 
+  const handleStartEdit = (seminar: Seminar) => {
+    if (profile?.role !== 'admin') return
+    setEditingSeminarId(seminar.id)
+    setEditedSeminar({ ...seminar })
+  }
+
+  const handleUpdateSeminar = async () => {
+    if (!editingSeminarId || !editedSeminar || profile?.role !== 'admin') return
+    if (!editedSeminar.title || !editedSeminar.date) {
+      alert('Merci de renseigner un titre et une date')
+      return
+    }
+
+    const capacity = editedSeminar.capacity ?? null
+    const payload = {
+      title: editedSeminar.title,
+      date: editedSeminar.date,
+      location: editedSeminar.location,
+      theme: editedSeminar.theme,
+      facilitator: editedSeminar.facilitator,
+      capacity
+    }
+
+    const { data, error } = await supabase
+      .from('seminars')
+      .update(payload)
+      .eq('id', editingSeminarId)
+      .select('*')
+      .single()
+
+    if (error) {
+      console.warn('Mise à jour locale du séminaire :', error.message)
+    }
+
+    const updatedSeminar = data || { ...editedSeminar, ...payload }
+
+    setSeminars((prev) => prev.map((seminar) => (seminar.id === editingSeminarId ? updatedSeminar : seminar)))
+
+    setEditingSeminarId(null)
+    setEditedSeminar(null)
+  }
+
+  const handleDeleteSeminar = async (id: string) => {
+    if (profile?.role !== 'admin') return
+    if (!confirm('Supprimer définitivement ce séminaire ?')) return
+
+    const { error } = await supabase.from('seminars').delete().eq('id', id)
+
+    if (error) {
+      console.warn('Suppression locale du séminaire :', error.message)
+    }
+
+    setSeminars((prev) => prev.filter((seminar) => seminar.id !== id))
+    setUserRegistrations((prev) => prev.filter((registration) => registration.seminar_id !== id))
+    setAllRegistrations((prev) => prev.filter((registration) => registration.seminar_id !== id))
+
+    if (editingSeminarId === id) {
+      setEditingSeminarId(null)
+      setEditedSeminar(null)
+    }
+  }
+
   if (loading) {
     return (
       <AuthLayout>
@@ -264,11 +332,16 @@ export default function SeminarsPage() {
             <Calendar className="h-5 w-5" />
             Séminaires présentiels
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">Rencontres en présentiel (2 incluses/an)</h1>
-          <p className="text-gray-600">Réservés aux abonnés Premium pour rencontrer Gérald Stoppini et Kevin Thubert. Limite de 2 inscriptions par année civile.</p>
+          <h1 className="text-2xl font-bold text-gray-900">Rencontres en présentiel (1 séminaire de 2 jours inclus/an)</h1>
+          <p className="text-gray-600">
+            Réservés aux abonnés Premium pour rencontrer Gérald Stoppini et Kevin Thubert. Limite d'un séminaire (2 jours) par
+            cycle annuel depuis votre date d'abonnement.
+          </p>
           <div className="flex items-center gap-3 text-sm text-gray-700">
             <Users className="h-4 w-4 text-primary-600" />
-            <span>{yearlyRegistrations.length}/2 inscriptions cette année</span>
+            <span>
+              {cycleRegistrations.length}/1 inscription autorisée entre {formatCycleWindow(currentCycle)}
+            </span>
             {hasReachedLimit && <span className="text-red-600 font-semibold">Limite atteinte</span>}
           </div>
           {loadingError && (
@@ -326,7 +399,7 @@ export default function SeminarsPage() {
                 <div className="text-sm text-gray-700">Encadrement : {seminar.facilitator}</div>
                 <div className="flex items-center gap-2 text-xs text-gray-500">
                   <CheckCircle className="h-4 w-4 text-emerald-600" />
-                  <span>Inscription limitée à 2 séminaires/an</span>
+                  <span>Inscription limitée à 1 séminaire (2 jours) par cycle</span>
                 </div>
                 <div className="flex items-center gap-2 text-xs text-gray-500">
                   <Users className="h-4 w-4 text-primary-600" />
@@ -352,7 +425,13 @@ export default function SeminarsPage() {
                               : 'border-primary-200 text-primary-700 hover:bg-primary-50'
                       }`}
                     >
-                      {isFree ? 'Premium requis' : hasReachedLimit ? 'Limite atteinte' : isFull ? 'Complet' : 'Réserver ma place'}
+                      {isFree
+                        ? 'Premium requis'
+                        : hasReachedLimit
+                          ? 'Limite atteinte'
+                          : isFull
+                            ? 'Complet'
+                            : 'Réserver ma place'}
                     </button>
                   ) : (
                     <>
@@ -385,6 +464,90 @@ export default function SeminarsPage() {
                           </li>
                         ))}
                       </ul>
+                    )}
+                    <div className="flex flex-wrap gap-2 mt-3">
+                      {editingSeminarId === seminar.id ? (
+                        <>
+                          <button
+                            onClick={handleUpdateSeminar}
+                            className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-primary-600 text-white hover:bg-primary-700 transition"
+                          >
+                            Enregistrer
+                          </button>
+                          <button
+                            onClick={() => {
+                              setEditingSeminarId(null)
+                              setEditedSeminar(null)
+                            }}
+                            className="px-3 py-1.5 rounded-lg text-xs font-semibold border border-gray-200 text-gray-700 hover:bg-gray-50 transition"
+                          >
+                            Annuler
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <button
+                            onClick={() => handleStartEdit(seminar)}
+                            className="px-3 py-1.5 rounded-lg text-xs font-semibold border border-primary-200 text-primary-700 hover:bg-primary-50 transition"
+                          >
+                            Modifier
+                          </button>
+                          <button
+                            onClick={() => handleDeleteSeminar(seminar.id)}
+                            className="px-3 py-1.5 rounded-lg text-xs font-semibold border border-red-200 text-red-700 hover:bg-red-50 transition"
+                          >
+                            Supprimer
+                          </button>
+                        </>
+                      )}
+                    </div>
+                    {editingSeminarId === seminar.id && editedSeminar && (
+                      <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-2">
+                        <input
+                          type="text"
+                          value={editedSeminar.title}
+                          onChange={(e) => setEditedSeminar({ ...editedSeminar, title: e.target.value })}
+                          className="px-3 py-2 border rounded-lg text-sm"
+                          placeholder="Titre"
+                        />
+                        <input
+                          type="date"
+                          value={editedSeminar.date}
+                          onChange={(e) => setEditedSeminar({ ...editedSeminar, date: e.target.value })}
+                          className="px-3 py-2 border rounded-lg text-sm"
+                        />
+                        <input
+                          type="text"
+                          value={editedSeminar.location}
+                          onChange={(e) => setEditedSeminar({ ...editedSeminar, location: e.target.value })}
+                          className="px-3 py-2 border rounded-lg text-sm"
+                          placeholder="Lieu"
+                        />
+                        <input
+                          type="text"
+                          value={editedSeminar.theme || ''}
+                          onChange={(e) => setEditedSeminar({ ...editedSeminar, theme: e.target.value })}
+                          className="px-3 py-2 border rounded-lg text-sm"
+                          placeholder="Thème"
+                        />
+                        <input
+                          type="text"
+                          value={editedSeminar.facilitator || ''}
+                          onChange={(e) => setEditedSeminar({ ...editedSeminar, facilitator: e.target.value })}
+                          className="px-3 py-2 border rounded-lg text-sm"
+                          placeholder="Encadré par"
+                        />
+                        <input
+                          type="number"
+                          min={1}
+                          value={editedSeminar.capacity ?? ''}
+                          onChange={(e) =>
+                            setEditedSeminar({ ...editedSeminar, capacity: e.target.value ? parseInt(e.target.value, 10) : null })
+                          }
+                          className="px-3 py-2 border rounded-lg text-sm"
+                          placeholder="Nombre de places"
+                        />
+                      </div>
                     )}
                   </div>
                 )}

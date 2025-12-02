@@ -1,9 +1,10 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import AuthLayout from '@/components/AuthLayout'
+import { formatCycleWindow, getCurrentSubscriptionCycle, isDateWithinCycle } from '@/utils/subscriptionCycle'
 import {
   TreePine,
   Clipboard,
@@ -156,11 +157,14 @@ export default function Dashboard() {
     }
   }
 
-  const currentYear = new Date().getFullYear()
-  const yearlyRegistrations = registrations.filter(
-    (registration) => new Date(registration.registeredAt).getFullYear() === currentYear
+  const currentCycle = useMemo(
+    () => getCurrentSubscriptionCycle(profile?.subscription_start_date || profile?.created_at),
+    [profile?.subscription_start_date, profile?.created_at]
   )
-  const remainingSeminars = Math.max(0, 2 - yearlyRegistrations.length)
+  const cycleRegistrations = registrations.filter((registration) =>
+    isDateWithinCycle(registration.registeredAt, currentCycle)
+  )
+  const remainingSeminars = Math.max(0, 1 - cycleRegistrations.length)
   const isPremiumOrAdmin = profile?.role === 'premium' || profile?.role === 'admin'
 
   const handleRegister = async (id: string) => {
@@ -170,7 +174,7 @@ export default function Dashboard() {
     }
 
     if (remainingSeminars <= 0) {
-      alert('Vous avez atteint la limite de 2 séminaires pour cette année')
+      alert("Vous avez atteint la limite d'un séminaire (2 jours) pour votre cycle en cours")
       return
     }
 
@@ -302,13 +306,13 @@ export default function Dashboard() {
                 <p className="text-sm uppercase tracking-wide text-white/80">Accès Premium</p>
                 <h2 className="text-2xl font-bold mt-1">50€/mois — facturation annuelle</h2>
                 <p className="text-white/90 mt-2 max-w-2xl">
-                  Passez au niveau supérieur avec l'ensemble des arbres décisionnels, l'e-learning topographique et 2 formations en présentiel par an avec Gérald Stoppini et Kevin Thubert incluses.
+                  Passez au niveau supérieur avec l'ensemble des arbres décisionnels, l'e-learning topographique et un séminaire présentiel de 2 jours inclus par cycle annuel depuis votre souscription.
                 </p>
               </div>
               <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
                 <div className="bg-white/10 px-4 py-3 rounded-lg text-sm">
                   <div className="font-semibold">Formations incluses</div>
-                  <div className="text-white/90">2 séminaires par an en présentiel</div>
+                  <div className="text-white/90">1 séminaire (2 jours) par cycle</div>
                 </div>
                 <button
                   onClick={() => router.push('/settings')}
@@ -330,10 +334,10 @@ export default function Dashboard() {
                 Séminaires présentiels
               </div>
               <h2 className="text-xl font-bold text-gray-900 mt-1">Calendrier visible par tous</h2>
-              <p className="text-sm text-gray-600">Les inscriptions sont réservées aux membres Premium disposant encore de sessions cette année.</p>
+              <p className="text-sm text-gray-600">Les inscriptions sont réservées aux membres Premium disposant encore de leur séminaire annuel en cours de validité.</p>
             </div>
             <div className="bg-primary-50 text-primary-700 px-4 py-2 rounded-lg text-sm font-semibold">
-              {yearlyRegistrations.length}/2 inscriptions {currentYear}
+              {cycleRegistrations.length}/1 inscription — cycle {formatCycleWindow(currentCycle)}
             </div>
           </div>
 
@@ -375,8 +379,8 @@ export default function Dashboard() {
                         : locked
                           ? 'Réservé aux abonnés Premium'
                           : remainingSeminars > 0
-                            ? `${remainingSeminars} place(s) restante(s) pour vous cette année`
-                            : 'Limite annuelle atteinte'}
+                            ? `${remainingSeminars} inscription restante sur ce cycle`
+                            : 'Limite du cycle atteinte'}
                     </span>
                     <button
                       disabled={disabled}
