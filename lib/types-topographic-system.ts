@@ -56,6 +56,39 @@ export interface UpdateTopographicZoneInput {
 }
 
 // ============================================================================
+// VUES TOPOGRAPHIQUES E-LEARNING (séparées de consultation-v3)
+// ============================================================================
+
+export interface ElearningTopographicView {
+  id: string
+  region: AnatomicalRegion
+  name: string
+  description?: string
+  image_url?: string
+  display_order: number
+  is_active: boolean
+  created_by?: string
+  created_at: string
+  updated_at: string
+}
+
+export interface CreateElearningTopographicViewInput {
+  region: AnatomicalRegion
+  name: string
+  description?: string
+  image_url?: string
+  display_order?: number
+}
+
+export interface UpdateElearningTopographicViewInput {
+  name?: string
+  description?: string
+  image_url?: string
+  display_order?: number
+  is_active?: boolean
+}
+
+// ============================================================================
 // ARBRES DÉCISIONNELS
 // ============================================================================
 

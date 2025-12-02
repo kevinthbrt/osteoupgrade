@@ -185,6 +185,18 @@ export type Database = {
         created_at: string
         updated_at: string
       }>
+      elearning_topographic_views: TableDefinition<{
+        id: string
+        region: string
+        name: string
+        description: string | null
+        image_url: string | null
+        display_order: number | null
+        is_active: boolean | null
+        created_by: string | null
+        created_at: string
+        updated_at: string
+      }>
       user_sessions: TableDefinition<{
         id: string
         user_id: string | null

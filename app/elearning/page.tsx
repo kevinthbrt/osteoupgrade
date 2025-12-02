@@ -4,8 +4,8 @@ import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import AuthLayout from '@/components/AuthLayout'
 import { supabase } from '@/lib/supabase'
-import { createTopographicZone, getAllTopographicZones } from '@/lib/topographic-system-api'
-import type { AnatomicalRegion, TopographicZone } from '@/lib/types-topographic-system'
+import { createElearningView, getAllElearningViews } from '@/lib/elearning-topographic-api'
+import type { AnatomicalRegion, ElearningTopographicView } from '@/lib/types-topographic-system'
 import {
   BookOpen,
   CheckCircle,
@@ -44,9 +44,9 @@ export default function ElearningPage() {
   const [loading, setLoading] = useState(true)
   const [zonesLoading, setZonesLoading] = useState(false)
   const [role, setRole] = useState<string | null>(null)
-  const [zones, setZones] = useState<TopographicZone[]>([])
+  const [views, setViews] = useState<ElearningTopographicView[]>([])
   const [selectedRegion, setSelectedRegion] = useState<AnatomicalRegion | 'all'>('all')
-  const [activeZone, setActiveZone] = useState<TopographicZone | null>(null)
+  const [activeZone, setActiveZone] = useState<ElearningTopographicView | null>(null)
 
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [creating, setCreating] = useState(false)
@@ -85,17 +85,17 @@ export default function ElearningPage() {
 
   useEffect(() => {
     if (role === 'premium' || role === 'admin') {
-      loadZones()
+      loadViews()
     }
   }, [role])
 
-  const loadZones = async () => {
+  const loadViews = async () => {
     try {
       setZonesLoading(true)
-      const data = await getAllTopographicZones()
-      setZones(data)
+      const data = await getAllElearningViews()
+      setViews(data)
     } catch (error) {
-      console.error('Error loading zones:', error)
+      console.error('Error loading views:', error)
       alert('❌ Erreur lors du chargement des vues topographiques')
     } finally {
       setZonesLoading(false)
@@ -147,8 +147,8 @@ export default function ElearningPage() {
 
     try {
       setCreating(true)
-      const regionCount = zones.filter(z => z.region === formData.region).length
-      await createTopographicZone({
+      const regionCount = views.filter(z => z.region === formData.region).length
+      await createElearningView({
         region: formData.region,
         name: formData.name,
         description: formData.description,
@@ -156,7 +156,7 @@ export default function ElearningPage() {
         display_order: regionCount
       })
       setShowCreateModal(false)
-      await loadZones()
+      await loadViews()
       alert('✅ Vue topographique créée')
     } catch (error) {
       console.error('Error creating zone:', error)
@@ -170,9 +170,9 @@ export default function ElearningPage() {
   const isAdmin = role === 'admin'
 
   const filteredZones = useMemo(() => {
-    if (selectedRegion === 'all') return zones
-    return zones.filter(zone => zone.region === selectedRegion)
-  }, [selectedRegion, zones])
+    if (selectedRegion === 'all') return views
+    return views.filter(zone => zone.region === selectedRegion)
+  }, [selectedRegion, views])
 
   if (loading) {
     return (
