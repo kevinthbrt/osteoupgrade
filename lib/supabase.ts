@@ -161,6 +161,7 @@ export type Database = {
         role: 'free' | 'premium' | 'admin'
         subscription_status: string | null
         subscription_end_date: string | null
+        subscription_start_date: string | null
         created_at: string
         updated_at: string
       }>

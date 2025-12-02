@@ -139,9 +139,37 @@ export default function SettingsPage() {
     }
   }
 
-  const handleUpgradeToPremium = () => {
-    // In a real app, this would integrate with a payment processor
-    alert('Redirection vers la page de paiement...')
+  const handleUpgradeToPremium = async () => {
+    if (!user?.id || !email) {
+      alert('Veuillez vous reconnecter pour souscrire à Premium.')
+      return
+    }
+
+    setSaving(true)
+
+    try {
+      const response = await fetch('/api/stripe/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.id, email })
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data?.error || 'Impossible de démarrer le paiement Stripe')
+      }
+
+      if (data?.url) {
+        window.location.href = data.url
+      } else {
+        throw new Error('Lien Stripe manquant')
+      }
+    } catch (error: any) {
+      alert('Erreur lors de la redirection vers Stripe: ' + error.message)
+    } finally {
+      setSaving(false)
+    }
   }
 
   const handleCancelSubscription = async () => {
@@ -341,9 +369,10 @@ export default function SettingsPage() {
 
                           <button
                             onClick={handleUpgradeToPremium}
-                            className="mt-6 bg-yellow-600 hover:bg-yellow-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
+                            disabled={saving}
+                            className="mt-6 bg-yellow-600 hover:bg-yellow-700 disabled:opacity-60 text-white px-6 py-3 rounded-lg font-medium transition-colors"
                           >
-                            Passer à Premium
+                            {saving ? 'Redirection...' : 'Passer à Premium'}
                           </button>
                         </div>
                       </div>

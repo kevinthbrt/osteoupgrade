@@ -5,7 +5,8 @@ export interface SubscriptionCycle {
 
 const fallbackCycle = (): SubscriptionCycle => {
   const now = new Date()
-  const cycleStart = new Date(now.getFullYear(), 0, 1)
+  const cycleStart = new Date(now)
+  cycleStart.setFullYear(cycleStart.getFullYear() - 1)
   const cycleEnd = new Date(cycleStart)
   cycleEnd.setFullYear(cycleEnd.getFullYear() + 1)
   return { cycleStart, cycleEnd }
