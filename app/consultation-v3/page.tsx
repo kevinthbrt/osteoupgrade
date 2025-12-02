@@ -138,8 +138,8 @@ export default function ConsultationV3Page() {
       .eq('id', user.id)
       .single()
 
-    if (profileData?.role !== 'admin') {
-      alert('Consultation guidée est en pré-lancement et réservée aux administrateurs')
+    if (profileData?.role === 'free') {
+      alert('Cette fonctionnalité est réservée aux utilisateurs Premium')
       router.push('/dashboard')
       return
     }
