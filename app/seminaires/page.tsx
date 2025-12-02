@@ -14,6 +14,16 @@ interface Seminar {
   theme: string | null
   facilitator: string | null
   created_by?: string | null
+  capacity?: number | null
+}
+
+interface SeminarRegistration {
+  id: string
+  seminar_id: string
+  registeredAt: string
+  user_id?: string | null
+  user_name?: string | null
+  user_email?: string | null
 }
 
 export default function SeminarsPage() {
@@ -27,9 +37,11 @@ export default function SeminarsPage() {
     date: '',
     location: '',
     theme: '',
-    facilitator: ''
+    facilitator: '',
+    capacity: null
   })
-  const [registrations, setRegistrations] = useState<{ id: string; registeredAt: string; seminar_id: string }[]>([])
+  const [userRegistrations, setUserRegistrations] = useState<SeminarRegistration[]>([])
+  const [allRegistrations, setAllRegistrations] = useState<SeminarRegistration[]>([])
   const [loadingError, setLoadingError] = useState<string | null>(null)
 
   const fallbackSeminars: Seminar[] = [
@@ -39,7 +51,8 @@ export default function SeminarsPage() {
       date: '2025-04-18',
       location: 'Lyon',
       theme: 'Épaule & coude : trajectoires décisionnelles',
-      facilitator: 'Gérald Stoppini'
+      facilitator: 'Gérald Stoppini',
+      capacity: 28
     },
     {
       id: 'fallback-2',
@@ -47,7 +60,8 @@ export default function SeminarsPage() {
       date: '2025-06-12',
       location: 'Bordeaux',
       theme: 'Rachis lombaire et thoracique - cas complexes',
-      facilitator: 'Kevin Thubert'
+      facilitator: 'Kevin Thubert',
+      capacity: 22
     }
   ]
 
@@ -87,13 +101,33 @@ export default function SeminarsPage() {
         .eq('user_id', user.id)
 
       if (!regError && registrationsData) {
-        setRegistrations(
+        setUserRegistrations(
           registrationsData.map((r: any) => ({
             id: r.id,
             seminar_id: r.seminar_id,
-            registeredAt: r.registered_at || r.created_at
+            registeredAt: r.registered_at || r.created_at,
+            user_id: r.user_id
           }))
         )
+      }
+
+      const { data: allRegistrationsData, error: allRegError } = await supabase
+        .from('seminar_registrations')
+        .select('id, seminar_id, user_id, registered_at, created_at, profiles(full_name, email)')
+
+      if (!allRegError && allRegistrationsData) {
+        setAllRegistrations(
+          allRegistrationsData.map((r: any) => ({
+            id: r.id,
+            seminar_id: r.seminar_id,
+            registeredAt: r.registered_at || r.created_at,
+            user_id: r.user_id,
+            user_name: r.profiles?.full_name,
+            user_email: r.profiles?.email
+          }))
+        )
+      } else {
+        setAllRegistrations([])
       }
 
       setLoading(false)
@@ -103,7 +137,7 @@ export default function SeminarsPage() {
   }, [router])
 
   const currentYear = useMemo(() => new Date().getFullYear(), [])
-  const yearlyRegistrations = registrations.filter((r) => new Date(r.registeredAt).getFullYear() === currentYear)
+  const yearlyRegistrations = userRegistrations.filter((r) => new Date(r.registeredAt).getFullYear() === currentYear)
   const hasReachedLimit = yearlyRegistrations.length >= 2
 
   const handleRegister = async (id: string) => {
@@ -117,20 +151,63 @@ export default function SeminarsPage() {
       return
     }
 
+    const targetSeminar = seminars.find((seminar) => seminar.id === id)
+    const seminarRegistrations = allRegistrations.filter((registration) => registration.seminar_id === id)
+
+    if (targetSeminar?.capacity && seminarRegistrations.length >= targetSeminar.capacity) {
+      alert('Il ne reste plus de places pour ce séminaire')
+      return
+    }
+
     const registrationPayload = {
       seminar_id: id,
       user_id: profile?.id,
       registered_at: new Date().toISOString()
     }
 
-    const { error } = await supabase.from('seminar_registrations').insert(registrationPayload)
+    const { data, error } = await supabase.from('seminar_registrations').insert(registrationPayload).select('*').single()
 
     if (error) {
       console.warn('Enregistrement en local faute de table Supabase :', error.message)
     }
 
-    setRegistrations((prev) => [...prev, { id: `${Date.now()}`, seminar_id: id, registeredAt: registrationPayload.registered_at }])
+    const registrationRecord: SeminarRegistration = {
+      id: data?.id || `${Date.now()}`,
+      seminar_id: id,
+      registeredAt: registrationPayload.registered_at,
+      user_id: profile?.id,
+      user_name: profile?.full_name || profile?.email,
+      user_email: profile?.email
+    }
+
+    setUserRegistrations((prev) => [...prev, registrationRecord])
+    setAllRegistrations((prev) => [...prev, registrationRecord])
     alert('Inscription confirmée !')
+  }
+
+  const handleUnregister = async (id: string) => {
+    const registrationToRemove = userRegistrations.find((registration) => registration.seminar_id === id)
+
+    if (!registrationToRemove) {
+      alert("Vous n'êtes pas inscrit à ce séminaire")
+      return
+    }
+
+    const { error } = await supabase.from('seminar_registrations').delete().eq('id', registrationToRemove.id)
+
+    if (error) {
+      console.warn('Suppression locale faute de table Supabase :', error.message)
+    }
+
+    setUserRegistrations((prev) => prev.filter((registration) => registration.seminar_id !== id))
+    setAllRegistrations((prev) =>
+      prev.filter(
+        (registration) =>
+          !(registration.id === registrationToRemove.id) &&
+          !(registration.seminar_id === id && registration.user_id === profile?.id)
+      )
+    )
+    alert('Votre inscription a été annulée')
   }
 
   const handleAddSeminar = async () => {
@@ -140,12 +217,15 @@ export default function SeminarsPage() {
       return
     }
 
+    const capacity = newSeminar.capacity ?? null
+
     const payload = {
       title: newSeminar.title,
       date: newSeminar.date,
       location: newSeminar.location,
       theme: newSeminar.theme,
       facilitator: newSeminar.facilitator,
+      capacity,
       created_by: profile?.id
     }
 
@@ -155,13 +235,13 @@ export default function SeminarsPage() {
       console.warn('Ajout du séminaire en mode local :', error.message)
       setSeminars((prev) => [
         ...prev,
-        { ...newSeminar, id: `${Date.now()}` }
+        { ...newSeminar, id: `${Date.now()}`, capacity }
       ])
     } else if (data) {
       setSeminars((prev) => [...prev, data])
     }
 
-    setNewSeminar({ id: '', title: '', date: '', location: '', theme: '', facilitator: '' })
+    setNewSeminar({ id: '', title: '', date: '', location: '', theme: '', facilitator: '', capacity: null })
   }
 
   if (loading) {
@@ -223,7 +303,9 @@ export default function SeminarsPage() {
           )}
 
           {seminars.map((seminar) => {
-            const isRegistered = registrations.some((r) => r.seminar_id === seminar.id || r.id === seminar.id)
+            const isRegistered = userRegistrations.some((r) => r.seminar_id === seminar.id || r.id === seminar.id)
+            const seminarRegistrations = allRegistrations.filter((registration) => registration.seminar_id === seminar.id)
+            const isFull = seminar.capacity ? seminarRegistrations.length >= seminar.capacity : false
             return (
               <div key={seminar.id} className="bg-white rounded-xl shadow-sm p-5 border border-gray-100 flex flex-col gap-3">
                 <div className="flex items-center justify-between">
@@ -244,23 +326,68 @@ export default function SeminarsPage() {
                 <div className="text-sm text-gray-700">Encadrement : {seminar.facilitator}</div>
                 <div className="flex items-center gap-2 text-xs text-gray-500">
                   <CheckCircle className="h-4 w-4 text-emerald-600" />
-                  Inscription limitée à 2 séminaires/an
+                  <span>Inscription limitée à 2 séminaires/an</span>
                 </div>
-                <button
-                  onClick={() => handleRegister(seminar.id)}
-                  disabled={isFree || hasReachedLimit || isRegistered}
-                  className={`px-4 py-2 rounded-lg text-sm font-semibold border transition flex items-center justify-center gap-2 ${
-                    isRegistered
-                      ? 'border-emerald-200 text-emerald-700 bg-emerald-50'
-                      : isFree
-                        ? 'border-dashed border-gray-200 text-gray-400'
-                        : hasReachedLimit
-                          ? 'border-red-200 text-red-600 bg-red-50'
-                          : 'border-primary-200 text-primary-700 hover:bg-primary-50'
-                  }`}
-                >
-                  {isRegistered ? 'Déjà inscrit' : hasReachedLimit ? 'Limite atteinte' : isFree ? 'Premium requis' : 'Réserver ma place'}
-                </button>
+                <div className="flex items-center gap-2 text-xs text-gray-500">
+                  <Users className="h-4 w-4 text-primary-600" />
+                  <span>
+                    {seminar.capacity
+                      ? `${seminarRegistrations.length}/${seminar.capacity} places réservées`
+                      : `${seminarRegistrations.length} inscription${seminarRegistrations.length > 1 ? 's' : ''}`}
+                  </span>
+                  {isFull && <span className="text-red-600 font-semibold">Complet</span>}
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {!isRegistered ? (
+                    <button
+                      onClick={() => handleRegister(seminar.id)}
+                      disabled={isFree || hasReachedLimit || isFull}
+                      className={`px-4 py-2 rounded-lg text-sm font-semibold border transition flex items-center justify-center gap-2 ${
+                        isFree
+                          ? 'border-dashed border-gray-200 text-gray-400'
+                          : hasReachedLimit
+                            ? 'border-red-200 text-red-600 bg-red-50'
+                            : isFull
+                              ? 'border-red-200 text-red-600 bg-red-50'
+                              : 'border-primary-200 text-primary-700 hover:bg-primary-50'
+                      }`}
+                    >
+                      {isFree ? 'Premium requis' : hasReachedLimit ? 'Limite atteinte' : isFull ? 'Complet' : 'Réserver ma place'}
+                    </button>
+                  ) : (
+                    <>
+                      <button
+                        disabled
+                        className="px-4 py-2 rounded-lg text-sm font-semibold border border-emerald-200 text-emerald-700 bg-emerald-50 cursor-default"
+                      >
+                        Déjà inscrit
+                      </button>
+                      <button
+                        onClick={() => handleUnregister(seminar.id)}
+                        className="px-4 py-2 rounded-lg text-sm font-semibold border border-gray-200 text-gray-700 hover:bg-gray-50 transition"
+                      >
+                        Se désinscrire
+                      </button>
+                    </>
+                  )}
+                </div>
+                {profile?.role === 'admin' && (
+                  <div className="border-t border-gray-100 pt-3 mt-2">
+                    <div className="text-xs font-semibold text-gray-700 mb-2">Inscriptions ({seminarRegistrations.length}{seminar.capacity ? `/${seminar.capacity}` : ''})</div>
+                    {seminarRegistrations.length === 0 ? (
+                      <p className="text-xs text-gray-500">Aucun inscrit pour le moment.</p>
+                    ) : (
+                      <ul className="space-y-1">
+                        {seminarRegistrations.map((registration) => (
+                          <li key={registration.id} className="flex items-center justify-between text-sm text-gray-700">
+                            <span>{registration.user_name || 'Participant'}</span>
+                            {registration.user_email && <span className="text-gray-500 text-xs">{registration.user_email}</span>}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                )}
               </div>
             )
           })}
@@ -305,6 +432,16 @@ export default function SeminarsPage() {
                 placeholder="Encadré par"
                 value={newSeminar.facilitator || ''}
                 onChange={(e) => setNewSeminar({ ...newSeminar, facilitator: e.target.value })}
+                className="px-3 py-2 border rounded-lg"
+              />
+              <input
+                type="number"
+                min={1}
+                placeholder="Nombre de places"
+                value={newSeminar.capacity ?? ''}
+                onChange={(e) =>
+                  setNewSeminar({ ...newSeminar, capacity: e.target.value ? parseInt(e.target.value, 10) : null })
+                }
                 className="px-3 py-2 border rounded-lg"
               />
             </div>

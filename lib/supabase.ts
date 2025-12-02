@@ -202,6 +202,7 @@ export type Database = {
         location: string
         theme: string | null
         facilitator: string | null
+        capacity: number | null
         created_by: string | null
         created_at: string
       }>
@@ -211,6 +212,10 @@ export type Database = {
         seminar_id: string
         registered_at: string
         created_at: string
+        profiles?: {
+          full_name: string | null
+          email: string | null
+        }
       }>
     }
   }
