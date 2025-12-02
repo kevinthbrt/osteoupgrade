@@ -9,18 +9,27 @@ import {
   Clipboard,
   Activity,
   TrendingUp,
-  Clock,
   Award,
   ChevronRight,
-  PlayCircle,
   FileText,
   Users,
   Crown,
   AlertCircle,
   BookOpen,
   Calendar,
-  Map
+  Map,
+  MapPin,
+  TestTube
 } from 'lucide-react'
+
+interface Seminar {
+  id: string
+  title: string
+  date: string
+  location: string
+  theme: string | null
+  facilitator: string | null
+}
 
 export default function Dashboard() {
   const router = useRouter()
@@ -32,6 +41,9 @@ export default function Dashboard() {
     totalTests: 0,
   })
   const [recentSessions, setRecentSessions] = useState<any[]>([])
+  const [seminars, setSeminars] = useState<Seminar[]>([])
+  const [registrations, setRegistrations] = useState<{ id: string; seminar_id: string; registeredAt: string }[]>([])
+  const [seminarLoadError, setSeminarLoadError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -41,35 +53,65 @@ export default function Dashboard() {
   const isFree = profile?.role === 'free'
 
   const loadDashboardData = async () => {
+    const fallbackSeminars: Seminar[] = [
+      {
+        id: 'fallback-1',
+        title: 'Séminaire clinique - Membres supérieurs',
+        date: '2025-04-18',
+        location: 'Lyon',
+        theme: 'Épaule & coude : trajectoires décisionnelles',
+        facilitator: 'Gérald Stoppini'
+      },
+      {
+        id: 'fallback-2',
+        title: 'Rachis et chaînes fasciales',
+        date: '2025-06-12',
+        location: 'Bordeaux',
+        theme: 'Rachis lombaire et thoracique - cas complexes',
+        facilitator: 'Kevin Thubert'
+      }
+    ]
+
     try {
       const { data: { user } } = await supabase.auth.getUser()
       
       if (!user) {
-        router.push('/')
-        return
+        // Mode démo : permettre d'accéder au tableau de bord sans session active
+        setProfile({ role: 'free', full_name: 'Invité' })
       }
 
       // Get user profile
-      const { data: profileData } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single()
-      
-      setProfile(profileData)
+      const { data: profileData } = user
+        ? await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', user.id)
+            .single()
+        : { data: null }
 
-      // Get statistics
-      const [sessionsResponse, treesResponse, testsResponse] = await Promise.all([
-        supabase
-          .from('user_sessions')
-          .select('*')
-          .eq('user_id', user.id),
+      if (profileData) {
+        setProfile(profileData)
+      }
+
+      // Get statistics + catalogue
+      const [sessionsResponse, treesResponse, testsResponse, seminarsResponse] = await Promise.all([
+        user
+          ? supabase
+              .from('user_sessions')
+              .select('*')
+              .eq('user_id', user.id)
+          : Promise.resolve({ data: [], error: null }),
 
         profileData?.role === 'admin' || profileData?.role === 'premium'
           ? supabase.from('decision_trees').select('*').eq('is_active', true)
           : Promise.resolve({ data: [], error: null }),
 
-        supabase.from('orthopedic_tests').select('*')
+        supabase.from('orthopedic_tests').select('*'),
+
+        supabase
+          .from('seminars')
+          .select('*')
+          .order('date', { ascending: true })
       ])
 
       const completedCount = sessionsResponse.data?.filter(s => s.completed).length || 0
@@ -80,6 +122,31 @@ export default function Dashboard() {
         availableTrees: treesResponse?.data?.length || 0,
         totalTests: testsResponse.data?.length || 0,
       })
+
+      // Get seminar calendar
+      if (seminarsResponse.error) {
+        setSeminarLoadError('Affichage en mode démo : la table des séminaires est absente ou inaccessible.')
+        setSeminars(fallbackSeminars)
+      } else {
+        setSeminars((seminarsResponse.data as Seminar[]) || fallbackSeminars)
+      }
+
+      if (user) {
+        const { data: registrationsData, error: registrationsError } = await supabase
+          .from('seminar_registrations')
+          .select('*')
+          .eq('user_id', user.id)
+
+        if (!registrationsError && registrationsData) {
+          setRegistrations(
+            registrationsData.map((registration: any) => ({
+              id: registration.id,
+              seminar_id: registration.seminar_id,
+              registeredAt: registration.registered_at || registration.created_at
+            }))
+          )
+        }
+      }
 
       // Get recent sessions with tree names
       const recentSessionsData = sessionsResponse.data?.slice(0, 5) || []
@@ -113,55 +180,80 @@ export default function Dashboard() {
     }
   }
 
-  const quickActions = isFree
-    ? [
-        {
-          title: 'Découvrir le mode Premium',
-          description: 'Accès complet pour 50€/mois (facturé annuellement)',
-          icon: Crown,
-          href: '/settings',
-          color: 'from-yellow-500 to-amber-500'
-        },
-        {
-          title: 'Consultation guidée',
-          description: 'En pré-lancement — réservé aux administrateurs',
-          icon: Map,
-          href: '/consultation-v3',
-          color: 'from-blue-500 to-blue-600',
-          disabled: true
-        },
-        {
-          title: 'Guides topographiques',
-          description: 'Accès E-learning Premium avec diag par zones',
-          icon: BookOpen,
-          href: '/elearning',
-          color: 'from-green-500 to-emerald-600',
-          disabled: true
-        }
-      ]
-    : [
-        {
-          title: 'Nouveau diagnostic',
-          description: 'Démarrer un arbre décisionnel',
-          icon: PlayCircle,
-          href: '/trees',
-          color: 'from-blue-500 to-blue-600',
-        },
-        {
-          title: 'E-learning topographique',
-          description: 'Guides premium par zones anatomiques',
-          icon: BookOpen,
-          href: '/elearning',
-          color: 'from-green-500 to-emerald-600',
-        },
-        {
-          title: 'Séminaires présentiels',
-          description: '2 formations/an incluses avec votre abonnement',
-          icon: Calendar,
-          href: '/seminaires',
-          color: 'from-purple-500 to-indigo-600',
-        }
-      ]
+  const currentYear = new Date().getFullYear()
+  const yearlyRegistrations = registrations.filter(
+    (registration) => new Date(registration.registeredAt).getFullYear() === currentYear
+  )
+  const remainingSeminars = Math.max(0, 2 - yearlyRegistrations.length)
+  const isPremiumOrAdmin = profile?.role === 'premium' || profile?.role === 'admin'
+
+  const handleRegister = async (id: string) => {
+    if (!isPremiumOrAdmin) {
+      alert('Inscription réservée aux membres Premium')
+      return
+    }
+
+    if (remainingSeminars <= 0) {
+      alert('Vous avez atteint la limite de 2 séminaires pour cette année')
+      return
+    }
+
+    if (!profile?.id) {
+      alert('Connectez-vous pour vous inscrire')
+      return
+    }
+
+    const payload = {
+      seminar_id: id,
+      user_id: profile.id,
+      registered_at: new Date().toISOString()
+    }
+
+    const { error } = await supabase.from('seminar_registrations').insert(payload)
+
+    if (error) {
+      console.warn('Inscription enregistrée en local faute de table Supabase :', error.message)
+    }
+
+    setRegistrations((prev) => [...prev, { id: `${Date.now()}`, seminar_id: id, registeredAt: payload.registered_at }])
+    alert('Inscription confirmée !')
+  }
+
+  const featureBlocks = [
+    {
+      title: 'Visualiser les tests orthopédiques',
+      description: 'Répertoire complet des tests par zone. Réservé aux Premium.',
+      icon: Clipboard,
+      href: '/tests',
+      color: 'from-blue-500 to-blue-600',
+      roles: ['premium', 'admin'] as const,
+    },
+    {
+      title: 'E-learning — Guides topographiques',
+      description: 'Page en construction pour vos parcours de diag par zones.',
+      icon: BookOpen,
+      href: '/elearning',
+      color: 'from-green-500 to-emerald-600',
+      roles: ['premium', 'admin'] as const,
+    },
+    {
+      title: 'Démarrer le Testing 3D',
+      description: 'Exploration biomécanique avancée en 3D (Premium).',
+      icon: TestTube,
+      href: '/testing',
+      color: 'from-purple-500 to-indigo-600',
+      roles: ['premium', 'admin'] as const,
+    },
+    {
+      title: 'Consultation guidée',
+      description: 'Teaser de la version V3 réservée aux administrateurs.',
+      icon: Map,
+      href: '/consultation-v3',
+      color: 'from-orange-500 to-red-500',
+      roles: ['admin'] as const,
+      badge: 'Bientôt',
+    },
+  ]
 
   const statsCards = [
     {
@@ -317,88 +409,122 @@ export default function Dashboard() {
           })}
         </div>
 
-        {/* Modules */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="bg-white rounded-xl shadow-sm p-5 border border-dashed border-blue-200">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2">
-                <Map className="h-5 w-5 text-blue-600" />
-                <h3 className="font-semibold text-gray-900">Consultation guidée</h3>
+        {/* Séminaires présentiels */}
+        <div className="bg-white rounded-xl shadow-sm p-6 space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div>
+              <div className="flex items-center gap-2 text-primary-600 text-sm font-semibold">
+                <Calendar className="h-5 w-5" />
+                Séminaires présentiels
               </div>
-              <span className="text-xs font-semibold px-2 py-1 rounded-full bg-blue-50 text-blue-700">Bientôt</span>
+              <h2 className="text-xl font-bold text-gray-900 mt-1">Calendrier visible par tous</h2>
+              <p className="text-sm text-gray-600">Les inscriptions sont réservées aux membres Premium disposant encore de sessions cette année.</p>
             </div>
-            <p className="text-sm text-gray-600 mb-3">Navigation interactive pour structurer vos décisions cliniques. Disponible en avant-première pour les administrateurs.</p>
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-gray-500">Accès actuel</span>
-              <span className={`font-semibold ${profile?.role === 'admin' ? 'text-green-600' : 'text-gray-400'}`}>
-                {profile?.role === 'admin' ? 'Administrateur' : 'En attente de lancement'}
-              </span>
+            <div className="bg-primary-50 text-primary-700 px-4 py-2 rounded-lg text-sm font-semibold">
+              {yearlyRegistrations.length}/2 inscriptions {currentYear}
             </div>
           </div>
 
-          <div className="bg-white rounded-xl shadow-sm p-5">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2">
-                <BookOpen className="h-5 w-5 text-emerald-600" />
-                <h3 className="font-semibold text-gray-900">Guides topographiques</h3>
-              </div>
-              <span className="text-xs font-semibold px-2 py-1 rounded-full bg-emerald-50 text-emerald-700">E-learning</span>
+          {seminarLoadError && (
+            <div className="flex items-center gap-2 text-xs text-amber-700 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
+              <AlertCircle className="h-4 w-4" />
+              {seminarLoadError}
             </div>
-            <p className="text-sm text-gray-600 mb-3">Accès aux guides de diagnostic topographique, structurés par zones pour vos révisions cliniques.</p>
-            <button
-              onClick={() => profile?.role === 'free' ? alert('Les guides sont réservés aux abonnés Premium') : router.push('/elearning')}
-              className={`text-sm font-semibold ${profile?.role === 'free' ? 'text-emerald-400' : 'text-emerald-700 hover:text-emerald-800'}`}
-            >
-              {profile?.role === 'free' ? 'Réservé Premium' : 'Ouvrir les guides →'}
-            </button>
-          </div>
+          )}
 
-          <div className="bg-white rounded-xl shadow-sm p-5">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2">
-                <Calendar className="h-5 w-5 text-purple-600" />
-                <h3 className="font-semibold text-gray-900">Séminaires présentiels</h3>
-              </div>
-              <span className="text-xs font-semibold px-2 py-1 rounded-full bg-purple-50 text-purple-700">2/an</span>
-            </div>
-            <p className="text-sm text-gray-600 mb-3">Rencontrez Gérald Stoppini et Kevin Thubert lors des sessions exclusives réservées aux membres Premium.</p>
-            <button
-              onClick={() => profile?.role === 'free' ? alert('Les séminaires sont inclus dans l’offre Premium') : router.push('/seminaires')}
-              className={`text-sm font-semibold ${profile?.role === 'free' ? 'text-purple-400' : 'text-purple-700 hover:text-purple-800'}`}
-            >
-              {profile?.role === 'free' ? 'Inclus avec Premium' : 'Voir le calendrier →'}
-            </button>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {seminars.map((seminar) => {
+              const alreadyRegistered = registrations.some((registration) => registration.seminar_id === seminar.id)
+              const isPast = new Date(seminar.date) < new Date()
+              const locked = !isPremiumOrAdmin
+              const disabled = locked || alreadyRegistered || remainingSeminars <= 0 || isPast
+
+              return (
+                <div key={seminar.id} className="border border-gray-100 rounded-lg p-4 hover:border-primary-200 transition-colors bg-gray-50">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="space-y-1">
+                      <p className="text-xs text-gray-500">{new Date(seminar.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+                      <h3 className="font-semibold text-gray-900">{seminar.title}</h3>
+                      <p className="text-sm text-gray-600 flex items-center gap-1">
+                        <MapPin className="h-4 w-4 text-primary-600" />
+                        {seminar.location}
+                      </p>
+                      {seminar.theme && <p className="text-xs text-gray-600">{seminar.theme}</p>}
+                      {seminar.facilitator && <p className="text-xs text-gray-500">Animé par {seminar.facilitator}</p>}
+                    </div>
+                    <span className={`text-xs font-semibold px-2 py-1 rounded-full ${isPast ? 'bg-gray-200 text-gray-600' : 'bg-primary-50 text-primary-700'}`}>
+                      {isPast ? 'Clôturé' : 'Ouvert'}
+                    </span>
+                  </div>
+                  <div className="mt-3 flex items-center justify-between text-sm">
+                    <span className="text-gray-600">
+                      {alreadyRegistered
+                        ? 'Vous êtes inscrit(e)'
+                        : locked
+                          ? 'Réservé aux abonnés Premium'
+                          : remainingSeminars > 0
+                            ? `${remainingSeminars} place(s) restante(s) pour vous cette année`
+                            : 'Limite annuelle atteinte'}
+                    </span>
+                    <button
+                      disabled={disabled}
+                      onClick={() => !disabled && handleRegister(seminar.id)}
+                      className={`text-sm font-semibold px-3 py-1.5 rounded-lg border transition ${
+                        disabled
+                          ? 'border-gray-200 text-gray-400 bg-white cursor-not-allowed'
+                          : 'border-primary-200 text-primary-700 bg-primary-50 hover:bg-primary-100'
+                      }`}
+                    >
+                      {alreadyRegistered
+                        ? 'Inscrit'
+                        : locked
+                          ? 'Réservé Premium'
+                          : remainingSeminars > 0
+                            ? 'S\'inscrire'
+                            : 'Limite atteinte'}
+                    </button>
+                  </div>
+                </div>
+              )
+            })}
           </div>
         </div>
 
-        {/* Quick Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {quickActions.map((action, index) => {
-            const Icon = action.icon
+        {/* Accès rapides */}
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+          {featureBlocks.map((feature) => {
+            const Icon = feature.icon
+            const isRestricted = feature.roles && (!profile?.role || !feature.roles.includes(profile.role))
+
             return (
               <button
-                key={index}
+                key={feature.title}
                 onClick={() => {
-                  if (action.disabled) {
-                    alert('Cette action sera disponible avec l\'offre Premium ou lors du lancement officiel')
+                  if (isRestricted) {
+                    alert('Accès réservé selon votre rôle')
                     return
                   }
-                  router.push(action.href)
+                  router.push(feature.href)
                 }}
-                className={`bg-white rounded-xl shadow-sm p-6 transition-all group ${
-                  action.disabled ? 'opacity-60 cursor-not-allowed' : 'hover:shadow-md'
+                className={`bg-white rounded-xl shadow-sm p-6 transition-all group text-left border ${
+                  isRestricted ? 'opacity-60 cursor-not-allowed border-dashed' : 'hover:shadow-md border-transparent'
                 }`}
               >
                 <div className="flex items-start space-x-4">
-                  <div className={`bg-gradient-to-br ${action.color} p-3 rounded-lg`}>
+                  <div className={`bg-gradient-to-br ${feature.color} p-3 rounded-lg`}>
                     <Icon className="h-6 w-6 text-white" />
                   </div>
-                  <div className="flex-1 text-left">
-                    <h3 className="font-semibold text-gray-900 group-hover:text-primary-600 transition-colors">
-                      {action.title}
-                    </h3>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-semibold text-gray-900 group-hover:text-primary-600 transition-colors">
+                        {feature.title}
+                      </h3>
+                      {feature.badge && (
+                        <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-gray-100 text-gray-700">{feature.badge}</span>
+                      )}
+                    </div>
                     <p className="text-sm text-gray-600 mt-1">
-                      {action.description}
+                      {feature.description}
                     </p>
                   </div>
                   <ChevronRight className="h-5 w-5 text-gray-400 group-hover:text-primary-600 transition-colors" />

@@ -35,18 +35,27 @@ export default function Navigation() {
 
   useEffect(() => {
     const getUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      setUser(user)
+      try {
+        const { data: { user } } = await supabase.auth.getUser()
+        setUser(user)
 
-      if (user) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', user.id)
-          .single()
-        setProfile(profile)
+        if (user) {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', user.id)
+            .single()
+          setProfile(profile)
+        } else {
+          // Fallback en mode démo quand l'utilisateur n'est pas authentifié
+          setProfile({ role: 'free', full_name: 'Invité' })
+        }
+      } catch (error) {
+        console.error('Erreur de récupération du profil:', error)
+        setProfile({ role: 'free', full_name: 'Invité' })
+      } finally {
+        setLoading(false)
       }
-      setLoading(false)
     }
     getUser()
   }, [])

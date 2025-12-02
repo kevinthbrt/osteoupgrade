@@ -4,11 +4,12 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import AuthLayout from '@/components/AuthLayout'
 import { supabase } from '@/lib/supabase'
-import { BookOpen, Hammer } from 'lucide-react'
+import { BookOpen, Hammer, Lock } from 'lucide-react'
 
 export default function ElearningPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(true)
+  const [role, setRole] = useState<string | null>(null)
 
   useEffect(() => {
     const ensureAuthenticated = async () => {
@@ -21,6 +22,13 @@ export default function ElearningPage() {
         return
       }
 
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single()
+
+      setRole(profile?.role || null)
       setLoading(false)
     }
 
@@ -37,6 +45,8 @@ export default function ElearningPage() {
     )
   }
 
+  const isPremium = role === 'premium' || role === 'admin'
+
   return (
     <AuthLayout>
       <div className="max-w-4xl mx-auto space-y-6">
@@ -51,22 +61,41 @@ export default function ElearningPage() {
           </div>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm p-8 text-center space-y-4">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-gray-100 text-gray-600">
-            <Hammer className="h-7 w-7" />
+        {!isPremium ? (
+          <div className="bg-white rounded-xl shadow-sm p-8 text-center space-y-4">
+            <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-amber-100 text-amber-700">
+              <Lock className="h-7 w-7" />
+            </div>
+            <h2 className="text-xl font-semibold text-gray-900">Accès Premium requis</h2>
+            <p className="text-gray-600 max-w-2xl mx-auto">
+              L'e-learning sera disponible avec l'offre Premium. Passez à l'abonnement pour débloquer les contenus dès leur mise
+              en ligne.
+            </p>
+            <button
+              onClick={() => router.push('/settings')}
+              className="bg-primary-600 hover:bg-primary-700 text-white px-5 py-3 rounded-lg font-semibold transition"
+            >
+              Activer le Premium
+            </button>
           </div>
-          <h2 className="text-xl font-semibold text-gray-900">Patience, ça arrive bientôt !</h2>
-          <p className="text-gray-600 max-w-2xl mx-auto">
-            Les guides topographiques et contenus de formation seront bientôt disponibles. Nous travaillons à vous proposer des
-            parcours cliniques complets et interactifs.
-          </p>
-          <button
-            onClick={() => router.push('/dashboard')}
-            className="bg-primary-600 hover:bg-primary-700 text-white px-5 py-3 rounded-lg font-semibold transition"
-          >
-            Retourner au tableau de bord
-          </button>
-        </div>
+        ) : (
+          <div className="bg-white rounded-xl shadow-sm p-8 text-center space-y-4">
+            <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-gray-100 text-gray-600">
+              <Hammer className="h-7 w-7" />
+            </div>
+            <h2 className="text-xl font-semibold text-gray-900">Patience, ça arrive bientôt !</h2>
+            <p className="text-gray-600 max-w-2xl mx-auto">
+              Les guides topographiques et contenus de formation seront bientôt disponibles. Nous travaillons à vous proposer
+              des parcours cliniques complets et interactifs.
+            </p>
+            <button
+              onClick={() => router.push('/dashboard')}
+              className="bg-primary-600 hover:bg-primary-700 text-white px-5 py-3 rounded-lg font-semibold transition"
+            >
+              Retourner au tableau de bord
+            </button>
+          </div>
+        )}
       </div>
     </AuthLayout>
   )
