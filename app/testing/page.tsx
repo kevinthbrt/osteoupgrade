@@ -125,6 +125,14 @@ interface OrthopedicTestCluster {
   rv_negative: number | null
 }
 
+interface OrthopedicTestClusterItem {
+  id: string
+  cluster_id: string
+  test_id: string
+  order_index: number
+  created_at: string
+}
+
 interface Profile {
   id: string
   role: string
@@ -152,6 +160,9 @@ export default function TestingModulePage() {
   const [zones, setZones] = useState<AnatomicalZone[]>([])
   const [tests, setTests] = useState<OrthopedicTest[]>([])
   const [clusters, setClusters] = useState<OrthopedicTestCluster[]>([])
+  const [clusterItems, setClusterItems] = useState<OrthopedicTestClusterItem[]>(
+    []
+  )
   const [loadingData, setLoadingData] = useState(true)
 
   // Session en cours
@@ -246,6 +257,17 @@ export default function TestingModulePage() {
 
       if (clustersError) throw clustersError
       setClusters(clustersData || [])
+
+      const {
+        data: clusterItemsData,
+        error: clusterItemsError
+      } = await supabase
+        .from('orthopedic_test_cluster_items')
+        .select('*')
+        .order('order_index')
+
+      if (clusterItemsError) throw clusterItemsError
+      setClusterItems(clusterItemsData || [])
     } catch (error) {
       console.error('Error loading data:', error)
     } finally {
@@ -292,29 +314,63 @@ export default function TestingModulePage() {
   }
 
   const addClusterToSession = (cluster: OrthopedicTestCluster) => {
-    const isAlreadyAdded = (currentSession.clusterResults || []).some(
-      (r: TestingClusterResult) => r.clusterId === cluster.id
-    )
+    setCurrentSession((prev: TestingSession) => {
+      const existingClusterResults = prev.clusterResults || []
+      const clusterAlreadyAdded = existingClusterResults.some(
+        (r: TestingClusterResult) => r.clusterId === cluster.id
+      )
 
-    if (isAlreadyAdded) {
-      alert('Ce cluster est déjà dans la liste')
-      return
-    }
+      // Ajout/maj cluster parent
+      const newClusterResults = clusterAlreadyAdded
+        ? existingClusterResults
+        : [
+            ...existingClusterResults,
+            {
+              clusterId: cluster.id,
+              clusterName: cluster.name,
+              region: cluster.region,
+              result: null,
+              notes: '',
+              sensitivity: cluster.sensitivity || undefined,
+              specificity: cluster.specificity || undefined
+            } as TestingClusterResult
+          ]
 
-    const newClusterResult: TestingClusterResult = {
-      clusterId: cluster.id,
-      clusterName: cluster.name,
-      region: cluster.region,
-      result: null,
-      notes: '',
-      sensitivity: cluster.sensitivity || undefined,
-      specificity: cluster.specificity || undefined
-    }
+      // Tests enfants de ce cluster
+      const childItems = clusterItems.filter(
+        (item) => item.cluster_id === cluster.id
+      )
+      const childTests = childItems
+        .map((item) => tests.find((t) => t.id === item.test_id))
+        .filter((t): t is OrthopedicTest => Boolean(t))
 
-    setCurrentSession((prev: TestingSession) => ({
-      ...prev,
-      clusterResults: [...(prev.clusterResults || []), newClusterResult]
-    }))
+      const existingResults = prev.results
+      const newResults = [...existingResults]
+
+      childTests.forEach((test) => {
+        const already = existingResults.some(
+          (r: TestingSessionResult) => r.testId === test.id
+        )
+        if (!already) {
+          newResults.push({
+            testId: test.id,
+            testName: test.name,
+            category: test.category || cluster.name || cluster.region || '',
+            region: cluster.region || test.category || selectedZone?.name || '',
+            result: null,
+            notes: '',
+            sensitivity: test.sensitivity || undefined,
+            specificity: test.specificity || undefined
+          })
+        }
+      })
+
+      return {
+        ...prev,
+        results: newResults,
+        clusterResults: newClusterResults
+      }
+    })
 
     if (showClusterModal) {
       setShowClusterModal(false)
@@ -533,6 +589,15 @@ export default function TestingModulePage() {
 
     return filtered
   }
+
+  // Tests enfants du cluster actuellement sélectionné (pour le modal)
+  const selectedClusterChildTests: OrthopedicTest[] = selectedCluster
+    ? clusterItems
+        .filter((item) => item.cluster_id === selectedCluster.id)
+        .sort((a, b) => a.order_index - b.order_index)
+        .map((item) => tests.find((t) => t.id === item.test_id))
+        .filter((t): t is OrthopedicTest => Boolean(t))
+    : []
 
   const statsBase = [
     ...currentSession.results,
@@ -1130,7 +1195,14 @@ export default function TestingModulePage() {
                           </p>
                           <button
                             onClick={() =>
-                              console.log('📊 Tous les tests:', tests, '📊 Tous les clusters:', clusters)
+                              console.log(
+                                '📊 Tous les tests:',
+                                tests,
+                                '📊 Tous les clusters:',
+                                clusters,
+                                '📊 Items:',
+                                clusterItems
+                              )
                             }
                             className="mt-2 text-xs text-blue-600 hover:text-blue-700 underline"
                           >
@@ -1442,6 +1514,39 @@ export default function TestingModulePage() {
               </div>
             )}
 
+            {/* Tests enfants du cluster */}
+            {selectedClusterChildTests.length > 0 && (
+              <div className="mt-5">
+                <h4 className="text-sm font-semibold text-gray-800 mb-2">
+                  Tests inclus dans ce cluster
+                </h4>
+                <ul className="space-y-2">
+                  {selectedClusterChildTests.map((test) => (
+                    <li
+                      key={test.id}
+                      className="text-sm text-gray-800 border rounded-md px-3 py-2 bg-gray-50"
+                    >
+                      <div className="flex justify-between items-center">
+                        <span className="font-medium">{test.name}</span>
+                        {(test.sensitivity || test.specificity) && (
+                          <span className="text-xs text-gray-500">
+                            {test.sensitivity && `Se ${test.sensitivity}%`}
+                            {test.sensitivity && test.specificity && ' • '}
+                            {test.specificity && `Sp ${test.specificity}%`}
+                          </span>
+                        )}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+                <p className="mt-2 text-xs text-gray-500">
+                  En ajoutant ce cluster à la session, chacun de ces tests sera
+                  aussi ajouté à la liste des tests, afin de pouvoir marquer
+                  individuellement Positif / Négatif / Incertain.
+                </p>
+              </div>
+            )}
+
             {/* Sources */}
             {selectedCluster.sources && (
               <div className="mt-4">
@@ -1467,7 +1572,7 @@ export default function TestingModulePage() {
                 className="px-4 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-sm text-white flex items-center gap-2"
               >
                 <Plus className="h-4 w-4" />
-                Ajouter ce cluster à la session
+                Ajouter ce cluster (+ tests enfants)
               </button>
             </div>
           </div>
