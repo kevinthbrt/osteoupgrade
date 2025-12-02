@@ -21,7 +21,8 @@ import {
   Map,
   Box,
   TestTube,
-  Sparkles
+  Stethoscope,
+  Calendar
 } from 'lucide-react'
 
 export default function Navigation() {
@@ -57,10 +58,29 @@ export default function Navigation() {
 
   const menuItems = [
     { href: '/dashboard', label: 'Tableau de bord', icon: Home },
-    { href: '/elearning', label: 'E-Learning', icon: BookOpen },
+    {
+      href: '/elearning',
+      label: 'E-Learning',
+      icon: BookOpen,
+      badge: 'Premium',
+      roles: ['premium', 'admin']
+    },
     { href: '/tests', label: 'Tests orthopédiques', icon: Clipboard },
     { href: '/testing', label: 'Testing 3D', icon: TestTube, isNew: true },
-    { href: '/consultation-v3', label: 'Consultation V3', icon: Map, isNew: true },
+    {
+      href: '/consultation-v3',
+      label: 'Consultation guidée',
+      icon: Map,
+      badge: 'Bientôt',
+      roles: ['admin']
+    },
+    {
+      href: '/seminaires',
+      label: 'Séminaires présentiels',
+      icon: Calendar,
+      badge: 'Premium',
+      roles: ['premium', 'admin']
+    },
     { href: '/settings', label: 'Paramètres', icon: Settings },
   ]
 
@@ -145,11 +165,11 @@ export default function Navigation() {
           <div className="p-6 border-b border-gray-200">
             <div className="flex items-center space-x-3">
               <div className="bg-gradient-to-br from-primary-500 to-primary-600 p-2 rounded-lg">
-                <Sparkles className="h-6 w-6 text-white" />
+                <Stethoscope className="h-6 w-6 text-white" />
               </div>
               <div>
                 <h2 className="text-xl font-bold text-gray-900">OsteoUpgrade</h2>
-                <p className="text-xs text-gray-500">Architecture V2</p>
+                <p className="text-xs text-gray-500">L'application pour les thérapeutes 2.0</p>
               </div>
             </div>
           </div>
@@ -172,20 +192,37 @@ export default function Navigation() {
             {menuItems.map((item) => {
               const Icon = item.icon
               const isActive = pathname === item.href
+              const isRestricted = item.roles && profile && !item.roles.includes(profile.role)
+
+              if (item.roles && !profile?.role) return null
+
               return (
                 <Link
                   key={item.href}
-                  href={item.href}
+                  href={isRestricted ? '#' : item.href}
                   className={`flex items-center px-3 py-2.5 rounded-lg transition-all group relative ${
                     isActive
                       ? 'bg-primary-50 text-primary-600 font-medium'
                       : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
-                  }`}
-                  onClick={() => setIsOpen(false)}
+                  } ${isRestricted ? 'opacity-60 cursor-not-allowed hover:bg-white hover:text-gray-700' : ''}`}
+                  onClick={() => {
+                    if (!isRestricted) {
+                      setIsOpen(false)
+                    } else if (profile?.role === 'free') {
+                      alert('Cette section est réservée aux membres Premium')
+                    } else {
+                      alert('Accès réservé aux administrateurs pendant la phase de pré-lancement')
+                    }
+                  }}
                 >
                   <Icon className={`h-5 w-5 mr-3 ${isActive ? 'text-primary-600' : 'text-gray-400 group-hover:text-gray-600'}`} />
                   <span className="flex-1">{item.label}</span>
                   {isActive && <ChevronRight className="h-4 w-4" />}
+                  {item.badge && (
+                    <span className="ml-2 px-1.5 py-0.5 bg-gray-100 text-gray-700 text-[10px] font-semibold rounded">
+                      {item.badge}
+                    </span>
+                  )}
                   {item.isNew && (
                     <span className="ml-2 px-1.5 py-0.5 bg-green-100 text-green-700 text-[10px] font-semibold rounded">
                       NEW
