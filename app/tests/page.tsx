@@ -11,6 +11,7 @@ import {
   TrendingUp,
   TrendingDown,
   Plus,
+  Lock,
   Edit,
   Trash2,
   ChevronRight,
@@ -81,6 +82,11 @@ export default function ImprovedTestsPage() {
         .single()
 
       setProfile(profileData)
+
+      if (profileData?.role === 'free') {
+        setLoading(false)
+        return
+      }
 
       // Tous les tests
       const { data: testsData } = await supabase
@@ -289,6 +295,29 @@ export default function ImprovedTestsPage() {
       <AuthLayout>
         <div className="flex items-center justify-center h-96">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600" />
+        </div>
+      </AuthLayout>
+    )
+  }
+
+  if (profile?.role === 'free') {
+    return (
+      <AuthLayout>
+        <div className="max-w-3xl mx-auto bg-white rounded-xl shadow-sm p-8 text-center space-y-4">
+          <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-amber-100 text-amber-700 mx-auto">
+            <Lock className="h-6 w-6" />
+          </div>
+          <h1 className="text-2xl font-bold text-gray-900">Accès Premium requis</h1>
+          <p className="text-gray-600">
+            Les tests orthopédiques sont réservés aux membres Premium. Passez à l'offre Premium pour débloquer la base de
+            données complète et les outils avancés.
+          </p>
+          <button
+            onClick={() => router.push('/settings')}
+            className="bg-primary-600 hover:bg-primary-700 text-white px-5 py-3 rounded-lg font-semibold transition"
+          >
+            Activer le Premium
+          </button>
         </div>
       </AuthLayout>
     )

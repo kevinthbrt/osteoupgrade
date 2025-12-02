@@ -57,7 +57,7 @@ export type Database = {
         topographic_zone_id: string | null
         decision_tree_id: string | null
         decision_path: any
-        identified_pathologies: any
+        identified_pathologies: string[] | null
         test_results: any
         cluster_results: any
         notes: string | null
@@ -81,9 +81,9 @@ export type Database = {
         parent_node_id: string | null
         node_type: string
         question_text: string | null
-        pathology_ids: any
-        test_ids: any
-        cluster_ids: any
+        pathology_ids: string[] | null
+        test_ids: string[] | null
+        cluster_ids: string[] | null
         notes: string | null
         display_order: number | null
         created_by: string | null
