@@ -7,9 +7,6 @@ import AuthLayout from '@/components/AuthLayout'
 import {
   TreePine,
   Clipboard,
-  Activity,
-  TrendingUp,
-  Award,
   ChevronRight,
   FileText,
   Users,
@@ -34,12 +31,6 @@ interface Seminar {
 export default function Dashboard() {
   const router = useRouter()
   const [profile, setProfile] = useState<any>(null)
-  const [stats, setStats] = useState({
-    totalSessions: 0,
-    completedSessions: 0,
-    availableTrees: 0,
-    totalTests: 0,
-  })
   const [recentSessions, setRecentSessions] = useState<any[]>([])
   const [seminars, setSeminars] = useState<Seminar[]>([])
   const [registrations, setRegistrations] = useState<{ id: string; seminar_id: string; registeredAt: string }[]>([])
@@ -94,7 +85,7 @@ export default function Dashboard() {
       }
 
       // Get statistics + catalogue
-      const [sessionsResponse, treesResponse, testsResponse, seminarsResponse] = await Promise.all([
+      const [sessionsResponse, seminarsResponse] = await Promise.all([
         user
           ? supabase
               .from('user_sessions')
@@ -102,26 +93,11 @@ export default function Dashboard() {
               .eq('user_id', user.id)
           : Promise.resolve({ data: [], error: null }),
 
-        profileData?.role === 'admin' || profileData?.role === 'premium'
-          ? supabase.from('decision_trees').select('*').eq('is_active', true)
-          : Promise.resolve({ data: [], error: null }),
-
-        supabase.from('orthopedic_tests').select('*'),
-
         supabase
           .from('seminars')
           .select('*')
           .order('date', { ascending: true })
       ])
-
-      const completedCount = sessionsResponse.data?.filter(s => s.completed).length || 0
-      
-      setStats({
-        totalSessions: sessionsResponse.data?.length || 0,
-        completedSessions: completedCount,
-        availableTrees: treesResponse?.data?.length || 0,
-        totalTests: testsResponse.data?.length || 0,
-      })
 
       // Get seminar calendar
       if (seminarsResponse.error) {
@@ -230,7 +206,7 @@ export default function Dashboard() {
     },
     {
       title: 'E-learning — Guides topographiques',
-      description: 'Page en construction pour vos parcours de diag par zones.',
+      description: "Simplifiez votre raisonnement grâce à l'aide topographique",
       icon: BookOpen,
       href: '/elearning',
       color: 'from-green-500 to-emerald-600',
@@ -252,34 +228,6 @@ export default function Dashboard() {
       color: 'from-orange-500 to-red-500',
       roles: ['admin'] as const,
       badge: 'Bientôt',
-    },
-  ]
-
-  const statsCards = [
-    {
-      label: 'Sessions totales',
-      value: stats.totalSessions,
-      icon: Activity,
-      change: '+12%',
-      trend: 'up',
-    },
-    {
-      label: 'Diagnostics terminés',
-      value: stats.completedSessions,
-      icon: Award,
-      change: '+8%',
-      trend: 'up',
-    },
-    {
-      label: 'Arbres disponibles',
-      value: stats.availableTrees,
-      icon: TreePine,
-      info: profile?.role === 'free' ? 'Réservé aux membres Premium' : null,
-    },
-    {
-      label: 'Tests disponibles',
-      value: stats.totalTests,
-      icon: FileText,
     },
   ]
 
@@ -372,42 +320,6 @@ export default function Dashboard() {
             </div>
           </div>
         )}
-
-        {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {statsCards.map((stat, index) => {
-            const Icon = stat.icon
-            return (
-              <div key={index} className="bg-white rounded-xl shadow-sm p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-gray-600">{stat.label}</p>
-                    <p className="text-2xl font-bold text-gray-900 mt-1">
-                      {stat.value}
-                    </p>
-                    {stat.info && (
-                      <p className="text-xs text-gray-500 mt-1 flex items-center">
-                        <AlertCircle className="h-3 w-3 mr-1" />
-                        {stat.info}
-                      </p>
-                    )}
-                    {stat.change && (
-                      <div className="flex items-center mt-2">
-                        <TrendingUp className={`h-4 w-4 ${stat.trend === 'up' ? 'text-green-500' : 'text-red-500'}`} />
-                        <span className={`text-xs ml-1 ${stat.trend === 'up' ? 'text-green-600' : 'text-red-600'}`}>
-                          {stat.change} ce mois
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                  <div className="bg-gray-50 p-3 rounded-lg">
-                    <Icon className="h-6 w-6 text-gray-600" />
-                  </div>
-                </div>
-              </div>
-            )
-          })}
-        </div>
 
         {/* Séminaires présentiels */}
         <div className="bg-white rounded-xl shadow-sm p-6 space-y-4">
