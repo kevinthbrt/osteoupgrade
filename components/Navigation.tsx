@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
@@ -24,6 +24,17 @@ import {
   Stethoscope,
   Calendar
 } from 'lucide-react'
+
+type MenuItem = {
+  href: string
+  label: string
+  icon: React.ComponentType<React.SVGProps<SVGSVGElement>>
+  roles?: string[]
+  badge?: string
+  isNew?: boolean
+  description?: string
+  hideWhenRestricted?: boolean
+}
 
 export default function Navigation() {
   const pathname = usePathname()
@@ -65,7 +76,7 @@ export default function Navigation() {
     router.push('/')
   }
 
-  const menuItems = [
+  const menuItems: MenuItem[] = [
     { href: '/dashboard', label: 'Tableau de bord', icon: Home },
     {
       href: '/topographie',
@@ -99,7 +110,7 @@ export default function Navigation() {
     { href: '/settings', label: 'Paramètres', icon: Settings },
   ]
 
-  const adminItems = [
+  const adminItems: MenuItem[] = [
     { href: '/admin', label: 'Vue d\'ensemble', icon: Shield },
     { href: '/admin/users', label: 'Utilisateurs', icon: Users },
     {
