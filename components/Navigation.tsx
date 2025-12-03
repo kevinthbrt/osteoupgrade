@@ -110,12 +110,31 @@ export default function Navigation() {
     { href: '/settings', label: 'Paramètres', icon: Settings },
   ]
 
-  const adminStandaloneItems: MenuItem[] = [
-    { href: '/admin', label: 'Vue d\'ensemble', icon: Shield },
-    { href: '/admin/users', label: 'Utilisateurs', icon: Users },
-  ]
+  const adminOverviewItem: MenuItem = { href: '/admin', label: "Vue d'ensemble", icon: Shield }
+
+  const adminUserItem: MenuItem = { href: '/admin/users', label: 'Utilisateurs', icon: Users }
 
   const adminGroups: { id: string; label: string; icon: React.ComponentType<React.SVGProps<SVGSVGElement>>; items: MenuItem[] }[] = [
+    {
+      id: 'tests',
+      label: 'Tests orthopédiques',
+      icon: Clipboard,
+      items: [
+        {
+          href: '/tests',
+          label: 'Tests Orthopédiques',
+          icon: Clipboard,
+          description: 'Tests par zones'
+        },
+        {
+          href: '/admin/anatomy-builder',
+          label: 'Anatomy Builder',
+          icon: Box,
+          description: 'Zones 3D Testing',
+          badge: '3D'
+        },
+      ]
+    },
     {
       id: 'consultation',
       label: 'Consultation guidée',
@@ -142,27 +161,8 @@ export default function Navigation() {
           badge: 'V3'
         },
       ]
-    },
-    {
-      id: 'tests',
-      label: 'Tests orthopédiques',
-      icon: Clipboard,
-      items: [
-        {
-          href: '/tests',
-          label: 'Tests Orthopédiques',
-          icon: Clipboard,
-          description: 'Tests par zones'
-        },
-        {
-          href: '/admin/anatomy-builder',
-          label: 'Anatomy Builder',
-          icon: Box,
-          description: 'Zones 3D Testing',
-          badge: '3D'
-        },
-      ]
     }
+
   ]
 
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>(() => {
@@ -300,13 +300,13 @@ export default function Navigation() {
                     Administration
                   </p>
                 </div>
-                {adminStandaloneItems.map((item) => {
-                  const Icon = item.icon
-                  const isActive = pathname === item.href
+                {(() => {
+                  const Icon = adminOverviewItem.icon
+                  const isActive = pathname === adminOverviewItem.href
                   return (
                     <Link
-                      key={item.href}
-                      href={item.href}
+                      key={adminOverviewItem.href}
+                      href={adminOverviewItem.href}
                       className={`flex flex-col px-3 py-2.5 rounded-lg transition-all group ${
                         isActive
                           ? 'bg-purple-50 text-purple-600 font-medium'
@@ -316,17 +316,17 @@ export default function Navigation() {
                     >
                       <div className="flex items-center w-full">
                         <Icon className={`h-5 w-5 mr-3 flex-shrink-0 ${isActive ? 'text-purple-600' : 'text-gray-400 group-hover:text-gray-600'}`} />
-                        <span className="flex-1">{item.label}</span>
+                        <span className="flex-1">{adminOverviewItem.label}</span>
                         {isActive && <ChevronRight className="h-4 w-4 ml-2" />}
                       </div>
-                      {item.description && !isActive && (
+                      {adminOverviewItem.description && !isActive && (
                         <p className="text-[10px] text-gray-500 ml-8 mt-0.5">
-                          {item.description}
+                          {adminOverviewItem.description}
                         </p>
                       )}
                     </Link>
                   )
-                })}
+                })()}
 
                 {adminGroups.map((group) => {
                   const GroupIcon = group.icon
@@ -392,6 +392,34 @@ export default function Navigation() {
                     </div>
                   )
                 })}
+
+                {(() => {
+                  const Icon = adminUserItem.icon
+                  const isActive = pathname === adminUserItem.href
+                  return (
+                    <Link
+                      key={adminUserItem.href}
+                      href={adminUserItem.href}
+                      className={`flex flex-col px-3 py-2.5 rounded-lg transition-all group ${
+                        isActive
+                          ? 'bg-purple-50 text-purple-600 font-medium'
+                          : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
+                      }`}
+                      onClick={() => setIsOpen(false)}
+                    >
+                      <div className="flex items-center w-full">
+                        <Icon className={`h-5 w-5 mr-3 flex-shrink-0 ${isActive ? 'text-purple-600' : 'text-gray-400 group-hover:text-gray-600'}`} />
+                        <span className="flex-1">{adminUserItem.label}</span>
+                        {isActive && <ChevronRight className="h-4 w-4 ml-2" />}
+                      </div>
+                      {adminUserItem.description && !isActive && (
+                        <p className="text-[10px] text-gray-500 ml-8 mt-0.5">
+                          {adminUserItem.description}
+                        </p>
+                      )}
+                    </Link>
+                  )
+                })()}
               </>
             )}
           </nav>
