@@ -431,7 +431,7 @@ export default function ElearningPage() {
 
       {activeZone && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-2xl max-w-5xl w-full overflow-hidden relative">
+          <div className="bg-white rounded-xl shadow-2xl max-w-5xl w-full max-h-[90vh] overflow-hidden relative flex flex-col">
             <button
               onClick={() => setActiveZone(null)}
               className="absolute top-4 right-4 p-2 bg-white rounded-full shadow hover:bg-gray-50"
@@ -439,7 +439,7 @@ export default function ElearningPage() {
               <X className="h-5 w-5 text-gray-600" />
             </button>
 
-            <div className="md:flex">
+            <div className="md:flex flex-1 overflow-hidden">
               <div className="md:w-1/2 bg-gray-50 flex items-center justify-center border-b md:border-b-0 md:border-r p-6">
                 {activeZone.image_url ? (
                   <img
@@ -455,7 +455,7 @@ export default function ElearningPage() {
                 )}
               </div>
 
-              <div className="md:w-1/2 p-6 space-y-3">
+              <div className="md:w-1/2 p-6 space-y-3 overflow-y-auto max-h-[70vh]">
                 <p className="text-sm font-semibold text-primary-600 flex items-center gap-2">
                   <Map className="h-4 w-4" />
                   {REGIONS.find(r => r.value === activeZone.region)?.label}
@@ -463,7 +463,7 @@ export default function ElearningPage() {
                 <h3 className="text-2xl font-bold text-gray-900">{activeZone.name}</h3>
                 {activeZone.description ? (
                   <div
-                    className="text-gray-700 leading-relaxed whitespace-pre-line prose"
+                    className="text-gray-700 leading-relaxed whitespace-pre-line prose max-h-64 overflow-y-auto"
                     dangerouslySetInnerHTML={{ __html: sanitizeHtml(activeZone.description) }}
                   />
                 ) : (
@@ -488,7 +488,7 @@ export default function ElearningPage() {
 
       {showCreateModal && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
             <div className="p-6 border-b flex items-center justify-between">
               <div>
                 <p className="text-sm text-primary-600 font-semibold">Admin</p>
@@ -504,7 +504,7 @@ export default function ElearningPage() {
               </button>
             </div>
 
-            <div className="p-6 space-y-4">
+            <div className="p-6 space-y-4 overflow-y-auto">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Région anatomique *</label>
