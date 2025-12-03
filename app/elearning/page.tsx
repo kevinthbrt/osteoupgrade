@@ -66,7 +66,10 @@ export default function ElearningPage() {
 
   const handleDescriptionInput = () => {
     const html = descriptionRef.current?.innerHTML || ''
-    setFormData(prev => ({ ...prev, description: sanitizeHtml(html) }))
+    const sanitized = sanitizeHtml(html)
+    const cleaned = sanitized === '<br>' ? '' : sanitized
+
+    setFormData(prev => ({ ...prev, description: cleaned }))
   }
 
   const applyFormatting = (command: string, value?: string) => {
@@ -560,14 +563,21 @@ export default function ElearningPage() {
                     </button>
                   </div>
                 </div>
-                <div
-                  ref={descriptionRef}
-                  contentEditable
-                  onInput={handleDescriptionInput}
-                  className="min-h-[120px] w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:outline-none bg-white"
-                  placeholder="Détails ou indications pédagogiques"
-                  suppressContentEditableWarning
-                />
+                <div className="relative">
+                  <div
+                    ref={descriptionRef}
+                    contentEditable
+                    onInput={handleDescriptionInput}
+                    className="min-h-[120px] w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:outline-none bg-white"
+                    aria-label="Description détaillée"
+                    suppressContentEditableWarning
+                  />
+                  {!formData.description && (
+                    <span className="pointer-events-none absolute left-3 top-2 text-sm text-gray-400">
+                      Détails ou indications pédagogiques
+                    </span>
+                  )}
+                </div>
                 <p className="text-xs text-gray-500">Les retours à la ligne, le gras et la taille de police seront conservés lors de l'affichage.</p>
               </div>
 
