@@ -79,7 +79,8 @@ export default function Navigation() {
       label: 'Tests orthopédiques',
       icon: Clipboard,
       badge: 'Premium',
-      roles: ['premium', 'admin']
+      roles: ['admin'],
+      hideWhenRestricted: true
     },
     {
       href: '/testing',
@@ -215,6 +216,9 @@ export default function Navigation() {
               const Icon = item.icon
               const isActive = pathname === item.href
               const isRestricted = item.roles && profile && !item.roles.includes(profile.role)
+              const shouldHide = isRestricted && item.hideWhenRestricted
+
+              if (shouldHide) return null
 
               if (item.roles && !profile?.role) return null
 

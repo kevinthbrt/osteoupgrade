@@ -83,7 +83,8 @@ export default function ImprovedTestsPage() {
 
       setProfile(profileData)
 
-      if (profileData?.role === 'free') {
+      if (profileData?.role !== 'admin') {
+        router.push('/testing')
         setLoading(false)
         return
       }
@@ -300,23 +301,23 @@ export default function ImprovedTestsPage() {
     )
   }
 
-  if (profile?.role === 'free') {
+  if (profile && profile.role !== 'admin') {
     return (
       <AuthLayout>
         <div className="max-w-3xl mx-auto bg-white rounded-xl shadow-sm p-8 text-center space-y-4">
           <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-amber-100 text-amber-700 mx-auto">
             <Lock className="h-6 w-6" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">Accès Premium requis</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Accès administrateur requis</h1>
           <p className="text-gray-600">
-            Les tests orthopédiques sont réservés aux membres Premium. Passez à l'offre Premium pour débloquer la base de
-            données complète et les outils avancés.
+            La création et la gestion des tests orthopédiques sont réservées aux administrateurs. Utilisez le module Testing
+            3D pour réaliser vos évaluations.
           </p>
           <button
-            onClick={() => router.push('/settings')}
+            onClick={() => router.push('/testing')}
             className="bg-primary-600 hover:bg-primary-700 text-white px-5 py-3 rounded-lg font-semibold transition"
           >
-            Activer le Premium
+            Accéder au Testing 3D
           </button>
         </div>
       </AuthLayout>
