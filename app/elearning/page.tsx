@@ -431,7 +431,7 @@ export default function ElearningPage() {
 
       {activeZone && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-2xl max-w-5xl w-full max-h-[90vh] overflow-hidden relative flex flex-col">
+          <div className="bg-white rounded-xl shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-hidden relative flex flex-col">
             <button
               onClick={() => setActiveZone(null)}
               className="absolute top-4 right-4 p-2 bg-white rounded-full shadow hover:bg-gray-50"
@@ -440,12 +440,12 @@ export default function ElearningPage() {
             </button>
 
             <div className="md:flex flex-1 overflow-hidden">
-              <div className="md:w-1/2 bg-gray-50 flex items-center justify-center border-b md:border-b-0 md:border-r p-6">
+              <div className="md:w-2/3 bg-gray-50 flex items-center justify-center border-b md:border-b-0 md:border-r p-8">
                 {activeZone.image_url ? (
                   <img
                     src={activeZone.image_url}
                     alt={activeZone.name}
-                    className="max-h-[500px] w-full object-contain"
+                    className="max-h-[75vh] w-full object-contain"
                   />
                 ) : (
                   <div className="text-center text-gray-400">
@@ -455,7 +455,7 @@ export default function ElearningPage() {
                 )}
               </div>
 
-              <div className="md:w-1/2 p-6 space-y-3 overflow-y-auto max-h-[70vh]">
+              <div className="md:w-1/3 p-6 space-y-3 overflow-y-auto max-h-[70vh]">
                 <p className="text-sm font-semibold text-primary-600 flex items-center gap-2">
                   <Map className="h-4 w-4" />
                   {REGIONS.find(r => r.value === activeZone.region)?.label}
