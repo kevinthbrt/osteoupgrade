@@ -508,11 +508,11 @@ export default function LandingPage() {
           flex-direction: column;
         }
 
-        .container {
-          max-width: 1120px;
-          margin: 0 auto;
-          padding: 0 1.5rem;
-        }
+    .container {
+      width: min(1200px, calc(100% - 2.5rem));
+      margin: 0 auto;
+      padding: 0 1.25rem;
+    }
 
         header {
           border-bottom: 1px solid rgba(148, 163, 184, 0.15);
