@@ -146,7 +146,7 @@ export default function AdminPage() {
       icon: Clipboard,
       color: 'from-orange-500 to-orange-600',
       detail: 'Tests par zone',
-      href: '/admin/tests'
+      href: '/tests'
     },
   ]
 
@@ -155,7 +155,7 @@ export default function AdminPage() {
       title: '🎯 Tests Orthopédiques',
       description: 'Gérer les tests organisés par zones anatomiques',
       icon: Clipboard,
-      href: '/admin/tests',
+      href: '/tests',
       color: 'from-orange-500 to-orange-600',
       stats: `${stats.totalTests} tests, ${stats.totalClusters} clusters`
     },
@@ -401,7 +401,7 @@ export default function AdminPage() {
                     → Positionner zones 3D
                   </button>
                   <button
-                    onClick={() => router.push('/admin/tests')}
+                  onClick={() => router.push('/tests')}
                     className="block w-full text-left hover:text-white transition-colors"
                   >
                     → Gérer tests orthopédiques

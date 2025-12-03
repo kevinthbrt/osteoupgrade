@@ -201,14 +201,6 @@ export default function Dashboard() {
 
   const featureBlocks = [
     {
-      title: 'Visualiser les tests orthopédiques',
-      description: 'Répertoire complet des tests par zone. Réservé aux Premium.',
-      icon: Clipboard,
-      href: '/tests',
-      color: 'from-blue-500 to-blue-600',
-      roles: ['premium', 'admin'] as const,
-    },
-    {
       title: 'Topographie — Guides topographiques',
       description: "Simplifiez votre raisonnement grâce à l'aide topographique",
       icon: BookOpen,

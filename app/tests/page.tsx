@@ -18,7 +18,8 @@ import {
   ChevronDown,
   User,
   Activity,
-  X
+  X,
+  Layers
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 
@@ -29,6 +30,19 @@ const BODY_REGIONS = {
   'Tronc': ['Thoracique', 'Lombaire', 'Sacro-iliaque', 'Côtes'],
   'Membre Inférieur': ['Hanche', 'Genou', 'Cheville', 'Pied'],
   'Général': ['Neurologique', 'Vasculaire', 'Systémique']
+}
+
+const CLUSTER_INITIAL_FORM = {
+  name: '',
+  region: '',
+  description: '',
+  indications: '',
+  interest: '',
+  sources: '',
+  sensitivity: '',
+  specificity: '',
+  rv_positive: '',
+  rv_negative: ''
 }
 
 export default function ImprovedTestsPage() {
@@ -51,6 +65,13 @@ export default function ImprovedTestsPage() {
   const [selectedCluster, setSelectedCluster] = useState<any>(null)
   const [showTestModal, setShowTestModal] = useState(false)
   const [showClusterModal, setShowClusterModal] = useState(false)
+
+  const [clusterModalOpen, setClusterModalOpen] = useState(false)
+  const [clusterSaving, setClusterSaving] = useState(false)
+  const [clusterForm, setClusterForm] = useState({ ...CLUSTER_INITIAL_FORM })
+  const [clusterSelectedTests, setClusterSelectedTests] = useState<string[]>([])
+  const [clusterSearchQuery, setClusterSearchQuery] = useState('')
+  const [clusterRegionFilter, setClusterRegionFilter] = useState('all')
 
   const [loading, setLoading] = useState(true)
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
@@ -206,6 +227,100 @@ export default function ImprovedTestsPage() {
     setFilteredClusters(c)
   }
 
+  const resetClusterForm = () => {
+    setClusterForm({ ...CLUSTER_INITIAL_FORM })
+    setClusterSelectedTests([])
+    setClusterSearchQuery('')
+    setClusterRegionFilter('all')
+  }
+
+  const toggleTestInCluster = (testId: string) => {
+    setClusterSelectedTests((prev) =>
+      prev.includes(testId) ? prev.filter((id) => id !== testId) : [...prev, testId]
+    )
+  }
+
+  const clusterFilteredTests = tests.filter((test) => {
+    if (clusterRegionFilter !== 'all' && test.region !== clusterRegionFilter) return false
+
+    if (clusterSearchQuery) {
+      const q = clusterSearchQuery.toLowerCase()
+      return (
+        test.name.toLowerCase().includes(q) ||
+        test.description?.toLowerCase().includes(q) ||
+        test.indications?.toLowerCase().includes(q)
+      )
+    }
+
+    return true
+  })
+
+  const handleCreateCluster = async () => {
+    if (!clusterForm.name || !clusterForm.region) {
+      alert('Le nom du cluster et la région sont obligatoires.')
+      return
+    }
+
+    if (clusterSelectedTests.length === 0) {
+      alert('Sélectionnez au moins un test pour créer un cluster.')
+      return
+    }
+
+    setClusterSaving(true)
+
+    try {
+      const {
+        data: { user }
+      } = await supabase.auth.getUser()
+
+      if (!user) {
+        alert('Session expirée, veuillez vous reconnecter.')
+        return
+      }
+
+      const { data: cluster, error: clusterError } = await supabase
+        .from('orthopedic_test_clusters')
+        .insert({
+          name: clusterForm.name,
+          region: clusterForm.region,
+          description: clusterForm.description || null,
+          indications: clusterForm.indications || null,
+          interest: clusterForm.interest || null,
+          sources: clusterForm.sources || null,
+          sensitivity: clusterForm.sensitivity ? parseFloat(clusterForm.sensitivity) : null,
+          specificity: clusterForm.specificity ? parseFloat(clusterForm.specificity) : null,
+          rv_positive: clusterForm.rv_positive ? parseFloat(clusterForm.rv_positive) : null,
+          rv_negative: clusterForm.rv_negative ? parseFloat(clusterForm.rv_negative) : null,
+          created_by: user.id
+        })
+        .select('id')
+        .single()
+
+      if (clusterError) throw clusterError
+
+      const itemsPayload = clusterSelectedTests.map((testId, index) => ({
+        cluster_id: cluster.id,
+        test_id: testId,
+        order_index: index
+      }))
+
+      const { error: itemsError } = await supabase
+        .from('orthopedic_test_cluster_items')
+        .insert(itemsPayload)
+
+      if (itemsError) throw itemsError
+
+      await loadData()
+      alert('Cluster créé avec succès !')
+      resetClusterForm()
+      setClusterModalOpen(false)
+    } catch (error: any) {
+      alert('Erreur lors de la création du cluster : ' + error.message)
+    } finally {
+      setClusterSaving(false)
+    }
+  }
+
   const handleTestClick = (test: any) => {
     setSelectedCluster(null)
     setSelectedTest(test)
@@ -356,10 +471,10 @@ export default function ImprovedTestsPage() {
                   <span>Nouveau test</span>
                 </button>
                 <button
-                  onClick={() => router.push('/admin/tests')}
+                  onClick={() => setClusterModalOpen(true)}
                   className="bg-primary-100 hover:bg-primary-200 text-primary-700 px-4 py-2 rounded-lg font-medium transition-colors flex items-center space-x-2"
                 >
-                  <Plus className="h-4 w-4" />
+                  <Layers className="h-4 w-4" />
                   <span>Nouveau cluster</span>
                 </button>
               </div>
@@ -821,6 +936,287 @@ export default function ImprovedTestsPage() {
           </div>
         )}
       </div>
+
+      {/* Modal création CLUSTER */}
+      {clusterModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl max-w-5xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+            <div className="p-6 border-b flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Layers className="h-5 w-5 text-primary-600" />
+                <div>
+                  <h2 className="text-lg font-semibold text-gray-900">Nouveau cluster de tests</h2>
+                  <p className="text-sm text-gray-500">
+                    Assemblez une batterie cohérente directement depuis le module tests.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  resetClusterForm()
+                  setClusterModalOpen(false)
+                }}
+                className="p-2 rounded-lg hover:bg-gray-100"
+              >
+                <X className="h-5 w-5 text-gray-500" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-6 space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Nom du cluster *</label>
+                    <input
+                      type="text"
+                      value={clusterForm.name}
+                      onChange={(e) => setClusterForm({ ...clusterForm, name: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                      placeholder="Ex : Cluster épaule douloureuse"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Région principale *</label>
+                    <select
+                      value={clusterForm.region}
+                      onChange={(e) => setClusterForm({ ...clusterForm, region: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                    >
+                      <option value="">Sélectionner une région...</option>
+                      {Object.entries(BODY_REGIONS).map(([category, regions]) => (
+                        <optgroup key={category} label={category}>
+                          {regions.map((r) => (
+                            <option key={r} value={r}>
+                              {r}
+                            </option>
+                          ))}
+                        </optgroup>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                    <textarea
+                      value={clusterForm.description}
+                      onChange={(e) => setClusterForm({ ...clusterForm, description: e.target.value })}
+                      rows={3}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                      placeholder="Résumé rapide du cluster"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Indications principales</label>
+                    <textarea
+                      value={clusterForm.indications}
+                      onChange={(e) => setClusterForm({ ...clusterForm, indications: e.target.value })}
+                      rows={3}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                      placeholder="Ex : suspicion de LCA, épaule douloureuse..."
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Sources</label>
+                    <textarea
+                      value={clusterForm.sources}
+                      onChange={(e) => setClusterForm({ ...clusterForm, sources: e.target.value })}
+                      rows={3}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                      placeholder="Références et bibliographie (une par ligne)"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Sensibilité globale (%)</label>
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        step="0.1"
+                        value={clusterForm.sensitivity}
+                        onChange={(e) => setClusterForm({ ...clusterForm, sensitivity: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                        placeholder="Ex : 90"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Spécificité globale (%)</label>
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        step="0.1"
+                        value={clusterForm.specificity}
+                        onChange={(e) => setClusterForm({ ...clusterForm, specificity: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                        placeholder="Ex : 75"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">RV+</label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={clusterForm.rv_positive}
+                        onChange={(e) => setClusterForm({ ...clusterForm, rv_positive: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                        placeholder="Ex : 5.2"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">RV-</label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={clusterForm.rv_negative}
+                        onChange={(e) => setClusterForm({ ...clusterForm, rv_negative: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                        placeholder="Ex : 0.3"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 space-y-3">
+                    <div className="flex flex-col md:flex-row gap-3">
+                      <div className="relative flex-1">
+                        <Search className="h-4 w-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                        <input
+                          type="text"
+                          value={clusterSearchQuery}
+                          onChange={(e) => setClusterSearchQuery(e.target.value)}
+                          placeholder="Filtrer les tests à ajouter"
+                          className="w-full pl-9 pr-3 py-2 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500"
+                        />
+                      </div>
+                      <select
+                        value={clusterRegionFilter}
+                        onChange={(e) => setClusterRegionFilter(e.target.value)}
+                        className="px-3 py-2 bg-white border border-gray-200 rounded-lg"
+                      >
+                        <option value="all">Toutes les régions</option>
+                        {Object.entries(BODY_REGIONS).map(([category, regions]) => (
+                          <optgroup key={category} label={category}>
+                            {regions.map((region) => (
+                              <option key={region} value={region}>
+                                {region}
+                              </option>
+                            ))}
+                          </optgroup>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="border border-gray-200 rounded-lg max-h-64 overflow-y-auto divide-y bg-white">
+                      {clusterFilteredTests.length === 0 ? (
+                        <div className="p-4 text-sm text-gray-500">Aucun test ne correspond aux filtres.</div>
+                      ) : (
+                        clusterFilteredTests.map((test) => {
+                          const selected = clusterSelectedTests.includes(test.id)
+                          return (
+                            <button
+                              key={test.id}
+                              type="button"
+                              onClick={() => toggleTestInCluster(test.id)}
+                              className={`w-full text-left px-4 py-2 flex items-start justify-between gap-3 hover:bg-gray-50 ${selected ? 'bg-primary-50' : ''}`}
+                            >
+                              <div>
+                                <p className="text-sm font-medium text-gray-900">{test.name}</p>
+                                <p className="text-xs text-gray-500">Région : {test.region || 'Non définie'}</p>
+                                {test.indications && (
+                                  <p className="text-xs text-gray-500 mt-1 line-clamp-1">
+                                    <span className="font-medium">Indications :</span> {test.indications}
+                                  </p>
+                                )}
+                              </div>
+                              <div className="flex items-center">
+                                {selected ? (
+                                  <span className="text-xs font-medium text-primary-700 bg-primary-100 px-2 py-1 rounded-full">Ajouté</span>
+                                ) : (
+                                  <span className="text-xs text-gray-400">Ajouter</span>
+                                )}
+                              </div>
+                            </button>
+                          )
+                        })
+                      )}
+                    </div>
+
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm font-medium text-gray-700">Tests sélectionnés</p>
+                        <span className="text-xs text-gray-500">{clusterSelectedTests.length} test(s)</span>
+                      </div>
+                      <div className="border border-gray-200 rounded-lg max-h-40 overflow-y-auto bg-white">
+                        {clusterSelectedTests.length === 0 ? (
+                          <div className="p-4 text-sm text-gray-500">Aucun test sélectionné pour le moment.</div>
+                        ) : (
+                          <ul className="divide-y text-sm">
+                            {clusterSelectedTests.map((testId, index) => {
+                              const t = tests.find((tt) => tt.id === testId)
+                              if (!t) return null
+                              return (
+                                <li key={testId} className="px-3 py-2 flex items-center justify-between">
+                                  <div>
+                                    <p className="font-medium text-gray-900">#{index + 1} {t.name}</p>
+                                    <p className="text-xs text-gray-500">{t.region || 'Non défini'}</p>
+                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={() => toggleTestInCluster(testId)}
+                                    className="text-xs text-red-500 hover:text-red-600"
+                                  >
+                                    Retirer
+                                  </button>
+                                </li>
+                              )
+                            })}
+                          </ul>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-6 border-t flex items-center justify-between">
+              <p className="text-sm text-gray-500">
+                {clusterSelectedTests.length} test(s) seront ajoutés automatiquement dans ce cluster.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    resetClusterForm()
+                    setClusterModalOpen(false)
+                  }}
+                  className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 text-sm font-medium"
+                >
+                  Annuler
+                </button>
+                <button
+                  type="button"
+                  onClick={handleCreateCluster}
+                  disabled={clusterSaving}
+                  className="px-4 py-2 rounded-lg bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium disabled:opacity-50 flex items-center gap-2"
+                >
+                  {clusterSaving && (
+                    <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  )}
+                  Créer le cluster
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modal détail TEST */}
       {showTestModal && selectedTest && (

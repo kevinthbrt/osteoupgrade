@@ -75,14 +75,6 @@ export default function Navigation() {
       roles: ['premium', 'admin']
     },
     {
-      href: '/tests',
-      label: 'Tests orthopédiques',
-      icon: Clipboard,
-      badge: 'Premium',
-      roles: ['admin'],
-      hideWhenRestricted: true
-    },
-    {
       href: '/testing',
       label: 'Testing 3D',
       icon: TestTube,
@@ -110,9 +102,9 @@ export default function Navigation() {
   const adminItems = [
     { href: '/admin', label: 'Vue d\'ensemble', icon: Shield },
     { href: '/admin/users', label: 'Utilisateurs', icon: Users },
-    { 
-      href: '/admin/tests', 
-      label: 'Tests Orthopédiques', 
+    {
+      href: '/tests',
+      label: 'Tests Orthopédiques',
       icon: Clipboard,
       description: 'Tests par zones'
     },

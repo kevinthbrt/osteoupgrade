@@ -157,7 +157,7 @@ export default function EditClusterPage() {
       }
 
       alert('Cluster mis à jour ✔')
-      router.push('/admin/tests')
+      router.push('/tests')
 
     } catch (error) {
       console.error(error)
@@ -185,7 +185,7 @@ export default function EditClusterPage() {
         .eq('id', clusterId)
 
       alert('Cluster supprimé')
-      router.push('/admin/tests')
+      router.push('/tests')
     } catch (e) {
       console.error(e)
       alert('Erreur lors de la suppression')

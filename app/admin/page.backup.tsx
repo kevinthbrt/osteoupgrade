@@ -123,7 +123,7 @@ export default function AdminPage() {
       icon: Clipboard,
       color: 'from-orange-500 to-orange-600',
       detail: 'Tests orthopédiques',
-      href: '/admin/tests'
+      href: '/tests'
     },
     {
       label: 'Clusters',
@@ -156,7 +156,7 @@ export default function AdminPage() {
       title: 'Tests et Clusters',
       description: 'Gérer les tests individuels et les groupes de tests',
       icon: Clipboard,
-      href: '/admin/tests',
+      href: '/tests',
       color: 'from-orange-500 to-orange-600',
       stats: `${stats.totalTests} tests, ${stats.totalClusters} clusters`
     },
@@ -335,7 +335,7 @@ export default function AdminPage() {
               </button>
               
               <button
-                onClick={() => router.push('/admin/tests')}
+                onClick={() => router.push('/tests')}
                 className="w-full bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-lg p-3 text-left transition-colors"
               >
                 <p className="font-medium">Tests et Clusters</p>
