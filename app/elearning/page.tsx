@@ -1,10 +1,10 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import AuthLayout from '@/components/AuthLayout'
 import { supabase } from '@/lib/supabase'
-import { createElearningView, getAllElearningViews } from '@/lib/elearning-topographic-api'
+import { createElearningView, getAllElearningViews, updateElearningView } from '@/lib/elearning-topographic-api'
 import type { AnatomicalRegion, ElearningTopographicView } from '@/lib/types-topographic-system'
 import {
   BookOpen,
@@ -49,6 +49,8 @@ export default function ElearningPage() {
   const [activeZone, setActiveZone] = useState<ElearningTopographicView | null>(null)
 
   const [showCreateModal, setShowCreateModal] = useState(false)
+  const [modalMode, setModalMode] = useState<'create' | 'edit'>('create')
+  const [editingZoneId, setEditingZoneId] = useState<string | null>(null)
   const [creating, setCreating] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [formData, setFormData] = useState<TopographicFormData>({
@@ -57,6 +59,21 @@ export default function ElearningPage() {
     description: '',
     image_url: ''
   })
+
+  const descriptionRef = useRef<HTMLDivElement>(null)
+
+  const sanitizeHtml = (html: string) => html.replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, '')
+
+  const handleDescriptionInput = () => {
+    const html = descriptionRef.current?.innerHTML || ''
+    setFormData(prev => ({ ...prev, description: sanitizeHtml(html) }))
+  }
+
+  const applyFormatting = (command: string, value?: string) => {
+    descriptionRef.current?.focus()
+    document.execCommand(command, false, value)
+    handleDescriptionInput()
+  }
 
   useEffect(() => {
     const ensureAuthenticated = async () => {
@@ -88,6 +105,12 @@ export default function ElearningPage() {
       loadViews()
     }
   }, [role])
+
+  useEffect(() => {
+    if (showCreateModal && descriptionRef.current) {
+      descriptionRef.current.innerHTML = formData.description || ''
+    }
+  }, [formData.description, showCreateModal])
 
   const loadViews = async () => {
     try {
@@ -136,6 +159,20 @@ export default function ElearningPage() {
       description: '',
       image_url: ''
     })
+    setModalMode('create')
+    setEditingZoneId(null)
+    setShowCreateModal(true)
+  }
+
+  const openEditModal = (zone: ElearningTopographicView) => {
+    setFormData({
+      region: zone.region,
+      name: zone.name,
+      description: zone.description || '',
+      image_url: zone.image_url || ''
+    })
+    setModalMode('edit')
+    setEditingZoneId(zone.id)
     setShowCreateModal(true)
   }
 
@@ -148,19 +185,27 @@ export default function ElearningPage() {
     try {
       setCreating(true)
       const regionCount = views.filter(z => z.region === formData.region).length
-      await createElearningView({
+      const currentZone = editingZoneId ? views.find(z => z.id === editingZoneId) : null
+      const payload = {
         region: formData.region,
         name: formData.name,
-        description: formData.description,
+        description: sanitizeHtml(formData.description),
         image_url: formData.image_url,
-        display_order: regionCount
-      })
+        display_order: modalMode === 'edit' && currentZone ? currentZone.display_order : regionCount
+      }
+
+      if (modalMode === 'edit' && editingZoneId) {
+        await updateElearningView(editingZoneId, payload)
+        alert('✅ Vue topographique mise à jour')
+      } else {
+        await createElearningView(payload)
+        alert('✅ Vue topographique créée')
+      }
       setShowCreateModal(false)
       await loadViews()
-      alert('✅ Vue topographique créée')
     } catch (error) {
       console.error('Error creating zone:', error)
-      alert('❌ Impossible de créer la vue')
+      alert('❌ Impossible de sauvegarder la vue')
     } finally {
       setCreating(false)
     }
@@ -349,7 +394,12 @@ export default function ElearningPage() {
                     </div>
 
                     {zone.description && (
-                      <p className="text-sm text-gray-600 line-clamp-3">{zone.description}</p>
+                      <div
+                        className="text-sm text-gray-600 line-clamp-3 whitespace-pre-line"
+                        dangerouslySetInnerHTML={{
+                          __html: sanitizeHtml(zone.description || '')
+                        }}
+                      />
                     )}
 
                     <div className="flex gap-2">
@@ -361,12 +411,10 @@ export default function ElearningPage() {
                       </button>
                       {isAdmin && (
                         <button
-                          onClick={() => {
-                            setActiveZone(zone)
-                          }}
+                          onClick={() => openEditModal(zone)}
                           className="px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-700 hover:border-primary-200"
                         >
-                          Détails
+                          Modifier
                         </button>
                       )}
                     </div>
@@ -380,7 +428,7 @@ export default function ElearningPage() {
 
       {activeZone && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-2xl max-w-3xl w-full overflow-hidden relative">
+          <div className="bg-white rounded-xl shadow-2xl max-w-5xl w-full overflow-hidden relative">
             <button
               onClick={() => setActiveZone(null)}
               className="absolute top-4 right-4 p-2 bg-white rounded-full shadow hover:bg-gray-50"
@@ -388,28 +436,48 @@ export default function ElearningPage() {
               <X className="h-5 w-5 text-gray-600" />
             </button>
 
-            <div className="h-80 bg-gray-50 flex items-center justify-center border-b">
-              {activeZone.image_url ? (
-                <img src={activeZone.image_url} alt={activeZone.name} className="max-h-full object-contain" />
-              ) : (
-                <div className="text-center text-gray-400">
-                  <ImageIcon className="h-12 w-12 mx-auto mb-2" />
-                  <p className="text-sm">Aucune image fournie</p>
-                </div>
-              )}
-            </div>
+            <div className="md:flex">
+              <div className="md:w-1/2 bg-gray-50 flex items-center justify-center border-b md:border-b-0 md:border-r p-6">
+                {activeZone.image_url ? (
+                  <img
+                    src={activeZone.image_url}
+                    alt={activeZone.name}
+                    className="max-h-[500px] w-full object-contain"
+                  />
+                ) : (
+                  <div className="text-center text-gray-400">
+                    <ImageIcon className="h-12 w-12 mx-auto mb-2" />
+                    <p className="text-sm">Aucune image fournie</p>
+                  </div>
+                )}
+              </div>
 
-            <div className="p-6 space-y-2">
-              <p className="text-sm font-semibold text-primary-600 flex items-center gap-2">
-                <Map className="h-4 w-4" />
-                {REGIONS.find(r => r.value === activeZone.region)?.label}
-              </p>
-              <h3 className="text-2xl font-bold text-gray-900">{activeZone.name}</h3>
-              {activeZone.description ? (
-                <p className="text-gray-700 leading-relaxed">{activeZone.description}</p>
-              ) : (
-                <p className="text-gray-500 text-sm">Pas de description disponible pour cette vue.</p>
-              )}
+              <div className="md:w-1/2 p-6 space-y-3">
+                <p className="text-sm font-semibold text-primary-600 flex items-center gap-2">
+                  <Map className="h-4 w-4" />
+                  {REGIONS.find(r => r.value === activeZone.region)?.label}
+                </p>
+                <h3 className="text-2xl font-bold text-gray-900">{activeZone.name}</h3>
+                {activeZone.description ? (
+                  <div
+                    className="text-gray-700 leading-relaxed whitespace-pre-line prose"
+                    dangerouslySetInnerHTML={{ __html: sanitizeHtml(activeZone.description) }}
+                  />
+                ) : (
+                  <p className="text-gray-500 text-sm">Pas de description disponible pour cette vue.</p>
+                )}
+                {isAdmin && (
+                  <button
+                    onClick={() => {
+                      openEditModal(activeZone)
+                      setActiveZone(null)
+                    }}
+                    className="mt-4 inline-flex items-center gap-2 px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-700 hover:border-primary-200"
+                  >
+                    Modifier cette vue
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -421,7 +489,9 @@ export default function ElearningPage() {
             <div className="p-6 border-b flex items-center justify-between">
               <div>
                 <p className="text-sm text-primary-600 font-semibold">Admin</p>
-                <h3 className="text-xl font-bold text-gray-900">Nouvelle vue topographique</h3>
+                <h3 className="text-xl font-bold text-gray-900">
+                  {modalMode === 'edit' ? 'Modifier la vue topographique' : 'Nouvelle vue topographique'}
+                </h3>
               </div>
               <button
                 onClick={() => setShowCreateModal(false)}
@@ -463,15 +533,42 @@ export default function ElearningPage() {
                 </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
-                <textarea
-                  value={formData.description}
-                  onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                  rows={3}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="block text-sm font-medium text-gray-700">Description (sauts de ligne et mise en forme)</label>
+                  <div className="flex items-center gap-2 text-xs text-gray-500">
+                    <button
+                      type="button"
+                      onClick={() => applyFormatting('bold')}
+                      className="px-2 py-1 border rounded hover:bg-gray-50"
+                    >
+                      Gras
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => applyFormatting('fontSize', '4')}
+                      className="px-2 py-1 border rounded hover:bg-gray-50"
+                    >
+                      Texte grand
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => applyFormatting('fontSize', '3')}
+                      className="px-2 py-1 border rounded hover:bg-gray-50"
+                    >
+                      Texte moyen
+                    </button>
+                  </div>
+                </div>
+                <div
+                  ref={descriptionRef}
+                  contentEditable
+                  onInput={handleDescriptionInput}
+                  className="min-h-[120px] w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:outline-none bg-white"
                   placeholder="Détails ou indications pédagogiques"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                  suppressContentEditableWarning
                 />
+                <p className="text-xs text-gray-500">Les retours à la ligne, le gras et la taille de police seront conservés lors de l'affichage.</p>
               </div>
 
               <div className="space-y-2">
@@ -532,7 +629,7 @@ export default function ElearningPage() {
                 className="px-5 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 flex items-center gap-2"
               >
                 {creating && <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />}
-                Créer la vue
+                {modalMode === 'edit' ? 'Enregistrer les modifications' : 'Créer la vue'}
               </button>
             </div>
           </div>
