@@ -110,43 +110,75 @@ export default function Navigation() {
     { href: '/settings', label: 'Paramètres', icon: Settings },
   ]
 
-  const adminItems: MenuItem[] = [
+  const adminStandaloneItems: MenuItem[] = [
     { href: '/admin', label: 'Vue d\'ensemble', icon: Shield },
     { href: '/admin/users', label: 'Utilisateurs', icon: Users },
-    {
-      href: '/tests',
-      label: 'Tests Orthopédiques',
-      icon: Clipboard,
-      description: 'Tests par zones'
-    },
-    { 
-      href: '/admin/pathologies', 
-      label: 'Pathologies', 
-      icon: Activity,
-      description: 'Diagnostics simples'
-    },
-    { 
-      href: '/admin/topographic-zones', 
-      label: 'Zones Topographiques', 
-      icon: Map,
-      description: 'Pour Consultation V3',
-      badge: 'V3'
-    },
-    { 
-      href: '/admin/decision-trees', 
-      label: 'Arbres Décisionnels', 
-      icon: Filter,
-      description: 'Pour Consultation V3',
-      badge: 'V3'
-    },
-    { 
-      href: '/admin/anatomy-builder', 
-      label: 'Anatomy Builder', 
-      icon: Box,
-      description: 'Zones 3D Testing',
-      badge: '3D'
-    },
   ]
+
+  const adminGroups: { id: string; label: string; icon: React.ComponentType<React.SVGProps<SVGSVGElement>>; items: MenuItem[] }[] = [
+    {
+      id: 'consultation',
+      label: 'Consultation guidée',
+      icon: Map,
+      items: [
+        {
+          href: '/admin/pathologies',
+          label: 'Pathologies',
+          icon: Activity,
+          description: 'Diagnostics simples'
+        },
+        {
+          href: '/admin/topographic-zones',
+          label: 'Zones Topographiques',
+          icon: Map,
+          description: 'Pour Consultation V3',
+          badge: 'V3'
+        },
+        {
+          href: '/admin/decision-trees',
+          label: 'Arbres Décisionnels',
+          icon: Filter,
+          description: 'Pour Consultation V3',
+          badge: 'V3'
+        },
+      ]
+    },
+    {
+      id: 'tests',
+      label: 'Tests orthopédiques',
+      icon: Clipboard,
+      items: [
+        {
+          href: '/tests',
+          label: 'Tests Orthopédiques',
+          icon: Clipboard,
+          description: 'Tests par zones'
+        },
+        {
+          href: '/admin/anatomy-builder',
+          label: 'Anatomy Builder',
+          icon: Box,
+          description: 'Zones 3D Testing',
+          badge: '3D'
+        },
+      ]
+    }
+  ]
+
+  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>(() => {
+    const initialState: Record<string, boolean> = {}
+    adminGroups.forEach(group => {
+      initialState[group.id] = group.items.some(item => item.href === pathname)
+    })
+    return initialState
+  })
+
+  const toggleGroup = (groupId: string) => {
+    setExpandedGroups(prev => ({
+      ...prev,
+      [groupId]: !prev[groupId]
+    }))
+  }
 
   const getRoleBadge = () => {
     if (!profile) return null
@@ -268,7 +300,7 @@ export default function Navigation() {
                     Administration
                   </p>
                 </div>
-                {adminItems.map((item) => {
+                {adminStandaloneItems.map((item) => {
                   const Icon = item.icon
                   const isActive = pathname === item.href
                   return (
@@ -285,15 +317,6 @@ export default function Navigation() {
                       <div className="flex items-center w-full">
                         <Icon className={`h-5 w-5 mr-3 flex-shrink-0 ${isActive ? 'text-purple-600' : 'text-gray-400 group-hover:text-gray-600'}`} />
                         <span className="flex-1">{item.label}</span>
-                        {item.badge && (
-                          <span className={`ml-2 px-1.5 py-0.5 text-[10px] font-semibold rounded ${
-                            item.badge === 'V3' 
-                              ? 'bg-purple-100 text-purple-700' 
-                              : 'bg-green-100 text-green-700'
-                          }`}>
-                            {item.badge}
-                          </span>
-                        )}
                         {isActive && <ChevronRight className="h-4 w-4 ml-2" />}
                       </div>
                       {item.description && !isActive && (
@@ -302,6 +325,71 @@ export default function Navigation() {
                         </p>
                       )}
                     </Link>
+                  )
+                })}
+
+                {adminGroups.map((group) => {
+                  const GroupIcon = group.icon
+                  const isGroupActive = group.items.some(item => pathname === item.href)
+                  const isExpanded = expandedGroups[group.id] ?? isGroupActive
+
+                  return (
+                    <div key={group.id} className="px-1">
+                      <button
+                        type="button"
+                        onClick={() => toggleGroup(group.id)}
+                        className={`flex items-center w-full px-2 py-2 rounded-lg transition-all ${
+                          isGroupActive
+                            ? 'bg-purple-50 text-purple-600'
+                            : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
+                        }`}
+                      >
+                        <GroupIcon className={`h-5 w-5 mr-3 flex-shrink-0 ${isGroupActive ? 'text-purple-600' : 'text-gray-400'}`} />
+                        <span className="flex-1 text-left font-medium">{group.label}</span>
+                        <ChevronRight className={`h-4 w-4 ml-2 transition-transform ${isExpanded ? 'rotate-90 text-purple-600' : 'text-gray-400'}`} />
+                      </button>
+
+                      {isExpanded && (
+                        <div className="mt-1 space-y-1">
+                          {group.items.map((item) => {
+                            const Icon = item.icon
+                            const isActive = pathname === item.href
+                            return (
+                              <Link
+                                key={item.href}
+                                href={item.href}
+                                className={`flex flex-col px-4 py-2.5 rounded-lg transition-all group ${
+                                  isActive
+                                    ? 'bg-purple-50 text-purple-600 font-medium'
+                                    : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
+                                }`}
+                                onClick={() => setIsOpen(false)}
+                              >
+                                <div className="flex items-center w-full">
+                                  <Icon className={`h-5 w-5 mr-3 flex-shrink-0 ${isActive ? 'text-purple-600' : 'text-gray-400 group-hover:text-gray-600'}`} />
+                                  <span className="flex-1 text-sm">{item.label}</span>
+                                  {item.badge && (
+                                    <span className={`ml-2 px-1.5 py-0.5 text-[10px] font-semibold rounded ${
+                                      item.badge === 'V3'
+                                        ? 'bg-purple-100 text-purple-700'
+                                        : 'bg-green-100 text-green-700'
+                                    }`}>
+                                      {item.badge}
+                                    </span>
+                                  )}
+                                  {isActive && <ChevronRight className="h-4 w-4 ml-2" />}
+                                </div>
+                                {item.description && !isActive && (
+                                  <p className="text-[10px] text-gray-500 ml-8 mt-0.5">
+                                    {item.description}
+                                  </p>
+                                )}
+                              </Link>
+                            )
+                          })}
+                        </div>
+                      )}
+                    </div>
                   )
                 })}
               </>
