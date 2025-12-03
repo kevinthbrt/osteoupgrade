@@ -68,8 +68,8 @@ export default function Navigation() {
   const menuItems = [
     { href: '/dashboard', label: 'Tableau de bord', icon: Home },
     {
-      href: '/elearning',
-      label: 'E-Learning',
+      href: '/topographie',
+      label: 'Topographie',
       icon: BookOpen,
       badge: 'Premium',
       roles: ['premium', 'admin']

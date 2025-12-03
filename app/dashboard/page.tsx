@@ -209,10 +209,10 @@ export default function Dashboard() {
       roles: ['premium', 'admin'] as const,
     },
     {
-      title: 'E-learning — Guides topographiques',
+      title: 'Topographie — Guides topographiques',
       description: "Simplifiez votre raisonnement grâce à l'aide topographique",
       icon: BookOpen,
-      href: '/elearning',
+      href: '/topographie',
       color: 'from-green-500 to-emerald-600',
       roles: ['premium', 'admin'] as const,
     },

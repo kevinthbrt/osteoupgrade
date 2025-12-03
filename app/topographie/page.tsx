@@ -4,8 +4,8 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import AuthLayout from '@/components/AuthLayout'
 import { supabase } from '@/lib/supabase'
-import { createElearningView, getAllElearningViews, updateElearningView } from '@/lib/elearning-topographic-api'
-import type { AnatomicalRegion, ElearningTopographicView } from '@/lib/types-topographic-system'
+import { createTopographieView, getAllTopographieViews, updateTopographieView } from '@/lib/topographie-topographic-api'
+import type { AnatomicalRegion, TopographieView } from '@/lib/types-topographic-system'
 import {
   BookOpen,
   CheckCircle,
@@ -39,14 +39,14 @@ interface TopographicFormData {
   image_url: string
 }
 
-export default function ElearningPage() {
+export default function TopographiePage() {
   const router = useRouter()
   const [loading, setLoading] = useState(true)
   const [zonesLoading, setZonesLoading] = useState(false)
   const [role, setRole] = useState<string | null>(null)
-  const [views, setViews] = useState<ElearningTopographicView[]>([])
+  const [views, setViews] = useState<TopographieView[]>([])
   const [selectedRegion, setSelectedRegion] = useState<AnatomicalRegion | 'all'>('all')
-  const [activeZone, setActiveZone] = useState<ElearningTopographicView | null>(null)
+  const [activeZone, setActiveZone] = useState<TopographieView | null>(null)
 
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [modalMode, setModalMode] = useState<'create' | 'edit'>('create')
@@ -113,12 +113,12 @@ export default function ElearningPage() {
     if (showCreateModal && descriptionRef.current) {
       descriptionRef.current.innerHTML = formData.description || ''
     }
-  }, [formData.description, showCreateModal])
+  }, [showCreateModal, editingZoneId, modalMode])
 
   const loadViews = async () => {
     try {
       setZonesLoading(true)
-      const data = await getAllElearningViews()
+      const data = await getAllTopographieViews()
       setViews(data)
     } catch (error) {
       console.error('Error loading views:', error)
@@ -167,7 +167,7 @@ export default function ElearningPage() {
     setShowCreateModal(true)
   }
 
-  const openEditModal = (zone: ElearningTopographicView) => {
+  const openEditModal = (zone: TopographieView) => {
     setFormData({
       region: zone.region,
       name: zone.name,
@@ -198,10 +198,10 @@ export default function ElearningPage() {
       }
 
       if (modalMode === 'edit' && editingZoneId) {
-        await updateElearningView(editingZoneId, payload)
+        await updateTopographieView(editingZoneId, payload)
         alert('✅ Vue topographique mise à jour')
       } else {
-        await createElearningView(payload)
+        await createTopographieView(payload)
         alert('✅ Vue topographique créée')
       }
       setShowCreateModal(false)
@@ -241,7 +241,7 @@ export default function ElearningPage() {
               <BookOpen className="h-6 w-6" />
             </div>
             <div>
-              <p className="text-sm font-semibold text-primary-700">E-Learning</p>
+              <p className="text-sm font-semibold text-primary-700">Topographie</p>
               <h1 className="text-2xl font-bold text-gray-900">Bibliothèque topographique</h1>
               <p className="text-gray-600 mt-1">
                 Accédez à des vues topographiques par zone anatomique pour guider votre raisonnement clinique.
@@ -280,7 +280,7 @@ export default function ElearningPage() {
                 <BookOpen className="h-7 w-7" />
               </div>
               <div>
-                <p className="text-sm text-primary-100 font-semibold">E-Learning</p>
+                <p className="text-sm text-primary-100 font-semibold">Topographie</p>
                 <h1 className="text-2xl font-bold">Vues topographiques par zone</h1>
                 <p className="text-primary-50 mt-1">
                   Naviguez par région anatomique et ouvrez chaque vue pour afficher l'image, le titre et la description.

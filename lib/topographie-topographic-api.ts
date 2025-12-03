@@ -1,16 +1,16 @@
 import { supabase } from './supabase'
 import type {
   AnatomicalRegion,
-  CreateElearningTopographicViewInput,
-  ElearningTopographicView,
-  UpdateElearningTopographicViewInput
+  CreateTopographieViewInput,
+  TopographieView,
+  UpdateTopographieViewInput
 } from './types-topographic-system'
 
 /**
- * API dédiée aux vues topographiques de l'E-Learning (distinctes de consultation-v3)
+ * API dédiée aux vues topographiques du module Topographie (distinctes de consultation-v3)
  */
 
-export async function getElearningViewsByRegion(region: AnatomicalRegion) {
+export async function getTopographieViewsByRegion(region: AnatomicalRegion) {
   const { data, error } = await supabase
     .from('elearning_topographic_views')
     .select('*')
@@ -19,10 +19,10 @@ export async function getElearningViewsByRegion(region: AnatomicalRegion) {
     .order('display_order')
 
   if (error) throw error
-  return data as ElearningTopographicView[]
+  return data as TopographieView[]
 }
 
-export async function getAllElearningViews() {
+export async function getAllTopographieViews() {
   const { data, error } = await supabase
     .from('elearning_topographic_views')
     .select('*')
@@ -31,10 +31,10 @@ export async function getAllElearningViews() {
     .order('display_order')
 
   if (error) throw error
-  return data as ElearningTopographicView[]
+  return data as TopographieView[]
 }
 
-export async function createElearningView(input: CreateElearningTopographicViewInput) {
+export async function createTopographieView(input: CreateTopographieViewInput) {
   const {
     data: { user }
   } = await supabase.auth.getUser()
@@ -49,10 +49,10 @@ export async function createElearningView(input: CreateElearningTopographicViewI
     .single()
 
   if (error) throw error
-  return data as ElearningTopographicView
+  return data as TopographieView
 }
 
-export async function updateElearningView(id: string, input: UpdateElearningTopographicViewInput) {
+export async function updateTopographieView(id: string, input: UpdateTopographieViewInput) {
   const { data, error } = await supabase
     .from('elearning_topographic_views')
     .update(input)
@@ -61,10 +61,10 @@ export async function updateElearningView(id: string, input: UpdateElearningTopo
     .single()
 
   if (error) throw error
-  return data as ElearningTopographicView
+  return data as TopographieView
 }
 
-export async function deleteElearningView(id: string) {
+export async function deleteTopographieView(id: string) {
   const { error } = await supabase
     .from('elearning_topographic_views')
     .update({ is_active: false })

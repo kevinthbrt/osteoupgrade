@@ -56,10 +56,10 @@ export interface UpdateTopographicZoneInput {
 }
 
 // ============================================================================
-// VUES TOPOGRAPHIQUES E-LEARNING (séparées de consultation-v3)
+// VUES TOPOGRAPHIQUES DU MODULE TOPOGRAPHIE (séparées de consultation-v3)
 // ============================================================================
 
-export interface ElearningTopographicView {
+export interface TopographieView {
   id: string
   region: AnatomicalRegion
   name: string
@@ -72,7 +72,7 @@ export interface ElearningTopographicView {
   updated_at: string
 }
 
-export interface CreateElearningTopographicViewInput {
+export interface CreateTopographieViewInput {
   region: AnatomicalRegion
   name: string
   description?: string
@@ -80,7 +80,7 @@ export interface CreateElearningTopographicViewInput {
   display_order?: number
 }
 
-export interface UpdateElearningTopographicViewInput {
+export interface UpdateTopographieViewInput {
   name?: string
   description?: string
   image_url?: string
