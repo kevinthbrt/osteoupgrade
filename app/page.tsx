@@ -1,5 +1,6 @@
 "use client"
 
+import Image from 'next/image'
 import Link from 'next/link'
 
 export default function LandingPage() {
@@ -105,7 +106,14 @@ export default function LandingPage() {
                 <div className="hero-3d">
                   <div className="hero-3d-view">
                     <div className="hero-3d-ribbon">Module 3D – Tests ortho</div>
-                    <div>Rotation, zoom &amp; sélection des zones</div>
+                    <Image
+                      src="/hero-3d-model.svg"
+                      alt="Modèle 3D avec une moitié anatomique et l'autre musculaire"
+                      fill
+                      priority
+                      sizes="(max-width: 768px) 100vw, 320px"
+                      className="hero-3d-img"
+                    />
                     <div className="hero-3d-region">
                       <span className="hero-3d-region-dot"></span>
                       Région lombaire sélectionnée
@@ -809,6 +817,11 @@ export default function LandingPage() {
           color: #a5b4fc;
         }
 
+        .hero-3d-img {
+          object-fit: contain;
+          z-index: 1;
+        }
+
         .hero-3d-view::before,
         .hero-3d-view::after {
           content: '';
@@ -817,6 +830,7 @@ export default function LandingPage() {
           border: 1px solid rgba(148, 163, 184, 0.18);
           inset: 18%;
           transform: rotate(14deg);
+          z-index: 0;
         }
 
         .hero-3d-view::after {
@@ -834,6 +848,7 @@ export default function LandingPage() {
           border: 1px solid rgba(148, 163, 184, 0.5);
           color: var(--muted);
           font-size: 0.7rem;
+          z-index: 2;
         }
 
         .hero-3d-region {
@@ -848,6 +863,7 @@ export default function LandingPage() {
           display: inline-flex;
           align-items: center;
           gap: 0.35rem;
+          z-index: 2;
         }
 
         .hero-3d-region-dot {

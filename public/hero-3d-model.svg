@@ -1,0 +1,44 @@
+<svg width="340" height="390" viewBox="0 0 340 390" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Silhouette d'un corps humain vu de dos avec moitié muscles">
+  <defs>
+    <linearGradient id="bg" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0%" stop-color="#101c33"/>
+      <stop offset="70%" stop-color="#0a1526"/>
+      <stop offset="100%" stop-color="#e8ecf2"/>
+    </linearGradient>
+    <linearGradient id="skin" x1="0" x2="1" y1="0" y2="0">
+      <stop offset="0%" stop-color="#e8cebb"/>
+      <stop offset="100%" stop-color="#d7b89f"/>
+    </linearGradient>
+    <linearGradient id="muscle" x1="0" x2="1" y1="0" y2="0">
+      <stop offset="0%" stop-color="#c44542"/>
+      <stop offset="100%" stop-color="#e16b5c"/>
+    </linearGradient>
+  </defs>
+  <rect width="340" height="390" fill="#0b1527"/>
+  <rect y="290" width="340" height="100" fill="#e8ecf2"/>
+  <g transform="translate(170 95)">
+    <path d="M0 -60 C30 -62 55 -40 60 -12 L70 70 C72 88 54 100 40 90 L0 60 Z" fill="url(#muscle)"/>
+    <path d="M0 -60 C-30 -62 -55 -40 -60 -12 L-70 70 C-72 88 -54 100 -40 90 L0 60 Z" fill="url(#skin)"/>
+    <rect x="-4" y="-40" width="8" height="120" rx="4" fill="#8ca2c4" opacity="0.6"/>
+    <circle cx="0" cy="-92" r="28" fill="#e5d3c0"/>
+    <path d="M0 -120 C10 -122 24 -110 28 -92 C22 -96 12 -96 0 -96Z" fill="#d25d50"/>
+    <path d="M0 -120 C-10 -122 -24 -110 -28 -92 C-22 -96 -12 -96 0 -96Z" fill="#efdfd1"/>
+    <path d="M-60 0 L-92 120 L-74 126 L-54 16 Z" fill="url(#skin)"/>
+    <path d="M60 0 L92 120 L74 126 L54 16 Z" fill="url(#muscle)"/>
+    <path d="M-18 110 L-44 300 L-22 300 L-2 112 Z" fill="url(#skin)"/>
+    <path d="M18 110 L44 300 L22 300 L2 112 Z" fill="url(#muscle)"/>
+    <path d="M-70 70 C-68 90 -54 104 -40 96 L0 72 L-8 40 Z" fill="#f0e3d4" opacity="0.9"/>
+    <path d="M70 70 C68 90 54 104 40 96 L0 72 L8 40 Z" fill="#cc6055" opacity="0.9"/>
+    <g stroke="#f4b4a7" stroke-width="4" stroke-linecap="round" opacity="0.75">
+      <line x1="10" y1="-35" x2="54" y2="-15"/>
+      <line x1="12" y1="-5" x2="54" y2="18"/>
+      <line x1="14" y1="24" x2="50" y2="46"/>
+      <line x1="16" y1="50" x2="48" y2="70"/>
+      <line x1="18" y1="76" x2="44" y2="98"/>
+    </g>
+  </g>
+  <g opacity="0.25" stroke="#60a0e0" stroke-width="2" fill="none">
+    <circle cx="170" cy="110" r="65"/>
+    <circle cx="170" cy="110" r="95"/>
+  </g>
+</svg>
