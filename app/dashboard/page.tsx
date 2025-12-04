@@ -11,6 +11,7 @@ import {
   ChevronRight,
   FileText,
   Users,
+  Settings,
   Crown,
   AlertCircle,
   BookOpen,
@@ -239,52 +240,96 @@ export default function Dashboard() {
 
   return (
     <AuthLayout>
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="bg-white rounded-xl shadow-sm p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">
-                Bonjour, {profile?.full_name || 'Docteur'} 👋
-              </h1>
-              <p className="mt-1 text-gray-600">
-                Voici un aperçu de votre activité sur OsteoUpgrade
-              </p>
-            </div>
-            {profile?.role === 'free' && (
-              <div className="bg-gradient-to-r from-yellow-50 to-yellow-100 border border-yellow-200 rounded-lg p-4 max-w-sm">
-                <div className="flex items-start space-x-3">
-                  <Crown className="h-5 w-5 text-yellow-600 flex-shrink-0 mt-0.5" />
-                  <div>
-                    <p className="text-sm font-medium text-gray-900">
-                      Passez à Premium
+      <div className="relative">
+        <div className="absolute inset-x-0 -top-10 h-48 bg-gradient-to-b from-sky-50 to-transparent" aria-hidden />
+        <div className="absolute right-10 top-0 h-40 w-40 rounded-full bg-sky-400/20 blur-3xl" aria-hidden />
+        <div className="absolute left-6 top-32 h-28 w-28 rounded-full bg-indigo-400/20 blur-3xl" aria-hidden />
+
+        <div className="space-y-8 relative z-10">
+          {/* Header */}
+          <div className="overflow-hidden rounded-2xl bg-gradient-to-br from-slate-900 via-slate-900 to-slate-800 text-white shadow-xl border border-white/10">
+            <div className="grid gap-6 p-6 md:grid-cols-[1.5fr_1fr] items-center">
+              <div className="space-y-3">
+                <p className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-sky-200">
+                  <span className="h-2 w-2 rounded-full bg-sky-400" />
+                  Vue d'ensemble
+                </p>
+                <h1 className="text-3xl font-bold leading-tight">
+                  Bonjour, {profile?.full_name || 'Docteur'} 👋
+                </h1>
+                <p className="text-slate-200 text-sm md:text-base">
+                  Continuez vos explorations cliniques et vos formations. Les accès clés sont à portée de clic.
+                </p>
+
+                <div className="flex flex-wrap gap-3 pt-2">
+                  <button
+                    onClick={() => router.push('/testing')}
+                    className="flex items-center gap-2 rounded-lg bg-sky-500 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-sky-500/20 transition hover:bg-sky-400"
+                  >
+                    <TestTube className="h-4 w-4" />
+                    Tester en 3D
+                  </button>
+                  <button
+                    onClick={() => router.push('/settings')}
+                    className="flex items-center gap-2 rounded-lg border border-white/20 px-4 py-2 text-sm font-semibold text-white transition hover:border-white/40"
+                  >
+                    <Settings className="h-4 w-4" />
+                    Paramètres
+                  </button>
+                </div>
+              </div>
+
+              {profile?.role === 'free' ? (
+                <div className="relative h-full w-full rounded-xl bg-gradient-to-br from-amber-300 via-amber-400 to-orange-500/90 p-4 text-slate-900 shadow-lg">
+                  <div className="absolute inset-0 rounded-xl bg-white/20 backdrop-blur-sm" aria-hidden />
+                  <div className="relative space-y-3">
+                    <div className="inline-flex items-center gap-2 rounded-full bg-white/70 px-3 py-1 text-xs font-semibold text-amber-700">
+                      <Crown className="h-4 w-4" /> Premium
+                    </div>
+                    <h3 className="text-xl font-bold">Passez à Premium</h3>
+                    <p className="text-sm text-slate-800">
+                      Accédez à tous les arbres décisionnels, au testing 3D et à votre séminaire présentiel inclus.
                     </p>
-                    <p className="text-xs text-gray-600 mt-1">
-                      Accédez à tous les arbres décisionnels
-                    </p>
+                    <div className="flex flex-wrap gap-2 text-xs font-semibold text-amber-900">
+                      <span className="rounded-full bg-white/80 px-3 py-1">Arbres illimités</span>
+                      <span className="rounded-full bg-white/80 px-3 py-1">1 séminaire / cycle</span>
+                    </div>
                     <button
                       onClick={() => router.push('/settings')}
-                      className="mt-2 text-xs font-medium text-yellow-700 hover:text-yellow-800"
+                      className="mt-2 inline-flex items-center gap-2 rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-md transition hover:bg-slate-800"
                     >
-                      En savoir plus →
+                      Découvrir l'offre
+                      <ChevronRight className="h-4 w-4" />
                     </button>
                   </div>
                 </div>
-              </div>
-            )}
+              ) : (
+                <div className="h-full rounded-xl bg-white/5 p-4 backdrop-blur-sm border border-white/10">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <p className="text-sm text-slate-200">Statut</p>
+                      <p className="text-lg font-semibold">{profile?.role === 'admin' ? 'Administrateur' : 'Premium'}</p>
+                    </div>
+                    <span className="rounded-full bg-sky-500/20 px-3 py-1 text-xs font-semibold text-sky-100">Actif</span>
+                  </div>
+                  <p className="mt-2 text-sm text-slate-200">
+                    Profitez des ressources complètes : topographie, testing 3D et séminaires.
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
-        </div>
 
         {!profile?.full_name && (
-          <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex items-start space-x-3">
-            <AlertCircle className="h-5 w-5 text-blue-600 mt-0.5" />
+          <div className="flex items-start space-x-3 rounded-xl border border-sky-100 bg-gradient-to-r from-sky-50 to-white p-4 shadow-sm">
+            <AlertCircle className="mt-0.5 h-5 w-5 text-sky-500" />
             <div className="flex-1">
-              <p className="text-sm font-semibold text-gray-900">Complétez votre profil</p>
-              <p className="text-xs text-gray-700 mt-1">Ajoutez votre nom pour personnaliser vos documents et vos certificats de formation.</p>
+              <p className="text-sm font-semibold text-slate-900">Complétez votre profil</p>
+              <p className="mt-1 text-xs text-slate-700">Ajoutez votre nom pour personnaliser vos documents et vos certificats de formation.</p>
             </div>
             <button
               onClick={() => router.push('/settings')}
-              className="text-sm font-medium text-blue-700 hover:text-blue-800"
+              className="text-sm font-semibold text-sky-600 hover:text-sky-700"
             >
               Renseigner mon nom →
             </button>
@@ -292,25 +337,31 @@ export default function Dashboard() {
         )}
 
         {isFree && (
-          <div className="bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-xl p-6 shadow-lg">
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-              <div>
-                <p className="text-sm uppercase tracking-wide text-white/80">Accès Premium</p>
-                <h2 className="text-2xl font-bold mt-1">50€/mois — facturation annuelle</h2>
-                <p className="text-white/90 mt-2 max-w-2xl">
+          <div className="overflow-hidden rounded-2xl border border-amber-100 bg-gradient-to-r from-amber-50 via-white to-orange-50 p-6 shadow-sm">
+            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+              <div className="space-y-2">
+                <p className="text-xs font-semibold uppercase tracking-wide text-amber-700">Accès Premium</p>
+                <h2 className="text-2xl font-bold text-slate-900">50€/mois — facturation annuelle</h2>
+                <p className="text-sm text-slate-700 max-w-3xl">
                   Passez au niveau supérieur avec l'ensemble des arbres décisionnels, l'e-learning topographique et un séminaire présentiel de 2 jours inclus par cycle annuel depuis votre souscription.
                 </p>
+                <div className="flex flex-wrap gap-2 text-xs font-semibold text-amber-800">
+                  <span className="rounded-full bg-amber-100 px-3 py-1">Testing 3D illimité</span>
+                  <span className="rounded-full bg-amber-100 px-3 py-1">Arbres décisionnels complets</span>
+                  <span className="rounded-full bg-amber-100 px-3 py-1">Séminaire offert</span>
+                </div>
               </div>
-              <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
-                <div className="bg-white/10 px-4 py-3 rounded-lg text-sm">
-                  <div className="font-semibold">Formations incluses</div>
-                  <div className="text-white/90">1 séminaire (2 jours) par cycle</div>
+              <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center">
+                <div className="rounded-xl bg-white px-4 py-3 text-left text-sm shadow-sm">
+                  <div className="font-semibold text-slate-900">Formations incluses</div>
+                  <div className="text-slate-600">1 séminaire (2 jours) par cycle</div>
                 </div>
                 <button
                   onClick={() => router.push('/settings')}
-                  className="bg-white text-amber-600 px-5 py-3 rounded-lg font-semibold hover:bg-white/90 transition"
+                  className="inline-flex items-center gap-2 rounded-lg bg-slate-900 px-5 py-3 text-sm font-semibold text-white shadow-lg transition hover:bg-slate-800"
                 >
                   Je passe Premium
+                  <ChevronRight className="h-4 w-4" />
                 </button>
               </div>
             </div>
@@ -318,29 +369,29 @@ export default function Dashboard() {
         )}
 
         {/* Séminaires présentiels */}
-        <div className="bg-white rounded-xl shadow-sm p-6 space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div className="rounded-2xl border border-slate-100 bg-white/70 p-6 shadow-sm backdrop-blur">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <div className="flex items-center gap-2 text-primary-600 text-sm font-semibold">
+              <div className="flex items-center gap-2 text-sm font-semibold text-sky-600">
                 <Calendar className="h-5 w-5" />
                 Séminaires présentiels
               </div>
-              <h2 className="text-xl font-bold text-gray-900 mt-1">Calendrier visible par tous</h2>
-              <p className="text-sm text-gray-600">Les inscriptions sont réservées aux membres Premium disposant encore de leur séminaire annuel en cours de validité.</p>
+              <h2 className="mt-1 text-xl font-bold text-slate-900">Calendrier visible par tous</h2>
+              <p className="text-sm text-slate-600">Les inscriptions sont réservées aux membres Premium disposant encore de leur séminaire annuel en cours de validité.</p>
             </div>
-            <div className="bg-primary-50 text-primary-700 px-4 py-2 rounded-lg text-sm font-semibold">
+            <div className="rounded-lg bg-sky-50 px-4 py-2 text-sm font-semibold text-sky-700">
               {cycleRegistrations.length}/1 inscription — cycle {formatCycleWindow(currentCycle)}
             </div>
           </div>
 
           {seminarLoadError && (
-            <div className="flex items-center gap-2 text-xs text-amber-700 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
+            <div className="mt-2 flex items-center gap-2 rounded-lg border border-amber-100 bg-amber-50 px-3 py-2 text-xs text-amber-700">
               <AlertCircle className="h-4 w-4" />
               {seminarLoadError}
             </div>
           )}
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
             {seminars.map((seminar) => {
               const alreadyRegistered = registrations.some((registration) => registration.seminar_id === seminar.id)
               const isPast = new Date(seminar.date) < new Date()
@@ -348,24 +399,25 @@ export default function Dashboard() {
               const disabled = locked || alreadyRegistered || remainingSeminars <= 0 || isPast
 
               return (
-                <div key={seminar.id} className="border border-gray-100 rounded-lg p-4 hover:border-primary-200 transition-colors bg-gray-50">
-                  <div className="flex items-start justify-between gap-2">
+                <div key={seminar.id} className="relative overflow-hidden rounded-xl border border-slate-100 bg-gradient-to-br from-slate-50 via-white to-slate-50 p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-sky-200">
+                  <div className="absolute right-2 top-2 h-16 w-16 rounded-full bg-sky-200/30 blur-3xl" aria-hidden />
+                  <div className="relative flex items-start justify-between gap-2">
                     <div className="space-y-1">
-                      <p className="text-xs text-gray-500">{new Date(seminar.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
-                      <h3 className="font-semibold text-gray-900">{seminar.title}</h3>
-                      <p className="text-sm text-gray-600 flex items-center gap-1">
-                        <MapPin className="h-4 w-4 text-primary-600" />
+                      <p className="text-xs text-slate-500">{new Date(seminar.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+                      <h3 className="font-semibold text-slate-900">{seminar.title}</h3>
+                      <p className="flex items-center gap-1 text-sm text-slate-600">
+                        <MapPin className="h-4 w-4 text-sky-600" />
                         {seminar.location}
                       </p>
-                      {seminar.theme && <p className="text-xs text-gray-600">{seminar.theme}</p>}
-                      {seminar.facilitator && <p className="text-xs text-gray-500">Animé par {seminar.facilitator}</p>}
+                      {seminar.theme && <p className="text-xs text-slate-600">{seminar.theme}</p>}
+                      {seminar.facilitator && <p className="text-xs text-slate-500">Animé par {seminar.facilitator}</p>}
                     </div>
-                    <span className={`text-xs font-semibold px-2 py-1 rounded-full ${isPast ? 'bg-gray-200 text-gray-600' : 'bg-primary-50 text-primary-700'}`}>
+                    <span className={`rounded-full px-2 py-1 text-xs font-semibold ${isPast ? 'bg-slate-200 text-slate-700' : 'bg-sky-50 text-sky-700'}`}>
                       {isPast ? 'Clôturé' : 'Ouvert'}
                     </span>
                   </div>
-                  <div className="mt-3 flex items-center justify-between text-sm">
-                    <span className="text-gray-600">
+                  <div className="relative mt-3 flex items-center justify-between text-sm">
+                    <span className="text-slate-600">
                       {alreadyRegistered
                         ? 'Vous êtes inscrit(e)'
                         : locked
@@ -379,8 +431,8 @@ export default function Dashboard() {
                       onClick={() => !disabled && handleRegister(seminar.id)}
                       className={`text-sm font-semibold px-3 py-1.5 rounded-lg border transition ${
                         disabled
-                          ? 'border-gray-200 text-gray-400 bg-white cursor-not-allowed'
-                          : 'border-primary-200 text-primary-700 bg-primary-50 hover:bg-primary-100'
+                          ? 'border-slate-200 bg-white text-slate-400 cursor-not-allowed'
+                          : 'border-sky-200 bg-sky-50 text-sky-700 hover:bg-sky-100'
                       }`}
                     >
                       {alreadyRegistered
@@ -399,7 +451,7 @@ export default function Dashboard() {
         </div>
 
         {/* Accès rapides */}
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
           {featureBlocks.map((feature) => {
             const Icon = feature.icon
             const isRestricted = feature.roles && (!profile?.role || !feature.roles.includes(profile.role))
@@ -414,28 +466,28 @@ export default function Dashboard() {
                   }
                   router.push(feature.href)
                 }}
-                className={`bg-white rounded-xl shadow-sm p-6 transition-all group text-left border ${
-                  isRestricted ? 'opacity-60 cursor-not-allowed border-dashed' : 'hover:shadow-md border-transparent'
+                className={`group text-left overflow-hidden rounded-xl border bg-white/80 p-6 shadow-sm backdrop-blur transition-all ${
+                  isRestricted ? 'cursor-not-allowed border-dashed opacity-60' : 'hover:-translate-y-0.5 hover:shadow-md'
                 }`}
               >
                 <div className="flex items-start space-x-4">
-                  <div className={`bg-gradient-to-br ${feature.color} p-3 rounded-lg`}>
+                  <div className={`rounded-lg bg-gradient-to-br ${feature.color} p-3 shadow-inner shadow-black/10`}>
                     <Icon className="h-6 w-6 text-white" />
                   </div>
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
-                      <h3 className="font-semibold text-gray-900 group-hover:text-primary-600 transition-colors">
+                      <h3 className="font-semibold text-slate-900 transition-colors group-hover:text-sky-600">
                         {feature.title}
                       </h3>
                       {feature.badge && (
-                        <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-gray-100 text-gray-700">{feature.badge}</span>
+                        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-700">{feature.badge}</span>
                       )}
                     </div>
-                    <p className="text-sm text-gray-600 mt-1">
+                    <p className="mt-1 text-sm text-slate-600">
                       {feature.description}
                     </p>
                   </div>
-                  <ChevronRight className="h-5 w-5 text-gray-400 group-hover:text-primary-600 transition-colors" />
+                  <ChevronRight className="h-5 w-5 text-slate-400 transition-colors group-hover:text-sky-600" />
                 </div>
               </button>
             )
@@ -444,37 +496,33 @@ export default function Dashboard() {
 
         {/* Recent Sessions */}
         {recentSessions.length > 0 && (
-          <div className="bg-white rounded-xl shadow-sm">
-            <div className="p-6 border-b border-gray-200">
-              <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-gray-900">
-                  Sessions récentes
-                </h2>
-                <button
-                  onClick={() => router.push('/history')}
-                  className="text-sm text-primary-600 hover:text-primary-700 font-medium"
-                >
-                  Voir tout →
-                </button>
-              </div>
+          <div className="overflow-hidden rounded-2xl border border-slate-100 bg-white/80 shadow-sm backdrop-blur">
+            <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
+              <h2 className="text-lg font-semibold text-slate-900">
+                Sessions récentes
+              </h2>
+              <button
+                onClick={() => router.push('/history')}
+                className="text-sm font-semibold text-sky-600 transition hover:text-sky-700"
+              >
+                Voir tout →
+              </button>
             </div>
-            <div className="divide-y divide-gray-200">
+            <div className="divide-y divide-slate-100">
               {recentSessions.map((session, index) => (
-                <div key={index} className="p-4 hover:bg-gray-50 transition-colors">
+                <div key={index} className="px-6 py-4 transition hover:bg-slate-50/80">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-3">
-                      <div className={`p-2 rounded-lg ${
-                        session.completed ? 'bg-green-100' : 'bg-yellow-100'
+                      <div className={`rounded-lg p-2 ${
+                        session.completed ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'
                       }`}>
-                        <TreePine className={`h-4 w-4 ${
-                          session.completed ? 'text-green-600' : 'text-yellow-600'
-                        }`} />
+                        <TreePine className="h-4 w-4" />
                       </div>
                       <div>
-                        <p className="font-medium text-gray-900">
+                        <p className="font-medium text-slate-900">
                           {session.tree_name}
                         </p>
-                        <p className="text-sm text-gray-600">
+                        <p className="text-sm text-slate-600">
                           {new Date(session.created_at).toLocaleDateString('fr-FR', {
                             day: 'numeric',
                             month: 'long',
@@ -485,15 +533,15 @@ export default function Dashboard() {
                       </div>
                     </div>
                     <div className="flex items-center space-x-2">
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                      <span className={`rounded-full px-2 py-1 text-xs font-semibold ${
                         session.completed
-                          ? 'bg-green-100 text-green-700'
-                          : 'bg-yellow-100 text-yellow-700'
+                          ? 'bg-emerald-50 text-emerald-700'
+                          : 'bg-amber-50 text-amber-700'
                       }`}>
                         {session.completed ? 'Terminé' : 'En cours'}
                       </span>
                       {session.completed && session.diagnosis && (
-                        <button className="text-primary-600 hover:text-primary-700">
+                        <button className="text-sky-600 transition hover:text-sky-700">
                           <FileText className="h-4 w-4" />
                         </button>
                       )}
@@ -507,7 +555,7 @@ export default function Dashboard() {
 
         {/* Admin Quick Stats - Only for admins */}
         {profile?.role === 'admin' && (
-          <div className="bg-gradient-to-r from-purple-500 to-purple-600 rounded-xl shadow-sm p-6 text-white">
+          <div className="rounded-2xl bg-gradient-to-r from-purple-500 to-purple-600 p-6 text-white shadow-lg">
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-lg font-semibold">Zone Administration</h3>
