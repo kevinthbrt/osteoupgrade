@@ -53,20 +53,9 @@ export default function AuthPage() {
             full_name: fullName,
           }).eq('id', data.user.id)
 
-          // Sync user with System.io in the background
-          try {
-            await fetch('/api/systemio/sync-user', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-            })
-          } catch (syncError) {
-            console.error('Error syncing with System.io:', syncError)
-            // Don't block user registration if System.io sync fails
-          }
-
           setSuccess('Compte créé avec succès ! Vous allez être redirigé...')
+
+          // Redirect to dashboard - synchro System.io will happen there
           setTimeout(() => {
             router.push('/dashboard')
           }, 2000)
