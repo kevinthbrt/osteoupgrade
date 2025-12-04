@@ -193,16 +193,17 @@ export default function Navigation() {
 
     const badges = {
       free: { text: 'Gratuit', bg: 'bg-gray-100', color: 'text-gray-700' },
+      premium: { text: 'Premium (ancien)', bg: 'bg-gradient-to-r from-yellow-400 to-yellow-500', color: 'text-white' },
       premium_silver: { text: 'Premium Silver', bg: 'bg-gradient-to-r from-gray-300 to-gray-400', color: 'text-white' },
       premium_gold: { text: 'Premium Gold', bg: 'bg-gradient-to-r from-yellow-400 to-yellow-500', color: 'text-white' },
       admin: { text: 'Admin', bg: 'bg-gradient-to-r from-purple-500 to-purple-600', color: 'text-white' }
     }
 
-    const badge = badges[profile.role as keyof typeof badges]
+    const badge = badges[profile.role as keyof typeof badges] || badges.free
 
     return (
       <span className={`px-2 py-1 rounded-full text-xs font-medium ${badge.bg} ${badge.color} flex items-center gap-1`}>
-        {(profile.role === 'premium_silver' || profile.role === 'premium_gold') && <Crown className="h-3 w-3" />}
+        {(profile.role === 'premium' || profile.role === 'premium_silver' || profile.role === 'premium_gold') && <Crown className="h-3 w-3" />}
         {profile.role === 'admin' && <Shield className="h-3 w-3" />}
         {badge.text}
       </span>

@@ -166,8 +166,8 @@ export default function Dashboard() {
     isDateWithinCycle(registration.registeredAt, currentCycle)
   )
   const remainingSeminars = Math.max(0, 1 - cycleRegistrations.length)
-  const isPremiumOrAdmin = profile?.role === 'premium_silver' || profile?.role === 'premium_gold' || profile?.role === 'admin'
-  const isPremiumGoldOrAdmin = profile?.role === 'premium_gold' || profile?.role === 'admin'
+  const isPremiumOrAdmin = profile?.role === 'premium' || profile?.role === 'premium_silver' || profile?.role === 'premium_gold' || profile?.role === 'admin'
+  const isPremiumGoldOrAdmin = profile?.role === 'premium' || profile?.role === 'premium_gold' || profile?.role === 'admin'
 
   const handleRegister = async (id: string) => {
     if (!isPremiumGoldOrAdmin) {
