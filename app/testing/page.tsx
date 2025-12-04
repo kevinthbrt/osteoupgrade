@@ -185,6 +185,69 @@ export default function TestingModulePage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [filterIndication, setFilterIndication] = useState('')
 
+  const specialCategoryZones: Record<string, AnatomicalZone> = {
+    neurologique: {
+      id: 'special-neurologique',
+      name: 'neurologique',
+      display_name: 'Tests neurologiques',
+      description: null,
+      color: '#7c3aed',
+      position_x: 0,
+      position_y: 0,
+      position_z: 0,
+      size_x: 0,
+      size_y: 0,
+      size_z: 0,
+      is_symmetric: false,
+      model_path: null,
+      is_active: true,
+      display_order: 0,
+      created_by: null,
+      created_at: '',
+      updated_at: ''
+    },
+    vasculaire: {
+      id: 'special-vasculaire',
+      name: 'vasculaire',
+      display_name: 'Tests vasculaires',
+      description: null,
+      color: '#dc2626',
+      position_x: 0,
+      position_y: 0,
+      position_z: 0,
+      size_x: 0,
+      size_y: 0,
+      size_z: 0,
+      is_symmetric: false,
+      model_path: null,
+      is_active: true,
+      display_order: 0,
+      created_by: null,
+      created_at: '',
+      updated_at: ''
+    },
+    systemique: {
+      id: 'special-systemique',
+      name: 'systemique',
+      display_name: 'Tests systémiques',
+      description: null,
+      color: '#2563eb',
+      position_x: 0,
+      position_y: 0,
+      position_z: 0,
+      size_x: 0,
+      size_y: 0,
+      size_z: 0,
+      is_symmetric: false,
+      model_path: null,
+      is_active: true,
+      display_order: 0,
+      created_by: null,
+      created_at: '',
+      updated_at: ''
+    }
+  }
+
   // Modal Test
   const [selectedTest, setSelectedTest] = useState<OrthopedicTest | null>(null)
   const [showTestModal, setShowTestModal] = useState(false)
@@ -278,6 +341,16 @@ export default function TestingModulePage() {
   const handleZoneClick = (zone: AnatomicalZone) => {
     setSelectedZone(zone)
     setShowTestList(true)
+  }
+
+  const handleSpecialCategoryClick = (
+    categoryKey: keyof typeof specialCategoryZones
+  ) => {
+    const specialZone = specialCategoryZones[categoryKey]
+    if (specialZone) {
+      setSelectedZone(specialZone)
+      setShowTestList(true)
+    }
   }
 
   const addTestToSession = (test: OrthopedicTest) => {
@@ -522,17 +595,24 @@ export default function TestingModulePage() {
     generateTestingPDF(currentSession)
   }
 
+  const normalizeString = (value?: string | null) =>
+    value
+      ? value
+          .normalize('NFD')
+          .replace(/\p{Diacritic}/gu, '')
+          .toLowerCase()
+      : ''
+
   const getFilteredTests = () => {
     if (!selectedZone) return []
 
+    const zoneName = normalizeString(selectedZone.name)
+    const zoneDisplay = normalizeString(selectedZone.display_name)
+
     // Essayer de matcher avec name OU display_name
     let filtered = tests.filter((test: OrthopedicTest) => {
-      const matchName =
-        test.category?.toLowerCase() === selectedZone.name?.toLowerCase()
-      const matchDisplayName =
-        test.category?.toLowerCase() ===
-        selectedZone.display_name?.toLowerCase()
-      return matchName || matchDisplayName
+      const testCategory = normalizeString(test.category)
+      return testCategory === zoneName || testCategory === zoneDisplay
     })
 
     if (searchQuery) {
@@ -556,9 +636,9 @@ export default function TestingModulePage() {
     if (!selectedZone) return []
 
     let filtered = clusters.filter((cluster: OrthopedicTestCluster) => {
-      const region = cluster.region?.toLowerCase() || ''
-      const zoneName = selectedZone.name?.toLowerCase() || ''
-      const zoneDisplay = selectedZone.display_name?.toLowerCase() || ''
+      const region = normalizeString(cluster.region)
+      const zoneName = normalizeString(selectedZone.name)
+      const zoneDisplay = normalizeString(selectedZone.display_name)
 
       if (!region) return false
 
@@ -792,7 +872,7 @@ export default function TestingModulePage() {
         )}
 
         {/* Contenu principal - MODULE 3D À GAUCHE, TESTS À DROITE */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
           {/* Module 3D - 2 colonnes */}
           <div className="lg:col-span-2 space-y-6">
             {/* Visualisateur 3D */}
@@ -808,7 +888,11 @@ export default function TestingModulePage() {
                   </p>
                 </div>
               ) : (
-                <TestingViewer3D zones={zones} onZoneClick={handleZoneClick} />
+                <TestingViewer3D
+                  zones={zones}
+                  onZoneClick={handleZoneClick}
+                  onSpecialCategoryClick={handleSpecialCategoryClick}
+                />
               )}
             </div>
 
@@ -1039,7 +1123,7 @@ export default function TestingModulePage() {
           </div>
 
           {/* TESTS / CLUSTERS À DROITE - 1 colonne */}
-          <div className="space-y-6">
+          <div className="lg:col-span-3 space-y-6">
             {/* Liste des tests / clusters de la zone */}
             {showTestList && selectedZone && (
               <div className="bg-white rounded-xl shadow-sm p-6">

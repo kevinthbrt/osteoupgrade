@@ -30,6 +30,7 @@ interface TestingViewer3DProps {
   zones: AnatomicalZone[]
   onZoneClick: (zone: AnatomicalZone) => void
   modelPath?: string
+  onSpecialCategoryClick?: (category: string) => void
 }
 
 // Zone cliquable
@@ -148,10 +149,11 @@ function LoadingScreen() {
 }
 
 // Composant principal
-export default function TestingViewer3D({ 
+export default function TestingViewer3D({
   zones,
   onZoneClick,
-  modelPath = '/models/human-skeleton.gltf'
+  modelPath = '/models/human-skeleton.gltf',
+  onSpecialCategoryClick
 }: TestingViewer3DProps) {
   const [hoveredZone, setHoveredZone] = useState<string | null>(null)
 
@@ -160,11 +162,29 @@ export default function TestingViewer3D({
   }
 
   // Zone survolée
-  const hoveredZoneInfo = zones.find(z => 
-    hoveredZone === z.id || 
-    hoveredZone === `${z.id}-left` || 
+  const hoveredZoneInfo = zones.find(z =>
+    hoveredZone === z.id ||
+    hoveredZone === `${z.id}-left` ||
     hoveredZone === `${z.id}-right`
   )
+
+  const specialCategories = [
+    {
+      key: 'neurologique',
+      label: 'Tests neurologiques',
+      color: 'bg-purple-600'
+    },
+    {
+      key: 'vasculaire',
+      label: 'Tests vasculaires',
+      color: 'bg-red-600'
+    },
+    {
+      key: 'systemique',
+      label: 'Tests systémiques',
+      color: 'bg-blue-600'
+    }
+  ]
 
   return (
     <div className="relative">
@@ -243,6 +263,19 @@ export default function TestingViewer3D({
             </p>
           </div>
         )}
+
+        {/* Boutons pour les tests globaux */}
+        <div className="absolute right-4 top-1/2 -translate-y-1/2 space-y-2">
+          {specialCategories.map((category) => (
+            <button
+              key={category.key}
+              onClick={() => onSpecialCategoryClick?.(category.key)}
+              className={`${category.color} text-white px-4 py-2 rounded-lg shadow-lg text-sm font-medium hover:opacity-90 transition-opacity`}
+            >
+              {category.label}
+            </button>
+          ))}
+        </div>
       </div>
     </div>
   )
