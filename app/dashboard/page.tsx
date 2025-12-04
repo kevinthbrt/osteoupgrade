@@ -166,11 +166,12 @@ export default function Dashboard() {
     isDateWithinCycle(registration.registeredAt, currentCycle)
   )
   const remainingSeminars = Math.max(0, 1 - cycleRegistrations.length)
-  const isPremiumOrAdmin = profile?.role === 'premium' || profile?.role === 'admin'
+  const isPremiumOrAdmin = profile?.role === 'premium_silver' || profile?.role === 'premium_gold' || profile?.role === 'admin'
+  const isPremiumGoldOrAdmin = profile?.role === 'premium_gold' || profile?.role === 'admin'
 
   const handleRegister = async (id: string) => {
-    if (!isPremiumOrAdmin) {
-      alert('Inscription réservée aux membres Premium')
+    if (!isPremiumGoldOrAdmin) {
+      alert('Inscription réservée aux membres Premium Gold')
       return
     }
 
@@ -207,7 +208,7 @@ export default function Dashboard() {
       icon: BookOpen,
       href: '/topographie',
       color: 'from-green-500 to-emerald-600',
-      roles: ['premium', 'admin'] as const,
+      roles: ['premium_silver', 'premium_gold', 'admin'] as const,
     },
     {
       title: 'Démarrer le Testing 3D',
@@ -215,7 +216,16 @@ export default function Dashboard() {
       icon: TestTube,
       href: '/testing',
       color: 'from-purple-500 to-indigo-600',
-      roles: ['premium', 'admin'] as const,
+      roles: ['premium_silver', 'premium_gold', 'admin'] as const,
+    },
+    {
+      title: 'E-learning System.io',
+      description: 'Accédez à toutes nos formations professionnelles en ligne.',
+      icon: BookOpen,
+      href: '/elearning',
+      color: 'from-blue-500 to-cyan-600',
+      roles: ['premium_silver', 'premium_gold', 'admin'] as const,
+      badge: 'Nouveau',
     },
     {
       title: 'Consultation guidée',
@@ -312,12 +322,25 @@ export default function Dashboard() {
                   <div className="flex items-start justify-between">
                     <div>
                       <p className="text-sm text-slate-200">Statut</p>
-                      <p className="text-lg font-semibold">{profile?.role === 'admin' ? 'Administrateur' : 'Premium'}</p>
+                      <p className="text-lg font-semibold">
+                        {profile?.role === 'admin'
+                          ? 'Administrateur'
+                          : profile?.role === 'premium_gold'
+                            ? 'Premium Gold'
+                            : profile?.role === 'premium_silver'
+                              ? 'Premium Silver'
+                              : 'Gratuit'}
+                      </p>
                     </div>
                     <span className="rounded-full bg-sky-500/20 px-3 py-1 text-xs font-semibold text-sky-100">Actif</span>
                   </div>
                   <p className="mt-2 text-sm text-slate-200">
-                    Profitez des ressources complètes : topographie, testing 3D et séminaires.
+                    {profile?.role === 'premium_gold' || profile?.role === 'admin'
+                      ? 'Profitez des ressources complètes : topographie, testing 3D, e-learning et séminaires présentiels.'
+                      : profile?.role === 'premium_silver'
+                        ? 'Profitez de tout le contenu en ligne : topographie, testing 3D et e-learning.'
+                        : 'Profitez des ressources complètes en passant Premium.'
+                    }
                   </p>
                 </div>
               )}
