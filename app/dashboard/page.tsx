@@ -84,21 +84,6 @@ export default function Dashboard() {
 
       if (profileData) {
         setProfile(profileData)
-
-        // Auto-sync with System.io if not already synced
-        if (user && !profileData.systemio_contact_id) {
-          try {
-            await fetch('/api/systemio/sync-user', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-            })
-            console.log('✅ Synchronisé avec System.io')
-          } catch (error) {
-            console.log('⚠️ Synchronisation System.io en attente')
-          }
-        }
       }
 
       // Get statistics + catalogue

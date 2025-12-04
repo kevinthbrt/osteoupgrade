@@ -162,8 +162,6 @@ export type Database = {
         subscription_status: string | null
         subscription_end_date: string | null
         subscription_start_date: string | null
-        systemio_contact_id: string | null
-        systemio_synced_at: string | null
         created_at: string
         updated_at: string
       }>
@@ -231,37 +229,6 @@ export type Database = {
           full_name: string | null
           email: string | null
         }
-      }>
-      systemio_courses: TableDefinition<{
-        id: string
-        systemio_course_id: string
-        title: string
-        description: string | null
-        thumbnail_url: string | null
-        course_url: string
-        is_active: boolean | null
-        display_order: number | null
-        created_at: string
-        updated_at: string
-      }>
-      user_course_enrollments: TableDefinition<{
-        id: string
-        user_id: string
-        course_id: string
-        enrolled_at: string
-        last_accessed_at: string | null
-        progress: number | null
-        completed: boolean | null
-        completed_at: string | null
-      }>
-      systemio_sync_logs: TableDefinition<{
-        id: string
-        user_id: string | null
-        sync_type: string
-        status: string
-        error_message: string | null
-        metadata: any
-        created_at: string
       }>
     }
   }
