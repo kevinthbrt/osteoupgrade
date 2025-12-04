@@ -5,13 +5,12 @@ import { useRouter } from 'next/navigation'
 import {
   CheckCircle,
   ArrowRight,
-  Cube,
+  Box,
   FileText,
   Download,
   MapPin,
   Clock,
-  Zap,
-  BookOpen
+  Zap
 } from 'lucide-react'
 
 export default function LandingPage() {
@@ -95,7 +94,7 @@ export default function LandingPage() {
             <div className={`transition-all duration-1000 delay-300 ${isVisible ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-8'}`}>
               <div className="relative rounded-2xl overflow-hidden shadow-2xl border border-slate-200 bg-white">
                 <div className="aspect-[16/10] flex flex-col items-center justify-center bg-gradient-to-br from-slate-50 to-white border-2 border-dashed border-slate-300 p-8">
-                  <Cube className="h-16 w-16 text-sky-500 mb-4" />
+                  <Box className="h-16 w-16 text-sky-500 mb-4" />
                   <h3 className="text-lg font-semibold text-slate-900 mb-2">Capture principale interface</h3>
                   <p className="text-sm text-slate-600 text-center">Vue d&apos;ensemble de l&apos;application avec le module 3D épaule</p>
                 </div>
@@ -179,7 +178,7 @@ export default function LandingPage() {
             </div>
             <div className="rounded-2xl overflow-hidden shadow-xl border border-slate-200">
               <div className="aspect-[16/10] flex flex-col items-center justify-center bg-gradient-to-br from-slate-50 to-white border-2 border-dashed border-slate-300 p-8">
-                <Cube className="h-16 w-16 text-sky-500 mb-4" />
+                <Box className="h-16 w-16 text-sky-500 mb-4" />
                 <h3 className="text-lg font-semibold text-slate-900 mb-2">Module 3D tests</h3>
                 <p className="text-sm text-slate-600 text-center">Capture du module 3D avec un test orthopédique affiché</p>
               </div>
