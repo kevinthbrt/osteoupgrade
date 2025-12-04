@@ -226,16 +226,20 @@ export default function Dashboard() {
       roles: ['admin'] as const,
       badge: 'Bientôt',
     },
-  ]
+  ];
+
+  // Loading state with consistent layout wrapper
+  // Ensures JSX stays scoped correctly for SWC parsing
+  const loadingView = (
+    <AuthLayout>
+      <div className="flex items-center justify-center h-96">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600" />
+      </div>
+    </AuthLayout>
+  );
 
   if (loading) {
-    return (
-      <AuthLayout>
-        <div className="flex items-center justify-center h-96">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-        </div>
-      </AuthLayout>
-    )
+    return loadingView
   }
 
   return (
