@@ -52,7 +52,20 @@ export default function AuthPage() {
           await supabase.from('profiles').update({
             full_name: fullName,
           }).eq('id', data.user.id)
-          
+
+          // Sync user with System.io in the background
+          try {
+            await fetch('/api/systemio/sync-user', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+            })
+          } catch (syncError) {
+            console.error('Error syncing with System.io:', syncError)
+            // Don't block user registration if System.io sync fails
+          }
+
           setSuccess('Compte créé avec succès ! Vous allez être redirigé...')
           setTimeout(() => {
             router.push('/dashboard')

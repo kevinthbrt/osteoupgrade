@@ -147,8 +147,8 @@ export default function SeminarsPage() {
   const hasReachedLimit = cycleRegistrations.length >= 1
 
   const handleRegister = async (id: string) => {
-    if (profile?.role !== 'premium' && profile?.role !== 'admin') {
-      alert('Inscription réservée aux membres Premium')
+    if (profile?.role !== 'premium_gold' && profile?.role !== 'admin') {
+      alert('Inscription réservée aux membres Premium Gold uniquement')
       return
     }
 
@@ -334,7 +334,7 @@ export default function SeminarsPage() {
           </div>
           <h1 className="text-2xl font-bold text-gray-900">Rencontres en présentiel (1 séminaire de 2 jours inclus/an)</h1>
           <p className="text-gray-600">
-            Réservés aux abonnés Premium pour rencontrer Gérald Stoppini et Kevin Thubert. Limite d'un séminaire (2 jours) par
+            Réservés aux abonnés Premium Gold pour rencontrer Gérald Stoppini et Kevin Thubert. Limite d'un séminaire (2 jours) par
             cycle annuel depuis votre date d'abonnement.
           </p>
           <div className="flex items-center gap-3 text-sm text-gray-700">
@@ -352,18 +352,23 @@ export default function SeminarsPage() {
           )}
         </div>
 
-        {isFree && (
+        {(isFree || profile?.role === 'premium_silver') && (
           <div className="bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-xl p-6 shadow-lg flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
-              <p className="text-sm uppercase tracking-wide text-white/80">Accès Premium requis</p>
-              <h2 className="text-xl font-bold">2 séminaires inclus par an</h2>
-              <p className="text-white/90 mt-2">Passez Premium (50€/mois facturés annuellement) pour réserver vos places en présentiel.</p>
+              <p className="text-sm uppercase tracking-wide text-white/80">Accès Premium Gold requis</p>
+              <h2 className="text-xl font-bold">Séminaires présentiels inclus</h2>
+              <p className="text-white/90 mt-2">
+                {isFree
+                  ? 'Passez Premium Gold pour accéder aux séminaires en présentiel avec Gérald Stoppini et Kevin Thubert.'
+                  : 'Passez à Premium Gold pour débloquer l\'accès aux séminaires présentiels. Votre abonnement Silver vous donne accès à tout le contenu en ligne.'
+                }
+              </p>
             </div>
             <button
               onClick={() => router.push('/settings')}
-              className="bg-white text-amber-600 px-5 py-3 rounded-lg font-semibold hover:bg-white/90 transition"
+              className="bg-white text-amber-600 px-5 py-3 rounded-lg font-semibold hover:bg-white/90 transition whitespace-nowrap"
             >
-              Activer le Premium
+              {isFree ? 'Activer Premium' : 'Passer à Gold'}
             </button>
           </div>
         )}
@@ -414,9 +419,9 @@ export default function SeminarsPage() {
                   {!isRegistered ? (
                     <button
                       onClick={() => handleRegister(seminar.id)}
-                      disabled={isFree || hasReachedLimit || isFull}
+                      disabled={isFree || profile?.role === 'premium_silver' || hasReachedLimit || isFull}
                       className={`px-4 py-2 rounded-lg text-sm font-semibold border transition flex items-center justify-center gap-2 ${
-                        isFree
+                        isFree || profile?.role === 'premium_silver'
                           ? 'border-dashed border-gray-200 text-gray-400'
                           : hasReachedLimit
                             ? 'border-red-200 text-red-600 bg-red-50'
@@ -426,12 +431,14 @@ export default function SeminarsPage() {
                       }`}
                     >
                       {isFree
-                        ? 'Premium requis'
-                        : hasReachedLimit
-                          ? 'Limite atteinte'
-                          : isFull
-                            ? 'Complet'
-                            : 'Réserver ma place'}
+                        ? 'Gold requis'
+                        : profile?.role === 'premium_silver'
+                          ? 'Gold requis'
+                          : hasReachedLimit
+                            ? 'Limite atteinte'
+                            : isFull
+                              ? 'Complet'
+                              : 'Réserver ma place'}
                     </button>
                   ) : (
                     <>
