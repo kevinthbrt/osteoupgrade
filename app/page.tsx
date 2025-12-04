@@ -80,7 +80,7 @@ export default function LandingPage() {
                   onClick={() => router.push('/auth')}
                   className="bg-sky-500 text-white px-8 py-4 rounded-lg font-semibold hover:bg-sky-400 transition-all flex items-center justify-center gap-2 text-lg"
                 >
-                  Tester gratuitement avec l'épaule
+                  Tester gratuitement avec l&apos;épaule
                 </button>
                 <button
                   onClick={() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })}
@@ -97,7 +97,7 @@ export default function LandingPage() {
                 <div className="aspect-[16/10] flex flex-col items-center justify-center bg-gradient-to-br from-slate-50 to-white border-2 border-dashed border-slate-300 p-8">
                   <Cube className="h-16 w-16 text-sky-500 mb-4" />
                   <h3 className="text-lg font-semibold text-slate-900 mb-2">Capture principale interface</h3>
-                  <p className="text-sm text-slate-600 text-center">Vue d'ensemble de l'application avec le module 3D épaule</p>
+                  <p className="text-sm text-slate-600 text-center">Vue d&apos;ensemble de l&apos;application avec le module 3D épaule</p>
                 </div>
               </div>
             </div>
@@ -159,13 +159,13 @@ export default function LandingPage() {
               <h3 className="text-3xl font-bold text-slate-900 mb-6">Tests orthopédiques en 3D</h3>
               <p className="text-lg text-slate-600 mb-6 leading-relaxed">
                 Visualise chaque test sur un modèle 3D interactif. Rotation, zoom et angles multiples 
-                pour comprendre parfaitement le positionnement et l'exécution.
+                pour comprendre parfaitement le positionnement et l&apos;exécution.
               </p>
               <ul className="space-y-4">
                 {[
                   'Modèles anatomiques haute qualité par région',
                   'Descriptions détaillées de chaque test',
-                  'Critères d'interprétation clairs',
+                  'Critères d\'interprétation clairs',
                   'Rotation 360° et zoom précis'
                 ].map((item, index) => (
                   <li key={index} className="flex items-center gap-3 text-slate-700">
@@ -192,14 +192,14 @@ export default function LandingPage() {
               <div className="aspect-[16/10] flex flex-col items-center justify-center bg-gradient-to-br from-slate-50 to-white border-2 border-dashed border-slate-300 p-8">
                 <MapPin className="h-16 w-16 text-sky-500 mb-4" />
                 <h3 className="text-lg font-semibold text-slate-900 mb-2">Arbre décisionnel</h3>
-                <p className="text-sm text-slate-600 text-center">Capture d'un arbre de décision diagnostique en cours</p>
+                <p className="text-sm text-slate-600 text-center">Capture d&apos;un arbre de décision diagnostique en cours</p>
               </div>
             </div>
             <div className="order-1 lg:order-2">
               <h3 className="text-3xl font-bold text-slate-900 mb-6">Guide diagnostique complet</h3>
               <p className="text-lg text-slate-600 mb-6 leading-relaxed">
                 Bientôt : un guide diagnostique complet qui partira de la symptomatologie pour 
-                établir un diagnostic via un modèle d'arbre décisionnel.
+                établir un diagnostic via un modèle d&apos;arbre décisionnel.
               </p>
               <ul className="space-y-4">
                 {[
@@ -247,7 +247,7 @@ export default function LandingPage() {
               <div className="aspect-[16/10] flex flex-col items-center justify-center bg-gradient-to-br from-slate-50 to-white border-2 border-dashed border-slate-300 p-8">
                 <Download className="h-16 w-16 text-sky-500 mb-4" />
                 <h3 className="text-lg font-semibold text-slate-900 mb-2">Export de session</h3>
-                <p className="text-sm text-slate-600 text-center">Capture d'une session de testing avec option d'export</p>
+                <p className="text-sm text-slate-600 text-center">Capture d&apos;une session de testing avec option d&apos;export</p>
               </div>
             </div>
           </div>
@@ -262,7 +262,7 @@ export default function LandingPage() {
               Comment ça marche
             </div>
             <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-4">
-              Tu l'ouvres, tu testes, tu traces. C'est tout.
+              Tu l&apos;ouvres, tu testes, tu traces. C&apos;est tout.
             </h2>
             <p className="text-lg text-slate-400 max-w-3xl mx-auto">
               Une application pensée pour le cabinet, pas pour remplacer ton raisonnement mais pour le structurer.
@@ -308,10 +308,10 @@ export default function LandingPage() {
                 Premium
               </div>
               <h2 className="text-3xl sm:text-4xl font-bold text-slate-900 mb-4">
-                Bien plus qu'une app : un écosystème de formation
+                Bien plus qu&apos;une app : un écosystème de formation
               </h2>
               <p className="text-lg text-slate-600 max-w-3xl mx-auto">
-                L'abonnement premium ouvre l'accès à la plateforme complète et à un socle de contenus 
+                L&apos;abonnement premium ouvre l&apos;accès à la plateforme complète et à un socle de contenus 
                 pour faire évoluer ta pratique chaque année.
               </p>
             </div>
@@ -337,7 +337,7 @@ export default function LandingPage() {
                 onClick={() => router.push('/auth')}
                 className="bg-sky-500 text-white px-10 py-4 rounded-lg font-semibold hover:bg-sky-400 transition-all text-lg inline-flex items-center gap-2"
               >
-                Commencer avec l'essai gratuit
+                Commencer avec l&apos;essai gratuit
                 <ArrowRight className="h-5 w-5" />
               </button>
             </div>
@@ -353,20 +353,20 @@ export default function LandingPage() {
           </h2>
           <p className="text-lg sm:text-xl text-slate-300 mb-8">
             Teste gratuitement le module épaule et découvre comment OsteoUpgrade 
-            s'intègre naturellement dans ta pratique quotidienne.
+            s&apos;intègre naturellement dans ta pratique quotidienne.
           </p>
           <button
             onClick={() => router.push('/auth')}
             className="bg-sky-500 text-white px-10 py-4 rounded-lg font-semibold hover:bg-sky-400 transition-all text-lg inline-flex items-center gap-2"
           >
-            Tester gratuitement avec l'épaule
+            Tester gratuitement avec l&apos;épaule
             <ArrowRight className="h-5 w-5" />
           </button>
           <div className="mt-8 bg-sky-500/10 border border-sky-500/30 rounded-2xl p-6 max-w-2xl mx-auto">
             <p className="text-white/90">
-              <strong className="text-white">Permet de voir exactement comment fonctionne l'application au cabinet.</strong>
+              <strong className="text-white">Permet de voir exactement comment fonctionne l&apos;application au cabinet.</strong>
               <br />
-              Pas besoin de carte bancaire pour l'essai gratuit.
+              Pas besoin de carte bancaire pour l&apos;essai gratuit.
             </p>
           </div>
         </div>
