@@ -88,15 +88,21 @@ export default function Dashboard() {
         // Auto-sync with System.io if not already synced
         if (user && !profileData.systemio_contact_id) {
           try {
-            await fetch('/api/systemio/sync-user', {
+            const response = await fetch('/api/systemio/sync-user', {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
               },
             })
-            console.log('✅ Synchronisé avec System.io')
+
+            if (response.ok) {
+              console.log('✅ Synchronisé avec System.io')
+            } else {
+              const error = await response.json()
+              console.log('⚠️ Synchronisation System.io échouée:', error.error || response.statusText)
+            }
           } catch (error) {
-            console.log('⚠️ Synchronisation System.io en attente')
+            console.log('⚠️ Erreur réseau - Synchronisation System.io en attente')
           }
         }
       }
