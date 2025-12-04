@@ -599,7 +599,7 @@ export default function TestingModulePage() {
     value
       ? value
           .normalize('NFD')
-          .replace(/\p{Diacritic}/gu, '')
+          .replace(/[\u0300-\u036f]/g, '')
           .toLowerCase()
       : ''
 
