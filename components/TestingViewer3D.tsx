@@ -187,7 +187,7 @@ export default function TestingViewer3D({
   ]
 
   return (
-    <div className="relative">
+    <div className="space-y-4">
       <div className="w-full h-[500px] bg-gradient-to-b from-gray-900 to-gray-800 rounded-xl overflow-hidden relative">
         <Canvas shadows>
           <PerspectiveCamera 
@@ -264,18 +264,19 @@ export default function TestingViewer3D({
           </div>
         )}
 
-        {/* Boutons pour les tests globaux */}
-        <div className="absolute right-4 top-1/2 -translate-y-1/2 space-y-2">
-          {specialCategories.map((category) => (
-            <button
-              key={category.key}
-              onClick={() => onSpecialCategoryClick?.(category.key)}
-              className={`${category.color} text-white px-4 py-2 rounded-lg shadow-lg text-sm font-medium hover:opacity-90 transition-opacity`}
-            >
-              {category.label}
-            </button>
-          ))}
-        </div>
+      </div>
+
+      {/* Boutons pour les tests globaux */}
+      <div className="flex flex-wrap items-center justify-center gap-3">
+        {specialCategories.map((category) => (
+          <button
+            key={category.key}
+            onClick={() => onSpecialCategoryClick?.(category.key)}
+            className={`${category.color} text-white px-4 py-2 rounded-lg shadow-lg text-sm font-medium hover:opacity-90 transition-opacity`}
+          >
+            {category.label}
+          </button>
+        ))}
       </div>
     </div>
   )

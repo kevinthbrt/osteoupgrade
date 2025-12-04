@@ -872,9 +872,9 @@ export default function TestingModulePage() {
         )}
 
         {/* Contenu principal - MODULE 3D À GAUCHE, TESTS À DROITE */}
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-          {/* Module 3D - 2 colonnes */}
-          <div className="lg:col-span-2 space-y-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Module 3D - moitié gauche */}
+          <div className="space-y-6">
             {/* Visualisateur 3D */}
             <div className="bg-white rounded-xl shadow-sm p-6">
               <h2 className="text-lg font-semibold text-gray-900 mb-4">
@@ -1122,8 +1122,8 @@ export default function TestingModulePage() {
               )}
           </div>
 
-          {/* TESTS / CLUSTERS À DROITE - 1 colonne */}
-          <div className="lg:col-span-3 space-y-6">
+          {/* TESTS / CLUSTERS À DROITE - moitié droite */}
+          <div className="space-y-6">
             {/* Liste des tests / clusters de la zone */}
             {showTestList && selectedZone && (
               <div className="bg-white rounded-xl shadow-sm p-6">
