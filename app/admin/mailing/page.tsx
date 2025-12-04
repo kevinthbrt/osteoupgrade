@@ -36,40 +36,73 @@ interface Automation {
   active: boolean
 }
 
-interface Segment {
-  id: string
-  name: string
-  rule: string
-  size?: number
-}
+const initialCampaigns: Campaign[] = [
+  {
+    id: 'c1',
+    name: 'Newsletter hebdomadaire',
+    subject: 'Les temps forts de la semaine',
+    segment: 'Tous les abonnés',
+    status: 'Programmé',
+    sendDate: '14 Oct 09:00',
+    template: 'Magenta Editorial'
+  },
+  {
+    id: 'c2',
+    name: 'Relance premium',
+    subject: "Passez en Premium Gold et débloquez tout",
+    segment: 'Leads chauds',
+    status: 'Brouillon',
+    template: 'Conversion'
+  },
+  {
+    id: 'c3',
+    name: 'Onboarding nouvelles inscriptions',
+    subject: 'Bienvenue sur OsteoUpgrade 🎉',
+    segment: 'Nouveaux utilisateurs',
+    status: 'Envoyé',
+    sendDate: '10 Oct 12:30',
+    template: 'Onboarding'
+  }
+]
 
-const templateOptions = [
-  'Magenta Editorial',
-  'Conversion',
-  'Onboarding',
-  'Annonce produit',
-  'Invitation webinaire'
+const initialAutomations: Automation[] = [
+  {
+    id: 'a1',
+    title: 'Séquence bienvenue',
+    description: '3 emails sur 10 jours pour présenter la plateforme',
+    trigger: 'Inscription',
+    emails: 3,
+    active: true
+  },
+  {
+    id: 'a2',
+    title: 'Panier abandonné',
+    description: 'Relances pour les leads ayant commencé un achat premium',
+    trigger: 'Intentions de paiement',
+    emails: 2,
+    active: false
+  },
+  {
+    id: 'a3',
+    title: 'Réactivation inactifs',
+    description: 'Réengager les comptes inactifs depuis 30 jours',
+    trigger: 'Inactivité 30j',
+    emails: 4,
+    active: true
+  }
 ]
 
 export default function MailingAdminPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(true)
-  const [campaigns, setCampaigns] = useState<Campaign[]>([])
-  const [automations, setAutomations] = useState<Automation[]>([])
-  const [segments, setSegments] = useState<Segment[]>([])
-  const [selectedTemplate, setSelectedTemplate] = useState(templateOptions[0])
-  const [segment, setSegment] = useState('')
+  const [campaigns, setCampaigns] = useState<Campaign[]>(initialCampaigns)
+  const [automations, setAutomations] = useState<Automation[]>(initialAutomations)
+  const [selectedTemplate, setSelectedTemplate] = useState('Magenta Editorial')
+  const [segment, setSegment] = useState('Tous les abonnés')
   const [campaignName, setCampaignName] = useState('')
   const [subject, setSubject] = useState('')
   const [schedule, setSchedule] = useState('Maintenant')
   const [sending, setSending] = useState(false)
-  const [automationTitle, setAutomationTitle] = useState('')
-  const [automationTrigger, setAutomationTrigger] = useState('Inscription')
-  const [automationDescription, setAutomationDescription] = useState('')
-  const [automationEmails, setAutomationEmails] = useState(1)
-  const [segmentName, setSegmentName] = useState('')
-  const [segmentRule, setSegmentRule] = useState('')
-  const [segmentSize, setSegmentSize] = useState<number | undefined>(undefined)
 
   useEffect(() => {
     const checkAdminAccess = async () => {
@@ -105,7 +138,7 @@ export default function MailingAdminPage() {
       id: `c-${Date.now()}`,
       name: campaignName || 'Nouvelle campagne',
       subject: subject || 'Sujet à définir',
-      segment: segment || 'Tous les contacts',
+      segment,
       status: schedule === 'Programmer' ? 'Programmé' : 'Brouillon',
       sendDate: schedule === 'Programmer' ? 'Demain 09:00' : undefined,
       template: selectedTemplate
@@ -116,41 +149,6 @@ export default function MailingAdminPage() {
     setSubject('')
     setSchedule('Maintenant')
     alert('Campagne créée en brouillon. Ajoutez le contenu puis envoyez !')
-  }
-
-  const handleCreateAutomation = (event: React.FormEvent) => {
-    event.preventDefault()
-
-    const newAutomation: Automation = {
-      id: `a-${Date.now()}`,
-      title: automationTitle || 'Nouvelle automatisation',
-      description: automationDescription || 'Définissez vos actions et délais',
-      trigger: automationTrigger,
-      emails: automationEmails,
-      active: false
-    }
-
-    setAutomations(current => [newAutomation, ...current])
-    setAutomationTitle('')
-    setAutomationDescription('')
-    setAutomationEmails(1)
-    setAutomationTrigger('Inscription')
-  }
-
-  const handleCreateSegment = (event: React.FormEvent) => {
-    event.preventDefault()
-
-    const newSegment: Segment = {
-      id: `s-${Date.now()}`,
-      name: segmentName || 'Nouveau segment',
-      rule: segmentRule || 'Ajoutez des filtres (rôle, activité, date...)',
-      size: segmentSize
-    }
-
-    setSegments(current => [newSegment, ...current])
-    setSegmentName('')
-    setSegmentRule('')
-    setSegmentSize(undefined)
   }
 
   const handleSendTest = () => {
@@ -170,12 +168,11 @@ export default function MailingAdminPage() {
   }
 
   const marketingStats = useMemo(() => ({
-    totalContacts: segments.reduce((total, seg) => total + (seg.size || 0), 0),
+    totalContacts: 12840,
     activeNewsletters: campaigns.filter(c => c.status === 'Programmé').length,
-    templates: templateOptions.length,
-    automationsActive: automations.filter(a => a.active).length,
-    segmentsCount: segments.length
-  }), [campaigns, automations, segments])
+    templates: 8,
+    automationsActive: automations.filter(a => a.active).length
+  }), [campaigns, automations])
 
   if (loading) {
     return (
@@ -213,7 +210,7 @@ export default function MailingAdminPage() {
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {[
-            { 
+            {
               label: 'Campagnes programmées',
               value: marketingStats.activeNewsletters,
               icon: Clock,
@@ -232,14 +229,14 @@ export default function MailingAdminPage() {
               value: marketingStats.templates,
               icon: Sparkles,
               color: 'from-amber-500 to-amber-600',
-              detail: 'Bibliothèque newsletter (statique)'
+              detail: 'Bibliothèque newsletter'
             },
             {
               label: 'Segments stratégiques',
-              value: marketingStats.segmentsCount,
+              value: 6,
               icon: Users,
               color: 'from-purple-500 to-purple-600',
-              detail: `${marketingStats.totalContacts.toLocaleString('fr-FR')} contacts cumulés`
+              detail: 'Premium, leads, inactifs...'
             }
           ].map((stat, index) => {
             const Icon = stat.icon
@@ -303,10 +300,12 @@ export default function MailingAdminPage() {
                   onChange={e => setSegment(e.target.value)}
                   className="mt-1 w-full rounded-lg border-gray-200 focus:border-purple-500 focus:ring-purple-500"
                 >
-                  <option value="">Tous les contacts</option>
-                  {segments.map(seg => (
-                    <option key={seg.id} value={seg.name}>{seg.name}</option>
-                  ))}
+                  <option>Tous les abonnés</option>
+                  <option>Premium Gold</option>
+                  <option>Premium Silver</option>
+                  <option>Leads chauds</option>
+                  <option>Inactifs 30j</option>
+                  <option>Nouveaux utilisateurs</option>
                 </select>
               </div>
 
@@ -317,9 +316,11 @@ export default function MailingAdminPage() {
                   onChange={e => setSelectedTemplate(e.target.value)}
                   className="mt-1 w-full rounded-lg border-gray-200 focus:border-purple-500 focus:ring-purple-500"
                 >
-                  {templateOptions.map(template => (
-                    <option key={template} value={template}>{template}</option>
-                  ))}
+                  <option>Magenta Editorial</option>
+                  <option>Conversion</option>
+                  <option>Onboarding</option>
+                  <option>Annonce produit</option>
+                  <option>Invitation webinaire</option>
                 </select>
               </div>
 
@@ -411,82 +412,15 @@ export default function MailingAdminPage() {
                 <div>
                   <p className="text-xs uppercase text-green-600 font-semibold">Automatisation</p>
                   <h3 className="text-lg font-bold text-gray-900">Scénarios actifs</h3>
-                  <p className="text-sm text-gray-500">Définissez vos propres déclencheurs et séquences.</p>
+                  <p className="text-sm text-gray-500">Onboarding, réactivation, nurturing et upsell.</p>
                 </div>
+                <button className="text-sm text-green-600 hover:text-green-700 font-medium flex items-center space-x-1">
+                  <Settings className="h-4 w-4" />
+                  <span>Nouveau scénario</span>
+                </button>
               </div>
 
-              <form onSubmit={handleCreateAutomation} className="space-y-3">
-                <div className="grid grid-cols-1 gap-3">
-                  <div>
-                    <label className="text-sm text-gray-600">Nom du scénario</label>
-                    <input
-                      value={automationTitle}
-                      onChange={e => setAutomationTitle(e.target.value)}
-                      placeholder="Onboarding premium, panier abandonné..."
-                      className="mt-1 w-full rounded-lg border-gray-200 focus:border-green-500 focus:ring-green-500"
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="text-sm text-gray-600">Déclencheur</label>
-                      <select
-                        value={automationTrigger}
-                        onChange={e => setAutomationTrigger(e.target.value)}
-                        className="mt-1 w-full rounded-lg border-gray-200 focus:border-green-500 focus:ring-green-500"
-                      >
-                        <option>Inscription</option>
-                        <option>Mise à niveau premium</option>
-                        <option>Inactivité</option>
-                        <option>Tag appliqué</option>
-                        <option>Webhook Supabase</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="text-sm text-gray-600">Nombre d'emails</label>
-                      <input
-                        type="number"
-                        min={1}
-                        value={automationEmails}
-                        onChange={e => setAutomationEmails(parseInt(e.target.value) || 1)}
-                        className="mt-1 w-full rounded-lg border-gray-200 focus:border-green-500 focus:ring-green-500"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="text-sm text-gray-600">Description rapide</label>
-                    <textarea
-                      value={automationDescription}
-                      onChange={e => setAutomationDescription(e.target.value)}
-                      placeholder="Ex: J+0 bienvenue, J+3 fonctionnalités clés, J+7 relance premium"
-                      className="mt-1 w-full rounded-lg border-gray-200 focus:border-green-500 focus:ring-green-500"
-                      rows={2}
-                    />
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <p className="text-xs text-gray-500 flex items-center space-x-2">
-                    <Settings className="h-4 w-4 text-green-600" />
-                    <span>Planifiez ensuite les délais + contenus dans Supabase (table automation_steps).</span>
-                  </p>
-                  <button
-                    type="submit"
-                    className="px-4 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700"
-                  >
-                    Ajouter le scénario
-                  </button>
-                </div>
-              </form>
-
               <div className="space-y-3">
-                {automations.length === 0 && (
-                  <div className="border border-dashed rounded-lg p-4 text-sm text-gray-500">
-                    Aucun scénario configuré pour le moment. Créez-en un pour démarrer vos automatisations.
-                  </div>
-                )}
-
                 {automations.map(auto => (
                   <div key={auto.id} className="border rounded-lg p-3">
                     <div className="flex items-start justify-between">
@@ -525,72 +459,38 @@ export default function MailingAdminPage() {
                   <h3 className="text-lg font-bold text-gray-900">Audience & ciblage</h3>
                   <p className="text-sm text-gray-500">Segmentez par plan, engagement, interactions.</p>
                 </div>
+                <button className="text-sm text-blue-600 hover:text-blue-700 font-medium flex items-center space-x-1">
+                  <Bell className="h-4 w-4" />
+                  <span>Alerte activité</span>
+                </button>
               </div>
 
-              <form onSubmit={handleCreateSegment} className="space-y-3">
-                <div className="grid grid-cols-1 gap-3">
-                  <div>
-                    <label className="text-sm text-gray-600">Nom du segment</label>
-                    <input
-                      value={segmentName}
-                      onChange={e => setSegmentName(e.target.value)}
-                      placeholder="Premium Gold, Leads chauds, Inactifs 30j..."
-                      className="mt-1 w-full rounded-lg border-gray-200 focus:border-blue-500 focus:ring-blue-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-sm text-gray-600">Règle ou filtre</label>
-                    <textarea
-                      value={segmentRule}
-                      onChange={e => setSegmentRule(e.target.value)}
-                      placeholder="role = premium_gold AND last_seen < now() - interval '7 days'"
-                      className="mt-1 w-full rounded-lg border-gray-200 focus:border-blue-500 focus:ring-blue-500"
-                      rows={2}
-                    />
-                  </div>
-                  <div>
-                    <label className="text-sm text-gray-600">Volume attendu (optionnel)</label>
-                    <input
-                      type="number"
-                      min={0}
-                      value={segmentSize ?? ''}
-                      onChange={e => setSegmentSize(e.target.value ? parseInt(e.target.value) : undefined)}
-                      placeholder="Ex: 1200"
-                      className="mt-1 w-full rounded-lg border-gray-200 focus:border-blue-500 focus:ring-blue-500"
-                    />
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <p className="text-xs text-gray-500 flex items-center space-x-2">
-                    <Bell className="h-4 w-4 text-blue-600" />
-                    <span>Stockez ces filtres dans Supabase (table segments) puis synchronisez-les avec vos campagnes.</span>
-                  </p>
-                  <button
-                    type="submit"
-                    className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700"
-                  >
-                    Créer le segment
-                  </button>
-                </div>
-              </form>
-
               <div className="space-y-3">
-                {segments.length === 0 && (
-                  <div className="border border-dashed rounded-lg p-4 text-sm text-gray-500">
-                    Aucun segment défini. Créez vos filtres (rôle, activité, tags...) pour cibler vos campagnes.
-                  </div>
-                )}
-
-                {segments.map(segment => (
-                  <div key={segment.id} className="border rounded-lg p-3 flex items-start justify-between">
+                {[{
+                  name: 'Premium Gold',
+                  size: 3120,
+                  rule: 'Rôle = premium_gold, activité < 7j'
+                }, {
+                  name: 'Leads chauds',
+                  size: 940,
+                  rule: 'Cliqué 2+ emails marketing'
+                }, {
+                  name: 'Inactifs 30j',
+                  size: 1840,
+                  rule: 'Aucune connexion depuis 30 jours'
+                }, {
+                  name: 'Nouveaux utilisateurs',
+                  size: 2100,
+                  rule: 'Inscription < 14 jours'
+                }].map(segment => (
+                  <div key={segment.name} className="border rounded-lg p-3 flex items-start justify-between">
                     <div>
                       <p className="font-semibold text-gray-900">{segment.name}</p>
                       <p className="text-xs text-gray-500">{segment.rule}</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-sm font-semibold text-gray-900">{(segment.size || 0).toLocaleString('fr-FR')} contacts</p>
-                      <p className="text-xs text-gray-500">Synchronisez depuis Supabase</p>
+                      <p className="text-sm font-semibold text-gray-900">{segment.size.toLocaleString('fr-FR')} contacts</p>
+                      <p className="text-xs text-gray-500">Score délivrabilité élevé</p>
                     </div>
                   </div>
                 ))}
@@ -601,26 +501,21 @@ export default function MailingAdminPage() {
               <div className="flex items-center space-x-3">
                 <Activity className="h-5 w-5" />
                 <div>
-                  <p className="text-xs uppercase font-semibold text-purple-100">Guide d'intégration</p>
-                  <h3 className="text-lg font-bold">Supabase + Resend</h3>
+                  <p className="text-xs uppercase font-semibold text-purple-100">Automation en temps réel</p>
+                  <h3 className="text-lg font-bold">Connecté à la base supabase & webhooks</h3>
                 </div>
               </div>
-              <div className="bg-white/10 rounded-lg p-4 space-y-3 text-sm">
-                <div className="flex items-start space-x-2">
-                  <ArrowRight className="h-4 w-4 mt-0.5 text-purple-100" />
-                  <p className="text-purple-50">Créez les tables <span className="font-semibold">campaigns</span>, <span className="font-semibold">automations</span>, <span className="font-semibold">segments</span> dans Supabase et stockez vos formulaires dedans.</p>
+              <div className="bg-white/10 rounded-lg p-4 space-y-2 text-sm">
+                <div className="flex items-center justify-between">
+                  <span>Entrée: Nouvelle inscription</span>
+                  <ArrowRight className="h-4 w-4" />
+                  <span>Segment: Onboarding</span>
+                  <ArrowRight className="h-4 w-4" />
+                  <span>Email 1 (J+0)</span>
                 </div>
-                <div className="flex items-start space-x-2">
-                  <ArrowRight className="h-4 w-4 mt-0.5 text-purple-100" />
-                  <p className="text-purple-50">Exposez une route API (app/api/mail/route.ts) qui appelle <span className="font-semibold">Resend</span> avec votre clé <code>RESEND_API_KEY</code> et l'email expéditeur vérifié.</p>
-                </div>
-                <div className="flex items-start space-x-2">
-                  <ArrowRight className="h-4 w-4 mt-0.5 text-purple-100" />
-                  <p className="text-purple-50">Utilisez les webhooks Supabase (row level) ou cron pour déclencher l'envoi et consommer vos gabarits.</p>
-                </div>
-                <div className="flex items-start space-x-2">
-                  <ArrowRight className="h-4 w-4 mt-0.5 text-purple-100" />
-                  <p className="text-purple-50">Logguez l'activité (table <span className="font-semibold">mail_events</span>) pour suivre ouvertures/clics et alimenter vos segments.</p>
+                <div className="flex items-center justify-between text-purple-100 text-xs">
+                  <span>Actions disponibles: tag, webhook, maj profil, pause conditionnelle</span>
+                  <span>Livraison optimisée (SendGrid / Brevo)</span>
                 </div>
               </div>
             </div>
