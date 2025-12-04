@@ -239,7 +239,7 @@ export default function Dashboard() {
   );
 
   if (loading) {
-    return loadingView
+    return loadingView;
   }
 
   return (
@@ -578,6 +578,7 @@ export default function Dashboard() {
           </div>
         )}
       </div>
-    </AuthLayout>
-  )
+    </div>
+  </AuthLayout>
+)
 }
