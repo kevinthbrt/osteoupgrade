@@ -37,16 +37,24 @@ export default function LandingPage() {
               <a href="#how-it-works" className="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors">
                 Comment ça marche
               </a>
-              <a href="#premium" className="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors">
-                Premium
+              <a href="#pricing" className="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors">
+                Tarifs
               </a>
             </div>
-            <button
-              onClick={() => router.push('/auth')}
-              className="bg-sky-500 text-white px-4 sm:px-6 py-2 rounded-lg font-semibold hover:bg-sky-400 transition-all text-sm sm:text-base"
-            >
-              Tester gratuitement
-            </button>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => router.push('/auth')}
+                className="text-slate-900 px-4 py-2 rounded-lg font-semibold hover:bg-slate-100 transition-all text-sm"
+              >
+                Se connecter
+              </button>
+              <button
+                onClick={() => router.push('/auth')}
+                className="bg-sky-500 text-white px-4 sm:px-6 py-2 rounded-lg font-semibold hover:bg-sky-400 transition-all text-sm sm:text-base"
+              >
+                Tester gratuitement
+              </button>
+            </div>
           </div>
         </div>
       </nav>
@@ -261,7 +269,7 @@ export default function LandingPage() {
               Comment ça marche
             </div>
             <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-4">
-              Tu l&apos;ouvres, tu testes, tu traces. C&apos;est tout.
+              Tu l&apos;ouvres, tu testes. C&apos;est tout.
             </h2>
             <p className="text-lg text-slate-400 max-w-3xl mx-auto">
               Une application pensée pour le cabinet, pas pour remplacer ton raisonnement mais pour le structurer.
@@ -296,50 +304,140 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Premium Section */}
-      <section id="premium" className="py-16 px-4 sm:px-6 lg:px-8 bg-slate-50">
-        <div className="max-w-5xl mx-auto">
-          <div className="bg-white border-2 border-sky-500 rounded-3xl p-8 sm:p-12 shadow-xl relative overflow-hidden">
-            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-sky-500 to-sky-400"></div>
-            
-            <div className="text-center mb-8">
-              <div className="inline-block bg-sky-500 text-white px-4 py-1 rounded-full text-sm font-semibold mb-4">
-                Premium
-              </div>
-              <h2 className="text-3xl sm:text-4xl font-bold text-slate-900 mb-4">
-                Bien plus qu&apos;une app : un écosystème de formation
-              </h2>
-              <p className="text-lg text-slate-600 max-w-3xl mx-auto">
-                L&apos;abonnement premium ouvre l&apos;accès à la plateforme complète et à un socle de contenus 
-                pour faire évoluer ta pratique chaque année.
-              </p>
+      {/* Pricing Section */}
+      <section id="pricing" className="py-16 px-4 sm:px-6 lg:px-8 bg-slate-50">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-16">
+            <div className="inline-block bg-sky-50 text-sky-600 px-4 py-1 rounded-full text-sm font-semibold mb-4">
+              Tarifs
             </div>
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-slate-900 mb-4">
+              Choisissez votre formule
+            </h2>
+            <p className="text-lg text-slate-600 max-w-3xl mx-auto">
+              Des options flexibles adaptées à votre pratique. Tous les abonnements sont annuels.
+            </p>
+          </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-              {[
-                'Accès complet au module épaule : tests 3D, descriptions et exports',
-                'Guide diagnostique complet avec arbre décisionnel (à venir)',
-                'Nouveaux modules anatomiques ajoutés régulièrement',
-                'Contenus de formation pour faire évoluer ta pratique',
-                'Export illimité de sessions de testing',
-                'Support prioritaire et mises à jour'
-              ].map((feature, index) => (
-                <div key={index} className="flex items-center gap-3 bg-slate-50 p-4 rounded-lg">
-                  <CheckCircle className="h-6 w-6 text-sky-500 flex-shrink-0" />
-                  <span className="text-slate-700">{feature}</span>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {/* Plan Gratuit */}
+            <div className="bg-white rounded-2xl border border-slate-200 p-8 hover:shadow-xl transition-all">
+              <div className="mb-6">
+                <h3 className="text-2xl font-bold text-slate-900 mb-2">Free</h3>
+                <div className="flex items-baseline gap-1 mb-4">
+                  <span className="text-5xl font-bold text-slate-900">0€</span>
+                  <span className="text-slate-600">/an</span>
                 </div>
-              ))}
-            </div>
+                <p className="text-slate-600">Pour découvrir OsteoUpgrade</p>
+              </div>
+              
+              <ul className="space-y-4 mb-8">
+                {[
+                  'Accès complet au module épaule',
+                  'Tests 3D interactifs',
+                  'Arbres décisionnels épaule',
+                  'Descriptions détaillées',
+                  'Exports de sessions',
+                  'Toutes les fonctionnalités sur l\'épaule'
+                ].map((feature, index) => (
+                  <li key={index} className="flex items-start gap-3 text-slate-700">
+                    <CheckCircle className="h-5 w-5 text-sky-500 flex-shrink-0 mt-0.5" />
+                    <span className="text-sm">{feature}</span>
+                  </li>
+                ))}
+              </ul>
 
-            <div className="text-center">
               <button
                 onClick={() => router.push('/auth')}
-                className="bg-sky-500 text-white px-10 py-4 rounded-lg font-semibold hover:bg-sky-400 transition-all text-lg inline-flex items-center gap-2"
+                className="w-full border-2 border-slate-900 text-slate-900 px-6 py-3 rounded-lg font-semibold hover:bg-slate-900 hover:text-white transition-all"
               >
-                Commencer avec l&apos;essai gratuit
-                <ArrowRight className="h-5 w-5" />
+                Commencer gratuitement
               </button>
             </div>
+
+            {/* Plan Premium Silver */}
+            <div className="bg-white rounded-2xl border-2 border-slate-300 p-8 hover:shadow-xl transition-all">
+              <div className="mb-6">
+                <h3 className="text-2xl font-bold text-slate-900 mb-2">Premium Silver</h3>
+                <div className="flex items-baseline gap-1 mb-2">
+                  <span className="text-5xl font-bold text-slate-900">29,99€</span>
+                  <span className="text-slate-600">/an</span>
+                </div>
+                <p className="text-slate-600">Pour une pratique complète en ligne</p>
+              </div>
+              
+              <ul className="space-y-4 mb-8">
+                {[
+                  'Tous les modules anatomiques',
+                  'Tests 3D illimités toutes régions',
+                  'Arbres décisionnels complets',
+                  'Guide diagnostique topographique',
+                  'Exports illimités',
+                  'Formations en ligne incluses',
+                  'Support prioritaire'
+                ].map((feature, index) => (
+                  <li key={index} className="flex items-start gap-3 text-slate-700">
+                    <CheckCircle className="h-5 w-5 text-slate-500 flex-shrink-0 mt-0.5" />
+                    <span className="text-sm">{feature}</span>
+                  </li>
+                ))}
+              </ul>
+
+              <button
+                onClick={() => router.push('/auth')}
+                className="w-full bg-slate-900 text-white px-6 py-3 rounded-lg font-semibold hover:bg-slate-800 transition-all"
+              >
+                Choisir Silver
+              </button>
+            </div>
+
+            {/* Plan Premium Gold - Featured */}
+            <div className="bg-gradient-to-br from-amber-400 to-amber-500 rounded-2xl p-8 hover:shadow-2xl transition-all relative transform md:scale-105">
+              <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-slate-900 text-white px-4 py-1 rounded-full text-sm font-bold">
+                Populaire
+              </div>
+              
+              <div className="mb-6">
+                <h3 className="text-2xl font-bold text-slate-900 mb-2">Premium Gold</h3>
+                <div className="flex items-baseline gap-1 mb-2">
+                  <span className="text-5xl font-bold text-slate-900">49,99€</span>
+                  <span className="text-slate-800">/an</span>
+                </div>
+                <p className="text-slate-800">L&apos;offre complète avec présentiel</p>
+              </div>
+              
+              <ul className="space-y-4 mb-8">
+                {[
+                  'Tout ce qui est inclus dans Silver',
+                  'Tous les modules anatomiques',
+                  'Formations en ligne complètes',
+                  'Guide diagnostique avancé',
+                  '1 séminaire présentiel (2 jours) par an',
+                  'Accès aux masterclass exclusives',
+                  'Support premium dédié'
+                ].map((feature, index) => (
+                  <li key={index} className="flex items-start gap-3 text-slate-900">
+                    <CheckCircle className="h-5 w-5 text-slate-900 flex-shrink-0 mt-0.5" />
+                    <span className="text-sm font-medium">{feature}</span>
+                  </li>
+                ))}
+              </ul>
+
+              <button
+                onClick={() => router.push('/auth')}
+                className="w-full bg-slate-900 text-white px-6 py-3 rounded-lg font-semibold hover:bg-slate-800 transition-all"
+              >
+                Choisir Gold
+              </button>
+            </div>
+          </div>
+
+          {/* Note sous les cartes */}
+          <div className="mt-12 text-center">
+            <p className="text-slate-600 max-w-2xl mx-auto">
+              <strong>Bien plus qu&apos;une app : un écosystème de formation.</strong> Les abonnements Premium ouvrent l&apos;accès à la plateforme complète 
+              et à un socle de contenus pour faire évoluer ta pratique chaque année.
+            </p>
           </div>
         </div>
       </section>
@@ -389,7 +487,7 @@ export default function LandingPage() {
               <ul className="space-y-2">
                 <li><a href="#features" className="text-slate-600 hover:text-sky-500 transition-colors">Fonctionnalités</a></li>
                 <li><a href="#how-it-works" className="text-slate-600 hover:text-sky-500 transition-colors">Comment ça marche</a></li>
-                <li><a href="#premium" className="text-slate-600 hover:text-sky-500 transition-colors">Premium</a></li>
+                <li><a href="#pricing" className="text-slate-600 hover:text-sky-500 transition-colors">Tarifs</a></li>
                 <li><a href="/auth" className="text-slate-600 hover:text-sky-500 transition-colors">Essai gratuit</a></li>
               </ul>
             </div>
