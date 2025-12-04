@@ -14,7 +14,8 @@ import {
   Filter,
   Map,
   Box,
-  TestTube
+  TestTube,
+  Mail
 } from 'lucide-react'
 
 export default function AdminPage() {
@@ -148,6 +149,14 @@ export default function AdminPage() {
       detail: 'Tests par zone',
       href: '/tests'
     },
+    {
+      label: 'Mailing & Newsletter',
+      value: 'Nouveau',
+      icon: Mail,
+      color: 'from-pink-500 to-pink-600',
+      detail: 'Campagnes, automatisations',
+      href: '/admin/mailing'
+    },
   ]
 
   const managementActions = [
@@ -190,6 +199,14 @@ export default function AdminPage() {
       href: '/admin/anatomy-builder',
       color: 'from-green-500 to-green-600',
       stats: `${stats.totalAnatomicalZones} zones 3D`
+    },
+    {
+      title: '📧 Mailing & Newsletter',
+      description: 'Campagnes, automation, relances et onboarding',
+      icon: Mail,
+      href: '/admin/mailing',
+      color: 'from-pink-500 to-pink-600',
+      stats: 'Pilotage marketing complet'
     },
   ]
 
