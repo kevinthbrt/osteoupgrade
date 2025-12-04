@@ -22,7 +22,8 @@ import {
   Box,
   TestTube,
   Stethoscope,
-  Calendar
+  Calendar,
+  Mail
 } from 'lucide-react'
 
 type MenuItem = {
@@ -167,6 +168,20 @@ export default function Navigation() {
           icon: Filter,
           description: 'Pour Consultation V3',
           badge: 'V3'
+        },
+      ]
+    },
+    {
+      id: 'marketing',
+      label: 'Marketing & Mailing',
+      icon: Mail,
+      items: [
+        {
+          href: '/admin/mailing',
+          label: 'Mailing & Newsletter',
+          icon: Mail,
+          description: 'Campagnes, automation, relances',
+          badge: 'Nouveau'
         },
       ]
     }
