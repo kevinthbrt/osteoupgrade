@@ -28,6 +28,7 @@ async function sendWithResend(payload: EmailPayload) {
   }
 
   const from = resolveFromAddress(payload.from)
+  const tags = payload.tags?.map((value) => ({ name: 'tag', value }))
   const response = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: {
@@ -40,7 +41,7 @@ async function sendWithResend(payload: EmailPayload) {
       subject: payload.subject,
       html: payload.html,
       text: payload.text,
-      tags: payload.tags
+      tags
     })
   })
 
