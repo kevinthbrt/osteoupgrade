@@ -220,7 +220,7 @@ export default function ElearningPage() {
 
       setProfile(profileData as Profile)
 
-      await loadFormationsFromSupabase(user.id)
+      await loadFormationsFromSupabase(user.id, (profileData as Profile | null)?.role)
     } catch (error) {
       console.error('Error loading data:', error)
     } finally {
@@ -228,7 +228,7 @@ export default function ElearningPage() {
     }
   }
 
-  const loadFormationsFromSupabase = async (userId: string) => {
+  const loadFormationsFromSupabase = async (userId: string, role?: string) => {
     try {
       const { data, error } = await supabase
         .from('elearning_formations')
@@ -267,7 +267,7 @@ export default function ElearningPage() {
             })) || []
         }))
 
-        const accessible = parsed.filter((formation) => canAccessFormation(profileData?.role, formation.level))
+        const accessible = parsed.filter((formation) => canAccessFormation(role, formation.level))
 
         if (accessible.length) {
           setFormations(accessible)
