@@ -19,7 +19,9 @@ import {
   Sparkles,
   X,
   Trash2,
-  Wand2
+  Wand2,
+  Plus,
+  Clock4
 } from 'lucide-react'
 import AuthLayout from '@/components/AuthLayout'
 import { supabase } from '@/lib/supabase'
@@ -41,14 +43,29 @@ type Attachment = {
   disposition?: 'inline' | 'attachment'
 }
 
+type AutomationStep = {
+  id: string
+  templateId: string
+  delayDays: number
+}
+
 type Automation = {
   id: string
   name: string
   trigger: string
   audience: string
   schedule: string
+  steps: AutomationStep[]
   active: boolean
 }
+
+const automationTriggerPresets = [
+  { label: 'Inscription', value: 'Nouvelle inscription' },
+  { label: 'Inactif', value: 'Inactif depuis 30 jours' },
+  { label: 'Essai free', value: 'Sur free depuis 14 jours' },
+  { label: 'Passage premium', value: 'Passage à Premium' },
+  { label: 'Abonnement expiré', value: 'Abonnement expiré' }
+]
 
 const inlineImageStyle = 'display:block;max-width:640px;width:100%;height:auto;margin:12px 0;'
 
@@ -126,9 +143,10 @@ export default function MailingAdminPage() {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
   const [automationDraft, setAutomationDraft] = useState<Omit<Automation, 'id' | 'active'>>({
     name: '',
-    trigger: '',
-    audience: '',
-    schedule: ''
+    trigger: automationTriggerPresets[0]?.value || '',
+    audience: 'Tous les membres',
+    schedule: 'Démarrage immédiat',
+    steps: []
   })
   const [automations, setAutomations] = useState<Automation[]>([])
   const [templateDraft, setTemplateDraft] = useState<Template>({
@@ -146,8 +164,10 @@ export default function MailingAdminPage() {
   const [templateSaving, setTemplateSaving] = useState(false)
   const [attachments, setAttachments] = useState<Attachment[]>([])
   const editorRef = useRef<HTMLDivElement>(null)
+  const templateEditorRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const attachmentInputRef = useRef<HTMLInputElement>(null)
+  const [automationModalOpen, setAutomationModalOpen] = useState(false)
 
   const extractTextFromHtml = (content: string) => {
     const element = document.createElement('div')
@@ -287,6 +307,14 @@ export default function MailingAdminPage() {
   }, [html])
 
   useEffect(() => {
+    if (!templateModalOpen || !templateEditorRef.current) return
+
+    if (templateEditorRef.current.innerHTML !== (templateDraft.html || '')) {
+      templateEditorRef.current.innerHTML = templateDraft.html || ''
+    }
+  }, [templateDraft.html, templateModalOpen])
+
+  useEffect(() => {
     if (!templateModalOpen || templateHtmlManuallyEdited) return
 
     setTemplateDraft((prev) => ({
@@ -295,11 +323,33 @@ export default function MailingAdminPage() {
     }))
   }, [templateDraft.name, templateDraft.description, templateDraft.subject, templateModalOpen, templateHtmlManuallyEdited])
 
-  const applyFormatting = (command: string, value?: string) => {
-    if (!editorRef.current) return
+  const applyFormatting = (
+    command: string,
+    value?: string,
+    options?: {
+      target?: React.RefObject<HTMLDivElement>
+      onChange?: (html: string, text: string) => void
+    }
+  ) => {
+    const target = options?.target?.current ?? editorRef.current
+    if (!target) return
+    target.focus()
     document.execCommand(command, false, value)
-    setHtml(editorRef.current.innerHTML)
-    setText(editorRef.current.innerText)
+    const htmlContent = target.innerHTML
+    const textContent = target.innerText
+
+    if (options?.onChange) {
+      options.onChange(htmlContent, textContent)
+      return
+    }
+
+    setHtml(htmlContent)
+    setText(textContent)
+  }
+
+  const updateTemplateContent = (htmlContent: string, textContent: string) => {
+    setTemplateDraft((prev) => ({ ...prev, html: htmlContent, text: textContent }))
+    setTemplateHtmlManuallyEdited(true)
   }
 
   const handleImageInsert = () => {
@@ -316,6 +366,26 @@ export default function MailingAdminPage() {
     applyFormatting(
       'insertHTML',
       `<p style="margin: 12px 0;"><a href="${url}" style="display:inline-block;background:#7c3aed;color:white;padding:12px 18px;border-radius:10px;text-decoration:none;font-weight:600;">${label}</a></p>`
+    )
+  }
+
+  const applyTemplateFormatting = (command: string, value?: string) =>
+    applyFormatting(command, value, {
+      target: templateEditorRef,
+      onChange: updateTemplateContent
+    })
+
+  const handleTemplateButtonInsert = () => {
+    const label = window.prompt('Texte du bouton') || 'Découvrir'
+    const url = window.prompt('Lien du bouton (https://...)') || 'https://osteoupgrade.app'
+
+    applyFormatting(
+      'insertHTML',
+      `<p style="margin: 12px 0;"><a href="${url}" style="display:inline-block;background:#7c3aed;color:white;padding:12px 18px;border-radius:10px;text-decoration:none;font-weight:600;">${label}</a></p>`,
+      {
+        target: templateEditorRef,
+        onChange: updateTemplateContent
+      }
     )
   }
 
@@ -379,6 +449,11 @@ export default function MailingAdminPage() {
     const content = event.currentTarget.innerHTML
     setHtml(content)
     setText(event.currentTarget.innerText)
+  }
+
+  const handleTemplateEditorInput = (event: React.FormEvent<HTMLDivElement>) => {
+    const content = event.currentTarget.innerHTML
+    updateTemplateContent(content, event.currentTarget.innerText)
   }
 
   const resetTemplateDraft = () => {
@@ -471,9 +546,66 @@ export default function MailingAdminPage() {
     }
   }
 
+  const startAutomationCreation = () => {
+    setAutomationDraft({
+      name: '',
+      trigger: automationTriggerPresets[0]?.value || '',
+      audience: 'Tous les membres',
+      schedule: 'Démarrage immédiat',
+      steps: [
+        {
+          id: `step-${Date.now()}`,
+          templateId: templates[0]?.id || defaultTemplates[0]?.id || '',
+          delayDays: 0
+        }
+      ]
+    })
+    setAutomationModalOpen(true)
+  }
+
+  const addAutomationStep = () => {
+    const lastDelay = automationDraft.steps[automationDraft.steps.length - 1]?.delayDays ?? 0
+    setAutomationDraft((prev) => ({
+      ...prev,
+      steps: [
+        ...prev.steps,
+        {
+          id: `step-${Date.now()}`,
+          templateId: templates[0]?.id || defaultTemplates[0]?.id || '',
+          delayDays: lastDelay + 2
+        }
+      ]
+    }))
+  }
+
+  const updateAutomationStep = (stepId: string, updates: Partial<AutomationStep>) => {
+    setAutomationDraft((prev) => ({
+      ...prev,
+      steps: prev.steps.map((step) => (step.id === stepId ? { ...step, ...updates } : step))
+    }))
+  }
+
+  const removeAutomationStep = (stepId: string) => {
+    setAutomationDraft((prev) => ({
+      ...prev,
+      steps: prev.steps.filter((step) => step.id !== stepId)
+    }))
+  }
+
+  const closeAutomationModal = () => {
+    setAutomationModalOpen(false)
+    setAutomationDraft({
+      name: '',
+      trigger: automationTriggerPresets[0]?.value || '',
+      audience: 'Tous les membres',
+      schedule: 'Démarrage immédiat',
+      steps: []
+    })
+  }
+
   const handleAutomationSubmit = (event: React.FormEvent) => {
     event.preventDefault()
-    if (!automationDraft.name) return
+    if (!automationDraft.name || !automationDraft.trigger || automationDraft.steps.length === 0) return
 
     const newAutomation: Automation = {
       id: `automation-${Date.now()}`,
@@ -482,7 +614,7 @@ export default function MailingAdminPage() {
     }
 
     setAutomations((prev) => [...prev, newAutomation])
-    setAutomationDraft({ name: '', trigger: '', audience: '', schedule: '' })
+    closeAutomationModal()
   }
 
   const toggleAutomation = (automationId: string) => {
@@ -492,6 +624,9 @@ export default function MailingAdminPage() {
   const deleteAutomation = (automationId: string) => {
     setAutomations((prev) => prev.filter((automation) => automation.id !== automationId))
   }
+
+  const getTemplateName = (templateId: string) =>
+    templates.find((template) => template.id === templateId)?.name || 'Template personnalisé'
 
   const handleSend = async (event: React.FormEvent) => {
     event.preventDefault()
@@ -942,49 +1077,21 @@ export default function MailingAdminPage() {
             </div>
 
             <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-4 space-y-3">
-              <div className="flex items-center space-x-2">
-                <PlayCircle className="h-5 w-5 text-purple-600" />
-                <h3 className="font-semibold">Automatisations</h3>
-              </div>
-              <p className="text-sm text-gray-600">Planifiez des envois automatiques (rappels, bienvenue, relances) avec déclencheurs et audience personnalisés.</p>
-              <form className="space-y-2" onSubmit={handleAutomationSubmit}>
-                <input
-                  type="text"
-                  placeholder="Nom de l'automatisation"
-                  value={automationDraft.name}
-                  onChange={(e) => setAutomationDraft({ ...automationDraft, name: e.target.value })}
-                  className="w-full rounded-lg border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-sm"
-                  required
-                />
-                <input
-                  type="text"
-                  placeholder="Déclencheur (ex: nouvelle inscription)"
-                  value={automationDraft.trigger}
-                  onChange={(e) => setAutomationDraft({ ...automationDraft, trigger: e.target.value })}
-                  className="w-full rounded-lg border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-sm"
-                />
-                <input
-                  type="text"
-                  placeholder="Audience (ex: premium, free, tous)"
-                  value={automationDraft.audience}
-                  onChange={(e) => setAutomationDraft({ ...automationDraft, audience: e.target.value })}
-                  className="w-full rounded-lg border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-sm"
-                />
-                <input
-                  type="text"
-                  placeholder="Calendrier (ex: J+3, chaque lundi, date précise)"
-                  value={automationDraft.schedule}
-                  onChange={(e) => setAutomationDraft({ ...automationDraft, schedule: e.target.value })}
-                  className="w-full rounded-lg border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-sm"
-                />
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center space-x-2">
+                  <PlayCircle className="h-5 w-5 text-purple-600" />
+                  <h3 className="font-semibold">Automatisations</h3>
+                </div>
                 <button
-                  type="submit"
-                  className="inline-flex items-center gap-2 rounded-lg bg-purple-600 px-3 py-2 text-sm font-semibold text-white hover:bg-purple-700"
+                  type="button"
+                  onClick={startAutomationCreation}
+                  className="inline-flex items-center gap-2 rounded-lg border border-purple-200 bg-purple-50 px-3 py-2 text-xs font-semibold text-purple-700 hover:bg-purple-100"
                 >
                   <Rocket className="h-4 w-4" />
-                  Programmer
+                  Nouvelle automatisation
                 </button>
-              </form>
+              </div>
+              <p className="text-sm text-gray-600">Planifiez des envois automatiques (rappels, bienvenue, relances) avec déclencheurs et audience personnalisés.</p>
               <div className="space-y-2">
                 {automations.length === 0 && (
                   <p className="text-sm text-gray-500">Aucune automatisation pour le moment.</p>
@@ -1019,6 +1126,20 @@ export default function MailingAdminPage() {
                         >
                           <Trash2 className="h-4 w-4" />
                         </button>
+                      </div>
+                    </div>
+                    <div className="mt-3 space-y-2">
+                      <div className="flex items-center gap-2 text-xs text-gray-600">
+                        <Clock4 className="h-4 w-4" />
+                        <span>{automation.steps.length} emails programmés</span>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {automation.steps.map((step) => (
+                          <div key={step.id} className="rounded border border-dashed border-gray-200 bg-gray-50 px-3 py-2 text-xs">
+                            <p className="font-semibold text-gray-800">{getTemplateName(step.templateId)}</p>
+                            <p className="text-[11px] text-gray-500">Envoi à J+{step.delayDays}</p>
+                          </div>
+                        ))}
                       </div>
                     </div>
                   </div>
@@ -1068,15 +1189,82 @@ export default function MailingAdminPage() {
                 onChange={(e) => setTemplateDraft({ ...templateDraft, description: e.target.value })}
                 className="w-full rounded-lg border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-sm"
               />
-              <textarea
-                placeholder="HTML généré automatiquement"
-                value={templateDraft.html}
-                onChange={(e) => {
-                  setTemplateDraft({ ...templateDraft, html: e.target.value })
-                  setTemplateHtmlManuallyEdited(true)
-                }}
-                className="w-full h-32 rounded-lg border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-sm"
-              />
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-medium text-gray-700">Contenu HTML</p>
+                  <span className="text-xs text-gray-500">Mise en forme rapide</span>
+                </div>
+                <div className="rounded-lg border border-gray-200">
+                  <div className="flex flex-wrap items-center gap-2 border-b border-gray-200 bg-gray-50 px-3 py-2 text-sm">
+                    <button
+                      type="button"
+                      onClick={() => applyTemplateFormatting('bold')}
+                      className="rounded px-2 py-1 hover:bg-gray-100 font-semibold"
+                    >
+                      Gras
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => applyTemplateFormatting('italic')}
+                      className="rounded px-2 py-1 hover:bg-gray-100 italic"
+                    >
+                      Italique
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => applyTemplateFormatting('underline')}
+                      className="rounded px-2 py-1 hover:bg-gray-100"
+                    >
+                      Souligné
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => applyTemplateFormatting('insertUnorderedList')}
+                      className="rounded px-2 py-1 hover:bg-gray-100"
+                    >
+                      Liste
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => applyTemplateFormatting('insertOrderedList')}
+                      className="rounded px-2 py-1 hover:bg-gray-100"
+                    >
+                      Liste numérotée
+                    </button>
+                    <label className="flex items-center gap-1 text-xs px-2 py-1 border rounded cursor-pointer bg-white">
+                      <Palette className="h-4 w-4 text-gray-500" />
+                      <span>Couleur</span>
+                      <input
+                        type="color"
+                        onChange={(e) => applyTemplateFormatting('foreColor', e.target.value)}
+                        className="h-0 w-0 opacity-0"
+                      />
+                    </label>
+                    <button
+                      type="button"
+                      onClick={handleTemplateButtonInsert}
+                      className="inline-flex items-center gap-1 rounded px-2 py-1 hover:bg-gray-100"
+                    >
+                      <Link2 className="h-4 w-4" />
+                      Bouton lien
+                    </button>
+                  </div>
+                  <div
+                    ref={templateEditorRef}
+                    contentEditable
+                    suppressContentEditableWarning
+                    className="min-h-[200px] w-full p-3 focus:outline-none"
+                    onInput={handleTemplateEditorInput}
+                  />
+                </div>
+                <p className="text-xs text-gray-500">
+                  Le HTML se remplit automatiquement à partir du sujet et de la description. Vous pouvez ensuite l’ajuster avec les boutons ci-dessus.
+                </p>
+              </div>
+              <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 text-xs text-gray-600 space-y-1">
+                <p className="font-medium text-gray-800">Aperçu</p>
+                <div className="border rounded-lg bg-white p-3 max-h-48 overflow-auto" dangerouslySetInnerHTML={{ __html: templateDraft.html }} />
+              </div>
               <textarea
                 placeholder="Texte brut (optionnel)"
                 value={templateDraft.text}
@@ -1084,7 +1272,7 @@ export default function MailingAdminPage() {
                 className="w-full h-24 rounded-lg border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-sm"
               />
               <div className="flex items-center justify-between text-xs text-gray-500">
-                <p>Le HTML se remplit automatiquement à partir du sujet et de la description. Vous pouvez ensuite l’ajuster.</p>
+                <p>Personnalisez le contenu HTML en quelques clics ou ajustez le texte brut pour les clients email limités.</p>
                 {editingTemplateId && (
                   <button type="button" onClick={resetTemplateDraft} className="text-purple-600 underline">
                     Annuler
@@ -1110,6 +1298,141 @@ export default function MailingAdminPage() {
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+      {automationModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="w-full max-w-3xl rounded-xl bg-white shadow-xl">
+            <div className="flex items-center justify-between border-b border-gray-200 px-4 py-3">
+              <div className="flex items-center gap-2">
+                <Rocket className="h-5 w-5 text-purple-600" />
+                <p className="font-semibold">Programmer une automatisation</p>
+              </div>
+              <button
+                type="button"
+                onClick={closeAutomationModal}
+                className="rounded p-1 text-gray-500 hover:bg-gray-100"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <form className="space-y-4 p-4" onSubmit={handleAutomationSubmit}>
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                <input
+                  type="text"
+                  placeholder="Nom de l'automatisation"
+                  value={automationDraft.name}
+                  onChange={(e) => setAutomationDraft({ ...automationDraft, name: e.target.value })}
+                  className="w-full rounded-lg border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-sm"
+                  required
+                />
+                <select
+                  value={automationDraft.trigger}
+                  onChange={(e) => setAutomationDraft({ ...automationDraft, trigger: e.target.value })}
+                  className="w-full rounded-lg border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-sm"
+                >
+                  {automationTriggerPresets.map((preset) => (
+                    <option key={preset.value} value={preset.value}>
+                      {preset.label}
+                    </option>
+                  ))}
+                  <option value="Autre">Autre (personnalisé)</option>
+                </select>
+              </div>
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                <select
+                  value={automationDraft.audience}
+                  onChange={(e) => setAutomationDraft({ ...automationDraft, audience: e.target.value })}
+                  className="w-full rounded-lg border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-sm"
+                >
+                  <option value="Tous les membres">Tous les membres</option>
+                  <option value="Premium">Premium</option>
+                  <option value="Free">Free</option>
+                  <option value="Admins">Admins</option>
+                </select>
+                <input
+                  type="text"
+                  placeholder="Planification (ex: démarrage immédiat)"
+                  value={automationDraft.schedule}
+                  onChange={(e) => setAutomationDraft({ ...automationDraft, schedule: e.target.value })}
+                  className="w-full rounded-lg border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-sm"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-medium text-gray-700">Séquence d'emails</p>
+                  <button
+                    type="button"
+                    onClick={addAutomationStep}
+                    className="inline-flex items-center gap-1 rounded border border-purple-200 bg-purple-50 px-2 py-1 text-xs font-semibold text-purple-700 hover:bg-purple-100"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Ajouter un email
+                  </button>
+                </div>
+                <div className="space-y-2">
+                  {automationDraft.steps.map((step, index) => (
+                    <div key={step.id} className="rounded-lg border border-gray-200 p-3">
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm font-semibold text-gray-800">Email #{index + 1}</p>
+                        {automationDraft.steps.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => removeAutomationStep(step.id)}
+                            className="text-xs text-red-600 hover:underline"
+                          >
+                            Supprimer
+                          </button>
+                        )}
+                      </div>
+                      <div className="grid grid-cols-1 gap-2 md:grid-cols-2 mt-2">
+                        <select
+                          value={step.templateId}
+                          onChange={(e) => updateAutomationStep(step.id, { templateId: e.target.value })}
+                          className="w-full rounded-lg border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-sm"
+                        >
+                          {templates.map((template) => (
+                            <option key={template.id} value={template.id}>
+                              {template.name}
+                            </option>
+                          ))}
+                        </select>
+                        <div className="flex items-center gap-2">
+                          <label className="text-xs text-gray-600">Délais (jours)</label>
+                          <input
+                            type="number"
+                            min={0}
+                            value={step.delayDays}
+                            onChange={(e) => updateAutomationStep(step.id, { delayDays: Number(e.target.value) })}
+                            className="w-full rounded-lg border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-sm"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-xs text-gray-500">Choisissez un déclencheur puis planifiez chaque email avec un délai en jours (J+0, J+3, etc.).</p>
+              </div>
+
+              <div className="flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={closeAutomationModal}
+                  className="rounded-lg border px-3 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                >
+                  Annuler
+                </button>
+                <button
+                  type="submit"
+                  className="inline-flex items-center gap-2 rounded-lg bg-purple-600 px-4 py-2 text-sm font-semibold text-white hover:bg-purple-700"
+                >
+                  <CheckCircle2 className="h-4 w-4" />
+                  Sauvegarder
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
