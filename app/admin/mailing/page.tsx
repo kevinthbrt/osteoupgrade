@@ -50,6 +50,8 @@ type Automation = {
   active: boolean
 }
 
+const inlineImageStyle = 'display:block;max-width:640px;width:100%;height:auto;margin:12px 0;'
+
 const defaultTemplates: Template[] = [
   {
     id: 'welcome',
@@ -342,7 +344,7 @@ export default function MailingAdminPage() {
 
       applyFormatting(
         'insertHTML',
-        `<img src="cid:${cid}" alt="${file.name}" style="max-width:100%;height:auto;" />`
+        `<img src="${result}" data-inline-cid="${cid}" alt="${file.name}" style="${inlineImageStyle}" />`
       )
     }
     reader.readAsDataURL(file)
@@ -512,16 +514,36 @@ export default function MailingAdminPage() {
       return
     }
 
+    const prepareInlineImagesForSend = (content: string) => {
+      const container = document.createElement('div')
+      container.innerHTML = content
+
+      container.querySelectorAll('img[data-inline-cid]').forEach((img) => {
+        const cid = img.getAttribute('data-inline-cid')
+        if (!cid) return
+
+        const existingStyle = img.getAttribute('style') || ''
+        const mergedStyle = `${existingStyle ? `${existingStyle};` : ''}${inlineImageStyle}`
+
+        img.setAttribute('src', `cid:${cid}`)
+        img.removeAttribute('data-inline-cid')
+        img.setAttribute('style', mergedStyle)
+      })
+
+      return container.innerHTML
+    }
+
     setSending(true)
     try {
       const plainText = text || extractTextFromHtml(html)
+      const htmlForSend = prepareInlineImagesForSend(html)
       const response = await fetch('/api/mailing/send', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           to: recipients,
           subject,
-          html,
+          html: htmlForSend,
           text: plainText,
           from: fromInput,
           tags: ['admin-send'],
