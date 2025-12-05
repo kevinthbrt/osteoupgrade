@@ -33,6 +33,14 @@ type Template = {
   text?: string
 }
 
+type Attachment = {
+  name: string
+  content: string
+  type: string
+  cid?: string
+  disposition?: 'inline' | 'attachment'
+}
+
 type Automation = {
   id: string
   name: string
@@ -134,7 +142,7 @@ export default function MailingAdminPage() {
   const [templateHtmlManuallyEdited, setTemplateHtmlManuallyEdited] = useState(false)
   const [loadingTemplates, setLoadingTemplates] = useState(false)
   const [templateSaving, setTemplateSaving] = useState(false)
-  const [attachments, setAttachments] = useState<{ name: string; content: string; type: string }[]>([])
+  const [attachments, setAttachments] = useState<Attachment[]>([])
   const editorRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const attachmentInputRef = useRef<HTMLInputElement>(null)
@@ -316,7 +324,26 @@ export default function MailingAdminPage() {
     const reader = new FileReader()
     reader.onload = () => {
       const result = reader.result as string
-      applyFormatting('insertImage', result)
+      const base64 = result.split(',')[1]
+      if (!base64) return
+
+      const cid = `inline-${Date.now()}-${Math.random().toString(16).slice(2)}`
+
+      setAttachments((prev) => [
+        ...prev,
+        {
+          name: file.name,
+          content: base64,
+          type: file.type,
+          cid,
+          disposition: 'inline'
+        }
+      ])
+
+      applyFormatting(
+        'insertHTML',
+        `<img src="cid:${cid}" alt="${file.name}" style="max-width:100%;height:auto;" />`
+      )
     }
     reader.readAsDataURL(file)
     event.target.value = ''
@@ -331,7 +358,10 @@ export default function MailingAdminPage() {
       reader.onload = () => {
         const base64 = (reader.result as string)?.split(',')[1]
         if (!base64) return
-        setAttachments((prev) => [...prev, { name: file.name, content: base64, type: file.type }])
+        setAttachments((prev) => [
+          ...prev,
+          { name: file.name, content: base64, type: file.type, disposition: 'attachment' }
+        ])
       }
       reader.readAsDataURL(file)
     })
@@ -339,8 +369,8 @@ export default function MailingAdminPage() {
     event.target.value = ''
   }
 
-  const removeAttachment = (name: string) => {
-    setAttachments((prev) => prev.filter((file) => file.name !== name))
+  const removeAttachmentAt = (index: number) => {
+    setAttachments((prev) => prev.filter((_, currentIndex) => currentIndex !== index))
   }
 
   const handleEditorInput = (event: React.FormEvent<HTMLDivElement>) => {
@@ -495,7 +525,14 @@ export default function MailingAdminPage() {
           text: plainText,
           from: fromInput,
           tags: ['admin-send'],
-          attachments: attachments.map((file) => ({ filename: file.name, content: file.content, type: file.type }))
+          attachments: attachments.map((file) => ({
+            filename: file.name,
+            content: file.content,
+            type: file.type,
+            cid: file.cid,
+            content_id: file.cid,
+            disposition: file.disposition
+          }))
         })
       })
 
@@ -794,7 +831,8 @@ export default function MailingAdminPage() {
                         className="inline-flex items-center gap-2 rounded-full bg-gray-100 px-3 py-1 text-xs text-gray-700"
                       >
                         {file.name}
-                        <button type="button" onClick={() => removeAttachment(file.name)} className="text-gray-500 hover:text-gray-800">
+                        {file.disposition === 'inline' && <span className="text-[10px] text-purple-600">(inline)</span>}
+                        <button type="button" onClick={() => removeAttachmentAt(index)} className="text-gray-500 hover:text-gray-800">
                           <X className="h-3 w-3" />
                         </button>
                       </span>
