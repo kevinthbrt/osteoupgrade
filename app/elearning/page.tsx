@@ -57,52 +57,19 @@ const canAccessFormation = (role: string | undefined, isPrivate?: boolean) => {
   return ['premium_silver', 'premium_gold', 'admin'].includes(role)
 }
 
-const demoFormations: Formation[] = [
-  {
-    id: 'demo-formation-1',
-    title: 'Techniques avancées de radiologie',
-    description:
-      "Un parcours guidé pour maîtriser l'interprétation radiologique avec des cas pratiques et des démonstrations vidéos.",
-    is_private: false,
-    chapters: [
-      {
-        id: 'demo-chapter-1',
-        title: 'Bases essentielles',
-        order_index: 1,
-        subparts: [
-          {
-            id: 'demo-subpart-1',
-            title: 'Lecture systématique des clichés',
-            vimeo_url: 'https://player.vimeo.com/video/76979871',
-            description_html: '<p>Approche pas à pas pour sécuriser vos diagnostics.</p>',
-            order_index: 1
-          },
-          {
-            id: 'demo-subpart-2',
-            title: 'Pièges fréquents',
-            vimeo_url: 'https://player.vimeo.com/video/1084537',
-            description_html: '<p>Les erreurs courantes et comment les éviter.</p>',
-            order_index: 2
-          }
-        ]
-      },
-      {
-        id: 'demo-chapter-2',
-        title: 'Cas cliniques commentés',
-        order_index: 2,
-        subparts: [
-          {
-            id: 'demo-subpart-3',
-            title: 'Traumatologie',
-            vimeo_url: 'https://player.vimeo.com/video/137857207',
-            description_html: '<p>Analyse guidée avec un expert.</p>',
-            order_index: 1
-          }
-        ]
-      }
-    ]
+const getVimeoEmbedUrl = (url: string) => {
+  try {
+    const parsed = new URL(url)
+    if (parsed.hostname.includes('player.vimeo.com')) return url
+
+    const pathParts = parsed.pathname.split('/').filter(Boolean)
+    const videoId = pathParts[pathParts.length - 1]
+    return videoId ? `https://player.vimeo.com/video/${videoId}` : url
+  } catch (error) {
+    console.warn('URL Vimeo invalide, utilisation directe', error)
+    return url
   }
-]
+}
 
 const ToolbarButton = ({
   label,
@@ -180,18 +147,18 @@ const RichTextEditor = ({ value, onChange }: { value: string; onChange: (html: s
 export default function ElearningPage() {
   const router = useRouter()
   const [profile, setProfile] = useState<Profile | null>(null)
-  const [formations, setFormations] = useState<Formation[]>(demoFormations)
-  const [selectedFormationId, setSelectedFormationId] = useState<string>(demoFormations[0].id)
+  const [formations, setFormations] = useState<Formation[]>([])
+  const [selectedFormationId, setSelectedFormationId] = useState<string>('')
   const [loading, setLoading] = useState(true)
   const [creating, setCreating] = useState(false)
 
   const [formationForm, setFormationForm] = useState({ title: '', description: '', is_private: false })
-  const [chapterForm, setChapterForm] = useState({ title: '', order_index: 1, formationId: demoFormations[0].id })
+  const [chapterForm, setChapterForm] = useState({ title: '', order_index: 1, formationId: '' })
   const [subpartForm, setSubpartForm] = useState({
     title: '',
     vimeo_url: '',
     order_index: 1,
-    chapterId: demoFormations[0].chapters[0].id,
+    chapterId: '',
     description_html: ''
   })
 
@@ -279,12 +246,16 @@ export default function ElearningPage() {
         } else {
           setFormations([])
           setSelectedFormationId('')
+          setChapterForm((prev) => ({ ...prev, formationId: '' }))
+          setSubpartForm((prev) => ({ ...prev, chapterId: '' }))
         }
       }
     } catch (error) {
-      console.warn('Fallback to démonstration data, tables manquantes ?', error)
-      setFormations(demoFormations)
-      setSelectedFormationId(demoFormations[0].id)
+      console.error('Erreur de chargement des formations', error)
+      setFormations([])
+      setSelectedFormationId('')
+      setChapterForm((prev) => ({ ...prev, formationId: '' }))
+      setSubpartForm((prev) => ({ ...prev, chapterId: '' }))
     }
   }
 
@@ -332,6 +303,8 @@ export default function ElearningPage() {
 
       setFormations((prev) => [...prev, newFormation])
       setSelectedFormationId(newFormation.id)
+      setChapterForm((prev) => ({ ...prev, formationId: newFormation.id }))
+      setSubpartForm((prev) => ({ ...prev, chapterId: '' }))
       setFormationForm({ title: '', description: '', is_private: false })
     } catch (error) {
       console.error('Impossible de créer la formation', error)
@@ -616,15 +589,21 @@ export default function ElearningPage() {
                                     dangerouslySetInnerHTML={{ __html: subpart.description_html }}
                                   />
                                 )}
-                                <a
-                                  href={subpart.vimeo_url}
-                                  target="_blank"
-                                  rel="noreferrer"
-                                  className="inline-flex items-center gap-2 text-sm text-primary-700 mt-2"
-                                >
-                                  <PlayCircle className="h-4 w-4" />
-                                  Ouvrir dans le lecteur Vimeo
-                                </a>
+                                <div className="mt-3 space-y-2">
+                                  <div className="relative w-full overflow-hidden rounded-lg border border-gray-200 bg-black aspect-video">
+                                    <iframe
+                                      src={getVimeoEmbedUrl(subpart.vimeo_url)}
+                                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                      allowFullScreen
+                                      className="absolute inset-0 h-full w-full"
+                                      title={`Vimeo - ${subpart.title}`}
+                                    />
+                                  </div>
+                                  <div className="flex items-center gap-2 text-xs text-gray-500">
+                                    <PlayCircle className="h-4 w-4" />
+                                    Lecture intégrée
+                                  </div>
+                                </div>
                               </div>
                               <div className="flex items-center gap-2">
                                 <span className="text-xs text-gray-500 flex items-center gap-1">

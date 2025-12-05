@@ -1,3 +1,24 @@
+-- Mise à niveau depuis l'ancien schéma : suppression de la colonne "level" et ajout du flag "is_private"
+-- On commence par supprimer les anciennes policies qui dépendent de la colonne level pour éviter les erreurs.
+drop policy if exists "formations_select" on public.elearning_formations;
+drop policy if exists "chapters_select" on public.elearning_chapters;
+drop policy if exists "subparts_select" on public.elearning_subparts;
+drop policy if exists "progress_select" on public.elearning_subpart_progress;
+drop policy if exists "progress_self_write" on public.elearning_subpart_progress;
+drop policy if exists "progress_self_delete" on public.elearning_subpart_progress;
+drop policy if exists "formations_admin_write" on public.elearning_formations;
+drop policy if exists "chapters_admin_write" on public.elearning_chapters;
+drop policy if exists "subparts_admin_write" on public.elearning_subparts;
+
+alter table if exists public.elearning_formations
+  drop constraint if exists elearning_formations_level_check;
+
+alter table if exists public.elearning_formations
+  drop column if exists level;
+
+alter table if exists public.elearning_formations
+  add column if not exists is_private boolean not null default false;
+
 -- Tables principales pour le module e-learning
 create table if not exists public.elearning_formations (
   id uuid primary key default gen_random_uuid(),
