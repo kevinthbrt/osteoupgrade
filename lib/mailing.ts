@@ -5,6 +5,11 @@ interface EmailPayload {
   text?: string
   from?: string
   tags?: string[]
+  attachments?: {
+    filename: string
+    content: string
+    type?: string
+  }[]
 }
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY
@@ -41,7 +46,12 @@ async function sendWithResend(payload: EmailPayload) {
       subject: payload.subject,
       html: payload.html,
       text: payload.text,
-      tags
+      tags,
+      attachments: payload.attachments?.map((file) => ({
+        filename: file.filename,
+        content: file.content,
+        type: file.type
+      }))
     })
   })
 

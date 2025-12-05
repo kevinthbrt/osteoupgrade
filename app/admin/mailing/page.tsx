@@ -6,10 +6,12 @@ import {
   CheckCircle2,
   FilePlus2,
   Flame,
+  Link2,
   Image as ImageIcon,
   Loader2,
   Mail,
   Palette,
+  Paperclip,
   PlayCircle,
   Rocket,
   Send,
@@ -111,6 +113,7 @@ export default function MailingAdminPage() {
   const [audienceMode, setAudienceMode] = useState<'manual' | 'all' | 'subscription'>('manual')
   const [subscriptionFilter, setSubscriptionFilter] = useState<string>('premium_silver')
   const [members, setMembers] = useState<{ email: string; role: string; subscription_status: string | null }[]>([])
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null)
   const [automationDraft, setAutomationDraft] = useState<Omit<Automation, 'id' | 'active'>>({
     name: '',
     trigger: '',
@@ -129,8 +132,12 @@ export default function MailingAdminPage() {
   const [editingTemplateId, setEditingTemplateId] = useState<string | null>(null)
   const [templateModalOpen, setTemplateModalOpen] = useState(false)
   const [templateHtmlManuallyEdited, setTemplateHtmlManuallyEdited] = useState(false)
+  const [loadingTemplates, setLoadingTemplates] = useState(false)
+  const [templateSaving, setTemplateSaving] = useState(false)
+  const [attachments, setAttachments] = useState<{ name: string; content: string; type: string }[]>([])
   const editorRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const attachmentInputRef = useRef<HTMLInputElement>(null)
 
   const extractTextFromHtml = (content: string) => {
     const element = document.createElement('div')
@@ -153,6 +160,40 @@ export default function MailingAdminPage() {
     `
   }
 
+  const isUuid = (value: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)
+
+  const mapTemplateRowToTemplate = (row: any): Template => ({
+    id: row.id,
+    name: row.name,
+    subject: row.subject,
+    description: row.description || '',
+    html: row.html || '',
+    text: row.text || ''
+  })
+
+  const loadTemplatesFromSupabase = async () => {
+    setLoadingTemplates(true)
+    try {
+      const { data, error } = await supabase
+        .from('mail_templates')
+        .select('id, name, subject, description, html, text')
+        .order('created_at', { ascending: false })
+
+      if (error) {
+        console.error('Erreur de chargement des templates Supabase', error)
+        setResult({ type: 'error', message: "Impossible de charger les templates enregistrés." })
+        return
+      }
+
+      if (data) {
+        const remoteTemplates = data.map(mapTemplateRowToTemplate)
+        setTemplates([...defaultTemplates, ...remoteTemplates])
+      }
+    } finally {
+      setLoadingTemplates(false)
+    }
+  }
+
   useEffect(() => {
     const checkAdminAccess = async () => {
       try {
@@ -162,6 +203,8 @@ export default function MailingAdminPage() {
           router.push('/')
           return
         }
+
+        setCurrentUserId(user.id)
 
         const { data: profile } = await supabase
           .from('profiles')
@@ -182,6 +225,8 @@ export default function MailingAdminPage() {
         if (membersData) {
           setMembers(membersData.filter((member) => !!member.email) as typeof members)
         }
+
+        await loadTemplatesFromSupabase()
       } finally {
         setLoading(false)
       }
@@ -254,6 +299,16 @@ export default function MailingAdminPage() {
     }
   }
 
+  const handleButtonInsert = () => {
+    const label = window.prompt('Texte du bouton') || 'Découvrir'
+    const url = window.prompt('Lien du bouton (https://...)') || 'https://osteoupgrade.app'
+
+    applyFormatting(
+      'insertHTML',
+      `<p style="margin: 12px 0;"><a href="${url}" style="display:inline-block;background:#7c3aed;color:white;padding:12px 18px;border-radius:10px;text-decoration:none;font-weight:600;">${label}</a></p>`
+    )
+  }
+
   const handleFileImageInsert = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     if (!file) return
@@ -265,6 +320,27 @@ export default function MailingAdminPage() {
     }
     reader.readAsDataURL(file)
     event.target.value = ''
+  }
+
+  const handleAttachmentSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files
+    if (!files?.length) return
+
+    Array.from(files).forEach((file) => {
+      const reader = new FileReader()
+      reader.onload = () => {
+        const base64 = (reader.result as string)?.split(',')[1]
+        if (!base64) return
+        setAttachments((prev) => [...prev, { name: file.name, content: base64, type: file.type }])
+      }
+      reader.readAsDataURL(file)
+    })
+
+    event.target.value = ''
+  }
+
+  const removeAttachment = (name: string) => {
+    setAttachments((prev) => prev.filter((file) => file.name !== name))
   }
 
   const handleEditorInput = (event: React.FormEvent<HTMLDivElement>) => {
@@ -294,23 +370,57 @@ export default function MailingAdminPage() {
     setTemplateHtmlManuallyEdited(false)
   }
 
-  const saveTemplate = () => {
+  const saveTemplate = async () => {
     if (!templateDraft.name || !templateDraft.subject || !templateDraft.html) {
       setResult({ type: 'error', message: 'Complétez au moins le nom, le sujet et le contenu HTML du template.' })
       return
     }
 
-    if (editingTemplateId) {
-      setTemplates((prev) => prev.map((tpl) => (tpl.id === editingTemplateId ? { ...templateDraft, id: editingTemplateId } : tpl)))
-    } else {
-      const newTemplate = { ...templateDraft, id: `custom-${Date.now()}` }
-      setTemplates((prev) => [...prev, newTemplate])
-    }
+    const resolvedText = templateDraft.text || extractTextFromHtml(templateDraft.html)
+    setTemplateSaving(true)
 
-    resetTemplateDraft()
+    try {
+      const shouldUpdateExisting = editingTemplateId ? isUuid(editingTemplateId) : false
+      const { data, error } = await supabase
+        .from('mail_templates')
+        .upsert({
+          id: shouldUpdateExisting ? editingTemplateId || undefined : undefined,
+          name: templateDraft.name,
+          subject: templateDraft.subject,
+          description: templateDraft.description,
+          html: templateDraft.html,
+          text: resolvedText,
+          created_by: currentUserId || undefined
+        })
+        .select()
+        .single()
+
+      if (error) {
+        throw error
+      }
+
+      const savedTemplate: Template = {
+        ...templateDraft,
+        id: data?.id || editingTemplateId || `custom-${Date.now()}`,
+        text: resolvedText
+      }
+
+      setTemplates((prev) => {
+        const filtered = prev.filter((tpl) => tpl.id !== savedTemplate.id)
+        return [...filtered, savedTemplate]
+      })
+
+      setResult({ type: 'success', message: 'Template enregistré dans Supabase.' })
+      resetTemplateDraft()
+    } catch (error: any) {
+      console.error('Erreur lors de la sauvegarde du template', error)
+      setResult({ type: 'error', message: error?.message || 'Impossible de sauvegarder le template.' })
+    } finally {
+      setTemplateSaving(false)
+    }
   }
 
-  const deleteTemplate = (templateId: string) => {
+  const deleteTemplate = async (templateId: string) => {
     setTemplates((prev) => prev.filter((tpl) => tpl.id !== templateId))
 
     if (selectedTemplate === templateId) {
@@ -319,6 +429,13 @@ export default function MailingAdminPage() {
       setSubject(fallback.subject)
       setHtml(fallback.html)
       setText(fallback.text || '')
+    }
+
+    if (isUuid(templateId)) {
+      const { error } = await supabase.from('mail_templates').delete().eq('id', templateId)
+      if (error) {
+        setResult({ type: 'error', message: 'Suppression locale effectuée, mais Supabase a rejeté la requête.' })
+      }
     }
   }
 
@@ -371,7 +488,15 @@ export default function MailingAdminPage() {
       const response = await fetch('/api/mailing/send', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ to: recipients, subject, html, text: plainText, from: fromInput, tags: ['admin-send'] })
+        body: JSON.stringify({
+          to: recipients,
+          subject,
+          html,
+          text: plainText,
+          from: fromInput,
+          tags: ['admin-send'],
+          attachments: attachments.map((file) => ({ filename: file.name, content: file.content, type: file.type }))
+        })
       })
 
       const data = await response.json()
@@ -380,6 +505,7 @@ export default function MailingAdminPage() {
       }
 
       setResult({ type: 'success', message: 'Email envoyé via Resend. Vérifiez votre boîte de réception.' })
+      setAttachments([])
     } catch (error: any) {
       setResult({ type: 'error', message: error?.message || 'Erreur lors de l\'envoi.' })
     } finally {
@@ -589,6 +715,14 @@ export default function MailingAdminPage() {
                       </label>
                       <button
                         type="button"
+                        onClick={handleButtonInsert}
+                        className="inline-flex items-center gap-1 rounded px-2 py-1 hover:bg-gray-100"
+                      >
+                        <Link2 className="h-4 w-4" />
+                        Bouton lien
+                      </button>
+                      <button
+                        type="button"
                         onClick={handleImageInsert}
                         className="inline-flex items-center gap-1 rounded px-2 py-1 hover:bg-gray-100"
                       >
@@ -629,6 +763,46 @@ export default function MailingAdminPage() {
                 </div>
               </div>
 
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-sm font-medium text-gray-700">
+                  <Paperclip className="h-4 w-4" />
+                  <span>Pièces jointes</span>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => attachmentInputRef.current?.click()}
+                    className="inline-flex items-center gap-2 rounded border border-dashed border-gray-300 px-3 py-2 text-sm hover:bg-gray-50"
+                  >
+                    <Paperclip className="h-4 w-4" />
+                    Ajouter une pièce jointe
+                  </button>
+                  <input
+                    ref={attachmentInputRef}
+                    type="file"
+                    multiple
+                    className="hidden"
+                    onChange={handleAttachmentSelect}
+                  />
+                  <p className="text-xs text-gray-500">Formats supportés: images, PDF, documents. Encodage automatique en base64.</p>
+                </div>
+                {attachments.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {attachments.map((file, index) => (
+                      <span
+                        key={`${file.name}-${index}`}
+                        className="inline-flex items-center gap-2 rounded-full bg-gray-100 px-3 py-1 text-xs text-gray-700"
+                      >
+                        {file.name}
+                        <button type="button" onClick={() => removeAttachment(file.name)} className="text-gray-500 hover:text-gray-800">
+                          <X className="h-3 w-3" />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2 text-sm text-gray-500">
                   <Wand2 className="h-4 w-4 text-purple-500" />
@@ -653,6 +827,7 @@ export default function MailingAdminPage() {
                   <Sparkles className="h-5 w-5 text-purple-600" />
                   <h3 className="font-semibold">Templates</h3>
                 </div>
+                {loadingTemplates && <p className="text-xs text-gray-500">Chargement Supabase...</p>}
                 <button
                   type="button"
                   onClick={startTemplateCreation}
@@ -867,10 +1042,11 @@ export default function MailingAdminPage() {
                 <button
                   type="button"
                   onClick={saveTemplate}
-                  className="inline-flex items-center gap-2 rounded-lg bg-purple-600 px-4 py-2 text-sm font-semibold text-white hover:bg-purple-700"
+                  disabled={templateSaving}
+                  className="inline-flex items-center gap-2 rounded-lg bg-purple-600 px-4 py-2 text-sm font-semibold text-white hover:bg-purple-700 disabled:opacity-60"
                 >
                   <Wand2 className="h-4 w-4" />
-                  {editingTemplateId ? 'Mettre à jour' : 'Ajouter'}
+                  {templateSaving ? 'Sauvegarde...' : editingTemplateId ? 'Mettre à jour' : 'Ajouter'}
                 </button>
               </div>
             </div>

@@ -4,7 +4,7 @@ import { sendTransactionalEmail } from '@/lib/mailing'
 export async function POST(request: Request) {
   try {
     const body = await request.json()
-    const { to, subject, html, text, from, tags } = body
+    const { to, subject, html, text, from, tags, attachments } = body
 
     const recipients = (Array.isArray(to) ? to : String(to || '')
       .split(',')
@@ -25,7 +25,8 @@ export async function POST(request: Request) {
       html,
       text,
       from,
-      tags
+      tags,
+      attachments
     })
 
     return NextResponse.json({ success: true, result })

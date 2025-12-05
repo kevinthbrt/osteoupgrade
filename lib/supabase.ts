@@ -100,6 +100,17 @@ export type Database = {
         created_at: string
         updated_at: string
       }>
+      mail_templates: TableDefinition<{
+        id: string
+        name: string
+        subject: string
+        description: string | null
+        html: string
+        text: string | null
+        created_by: string | null
+        created_at: string
+        updated_at: string
+      }>
       orthopedic_test_cluster_items: TableDefinition<{
         id: string
         cluster_id: string
