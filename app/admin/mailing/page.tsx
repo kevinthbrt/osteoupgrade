@@ -529,6 +529,7 @@ export default function MailingAdminPage() {
             filename: file.name,
             content: file.content,
             type: file.type,
+            cid: file.cid,
             content_id: file.cid,
             disposition: file.disposition
           }))
