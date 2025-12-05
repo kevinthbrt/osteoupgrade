@@ -12,6 +12,8 @@ import {
   Clock3,
   GraduationCap,
   Layers,
+  ChevronDown,
+  ChevronRight,
   ListChecks,
   PlayCircle,
   Plus,
@@ -176,6 +178,8 @@ export default function ElearningPage() {
     order_index: 1
   })
   const [showFormationModal, setShowFormationModal] = useState(false)
+  const [expandedChapters, setExpandedChapters] = useState<Record<string, boolean>>({})
+  const [expandedSubparts, setExpandedSubparts] = useState<Record<string, boolean>>({})
 
   useEffect(() => {
     loadData()
@@ -284,14 +288,40 @@ export default function ElearningPage() {
 
   useEffect(() => {
     if (!selectedFormation || !showFormationModal) return
+
     const flatSubparts = selectedFormation.chapters.flatMap((chapter) => chapter.subparts)
     const nextSubpart =
       flatSubparts.find((subpart) => !subpart.completed) || flatSubparts[flatSubparts.length - 1]
 
-    if (nextSubpart?.id && subpartRefs.current[nextSubpart.id]) {
-      subpartRefs.current[nextSubpart.id]?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    const initialChapters: Record<string, boolean> = {}
+    const initialSubparts: Record<string, boolean> = {}
+
+    selectedFormation.chapters.forEach((chapter) => {
+      initialChapters[chapter.id] = false
+      chapter.subparts.forEach((subpart) => {
+        initialSubparts[subpart.id] = false
+      })
+    })
+
+    if (nextSubpart) {
+      initialSubparts[nextSubpart.id] = true
+      const parentChapter = selectedFormation.chapters.find((chapter) =>
+        chapter.subparts.some((sub) => sub.id === nextSubpart.id)
+      )
+      if (parentChapter) {
+        initialChapters[parentChapter.id] = true
+      }
     }
-  }, [selectedFormation, showFormationModal])
+
+    setExpandedChapters(initialChapters)
+    setExpandedSubparts(initialSubparts)
+
+    if (nextSubpart?.id && subpartRefs.current[nextSubpart.id]) {
+      setTimeout(() => {
+        subpartRefs.current[nextSubpart.id]?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      }, 150)
+    }
+  }, [selectedFormationId, showFormationModal])
 
   const computeProgress = (formation?: Formation) => {
     if (!formation) return { total: 0, done: 0, percent: 0 }
@@ -485,6 +515,7 @@ export default function ElearningPage() {
   const startEditChapter = (chapter: Chapter) => {
     setEditingChapterId(chapter.id)
     setEditChapterForm({ title: chapter.title, order_index: chapter.order_index || 1 })
+    setExpandedChapters((prev) => ({ ...prev, [chapter.id]: true }))
   }
 
   const handleUpdateChapter = async (chapterId: string) => {
@@ -535,7 +566,7 @@ export default function ElearningPage() {
     }
   }
 
-  const startEditSubpart = (subpart: Subpart) => {
+  const startEditSubpart = (subpart: Subpart, chapterId?: string) => {
     setEditingSubpartId(subpart.id)
     setEditSubpartForm({
       title: subpart.title,
@@ -543,6 +574,18 @@ export default function ElearningPage() {
       description_html: subpart.description_html || '',
       order_index: subpart.order_index || 1
     })
+    if (chapterId) {
+      setExpandedChapters((prev) => ({ ...prev, [chapterId]: true }))
+    }
+    setExpandedSubparts((prev) => ({ ...prev, [subpart.id]: true }))
+  }
+
+  const toggleChapterExpansion = (chapterId: string) => {
+    setExpandedChapters((prev) => ({ ...prev, [chapterId]: !prev[chapterId] }))
+  }
+
+  const toggleSubpartExpansion = (subpartId: string) => {
+    setExpandedSubparts((prev) => ({ ...prev, [subpartId]: !prev[subpartId] }))
   }
 
   const handleUpdateSubpart = async (subpartId: string) => {
@@ -889,17 +932,30 @@ export default function ElearningPage() {
                     </div>
                   </div>
 
-                  <div className="space-y-3">
-                    {selectedFormation.chapters.map((chapter) => (
-                      <div
-                        key={chapter.id}
-                        className="border border-gray-100 rounded-xl overflow-hidden"
+                <div className="space-y-3">
+                  {selectedFormation.chapters.map((chapter) => (
+                    <div
+                      key={chapter.id}
+                      className="border border-gray-100 rounded-xl overflow-hidden"
                         ref={(ref) => {
                           subpartRefs.current[chapter.id] = ref
                         }}
                       >
                         <div className="flex items-center justify-between bg-gray-50 px-4 py-3">
-                          <div className="flex items-center gap-2 text-gray-800 font-semibold">
+                          <div className="flex items-center gap-3 text-gray-800 font-semibold">
+                            <button
+                              onClick={() => toggleChapterExpansion(chapter.id)}
+                              className="p-1 rounded hover:bg-white border border-transparent hover:border-gray-200"
+                              aria-label={`Basculer l'affichage du chapitre ${chapter.title}`}
+                            >
+                              <ChevronRight
+                                className={`h-4 w-4 text-primary-600 transition-transform ${
+                                  (expandedChapters[chapter.id] || editingChapterId === chapter.id)
+                                    ? 'rotate-90'
+                                    : ''
+                                }`}
+                              />
+                            </button>
                             <Layers className="h-4 w-4 text-primary-600" />
                             {editingChapterId === chapter.id ? (
                               <input
@@ -951,142 +1007,167 @@ export default function ElearningPage() {
                             )}
                           </div>
                         </div>
-                        <div className="divide-y divide-gray-100">
-                          {chapter.subparts.map((subpart) => (
-                            <div
-                              key={subpart.id}
-                              ref={(ref) => {
-                                subpartRefs.current[subpart.id] = ref
-                              }}
-                              className="p-4 space-y-3"
-                            >
-                              <div className="flex items-start justify-between gap-3">
-                                <div className="flex-1 space-y-2">
-                                  <div className="flex items-center gap-2 text-gray-900 font-semibold">
-                                    <Video className="h-4 w-4 text-primary-500" />
-                                    {editingSubpartId === subpart.id ? (
-                                      <input
-                                        value={editSubpartForm.title}
-                                        onChange={(e) => setEditSubpartForm({ ...editSubpartForm, title: e.target.value })}
-                                        className="border border-gray-200 rounded-lg px-2 py-1 text-sm"
-                                      />
-                                    ) : (
-                                      subpart.title
-                                    )}
-                                  </div>
-                                  {editingSubpartId === subpart.id ? (
-                                    <div className="space-y-2">
-                                      <input
-                                        value={editSubpartForm.vimeo_url}
-                                        onChange={(e) => setEditSubpartForm({ ...editSubpartForm, vimeo_url: e.target.value })}
-                                        placeholder="URL Vimeo (optionnelle)"
-                                        className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
-                                      />
-                                      <input
-                                        type="number"
-                                        min={1}
-                                        value={editSubpartForm.order_index}
-                                        onChange={(e) =>
-                                          setEditSubpartForm({ ...editSubpartForm, order_index: Number(e.target.value) })
-                                        }
-                                        className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
-                                        placeholder="Ordre d'affichage"
-                                      />
-                                      <RichTextEditor
-                                        value={editSubpartForm.description_html}
-                                        onChange={(html) => setEditSubpartForm({ ...editSubpartForm, description_html: html })}
-                                      />
-                                    </div>
-                                  ) : (
-                                    subpart.description_html && (
-                                      <div
-                                        className="text-sm text-gray-700 prose prose-sm max-w-none"
-                                        dangerouslySetInnerHTML={{ __html: subpart.description_html }}
-                                      />
-                                    )
-                                  )}
-                                  <div className="mt-1 space-y-2">
-                                    {subpart.vimeo_url ? (
-                                      <div className="relative w-full overflow-hidden rounded-lg border border-gray-200 bg-black aspect-video">
-                                        <iframe
-                                          src={getVimeoEmbedUrl(subpart.vimeo_url)}
-                                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                          allowFullScreen
-                                          className="absolute inset-0 h-full w-full"
-                                          title={`Vimeo - ${subpart.title}`}
-                                        />
+                        {(expandedChapters[chapter.id] || editingChapterId === chapter.id) && (
+                          <div className="divide-y divide-gray-100">
+                            {chapter.subparts.map((subpart) => {
+                              const subpartOpen = expandedSubparts[subpart.id] || editingSubpartId === subpart.id
+                              return (
+                                <div
+                                  key={subpart.id}
+                                  ref={(ref) => {
+                                    subpartRefs.current[subpart.id] = ref
+                                  }}
+                                  className="p-4 space-y-3"
+                                >
+                                  <div className="flex items-start justify-between gap-3">
+                                    <div className="flex-1 space-y-2">
+                                      <div className="flex items-center gap-2 text-gray-900 font-semibold">
+                                        <button
+                                          onClick={() => toggleSubpartExpansion(subpart.id)}
+                                          className="p-1 rounded hover:bg-gray-50 border border-transparent hover:border-gray-200"
+                                          aria-label={`Basculer l'affichage de la sous-partie ${subpart.title}`}
+                                        >
+                                          <ChevronDown
+                                            className={`h-4 w-4 text-primary-500 transition-transform ${
+                                              subpartOpen ? 'rotate-180' : ''
+                                            }`}
+                                          />
+                                        </button>
+                                        <Video className="h-4 w-4 text-primary-500" />
+                                        {editingSubpartId === subpart.id ? (
+                                          <input
+                                            value={editSubpartForm.title}
+                                            onChange={(e) => setEditSubpartForm({ ...editSubpartForm, title: e.target.value })}
+                                            className="border border-gray-200 rounded-lg px-2 py-1 text-sm"
+                                          />
+                                        ) : (
+                                          subpart.title
+                                        )}
                                       </div>
-                                    ) : (
-                                      <div className="rounded-lg border border-dashed border-gray-300 p-4 text-sm text-gray-500 bg-gray-50">
-                                        Vidéo à venir
-                                      </div>
-                                    )}
-                                    <div className="flex items-center gap-2 text-xs text-gray-500">
-                                      <PlayCircle className="h-4 w-4" />
-                                      {subpart.vimeo_url ? 'Lecture intégrée' : 'Support en cours de préparation'}
-                                    </div>
-                                  </div>
-                                </div>
-                                <div className="flex flex-col items-end gap-2 min-w-[140px]">
-                                  <span className="text-xs text-gray-500 flex items-center gap-1">
-                                    <Clock3 className="h-4 w-4" />
-                                    Suivi
-                                  </span>
-                                  <button
-                                    onClick={() => toggleCompletion(subpart.id, !subpart.completed)}
-                                    className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold border ${
-                                      subpart.completed
-                                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                                        : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
-                                    }`}
-                                  >
-                                    <CheckSquare className="h-4 w-4" />
-                                    {subpart.completed ? 'Terminé' : 'Marquer terminé'}
-                                  </button>
-                                  {isAdmin && (
-                                    <div className="flex flex-wrap gap-2 justify-end">
-                                      {editingSubpartId === subpart.id ? (
+                                      {subpartOpen && (
                                         <>
-                                          <button
-                                            onClick={() => handleUpdateSubpart(subpart.id)}
-                                            className="px-3 py-1 text-xs border border-primary-200 text-primary-700 rounded-lg"
-                                            disabled={creating}
-                                          >
-                                            Sauvegarder
-                                          </button>
-                                          <button
-                                            onClick={() => setEditingSubpartId(null)}
-                                            className="px-3 py-1 text-xs border border-gray-200 rounded-lg"
-                                          >
-                                            Annuler
-                                          </button>
-                                        </>
-                                      ) : (
-                                        <>
-                                          <button
-                                            onClick={() => startEditSubpart(subpart)}
-                                            className="px-3 py-1 text-xs border border-gray-200 rounded-lg"
-                                          >
-                                            Modifier
-                                          </button>
-                                          <button
-                                            onClick={() => handleDeleteSubpart(subpart.id)}
-                                            className="px-3 py-1 text-xs border border-red-200 text-red-700 rounded-lg"
-                                          >
-                                            Supprimer
-                                          </button>
+                                          {editingSubpartId === subpart.id ? (
+                                            <div className="space-y-2">
+                                              <input
+                                                value={editSubpartForm.vimeo_url}
+                                                onChange={(e) =>
+                                                  setEditSubpartForm({ ...editSubpartForm, vimeo_url: e.target.value })
+                                                }
+                                                placeholder="URL Vimeo (optionnelle)"
+                                                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
+                                              />
+                                              <input
+                                                type="number"
+                                                min={1}
+                                                value={editSubpartForm.order_index}
+                                                onChange={(e) =>
+                                                  setEditSubpartForm({
+                                                    ...editSubpartForm,
+                                                    order_index: Number(e.target.value)
+                                                  })
+                                                }
+                                                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
+                                                placeholder="Ordre d'affichage"
+                                              />
+                                              <RichTextEditor
+                                                value={editSubpartForm.description_html}
+                                                onChange={(html) => setEditSubpartForm({ ...editSubpartForm, description_html: html })}
+                                              />
+                                            </div>
+                                          ) : (
+                                            subpart.description_html && (
+                                              <div
+                                                className="text-sm text-gray-700 prose prose-sm max-w-none"
+                                                dangerouslySetInnerHTML={{ __html: subpart.description_html }}
+                                              />
+                                            )
+                                          )}
+                                          <div className="mt-1 space-y-2">
+                                            {subpart.vimeo_url ? (
+                                              <div className="relative w-full overflow-hidden rounded-lg border border-gray-200 bg-black aspect-video">
+                                                <iframe
+                                                  src={getVimeoEmbedUrl(subpart.vimeo_url)}
+                                                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                                  allowFullScreen
+                                                  className="absolute inset-0 h-full w-full"
+                                                  title={`Vimeo - ${subpart.title}`}
+                                                />
+                                              </div>
+                                            ) : (
+                                              <div className="rounded-lg border border-dashed border-gray-300 p-4 text-sm text-gray-500 bg-gray-50">
+                                                Vidéo à venir
+                                              </div>
+                                            )}
+                                            <div className="flex items-center gap-2 text-xs text-gray-500">
+                                              <PlayCircle className="h-4 w-4" />
+                                              {subpart.vimeo_url ? 'Lecture intégrée' : 'Support en cours de préparation'}
+                                            </div>
+                                          </div>
                                         </>
                                       )}
                                     </div>
-                                  )}
+                                    <div className="flex flex-col items-end gap-2 min-w-[140px]">
+                                      <span className="text-xs text-gray-500 flex items-center gap-1">
+                                        <Clock3 className="h-4 w-4" />
+                                        Suivi
+                                      </span>
+                                      <button
+                                        onClick={() => toggleCompletion(subpart.id, !subpart.completed)}
+                                        className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold border ${
+                                          subpart.completed
+                                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                            : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
+                                        }`}
+                                      >
+                                        <CheckSquare className="h-4 w-4" />
+                                        {subpart.completed ? 'Terminé' : 'Marquer terminé'}
+                                      </button>
+                                      {isAdmin && (
+                                        <div className="flex flex-wrap gap-2 justify-end">
+                                          {editingSubpartId === subpart.id ? (
+                                            <>
+                                              <button
+                                                onClick={() => handleUpdateSubpart(subpart.id)}
+                                                className="px-3 py-1 text-xs border border-primary-200 text-primary-700 rounded-lg"
+                                                disabled={creating}
+                                              >
+                                                Sauvegarder
+                                              </button>
+                                              <button
+                                                onClick={() => setEditingSubpartId(null)}
+                                                className="px-3 py-1 text-xs border border-gray-200 rounded-lg"
+                                              >
+                                                Annuler
+                                              </button>
+                                            </>
+                                          ) : (
+                                            <>
+                                              <button
+                                                onClick={() => startEditSubpart(subpart, chapter.id)}
+                                                className="px-3 py-1 text-xs border border-gray-200 rounded-lg"
+                                              >
+                                                Modifier
+                                              </button>
+                                              <button
+                                                onClick={() => handleDeleteSubpart(subpart.id)}
+                                                className="px-3 py-1 text-xs border border-red-200 text-red-700 rounded-lg"
+                                              >
+                                                Supprimer
+                                              </button>
+                                            </>
+                                          )}
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
                                 </div>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
+                              )
+                            })}
+                          </div>
+                        )}
                       </div>
-                    ))}
-                  </div>
+                  ))}
+                </div>
                 </div>
               </div>
             </div>
