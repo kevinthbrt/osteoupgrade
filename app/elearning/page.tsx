@@ -51,6 +51,8 @@ type Profile = {
   full_name?: string
 }
 
+const isValidUuid = (value?: string) => !!value && /^[0-9a-fA-F-]{36}$/.test(value)
+
 const canAccessFormation = (role: string | undefined, isPrivate?: boolean) => {
   if (!role) return false
   if (isPrivate) return role === 'admin'
@@ -314,7 +316,7 @@ export default function ElearningPage() {
   }
 
   const handleCreateChapter = async () => {
-    if (!chapterForm.title.trim() || !chapterForm.formationId) return
+    if (!chapterForm.title.trim() || !isValidUuid(chapterForm.formationId)) return
     setCreating(true)
     try {
       const { data, error } = await supabase
@@ -349,7 +351,7 @@ export default function ElearningPage() {
   }
 
   const handleCreateSubpart = async () => {
-    if (!subpartForm.title.trim() || !subpartForm.vimeo_url.trim() || !subpartForm.chapterId) return
+    if (!subpartForm.title.trim() || !subpartForm.vimeo_url.trim() || !isValidUuid(subpartForm.chapterId)) return
     setCreating(true)
     try {
       const { data, error } = await supabase
@@ -697,6 +699,9 @@ export default function ElearningPage() {
                         onChange={(e) => setChapterForm({ ...chapterForm, formationId: e.target.value })}
                         className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
                       >
+                        <option value="" disabled>
+                          Sélectionnez une formation
+                        </option>
                         {formations.map((formation) => (
                           <option key={formation.id} value={formation.id}>
                             {formation.title}
@@ -740,6 +745,9 @@ export default function ElearningPage() {
                         onChange={(e) => setSubpartForm({ ...subpartForm, chapterId: e.target.value })}
                         className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
                       >
+                        <option value="" disabled>
+                          Sélectionnez un chapitre
+                        </option>
                         {formations.flatMap((formation) =>
                           formation.chapters.map((chapter) => (
                             <option key={chapter.id} value={chapter.id}>
