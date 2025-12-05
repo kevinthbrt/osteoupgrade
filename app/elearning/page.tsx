@@ -865,7 +865,13 @@ export default function ElearningPage() {
                   </div>
 
                   {selectedFormation.chapters.map((chapter) => (
-                    <div key={chapter.id} className="border border-gray-100 rounded-xl overflow-hidden" ref={(ref) => (subpartRefs.current[chapter.id] = ref)}>
+                    <div
+                      key={chapter.id}
+                      className="border border-gray-100 rounded-xl overflow-hidden"
+                      ref={(ref) => {
+                        subpartRefs.current[chapter.id] = ref
+                      }}
+                    >
                       <div className="flex items-center justify-between bg-gray-50 px-4 py-3">
                         <div className="flex items-center gap-2 text-gray-800 font-semibold">
                           <Layers className="h-4 w-4 text-primary-600" />
@@ -923,7 +929,9 @@ export default function ElearningPage() {
                         {chapter.subparts.map((subpart) => (
                           <div
                             key={subpart.id}
-                            ref={(ref) => (subpartRefs.current[subpart.id] = ref)}
+                            ref={(ref) => {
+                              subpartRefs.current[subpart.id] = ref
+                            }}
                             className="p-4 space-y-3"
                           >
                             <div className="flex items-start justify-between gap-3">
