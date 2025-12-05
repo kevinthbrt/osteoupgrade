@@ -41,10 +41,13 @@ create table if not exists public.elearning_subparts (
   created_at timestamptz default now(),
   chapter_id uuid not null references public.elearning_chapters(id) on delete cascade,
   title text not null,
-  vimeo_url text not null,
+  vimeo_url text,
   description_html text,
   order_index integer default 1
 );
+
+alter table if exists public.elearning_subparts
+  alter column vimeo_url drop not null;
 
 create table if not exists public.elearning_subpart_progress (
   id uuid primary key default gen_random_uuid(),

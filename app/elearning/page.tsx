@@ -24,7 +24,7 @@ import {
 type Subpart = {
   id: string
   title: string
-  vimeo_url: string
+  vimeo_url?: string
   description_html?: string
   order_index?: number
   completed?: boolean
@@ -151,6 +151,7 @@ export default function ElearningPage() {
   const [profile, setProfile] = useState<Profile | null>(null)
   const [formations, setFormations] = useState<Formation[]>([])
   const [selectedFormationId, setSelectedFormationId] = useState<string>('')
+  const subpartRefs = useRef<Record<string, HTMLDivElement | null>>({})
   const [loading, setLoading] = useState(true)
   const [creating, setCreating] = useState(false)
 
@@ -162,6 +163,17 @@ export default function ElearningPage() {
     order_index: 1,
     chapterId: '',
     description_html: ''
+  })
+  const [editingFormationId, setEditingFormationId] = useState<string | null>(null)
+  const [editingChapterId, setEditingChapterId] = useState<string | null>(null)
+  const [editingSubpartId, setEditingSubpartId] = useState<string | null>(null)
+  const [editFormationForm, setEditFormationForm] = useState({ title: '', description: '', is_private: false })
+  const [editChapterForm, setEditChapterForm] = useState({ title: '', order_index: 1 })
+  const [editSubpartForm, setEditSubpartForm] = useState({
+    title: '',
+    vimeo_url: '',
+    description_html: '',
+    order_index: 1
   })
 
   useEffect(() => {
@@ -269,15 +281,28 @@ export default function ElearningPage() {
     [formations, selectedFormationId]
   )
 
-  const progress = useMemo(() => {
-    if (!selectedFormation) return { total: 0, done: 0, percent: 0 }
-    const total = selectedFormation.chapters.reduce((acc, chapter) => acc + chapter.subparts.length, 0)
-    const done = selectedFormation.chapters.reduce(
+  useEffect(() => {
+    if (!selectedFormation) return
+    const flatSubparts = selectedFormation.chapters.flatMap((chapter) => chapter.subparts)
+    const nextSubpart =
+      flatSubparts.find((subpart) => !subpart.completed) || flatSubparts[flatSubparts.length - 1]
+
+    if (nextSubpart?.id && subpartRefs.current[nextSubpart.id]) {
+      subpartRefs.current[nextSubpart.id]?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }
+  }, [selectedFormation])
+
+  const computeProgress = (formation?: Formation) => {
+    if (!formation) return { total: 0, done: 0, percent: 0 }
+    const total = formation.chapters.reduce((acc, chapter) => acc + chapter.subparts.length, 0)
+    const done = formation.chapters.reduce(
       (acc, chapter) => acc + chapter.subparts.filter((s) => s.completed).length,
       0
     )
     return { total, done, percent: total ? Math.round((done / total) * 100) : 0 }
-  }, [selectedFormation])
+  }
+
+  const progress = useMemo(() => computeProgress(selectedFormation), [selectedFormation])
 
   const handleCreateFormation = async () => {
     if (!formationForm.title.trim()) return
@@ -351,14 +376,14 @@ export default function ElearningPage() {
   }
 
   const handleCreateSubpart = async () => {
-    if (!subpartForm.title.trim() || !subpartForm.vimeo_url.trim() || !isValidUuid(subpartForm.chapterId)) return
+    if (!subpartForm.title.trim() || !isValidUuid(subpartForm.chapterId)) return
     setCreating(true)
     try {
       const { data, error } = await supabase
         .from('elearning_subparts')
         .insert({
           title: subpartForm.title,
-          vimeo_url: subpartForm.vimeo_url,
+          vimeo_url: subpartForm.vimeo_url || null,
           description_html: subpartForm.description_html,
           order_index: subpartForm.order_index,
           chapter_id: subpartForm.chapterId
@@ -390,6 +415,195 @@ export default function ElearningPage() {
       setSubpartForm({ title: '', vimeo_url: '', order_index: 1, chapterId: subpartForm.chapterId, description_html: '' })
     } catch (error) {
       console.error('Impossible de créer la sous-partie', error)
+    } finally {
+      setCreating(false)
+    }
+  }
+
+  const startEditFormation = (formation: Formation) => {
+    setEditingFormationId(formation.id)
+    setEditFormationForm({
+      title: formation.title,
+      description: formation.description || '',
+      is_private: !!formation.is_private
+    })
+  }
+
+  const handleUpdateFormation = async () => {
+    if (!editingFormationId || !editFormationForm.title.trim()) return
+    setCreating(true)
+    try {
+      const { data, error } = await supabase
+        .from('elearning_formations')
+        .update({
+          title: editFormationForm.title,
+          description: editFormationForm.description,
+          is_private: editFormationForm.is_private
+        })
+        .eq('id', editingFormationId)
+        .select()
+        .single()
+
+      if (error) throw error
+
+      setFormations((prev) =>
+        prev.map((formation) =>
+          formation.id === editingFormationId
+            ? {
+                ...formation,
+                title: data.title,
+                description: data.description,
+                is_private: data.is_private
+              }
+            : formation
+        )
+      )
+      setEditingFormationId(null)
+    } catch (error) {
+      console.error('Impossible de mettre à jour la formation', error)
+    } finally {
+      setCreating(false)
+    }
+  }
+
+  const handleDeleteFormation = async (id: string) => {
+    setCreating(true)
+    try {
+      await supabase.from('elearning_formations').delete().eq('id', id)
+      setFormations((prev) => prev.filter((formation) => formation.id !== id))
+      if (selectedFormationId === id) {
+        setSelectedFormationId('')
+      }
+    } catch (error) {
+      console.error('Impossible de supprimer la formation', error)
+    } finally {
+      setCreating(false)
+    }
+  }
+
+  const startEditChapter = (chapter: Chapter) => {
+    setEditingChapterId(chapter.id)
+    setEditChapterForm({ title: chapter.title, order_index: chapter.order_index || 1 })
+  }
+
+  const handleUpdateChapter = async (chapterId: string) => {
+    if (!chapterId || !editChapterForm.title.trim()) return
+    setCreating(true)
+    try {
+      const { data, error } = await supabase
+        .from('elearning_chapters')
+        .update({ title: editChapterForm.title, order_index: editChapterForm.order_index })
+        .eq('id', chapterId)
+        .select()
+        .single()
+
+      if (error) throw error
+
+      setFormations((prev) =>
+        prev.map((formation) => ({
+          ...formation,
+          chapters: formation.chapters.map((chapter) =>
+            chapter.id === chapterId
+              ? { ...chapter, title: data.title, order_index: data.order_index }
+              : chapter
+          )
+        }))
+      )
+      setEditingChapterId(null)
+    } catch (error) {
+      console.error('Impossible de mettre à jour le chapitre', error)
+    } finally {
+      setCreating(false)
+    }
+  }
+
+  const handleDeleteChapter = async (chapterId: string) => {
+    setCreating(true)
+    try {
+      await supabase.from('elearning_chapters').delete().eq('id', chapterId)
+      setFormations((prev) =>
+        prev.map((formation) => ({
+          ...formation,
+          chapters: formation.chapters.filter((chapter) => chapter.id !== chapterId)
+        }))
+      )
+    } catch (error) {
+      console.error('Impossible de supprimer le chapitre', error)
+    } finally {
+      setCreating(false)
+    }
+  }
+
+  const startEditSubpart = (subpart: Subpart) => {
+    setEditingSubpartId(subpart.id)
+    setEditSubpartForm({
+      title: subpart.title,
+      vimeo_url: subpart.vimeo_url || '',
+      description_html: subpart.description_html || '',
+      order_index: subpart.order_index || 1
+    })
+  }
+
+  const handleUpdateSubpart = async (subpartId: string) => {
+    if (!subpartId || !editSubpartForm.title.trim()) return
+    setCreating(true)
+    try {
+      const { data, error } = await supabase
+        .from('elearning_subparts')
+        .update({
+          title: editSubpartForm.title,
+          vimeo_url: editSubpartForm.vimeo_url || null,
+          description_html: editSubpartForm.description_html,
+          order_index: editSubpartForm.order_index
+        })
+        .eq('id', subpartId)
+        .select()
+        .single()
+
+      if (error) throw error
+
+      setFormations((prev) =>
+        prev.map((formation) => ({
+          ...formation,
+          chapters: formation.chapters.map((chapter) => ({
+            ...chapter,
+            subparts: chapter.subparts.map((subpart) =>
+              subpart.id === subpartId
+                ? {
+                    ...subpart,
+                    title: data.title,
+                    vimeo_url: data.vimeo_url,
+                    description_html: data.description_html,
+                    order_index: data.order_index
+                  }
+                : subpart
+            )
+          }))
+        }))
+      )
+      setEditingSubpartId(null)
+    } catch (error) {
+      console.error('Impossible de mettre à jour la sous-partie', error)
+    } finally {
+      setCreating(false)
+    }
+  }
+
+  const handleDeleteSubpart = async (subpartId: string) => {
+    setCreating(true)
+    try {
+      await supabase.from('elearning_subparts').delete().eq('id', subpartId)
+      setFormations((prev) =>
+        prev.map((formation) => ({
+          ...formation,
+          chapters: formation.chapters.map((chapter) => ({
+            ...chapter,
+            subparts: chapter.subparts.filter((subpart) => subpart.id !== subpartId)
+          }))
+        }))
+      )
+    } catch (error) {
+      console.error('Impossible de supprimer la sous-partie', error)
     } finally {
       setCreating(false)
     }
@@ -509,105 +723,277 @@ export default function ElearningPage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
           <div className="lg:col-span-2 space-y-4">
-            <div className="bg-white rounded-xl shadow-sm p-5">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2 text-primary-600 font-semibold">
-                  <BookOpen className="h-5 w-5" />
-                  Formations disponibles
-                </div>
-                <div className="flex gap-2">
-                  {formations.map((formation) => (
+            <div className="bg-white rounded-xl shadow-sm p-5 space-y-6">
+              <div className="flex items-center gap-2 text-primary-600 font-semibold">
+                <BookOpen className="h-5 w-5" />
+                Formations disponibles
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                {formations.map((formation) => {
+                  const stats = computeProgress(formation)
+                  return (
                     <button
                       key={formation.id}
                       onClick={() => setSelectedFormationId(formation.id)}
-                      className={`px-3 py-1 rounded-lg text-sm font-semibold border ${
-                        selectedFormationId === formation.id
-                          ? 'bg-primary-600 text-white border-primary-600'
-                          : 'bg-white text-gray-700 hover:bg-gray-50'
+                      className={`text-left border rounded-xl p-4 shadow-sm hover:shadow-md transition bg-white ${
+                        selectedFormationId === formation.id ? 'border-primary-200 ring-2 ring-primary-100' : 'border-gray-100'
                       }`}
                     >
-                      {formation.title}
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2 text-gray-900 font-semibold">
+                            <Sparkles className="h-4 w-4 text-primary-600" />
+                            {formation.title}
+                          </div>
+                          {formation.description && (
+                            <p className="text-sm text-gray-600 line-clamp-2" dangerouslySetInnerHTML={{ __html: formation.description }} />
+                          )}
+                          <div className="flex items-center gap-2 text-xs text-gray-600">
+                            <Layers className="h-3 w-3" /> {formation.chapters.length} chapitres
+                          </div>
+                        </div>
+                        <div className="text-right space-y-1">
+                          {formation.is_private && (
+                            <span className="px-2 py-1 rounded-full text-[11px] bg-gray-100 text-gray-700 font-semibold uppercase">Privé</span>
+                          )}
+                          <div className="text-xs text-gray-600">
+                            {stats.done}/{stats.total} terminées
+                          </div>
+                          <div className="w-20 h-2 bg-gray-100 rounded-full overflow-hidden">
+                            <div className="h-full bg-primary-600" style={{ width: `${stats.percent}%` }} />
+                          </div>
+                        </div>
+                      </div>
                     </button>
-                  ))}
-                </div>
+                  )
+                })}
               </div>
 
               {selectedFormation ? (
                 <div className="space-y-4">
                   <div className="rounded-lg border border-gray-100 p-4 bg-gray-50">
-                    <div className="flex items-center gap-3 mb-2">
-                      <Sparkles className="h-4 w-4 text-primary-600" />
-                      <h2 className="text-lg font-semibold">{selectedFormation.title}</h2>
-                      {selectedFormation.is_private && (
-                        <span className="px-2 py-1 rounded-full text-xs bg-gray-200 text-gray-800 font-semibold uppercase">
-                          Privé
-                        </span>
+                    <div className="flex flex-wrap items-center gap-3 mb-2 justify-between">
+                      <div className="flex items-center gap-3">
+                        <Sparkles className="h-4 w-4 text-primary-600" />
+                        <h2 className="text-lg font-semibold">{selectedFormation.title}</h2>
+                        {selectedFormation.is_private && (
+                          <span className="px-2 py-1 rounded-full text-xs bg-gray-200 text-gray-800 font-semibold uppercase">
+                            Privé
+                          </span>
+                        )}
+                      </div>
+                      {isAdmin && (
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => startEditFormation(selectedFormation)}
+                            className="px-3 py-1 text-xs font-semibold border border-gray-200 rounded-lg hover:bg-white"
+                          >
+                            Modifier
+                          </button>
+                          <button
+                            onClick={() => handleDeleteFormation(selectedFormation.id)}
+                            className="px-3 py-1 text-xs font-semibold border border-red-200 text-red-700 rounded-lg hover:bg-red-50"
+                          >
+                            Supprimer
+                          </button>
+                        </div>
                       )}
                     </div>
-                    {selectedFormation.description && (
-                      <div
-                        className="text-gray-700 text-sm prose prose-sm max-w-none"
-                        dangerouslySetInnerHTML={{ __html: selectedFormation.description }}
-                      />
+                    {editingFormationId === selectedFormation.id ? (
+                      <div className="space-y-3">
+                        <input
+                          value={editFormationForm.title}
+                          onChange={(e) => setEditFormationForm({ ...editFormationForm, title: e.target.value })}
+                          className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
+                          placeholder="Titre de la formation"
+                        />
+                        <RichTextEditor
+                          value={editFormationForm.description}
+                          onChange={(html) => setEditFormationForm({ ...editFormationForm, description: html })}
+                        />
+                        <label className="inline-flex items-center gap-2 text-sm">
+                          <input
+                            type="checkbox"
+                            checked={editFormationForm.is_private}
+                            onChange={(e) => setEditFormationForm({ ...editFormationForm, is_private: e.target.checked })}
+                            className="rounded border-gray-300"
+                          />
+                          Formation privée (admin uniquement)
+                        </label>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={handleUpdateFormation}
+                            className="px-4 py-2 bg-primary-600 text-white rounded-lg text-sm font-semibold"
+                            disabled={creating}
+                          >
+                            Enregistrer
+                          </button>
+                          <button
+                            onClick={() => setEditingFormationId(null)}
+                            className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-semibold"
+                          >
+                            Annuler
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        {selectedFormation.description && (
+                          <div
+                            className="text-gray-700 text-sm prose prose-sm max-w-none"
+                            dangerouslySetInnerHTML={{ __html: selectedFormation.description }}
+                          />
+                        )}
+                        <div className="mt-3">
+                          <div className="flex justify-between text-xs text-gray-600 mb-1">
+                            <span>
+                              {progress.done}/{progress.total} sous-parties terminées
+                            </span>
+                            <span>{progress.percent}%</span>
+                          </div>
+                          <div className="h-3 bg-white rounded-full border border-gray-200 overflow-hidden">
+                            <div
+                              className="h-full bg-primary-600"
+                              style={{ width: `${progress.percent}%` }}
+                              aria-label={`Progression ${progress.percent}%`}
+                            ></div>
+                          </div>
+                        </div>
+                      </>
                     )}
-                    <div className="mt-3">
-                      <div className="flex justify-between text-xs text-gray-600 mb-1">
-                        <span>
-                          {progress.done}/{progress.total} sous-parties terminées
-                        </span>
-                        <span>{progress.percent}%</span>
-                      </div>
-                      <div className="h-3 bg-white rounded-full border border-gray-200 overflow-hidden">
-                        <div
-                          className="h-full bg-primary-600"
-                          style={{ width: `${progress.percent}%` }}
-                          aria-label={`Progression ${progress.percent}%`}
-                        ></div>
-                      </div>
-                    </div>
                   </div>
 
                   {selectedFormation.chapters.map((chapter) => (
-                    <div key={chapter.id} className="border border-gray-100 rounded-xl overflow-hidden">
+                    <div key={chapter.id} className="border border-gray-100 rounded-xl overflow-hidden" ref={(ref) => (subpartRefs.current[chapter.id] = ref)}>
                       <div className="flex items-center justify-between bg-gray-50 px-4 py-3">
                         <div className="flex items-center gap-2 text-gray-800 font-semibold">
                           <Layers className="h-4 w-4 text-primary-600" />
-                          {chapter.title}
+                          {editingChapterId === chapter.id ? (
+                            <input
+                              value={editChapterForm.title}
+                              onChange={(e) => setEditChapterForm({ ...editChapterForm, title: e.target.value })}
+                              className="border border-gray-200 rounded-lg px-2 py-1 text-sm"
+                            />
+                          ) : (
+                            chapter.title
+                          )}
                         </div>
-                        <span className="text-xs text-gray-500">{chapter.subparts.length} sous-parties</span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-gray-500">{chapter.subparts.length} sous-parties</span>
+                          {isAdmin && (
+                            <div className="flex items-center gap-1">
+                              {editingChapterId === chapter.id ? (
+                                <>
+                                  <button
+                                    onClick={() => handleUpdateChapter(chapter.id)}
+                                    className="px-2 py-1 text-xs border border-primary-200 text-primary-700 rounded-lg"
+                                    disabled={creating}
+                                  >
+                                    Sauvegarder
+                                  </button>
+                                  <button
+                                    onClick={() => setEditingChapterId(null)}
+                                    className="px-2 py-1 text-xs border border-gray-200 rounded-lg"
+                                  >
+                                    Annuler
+                                  </button>
+                                </>
+                              ) : (
+                                <>
+                                  <button
+                                    onClick={() => startEditChapter(chapter)}
+                                    className="px-2 py-1 text-xs border border-gray-200 rounded-lg"
+                                  >
+                                    Modifier
+                                  </button>
+                                  <button
+                                    onClick={() => handleDeleteChapter(chapter.id)}
+                                    className="px-2 py-1 text-xs border border-red-200 text-red-700 rounded-lg"
+                                  >
+                                    Supprimer
+                                  </button>
+                                </>
+                              )}
+                            </div>
+                          )}
+                        </div>
                       </div>
                       <div className="divide-y divide-gray-100">
                         {chapter.subparts.map((subpart) => (
-                          <div key={subpart.id} className="p-4 space-y-3">
+                          <div
+                            key={subpart.id}
+                            ref={(ref) => (subpartRefs.current[subpart.id] = ref)}
+                            className="p-4 space-y-3"
+                          >
                             <div className="flex items-start justify-between gap-3">
-                              <div>
+                              <div className="flex-1 space-y-2">
                                 <div className="flex items-center gap-2 text-gray-900 font-semibold">
                                   <Video className="h-4 w-4 text-primary-500" />
-                                  {subpart.title}
+                                  {editingSubpartId === subpart.id ? (
+                                    <input
+                                      value={editSubpartForm.title}
+                                      onChange={(e) => setEditSubpartForm({ ...editSubpartForm, title: e.target.value })}
+                                      className="border border-gray-200 rounded-lg px-2 py-1 text-sm"
+                                    />
+                                  ) : (
+                                    subpart.title
+                                  )}
                                 </div>
-                                {subpart.description_html && (
-                                  <div
-                                    className="text-sm text-gray-700 prose prose-sm max-w-none"
-                                    dangerouslySetInnerHTML={{ __html: subpart.description_html }}
-                                  />
-                                )}
-                                <div className="mt-3 space-y-2">
-                                  <div className="relative w-full overflow-hidden rounded-lg border border-gray-200 bg-black aspect-video">
-                                    <iframe
-                                      src={getVimeoEmbedUrl(subpart.vimeo_url)}
-                                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                      allowFullScreen
-                                      className="absolute inset-0 h-full w-full"
-                                      title={`Vimeo - ${subpart.title}`}
+                                {editingSubpartId === subpart.id ? (
+                                  <div className="space-y-2">
+                                    <input
+                                      value={editSubpartForm.vimeo_url}
+                                      onChange={(e) => setEditSubpartForm({ ...editSubpartForm, vimeo_url: e.target.value })}
+                                      placeholder="URL Vimeo (optionnelle)"
+                                      className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
+                                    />
+                                    <input
+                                      type="number"
+                                      min={1}
+                                      value={editSubpartForm.order_index}
+                                      onChange={(e) =>
+                                        setEditSubpartForm({ ...editSubpartForm, order_index: Number(e.target.value) })
+                                      }
+                                      className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
+                                      placeholder="Ordre d'affichage"
+                                    />
+                                    <RichTextEditor
+                                      value={editSubpartForm.description_html}
+                                      onChange={(html) => setEditSubpartForm({ ...editSubpartForm, description_html: html })}
                                     />
                                   </div>
+                                ) : (
+                                  subpart.description_html && (
+                                    <div
+                                      className="text-sm text-gray-700 prose prose-sm max-w-none"
+                                      dangerouslySetInnerHTML={{ __html: subpart.description_html }}
+                                    />
+                                  )
+                                )}
+                                <div className="mt-1 space-y-2">
+                                  {subpart.vimeo_url ? (
+                                    <div className="relative w-full overflow-hidden rounded-lg border border-gray-200 bg-black aspect-video">
+                                      <iframe
+                                        src={getVimeoEmbedUrl(subpart.vimeo_url)}
+                                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                        allowFullScreen
+                                        className="absolute inset-0 h-full w-full"
+                                        title={`Vimeo - ${subpart.title}`}
+                                      />
+                                    </div>
+                                  ) : (
+                                    <div className="rounded-lg border border-dashed border-gray-300 p-4 text-sm text-gray-500 bg-gray-50">
+                                      Vidéo à venir
+                                    </div>
+                                  )}
                                   <div className="flex items-center gap-2 text-xs text-gray-500">
                                     <PlayCircle className="h-4 w-4" />
-                                    Lecture intégrée
+                                    {subpart.vimeo_url ? 'Lecture intégrée' : 'Support en cours de préparation'}
                                   </div>
                                 </div>
                               </div>
-                              <div className="flex items-center gap-2">
+                              <div className="flex flex-col items-end gap-2 min-w-[140px]">
                                 <span className="text-xs text-gray-500 flex items-center gap-1">
                                   <Clock3 className="h-4 w-4" />
                                   Suivi
@@ -623,6 +1009,42 @@ export default function ElearningPage() {
                                   <CheckSquare className="h-4 w-4" />
                                   {subpart.completed ? 'Terminé' : 'Marquer terminé'}
                                 </button>
+                                {isAdmin && (
+                                  <div className="flex flex-wrap gap-2 justify-end">
+                                    {editingSubpartId === subpart.id ? (
+                                      <>
+                                        <button
+                                          onClick={() => handleUpdateSubpart(subpart.id)}
+                                          className="px-3 py-1 text-xs border border-primary-200 text-primary-700 rounded-lg"
+                                          disabled={creating}
+                                        >
+                                          Sauvegarder
+                                        </button>
+                                        <button
+                                          onClick={() => setEditingSubpartId(null)}
+                                          className="px-3 py-1 text-xs border border-gray-200 rounded-lg"
+                                        >
+                                          Annuler
+                                        </button>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <button
+                                          onClick={() => startEditSubpart(subpart)}
+                                          className="px-3 py-1 text-xs border border-gray-200 rounded-lg"
+                                        >
+                                          Modifier
+                                        </button>
+                                        <button
+                                          onClick={() => handleDeleteSubpart(subpart.id)}
+                                          className="px-3 py-1 text-xs border border-red-200 text-red-700 rounded-lg"
+                                        >
+                                          Supprimer
+                                        </button>
+                                      </>
+                                    )}
+                                  </div>
+                                )}
                               </div>
                             </div>
                           </div>
@@ -765,7 +1187,7 @@ export default function ElearningPage() {
                       <input
                         value={subpartForm.vimeo_url}
                         onChange={(e) => setSubpartForm({ ...subpartForm, vimeo_url: e.target.value })}
-                        placeholder="URL du lecteur Vimeo"
+                        placeholder="URL du lecteur Vimeo (optionnelle)"
                         className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
                       />
                       <input
@@ -785,7 +1207,7 @@ export default function ElearningPage() {
                         disabled={creating}
                         className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg font-semibold hover:bg-emerald-700"
                       >
-                        <CheckCircle2 className="h-4 w-4" /> Ajouter la vidéo
+                        <CheckCircle2 className="h-4 w-4" /> Ajouter la sous-partie
                       </button>
                     </div>
                   </div>
