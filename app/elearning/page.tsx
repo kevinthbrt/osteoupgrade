@@ -229,6 +229,8 @@ export default function ElearningPage() {
   }
 
   const loadFormationsFromSupabase = async (userId: string, role?: string) => {
+    const roleToUse = role ?? profile?.role
+
     try {
       const { data, error } = await supabase
         .from('elearning_formations')
@@ -267,7 +269,7 @@ export default function ElearningPage() {
             })) || []
         }))
 
-        const accessible = parsed.filter((formation) => canAccessFormation(role, formation.level))
+        const accessible = parsed.filter((formation) => canAccessFormation(roleToUse, formation.level))
 
         if (accessible.length) {
           setFormations(accessible)
