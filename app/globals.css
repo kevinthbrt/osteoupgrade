@@ -4,48 +4,70 @@
 
 @layer base {
   :root {
+    /* Blanc pur pour le fond */
     --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    /* Bleu foncé (slate-900) pour le texte principal */
+    --foreground: 222.2 47.4% 11.2%;
+    /* Blanc pour les cartes */
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 222.2 47.4% 11.2%;
+    /* Blanc pour les popovers */
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 221.2 83.2% 53.3%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
+    --popover-foreground: 222.2 47.4% 11.2%;
+    /* Bleu ciel (sky-500) pour la couleur primaire */
+    --primary: 199 89% 48%;
+    --primary-foreground: 0 0% 100%;
+    /* Gris clair (slate-50) pour la couleur secondaire */
+    --secondary: 210 40% 98%;
     --secondary-foreground: 222.2 47.4% 11.2%;
+    /* Gris clair pour les éléments en sourdine */
     --muted: 210 40% 96.1%;
     --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    /* Bleu ciel léger pour les accents */
+    --accent: 199 89% 96%;
+    --accent-foreground: 199 89% 48%;
+    /* Rouge pour les actions destructives */
     --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive-foreground: 0 0% 100%;
+    /* Gris clair (slate-200) pour les bordures */
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
-    --ring: 221.2 83.2% 53.3%;
+    /* Bleu ciel pour le ring focus */
+    --ring: 199 89% 48%;
     --radius: 0.5rem;
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 217.2 91.2% 59.8%;
+    /* Bleu très foncé (slate-900) pour le fond */
+    --background: 222.2 47.4% 11.2%;
+    /* Blanc pour le texte */
+    --foreground: 0 0% 100%;
+    /* Bleu foncé pour les cartes */
+    --card: 217.2 32.6% 17.5%;
+    --card-foreground: 0 0% 100%;
+    /* Bleu foncé pour les popovers */
+    --popover: 217.2 32.6% 17.5%;
+    --popover-foreground: 0 0% 100%;
+    /* Bleu ciel plus clair (sky-400) pour le mode sombre */
+    --primary: 199 89% 60%;
     --primary-foreground: 222.2 47.4% 11.2%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
+    /* Gris foncé pour la couleur secondaire */
+    --secondary: 217.2 32.6% 20%;
+    --secondary-foreground: 0 0% 100%;
+    /* Gris moyen pour les éléments en sourdine */
     --muted: 217.2 32.6% 17.5%;
     --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
+    /* Gris foncé avec accent bleu */
+    --accent: 217.2 32.6% 20%;
+    --accent-foreground: 199 89% 60%;
+    /* Rouge sombre pour les actions destructives */
     --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 224.3 76.3% 48%;
+    --destructive-foreground: 0 0% 100%;
+    /* Gris foncé pour les bordures */
+    --border: 217.2 32.6% 25%;
+    --input: 217.2 32.6% 25%;
+    /* Bleu ciel pour le ring focus */
+    --ring: 199 89% 60%;
   }
 }
 
