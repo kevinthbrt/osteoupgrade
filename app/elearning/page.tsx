@@ -937,36 +937,37 @@ export default function ElearningPage() {
                     <div
                       key={chapter.id}
                       className="border border-gray-100 rounded-xl overflow-hidden"
-                        ref={(ref) => {
-                          subpartRefs.current[chapter.id] = ref
-                        }}
-                      >
+                      ref={(ref) => {
+                        subpartRefs.current[chapter.id] = ref
+                      }}
+                    >
                         <div className="flex items-center justify-between bg-gray-50 px-4 py-3">
-                          <div className="flex items-center gap-3 text-gray-800 font-semibold">
-                            <button
-                              onClick={() => toggleChapterExpansion(chapter.id)}
-                              className="p-1 rounded hover:bg-white border border-transparent hover:border-gray-200"
-                              aria-label={`Basculer l'affichage du chapitre ${chapter.title}`}
-                            >
-                              <ChevronRight
-                                className={`h-4 w-4 text-primary-600 transition-transform ${
-                                  (expandedChapters[chapter.id] || editingChapterId === chapter.id)
-                                    ? 'rotate-90'
-                                    : ''
-                                }`}
-                              />
-                            </button>
-                            <Layers className="h-4 w-4 text-primary-600" />
-                            {editingChapterId === chapter.id ? (
+                          {editingChapterId === chapter.id ? (
+                            <div className="flex items-center gap-3 text-gray-800 font-semibold">
+                              <ChevronRight className="h-4 w-4 text-primary-600 opacity-50" />
+                              <Layers className="h-4 w-4 text-primary-600" />
                               <input
                                 value={editChapterForm.title}
                                 onChange={(e) => setEditChapterForm({ ...editChapterForm, title: e.target.value })}
                                 className="border border-gray-200 rounded-lg px-2 py-1 text-sm"
                               />
-                            ) : (
-                              chapter.title
-                            )}
-                          </div>
+                            </div>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => toggleChapterExpansion(chapter.id)}
+                              className="flex items-center gap-3 text-gray-800 font-semibold hover:text-primary-700 focus:outline-none"
+                              aria-label={`Basculer l'affichage du chapitre ${chapter.title}`}
+                            >
+                              <ChevronRight
+                                className={`h-4 w-4 text-primary-600 transition-transform ${
+                                  expandedChapters[chapter.id] ? 'rotate-90' : ''
+                                }`}
+                              />
+                              <Layers className="h-4 w-4 text-primary-600" />
+                              {chapter.title}
+                            </button>
+                          )}
                           <div className="flex items-center gap-2">
                             <span className="text-xs text-gray-500">{chapter.subparts.length} sous-parties</span>
                             {isAdmin && (
@@ -1021,10 +1022,21 @@ export default function ElearningPage() {
                                 >
                                   <div className="flex items-start justify-between gap-3">
                                     <div className="flex-1 space-y-2">
-                                      <div className="flex items-center gap-2 text-gray-900 font-semibold">
+                                      {editingSubpartId === subpart.id ? (
+                                        <div className="flex items-center gap-2 text-gray-900 font-semibold">
+                                          <ChevronDown className="h-4 w-4 text-primary-500 opacity-50" />
+                                          <Video className="h-4 w-4 text-primary-500" />
+                                          <input
+                                            value={editSubpartForm.title}
+                                            onChange={(e) => setEditSubpartForm({ ...editSubpartForm, title: e.target.value })}
+                                            className="border border-gray-200 rounded-lg px-2 py-1 text-sm"
+                                          />
+                                        </div>
+                                      ) : (
                                         <button
+                                          type="button"
                                           onClick={() => toggleSubpartExpansion(subpart.id)}
-                                          className="p-1 rounded hover:bg-gray-50 border border-transparent hover:border-gray-200"
+                                          className="flex items-center gap-2 text-gray-900 font-semibold hover:text-primary-700 focus:outline-none"
                                           aria-label={`Basculer l'affichage de la sous-partie ${subpart.title}`}
                                         >
                                           <ChevronDown
@@ -1032,18 +1044,10 @@ export default function ElearningPage() {
                                               subpartOpen ? 'rotate-180' : ''
                                             }`}
                                           />
+                                          <Video className="h-4 w-4 text-primary-500" />
+                                          {subpart.title}
                                         </button>
-                                        <Video className="h-4 w-4 text-primary-500" />
-                                        {editingSubpartId === subpart.id ? (
-                                          <input
-                                            value={editSubpartForm.title}
-                                            onChange={(e) => setEditSubpartForm({ ...editSubpartForm, title: e.target.value })}
-                                            className="border border-gray-200 rounded-lg px-2 py-1 text-sm"
-                                          />
-                                        ) : (
-                                          subpart.title
-                                        )}
-                                      </div>
+                                      )}
                                       {subpartOpen && (
                                         <>
                                           {editingSubpartId === subpart.id ? (
