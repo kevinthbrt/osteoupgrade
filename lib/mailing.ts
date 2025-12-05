@@ -9,6 +9,8 @@ interface EmailPayload {
     filename: string
     content: string
     type?: string
+    content_id?: string
+    disposition?: 'inline' | 'attachment'
   }[]
 }
 
@@ -50,7 +52,9 @@ async function sendWithResend(payload: EmailPayload) {
       attachments: payload.attachments?.map((file) => ({
         filename: file.filename,
         content: file.content,
-        type: file.type
+        type: file.type,
+        content_id: file.content_id,
+        disposition: file.disposition
       }))
     })
   })
