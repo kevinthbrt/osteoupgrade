@@ -84,6 +84,7 @@ export default function MailingAdminPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(true)
   const [toInput, setToInput] = useState('')
+  const [fromInput, setFromInput] = useState<string>(process.env.NEXT_PUBLIC_RESEND_FROM || '')
   const [subject, setSubject] = useState(templates[0].subject)
   const [html, setHtml] = useState(templates[0].html)
   const [text, setText] = useState(templates[0].text || '')
@@ -160,6 +161,11 @@ export default function MailingAdminPage() {
       return
     }
 
+    if (!fromInput.trim()) {
+      setResult({ type: 'error', message: 'Renseignez un expéditeur (RESEND_FROM) correspondant à votre domaine validé.' })
+      return
+    }
+
     if (!subject || !html) {
       setResult({ type: 'error', message: 'Le sujet et le contenu HTML sont obligatoires.' })
       return
@@ -170,7 +176,7 @@ export default function MailingAdminPage() {
       const response = await fetch('/api/mailing/send', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ to: recipients, subject, html, text, tags: ['admin-send'] })
+        body: JSON.stringify({ to: recipients, subject, html, text, from: fromInput, tags: ['admin-send'] })
       })
 
       const data = await response.json()
@@ -233,16 +239,28 @@ export default function MailingAdminPage() {
         <div className="grid gap-6 lg:grid-cols-3">
           <div className="lg:col-span-2 space-y-4">
             <form onSubmit={handleSend} className="bg-white border border-gray-200 rounded-xl shadow-sm p-6 space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-500">Expéditeur</p>
-                  <p className="font-semibold">{process.env.NEXT_PUBLIC_APP_NAME || 'OsteoUpgrade'} (RESEND_FROM)</p>
-                </div>
-                <div className="flex items-center space-x-2 text-sm text-gray-500">
-                  <Sparkles className="h-4 w-4 text-purple-500" />
-                  <span>Resend activé</span>
-                </div>
-              </div>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-500">Expéditeur</p>
+              <p className="font-semibold">{process.env.NEXT_PUBLIC_APP_NAME || 'OsteoUpgrade'} (RESEND_FROM)</p>
+              <p className="text-xs text-gray-500">Utilisez un domaine validé dans Resend (ex: no-reply@osteo-upgrade.fr).</p>
+            </div>
+            <div className="flex items-center space-x-2 text-sm text-gray-500">
+              <Sparkles className="h-4 w-4 text-purple-500" />
+              <span>Resend activé</span>
+            </div>
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-sm font-medium text-gray-700">Adresse expéditeur</label>
+            <input
+              type="text"
+              value={fromInput}
+              onChange={(e) => setFromInput(e.target.value)}
+              placeholder="ex: OsteoUpgrade <no-reply@osteo-upgrade.fr>"
+              className="w-full rounded-lg border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+            />
+          </div>
 
               <div className="space-y-1">
                 <label className="text-sm font-medium text-gray-700">Destinataires</label>

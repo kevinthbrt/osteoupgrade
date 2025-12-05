@@ -8,10 +8,18 @@ interface EmailPayload {
 }
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY
-const RESEND_FROM = process.env.RESEND_FROM || 'OsteoUpgrade <no-reply@osteoupgrade.app>'
+const RESEND_FROM = process.env.RESEND_FROM?.trim()
 
 function normalizeRecipients(recipients: string | string[]): string[] {
   return Array.isArray(recipients) ? recipients : [recipients]
+}
+
+function resolveFromAddress(customFrom?: string) {
+  const from = customFrom?.trim() || RESEND_FROM
+  if (!from) {
+    throw new Error('RESEND_FROM est manquant. Configurez un expéditeur vérifié (ex: "OsteoUpgrade <no-reply@osteo-upgrade.fr>")')
+  }
+  return from
 }
 
 async function sendWithResend(payload: EmailPayload) {
@@ -19,6 +27,7 @@ async function sendWithResend(payload: EmailPayload) {
     throw new Error('RESEND_API_KEY is not configured')
   }
 
+  const from = resolveFromAddress(payload.from)
   const response = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: {
@@ -26,7 +35,7 @@ async function sendWithResend(payload: EmailPayload) {
       'Content-Type': 'application/json'
     },
     body: JSON.stringify({
-      from: payload.from || RESEND_FROM,
+      from,
       to: normalizeRecipients(payload.to),
       subject: payload.subject,
       html: payload.html,
@@ -36,8 +45,25 @@ async function sendWithResend(payload: EmailPayload) {
   })
 
   if (!response.ok) {
-    const error = await response.text()
-    throw new Error(`Resend error: ${response.status} - ${error}`)
+    let message = `Resend error: ${response.status}`
+    try {
+      const errorBody = await response.json()
+      const detail = errorBody?.message || errorBody?.error || errorBody?.description
+      if (detail) {
+        message += ` - ${detail}`
+      }
+    } catch (_) {
+      const text = await response.text()
+      if (text) {
+        message += ` - ${text}`
+      }
+    }
+
+    if (response.status === 422 && message.toLowerCase().includes('from')) {
+      message += ' | Vérifiez que votre domaine est validé dans Resend et que RESEND_FROM correspond à ce domaine.'
+    }
+
+    throw new Error(message)
   }
 
   return response.json()
