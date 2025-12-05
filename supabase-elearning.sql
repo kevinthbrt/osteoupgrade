@@ -3,8 +3,8 @@ create table if not exists public.elearning_formations (
   id uuid primary key default gen_random_uuid(),
   created_at timestamptz default now(),
   title text not null,
-  level text not null check (level in ('silver', 'gold', 'admin')),
-  description text
+  description text,
+  is_private boolean not null default false
 );
 
 create table if not exists public.elearning_chapters (
@@ -52,9 +52,8 @@ create policy "formations_select" on public.elearning_formations
       from public.profiles p
       where p.id = auth.uid()
         and (
-          (level = 'silver' and p.role in ('premium_silver', 'premium_gold', 'admin')) or
-          (level = 'gold' and p.role in ('premium_gold', 'admin')) or
-          (level = 'admin' and p.role = 'admin')
+          (not is_private and p.role in ('premium_silver', 'premium_gold', 'admin')) or
+          (is_private and p.role = 'admin')
         )
     )
   );
@@ -68,9 +67,8 @@ create policy "chapters_select" on public.elearning_chapters
       join public.profiles p on p.id = auth.uid()
       where f.id = formation_id
         and (
-          (f.level = 'silver' and p.role in ('premium_silver', 'premium_gold', 'admin')) or
-          (f.level = 'gold' and p.role in ('premium_gold', 'admin')) or
-          (f.level = 'admin' and p.role = 'admin')
+          (not f.is_private and p.role in ('premium_silver', 'premium_gold', 'admin')) or
+          (f.is_private and p.role = 'admin')
         )
     )
   );
@@ -85,16 +83,29 @@ create policy "subparts_select" on public.elearning_subparts
       join public.profiles p on p.id = auth.uid()
       where c.id = chapter_id
         and (
-          (f.level = 'silver' and p.role in ('premium_silver', 'premium_gold', 'admin')) or
-          (f.level = 'gold' and p.role in ('premium_gold', 'admin')) or
-          (f.level = 'admin' and p.role = 'admin')
+          (not f.is_private and p.role in ('premium_silver', 'premium_gold', 'admin')) or
+          (f.is_private and p.role = 'admin')
         )
     )
   );
 drop policy if exists "progress_select" on public.elearning_subpart_progress;
 create policy "progress_select" on public.elearning_subpart_progress
   for select using (
-    auth.uid() = user_id or exists (
+    (
+      auth.uid() = user_id and exists (
+        select 1
+        from public.elearning_subparts s
+        join public.elearning_chapters c on c.id = s.chapter_id
+        join public.elearning_formations f on f.id = c.formation_id
+        join public.profiles p on p.id = auth.uid()
+        where s.id = subpart_id
+          and (
+            (not f.is_private and p.role in ('premium_silver', 'premium_gold', 'admin')) or
+            (f.is_private and p.role = 'admin')
+          )
+      )
+    )
+    or exists (
       select 1
       from public.elearning_subparts s
       join public.elearning_chapters c on c.id = s.chapter_id
@@ -143,15 +154,30 @@ create policy "progress_self_write" on public.elearning_subpart_progress
       join public.profiles p on p.id = auth.uid()
       where s.id = subpart_id
         and (
-          (f.level = 'silver' and p.role in ('premium_silver', 'premium_gold', 'admin')) or
-          (f.level = 'gold' and p.role in ('premium_gold', 'admin')) or
-          (f.level = 'admin' and p.role = 'admin')
+          (not f.is_private and p.role in ('premium_silver', 'premium_gold', 'admin')) or
+          (f.is_private and p.role = 'admin')
         )
     )
   );
 
 drop policy if exists "progress_self_delete" on public.elearning_subpart_progress;
 create policy "progress_self_delete" on public.elearning_subpart_progress
-  for delete using (auth.uid() = user_id or exists (
-    select 1 from public.profiles p where p.id = auth.uid() and p.role = 'admin'
-  ));
+  for delete using (
+    (
+      auth.uid() = user_id and exists (
+        select 1
+        from public.elearning_subparts s
+        join public.elearning_chapters c on c.id = s.chapter_id
+        join public.elearning_formations f on f.id = c.formation_id
+        join public.profiles p on p.id = auth.uid()
+        where s.id = subpart_id
+          and (
+            (not f.is_private and p.role in ('premium_silver', 'premium_gold', 'admin')) or
+            (f.is_private and p.role = 'admin')
+          )
+      )
+    )
+    or exists (
+      select 1 from public.profiles p where p.id = auth.uid() and p.role = 'admin'
+    )
+  );

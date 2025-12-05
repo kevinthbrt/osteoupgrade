@@ -40,8 +40,8 @@ type Chapter = {
 type Formation = {
   id: string
   title: string
-  level: 'silver' | 'gold' | 'admin' | string
   description?: string
+  is_private?: boolean
   chapters: Chapter[]
 }
 
@@ -51,21 +51,19 @@ type Profile = {
   full_name?: string
 }
 
-const canAccessFormation = (role: string | undefined, level: string) => {
+const canAccessFormation = (role: string | undefined, isPrivate?: boolean) => {
   if (!role) return false
-  if (level === 'silver') return ['premium_silver', 'premium_gold', 'admin'].includes(role)
-  if (level === 'gold') return ['premium_gold', 'admin'].includes(role)
-  if (level === 'admin') return role === 'admin'
-  return false
+  if (isPrivate) return role === 'admin'
+  return ['premium_silver', 'premium_gold', 'admin'].includes(role)
 }
 
 const demoFormations: Formation[] = [
   {
     id: 'demo-formation-1',
     title: 'Techniques avancées de radiologie',
-    level: 'gold',
     description:
       "Un parcours guidé pour maîtriser l'interprétation radiologique avec des cas pratiques et des démonstrations vidéos.",
+    is_private: false,
     chapters: [
       {
         id: 'demo-chapter-1',
@@ -187,7 +185,7 @@ export default function ElearningPage() {
   const [loading, setLoading] = useState(true)
   const [creating, setCreating] = useState(false)
 
-  const [formationForm, setFormationForm] = useState({ title: '', level: 'silver', description: '' })
+  const [formationForm, setFormationForm] = useState({ title: '', description: '', is_private: false })
   const [chapterForm, setChapterForm] = useState({ title: '', order_index: 1, formationId: demoFormations[0].id })
   const [subpartForm, setSubpartForm] = useState({
     title: '',
@@ -235,7 +233,7 @@ export default function ElearningPage() {
       const { data, error } = await supabase
         .from('elearning_formations')
         .select(
-          `id, title, level, description,
+          `id, title, description, is_private,
           chapters:elearning_chapters(id, title, order_index,
             subparts:elearning_subparts(id, title, vimeo_url, description_html, order_index,
               progress:elearning_subpart_progress(user_id, completed_at)
@@ -250,8 +248,8 @@ export default function ElearningPage() {
         const parsed: Formation[] = data.map((formation: any) => ({
           id: formation.id,
           title: formation.title,
-          level: formation.level,
           description: formation.description,
+          is_private: formation.is_private,
           chapters:
             formation.chapters?.map((chapter: any) => ({
               id: chapter.id,
@@ -269,7 +267,7 @@ export default function ElearningPage() {
             })) || []
         }))
 
-        const accessible = parsed.filter((formation) => canAccessFormation(roleToUse, formation.level))
+        const accessible = parsed.filter((formation) => canAccessFormation(roleToUse, formation.is_private))
 
         if (accessible.length) {
           setFormations(accessible)
@@ -316,8 +314,8 @@ export default function ElearningPage() {
         .from('elearning_formations')
         .insert({
           title: formationForm.title,
-          level: formationForm.level,
-          description: formationForm.description
+          description: formationForm.description,
+          is_private: formationForm.is_private
         })
         .select()
         .single()
@@ -327,14 +325,14 @@ export default function ElearningPage() {
       const newFormation: Formation = {
         id: data.id,
         title: data.title,
-        level: data.level,
         description: data.description,
+        is_private: data.is_private,
         chapters: []
       }
 
       setFormations((prev) => [...prev, newFormation])
       setSelectedFormationId(newFormation.id)
-      setFormationForm({ title: '', level: 'silver', description: '' })
+      setFormationForm({ title: '', description: '', is_private: false })
     } catch (error) {
       console.error('Impossible de créer la formation', error)
     } finally {
@@ -565,11 +563,18 @@ export default function ElearningPage() {
                     <div className="flex items-center gap-3 mb-2">
                       <Sparkles className="h-4 w-4 text-primary-600" />
                       <h2 className="text-lg font-semibold">{selectedFormation.title}</h2>
-                      <span className="px-2 py-1 rounded-full text-xs bg-primary-100 text-primary-700 uppercase font-semibold">
-                        {selectedFormation.level}
-                      </span>
+                      {selectedFormation.is_private && (
+                        <span className="px-2 py-1 rounded-full text-xs bg-gray-200 text-gray-800 font-semibold uppercase">
+                          Privé
+                        </span>
+                      )}
                     </div>
-                    <p className="text-gray-700 text-sm">{selectedFormation.description}</p>
+                    {selectedFormation.description && (
+                      <div
+                        className="text-gray-700 text-sm prose prose-sm max-w-none"
+                        dangerouslySetInnerHTML={{ __html: selectedFormation.description }}
+                      />
+                    )}
                     <div className="mt-3">
                       <div className="flex justify-between text-xs text-gray-600 mb-1">
                         <span>
@@ -677,18 +682,15 @@ export default function ElearningPage() {
                         placeholder="Titre de la formation"
                         className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
                       />
-                      <div className="flex items-center gap-3">
-                        <label className="text-sm text-gray-700">Niveau</label>
-                        <select
-                          value={formationForm.level}
-                          onChange={(e) => setFormationForm({ ...formationForm, level: e.target.value })}
-                          className="border border-gray-200 rounded-lg px-3 py-2 text-sm"
-                        >
-                          <option value="silver">Premium Silver</option>
-                          <option value="gold">Premium Gold</option>
-                          <option value="admin">Privé</option>
-                        </select>
-                      </div>
+                      <label className="flex items-center gap-3 text-sm text-gray-700">
+                        <input
+                          type="checkbox"
+                          checked={formationForm.is_private}
+                          onChange={(e) => setFormationForm({ ...formationForm, is_private: e.target.checked })}
+                          className="h-4 w-4 rounded border-gray-300"
+                        />
+                        Formation privée (visible seulement par les admins)
+                      </label>
                       <RichTextEditor
                         value={formationForm.description}
                         onChange={(html) => setFormationForm({ ...formationForm, description: html })}
