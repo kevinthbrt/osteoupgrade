@@ -9,11 +9,13 @@ import {
   Image as ImageIcon,
   Loader2,
   Mail,
+  Palette,
   PlayCircle,
   Rocket,
   Send,
   Shield,
   Sparkles,
+  X,
   Trash2,
   Wand2
 } from 'lucide-react'
@@ -125,7 +127,31 @@ export default function MailingAdminPage() {
     text: ''
   })
   const [editingTemplateId, setEditingTemplateId] = useState<string | null>(null)
+  const [templateModalOpen, setTemplateModalOpen] = useState(false)
+  const [templateHtmlManuallyEdited, setTemplateHtmlManuallyEdited] = useState(false)
   const editorRef = useRef<HTMLDivElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const extractTextFromHtml = (content: string) => {
+    const element = document.createElement('div')
+    element.innerHTML = content
+    return element.innerText
+  }
+
+  const generateTemplateHtml = (name: string, description: string, subject: string) => {
+    const safeName = name || 'Nouveau template'
+    const safeSubject = subject || 'Sujet personnalisé'
+    const safeDescription = description || 'Ajoutez une description pour personnaliser ce template.'
+
+    return `
+      <div style="font-family: Inter, sans-serif; color: #0f172a;">
+        <h2 style="color:#7c3aed;">${safeSubject}</h2>
+        <p>${safeDescription}</p>
+        <p style="margin-top: 12px;">Merci,</p>
+        <p><strong>${safeName}</strong></p>
+      </div>
+    `
+  }
 
   useEffect(() => {
     const checkAdminAccess = async () => {
@@ -170,7 +196,7 @@ export default function MailingAdminPage() {
     setSelectedTemplate(template.id)
     setSubject(template.subject)
     setHtml(template.html)
-    setText(template.text || '')
+    setText(template.text || extractTextFromHtml(template.html))
   }
 
   const selectedRecipients = useMemo(() => {
@@ -205,6 +231,15 @@ export default function MailingAdminPage() {
     }
   }, [html])
 
+  useEffect(() => {
+    if (!templateModalOpen || templateHtmlManuallyEdited) return
+
+    setTemplateDraft((prev) => ({
+      ...prev,
+      html: generateTemplateHtml(prev.name, prev.description, prev.subject)
+    }))
+  }, [templateDraft.name, templateDraft.description, templateDraft.subject, templateModalOpen, templateHtmlManuallyEdited])
+
   const applyFormatting = (command: string, value?: string) => {
     if (!editorRef.current) return
     document.execCommand(command, false, value)
@@ -219,6 +254,19 @@ export default function MailingAdminPage() {
     }
   }
 
+  const handleFileImageInsert = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    const reader = new FileReader()
+    reader.onload = () => {
+      const result = reader.result as string
+      applyFormatting('insertImage', result)
+    }
+    reader.readAsDataURL(file)
+    event.target.value = ''
+  }
+
   const handleEditorInput = (event: React.FormEvent<HTMLDivElement>) => {
     const content = event.currentTarget.innerHTML
     setHtml(content)
@@ -228,11 +276,22 @@ export default function MailingAdminPage() {
   const resetTemplateDraft = () => {
     setTemplateDraft({ id: '', name: '', subject: '', description: '', html: '', text: '' })
     setEditingTemplateId(null)
+    setTemplateModalOpen(false)
+    setTemplateHtmlManuallyEdited(false)
   }
 
   const startTemplateEdit = (template: Template) => {
     setEditingTemplateId(template.id)
     setTemplateDraft(template)
+    setTemplateHtmlManuallyEdited(true)
+    setTemplateModalOpen(true)
+  }
+
+  const startTemplateCreation = () => {
+    setTemplateDraft({ id: '', name: '', subject: '', description: '', html: '', text: '' })
+    setEditingTemplateId(null)
+    setTemplateModalOpen(true)
+    setTemplateHtmlManuallyEdited(false)
   }
 
   const saveTemplate = () => {
@@ -308,10 +367,11 @@ export default function MailingAdminPage() {
 
     setSending(true)
     try {
+      const plainText = text || extractTextFromHtml(html)
       const response = await fetch('/api/mailing/send', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ to: recipients, subject, html, text, from: fromInput, tags: ['admin-send'] })
+        body: JSON.stringify({ to: recipients, subject, html, text: plainText, from: fromInput, tags: ['admin-send'] })
       })
 
       const data = await response.json()
@@ -518,6 +578,15 @@ export default function MailingAdminPage() {
                       <button type="button" onClick={() => applyFormatting('insertOrderedList')} className="rounded px-2 py-1 hover:bg-gray-100">
                         Liste numérotée
                       </button>
+                      <label className="flex items-center gap-1 text-xs px-2 py-1 border rounded cursor-pointer bg-white">
+                        <Palette className="h-4 w-4 text-gray-500" />
+                        <span>Couleur</span>
+                        <input
+                          type="color"
+                          onChange={(e) => applyFormatting('foreColor', e.target.value)}
+                          className="h-0 w-0 opacity-0"
+                        />
+                      </label>
                       <button
                         type="button"
                         onClick={handleImageInsert}
@@ -526,24 +595,33 @@ export default function MailingAdminPage() {
                         <ImageIcon className="h-4 w-4" />
                         Image
                       </button>
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        className="inline-flex items-center gap-1 rounded px-2 py-1 hover:bg-gray-100"
+                      >
+                        <ImageIcon className="h-4 w-4" />
+                        Parcourir...
+                      </button>
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handleFileImageInsert}
+                      />
                     </div>
                     <div
                       ref={editorRef}
                       contentEditable
+                      suppressContentEditableWarning
                       className="min-h-[250px] w-full p-4 focus:outline-none"
                       onInput={handleEditorInput}
-                      dangerouslySetInnerHTML={{ __html: html }}
                     />
                   </div>
                   <p className="text-xs text-gray-500">Le HTML est généré automatiquement. Utilisez les outils ci-dessus pour styliser votre message.</p>
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-700">Version texte (optionnel)</label>
-                  <textarea
-                    value={text}
-                    onChange={(e) => setText(e.target.value)}
-                    className="w-full h-[250px] rounded-lg border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-sm"
-                  />
                   <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 text-xs text-gray-600 space-y-1">
                     <p className="font-medium text-gray-800">Aperçu HTML</p>
                     <div className="border rounded-lg p-3 bg-white max-h-48 overflow-auto" dangerouslySetInnerHTML={{ __html: html }} />
@@ -570,9 +648,19 @@ export default function MailingAdminPage() {
 
           <div className="space-y-4">
             <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-4 space-y-3">
-              <div className="flex items-center space-x-2">
-                <Sparkles className="h-5 w-5 text-purple-600" />
-                <h3 className="font-semibold">Templates</h3>
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center space-x-2">
+                  <Sparkles className="h-5 w-5 text-purple-600" />
+                  <h3 className="font-semibold">Templates</h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={startTemplateCreation}
+                  className="inline-flex items-center gap-2 rounded-lg border border-purple-200 bg-purple-50 px-3 py-2 text-xs font-semibold text-purple-700 hover:bg-purple-100"
+                >
+                  <FilePlus2 className="h-4 w-4" />
+                  Nouveau template
+                </button>
               </div>
               <div className="space-y-3">
                 {templates.map((template) => (
@@ -615,66 +703,6 @@ export default function MailingAdminPage() {
                     <p className="text-xs text-gray-500 mt-2">{template.description}</p>
                   </div>
                 ))}
-              </div>
-              <div className="border-t border-gray-200 pt-3 space-y-2">
-                <div className="flex items-center gap-2 text-sm font-semibold text-gray-700">
-                  <FilePlus2 className="h-4 w-4 text-purple-600" />
-                  {editingTemplateId ? 'Modifier un template' : 'Créer un template'}
-                </div>
-                <div className="space-y-2">
-                  <input
-                    type="text"
-                    placeholder="Nom"
-                    value={templateDraft.name}
-                    onChange={(e) => setTemplateDraft({ ...templateDraft, name: e.target.value })}
-                    className="w-full rounded-lg border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-sm"
-                  />
-                  <input
-                    type="text"
-                    placeholder="Sujet"
-                    value={templateDraft.subject}
-                    onChange={(e) => setTemplateDraft({ ...templateDraft, subject: e.target.value })}
-                    className="w-full rounded-lg border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-sm"
-                  />
-                  <input
-                    type="text"
-                    placeholder="Description"
-                    value={templateDraft.description}
-                    onChange={(e) => setTemplateDraft({ ...templateDraft, description: e.target.value })}
-                    className="w-full rounded-lg border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-sm"
-                  />
-                  <textarea
-                    placeholder="Contenu HTML"
-                    value={templateDraft.html}
-                    onChange={(e) => setTemplateDraft({ ...templateDraft, html: e.target.value })}
-                    className="w-full h-24 rounded-lg border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-sm"
-                  />
-                  <textarea
-                    placeholder="Texte brut (optionnel)"
-                    value={templateDraft.text}
-                    onChange={(e) => setTemplateDraft({ ...templateDraft, text: e.target.value })}
-                    className="w-full h-20 rounded-lg border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-sm"
-                  />
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={saveTemplate}
-                      className="inline-flex items-center gap-2 rounded-lg bg-purple-600 px-3 py-2 text-sm font-semibold text-white hover:bg-purple-700"
-                    >
-                      <Wand2 className="h-4 w-4" />
-                      {editingTemplateId ? 'Mettre à jour' : 'Ajouter'}
-                    </button>
-                    {editingTemplateId && (
-                      <button
-                        type="button"
-                        onClick={resetTemplateDraft}
-                        className="text-xs text-gray-500 underline"
-                      >
-                        Annuler
-                      </button>
-                    )}
-                  </div>
-                </div>
               </div>
             </div>
 
@@ -765,6 +793,90 @@ export default function MailingAdminPage() {
           </div>
         </div>
       </div>
+      {templateModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="w-full max-w-2xl rounded-xl bg-white shadow-xl">
+            <div className="flex items-center justify-between border-b border-gray-200 px-4 py-3">
+              <div className="flex items-center gap-2">
+                <FilePlus2 className="h-5 w-5 text-purple-600" />
+                <p className="font-semibold">{editingTemplateId ? 'Modifier un template' : 'Créer un template'}</p>
+              </div>
+              <button
+                type="button"
+                onClick={resetTemplateDraft}
+                className="rounded p-1 text-gray-500 hover:bg-gray-100"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="space-y-3 p-4">
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                <input
+                  type="text"
+                  placeholder="Nom"
+                  value={templateDraft.name}
+                  onChange={(e) => setTemplateDraft({ ...templateDraft, name: e.target.value })}
+                  className="w-full rounded-lg border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-sm"
+                />
+                <input
+                  type="text"
+                  placeholder="Sujet"
+                  value={templateDraft.subject}
+                  onChange={(e) => setTemplateDraft({ ...templateDraft, subject: e.target.value })}
+                  className="w-full rounded-lg border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-sm"
+                />
+              </div>
+              <input
+                type="text"
+                placeholder="Description"
+                value={templateDraft.description}
+                onChange={(e) => setTemplateDraft({ ...templateDraft, description: e.target.value })}
+                className="w-full rounded-lg border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-sm"
+              />
+              <textarea
+                placeholder="HTML généré automatiquement"
+                value={templateDraft.html}
+                onChange={(e) => {
+                  setTemplateDraft({ ...templateDraft, html: e.target.value })
+                  setTemplateHtmlManuallyEdited(true)
+                }}
+                className="w-full h-32 rounded-lg border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-sm"
+              />
+              <textarea
+                placeholder="Texte brut (optionnel)"
+                value={templateDraft.text}
+                onChange={(e) => setTemplateDraft({ ...templateDraft, text: e.target.value })}
+                className="w-full h-24 rounded-lg border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-sm"
+              />
+              <div className="flex items-center justify-between text-xs text-gray-500">
+                <p>Le HTML se remplit automatiquement à partir du sujet et de la description. Vous pouvez ensuite l’ajuster.</p>
+                {editingTemplateId && (
+                  <button type="button" onClick={resetTemplateDraft} className="text-purple-600 underline">
+                    Annuler
+                  </button>
+                )}
+              </div>
+              <div className="flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={resetTemplateDraft}
+                  className="rounded-lg border px-3 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                >
+                  Fermer
+                </button>
+                <button
+                  type="button"
+                  onClick={saveTemplate}
+                  className="inline-flex items-center gap-2 rounded-lg bg-purple-600 px-4 py-2 text-sm font-semibold text-white hover:bg-purple-700"
+                >
+                  <Wand2 className="h-4 w-4" />
+                  {editingTemplateId ? 'Mettre à jour' : 'Ajouter'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </AuthLayout>
   )
 }
