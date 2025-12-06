@@ -22,6 +22,7 @@ import {
   Box,
   TestTube,
   Stethoscope,
+  Dumbbell,
   Calendar,
   Mail
 } from 'lucide-react'
@@ -79,6 +80,13 @@ export default function Navigation() {
 
   const menuItems: MenuItem[] = [
     { href: '/dashboard', label: 'Tableau de bord', icon: Home },
+    {
+      href: '/exercices',
+      label: 'Exercices',
+      icon: Dumbbell,
+      badge: 'Premium',
+      roles: ['premium_silver', 'premium_gold', 'admin']
+    },
     {
       href: '/topographie',
       label: 'Topographie',
