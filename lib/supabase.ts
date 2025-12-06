@@ -165,6 +165,22 @@ export type Database = {
         is_red_flag: boolean | null
         red_flag_reason: string | null
       }>
+      practice_videos: TableDefinition<{
+        id: string
+        region: string
+        topographic_zone_id: string | null
+        title: string
+        description: string | null
+        vimeo_id: string | null
+        vimeo_url: string | null
+        thumbnail_url: string | null
+        duration_seconds: number | null
+        order_index: number | null
+        is_active: boolean
+        created_by: string | null
+        created_at: string
+        updated_at: string
+      }>
       rehab_exercises: TableDefinition<{
         id: string
         name: string

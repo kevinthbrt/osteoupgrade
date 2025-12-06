@@ -81,6 +81,13 @@ export default function Navigation() {
   const menuItems: MenuItem[] = [
     { href: '/dashboard', label: 'Tableau de bord', icon: Home },
     {
+      href: '/pratique',
+      label: 'Pratique',
+      icon: Stethoscope,
+      badge: 'Premium',
+      roles: ['premium_silver', 'premium_gold', 'admin']
+    },
+    {
       href: '/exercices',
       label: 'Exercices',
       icon: Dumbbell,
