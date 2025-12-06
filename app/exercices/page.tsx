@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabase'
 import AuthLayout from '@/components/AuthLayout'
 import { Dumbbell, Download, Edit, Plus, Save, Search, Trash2, X } from 'lucide-react'
 import jsPDF from 'jspdf'
-import autoTable from 'jspdf-autotable'
+import 'jspdf-autotable'
 
 interface RehabExercise {
   id: string
@@ -183,7 +183,7 @@ export default function ExercisesModule() {
     if (patientInfo.reason) doc.text(`Motif : ${patientInfo.reason}`, 14, 40)
     if (patientInfo.notes) doc.text(`Informations générales : ${patientInfo.notes}`, 14, 46)
 
-    autoTable(doc, {
+    ;(doc as any).autoTable({
       startY: 54,
       head: [['Exercice', 'Répétitions / Temps', 'Séries', 'Repos', 'Commentaire']],
       body: selectedExercises.map((item) => {
