@@ -67,6 +67,8 @@ export default function ExercisesModule() {
 
   const [exercises, setExercises] = useState<RehabExercise[]>([])
   const [searchTerm, setSearchTerm] = useState('')
+  const [filterRegion, setFilterRegion] = useState('')
+  const [filterType, setFilterType] = useState('')
   const [selectedExercises, setSelectedExercises] = useState<PlanItem[]>([])
   const [patientInfo, setPatientInfo] = useState({ ...EMPTY_PATIENT })
 
@@ -151,9 +153,22 @@ export default function ExercisesModule() {
   const filteredExercises = useMemo(() => {
     return exercises.filter((exercise) => {
       const haystack = `${exercise.name} ${exercise.region} ${exercise.type}`.toLowerCase()
-      return haystack.includes(searchTerm.toLowerCase()) && exercise.is_active
+      const matchesSearch = haystack.includes(searchTerm.toLowerCase())
+      const matchesRegion = !filterRegion || exercise.region === filterRegion
+      const matchesType = !filterType || exercise.type === filterType
+      return matchesSearch && matchesRegion && matchesType && exercise.is_active
     })
-  }, [exercises, searchTerm])
+  }, [exercises, searchTerm, filterRegion, filterType])
+
+  const regionOptions = useMemo(() => {
+    const uniqueRegions = Array.from(new Set(exercises.map((ex) => ex.region).filter(Boolean)))
+    return uniqueRegions.sort()
+  }, [exercises])
+
+  const typeOptions = useMemo(() => {
+    const uniqueTypes = Array.from(new Set(exercises.map((ex) => ex.type).filter(Boolean)))
+    return uniqueTypes.sort()
+  }, [exercises])
 
   const addToPlan = (exerciseId: string) => {
     setSelectedExercises((prev) => [...prev, EMPTY_PLAN_ITEM(exerciseId)])
@@ -438,14 +453,40 @@ export default function ExercisesModule() {
               <h2 className="text-lg font-semibold text-gray-900">Catalogue des exercices</h2>
               <p className="text-sm text-gray-500">Sélectionnez un exercice pour l'ajouter à la fiche.</p>
             </div>
-            <div className="relative w-full sm:w-80">
-              <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
-              <input
-                placeholder="Rechercher un exercice"
-                className="w-full rounded-lg border border-gray-200 bg-gray-50 py-2 pl-10 pr-3 text-sm focus:border-blue-500 focus:bg-white focus:outline-none"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
+            <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-center">
+              <div className="relative w-full sm:w-56">
+                <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+                <input
+                  placeholder="Rechercher un exercice"
+                  className="w-full rounded-lg border border-gray-200 bg-gray-50 py-2 pl-10 pr-3 text-sm focus:border-blue-500 focus:bg-white focus:outline-none"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+              <select
+                value={filterRegion}
+                onChange={(e) => setFilterRegion(e.target.value)}
+                className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-700 focus:border-blue-500 focus:bg-white focus:outline-none sm:w-40"
+              >
+                <option value="">Toutes les régions</option>
+                {regionOptions.map((region) => (
+                  <option key={region} value={region} className="capitalize">
+                    {region}
+                  </option>
+                ))}
+              </select>
+              <select
+                value={filterType}
+                onChange={(e) => setFilterType(e.target.value)}
+                className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-700 focus:border-blue-500 focus:bg-white focus:outline-none sm:w-40"
+              >
+                <option value="">Tous les types</option>
+                {typeOptions.map((type) => (
+                  <option key={type} value={type} className="capitalize">
+                    {type}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
 
