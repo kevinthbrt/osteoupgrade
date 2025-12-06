@@ -165,6 +165,20 @@ export type Database = {
         is_red_flag: boolean | null
         red_flag_reason: string | null
       }>
+      rehab_exercises: TableDefinition<{
+        id: string
+        name: string
+        region: string
+        type: string
+        level: number
+        nerve_target: string | null
+        description: string
+        progression_regression: string | null
+        is_active: boolean
+        created_by: string | null
+        created_at: string
+        updated_at: string
+      }>
       profiles: TableDefinition<{
         id: string
         email: string
