@@ -808,6 +808,7 @@ export default function MailingAdminPage() {
             <div className="flex items-center space-x-3 bg-white/10 rounded-lg px-4 py-2">
               <Shield className="h-5 w-5" />
               <span className="text-sm font-semibold">Sécurisé via API Resend</span>
+            </div>
           </div>
         </div>
 
