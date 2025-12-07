@@ -36,7 +36,18 @@ async function sendWithResend(payload: EmailPayload) {
   }
 
   const from = resolveFromAddress(payload.from)
-  const tags = payload.tags?.map((value) => ({ name: 'tag', value }))
+
+  // Convertir les tags en format Resend avec des noms uniques
+  // Exemple: ['automation', 'automation-abc'] devient:
+  // [{ name: 'type', value: 'automation' }, { name: 'automation_id', value: 'abc' }]
+  const tags = payload.tags?.map((tagValue, index) => {
+    if (tagValue.includes('-')) {
+      const parts = tagValue.split('-')
+      return { name: `${parts[0]}_id`, value: parts.slice(1).join('-') }
+    }
+    return { name: 'type', value: tagValue }
+  })
+
   const response = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: {
