@@ -224,6 +224,37 @@ export default function MailingAdminPage() {
     }
   }
 
+  const loadAutomationsFromAPI = async () => {
+    try {
+      const response = await fetch('/api/automations')
+      if (!response.ok) {
+        console.error('Error loading automations')
+        return
+      }
+
+      const { automations: loadedAutomations } = await response.json()
+
+      // Mapper les automatisations de l'API vers le format local
+      const mappedAutomations = loadedAutomations.map((auto: any) => ({
+        id: auto.id,
+        name: auto.name,
+        trigger: auto.trigger_event,
+        audience: 'Tous les membres', // À améliorer
+        schedule: 'Démarrage immédiat', // À améliorer
+        steps: (auto.steps || []).map((step: any) => ({
+          id: step.id,
+          templateId: step.template_slug || '',
+          delayDays: Math.floor(step.wait_minutes / (60 * 24))
+        })),
+        active: auto.active
+      }))
+
+      setAutomations(mappedAutomations)
+    } catch (error) {
+      console.error('Error loading automations:', error)
+    }
+  }
+
   useEffect(() => {
     const checkAdminAccess = async () => {
       try {
@@ -257,6 +288,7 @@ export default function MailingAdminPage() {
         }
 
         await loadTemplatesFromSupabase()
+        await loadAutomationsFromAPI()
       } finally {
         setLoading(false)
       }
@@ -603,26 +635,97 @@ export default function MailingAdminPage() {
     })
   }
 
-  const handleAutomationSubmit = (event: React.FormEvent) => {
+  const handleAutomationSubmit = async (event: React.FormEvent) => {
     event.preventDefault()
     if (!automationDraft.name || !automationDraft.trigger || automationDraft.steps.length === 0) return
 
-    const newAutomation: Automation = {
-      id: `automation-${Date.now()}`,
-      active: true,
-      ...automationDraft
+    try {
+      // Convertir les étapes au format API
+      const steps = automationDraft.steps.map((step, index) => ({
+        step_order: index,
+        wait_minutes: step.delayDays * 24 * 60, // Convertir jours en minutes
+        subject: templates.find(t => t.id === step.templateId)?.subject || 'Email automatique',
+        template_slug: step.templateId,
+        payload: {}
+      }))
+
+      const response = await fetch('/api/automations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: automationDraft.name,
+          description: `Déclencheur: ${automationDraft.trigger}`,
+          trigger_event: automationDraft.trigger,
+          steps
+        })
+      })
+
+      if (!response.ok) {
+        throw new Error('Impossible de créer l\'automatisation')
+      }
+
+      const { automation } = await response.json()
+
+      // Mapper vers le format local et ajouter à la liste
+      const newAutomation: Automation = {
+        id: automation.id,
+        name: automation.name,
+        trigger: automation.trigger_event,
+        audience: automationDraft.audience,
+        schedule: automationDraft.schedule,
+        steps: automationDraft.steps,
+        active: automation.active
+      }
+
+      setAutomations((prev) => [...prev, newAutomation])
+      setResult({ type: 'success', message: 'Automatisation créée avec succès !' })
+      closeAutomationModal()
+    } catch (error: any) {
+      setResult({ type: 'error', message: error?.message || 'Erreur lors de la création de l\'automatisation' })
     }
-
-    setAutomations((prev) => [...prev, newAutomation])
-    closeAutomationModal()
   }
 
-  const toggleAutomation = (automationId: string) => {
-    setAutomations((prev) => prev.map((automation) => (automation.id === automationId ? { ...automation, active: !automation.active } : automation)))
+  const toggleAutomation = async (automationId: string) => {
+    const automation = automations.find(a => a.id === automationId)
+    if (!automation) return
+
+    try {
+      const response = await fetch(`/api/automations/${automationId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          active: !automation.active
+        })
+      })
+
+      if (!response.ok) {
+        throw new Error('Impossible de mettre à jour l\'automatisation')
+      }
+
+      setAutomations((prev) => prev.map((auto) => (auto.id === automationId ? { ...auto, active: !auto.active } : auto)))
+      setResult({ type: 'success', message: `Automatisation ${!automation.active ? 'activée' : 'désactivée'}` })
+    } catch (error: any) {
+      setResult({ type: 'error', message: error?.message || 'Erreur lors de la mise à jour' })
+    }
   }
 
-  const deleteAutomation = (automationId: string) => {
-    setAutomations((prev) => prev.filter((automation) => automation.id !== automationId))
+  const deleteAutomation = async (automationId: string) => {
+    if (!confirm('Êtes-vous sûr de vouloir supprimer cette automatisation ?')) return
+
+    try {
+      const response = await fetch(`/api/automations/${automationId}`, {
+        method: 'DELETE'
+      })
+
+      if (!response.ok) {
+        throw new Error('Impossible de supprimer l\'automatisation')
+      }
+
+      setAutomations((prev) => prev.filter((automation) => automation.id !== automationId))
+      setResult({ type: 'success', message: 'Automatisation supprimée' })
+    } catch (error: any) {
+      setResult({ type: 'error', message: error?.message || 'Erreur lors de la suppression' })
+    }
   }
 
   const getTemplateName = (templateId: string) =>
