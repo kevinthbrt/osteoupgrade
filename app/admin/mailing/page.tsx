@@ -69,72 +69,16 @@ const automationTriggerPresets = [
 
 const inlineImageStyle = 'display:block;max-width:640px;width:100%;height:auto;margin:12px 0;'
 
-const defaultTemplates: Template[] = [
-  {
-    id: 'welcome',
-    name: 'Bienvenue Premium',
-    subject: 'Bienvenue sur OsteoUpgrade 🎉',
-    description: 'Email d’accueil avec liens vers les modules principaux.',
-    html: `
-      <div style="font-family: Inter, sans-serif; color: #0f172a;">
-        <h1 style="color:#7c3aed;">Bienvenue sur OsteoUpgrade !</h1>
-        <p>Nous sommes ravis de vous compter parmi nous. Retrouvez dès maintenant :</p>
-        <ul>
-          <li>👉 Les consultations guidées V3</li>
-          <li>👉 La bibliothèque de tests orthopédiques</li>
-          <li>👉 Les rappels email automatisés</li>
-        </ul>
-        <p style="margin-top:16px;">À très vite,</p>
-        <p><strong>L’équipe OsteoUpgrade</strong></p>
-      </div>
-    `,
-    text: 'Bienvenue sur OsteoUpgrade ! Accédez aux consultations V3, à la bibliothèque de tests et aux rappels automatisés.'
-  },
-  {
-    id: 'seminar',
-    name: 'Relance séminaire',
-    subject: 'Votre place pour notre prochain séminaire',
-    description: 'Relance ciblée pour confirmer la présence à un événement.',
-    html: `
-      <div style="font-family: Inter, sans-serif; color: #0f172a;">
-        <p>Bonjour 👋</p>
-        <p>Nous gardons votre place pour le prochain séminaire OsteoUpgrade. Confirmez votre présence en un clic.</p>
-        <p style="margin: 12px 0;">
-          <a href="https://osteoupgrade.app" style="background:#22c55e; color:white; padding:10px 16px; border-radius:8px; text-decoration:none;">Confirmer ma venue</a>
-        </p>
-        <p>Besoin d’informations ? Répondez directement à cet email.</p>
-      </div>
-    `,
-    text: 'Nous gardons votre place pour le prochain séminaire OsteoUpgrade. Confirmez votre présence en un clic.'
-  },
-  {
-    id: 'reactivation',
-    name: 'Réactivation inactifs',
-    subject: 'Rejoignez-nous à nouveau sur OsteoUpgrade',
-    description: 'Séquence courte pour réengager les comptes dormants.',
-    html: `
-      <div style="font-family: Inter, sans-serif; color: #0f172a;">
-        <p>Bonjour 👋</p>
-        <p>Nous avons ajouté de nouvelles ressources depuis votre dernière connexion :
-        consultations V3, nouvelles fiches tests et rappels automatisés.</p>
-        <p>Connectez-vous pour les découvrir et récupérer votre progression.</p>
-        <p style="color:#6b7280; font-size:12px;">Si vous ne souhaitez plus recevoir ces emails, répondez STOP.</p>
-      </div>
-    `,
-    text: 'Nouvelles ressources disponibles sur OsteoUpgrade : consultations V3, fiches tests et rappels automatisés.'
-  }
-]
-
 export default function MailingAdminPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(true)
   const [toInput, setToInput] = useState('')
-  const [fromInput, setFromInput] = useState<string>(process.env.NEXT_PUBLIC_RESEND_FROM || '')
-  const [templates, setTemplates] = useState<Template[]>(defaultTemplates)
-  const [subject, setSubject] = useState(defaultTemplates[0].subject)
-  const [html, setHtml] = useState(defaultTemplates[0].html)
-  const [text, setText] = useState(defaultTemplates[0].text || '')
-  const [selectedTemplate, setSelectedTemplate] = useState(defaultTemplates[0].id)
+  const [fromInput] = useState<string>(process.env.NEXT_PUBLIC_RESEND_FROM || '')
+  const [templates, setTemplates] = useState<Template[]>([])
+  const [subject, setSubject] = useState('')
+  const [html, setHtml] = useState('')
+  const [text, setText] = useState('')
+  const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null)
   const [sending, setSending] = useState(false)
   const [result, setResult] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
   const [audienceMode, setAudienceMode] = useState<'manual' | 'all' | 'subscription'>('manual')
@@ -217,7 +161,17 @@ export default function MailingAdminPage() {
 
       if (data) {
         const remoteTemplates = data.map(mapTemplateRowToTemplate)
-        setTemplates([...defaultTemplates, ...remoteTemplates])
+        setTemplates(remoteTemplates)
+
+        const existingSelection = remoteTemplates.find((tpl) => tpl.id === selectedTemplate)
+        const fallbackTemplate = existingSelection || remoteTemplates[0]
+
+        if (fallbackTemplate) {
+          setSelectedTemplate(fallbackTemplate.id)
+          setSubject(fallbackTemplate.subject)
+          setHtml(fallbackTemplate.html)
+          setText(fallbackTemplate.text || extractTextFromHtml(fallbackTemplate.html))
+        }
       }
     } finally {
       setLoadingTemplates(false)
@@ -297,7 +251,15 @@ export default function MailingAdminPage() {
     checkAdminAccess()
   }, [router])
 
-  const applyTemplate = (templateId: string) => {
+  const applyTemplate = (templateId: string | null) => {
+    if (!templateId) {
+      setSelectedTemplate(null)
+      setSubject('')
+      setHtml('')
+      setText('')
+      return
+    }
+
     const template = templates.find((tpl) => tpl.id === templateId)
     if (!template) return
     setSelectedTemplate(template.id)
@@ -331,6 +293,11 @@ export default function MailingAdminPage() {
       .map((email) => email.trim())
       .filter(Boolean)
   }, [audienceMode, members, subscriptionFilter, toInput])
+
+  const activeTemplate = useMemo(
+    () => (selectedTemplate ? templates.find((tpl) => tpl.id === selectedTemplate) : undefined),
+    [selectedTemplate, templates]
+  )
 
   useEffect(() => {
     if (editorRef.current && editorRef.current.innerHTML !== html) {
@@ -560,15 +527,19 @@ export default function MailingAdminPage() {
   }
 
   const deleteTemplate = async (templateId: string) => {
-    setTemplates((prev) => prev.filter((tpl) => tpl.id !== templateId))
+    setTemplates((prev) => {
+      const filtered = prev.filter((tpl) => tpl.id !== templateId)
 
-    if (selectedTemplate === templateId) {
-      const fallback = templates.find((tpl) => tpl.id !== templateId) || defaultTemplates[0]
-      setSelectedTemplate(fallback.id)
-      setSubject(fallback.subject)
-      setHtml(fallback.html)
-      setText(fallback.text || '')
-    }
+      if (selectedTemplate === templateId) {
+        const fallback = filtered[0]
+        setSelectedTemplate(fallback?.id || null)
+        setSubject(fallback?.subject || '')
+        setHtml(fallback?.html || '')
+        setText(fallback?.text || '')
+      }
+
+      return filtered
+    })
 
     if (isUuid(templateId)) {
       const { error } = await supabase.from('mail_templates').delete().eq('id', templateId)
@@ -587,7 +558,7 @@ export default function MailingAdminPage() {
       steps: [
         {
           id: `step-${Date.now()}`,
-          templateId: templates[0]?.id || defaultTemplates[0]?.id || '',
+          templateId: templates[0]?.id || '',
           delayDays: 0
         }
       ]
@@ -603,7 +574,7 @@ export default function MailingAdminPage() {
         ...prev.steps,
         {
           id: `step-${Date.now()}`,
-          templateId: templates[0]?.id || defaultTemplates[0]?.id || '',
+          templateId: templates[0]?.id || '',
           delayDays: lastDelay + 2
         }
       ]
@@ -837,7 +808,6 @@ export default function MailingAdminPage() {
             <div className="flex items-center space-x-3 bg-white/10 rounded-lg px-4 py-2">
               <Shield className="h-5 w-5" />
               <span className="text-sm font-semibold">Sécurisé via API Resend</span>
-            </div>
           </div>
         </div>
 
@@ -854,402 +824,368 @@ export default function MailingAdminPage() {
           </div>
         )}
 
-        <div className="grid gap-6 lg:grid-cols-3">
-          <div className="lg:col-span-2 space-y-4">
-            <form onSubmit={handleSend} className="bg-white border border-gray-200 rounded-xl shadow-sm p-6 space-y-4">
+        <div className="space-y-6">
+          <form onSubmit={handleSend} className="bg-white border border-gray-200 rounded-xl shadow-sm p-6 space-y-6">
+            <div className="flex flex-col gap-1">
+              <p className="text-sm font-semibold text-gray-900">Rédaction grand format</p>
+              <p className="text-sm text-gray-500">Composez vos newsletters dans un espace dégagé, avec vos modèles accessibles directement.</p>
+            </div>
+
+            <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-500">Expéditeur</p>
-                  <p className="font-semibold">{process.env.NEXT_PUBLIC_APP_NAME || 'OsteoUpgrade'} (RESEND_FROM)</p>
-                  <p className="text-xs text-gray-500">Utilisez un domaine validé dans Resend (ex: no-reply@osteo-upgrade.fr).</p>
-                </div>
-                <div className="flex items-center space-x-2 text-sm text-gray-500">
-                  <Sparkles className="h-4 w-4 text-purple-500" />
-                  <span>Resend activé</span>
-                </div>
+                <label className="text-sm font-medium text-gray-700">Destinataires</label>
+                <p className="text-xs text-gray-500">{selectedRecipients.length} contact(s) sélectionné(s)</p>
+              </div>
+              <div className="grid sm:grid-cols-3 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setAudienceMode('manual')}
+                  className={`w-full rounded-lg border px-3 py-2 text-sm text-left ${audienceMode === 'manual' ? 'border-purple-500 bg-purple-50 text-purple-900' : 'border-gray-200'}`}
+                >
+                  Saisie manuelle
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAudienceMode('all')}
+                  className={`w-full rounded-lg border px-3 py-2 text-sm text-left ${audienceMode === 'all' ? 'border-purple-500 bg-purple-50 text-purple-900' : 'border-gray-200'}`}
+                >
+                  Tous les membres
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAudienceMode('subscription')}
+                  className={`w-full rounded-lg border px-3 py-2 text-sm text-left ${audienceMode === 'subscription' ? 'border-purple-500 bg-purple-50 text-purple-900' : 'border-gray-200'}`}
+                >
+                  Par abonnement
+                </button>
               </div>
 
-              <div className="space-y-1">
-                <label className="text-sm font-medium text-gray-700">Adresse expéditeur</label>
-                <input
-                  type="text"
-                  value={fromInput}
-                  onChange={(e) => setFromInput(e.target.value)}
-                  placeholder="ex: OsteoUpgrade <no-reply@osteo-upgrade.fr>"
-                  className="w-full rounded-lg border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-                />
-              </div>
-
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <label className="text-sm font-medium text-gray-700">Destinataires</label>
-                  <p className="text-xs text-gray-500">{selectedRecipients.length} contact(s) sélectionné(s)</p>
+              {audienceMode === 'manual' && (
+                <div className="space-y-1">
+                  <input
+                    type="text"
+                    value={toInput}
+                    onChange={(e) => setToInput(e.target.value)}
+                    placeholder="ex: contact@domaine.com, demo@osteoupgrade.app"
+                    className="w-full rounded-lg border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                  />
+                  <p className="text-xs text-gray-500">Séparez les emails par des virgules.</p>
                 </div>
-                <div className="grid sm:grid-cols-3 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setAudienceMode('manual')}
-                    className={`w-full rounded-lg border px-3 py-2 text-sm text-left ${audienceMode === 'manual' ? 'border-purple-500 bg-purple-50 text-purple-900' : 'border-gray-200'}`}
-                  >
-                    Saisie manuelle
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setAudienceMode('all')}
-                    className={`w-full rounded-lg border px-3 py-2 text-sm text-left ${audienceMode === 'all' ? 'border-purple-500 bg-purple-50 text-purple-900' : 'border-gray-200'}`}
-                  >
-                    Tous les membres
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setAudienceMode('subscription')}
-                    className={`w-full rounded-lg border px-3 py-2 text-sm text-left ${audienceMode === 'subscription' ? 'border-purple-500 bg-purple-50 text-purple-900' : 'border-gray-200'}`}
-                  >
-                    Par abonnement
-                  </button>
+              )}
+
+              {audienceMode === 'all' && (
+                <div className="rounded-lg border border-dashed border-purple-200 bg-purple-50 px-4 py-3 text-sm text-purple-900">
+                  {members.length ? `${members.length} membres sélectionnés automatiquement.` : 'Chargement des membres...'}
                 </div>
+              )}
 
-                {audienceMode === 'manual' && (
-                  <div className="space-y-1">
-                    <input
-                      type="text"
-                      value={toInput}
-                      onChange={(e) => setToInput(e.target.value)}
-                      placeholder="ex: contact@domaine.com, demo@osteoupgrade.app"
-                      className="w-full rounded-lg border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-                    />
-                    <p className="text-xs text-gray-500">Séparez les emails par des virgules.</p>
-                  </div>
-                )}
-
-                {audienceMode === 'all' && (
-                  <div className="rounded-lg border border-dashed border-purple-200 bg-purple-50 px-4 py-3 text-sm text-purple-900">
-                    {members.length ? `${members.length} membres sélectionnés automatiquement.` : 'Chargement des membres...'}
-                  </div>
-                )}
-
-                {audienceMode === 'subscription' && (
-                  <div className="space-y-2">
-                    <select
-                      value={subscriptionFilter}
-                      onChange={(e) => setSubscriptionFilter(e.target.value)}
-                      className="w-full rounded-lg border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-                    >
-                      <option value="premium_silver">Premium Silver</option>
-                      <option value="premium_gold">Premium Gold</option>
-                      <option value="free">Membres gratuits</option>
-                      <option value="admin">Admins</option>
-                    </select>
-                    <p className="text-xs text-gray-500">Envoi ciblé par type d’abonnement (subscription_status) ou rôle.</p>
-                  </div>
-                )}
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-sm font-medium text-gray-700">Sujet</label>
-                <input
-                  type="text"
-                  value={subject}
-                  onChange={(e) => setSubject(e.target.value)}
-                  className="w-full rounded-lg border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-                />
-              </div>
-
-              <div className="grid md:grid-cols-2 gap-4">
+              {audienceMode === 'subscription' && (
                 <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <label className="text-sm font-medium text-gray-700">Rédaction visuelle</label>
-                    <div className="flex items-center gap-2 text-xs text-gray-500">
-                      <ImageIcon className="h-4 w-4" />
-                      <span>Ajoutez images, listes, mise en forme</span>
-                    </div>
-                  </div>
-                  <div className="rounded-lg border border-gray-200">
-                    <div className="flex flex-wrap items-center gap-2 border-b border-gray-200 bg-gray-50 px-3 py-2 text-sm">
-                      <select
-                        onChange={(e) => applyFormatting('fontName', e.target.value)}
-                        className="rounded border-gray-300 text-xs"
-                        defaultValue="Inter"
-                      >
-                        <option value="Inter">Inter</option>
-                        <option value="Arial">Arial</option>
-                        <option value="Georgia">Georgia</option>
-                        <option value="Times New Roman">Times New Roman</option>
-                      </select>
-                      <select
-                        onChange={(e) => applyFormatting('fontSize', e.target.value)}
-                        className="rounded border-gray-300 text-xs"
-                        defaultValue="3"
-                      >
-                        <option value="2">Petit</option>
-                        <option value="3">Normal</option>
-                        <option value="4">Grand</option>
-                        <option value="5">Très grand</option>
-                      </select>
-                      <button type="button" onClick={() => applyFormatting('bold')} className="rounded px-2 py-1 hover:bg-gray-100 font-semibold">
-                        Gras
-                      </button>
-                      <button type="button" onClick={() => applyFormatting('italic')} className="rounded px-2 py-1 hover:bg-gray-100 italic">
-                        Italique
-                      </button>
-                      <button type="button" onClick={() => applyFormatting('underline')} className="rounded px-2 py-1 hover:bg-gray-100">
-                        Souligné
-                      </button>
-                      <button type="button" onClick={() => applyFormatting('insertUnorderedList')} className="rounded px-2 py-1 hover:bg-gray-100">
-                        Liste
-                      </button>
-                      <button type="button" onClick={() => applyFormatting('insertOrderedList')} className="rounded px-2 py-1 hover:bg-gray-100">
-                        Liste numérotée
-                      </button>
-                      <label className="flex items-center gap-1 text-xs px-2 py-1 border rounded cursor-pointer bg-white">
-                        <Palette className="h-4 w-4 text-gray-500" />
-                        <span>Couleur</span>
-                        <input
-                          type="color"
-                          onChange={(e) => applyFormatting('foreColor', e.target.value)}
-                          className="h-0 w-0 opacity-0"
-                        />
-                      </label>
-                      <button
-                        type="button"
-                        onClick={handleButtonInsert}
-                        className="inline-flex items-center gap-1 rounded px-2 py-1 hover:bg-gray-100"
-                      >
-                        <Link2 className="h-4 w-4" />
-                        Bouton lien
-                      </button>
-                      <button
-                        type="button"
-                        onClick={handleImageInsert}
-                        className="inline-flex items-center gap-1 rounded px-2 py-1 hover:bg-gray-100"
-                      >
-                        <ImageIcon className="h-4 w-4" />
-                        Image
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => fileInputRef.current?.click()}
-                        className="inline-flex items-center gap-1 rounded px-2 py-1 hover:bg-gray-100"
-                      >
-                        <ImageIcon className="h-4 w-4" />
-                        Parcourir...
-                      </button>
-                      <input
-                        ref={fileInputRef}
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={handleFileImageInsert}
-                      />
-                    </div>
-                    <div
-                      ref={editorRef}
-                      contentEditable
-                      suppressContentEditableWarning
-                      className="min-h-[250px] w-full p-4 focus:outline-none"
-                      onInput={handleEditorInput}
-                    />
-                  </div>
-                  <p className="text-xs text-gray-500">Le HTML est généré automatiquement. Utilisez les outils ci-dessus pour styliser votre message.</p>
+                  <select
+                    value={subscriptionFilter}
+                    onChange={(e) => setSubscriptionFilter(e.target.value)}
+                    className="w-full rounded-lg border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                  >
+                    <option value="premium_silver">Premium Silver</option>
+                    <option value="premium_gold">Premium Gold</option>
+                    <option value="free">Membres gratuits</option>
+                    <option value="admin">Admins</option>
+                  </select>
+                  <p className="text-xs text-gray-500">Envoi ciblé par type d’abonnement (subscription_status) ou rôle.</p>
                 </div>
-                <div className="space-y-2">
-                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 text-xs text-gray-600 space-y-1">
-                    <p className="font-medium text-gray-800">Aperçu HTML</p>
-                    <div className="border rounded-lg p-3 bg-white max-h-48 overflow-auto" dangerouslySetInnerHTML={{ __html: html }} />
-                  </div>
-                </div>
-              </div>
+              )}
+            </div>
 
-              <div className="space-y-2">
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 text-sm font-medium text-gray-700">
-                  <Paperclip className="h-4 w-4" />
-                  <span>Pièces jointes</span>
+                  <Wand2 className="h-4 w-4 text-purple-500" />
+                  <span>Templates intégrés</span>
                 </div>
-                <div className="flex flex-wrap items-center gap-2">
+                <div className="flex flex-wrap gap-2 text-xs">
                   <button
                     type="button"
-                    onClick={() => attachmentInputRef.current?.click()}
-                    className="inline-flex items-center gap-2 rounded border border-dashed border-gray-300 px-3 py-2 text-sm hover:bg-gray-50"
+                    onClick={startTemplateCreation}
+                    className="inline-flex items-center gap-2 rounded-lg border border-purple-200 bg-purple-50 px-3 py-2 font-semibold text-purple-700 hover:bg-purple-100"
                   >
-                    <Paperclip className="h-4 w-4" />
-                    Ajouter une pièce jointe
+                    <FilePlus2 className="h-4 w-4" />
+                    Nouveau
+                  </button>
+                  <button
+                    type="button"
+                    disabled={!activeTemplate}
+                    onClick={() => activeTemplate && startTemplateEdit(activeTemplate)}
+                    className="inline-flex items-center gap-2 rounded-lg border px-3 py-2 font-semibold disabled:opacity-50"
+                  >
+                    Modifier
+                  </button>
+                  <button
+                    type="button"
+                    disabled={!activeTemplate}
+                    onClick={() => activeTemplate && deleteTemplate(activeTemplate.id)}
+                    className="inline-flex items-center gap-2 rounded-lg border px-3 py-2 font-semibold text-red-600 hover:bg-red-50 disabled:opacity-50"
+                  >
+                    Supprimer
+                  </button>
+                </div>
+              </div>
+              <div className="flex flex-col gap-2 md:flex-row md:items-center">
+                <select
+                  value={selectedTemplate ?? ''}
+                  onChange={(e) => applyTemplate(e.target.value || null)}
+                  className="w-full rounded-lg border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-sm"
+                >
+                  <option value="">Aucun template</option>
+                  {templates.map((template) => (
+                    <option key={template.id} value={template.id}>
+                      {template.name}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-xs text-gray-500 md:w-48">
+                  {loadingTemplates ? 'Chargement des templates...' : `${templates.length} template(s) disponible(s)`}
+                </p>
+              </div>
+              {activeTemplate?.description && <p className="text-xs text-gray-500">{activeTemplate.description}</p>}
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-sm font-medium text-gray-700">Sujet</label>
+              <input
+                type="text"
+                value={subject}
+                onChange={(e) => setSubject(e.target.value)}
+                className="w-full rounded-lg border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="text-sm font-medium text-gray-700">Zone de rédaction</label>
+                <div className="flex items-center gap-2 text-xs text-gray-500">
+                  <ImageIcon className="h-4 w-4" />
+                  <span>Grand format avec mise en forme enrichie</span>
+                </div>
+              </div>
+              <div className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+                <div className="flex flex-wrap items-center gap-2 border-b border-gray-200 bg-gray-50 px-3 py-2 text-sm">
+                  <select
+                    onChange={(e) => applyFormatting('fontName', e.target.value)}
+                    className="rounded border-gray-300 text-xs"
+                    defaultValue="Inter"
+                  >
+                    <option value="Inter">Inter</option>
+                    <option value="Arial">Arial</option>
+                    <option value="Georgia">Georgia</option>
+                    <option value="Times New Roman">Times New Roman</option>
+                  </select>
+                  <select
+                    onChange={(e) => applyFormatting('fontSize', e.target.value)}
+                    className="rounded border-gray-300 text-xs"
+                    defaultValue="3"
+                  >
+                    <option value="2">Petit</option>
+                    <option value="3">Normal</option>
+                    <option value="4">Grand</option>
+                    <option value="5">Très grand</option>
+                  </select>
+                  <button type="button" onClick={() => applyFormatting('bold')} className="rounded px-2 py-1 hover:bg-gray-100 font-semibold">
+                    Gras
+                  </button>
+                  <button type="button" onClick={() => applyFormatting('italic')} className="rounded px-2 py-1 hover:bg-gray-100 italic">
+                    Italique
+                  </button>
+                  <button type="button" onClick={() => applyFormatting('underline')} className="rounded px-2 py-1 hover:bg-gray-100">
+                    Souligné
+                  </button>
+                  <button type="button" onClick={() => applyFormatting('insertUnorderedList')} className="rounded px-2 py-1 hover:bg-gray-100">
+                    Liste
+                  </button>
+                  <button type="button" onClick={() => applyFormatting('insertOrderedList')} className="rounded px-2 py-1 hover:bg-gray-100">
+                    Liste numérotée
+                  </button>
+                  <label className="flex items-center gap-1 text-xs px-2 py-1 border rounded cursor-pointer bg-white">
+                    <Palette className="h-4 w-4 text-gray-500" />
+                    <span>Couleur</span>
+                    <input
+                      type="color"
+                      onChange={(e) => applyFormatting('foreColor', e.target.value)}
+                      className="h-0 w-0 opacity-0"
+                    />
+                  </label>
+                  <button
+                    type="button"
+                    onClick={handleButtonInsert}
+                    className="inline-flex items-center gap-1 rounded px-2 py-1 hover:bg-gray-100"
+                  >
+                    <Link2 className="h-4 w-4" />
+                    Bouton lien
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleImageInsert}
+                    className="inline-flex items-center gap-1 rounded px-2 py-1 hover:bg-gray-100"
+                  >
+                    <ImageIcon className="h-4 w-4" />
+                    Image
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="inline-flex items-center gap-1 rounded px-2 py-1 hover:bg-gray-100"
+                  >
+                    <ImageIcon className="h-4 w-4" />
+                    Parcourir...
                   </button>
                   <input
-                    ref={attachmentInputRef}
+                    ref={fileInputRef}
                     type="file"
-                    multiple
+                    accept="image/*"
                     className="hidden"
-                    onChange={handleAttachmentSelect}
+                    onChange={handleFileImageInsert}
                   />
-                  <p className="text-xs text-gray-500">Formats supportés: images, PDF, documents. Encodage automatique en base64.</p>
                 </div>
-                {attachments.length > 0 && (
-                  <div className="flex flex-wrap gap-2">
-                    {attachments.map((file, index) => (
+                <div
+                  ref={editorRef}
+                  contentEditable
+                  suppressContentEditableWarning
+                  className="min-h-[420px] w-full bg-white p-5 focus:outline-none text-gray-900"
+                  onInput={handleEditorInput}
+                />
+              </div>
+              <p className="text-xs text-gray-500">Visualisez directement votre email dans la zone de rédaction sans prévisualisation séparée.</p>
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 text-sm font-medium text-gray-700">
+                <Paperclip className="h-4 w-4" />
+                <span>Pièces jointes</span>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => attachmentInputRef.current?.click()}
+                  className="inline-flex items-center gap-2 rounded border border-dashed border-gray-300 px-3 py-2 text-sm hover:bg-gray-50"
+                >
+                  <Paperclip className="h-4 w-4" />
+                  Ajouter des pièces jointes
+                </button>
+                <input
+                  ref={attachmentInputRef}
+                  type="file"
+                  multiple
+                  className="hidden"
+                  onChange={handleAttachmentSelect}
+                />
+                <p className="text-xs text-gray-500">Formats supportés: images, PDF, documents. Encodage automatique en base64.</p>
+              </div>
+              {attachments.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {attachments.map((file, index) => (
+                    <span
+                      key={`${file.name}-${index}`}
+                      className="inline-flex items-center gap-2 rounded-full bg-gray-100 px-3 py-1 text-xs text-gray-700"
+                    >
+                      {file.name}
+                      {file.disposition === 'inline' && <span className="text-[10px] text-purple-600">(inline)</span>}
+                      <button type="button" onClick={() => removeAttachmentAt(index)} className="text-gray-500 hover:text-gray-800">
+                        <X className="h-3 w-3" />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2 text-sm text-gray-500">
+                <Sparkles className="h-4 w-4 text-purple-500" />
+                <span>Envoi via Resend activé</span>
+              </div>
+              <button
+                type="submit"
+                disabled={sending}
+                className="inline-flex items-center space-x-2 bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition shadow-sm disabled:opacity-60"
+              >
+                {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                <span>{sending ? 'Envoi en cours...' : 'Envoyer via Resend'}</span>
+              </button>
+            </div>
+          </form>
+
+          <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-6 space-y-4">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center space-x-2">
+                <PlayCircle className="h-5 w-5 text-purple-600" />
+                <div>
+                  <h3 className="font-semibold text-lg">Automatisations</h3>
+                  <p className="text-sm text-gray-500">Programmez vos séquences juste sous la zone de rédaction.</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={startAutomationCreation}
+                className="inline-flex items-center gap-2 rounded-lg border border-purple-200 bg-purple-50 px-3 py-2 text-xs font-semibold text-purple-700 hover:bg-purple-100"
+              >
+                <Rocket className="h-4 w-4" />
+                Nouvelle automatisation
+              </button>
+            </div>
+            <div className="space-y-3">
+              {automations.length === 0 && (
+                <p className="text-sm text-gray-500">Aucune automatisation pour le moment.</p>
+              )}
+              {automations.map((automation) => (
+                <div key={automation.id} className="rounded-lg border border-gray-200 p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-1">
+                      <p className="font-semibold text-gray-900">{automation.name}</p>
+                      <p className="text-xs text-gray-500">Déclencheur: {automation.trigger || 'Non défini'} · Audience: {automation.audience || 'Tous'} · Planification: {automation.schedule || 'Manuelle'}</p>
+                    </div>
+                    <div className="flex items-center gap-2">
                       <span
-                        key={`${file.name}-${index}`}
-                        className="inline-flex items-center gap-2 rounded-full bg-gray-100 px-3 py-1 text-xs text-gray-700"
+                        className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs ${
+                          automation.active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'
+                        }`}
                       >
-                        {file.name}
-                        {file.disposition === 'inline' && <span className="text-[10px] text-purple-600">(inline)</span>}
-                        <button type="button" onClick={() => removeAttachmentAt(index)} className="text-gray-500 hover:text-gray-800">
-                          <X className="h-3 w-3" />
-                        </button>
+                        <Flame className="h-4 w-4" />
+                        {automation.active ? 'Activé' : 'En pause'}
                       </span>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2 text-sm text-gray-500">
-                  <Wand2 className="h-4 w-4 text-purple-500" />
-                  <span>{templates.length} templates prêts à être appliqués</span>
-                </div>
-                <button
-                  type="submit"
-                  disabled={sending}
-                  className="inline-flex items-center space-x-2 bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition shadow-sm disabled:opacity-60"
-                >
-                  {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                  <span>{sending ? 'Envoi en cours...' : 'Envoyer via Resend'}</span>
-                </button>
-              </div>
-            </form>
-          </div>
-
-          <div className="space-y-4">
-            <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-4 space-y-3">
-              <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center space-x-2">
-                  <Sparkles className="h-5 w-5 text-purple-600" />
-                  <h3 className="font-semibold">Templates</h3>
-                </div>
-                {loadingTemplates && <p className="text-xs text-gray-500">Chargement Supabase...</p>}
-                <button
-                  type="button"
-                  onClick={startTemplateCreation}
-                  className="inline-flex items-center gap-2 rounded-lg border border-purple-200 bg-purple-50 px-3 py-2 text-xs font-semibold text-purple-700 hover:bg-purple-100"
-                >
-                  <FilePlus2 className="h-4 w-4" />
-                  Nouveau template
-                </button>
-              </div>
-              <div className="space-y-3">
-                {templates.map((template) => (
-                  <div
-                    key={template.id}
-                    className={`w-full text-left border rounded-lg p-3 transition ${
-                      selectedTemplate === template.id ? 'border-purple-500 bg-purple-50' : 'border-gray-200'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between gap-2">
-                      <div>
-                        <p className="font-semibold">{template.name}</p>
-                        <p className="text-sm text-gray-500">{template.subject}</p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => applyTemplate(template.id)}
-                          className="inline-flex items-center gap-1 rounded border border-purple-200 bg-purple-50 px-2 py-1 text-xs text-purple-700"
-                        >
-                          <Wand2 className="h-4 w-4" />
-                          Appliquer
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => startTemplateEdit(template)}
-                          className="rounded border px-2 py-1 text-xs text-gray-600 hover:bg-gray-100"
-                        >
-                          Modifier
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => deleteTemplate(template.id)}
-                          className="rounded border px-2 py-1 text-xs text-red-600 hover:bg-red-50"
-                        >
-                          Supprimer
-                        </button>
-                      </div>
-                    </div>
-                    <p className="text-xs text-gray-500 mt-2">{template.description}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-4 space-y-3">
-              <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center space-x-2">
-                  <PlayCircle className="h-5 w-5 text-purple-600" />
-                  <h3 className="font-semibold">Automatisations</h3>
-                </div>
-                <button
-                  type="button"
-                  onClick={startAutomationCreation}
-                  className="inline-flex items-center gap-2 rounded-lg border border-purple-200 bg-purple-50 px-3 py-2 text-xs font-semibold text-purple-700 hover:bg-purple-100"
-                >
-                  <Rocket className="h-4 w-4" />
-                  Nouvelle automatisation
-                </button>
-              </div>
-              <p className="text-sm text-gray-600">Planifiez des envois automatiques (rappels, bienvenue, relances) avec déclencheurs et audience personnalisés.</p>
-              <div className="space-y-2">
-                {automations.length === 0 && (
-                  <p className="text-sm text-gray-500">Aucune automatisation pour le moment.</p>
-                )}
-                {automations.map((automation) => (
-                  <div key={automation.id} className="rounded-lg border border-gray-200 p-3">
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-1">
-                        <p className="font-semibold">{automation.name}</p>
-                        <p className="text-xs text-gray-500">Déclencheur: {automation.trigger || 'Non défini'} · Audience: {automation.audience || 'Tous'} · Planification: {automation.schedule || 'Manuelle'}</p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span
-                          className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs ${
-                            automation.active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'
-                          }`}
-                        >
-                          <Flame className="h-4 w-4" />
-                          {automation.active ? 'Activé' : 'En pause'}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => toggleAutomation(automation.id)}
-                          className="rounded border px-2 py-1 text-xs text-gray-600 hover:bg-gray-100"
-                        >
-                          {automation.active ? 'Mettre en pause' : 'Activer'}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => deleteAutomation(automation.id)}
-                          className="rounded border px-2 py-1 text-xs text-red-600 hover:bg-red-50"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </div>
-                    <div className="mt-3 space-y-2">
-                      <div className="flex items-center gap-2 text-xs text-gray-600">
-                        <Clock4 className="h-4 w-4" />
-                        <span>{automation.steps.length} emails programmés</span>
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        {automation.steps.map((step) => (
-                          <div key={step.id} className="rounded border border-dashed border-gray-200 bg-gray-50 px-3 py-2 text-xs">
-                            <p className="font-semibold text-gray-800">{getTemplateName(step.templateId)}</p>
-                            <p className="text-[11px] text-gray-500">Envoi à J+{step.delayDays}</p>
-                          </div>
-                        ))}
-                      </div>
+                      <button
+                        type="button"
+                        onClick={() => toggleAutomation(automation.id)}
+                        className="rounded border px-2 py-1 text-xs text-gray-600 hover:bg-gray-100"
+                      >
+                        {automation.active ? 'Mettre en pause' : 'Activer'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => deleteAutomation(automation.id)}
+                        className="rounded border px-2 py-1 text-xs text-red-600 hover:bg-red-50"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
                     </div>
                   </div>
-                ))}
-              </div>
+                  <div className="mt-3 space-y-2">
+                    <div className="flex items-center gap-2 text-xs text-gray-600">
+                      <Clock4 className="h-4 w-4" />
+                      <span>{automation.steps.length} emails programmés</span>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {automation.steps.map((step) => (
+                        <div key={step.id} className="rounded border border-dashed border-gray-200 bg-gray-50 px-3 py-2 text-xs">
+                          <p className="font-semibold text-gray-800">{getTemplateName(step.templateId)}</p>
+                          <p className="text-[11px] text-gray-500">Envoi à J+{step.delayDays}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
+        </div>
         </div>
       </div>
       {templateModalOpen && (
