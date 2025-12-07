@@ -828,13 +828,13 @@ export default function MailingAdminPage() {
           <form onSubmit={handleSend} className="bg-white border border-gray-200 rounded-xl shadow-sm p-6 space-y-6">
             <div className="flex flex-col gap-1">
               <p className="text-sm font-semibold text-gray-900">Rédaction grand format</p>
-              <p className="text-sm text-gray-500">Composez vos newsletters dans un espace dégagé, avec vos modèles accessibles directement.</p>
+              <p className="text-sm text-gray-700">Composez vos newsletters dans un espace dégagé, avec vos modèles accessibles directement.</p>
             </div>
 
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <label className="text-sm font-medium text-gray-700">Destinataires</label>
-                <p className="text-xs text-gray-500">{selectedRecipients.length} contact(s) sélectionné(s)</p>
+                <p className="text-xs text-gray-700">{selectedRecipients.length} contact(s) sélectionné(s)</p>
               </div>
               <div className="grid sm:grid-cols-3 gap-2">
                 <button
@@ -869,7 +869,7 @@ export default function MailingAdminPage() {
                     placeholder="ex: contact@domaine.com, demo@osteoupgrade.app"
                     className="w-full rounded-lg border-gray-300 focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                   />
-                  <p className="text-xs text-gray-500">Séparez les emails par des virgules.</p>
+                  <p className="text-xs text-gray-700">Séparez les emails par des virgules.</p>
                 </div>
               )}
 
@@ -891,7 +891,7 @@ export default function MailingAdminPage() {
                     <option value="free">Membres gratuits</option>
                     <option value="admin">Admins</option>
                   </select>
-                  <p className="text-xs text-gray-500">Envoi ciblé par type d’abonnement (subscription_status) ou rôle.</p>
+                  <p className="text-xs text-gray-700">Envoi ciblé par type d’abonnement (subscription_status) ou rôle.</p>
                 </div>
               )}
             </div>
@@ -942,11 +942,11 @@ export default function MailingAdminPage() {
                     </option>
                   ))}
                 </select>
-                <p className="text-xs text-gray-500 md:w-48">
+                <p className="text-xs text-gray-700 md:w-48">
                   {loadingTemplates ? 'Chargement des templates...' : `${templates.length} template(s) disponible(s)`}
                 </p>
               </div>
-              {activeTemplate?.description && <p className="text-xs text-gray-500">{activeTemplate.description}</p>}
+              {activeTemplate?.description && <p className="text-xs text-gray-700">{activeTemplate.description}</p>}
             </div>
 
             <div className="space-y-1">
@@ -962,7 +962,7 @@ export default function MailingAdminPage() {
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <label className="text-sm font-medium text-gray-700">Zone de rédaction</label>
-                <div className="flex items-center gap-2 text-xs text-gray-500">
+                <div className="flex items-center gap-2 text-xs text-gray-700">
                   <ImageIcon className="h-4 w-4" />
                   <span>Grand format avec mise en forme enrichie</span>
                 </div>
@@ -1005,7 +1005,7 @@ export default function MailingAdminPage() {
                     Liste numérotée
                   </button>
                   <label className="flex items-center gap-1 text-xs px-2 py-1 border rounded cursor-pointer bg-white">
-                    <Palette className="h-4 w-4 text-gray-500" />
+                    <Palette className="h-4 w-4 text-gray-600" />
                     <span>Couleur</span>
                     <input
                       type="color"
@@ -1053,7 +1053,7 @@ export default function MailingAdminPage() {
                   onInput={handleEditorInput}
                 />
               </div>
-              <p className="text-xs text-gray-500">Visualisez directement votre email dans la zone de rédaction sans prévisualisation séparée.</p>
+              <p className="text-xs text-gray-700">Visualisez directement votre email dans la zone de rédaction sans prévisualisation séparée.</p>
             </div>
 
             <div className="space-y-2">
@@ -1077,7 +1077,7 @@ export default function MailingAdminPage() {
                   className="hidden"
                   onChange={handleAttachmentSelect}
                 />
-                <p className="text-xs text-gray-500">Formats supportés: images, PDF, documents. Encodage automatique en base64.</p>
+                <p className="text-xs text-gray-700">Formats supportés: images, PDF, documents. Encodage automatique en base64.</p>
               </div>
               {attachments.length > 0 && (
                 <div className="flex flex-wrap gap-2">
@@ -1088,7 +1088,7 @@ export default function MailingAdminPage() {
                     >
                       {file.name}
                       {file.disposition === 'inline' && <span className="text-[10px] text-primary-600">(inline)</span>}
-                      <button type="button" onClick={() => removeAttachmentAt(index)} className="text-gray-500 hover:text-gray-800">
+                      <button type="button" onClick={() => removeAttachmentAt(index)} className="text-gray-600 hover:text-gray-800">
                         <X className="h-3 w-3" />
                       </button>
                     </span>
@@ -1098,7 +1098,7 @@ export default function MailingAdminPage() {
             </div>
 
             <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2 text-sm text-gray-500">
+              <div className="flex items-center space-x-2 text-sm text-gray-700">
                 <Sparkles className="h-4 w-4 text-primary-500" />
                 <span>Envoi via Resend activé</span>
               </div>
@@ -1119,7 +1119,7 @@ export default function MailingAdminPage() {
                 <PlayCircle className="h-5 w-5 text-primary-600" />
                 <div>
                   <h3 className="font-semibold text-lg">Automatisations</h3>
-                  <p className="text-sm text-gray-500">Programmez vos séquences juste sous la zone de rédaction.</p>
+                  <p className="text-sm text-gray-700">Programmez vos séquences juste sous la zone de rédaction.</p>
                 </div>
               </div>
               <button
@@ -1133,14 +1133,14 @@ export default function MailingAdminPage() {
             </div>
             <div className="space-y-3">
               {automations.length === 0 && (
-                <p className="text-sm text-gray-500">Aucune automatisation pour le moment.</p>
+                <p className="text-sm text-gray-700">Aucune automatisation pour le moment.</p>
               )}
               {automations.map((automation) => (
                 <div key={automation.id} className="rounded-lg border border-gray-200 p-4">
                   <div className="flex items-center justify-between">
                     <div className="space-y-1">
                       <p className="font-semibold text-gray-900">{automation.name}</p>
-                      <p className="text-xs text-gray-500">Déclencheur: {automation.trigger || 'Non défini'} · Audience: {automation.audience || 'Tous'} · Planification: {automation.schedule || 'Manuelle'}</p>
+                      <p className="text-xs text-gray-700">Déclencheur: {automation.trigger || 'Non défini'} · Audience: {automation.audience || 'Tous'} · Planification: {automation.schedule || 'Manuelle'}</p>
                     </div>
                     <div className="flex items-center gap-2">
                       <span
@@ -1176,7 +1176,7 @@ export default function MailingAdminPage() {
                       {automation.steps.map((step) => (
                         <div key={step.id} className="rounded border border-dashed border-gray-200 bg-gray-50 px-3 py-2 text-xs">
                           <p className="font-semibold text-gray-800">{getTemplateName(step.templateId)}</p>
-                          <p className="text-[11px] text-gray-500">Envoi à J+{step.delayDays}</p>
+                          <p className="text-[11px] text-gray-700">Envoi à J+{step.delayDays}</p>
                         </div>
                       ))}
                     </div>
@@ -1199,7 +1199,7 @@ export default function MailingAdminPage() {
               <button
                 type="button"
                 onClick={resetTemplateDraft}
-                className="rounded p-1 text-gray-500 hover:bg-gray-100"
+                className="rounded p-1 text-gray-600 hover:bg-gray-100"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -1231,7 +1231,7 @@ export default function MailingAdminPage() {
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <p className="text-sm font-medium text-gray-700">Contenu HTML</p>
-                  <span className="text-xs text-gray-500">Mise en forme rapide</span>
+                  <span className="text-xs text-gray-700">Mise en forme rapide</span>
                 </div>
                 <div className="rounded-lg border border-gray-200">
                   <div className="flex flex-wrap items-center gap-2 border-b border-gray-200 bg-gray-50 px-3 py-2 text-sm">
@@ -1271,7 +1271,7 @@ export default function MailingAdminPage() {
                       Liste numérotée
                     </button>
                     <label className="flex items-center gap-1 text-xs px-2 py-1 border rounded cursor-pointer bg-white">
-                      <Palette className="h-4 w-4 text-gray-500" />
+                      <Palette className="h-4 w-4 text-gray-600" />
                       <span>Couleur</span>
                       <input
                         type="color"
@@ -1296,7 +1296,7 @@ export default function MailingAdminPage() {
                     onInput={handleTemplateEditorInput}
                   />
                 </div>
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-gray-700">
                   Le HTML se remplit automatiquement à partir du sujet et de la description. Vous pouvez ensuite l’ajuster avec les boutons ci-dessus.
                 </p>
               </div>
@@ -1310,7 +1310,7 @@ export default function MailingAdminPage() {
                 onChange={(e) => setTemplateDraft({ ...templateDraft, text: e.target.value })}
                 className="w-full h-24 rounded-lg border-gray-300 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm"
               />
-              <div className="flex items-center justify-between text-xs text-gray-500">
+              <div className="flex items-center justify-between text-xs text-gray-700">
                 <p>Personnalisez le contenu HTML en quelques clics ou ajustez le texte brut pour les clients email limités.</p>
                 {editingTemplateId && (
                   <button type="button" onClick={resetTemplateDraft} className="text-primary-600 underline">
@@ -1351,7 +1351,7 @@ export default function MailingAdminPage() {
               <button
                 type="button"
                 onClick={closeAutomationModal}
-                className="rounded p-1 text-gray-500 hover:bg-gray-100"
+                className="rounded p-1 text-gray-600 hover:bg-gray-100"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -1452,7 +1452,7 @@ export default function MailingAdminPage() {
                     </div>
                   ))}
                 </div>
-                <p className="text-xs text-gray-500">Choisissez un déclencheur puis planifiez chaque email avec un délai en jours (J+0, J+3, etc.).</p>
+                <p className="text-xs text-gray-700">Choisissez un déclencheur puis planifiez chaque email avec un délai en jours (J+0, J+3, etc.).</p>
               </div>
 
               <div className="flex items-center justify-end gap-2">
