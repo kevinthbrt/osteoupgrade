@@ -864,6 +864,7 @@ export default function MailingAdminPage() {
                 <div className="space-y-1">
                   <input
                     type="text"
+                    aria-label="Liste des destinataires"
                     value={toInput}
                     onChange={(e) => setToInput(e.target.value)}
                     placeholder="ex: contact@domaine.com, demo@osteoupgrade.app"
@@ -882,6 +883,7 @@ export default function MailingAdminPage() {
               {audienceMode === 'subscription' && (
                 <div className="space-y-2">
                   <select
+                    aria-label="Filtrer les abonnements"
                     value={subscriptionFilter}
                     onChange={(e) => setSubscriptionFilter(e.target.value)}
                     className="w-full rounded-lg border-gray-300 focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
@@ -931,6 +933,7 @@ export default function MailingAdminPage() {
               </div>
               <div className="flex flex-col gap-2 md:flex-row md:items-center">
                 <select
+                  aria-label="Choisir un template"
                   value={selectedTemplate ?? ''}
                   onChange={(e) => applyTemplate(e.target.value || null)}
                   className="w-full rounded-lg border-gray-300 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm"
@@ -953,6 +956,7 @@ export default function MailingAdminPage() {
               <label className="text-sm font-medium text-gray-700">Sujet</label>
               <input
                 type="text"
+                aria-label="Sujet de la newsletter"
                 value={subject}
                 onChange={(e) => setSubject(e.target.value)}
                 className="w-full rounded-lg border-gray-300 focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
@@ -970,6 +974,7 @@ export default function MailingAdminPage() {
               <div className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
                 <div className="flex flex-wrap items-center gap-2 border-b border-gray-200 bg-gray-50 px-3 py-2 text-sm">
                   <select
+                    aria-label="Police"
                     onChange={(e) => applyFormatting('fontName', e.target.value)}
                     className="rounded border-gray-300 text-xs"
                     defaultValue="Inter"
@@ -980,6 +985,7 @@ export default function MailingAdminPage() {
                     <option value="Times New Roman">Times New Roman</option>
                   </select>
                   <select
+                    aria-label="Taille de police"
                     onChange={(e) => applyFormatting('fontSize', e.target.value)}
                     className="rounded border-gray-300 text-xs"
                     defaultValue="3"
@@ -989,19 +995,39 @@ export default function MailingAdminPage() {
                     <option value="4">Grand</option>
                     <option value="5">Très grand</option>
                   </select>
-                  <button type="button" onClick={() => applyFormatting('bold')} className="rounded px-2 py-1 hover:bg-gray-100 font-semibold">
+                  <button
+                    type="button"
+                    onClick={() => applyFormatting('bold')}
+                    className="rounded px-2 py-1 text-gray-900 hover:bg-gray-200 font-semibold"
+                  >
                     Gras
                   </button>
-                  <button type="button" onClick={() => applyFormatting('italic')} className="rounded px-2 py-1 hover:bg-gray-100 italic">
+                  <button
+                    type="button"
+                    onClick={() => applyFormatting('italic')}
+                    className="rounded px-2 py-1 text-gray-900 hover:bg-gray-200 italic"
+                  >
                     Italique
                   </button>
-                  <button type="button" onClick={() => applyFormatting('underline')} className="rounded px-2 py-1 hover:bg-gray-100">
+                  <button
+                    type="button"
+                    onClick={() => applyFormatting('underline')}
+                    className="rounded px-2 py-1 text-gray-900 hover:bg-gray-200"
+                  >
                     Souligné
                   </button>
-                  <button type="button" onClick={() => applyFormatting('insertUnorderedList')} className="rounded px-2 py-1 hover:bg-gray-100">
+                  <button
+                    type="button"
+                    onClick={() => applyFormatting('insertUnorderedList')}
+                    className="rounded px-2 py-1 text-gray-900 hover:bg-gray-200"
+                  >
                     Liste
                   </button>
-                  <button type="button" onClick={() => applyFormatting('insertOrderedList')} className="rounded px-2 py-1 hover:bg-gray-100">
+                  <button
+                    type="button"
+                    onClick={() => applyFormatting('insertOrderedList')}
+                    className="rounded px-2 py-1 text-gray-900 hover:bg-gray-200"
+                  >
                     Liste numérotée
                   </button>
                   <label className="flex items-center gap-1 text-xs px-2 py-1 border rounded cursor-pointer bg-white">
@@ -1016,7 +1042,7 @@ export default function MailingAdminPage() {
                   <button
                     type="button"
                     onClick={handleButtonInsert}
-                    className="inline-flex items-center gap-1 rounded px-2 py-1 hover:bg-gray-100"
+                    className="inline-flex items-center gap-1 rounded px-2 py-1 text-gray-900 hover:bg-gray-200"
                   >
                     <Link2 className="h-4 w-4" />
                     Bouton lien
@@ -1024,7 +1050,7 @@ export default function MailingAdminPage() {
                   <button
                     type="button"
                     onClick={handleImageInsert}
-                    className="inline-flex items-center gap-1 rounded px-2 py-1 hover:bg-gray-100"
+                    className="inline-flex items-center gap-1 rounded px-2 py-1 text-gray-900 hover:bg-gray-200"
                   >
                     <ImageIcon className="h-4 w-4" />
                     Image
@@ -1032,7 +1058,7 @@ export default function MailingAdminPage() {
                   <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
-                    className="inline-flex items-center gap-1 rounded px-2 py-1 hover:bg-gray-100"
+                    className="inline-flex items-center gap-1 rounded px-2 py-1 text-gray-900 hover:bg-gray-200"
                   >
                     <ImageIcon className="h-4 w-4" />
                     Parcourir...
@@ -1088,7 +1114,12 @@ export default function MailingAdminPage() {
                     >
                       {file.name}
                       {file.disposition === 'inline' && <span className="text-[10px] text-primary-600">(inline)</span>}
-                      <button type="button" onClick={() => removeAttachmentAt(index)} className="text-gray-600 hover:text-gray-800">
+                      <button
+                        type="button"
+                        aria-label={`Retirer la pièce jointe ${file.name}`}
+                        onClick={() => removeAttachmentAt(index)}
+                        className="text-gray-600 hover:text-gray-800"
+                      >
                         <X className="h-3 w-3" />
                       </button>
                     </span>
@@ -1160,10 +1191,12 @@ export default function MailingAdminPage() {
                       </button>
                       <button
                         type="button"
+                        aria-label="Supprimer cette automatisation"
                         onClick={() => deleteAutomation(automation.id)}
                         className="rounded border px-2 py-1 text-xs text-red-600 hover:bg-red-50"
                       >
                         <Trash2 className="h-4 w-4" />
+                        <span className="sr-only">Supprimer</span>
                       </button>
                     </div>
                   </div>
@@ -1198,6 +1231,7 @@ export default function MailingAdminPage() {
               </div>
               <button
                 type="button"
+                aria-label="Fermer le modal de template"
                 onClick={resetTemplateDraft}
                 className="rounded p-1 text-gray-600 hover:bg-gray-100"
               >
@@ -1208,6 +1242,7 @@ export default function MailingAdminPage() {
               <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                 <input
                   type="text"
+                  aria-label="Nom du template"
                   placeholder="Nom"
                   value={templateDraft.name}
                   onChange={(e) => setTemplateDraft({ ...templateDraft, name: e.target.value })}
@@ -1215,6 +1250,7 @@ export default function MailingAdminPage() {
                 />
                 <input
                   type="text"
+                  aria-label="Sujet du template"
                   placeholder="Sujet"
                   value={templateDraft.subject}
                   onChange={(e) => setTemplateDraft({ ...templateDraft, subject: e.target.value })}
@@ -1223,6 +1259,7 @@ export default function MailingAdminPage() {
               </div>
               <input
                 type="text"
+                aria-label="Description du template"
                 placeholder="Description"
                 value={templateDraft.description}
                 onChange={(e) => setTemplateDraft({ ...templateDraft, description: e.target.value })}
@@ -1238,35 +1275,35 @@ export default function MailingAdminPage() {
                     <button
                       type="button"
                       onClick={() => applyTemplateFormatting('bold')}
-                      className="rounded px-2 py-1 hover:bg-gray-100 font-semibold"
+                      className="rounded px-2 py-1 text-gray-900 hover:bg-gray-200 font-semibold"
                     >
                       Gras
                     </button>
                     <button
                       type="button"
                       onClick={() => applyTemplateFormatting('italic')}
-                      className="rounded px-2 py-1 hover:bg-gray-100 italic"
+                      className="rounded px-2 py-1 text-gray-900 hover:bg-gray-200 italic"
                     >
                       Italique
                     </button>
                     <button
                       type="button"
                       onClick={() => applyTemplateFormatting('underline')}
-                      className="rounded px-2 py-1 hover:bg-gray-100"
+                      className="rounded px-2 py-1 text-gray-900 hover:bg-gray-200"
                     >
                       Souligné
                     </button>
                     <button
                       type="button"
                       onClick={() => applyTemplateFormatting('insertUnorderedList')}
-                      className="rounded px-2 py-1 hover:bg-gray-100"
+                      className="rounded px-2 py-1 text-gray-900 hover:bg-gray-200"
                     >
                       Liste
                     </button>
                     <button
                       type="button"
                       onClick={() => applyTemplateFormatting('insertOrderedList')}
-                      className="rounded px-2 py-1 hover:bg-gray-100"
+                      className="rounded px-2 py-1 text-gray-900 hover:bg-gray-200"
                     >
                       Liste numérotée
                     </button>
@@ -1282,7 +1319,7 @@ export default function MailingAdminPage() {
                     <button
                       type="button"
                       onClick={handleTemplateButtonInsert}
-                      className="inline-flex items-center gap-1 rounded px-2 py-1 hover:bg-gray-100"
+                      className="inline-flex items-center gap-1 rounded px-2 py-1 text-gray-900 hover:bg-gray-200"
                     >
                       <Link2 className="h-4 w-4" />
                       Bouton lien
@@ -1350,6 +1387,7 @@ export default function MailingAdminPage() {
               </div>
               <button
                 type="button"
+                aria-label="Fermer le modal d'automatisation"
                 onClick={closeAutomationModal}
                 className="rounded p-1 text-gray-600 hover:bg-gray-100"
               >
@@ -1360,6 +1398,7 @@ export default function MailingAdminPage() {
               <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                 <input
                   type="text"
+                  aria-label="Nom de l'automatisation"
                   placeholder="Nom de l'automatisation"
                   value={automationDraft.name}
                   onChange={(e) => setAutomationDraft({ ...automationDraft, name: e.target.value })}
@@ -1367,6 +1406,7 @@ export default function MailingAdminPage() {
                   required
                 />
                 <select
+                  aria-label="Déclencheur de l'automatisation"
                   value={automationDraft.trigger}
                   onChange={(e) => setAutomationDraft({ ...automationDraft, trigger: e.target.value })}
                   className="w-full rounded-lg border-gray-300 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm"
@@ -1381,6 +1421,7 @@ export default function MailingAdminPage() {
               </div>
               <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                 <select
+                  aria-label="Audience de l'automatisation"
                   value={automationDraft.audience}
                   onChange={(e) => setAutomationDraft({ ...automationDraft, audience: e.target.value })}
                   className="w-full rounded-lg border-gray-300 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm"
@@ -1392,6 +1433,7 @@ export default function MailingAdminPage() {
                 </select>
                 <input
                   type="text"
+                  aria-label="Planification de l'automatisation"
                   placeholder="Planification (ex: démarrage immédiat)"
                   value={automationDraft.schedule}
                   onChange={(e) => setAutomationDraft({ ...automationDraft, schedule: e.target.value })}
@@ -1428,6 +1470,7 @@ export default function MailingAdminPage() {
                       </div>
                       <div className="grid grid-cols-1 gap-2 md:grid-cols-2 mt-2">
                         <select
+                          aria-label={`Template pour l'email ${index + 1}`}
                           value={step.templateId}
                           onChange={(e) => updateAutomationStep(step.id, { templateId: e.target.value })}
                           className="w-full rounded-lg border-gray-300 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm"
@@ -1442,6 +1485,7 @@ export default function MailingAdminPage() {
                           <label className="text-xs text-gray-600">Délais (jours)</label>
                           <input
                             type="number"
+                            aria-label={`Délais en jours pour l'email ${index + 1}`}
                             min={0}
                             value={step.delayDays}
                             onChange={(e) => updateAutomationStep(step.id, { delayDays: Number(e.target.value) })}
