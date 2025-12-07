@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { headers } from 'next/headers'
 import { stripe } from '@/lib/stripe'
-import { supabase } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase-server'
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!
 
@@ -61,37 +61,53 @@ async function handleCheckoutCompleted(session: any) {
   const userId = session.client_reference_id || session.metadata?.userId
   const planType = session.metadata?.planType
 
+  console.log('📦 Checkout session data:', { userId, planType, sessionId: session.id })
+
   if (!userId || !planType) {
-    console.error('Missing userId or planType in checkout session')
+    console.error('❌ Missing userId or planType in checkout session:', { userId, planType })
     return
   }
 
   console.log(`✅ Checkout completed for user ${userId}, plan ${planType}`)
 
-  // Mettre à jour le profil utilisateur
-  const { error: updateError } = await supabase
+  // Mettre à jour le profil utilisateur avec le client admin
+  const updateData = {
+    role: planType,
+    subscription_status: 'active',
+    subscription_start_date: new Date().toISOString(),
+    subscription_end_date: null,
+    stripe_customer_id: session.customer,
+    stripe_subscription_id: session.subscription
+  }
+
+  console.log('📝 Updating profile with:', updateData)
+
+  const { data: updatedProfile, error: updateError } = await supabaseAdmin
     .from('profiles')
-    .update({
-      role: planType,
-      subscription_status: 'active',
-      subscription_start_date: new Date().toISOString(),
-      subscription_end_date: null // Géré par Stripe
-    })
+    .update(updateData)
     .eq('id', userId)
+    .select()
 
   if (updateError) {
-    console.error('Error updating profile:', updateError)
+    console.error('❌ Error updating profile:', updateError)
     return
   }
 
+  console.log('✅ Profile updated successfully:', updatedProfile)
+
   // Récupérer l'email du user
-  const { data: profile } = await supabase
+  const { data: profile } = await supabaseAdmin
     .from('profiles')
     .select('email')
     .eq('id', userId)
     .single()
 
-  if (!profile) return
+  if (!profile) {
+    console.error('❌ Profile not found for email automation')
+    return
+  }
+
+  console.log('📧 Triggering automation for:', profile.email)
 
   // 🚀 DÉCLENCHER L'AUTOMATISATION "Passage à Premium"
   try {
@@ -109,7 +125,7 @@ async function handleCheckoutCompleted(session: any) {
     })
     console.log('✅ Automation triggered: Passage à Premium')
   } catch (err) {
-    console.error('Error triggering automation:', err)
+    console.error('❌ Error triggering automation:', err)
   }
 }
 
@@ -118,14 +134,14 @@ async function handleSubscriptionUpdated(subscription: any) {
   const userId = subscription.metadata?.userId
 
   if (!userId) {
-    console.error('Missing userId in subscription')
+    console.error('❌ Missing userId in subscription')
     return
   }
 
   console.log(`ℹ️ Subscription updated for user ${userId}`)
 
   // Mettre à jour le statut
-  await supabase
+  await supabaseAdmin
     .from('profiles')
     .update({
       subscription_status: subscription.status
@@ -138,14 +154,14 @@ async function handleSubscriptionDeleted(subscription: any) {
   const userId = subscription.metadata?.userId
 
   if (!userId) {
-    console.error('Missing userId in subscription')
+    console.error('❌ Missing userId in subscription')
     return
   }
 
   console.log(`❌ Subscription deleted for user ${userId}`)
 
   // Révoquer le premium
-  const { error: updateError } = await supabase
+  const { error: updateError } = await supabaseAdmin
     .from('profiles')
     .update({
       role: 'free',
@@ -155,18 +171,21 @@ async function handleSubscriptionDeleted(subscription: any) {
     .eq('id', userId)
 
   if (updateError) {
-    console.error('Error updating profile:', updateError)
+    console.error('❌ Error updating profile:', updateError)
     return
   }
 
   // Récupérer l'email
-  const { data: profile } = await supabase
+  const { data: profile } = await supabaseAdmin
     .from('profiles')
     .select('email')
     .eq('id', userId)
     .single()
 
-  if (!profile) return
+  if (!profile) {
+    console.error('❌ Profile not found for cancellation email')
+    return
+  }
 
   // 🚀 DÉCLENCHER L'AUTOMATISATION "Abonnement expiré"
   try {
@@ -183,7 +202,7 @@ async function handleSubscriptionDeleted(subscription: any) {
     })
     console.log('✅ Automation triggered: Abonnement expiré')
   } catch (err) {
-    console.error('Error triggering automation:', err)
+    console.error('❌ Error triggering automation:', err)
   }
 }
 
