@@ -51,14 +51,19 @@ export default function SubscriptionPage() {
         })
       })
 
+      const data = await response.json()
+
       if (!response.ok) {
-        throw new Error('Erreur lors de la création de la session de paiement')
+        console.error('❌ Stripe error:', data)
+        throw new Error(data.details || data.error || 'Erreur lors de la création de la session de paiement')
       }
 
-      const { url } = await response.json()
+      if (!data.url) {
+        throw new Error('URL de paiement non reçue')
+      }
 
       // Rediriger vers Stripe Checkout
-      window.location.href = url
+      window.location.href = data.url
     } catch (error: any) {
       alert(`Erreur: ${error.message}`)
       setProcessingPlan(null)
