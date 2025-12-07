@@ -53,6 +53,25 @@ export default function AuthPage() {
             full_name: fullName,
           }).eq('id', data.user.id)
 
+          // Déclencher les automatisations d'email
+          try {
+            await fetch('/api/automations/trigger', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                event: 'Nouvelle inscription',
+                contact_email: email,
+                metadata: {
+                  full_name: fullName,
+                  signup_date: new Date().toISOString()
+                }
+              })
+            })
+          } catch (err) {
+            console.error('Erreur lors du déclenchement des automatisations:', err)
+            // Ne pas bloquer l'inscription si l'automatisation échoue
+          }
+
           setSuccess('Compte créé avec succès ! Vous allez être redirigé...')
 
           // Redirect to dashboard - synchro System.io will happen there
