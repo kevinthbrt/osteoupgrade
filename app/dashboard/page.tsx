@@ -309,7 +309,7 @@ export default function Dashboard() {
                       <span className="rounded-full bg-white/80 px-3 py-1">1 séminaire / cycle</span>
                     </div>
                     <button
-                      onClick={() => router.push('/settings')}
+                      onClick={() => router.push('/settings/subscription')}
                       className="mt-2 inline-flex items-center gap-2 rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-md transition hover:bg-slate-800"
                     >
                       Découvrir l'offre
@@ -384,7 +384,7 @@ export default function Dashboard() {
                   <div className="text-slate-600">1 séminaire (2 jours) par cycle</div>
                 </div>
                 <button
-                  onClick={() => router.push('/settings')}
+                  onClick={() => router.push('/settings/subscription')}
                   className="inline-flex items-center gap-2 rounded-lg bg-slate-900 px-5 py-3 text-sm font-semibold text-white shadow-lg transition hover:bg-slate-800"
                 >
                   Je passe Premium
