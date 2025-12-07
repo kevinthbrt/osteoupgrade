@@ -60,11 +60,11 @@ type Automation = {
 }
 
 const automationTriggerPresets = [
-  { label: 'Inscription', value: 'Nouvelle inscription' },
-  { label: 'Inactif', value: 'Inactif depuis 30 jours' },
-  { label: 'Essai free', value: 'Sur free depuis 14 jours' },
-  { label: 'Passage premium', value: 'Passage à Premium' },
-  { label: 'Abonnement expiré', value: 'Abonnement expiré' }
+  { label: 'Nouvelle inscription', value: 'Nouvelle inscription' },
+  { label: 'Passage à Premium', value: 'Passage à Premium' },
+  { label: 'Abonnement expiré', value: 'Abonnement expiré' },
+  { label: 'Inactif depuis 30 jours', value: 'Inactif depuis 30 jours' },
+  { label: 'Sur free depuis 14 jours', value: 'Sur free depuis 14 jours' }
 ]
 
 const inlineImageStyle = 'display:block;max-width:640px;width:100%;height:auto;margin:12px 0;'
@@ -1434,13 +1434,13 @@ export default function MailingAdminPage() {
                   value={automationDraft.trigger}
                   onChange={(e) => setAutomationDraft({ ...automationDraft, trigger: e.target.value })}
                   className="w-full rounded-lg border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-sm"
+                  required
                 >
                   {automationTriggerPresets.map((preset) => (
                     <option key={preset.value} value={preset.value}>
                       {preset.label}
                     </option>
                   ))}
-                  <option value="Autre">Autre (personnalisé)</option>
                 </select>
               </div>
               <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
