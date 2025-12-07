@@ -126,7 +126,7 @@ export default function MailingAdminPage() {
 
     return `
       <div style="font-family: Inter, sans-serif; color: #0f172a;">
-        <h2 style="color:#7c3aed;">${safeSubject}</h2>
+        <h2 style="color:#2563eb;">${safeSubject}</h2>
         <p>${safeDescription}</p>
         <p style="margin-top: 12px;">Merci,</p>
         <p><strong>${safeName}</strong></p>
@@ -364,7 +364,7 @@ export default function MailingAdminPage() {
 
     applyFormatting(
       'insertHTML',
-      `<p style="margin: 12px 0;"><a href="${url}" style="display:inline-block;background:#7c3aed;color:white;padding:12px 18px;border-radius:10px;text-decoration:none;font-weight:600;">${label}</a></p>`
+      `<p style="margin: 12px 0;"><a href="${url}" style="display:inline-block;background:#2563eb;color:white;padding:12px 18px;border-radius:10px;text-decoration:none;font-weight:600;">${label}</a></p>`
     )
   }
 
@@ -380,7 +380,7 @@ export default function MailingAdminPage() {
 
     applyFormatting(
       'insertHTML',
-      `<p style="margin: 12px 0;"><a href="${url}" style="display:inline-block;background:#7c3aed;color:white;padding:12px 18px;border-radius:10px;text-decoration:none;font-weight:600;">${label}</a></p>`,
+      `<p style="margin: 12px 0;"><a href="${url}" style="display:inline-block;background:#2563eb;color:white;padding:12px 18px;border-radius:10px;text-decoration:none;font-weight:600;">${label}</a></p>`,
       {
         target: templateEditorRef,
         onChange: updateTemplateContent
@@ -785,7 +785,7 @@ export default function MailingAdminPage() {
     return (
       <AuthLayout>
         <div className="flex items-center justify-center h-96">
-          <Loader2 className="h-10 w-10 animate-spin text-purple-600" />
+          <Loader2 className="h-10 w-10 animate-spin text-primary-600" />
         </div>
       </AuthLayout>
     )
@@ -794,14 +794,14 @@ export default function MailingAdminPage() {
   return (
     <AuthLayout>
       <div className="space-y-6">
-        <div className="bg-gradient-to-r from-purple-600 to-purple-700 rounded-xl shadow-sm p-6 text-white">
+        <div className="bg-gradient-to-r from-primary-600 to-primary-700 rounded-xl shadow-sm p-6 text-white">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
             <div>
               <div className="flex items-center space-x-2 mb-1">
                 <Mail className="h-6 w-6" />
                 <h1 className="text-2xl font-bold">Mailing & Newsletter</h1>
               </div>
-              <p className="text-purple-100 max-w-3xl">
+              <p className="text-primary-100 max-w-3xl">
                 Envoyez vos newsletters, relances et séquences de manière fiable via Resend avec une sélection précise des destinataires et un éditeur enrichi.
               </p>
             </div>
@@ -840,21 +840,21 @@ export default function MailingAdminPage() {
                 <button
                   type="button"
                   onClick={() => setAudienceMode('manual')}
-                  className={`w-full rounded-lg border px-3 py-2 text-sm text-left ${audienceMode === 'manual' ? 'border-purple-500 bg-purple-50 text-purple-900' : 'border-gray-200'}`}
+                  className={`w-full rounded-lg border px-3 py-2 text-sm text-left ${audienceMode === 'manual' ? 'border-primary-500 bg-primary-50 text-primary-900' : 'border-gray-200'}`}
                 >
                   Saisie manuelle
                 </button>
                 <button
                   type="button"
                   onClick={() => setAudienceMode('all')}
-                  className={`w-full rounded-lg border px-3 py-2 text-sm text-left ${audienceMode === 'all' ? 'border-purple-500 bg-purple-50 text-purple-900' : 'border-gray-200'}`}
+                  className={`w-full rounded-lg border px-3 py-2 text-sm text-left ${audienceMode === 'all' ? 'border-primary-500 bg-primary-50 text-primary-900' : 'border-gray-200'}`}
                 >
                   Tous les membres
                 </button>
                 <button
                   type="button"
                   onClick={() => setAudienceMode('subscription')}
-                  className={`w-full rounded-lg border px-3 py-2 text-sm text-left ${audienceMode === 'subscription' ? 'border-purple-500 bg-purple-50 text-purple-900' : 'border-gray-200'}`}
+                  className={`w-full rounded-lg border px-3 py-2 text-sm text-left ${audienceMode === 'subscription' ? 'border-primary-500 bg-primary-50 text-primary-900' : 'border-gray-200'}`}
                 >
                   Par abonnement
                 </button>
@@ -867,14 +867,14 @@ export default function MailingAdminPage() {
                     value={toInput}
                     onChange={(e) => setToInput(e.target.value)}
                     placeholder="ex: contact@domaine.com, demo@osteoupgrade.app"
-                    className="w-full rounded-lg border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                    className="w-full rounded-lg border-gray-300 focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                   />
                   <p className="text-xs text-gray-500">Séparez les emails par des virgules.</p>
                 </div>
               )}
 
               {audienceMode === 'all' && (
-                <div className="rounded-lg border border-dashed border-purple-200 bg-purple-50 px-4 py-3 text-sm text-purple-900">
+                <div className="rounded-lg border border-dashed border-primary-200 bg-primary-50 px-4 py-3 text-sm text-primary-900">
                   {members.length ? `${members.length} membres sélectionnés automatiquement.` : 'Chargement des membres...'}
                 </div>
               )}
@@ -884,7 +884,7 @@ export default function MailingAdminPage() {
                   <select
                     value={subscriptionFilter}
                     onChange={(e) => setSubscriptionFilter(e.target.value)}
-                    className="w-full rounded-lg border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                    className="w-full rounded-lg border-gray-300 focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                   >
                     <option value="premium_silver">Premium Silver</option>
                     <option value="premium_gold">Premium Gold</option>
@@ -899,14 +899,14 @@ export default function MailingAdminPage() {
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 text-sm font-medium text-gray-700">
-                  <Wand2 className="h-4 w-4 text-purple-500" />
+                  <Wand2 className="h-4 w-4 text-primary-500" />
                   <span>Templates intégrés</span>
                 </div>
                 <div className="flex flex-wrap gap-2 text-xs">
                   <button
                     type="button"
                     onClick={startTemplateCreation}
-                    className="inline-flex items-center gap-2 rounded-lg border border-purple-200 bg-purple-50 px-3 py-2 font-semibold text-purple-700 hover:bg-purple-100"
+                    className="inline-flex items-center gap-2 rounded-lg border border-primary-200 bg-primary-50 px-3 py-2 font-semibold text-primary-700 hover:bg-primary-100"
                   >
                     <FilePlus2 className="h-4 w-4" />
                     Nouveau
@@ -933,7 +933,7 @@ export default function MailingAdminPage() {
                 <select
                   value={selectedTemplate ?? ''}
                   onChange={(e) => applyTemplate(e.target.value || null)}
-                  className="w-full rounded-lg border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-sm"
+                  className="w-full rounded-lg border-gray-300 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm"
                 >
                   <option value="">Aucun template</option>
                   {templates.map((template) => (
@@ -955,7 +955,7 @@ export default function MailingAdminPage() {
                 type="text"
                 value={subject}
                 onChange={(e) => setSubject(e.target.value)}
-                className="w-full rounded-lg border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                className="w-full rounded-lg border-gray-300 focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
               />
             </div>
 
@@ -1087,7 +1087,7 @@ export default function MailingAdminPage() {
                       className="inline-flex items-center gap-2 rounded-full bg-gray-100 px-3 py-1 text-xs text-gray-700"
                     >
                       {file.name}
-                      {file.disposition === 'inline' && <span className="text-[10px] text-purple-600">(inline)</span>}
+                      {file.disposition === 'inline' && <span className="text-[10px] text-primary-600">(inline)</span>}
                       <button type="button" onClick={() => removeAttachmentAt(index)} className="text-gray-500 hover:text-gray-800">
                         <X className="h-3 w-3" />
                       </button>
@@ -1099,13 +1099,13 @@ export default function MailingAdminPage() {
 
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2 text-sm text-gray-500">
-                <Sparkles className="h-4 w-4 text-purple-500" />
+                <Sparkles className="h-4 w-4 text-primary-500" />
                 <span>Envoi via Resend activé</span>
               </div>
               <button
                 type="submit"
                 disabled={sending}
-                className="inline-flex items-center space-x-2 bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition shadow-sm disabled:opacity-60"
+                className="inline-flex items-center space-x-2 bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition shadow-sm disabled:opacity-60"
               >
                 {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                 <span>{sending ? 'Envoi en cours...' : 'Envoyer via Resend'}</span>
@@ -1116,7 +1116,7 @@ export default function MailingAdminPage() {
           <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-6 space-y-4">
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center space-x-2">
-                <PlayCircle className="h-5 w-5 text-purple-600" />
+                <PlayCircle className="h-5 w-5 text-primary-600" />
                 <div>
                   <h3 className="font-semibold text-lg">Automatisations</h3>
                   <p className="text-sm text-gray-500">Programmez vos séquences juste sous la zone de rédaction.</p>
@@ -1125,7 +1125,7 @@ export default function MailingAdminPage() {
               <button
                 type="button"
                 onClick={startAutomationCreation}
-                className="inline-flex items-center gap-2 rounded-lg border border-purple-200 bg-purple-50 px-3 py-2 text-xs font-semibold text-purple-700 hover:bg-purple-100"
+                className="inline-flex items-center gap-2 rounded-lg border border-primary-200 bg-primary-50 px-3 py-2 text-xs font-semibold text-primary-700 hover:bg-primary-100"
               >
                 <Rocket className="h-4 w-4" />
                 Nouvelle automatisation
@@ -1193,7 +1193,7 @@ export default function MailingAdminPage() {
           <div className="w-full max-w-2xl rounded-xl bg-white shadow-xl">
             <div className="flex items-center justify-between border-b border-gray-200 px-4 py-3">
               <div className="flex items-center gap-2">
-                <FilePlus2 className="h-5 w-5 text-purple-600" />
+                <FilePlus2 className="h-5 w-5 text-primary-600" />
                 <p className="font-semibold">{editingTemplateId ? 'Modifier un template' : 'Créer un template'}</p>
               </div>
               <button
@@ -1211,14 +1211,14 @@ export default function MailingAdminPage() {
                   placeholder="Nom"
                   value={templateDraft.name}
                   onChange={(e) => setTemplateDraft({ ...templateDraft, name: e.target.value })}
-                  className="w-full rounded-lg border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-sm"
+                  className="w-full rounded-lg border-gray-300 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm"
                 />
                 <input
                   type="text"
                   placeholder="Sujet"
                   value={templateDraft.subject}
                   onChange={(e) => setTemplateDraft({ ...templateDraft, subject: e.target.value })}
-                  className="w-full rounded-lg border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-sm"
+                  className="w-full rounded-lg border-gray-300 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm"
                 />
               </div>
               <input
@@ -1226,7 +1226,7 @@ export default function MailingAdminPage() {
                 placeholder="Description"
                 value={templateDraft.description}
                 onChange={(e) => setTemplateDraft({ ...templateDraft, description: e.target.value })}
-                className="w-full rounded-lg border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-sm"
+                className="w-full rounded-lg border-gray-300 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm"
               />
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
@@ -1308,12 +1308,12 @@ export default function MailingAdminPage() {
                 placeholder="Texte brut (optionnel)"
                 value={templateDraft.text}
                 onChange={(e) => setTemplateDraft({ ...templateDraft, text: e.target.value })}
-                className="w-full h-24 rounded-lg border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-sm"
+                className="w-full h-24 rounded-lg border-gray-300 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm"
               />
               <div className="flex items-center justify-between text-xs text-gray-500">
                 <p>Personnalisez le contenu HTML en quelques clics ou ajustez le texte brut pour les clients email limités.</p>
                 {editingTemplateId && (
-                  <button type="button" onClick={resetTemplateDraft} className="text-purple-600 underline">
+                  <button type="button" onClick={resetTemplateDraft} className="text-primary-600 underline">
                     Annuler
                   </button>
                 )}
@@ -1330,7 +1330,7 @@ export default function MailingAdminPage() {
                   type="button"
                   onClick={saveTemplate}
                   disabled={templateSaving}
-                  className="inline-flex items-center gap-2 rounded-lg bg-purple-600 px-4 py-2 text-sm font-semibold text-white hover:bg-purple-700 disabled:opacity-60"
+                  className="inline-flex items-center gap-2 rounded-lg bg-primary-600 px-4 py-2 text-sm font-semibold text-white hover:bg-primary-700 disabled:opacity-60"
                 >
                   <Wand2 className="h-4 w-4" />
                   {templateSaving ? 'Sauvegarde...' : editingTemplateId ? 'Mettre à jour' : 'Ajouter'}
@@ -1345,7 +1345,7 @@ export default function MailingAdminPage() {
           <div className="w-full max-w-3xl rounded-xl bg-white shadow-xl">
             <div className="flex items-center justify-between border-b border-gray-200 px-4 py-3">
               <div className="flex items-center gap-2">
-                <Rocket className="h-5 w-5 text-purple-600" />
+                <Rocket className="h-5 w-5 text-primary-600" />
                 <p className="font-semibold">Programmer une automatisation</p>
               </div>
               <button
@@ -1363,13 +1363,13 @@ export default function MailingAdminPage() {
                   placeholder="Nom de l'automatisation"
                   value={automationDraft.name}
                   onChange={(e) => setAutomationDraft({ ...automationDraft, name: e.target.value })}
-                  className="w-full rounded-lg border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-sm"
+                  className="w-full rounded-lg border-gray-300 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm"
                   required
                 />
                 <select
                   value={automationDraft.trigger}
                   onChange={(e) => setAutomationDraft({ ...automationDraft, trigger: e.target.value })}
-                  className="w-full rounded-lg border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-sm"
+                  className="w-full rounded-lg border-gray-300 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm"
                   required
                 >
                   {automationTriggerPresets.map((preset) => (
@@ -1383,7 +1383,7 @@ export default function MailingAdminPage() {
                 <select
                   value={automationDraft.audience}
                   onChange={(e) => setAutomationDraft({ ...automationDraft, audience: e.target.value })}
-                  className="w-full rounded-lg border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-sm"
+                  className="w-full rounded-lg border-gray-300 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm"
                 >
                   <option value="Tous les membres">Tous les membres</option>
                   <option value="Premium">Premium</option>
@@ -1395,7 +1395,7 @@ export default function MailingAdminPage() {
                   placeholder="Planification (ex: démarrage immédiat)"
                   value={automationDraft.schedule}
                   onChange={(e) => setAutomationDraft({ ...automationDraft, schedule: e.target.value })}
-                  className="w-full rounded-lg border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-sm"
+                  className="w-full rounded-lg border-gray-300 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm"
                 />
               </div>
 
@@ -1405,7 +1405,7 @@ export default function MailingAdminPage() {
                   <button
                     type="button"
                     onClick={addAutomationStep}
-                    className="inline-flex items-center gap-1 rounded border border-purple-200 bg-purple-50 px-2 py-1 text-xs font-semibold text-purple-700 hover:bg-purple-100"
+                    className="inline-flex items-center gap-1 rounded border border-primary-200 bg-primary-50 px-2 py-1 text-xs font-semibold text-primary-700 hover:bg-primary-100"
                   >
                     <Plus className="h-4 w-4" />
                     Ajouter un email
@@ -1430,7 +1430,7 @@ export default function MailingAdminPage() {
                         <select
                           value={step.templateId}
                           onChange={(e) => updateAutomationStep(step.id, { templateId: e.target.value })}
-                          className="w-full rounded-lg border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-sm"
+                          className="w-full rounded-lg border-gray-300 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm"
                         >
                           {templates.map((template) => (
                             <option key={template.id} value={template.id}>
@@ -1445,7 +1445,7 @@ export default function MailingAdminPage() {
                             min={0}
                             value={step.delayDays}
                             onChange={(e) => updateAutomationStep(step.id, { delayDays: Number(e.target.value) })}
-                            className="w-full rounded-lg border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-sm"
+                            className="w-full rounded-lg border-gray-300 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm"
                           />
                         </div>
                       </div>
@@ -1465,7 +1465,7 @@ export default function MailingAdminPage() {
                 </button>
                 <button
                   type="submit"
-                  className="inline-flex items-center gap-2 rounded-lg bg-purple-600 px-4 py-2 text-sm font-semibold text-white hover:bg-purple-700"
+                  className="inline-flex items-center gap-2 rounded-lg bg-primary-600 px-4 py-2 text-sm font-semibold text-white hover:bg-primary-700"
                 >
                   <CheckCircle2 className="h-4 w-4" />
                   Sauvegarder
