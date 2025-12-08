@@ -18,8 +18,19 @@ import {
   Calendar,
   Map,
   MapPin,
-  TestTube
+  TestTube,
+  TrendingUp,
+  Activity,
+  Award,
+  Target,
+  Clock,
+  BarChart3,
+  Zap,
+  Star,
+  Brain,
+  CheckCircle2
 } from 'lucide-react'
+import { AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts'
 
 interface Seminar {
   id: string
@@ -30,6 +41,27 @@ interface Seminar {
   facilitator: string | null
 }
 
+interface ActivityData {
+  day: string
+  sessions: number
+  tests: number
+}
+
+interface ModuleUsage {
+  name: string
+  count: number
+  color: string
+}
+
+interface Stats {
+  totalSessions: number
+  totalTests: number
+  weekSessions: number
+  avgDuration: number
+  completionRate: number
+  streak: number
+}
+
 export default function Dashboard() {
   const router = useRouter()
   const [profile, setProfile] = useState<any>(null)
@@ -38,6 +70,16 @@ export default function Dashboard() {
   const [registrations, setRegistrations] = useState<{ id: string; seminar_id: string; registeredAt: string }[]>([])
   const [seminarLoadError, setSeminarLoadError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
+  const [stats, setStats] = useState<Stats>({
+    totalSessions: 0,
+    totalTests: 0,
+    weekSessions: 0,
+    avgDuration: 0,
+    completionRate: 0,
+    streak: 0
+  })
+  const [activityData, setActivityData] = useState<ActivityData[]>([])
+  const [moduleUsage, setModuleUsage] = useState<ModuleUsage[]>([])
 
   useEffect(() => {
     loadDashboardData()
@@ -151,6 +193,105 @@ export default function Dashboard() {
       )
       
       setRecentSessions(sessionsWithTrees)
+
+      // Calculate statistics
+      if (user && sessionsResponse.data) {
+        const allSessions = sessionsResponse.data
+        const now = new Date()
+        const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
+
+        // Week sessions
+        const weekSessions = allSessions.filter((s: any) =>
+          new Date(s.created_at) >= weekAgo
+        ).length
+
+        // Completion rate
+        const completedSessions = allSessions.filter((s: any) => s.completed).length
+        const completionRate = allSessions.length > 0
+          ? Math.round((completedSessions / allSessions.length) * 100)
+          : 0
+
+        // Calculate streak (consecutive days with activity)
+        const sessionDates = allSessions
+          .map((s: any) => new Date(s.created_at).toDateString())
+          .sort()
+        const uniqueDates = [...new Set(sessionDates)].reverse()
+        let streak = 0
+        let currentDate = new Date()
+        for (const dateStr of uniqueDates) {
+          const sessionDate = new Date(dateStr)
+          const daysDiff = Math.floor((currentDate.getTime() - sessionDate.getTime()) / (1000 * 60 * 60 * 24))
+          if (daysDiff <= streak + 1) {
+            streak++
+            currentDate = sessionDate
+          } else {
+            break
+          }
+        }
+
+        setStats({
+          totalSessions: allSessions.length,
+          totalTests: allSessions.reduce((acc: number, s: any) => acc + (s.tests_count || 0), 0),
+          weekSessions,
+          avgDuration: 0,
+          completionRate,
+          streak
+        })
+
+        // Activity data for last 7 days
+        const activityMap = new Map<string, { sessions: number; tests: number }>()
+        const days = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam']
+
+        for (let i = 6; i >= 0; i--) {
+          const date = new Date(now.getTime() - i * 24 * 60 * 60 * 1000)
+          const dayKey = days[date.getDay()]
+          activityMap.set(dayKey, { sessions: 0, tests: 0 })
+        }
+
+        allSessions.forEach((session: any) => {
+          const sessionDate = new Date(session.created_at)
+          if (sessionDate >= weekAgo) {
+            const dayKey = days[sessionDate.getDay()]
+            const current = activityMap.get(dayKey)
+            if (current) {
+              current.sessions++
+              current.tests += session.tests_count || 0
+            }
+          }
+        })
+
+        const activityArray: ActivityData[] = []
+        for (let i = 6; i >= 0; i--) {
+          const date = new Date(now.getTime() - i * 24 * 60 * 60 * 1000)
+          const dayKey = days[date.getDay()]
+          const data = activityMap.get(dayKey) || { sessions: 0, tests: 0 }
+          activityArray.push({
+            day: dayKey,
+            sessions: data.sessions,
+            tests: data.tests
+          })
+        }
+        setActivityData(activityArray)
+
+        // Module usage
+        const treeUsage = new Map<string, number>()
+        for (const session of sessionsWithTrees) {
+          const treeName = session.tree_name
+          treeUsage.set(treeName, (treeUsage.get(treeName) || 0) + 1)
+        }
+
+        const colors = ['#0ea5e9', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981']
+        const moduleArray: ModuleUsage[] = Array.from(treeUsage.entries())
+          .map(([name, count], index) => ({
+            name,
+            count,
+            color: colors[index % colors.length]
+          }))
+          .sort((a, b) => b.count - a.count)
+          .slice(0, 5)
+
+        setModuleUsage(moduleArray)
+      }
     } catch (error) {
       console.error('Error loading dashboard:', error)
     } finally {
@@ -360,6 +501,285 @@ export default function Dashboard() {
             >
               Renseigner mon nom →
             </button>
+          </div>
+        )}
+
+        {/* Statistics Cards */}
+        {stats.totalSessions > 0 && (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="group relative overflow-hidden rounded-xl border border-slate-100 bg-gradient-to-br from-sky-50 to-white p-6 shadow-sm transition hover:shadow-md">
+              <div className="absolute right-4 top-4 opacity-10 transition group-hover:opacity-20">
+                <Activity className="h-16 w-16 text-sky-500" />
+              </div>
+              <div className="relative">
+                <p className="text-sm font-medium text-slate-600">Sessions cette semaine</p>
+                <p className="mt-2 text-3xl font-bold text-slate-900">{stats.weekSessions}</p>
+                <div className="mt-2 flex items-center text-xs">
+                  <TrendingUp className="mr-1 h-3 w-3 text-emerald-600" />
+                  <span className="font-semibold text-emerald-600">+{Math.round((stats.weekSessions / Math.max(stats.totalSessions, 1)) * 100)}%</span>
+                  <span className="ml-1 text-slate-500">du total</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="group relative overflow-hidden rounded-xl border border-slate-100 bg-gradient-to-br from-purple-50 to-white p-6 shadow-sm transition hover:shadow-md">
+              <div className="absolute right-4 top-4 opacity-10 transition group-hover:opacity-20">
+                <Target className="h-16 w-16 text-purple-500" />
+              </div>
+              <div className="relative">
+                <p className="text-sm font-medium text-slate-600">Taux de complétion</p>
+                <p className="mt-2 text-3xl font-bold text-slate-900">{stats.completionRate}%</p>
+                <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-100">
+                  <div
+                    className="h-full rounded-full bg-gradient-to-r from-purple-500 to-purple-600 transition-all"
+                    style={{ width: `${stats.completionRate}%` }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="group relative overflow-hidden rounded-xl border border-slate-100 bg-gradient-to-br from-amber-50 to-white p-6 shadow-sm transition hover:shadow-md">
+              <div className="absolute right-4 top-4 opacity-10 transition group-hover:opacity-20">
+                <Zap className="h-16 w-16 text-amber-500" />
+              </div>
+              <div className="relative">
+                <p className="text-sm font-medium text-slate-600">Série de jours actifs</p>
+                <p className="mt-2 text-3xl font-bold text-slate-900">{stats.streak}</p>
+                <div className="mt-2 flex items-center text-xs">
+                  <Star className="mr-1 h-3 w-3 text-amber-600" />
+                  <span className="font-semibold text-amber-600">
+                    {stats.streak >= 7 ? 'Excellent !' : stats.streak >= 3 ? 'Bon rythme' : 'Continuez !'}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="group relative overflow-hidden rounded-xl border border-slate-100 bg-gradient-to-br from-emerald-50 to-white p-6 shadow-sm transition hover:shadow-md">
+              <div className="absolute right-4 top-4 opacity-10 transition group-hover:opacity-20">
+                <Award className="h-16 w-16 text-emerald-500" />
+              </div>
+              <div className="relative">
+                <p className="text-sm font-medium text-slate-600">Tests réalisés</p>
+                <p className="mt-2 text-3xl font-bold text-slate-900">{stats.totalTests}</p>
+                <div className="mt-2 flex items-center text-xs">
+                  <CheckCircle2 className="mr-1 h-3 w-3 text-emerald-600" />
+                  <span className="font-semibold text-emerald-600">
+                    {stats.totalSessions} sessions
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Activity Chart & Module Usage */}
+        {(activityData.length > 0 || moduleUsage.length > 0) && (
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+            {/* Activity Chart */}
+            {activityData.length > 0 && (
+              <div className="rounded-2xl border border-slate-100 bg-white/70 p-6 shadow-sm backdrop-blur">
+                <div className="mb-6 flex items-center justify-between">
+                  <div>
+                    <h3 className="text-lg font-bold text-slate-900">Activité de la semaine</h3>
+                    <p className="text-sm text-slate-600">Sessions et tests des 7 derniers jours</p>
+                  </div>
+                  <div className="rounded-lg bg-gradient-to-br from-sky-500 to-sky-600 p-3">
+                    <BarChart3 className="h-5 w-5 text-white" />
+                  </div>
+                </div>
+                <ResponsiveContainer width="100%" height={250}>
+                  <AreaChart data={activityData}>
+                    <defs>
+                      <linearGradient id="colorSessions" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#0ea5e9" stopOpacity={0.8}/>
+                        <stop offset="95%" stopColor="#0ea5e9" stopOpacity={0}/>
+                      </linearGradient>
+                      <linearGradient id="colorTests" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.8}/>
+                        <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                    <XAxis dataKey="day" stroke="#64748b" style={{ fontSize: '12px' }} />
+                    <YAxis stroke="#64748b" style={{ fontSize: '12px' }} />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                        border: '1px solid #e2e8f0',
+                        borderRadius: '8px',
+                        boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
+                      }}
+                    />
+                    <Legend />
+                    <Area
+                      type="monotone"
+                      dataKey="sessions"
+                      stroke="#0ea5e9"
+                      fillOpacity={1}
+                      fill="url(#colorSessions)"
+                      name="Sessions"
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="tests"
+                      stroke="#8b5cf6"
+                      fillOpacity={1}
+                      fill="url(#colorTests)"
+                      name="Tests"
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+
+            {/* Module Usage */}
+            {moduleUsage.length > 0 && (
+              <div className="rounded-2xl border border-slate-100 bg-white/70 p-6 shadow-sm backdrop-blur">
+                <div className="mb-6 flex items-center justify-between">
+                  <div>
+                    <h3 className="text-lg font-bold text-slate-900">Modules les plus utilisés</h3>
+                    <p className="text-sm text-slate-600">Répartition de vos sessions par module</p>
+                  </div>
+                  <div className="rounded-lg bg-gradient-to-br from-purple-500 to-purple-600 p-3">
+                    <Brain className="h-5 w-5 text-white" />
+                  </div>
+                </div>
+                <div className="flex items-center justify-center">
+                  <ResponsiveContainer width="100%" height={250}>
+                    <PieChart>
+                      <Pie
+                        data={moduleUsage}
+                        cx="50%"
+                        cy="50%"
+                        labelLine={false}
+                        label={(entry) => `${entry.name}: ${entry.count}`}
+                        outerRadius={80}
+                        fill="#8884d8"
+                        dataKey="count"
+                      >
+                        {moduleUsage.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                          border: '1px solid #e2e8f0',
+                          borderRadius: '8px',
+                          boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
+                        }}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+                <div className="mt-4 grid grid-cols-2 gap-2">
+                  {moduleUsage.map((module, index) => (
+                    <div key={index} className="flex items-center gap-2">
+                      <div
+                        className="h-3 w-3 rounded-full"
+                        style={{ backgroundColor: module.color }}
+                      />
+                      <span className="text-xs text-slate-600 truncate">{module.name}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Recommendations */}
+        {stats.totalSessions > 0 && (
+          <div className="rounded-2xl border border-slate-100 bg-gradient-to-br from-indigo-50 via-white to-purple-50 p-6 shadow-sm">
+            <div className="mb-4 flex items-center gap-3">
+              <div className="rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 p-3">
+                <Star className="h-5 w-5 text-white" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-slate-900">Recommandations personnalisées</h3>
+                <p className="text-sm text-slate-600">Basées sur votre activité récente</p>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
+              {stats.weekSessions < 3 && (
+                <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
+                  <div className="flex items-start gap-3">
+                    <Target className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-semibold text-amber-900">Restez régulier</p>
+                      <p className="mt-1 text-xs text-amber-700">
+                        Essayez de faire au moins 3 sessions par semaine pour progresser efficacement.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+              {stats.completionRate < 70 && (
+                <div className="rounded-lg border border-purple-200 bg-purple-50 p-4">
+                  <div className="flex items-start gap-3">
+                    <CheckCircle2 className="h-5 w-5 text-purple-600 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-semibold text-purple-900">Terminez vos sessions</p>
+                      <p className="mt-1 text-xs text-purple-700">
+                        Complétez vos sessions pour maximiser votre apprentissage et traçabilité.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+              {moduleUsage.length < 3 && isPremiumOrAdmin && (
+                <div className="rounded-lg border border-sky-200 bg-sky-50 p-4">
+                  <div className="flex items-start gap-3">
+                    <BookOpen className="h-5 w-5 text-sky-600 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-semibold text-sky-900">Explorez d'autres modules</p>
+                      <p className="mt-1 text-xs text-sky-700">
+                        Diversifiez votre pratique en explorant les différents modules anatomiques.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+              {stats.streak >= 7 && (
+                <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4">
+                  <div className="flex items-start gap-3">
+                    <Award className="h-5 w-5 text-emerald-600 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-semibold text-emerald-900">Bravo pour votre régularité !</p>
+                      <p className="mt-1 text-xs text-emerald-700">
+                        Vous avez une série de {stats.streak} jours. Continuez comme ça !
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+              {!isFree && remainingSeminars > 0 && (
+                <div className="rounded-lg border border-indigo-200 bg-indigo-50 p-4">
+                  <div className="flex items-start gap-3">
+                    <Calendar className="h-5 w-5 text-indigo-600 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-semibold text-indigo-900">Séminaire disponible</p>
+                      <p className="mt-1 text-xs text-indigo-700">
+                        Vous pouvez encore vous inscrire à un séminaire pour ce cycle.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+              {profile?.role === 'free' && (
+                <div className="rounded-lg border border-amber-200 bg-gradient-to-br from-amber-50 to-orange-50 p-4">
+                  <div className="flex items-start gap-3">
+                    <Crown className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-semibold text-amber-900">Passez Premium</p>
+                      <p className="mt-1 text-xs text-amber-700">
+                        Débloquez tous les modules et accédez aux séminaires présentiels.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         )}
 
