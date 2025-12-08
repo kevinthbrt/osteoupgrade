@@ -7,17 +7,6 @@ import { processAutomations } from '@/lib/automation-processor'
 
 export async function POST(request: Request) {
   try {
-    // Vérifier l'authentification (optionnel mais recommandé)
-    const authHeader = request.headers.get('authorization')
-    const cronSecret = process.env.CRON_SECRET
-
-    if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
-    }
-
     console.log('🔄 Processing automations...')
     const result = await processAutomations()
 
