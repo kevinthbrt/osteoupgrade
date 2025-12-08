@@ -81,9 +81,10 @@ export default function Navigation() {
   const menuItems: MenuItem[] = [
     { href: '/dashboard', label: 'Tableau de bord', icon: Home },
     {
-      href: '/pratique',
-      label: 'Pratique',
-      icon: Stethoscope,
+      href: '/testing',
+      label: 'Testing 3D',
+      icon: TestTube,
+      isNew: true,
       badge: 'Premium',
       roles: ['premium_silver', 'premium_gold', 'admin']
     },
@@ -102,14 +103,6 @@ export default function Navigation() {
       roles: ['premium_silver', 'premium_gold', 'admin']
     },
     {
-      href: '/testing',
-      label: 'Testing 3D',
-      icon: TestTube,
-      isNew: true,
-      badge: 'Premium',
-      roles: ['premium_silver', 'premium_gold', 'admin']
-    },
-    {
       href: '/elearning',
       label: 'E-learning',
       icon: BookOpen,
@@ -118,11 +111,11 @@ export default function Navigation() {
       description: 'Formations System.io'
     },
     {
-      href: '/consultation-v3',
-      label: 'Consultation guidée',
-      icon: Map,
-      badge: 'Bientôt',
-      roles: ['admin']
+      href: '/pratique',
+      label: 'Pratique',
+      icon: Stethoscope,
+      badge: 'Premium',
+      roles: ['premium_silver', 'premium_gold', 'admin']
     },
     {
       href: '/seminaires',
@@ -130,6 +123,13 @@ export default function Navigation() {
       icon: Calendar,
       badge: 'Gold',
       roles: ['premium_gold', 'admin']
+    },
+    {
+      href: '/consultation-v3',
+      label: 'Consultation guidée',
+      icon: Map,
+      badge: 'Bientôt',
+      roles: ['admin']
     },
     { href: '/settings', label: 'Paramètres', icon: Settings },
   ]
@@ -249,37 +249,37 @@ export default function Navigation() {
       {/* Mobile menu button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow"
+        className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-slate-900 text-white rounded-lg shadow-lg border border-white/10 hover:bg-slate-800 transition-all"
       >
         {isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
       </button>
 
       {/* Sidebar */}
-      <aside className={`fixed top-0 left-0 h-full bg-white border-r border-gray-200 transition-transform duration-300 z-40 ${
+      <aside className={`fixed top-0 left-0 h-full bg-gradient-to-b from-slate-900 via-slate-900 to-slate-800 border-r border-white/10 transition-transform duration-300 z-40 ${
         isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
       } w-72 lg:w-64`}>
         <div className="flex flex-col h-full">
           {/* Logo */}
-          <div className="p-6 border-b border-gray-200">
+          <div className="p-6 border-b border-white/10">
             <div className="flex items-center space-x-3">
-              <div className="bg-gradient-to-br from-primary-500 to-primary-600 p-2 rounded-lg">
+              <div className="bg-gradient-to-br from-sky-500 to-sky-600 p-2 rounded-lg shadow-lg shadow-sky-500/20">
                 <Stethoscope className="h-6 w-6 text-white" />
               </div>
               <div>
-                <h2 className="text-xl font-bold text-gray-900">OsteoUpgrade</h2>
-                <p className="text-xs text-gray-500">L'application pour les thérapeutes 2.0</p>
+                <h2 className="text-xl font-bold text-white">OsteoUpgrade</h2>
+                <p className="text-xs text-slate-300">L'application pour les thérapeutes 2.0</p>
               </div>
             </div>
           </div>
 
           {/* User info */}
-          <div className="px-6 py-4 border-b border-gray-200">
+          <div className="px-6 py-4 border-b border-white/10">
             <div className="flex items-center justify-between">
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-gray-900 truncate">
+                <p className="text-sm font-medium text-white truncate">
                   {profile?.full_name || user?.email}
                 </p>
-                <p className="text-xs text-gray-500 truncate">{user?.email}</p>
+                <p className="text-xs text-slate-400 truncate">{user?.email}</p>
               </div>
               {getRoleBadge()}
             </div>
@@ -303,9 +303,9 @@ export default function Navigation() {
                   href={isRestricted ? '#' : item.href}
                   className={`flex items-center px-3 py-2.5 rounded-lg transition-all group relative ${
                     isActive
-                      ? 'bg-primary-50 text-primary-600 font-medium'
-                      : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
-                  } ${isRestricted ? 'opacity-60 cursor-not-allowed hover:bg-white hover:text-gray-700' : ''}`}
+                      ? 'bg-sky-500/20 text-white font-medium shadow-sm'
+                      : 'text-slate-300 hover:bg-white/5 hover:text-white'
+                  } ${isRestricted ? 'opacity-50 cursor-not-allowed hover:bg-transparent hover:text-slate-300' : ''}`}
                   onClick={() => {
                     if (!isRestricted) {
                       setIsOpen(false)
@@ -316,16 +316,16 @@ export default function Navigation() {
                     }
                   }}
                 >
-                  <Icon className={`h-5 w-5 mr-3 ${isActive ? 'text-primary-600' : 'text-gray-400 group-hover:text-gray-600'}`} />
+                  <Icon className={`h-5 w-5 mr-3 ${isActive ? 'text-sky-300' : 'text-slate-400 group-hover:text-slate-200'}`} />
                   <span className="flex-1">{item.label}</span>
-                  {isActive && <ChevronRight className="h-4 w-4" />}
+                  {isActive && <ChevronRight className="h-4 w-4 text-sky-300" />}
                   {item.badge && (
-                    <span className="ml-2 px-1.5 py-0.5 bg-gray-100 text-gray-700 text-[10px] font-semibold rounded">
+                    <span className="ml-2 px-1.5 py-0.5 bg-white/10 text-slate-200 text-[10px] font-semibold rounded">
                       {item.badge}
                     </span>
                   )}
                   {item.isNew && (
-                    <span className="ml-2 px-1.5 py-0.5 bg-green-100 text-green-700 text-[10px] font-semibold rounded">
+                    <span className="ml-2 px-1.5 py-0.5 bg-emerald-500/20 text-emerald-300 text-[10px] font-semibold rounded">
                       NEW
                     </span>
                   )}
@@ -336,7 +336,7 @@ export default function Navigation() {
             {profile?.role === 'admin' && (
               <>
                 <div className="pt-4 pb-2">
-                  <p className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                  <p className="px-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">
                     Administration
                   </p>
                 </div>
@@ -349,18 +349,18 @@ export default function Navigation() {
                       href={adminOverviewItem.href}
                       className={`flex flex-col px-3 py-2.5 rounded-lg transition-all group ${
                         isActive
-                          ? 'bg-purple-50 text-purple-600 font-medium'
-                          : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
+                          ? 'bg-purple-500/20 text-white font-medium shadow-sm'
+                          : 'text-slate-300 hover:bg-white/5 hover:text-white'
                       }`}
                       onClick={() => setIsOpen(false)}
                     >
                       <div className="flex items-center w-full">
-                        <Icon className={`h-5 w-5 mr-3 flex-shrink-0 ${isActive ? 'text-purple-600' : 'text-gray-400 group-hover:text-gray-600'}`} />
+                        <Icon className={`h-5 w-5 mr-3 flex-shrink-0 ${isActive ? 'text-purple-300' : 'text-slate-400 group-hover:text-slate-200'}`} />
                         <span className="flex-1">{adminOverviewItem.label}</span>
-                        {isActive && <ChevronRight className="h-4 w-4 ml-2" />}
+                        {isActive && <ChevronRight className="h-4 w-4 ml-2 text-purple-300" />}
                       </div>
                       {adminOverviewItem.description && !isActive && (
-                        <p className="text-[10px] text-gray-500 ml-8 mt-0.5">
+                        <p className="text-[10px] text-slate-400 ml-8 mt-0.5">
                           {adminOverviewItem.description}
                         </p>
                       )}
@@ -380,13 +380,13 @@ export default function Navigation() {
                         onClick={() => toggleGroup(group.id)}
                         className={`flex items-center w-full px-2 py-2 rounded-lg transition-all ${
                           isGroupActive
-                            ? 'bg-purple-50 text-purple-600'
-                            : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
+                            ? 'bg-purple-500/20 text-white'
+                            : 'text-slate-300 hover:bg-white/5 hover:text-white'
                         }`}
                       >
-                        <GroupIcon className={`h-5 w-5 mr-3 flex-shrink-0 ${isGroupActive ? 'text-purple-600' : 'text-gray-400'}`} />
+                        <GroupIcon className={`h-5 w-5 mr-3 flex-shrink-0 ${isGroupActive ? 'text-purple-300' : 'text-slate-400'}`} />
                         <span className="flex-1 text-left font-medium">{group.label}</span>
-                        <ChevronRight className={`h-4 w-4 ml-2 transition-transform ${isExpanded ? 'rotate-90 text-purple-600' : 'text-gray-400'}`} />
+                        <ChevronRight className={`h-4 w-4 ml-2 transition-transform ${isExpanded ? 'rotate-90 text-purple-300' : 'text-slate-400'}`} />
                       </button>
 
                       {isExpanded && (
@@ -400,27 +400,27 @@ export default function Navigation() {
                                 href={item.href}
                                 className={`flex flex-col px-4 py-2.5 rounded-lg transition-all group ${
                                   isActive
-                                    ? 'bg-purple-50 text-purple-600 font-medium'
-                                    : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
+                                    ? 'bg-purple-500/20 text-white font-medium shadow-sm'
+                                    : 'text-slate-300 hover:bg-white/5 hover:text-white'
                                 }`}
                                 onClick={() => setIsOpen(false)}
                               >
                                 <div className="flex items-center w-full">
-                                  <Icon className={`h-5 w-5 mr-3 flex-shrink-0 ${isActive ? 'text-purple-600' : 'text-gray-400 group-hover:text-gray-600'}`} />
+                                  <Icon className={`h-5 w-5 mr-3 flex-shrink-0 ${isActive ? 'text-purple-300' : 'text-slate-400 group-hover:text-slate-200'}`} />
                                   <span className="flex-1 text-sm">{item.label}</span>
                                   {item.badge && (
                                     <span className={`ml-2 px-1.5 py-0.5 text-[10px] font-semibold rounded ${
                                       item.badge === 'V3'
-                                        ? 'bg-purple-100 text-purple-700'
-                                        : 'bg-green-100 text-green-700'
+                                        ? 'bg-purple-400/20 text-purple-300'
+                                        : 'bg-emerald-500/20 text-emerald-300'
                                     }`}>
                                       {item.badge}
                                     </span>
                                   )}
-                                  {isActive && <ChevronRight className="h-4 w-4 ml-2" />}
+                                  {isActive && <ChevronRight className="h-4 w-4 ml-2 text-purple-300" />}
                                 </div>
                                 {item.description && !isActive && (
-                                  <p className="text-[10px] text-gray-500 ml-8 mt-0.5">
+                                  <p className="text-[10px] text-slate-400 ml-8 mt-0.5">
                                     {item.description}
                                   </p>
                                 )}
@@ -442,18 +442,18 @@ export default function Navigation() {
                       href={adminUserItem.href}
                       className={`flex flex-col px-3 py-2.5 rounded-lg transition-all group ${
                         isActive
-                          ? 'bg-purple-50 text-purple-600 font-medium'
-                          : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
+                          ? 'bg-purple-500/20 text-white font-medium shadow-sm'
+                          : 'text-slate-300 hover:bg-white/5 hover:text-white'
                       }`}
                       onClick={() => setIsOpen(false)}
                     >
                       <div className="flex items-center w-full">
-                        <Icon className={`h-5 w-5 mr-3 flex-shrink-0 ${isActive ? 'text-purple-600' : 'text-gray-400 group-hover:text-gray-600'}`} />
+                        <Icon className={`h-5 w-5 mr-3 flex-shrink-0 ${isActive ? 'text-purple-300' : 'text-slate-400 group-hover:text-slate-200'}`} />
                         <span className="flex-1">{adminUserItem.label}</span>
-                        {isActive && <ChevronRight className="h-4 w-4 ml-2" />}
+                        {isActive && <ChevronRight className="h-4 w-4 ml-2 text-purple-300" />}
                       </div>
                       {adminUserItem.description && !isActive && (
-                        <p className="text-[10px] text-gray-500 ml-8 mt-0.5">
+                        <p className="text-[10px] text-slate-400 ml-8 mt-0.5">
                           {adminUserItem.description}
                         </p>
                       )}
@@ -465,12 +465,12 @@ export default function Navigation() {
           </nav>
 
           {/* Logout button */}
-          <div className="p-4 border-t border-gray-200">
+          <div className="p-4 border-t border-white/10">
             <button
               onClick={handleLogout}
-              className="flex items-center w-full px-3 py-2.5 text-gray-700 rounded-lg hover:bg-red-50 hover:text-red-600 transition-all group"
+              className="flex items-center w-full px-3 py-2.5 text-slate-300 rounded-lg hover:bg-red-500/20 hover:text-red-300 transition-all group"
             >
-              <LogOut className="h-5 w-5 mr-3 text-gray-400 group-hover:text-red-500" />
+              <LogOut className="h-5 w-5 mr-3 text-slate-400 group-hover:text-red-400" />
               <span>Déconnexion</span>
             </button>
           </div>
