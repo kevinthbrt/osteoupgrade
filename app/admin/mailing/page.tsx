@@ -899,11 +899,11 @@ export default function MailingAdminPage() {
               )}
             </div>
 
-            <div className="space-y-2">
+            <div className="rounded-2xl border border-primary-200 bg-white p-4 shadow-sm space-y-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 text-sm font-medium text-gray-700">
                   <Wand2 className="h-4 w-4 text-primary-500" />
-                  <span>Templates intégrés</span>
+                  <span>Template & sujet</span>
                 </div>
                 <div className="flex flex-wrap gap-2 text-xs">
                   <button
@@ -951,17 +951,16 @@ export default function MailingAdminPage() {
                 </p>
               </div>
               {activeTemplate?.description && <p className="text-xs text-gray-700">{activeTemplate.description}</p>}
-            </div>
-
-            <div className="space-y-1">
-              <label className="text-sm font-medium text-gray-700">Sujet</label>
-              <input
-                type="text"
-                aria-label="Sujet de la newsletter"
-                value={subject}
-                onChange={(e) => setSubject(e.target.value)}
-                className="w-full rounded-lg border-gray-300 focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-              />
+              <div className="space-y-1">
+                <label className="text-sm font-medium text-gray-700">Sujet</label>
+                <input
+                  type="text"
+                  aria-label="Sujet de la newsletter"
+                  value={subject}
+                  onChange={(e) => setSubject(e.target.value)}
+                  className="w-full rounded-lg border-gray-300 focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                />
+              </div>
             </div>
 
             <div className="space-y-2">
@@ -1336,10 +1335,6 @@ export default function MailingAdminPage() {
                 <p className="text-xs text-gray-700">
                   Le HTML se remplit automatiquement à partir du sujet et de la description. Vous pouvez ensuite l’ajuster avec les boutons ci-dessus.
                 </p>
-              </div>
-              <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 text-xs text-gray-600 space-y-1">
-                <p className="font-medium text-gray-800">Aperçu</p>
-                <div className="border rounded-lg bg-white p-3 max-h-48 overflow-auto" dangerouslySetInnerHTML={{ __html: templateDraft.html }} />
               </div>
               <textarea
                 placeholder="Texte brut (optionnel)"
