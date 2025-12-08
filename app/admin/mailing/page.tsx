@@ -67,7 +67,9 @@ const automationTriggerPresets = [
   { label: 'Passage à Premium', value: 'Passage à Premium' },
   { label: 'Abonnement expiré', value: 'Abonnement expiré' },
   { label: 'Inactif depuis 30 jours', value: 'Inactif depuis 30 jours' },
-  { label: 'Sur free depuis 14 jours', value: 'Sur free depuis 14 jours' }
+  { label: 'Sur free depuis 14 jours', value: 'Sur free depuis 14 jours' },
+  { label: 'Inscription à un séminaire', value: 'Inscription à un séminaire' },
+  { label: 'Désinscription d\'un séminaire', value: 'Désinscription d\'un séminaire' }
 ]
 
 export default function MailingAdminPage() {
