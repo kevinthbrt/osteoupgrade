@@ -239,24 +239,22 @@ export default function Dashboard() {
         })
 
         // Activity data for last 7 days
-        type ActivityMapValue = { sessions: number; tests: number }
-        const activityMap = new Map<string, ActivityMapValue>()
+        const activityMap: Record<string, { sessions: number; tests: number }> = {}
         const days = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam']
 
         for (let i = 6; i >= 0; i--) {
           const date = new Date(now.getTime() - i * 24 * 60 * 60 * 1000)
           const dayKey = days[date.getDay()]
-          activityMap.set(dayKey, { sessions: 0, tests: 0 })
+          activityMap[dayKey] = { sessions: 0, tests: 0 }
         }
 
         allSessions.forEach((session: any) => {
           const sessionDate = new Date(session.created_at)
           if (sessionDate >= weekAgo) {
             const dayKey = days[sessionDate.getDay()]
-            const current = activityMap.get(dayKey)
-            if (current) {
-              current.sessions++
-              current.tests += session.tests_count || 0
+            if (activityMap[dayKey]) {
+              activityMap[dayKey].sessions++
+              activityMap[dayKey].tests += session.tests_count || 0
             }
           }
         })
@@ -265,7 +263,7 @@ export default function Dashboard() {
         for (let i = 6; i >= 0; i--) {
           const date = new Date(now.getTime() - i * 24 * 60 * 60 * 1000)
           const dayKey = days[date.getDay()]
-          const data = activityMap.get(dayKey) || { sessions: 0, tests: 0 }
+          const data = activityMap[dayKey] || { sessions: 0, tests: 0 }
           activityArray.push({
             day: dayKey,
             sessions: data.sessions,
