@@ -60,22 +60,29 @@ export async function POST(request: Request) {
 async function handleCheckoutCompleted(session: any) {
   const userId = session.client_reference_id || session.metadata?.userId
   const planType = session.metadata?.planType
+  const commitmentMonths = parseInt(session.metadata?.commitment_months || '12')
 
-  console.log('📦 Checkout session data:', { userId, planType, sessionId: session.id })
+  console.log('📦 Checkout session data:', { userId, planType, commitmentMonths, sessionId: session.id })
 
   if (!userId || !planType) {
     console.error('❌ Missing userId or planType in checkout session:', { userId, planType })
     return
   }
 
-  console.log(`✅ Checkout completed for user ${userId}, plan ${planType}`)
+  console.log(`✅ Checkout completed for user ${userId}, plan ${planType}, commitment: ${commitmentMonths} months`)
+
+  // Calculer la date de fin d'engagement
+  const commitmentStartDate = new Date()
+  const commitmentEndDate = new Date(commitmentStartDate)
+  commitmentEndDate.setMonth(commitmentEndDate.getMonth() + commitmentMonths)
 
   // Mettre à jour le profil utilisateur avec le client admin
   const updateData = {
     role: planType,
     subscription_status: 'active',
-    subscription_start_date: new Date().toISOString(),
+    subscription_start_date: commitmentStartDate.toISOString(),
     subscription_end_date: null,
+    commitment_end_date: commitmentEndDate.toISOString(),
     stripe_customer_id: session.customer,
     stripe_subscription_id: session.subscription
   }
@@ -177,7 +184,7 @@ async function handleSubscriptionDeleted(subscription: any) {
   // Trouver l'utilisateur par son stripe_customer_id
   const { data: profile, error: profileError } = await supabaseAdmin
     .from('profiles')
-    .select('id, email')
+    .select('id, email, commitment_end_date, subscription_start_date')
     .eq('stripe_customer_id', customerId)
     .single()
 
@@ -187,6 +194,17 @@ async function handleSubscriptionDeleted(subscription: any) {
   }
 
   console.log(`Found user ${profile.id} for customer ${customerId}`)
+
+  // Vérifier si l'annulation se fait avant la fin de l'engagement
+  const now = new Date()
+  const commitmentEndDate = profile.commitment_end_date ? new Date(profile.commitment_end_date) : null
+  const isEarlyTermination = commitmentEndDate && now < commitmentEndDate
+
+  if (isEarlyTermination) {
+    console.warn(`⚠️ Early termination detected for user ${profile.id}. Commitment end: ${commitmentEndDate?.toISOString()}`)
+    // Note: Dans Stripe, vous pourriez configurer des frais de résiliation anticipée
+    // ou bloquer l'annulation via le portail client
+  }
 
   // Révoquer le premium
   const { error: updateError } = await supabaseAdmin

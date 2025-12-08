@@ -140,9 +140,10 @@ export default function SubscriptionPage() {
               <p className="text-blue-100">L'essentiel des outils cliniques, réunis dans une seule plateforme</p>
               <div className="mt-6">
                 <div className="flex items-baseline gap-2">
-                  <span className="text-5xl font-bold">299€</span>
-                  <span className="text-blue-100">/an</span>
+                  <span className="text-5xl font-bold">30€</span>
+                  <span className="text-blue-100">/mois</span>
                 </div>
+                <p className="text-sm text-blue-200 mt-2">Engagement 12 mois • 360€/an</p>
               </div>
             </div>
 
@@ -235,9 +236,10 @@ export default function SubscriptionPage() {
               <p className="text-yellow-900/90">L'expérience complète : outils avancés + formation présentielle</p>
               <div className="mt-6">
                 <div className="flex items-baseline gap-2">
-                  <span className="text-5xl font-bold">499€</span>
-                  <span className="text-yellow-900/80">/an</span>
+                  <span className="text-5xl font-bold">42€</span>
+                  <span className="text-yellow-900/80">/mois</span>
                 </div>
+                <p className="text-sm text-yellow-900/70 mt-2">Engagement 12 mois • 500€/an</p>
               </div>
             </div>
 
@@ -325,9 +327,14 @@ export default function SubscriptionPage() {
           <h3 className="font-semibold text-gray-900 mb-3">💡 Bon à savoir</h3>
           <div className="space-y-2 text-sm text-gray-700">
             <p>✅ Paiement sécurisé via Stripe</p>
-            <p>✅ Abonnement annuel, renouvelable automatiquement</p>
-            <p>✅ Annulation possible à tout moment</p>
+            <p>✅ <strong>Facturation mensuelle avec engagement de 12 mois</strong></p>
+            <p>✅ Renouvellement automatique après la période d'engagement</p>
+            <p>✅ Annulation possible après les 12 mois d'engagement</p>
             <p>✅ Accès immédiat à tous les contenus après validation du paiement</p>
+            <p className="text-xs text-gray-500 mt-3 pt-3 border-t border-gray-300">
+              ℹ️ Les abonnements sont facturés mensuellement avec un engagement minimum de 12 mois.
+              Après cette période, vous pouvez annuler à tout moment.
+            </p>
           </div>
         </div>
       </div>
