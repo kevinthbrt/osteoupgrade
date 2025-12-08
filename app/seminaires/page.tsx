@@ -396,28 +396,37 @@ export default function SeminarsPage() {
   return (
     <AuthLayout>
       <div className="space-y-6">
-        <div className="bg-white rounded-xl shadow-sm p-6 flex flex-col gap-2">
-          <div className="flex items-center gap-2 text-primary-600 text-sm font-semibold">
-            <Calendar className="h-5 w-5" />
-            Séminaires présentiels
-          </div>
-          <h1 className="text-2xl font-bold text-gray-900">Rencontres en présentiel (1 séminaire de 2 jours inclus/an)</h1>
-          <p className="text-gray-600">
-            Réservés aux abonnés Premium Gold <strong>actifs uniquement</strong>. Vous pouvez vous inscrire à <strong>1 séminaire maximum par période d'abonnement de 12 mois</strong>, calculée depuis votre date de souscription.
-          </p>
-          <div className="flex items-center gap-3 text-sm text-gray-700">
-            <Users className="h-4 w-4 text-primary-600" />
-            <span>
-              {cycleRegistrations.length}/1 inscription autorisée entre {formatCycleWindow(currentCycle)}
-            </span>
-            {hasReachedLimit && <span className="text-red-600 font-semibold">Limite atteinte</span>}
-          </div>
-          {loadingError && (
-            <div className="flex items-center gap-2 text-xs text-amber-700 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
-              <AlertTriangle className="h-4 w-4" />
-              {loadingError}
+        {/* Header */}
+        <div className="overflow-hidden rounded-2xl bg-gradient-to-br from-slate-900 via-slate-900 to-slate-800 text-white shadow-xl border border-white/10">
+          <div className="p-6 space-y-4">
+            <p className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-sky-200">
+              <Calendar className="h-4 w-4" />
+              Séminaires présentiels
+            </p>
+            <h1 className="text-3xl font-bold leading-tight">Rencontres en présentiel (1 séminaire de 2 jours inclus/an)</h1>
+            <p className="text-slate-200 text-sm md:text-base">
+              Réservés aux abonnés Premium Gold <strong>actifs uniquement</strong>. Vous pouvez vous inscrire à <strong>1 séminaire maximum par période d'abonnement de 12 mois</strong>, calculée depuis votre date de souscription.
+            </p>
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="flex items-center gap-2 bg-white/5 px-3 py-2 rounded-lg backdrop-blur-sm border border-white/10">
+                <Users className="h-4 w-4 text-emerald-300" />
+                <span className="text-sm font-semibold">
+                  {cycleRegistrations.length}/1 inscription autorisée entre {formatCycleWindow(currentCycle)}
+                </span>
+              </div>
+              {hasReachedLimit && (
+                <span className="inline-flex items-center gap-2 rounded-full bg-red-500/20 px-3 py-1 text-xs font-semibold text-red-200">
+                  Limite atteinte
+                </span>
+              )}
             </div>
-          )}
+            {loadingError && (
+              <div className="flex items-center gap-2 text-xs bg-amber-500/20 border border-amber-400/30 rounded-lg px-3 py-2 text-amber-100">
+                <AlertTriangle className="h-4 w-4" />
+                {loadingError}
+              </div>
+            )}
+          </div>
         </div>
 
         {(isFree || profile?.role === 'premium_silver') && (

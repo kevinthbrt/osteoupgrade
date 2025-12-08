@@ -273,26 +273,31 @@ export default function TopographiePage() {
   return (
     <AuthLayout>
       <div className="max-w-6xl mx-auto space-y-6">
-        <div className="bg-gradient-to-r from-primary-600 to-primary-700 rounded-xl shadow-sm p-6 text-white">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="p-3 rounded-lg bg-white/10">
-                <BookOpen className="h-7 w-7" />
+        <div className="overflow-hidden rounded-2xl bg-gradient-to-br from-slate-900 via-slate-900 to-slate-800 text-white shadow-xl border border-white/10">
+          <div className="p-6">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="p-3 rounded-lg bg-white/10">
+                  <BookOpen className="h-7 w-7" />
+                </div>
+                <div className="space-y-2">
+                  <p className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-sky-200">
+                    <span className="h-2 w-2 rounded-full bg-sky-400" />
+                    Topographie
+                  </p>
+                  <h1 className="text-2xl md:text-3xl font-bold leading-tight">Vues topographiques par zone</h1>
+                  <p className="text-slate-200 text-sm md:text-base">
+                    Naviguez par région anatomique et ouvrez chaque vue pour afficher l'image, le titre et la description.
+                  </p>
+                </div>
               </div>
-              <div>
-                <p className="text-sm text-primary-100 font-semibold">Topographie</p>
-                <h1 className="text-2xl font-bold">Vues topographiques par zone</h1>
-                <p className="text-primary-50 mt-1">
-                  Naviguez par région anatomique et ouvrez chaque vue pour afficher l'image, le titre et la description.
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2 bg-white/10 px-4 py-2 rounded-lg">
-                <CheckCircle className="h-5 w-5 text-emerald-200" />
-                <div>
-                  <p className="text-xs text-primary-100">Contenu Premium</p>
-                  <p className="text-sm font-semibold">Par zones anatomiques</p>
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 bg-white/5 px-4 py-2 rounded-lg backdrop-blur-sm border border-white/10">
+                  <CheckCircle className="h-5 w-5 text-emerald-300" />
+                  <div>
+                    <p className="text-xs text-slate-200">Contenu Premium</p>
+                    <p className="text-sm font-semibold">Par zones anatomiques</p>
+                  </div>
                 </div>
               </div>
             </div>

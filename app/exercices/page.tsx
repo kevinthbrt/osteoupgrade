@@ -287,24 +287,29 @@ export default function ExercisesModule() {
   return (
     <AuthLayout>
       <div className="space-y-8">
-        <div className="flex items-center justify-between">
-          <div>
-            <div className="flex items-center gap-2 text-sm text-blue-600">
-              <Dumbbell className="h-5 w-5" />
-              <span>Module exercices</span>
+        {/* Header */}
+        <div className="overflow-hidden rounded-2xl bg-gradient-to-br from-slate-900 via-slate-900 to-slate-800 text-white shadow-xl border border-white/10">
+          <div className="p-6">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <div className="space-y-3">
+                <p className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-sky-200">
+                  <Dumbbell className="h-4 w-4" />
+                  Module exercices
+                </p>
+                <h1 className="text-3xl font-bold leading-tight">Planifier et exporter une fiche</h1>
+                <p className="text-slate-200 text-sm md:text-base">
+                  Sélectionnez des exercices, personnalisez les paramètres puis exportez en PDF pour le patient.
+                </p>
+              </div>
+              <button
+                onClick={exportToPDF}
+                className="inline-flex items-center gap-2 rounded-lg bg-sky-500 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-sky-500/20 transition hover:bg-sky-400"
+              >
+                <Download className="h-4 w-4" />
+                Exporter en PDF
+              </button>
             </div>
-            <h1 className="text-3xl font-bold text-gray-900">Planifier et exporter une fiche</h1>
-            <p className="mt-1 text-gray-600">
-              Sélectionnez des exercices, personnalisez les paramètres puis exportez en PDF pour le patient.
-            </p>
           </div>
-          <button
-            onClick={exportToPDF}
-            className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-white shadow hover:bg-blue-700"
-          >
-            <Download className="h-4 w-4" />
-            Exporter en PDF
-          </button>
         </div>
 
         <div className="grid gap-6 lg:grid-cols-3">
