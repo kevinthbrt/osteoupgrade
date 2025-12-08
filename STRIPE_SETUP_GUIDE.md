@@ -5,8 +5,8 @@ Ce guide explique comment configurer Stripe pour accepter des paiements mensuels
 ## 🎯 Objectif
 
 Créer deux plans d'abonnement :
-- **Premium Silver** : 30€/mois (360€/an) avec engagement 12 mois
-- **Premium Gold** : 42€/mois (500€/an) avec engagement 12 mois
+- **Premium Silver** : 29,99€/mois (359,88€/an) avec engagement 12 mois
+- **Premium Gold** : 49,99€/mois (599,88€/an) avec engagement 12 mois
 
 ## ✅ Étape 1 : Créer les Prix Mensuels dans Stripe
 
@@ -21,7 +21,7 @@ Créer deux plans d'abonnement :
 2. **Description** : `Abonnement mensuel avec engagement 12 mois - Accès complet aux outils digitaux`
 3. **Prix** :
    - Modèle de tarification : **Récurrent**
-   - Montant : **30,00 €** (ou 29,92 € pour arrondir à 360€/an)
+   - Montant : **29,99 €**
    - Fréquence de facturation : **Mensuelle**
 4. Cliquez sur **Créer le produit**
 5. **IMPORTANT** : Copiez l'**ID du prix** (commence par `price_...`)
@@ -32,7 +32,7 @@ Créer deux plans d'abonnement :
 2. **Description** : `Abonnement mensuel avec engagement 12 mois - Accès complet + séminaire présentiel`
 3. **Prix** :
    - Modèle de tarification : **Récurrent**
-   - Montant : **42,00 €** (ou 41,67 € pour arrondir à 500€/an)
+   - Montant : **49,99 €**
    - Fréquence de facturation : **Mensuelle**
 4. Cliquez sur **Créer le produit**
 5. **IMPORTANT** : Copiez l'**ID du prix** (commence par `price_...`)

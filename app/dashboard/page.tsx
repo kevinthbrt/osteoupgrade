@@ -787,7 +787,7 @@ export default function Dashboard() {
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
               <div className="space-y-2">
                 <p className="text-xs font-semibold uppercase tracking-wide text-amber-700">Accès Premium</p>
-                <h2 className="text-2xl font-bold text-slate-900">À partir de 30€/mois</h2>
+                <h2 className="text-2xl font-bold text-slate-900">À partir de 29,99€/mois</h2>
                 <p className="text-sm text-slate-700 max-w-3xl">
                   Passez au niveau supérieur avec l'ensemble des arbres décisionnels, l'e-learning topographique et un séminaire présentiel de 2 jours inclus (Gold). Facturation mensuelle avec engagement 12 mois.
                 </p>

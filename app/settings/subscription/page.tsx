@@ -140,10 +140,10 @@ export default function SubscriptionPage() {
               <p className="text-blue-100">L'essentiel des outils cliniques, réunis dans une seule plateforme</p>
               <div className="mt-6">
                 <div className="flex items-baseline gap-2">
-                  <span className="text-5xl font-bold">30€</span>
+                  <span className="text-5xl font-bold">29,99€</span>
                   <span className="text-blue-100">/mois</span>
                 </div>
-                <p className="text-sm text-blue-200 mt-2">Engagement 12 mois • 360€/an</p>
+                <p className="text-sm text-blue-200 mt-2">Engagement 12 mois • 359,88€/an</p>
               </div>
             </div>
 
@@ -236,10 +236,10 @@ export default function SubscriptionPage() {
               <p className="text-yellow-900/90">L'expérience complète : outils avancés + formation présentielle</p>
               <div className="mt-6">
                 <div className="flex items-baseline gap-2">
-                  <span className="text-5xl font-bold">42€</span>
+                  <span className="text-5xl font-bold">49,99€</span>
                   <span className="text-yellow-900/80">/mois</span>
                 </div>
-                <p className="text-sm text-yellow-900/70 mt-2">Engagement 12 mois • 500€/an</p>
+                <p className="text-sm text-yellow-900/70 mt-2">Engagement 12 mois • 599,88€/an</p>
               </div>
             </div>
 
