@@ -745,22 +745,27 @@ export default function ElearningPage() {
   return (
     <AuthLayout>
       <div className="space-y-6">
-        <div className="bg-white rounded-xl shadow-sm p-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div className="space-y-1">
-            <div className="flex items-center gap-2 text-primary-600 text-sm font-semibold">
-              <GraduationCap className="h-5 w-5" />
-              E-learning
-            </div>
-            <h1 className="text-2xl font-bold text-gray-900">Construire et suivre les parcours</h1>
-            <p className="text-gray-600">
-              Créez des formations avec chapitres et sous-parties vidéo. Les membres Premium marquent chaque étape comme
-              terminée pour valider leur progression.
-            </p>
-          </div>
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2 px-4 py-2 bg-primary-50 border border-primary-100 rounded-xl text-primary-700">
-              <Shield className="h-4 w-4" />
-              <span className="text-sm font-semibold">{isAdmin ? 'Admin : construction active' : 'Accès Premium'}</span>
+        {/* Header */}
+        <div className="overflow-hidden rounded-2xl bg-gradient-to-br from-slate-900 via-slate-900 to-slate-800 text-white shadow-xl border border-white/10">
+          <div className="p-6">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <div className="space-y-3">
+                <p className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-sky-200">
+                  <GraduationCap className="h-4 w-4" />
+                  E-learning
+                </p>
+                <h1 className="text-3xl font-bold leading-tight">Construire et suivre les parcours</h1>
+                <p className="text-slate-200 text-sm md:text-base">
+                  Créez des formations avec chapitres et sous-parties vidéo. Les membres Premium marquent chaque étape comme
+                  terminée pour valider leur progression.
+                </p>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 px-4 py-2 bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg">
+                  <Shield className="h-4 w-4 text-emerald-300" />
+                  <span className="text-sm font-semibold">{isAdmin ? 'Admin : construction active' : 'Accès Premium'}</span>
+                </div>
+              </div>
             </div>
           </div>
         </div>

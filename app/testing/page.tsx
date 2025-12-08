@@ -725,22 +725,28 @@ export default function TestingModulePage() {
     <AuthLayout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="bg-gradient-to-r from-green-600 to-green-700 rounded-xl shadow-sm p-6 text-white">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold">Testing 3D</h1>
-              <p className="text-green-100 mt-1">
-                Sélectionnez une zone anatomique pour voir les tests et
-                clusters disponibles
-              </p>
+        <div className="overflow-hidden rounded-2xl bg-gradient-to-br from-slate-900 via-slate-900 to-slate-800 text-white shadow-xl border border-white/10">
+          <div className="p-6">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <div className="space-y-3">
+                <p className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-sky-200">
+                  <span className="h-2 w-2 rounded-full bg-sky-400" />
+                  Module Testing
+                </p>
+                <h1 className="text-3xl font-bold leading-tight">Testing 3D</h1>
+                <p className="text-slate-200 text-sm md:text-base">
+                  Sélectionnez une zone anatomique pour voir les tests et
+                  clusters disponibles
+                </p>
+              </div>
+              <button
+                onClick={newSession}
+                className="inline-flex items-center gap-2 rounded-lg bg-sky-500 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-sky-500/20 transition hover:bg-sky-400"
+              >
+                <Plus className="h-5 w-5" />
+                Nouvelle Session
+              </button>
             </div>
-            <button
-              onClick={newSession}
-              className="bg-white/20 hover:bg-white/30 backdrop-blur-sm px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
-            >
-              <Plus className="h-5 w-5" />
-              Nouvelle Session
-            </button>
           </div>
         </div>
 

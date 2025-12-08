@@ -316,35 +316,40 @@ export default function PracticePage() {
   return (
     <AuthLayout>
       <div className="space-y-8">
-        <div className="flex flex-col gap-3">
-          <div className="flex items-center gap-2 text-sm text-gray-500 uppercase tracking-wide">
-            <Video className="h-4 w-4" />
-            <span>Module Pratique</span>
-          </div>
-          <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-            <h1 className="text-3xl font-semibold text-gray-900">Pratique par région</h1>
-            <div className="flex gap-3 items-center">
-              <span className="text-sm font-medium text-gray-600">Choisir la région</span>
-              <select
-                value={selectedRegion}
-                onChange={(e) => {
-                  setSelectedRegion(e.target.value)
-                  setForm((prev) => ({ ...prev, region: e.target.value }))
-                }}
-                className="rounded-lg border border-gray-200 bg-white px-4 py-2 text-gray-800 shadow-sm"
-              >
-                {regions.map((region) => (
-                  <option key={region.value} value={region.value}>
-                    {region.label}
-                  </option>
-                ))}
-              </select>
+        {/* Header */}
+        <div className="overflow-hidden rounded-2xl bg-gradient-to-br from-slate-900 via-slate-900 to-slate-800 text-white shadow-xl border border-white/10">
+          <div className="p-6 space-y-4">
+            <p className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-sky-200">
+              <Video className="h-4 w-4" />
+              Module Pratique
+            </p>
+            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+              <div className="space-y-2">
+                <h1 className="text-3xl font-bold leading-tight">Pratique par région</h1>
+                <p className="text-slate-200 text-sm md:text-base">
+                  Sélectionne une région pour explorer les vidéos pratiques. Les vidéos s&apos;ouvrent dans un modal afin de
+                  rester concentré sur l&apos;essentiel.
+                </p>
+              </div>
+              <div className="flex gap-3 items-center">
+                <span className="text-sm font-medium text-slate-200">Choisir la région</span>
+                <select
+                  value={selectedRegion}
+                  onChange={(e) => {
+                    setSelectedRegion(e.target.value)
+                    setForm((prev) => ({ ...prev, region: e.target.value }))
+                  }}
+                  className="rounded-lg border border-white/20 bg-white/10 px-4 py-2 text-white shadow-sm backdrop-blur"
+                >
+                  {regions.map((region) => (
+                    <option key={region.value} value={region.value} className="text-gray-900">
+                      {region.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
           </div>
-          <p className="text-gray-600">
-            Sélectionne une région pour explorer les vidéos pratiques. Les vidéos s&apos;ouvrent dans un modal afin de
-            rester concentré sur l&apos;essentiel.
-          </p>
         </div>
 
         {isAdmin(profile?.role) && (
