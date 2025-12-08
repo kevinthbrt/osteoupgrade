@@ -146,10 +146,37 @@ export default function SeminarsPage() {
   const cycleRegistrations = userRegistrations.filter((r) => isDateWithinCycle(r.registeredAt, currentCycle))
   const hasReachedLimit = cycleRegistrations.length >= 1
 
+  // Vérifier si l'abonnement Gold est actif
+  const isGoldActive = useMemo(() => {
+    if (profile?.role === 'admin') return true
+    if (profile?.role !== 'premium_gold') return false
+
+    const isActive = profile?.subscription_status === 'active'
+    const now = new Date()
+    const endDate = profile?.subscription_end_date ? new Date(profile.subscription_end_date) : null
+    const isExpired = endDate && now > endDate
+
+    return isActive && !isExpired
+  }, [profile?.role, profile?.subscription_status, profile?.subscription_end_date])
+
   const handleRegister = async (id: string) => {
+    // Vérifier le rôle Gold (admin toujours autorisé)
     if (profile?.role !== 'premium_gold' && profile?.role !== 'admin') {
       alert('Inscription réservée aux membres Premium Gold uniquement')
       return
+    }
+
+    // Vérifier que l'abonnement Gold est actif (sauf pour admin)
+    if (profile?.role === 'premium_gold') {
+      const isActive = profile?.subscription_status === 'active'
+      const now = new Date()
+      const endDate = profile?.subscription_end_date ? new Date(profile.subscription_end_date) : null
+      const isExpired = endDate && now > endDate
+
+      if (!isActive || isExpired) {
+        alert('Votre abonnement Premium Gold a expiré. Veuillez renouveler votre abonnement pour accéder aux séminaires.')
+        return
+      }
     }
 
     if (hasReachedLimit) {
@@ -334,8 +361,7 @@ export default function SeminarsPage() {
           </div>
           <h1 className="text-2xl font-bold text-gray-900">Rencontres en présentiel (1 séminaire de 2 jours inclus/an)</h1>
           <p className="text-gray-600">
-            Réservés aux abonnés Premium Gold pour rencontrer Gérald Stoppini et Kevin Thubert. Limite d'un séminaire (2 jours) par
-            cycle annuel depuis votre date d'abonnement.
+            Réservés aux abonnés Premium Gold <strong>actifs uniquement</strong>. Vous pouvez vous inscrire à <strong>1 séminaire maximum par période d'abonnement de 12 mois</strong>, calculée depuis votre date de souscription.
           </p>
           <div className="flex items-center gap-3 text-sm text-gray-700">
             <Users className="h-4 w-4 text-primary-600" />
@@ -369,6 +395,24 @@ export default function SeminarsPage() {
               className="bg-white text-amber-600 px-5 py-3 rounded-lg font-semibold hover:bg-white/90 transition whitespace-nowrap"
             >
               {isFree ? 'Activer Premium' : 'Passer à Gold'}
+            </button>
+          </div>
+        )}
+
+        {profile?.role === 'premium_gold' && !isGoldActive && (
+          <div className="bg-gradient-to-r from-red-500 to-rose-500 text-white rounded-xl p-6 shadow-lg flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+              <p className="text-sm uppercase tracking-wide text-white/80">Abonnement expiré</p>
+              <h2 className="text-xl font-bold">Votre abonnement Premium Gold a expiré</h2>
+              <p className="text-white/90 mt-2">
+                Pour continuer à accéder aux séminaires présentiels, veuillez renouveler votre abonnement Premium Gold.
+              </p>
+            </div>
+            <button
+              onClick={() => router.push('/settings/subscription')}
+              className="bg-white text-red-600 px-5 py-3 rounded-lg font-semibold hover:bg-white/90 transition whitespace-nowrap"
+            >
+              Renouveler
             </button>
           </div>
         )}
@@ -419,26 +463,30 @@ export default function SeminarsPage() {
                   {!isRegistered ? (
                     <button
                       onClick={() => handleRegister(seminar.id)}
-                      disabled={isFree || profile?.role === 'premium_silver' || hasReachedLimit || isFull}
+                      disabled={isFree || profile?.role === 'premium_silver' || !isGoldActive || hasReachedLimit || isFull}
                       className={`px-4 py-2 rounded-lg text-sm font-semibold border transition flex items-center justify-center gap-2 ${
                         isFree || profile?.role === 'premium_silver'
                           ? 'border-dashed border-gray-200 text-gray-400'
-                          : hasReachedLimit
-                            ? 'border-red-200 text-red-600 bg-red-50'
-                            : isFull
+                          : profile?.role === 'premium_gold' && !isGoldActive
+                            ? 'border-red-200 text-red-600 bg-red-50 cursor-not-allowed'
+                            : hasReachedLimit
                               ? 'border-red-200 text-red-600 bg-red-50'
-                              : 'border-primary-200 text-primary-700 hover:bg-primary-50'
+                              : isFull
+                                ? 'border-red-200 text-red-600 bg-red-50'
+                                : 'border-primary-200 text-primary-700 hover:bg-primary-50'
                       }`}
                     >
                       {isFree
                         ? 'Gold requis'
                         : profile?.role === 'premium_silver'
                           ? 'Gold requis'
-                          : hasReachedLimit
-                            ? 'Limite atteinte'
-                            : isFull
-                              ? 'Complet'
-                              : 'Réserver ma place'}
+                          : profile?.role === 'premium_gold' && !isGoldActive
+                            ? 'Abonnement expiré'
+                            : hasReachedLimit
+                              ? 'Limite atteinte'
+                              : isFull
+                                ? 'Complet'
+                                : 'Réserver ma place'}
                     </button>
                   ) : (
                     <>
