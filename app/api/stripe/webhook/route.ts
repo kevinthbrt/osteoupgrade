@@ -131,14 +131,26 @@ async function handleCheckoutCompleted(session: any) {
 
 // Gérer la mise à jour d'abonnement
 async function handleSubscriptionUpdated(subscription: any) {
-  const userId = subscription.metadata?.userId
+  const customerId = subscription.customer
 
-  if (!userId) {
-    console.error('❌ Missing userId in subscription')
+  if (!customerId) {
+    console.error('❌ Missing customer ID in subscription')
     return
   }
 
-  console.log(`ℹ️ Subscription updated for user ${userId}`)
+  console.log(`ℹ️ Subscription updated for customer ${customerId}, status: ${subscription.status}`)
+
+  // Trouver l'utilisateur par son stripe_customer_id
+  const { data: profile, error: profileError } = await supabaseAdmin
+    .from('profiles')
+    .select('id')
+    .eq('stripe_customer_id', customerId)
+    .single()
+
+  if (profileError || !profile) {
+    console.error('❌ Profile not found for customer:', customerId, profileError)
+    return
+  }
 
   // Mettre à jour le statut
   await supabaseAdmin
@@ -146,19 +158,35 @@ async function handleSubscriptionUpdated(subscription: any) {
     .update({
       subscription_status: subscription.status
     })
-    .eq('id', userId)
+    .eq('id', profile.id)
+
+  console.log(`✅ Updated subscription status to ${subscription.status} for user ${profile.id}`)
 }
 
 // Gérer la suppression/annulation d'abonnement
 async function handleSubscriptionDeleted(subscription: any) {
-  const userId = subscription.metadata?.userId
+  const customerId = subscription.customer
 
-  if (!userId) {
-    console.error('❌ Missing userId in subscription')
+  if (!customerId) {
+    console.error('❌ Missing customer ID in subscription')
     return
   }
 
-  console.log(`❌ Subscription deleted for user ${userId}`)
+  console.log(`❌ Subscription deleted for customer ${customerId}`)
+
+  // Trouver l'utilisateur par son stripe_customer_id
+  const { data: profile, error: profileError } = await supabaseAdmin
+    .from('profiles')
+    .select('id, email')
+    .eq('stripe_customer_id', customerId)
+    .single()
+
+  if (profileError || !profile) {
+    console.error('❌ Profile not found for customer:', customerId, profileError)
+    return
+  }
+
+  console.log(`Found user ${profile.id} for customer ${customerId}`)
 
   // Révoquer le premium
   const { error: updateError } = await supabaseAdmin
@@ -168,24 +196,14 @@ async function handleSubscriptionDeleted(subscription: any) {
       subscription_status: 'cancelled',
       subscription_end_date: new Date().toISOString()
     })
-    .eq('id', userId)
+    .eq('id', profile.id)
 
   if (updateError) {
     console.error('❌ Error updating profile:', updateError)
     return
   }
 
-  // Récupérer l'email
-  const { data: profile } = await supabaseAdmin
-    .from('profiles')
-    .select('email')
-    .eq('id', userId)
-    .single()
-
-  if (!profile) {
-    console.error('❌ Profile not found for cancellation email')
-    return
-  }
+  console.log('✅ User downgraded to free')
 
   // 🚀 DÉCLENCHER L'AUTOMATISATION "Abonnement expiré"
   try {
