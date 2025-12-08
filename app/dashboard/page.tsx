@@ -273,14 +273,14 @@ export default function Dashboard() {
         setActivityData(activityArray)
 
         // Module usage
-        const treeUsage = new Map<string, number>()
+        const treeUsage: Record<string, number> = {}
         for (const session of sessionsWithTrees) {
           const treeName = session.tree_name
-          treeUsage.set(treeName, (treeUsage.get(treeName) || 0) + 1)
+          treeUsage[treeName] = (treeUsage[treeName] || 0) + 1
         }
 
         const colors = ['#0ea5e9', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981']
-        const moduleArray: ModuleUsage[] = Array.from(treeUsage.entries())
+        const moduleArray: ModuleUsage[] = Object.entries(treeUsage)
           .map(([name, count], index) => ({
             name,
             count,
