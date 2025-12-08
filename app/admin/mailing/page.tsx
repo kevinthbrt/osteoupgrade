@@ -1222,7 +1222,7 @@ export default function MailingAdminPage() {
       </div>
       {templateModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
-          <div className="w-full max-w-2xl rounded-xl bg-white shadow-xl">
+          <div className="flex h-[80vh] w-full max-w-2xl flex-col overflow-hidden rounded-xl bg-white shadow-xl">
             <div className="flex items-center justify-between border-b border-gray-200 px-4 py-3">
               <div className="flex items-center gap-2">
                 <FilePlus2 className="h-5 w-5 text-primary-600" />
@@ -1237,7 +1237,7 @@ export default function MailingAdminPage() {
                 <X className="h-4 w-4" />
               </button>
             </div>
-            <div className="space-y-3 p-4">
+            <div className="flex-1 space-y-3 overflow-y-auto p-4">
               <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                 <input
                   type="text"
