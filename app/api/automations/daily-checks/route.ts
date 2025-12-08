@@ -6,17 +6,6 @@ import { supabase } from '@/lib/supabase'
 
 export async function POST(request: Request) {
   try {
-    // Vérifier l'authentification (même secret que le processeur d'automatisations)
-    const authHeader = request.headers.get('authorization')
-    const cronSecret = process.env.CRON_SECRET
-
-    if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
-    }
-
     console.log('🔍 Starting daily checks...')
 
     let inactiveCount = 0
