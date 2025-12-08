@@ -239,7 +239,8 @@ export default function Dashboard() {
         })
 
         // Activity data for last 7 days
-        const activityMap = new Map<string, { sessions: number; tests: number }>()
+        type ActivityMapValue = { sessions: number; tests: number }
+        const activityMap = new Map<string, ActivityMapValue>()
         const days = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam']
 
         for (let i = 6; i >= 0; i--) {
