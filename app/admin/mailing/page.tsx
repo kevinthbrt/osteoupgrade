@@ -17,7 +17,14 @@ import {
   Users,
   Sparkles,
   ChevronDown,
-  FileText
+  FileText,
+  Bold,
+  Italic,
+  Link2,
+  Image as ImageIcon,
+  List,
+  Heading2,
+  Paperclip
 } from 'lucide-react'
 import AuthLayout from '@/components/AuthLayout'
 import { supabase } from '@/lib/supabase'
@@ -29,6 +36,14 @@ type Template = {
   description: string
   html: string
   text?: string
+}
+
+type Attachment = {
+  name: string
+  content: string
+  type: string
+  cid?: string
+  disposition?: 'inline' | 'attachment'
 }
 
 type AutomationStep = {
@@ -59,6 +74,8 @@ export default function MailingAdminPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(true)
   const editorRef = useRef<HTMLDivElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const attachmentInputRef = useRef<HTMLInputElement>(null)
 
   // Newsletter state
   const [toInput, setToInput] = useState('')
@@ -69,6 +86,7 @@ export default function MailingAdminPage() {
   const [subscriptionFilter, setSubscriptionFilter] = useState<string>('premium_silver')
   const [sending, setSending] = useState(false)
   const [result, setResult] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
+  const [attachments, setAttachments] = useState<Attachment[]>([])
 
   // Templates state
   const [templates, setTemplates] = useState<Template[]>([])
@@ -166,6 +184,118 @@ export default function MailingAdminPage() {
     } catch (error) {
       console.error('Error loading automations:', error)
     }
+  }
+
+  // HTML formatting functions
+  const insertHtml = (tag: string, promptText?: string) => {
+    const editor = editorRef.current
+    if (!editor) return
+
+    const selection = window.getSelection()
+    if (!selection || selection.rangeCount === 0) return
+
+    const range = selection.getRangeAt(0)
+    let htmlToInsert = ''
+
+    if (tag === 'link') {
+      const url = prompt(promptText || 'Entrez l\'URL :')
+      if (!url) return
+      const selectedText = range.toString() || 'Lien'
+      htmlToInsert = `<a href="${url}" style="color:#7c3aed;text-decoration:underline;">${selectedText}</a>`
+    } else if (tag === 'h2') {
+      const selectedText = range.toString() || 'Titre'
+      htmlToInsert = `<h2 style="color:#7c3aed;font-size:24px;font-weight:bold;margin:16px 0 8px 0;">${selectedText}</h2>`
+    } else if (tag === 'ul') {
+      htmlToInsert = '<ul style="margin:12px 0;padding-left:24px;"><li>Élément de liste</li></ul>'
+    } else if (tag === 'br') {
+      htmlToInsert = '<br />'
+    } else {
+      const selectedText = range.toString() || 'Texte'
+      htmlToInsert = `<${tag}>${selectedText}</${tag}>`
+    }
+
+    range.deleteContents()
+    const fragment = range.createContextualFragment(htmlToInsert)
+    range.insertNode(fragment)
+
+    setHtml(editor.innerHTML)
+    editor.focus()
+  }
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    if (!file.type.startsWith('image/')) {
+      alert('Veuillez sélectionner une image')
+      return
+    }
+
+    const reader = new FileReader()
+    reader.onload = () => {
+      const base64 = reader.result as string
+      const cid = `image-${Date.now()}`
+
+      setAttachments((prev) => [
+        ...prev,
+        {
+          name: file.name,
+          content: base64.split(',')[1],
+          type: file.type,
+          cid,
+          disposition: 'inline'
+        }
+      ])
+
+      const imgHtml = `<img src="cid:${cid}" alt="${file.name}" style="display:block;max-width:640px;width:100%;height:auto;margin:12px 0;" />`
+
+      if (editorRef.current) {
+        const selection = window.getSelection()
+        if (selection && selection.rangeCount > 0) {
+          const range = selection.getRangeAt(0)
+          range.deleteContents()
+          const fragment = range.createContextualFragment(imgHtml)
+          range.insertNode(fragment)
+        } else {
+          editorRef.current.innerHTML += imgHtml
+        }
+        setHtml(editorRef.current.innerHTML)
+      }
+    }
+    reader.readAsDataURL(file)
+
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+    }
+  }
+
+  const handleAttachmentUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    const reader = new FileReader()
+    reader.onload = () => {
+      const base64 = reader.result as string
+      setAttachments((prev) => [
+        ...prev,
+        {
+          name: file.name,
+          content: base64.split(',')[1],
+          type: file.type || 'application/octet-stream',
+          disposition: 'attachment'
+        }
+      ])
+      alert(`Pièce jointe "${file.name}" ajoutée`)
+    }
+    reader.readAsDataURL(file)
+
+    if (attachmentInputRef.current) {
+      attachmentInputRef.current.value = ''
+    }
+  }
+
+  const removeAttachment = (index: number) => {
+    setAttachments((prev) => prev.filter((_, i) => i !== index))
   }
 
   // Template selection
@@ -279,7 +409,8 @@ export default function MailingAdminPage() {
           subject,
           html: editorRef.current?.innerHTML || html,
           audienceMode,
-          subscriptionFilter: audienceMode === 'subscription' ? subscriptionFilter : undefined
+          subscriptionFilter: audienceMode === 'subscription' ? subscriptionFilter : undefined,
+          attachments: attachments.length > 0 ? attachments : undefined
         })
       })
 
@@ -589,6 +720,118 @@ export default function MailingAdminPage() {
             {/* HTML Editor */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Contenu HTML</label>
+
+              {/* Formatting toolbar */}
+              <div className="flex items-center gap-2 mb-2 p-3 bg-gray-50 rounded-lg border border-gray-200 flex-wrap">
+                <button
+                  type="button"
+                  onClick={() => insertHtml('strong')}
+                  className="p-2 hover:bg-white rounded-md transition border border-transparent hover:border-gray-300"
+                  title="Gras"
+                >
+                  <Bold className="h-4 w-4 text-gray-700" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => insertHtml('em')}
+                  className="p-2 hover:bg-white rounded-md transition border border-transparent hover:border-gray-300"
+                  title="Italique"
+                >
+                  <Italic className="h-4 w-4 text-gray-700" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => insertHtml('h2')}
+                  className="p-2 hover:bg-white rounded-md transition border border-transparent hover:border-gray-300"
+                  title="Titre"
+                >
+                  <Heading2 className="h-4 w-4 text-gray-700" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => insertHtml('link')}
+                  className="p-2 hover:bg-white rounded-md transition border border-transparent hover:border-gray-300"
+                  title="Lien"
+                >
+                  <Link2 className="h-4 w-4 text-gray-700" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => insertHtml('ul')}
+                  className="p-2 hover:bg-white rounded-md transition border border-transparent hover:border-gray-300"
+                  title="Liste"
+                >
+                  <List className="h-4 w-4 text-gray-700" />
+                </button>
+
+                <div className="w-px h-6 bg-gray-300 mx-1"></div>
+
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="p-2 hover:bg-white rounded-md transition border border-transparent hover:border-gray-300 flex items-center gap-1"
+                  title="Insérer une image"
+                >
+                  <ImageIcon className="h-4 w-4 text-gray-700" />
+                  <span className="text-sm text-gray-700">Image</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => attachmentInputRef.current?.click()}
+                  className="p-2 hover:bg-white rounded-md transition border border-transparent hover:border-gray-300 flex items-center gap-1"
+                  title="Ajouter une pièce jointe"
+                >
+                  <Paperclip className="h-4 w-4 text-gray-700" />
+                  <span className="text-sm text-gray-700">Pièce jointe</span>
+                </button>
+              </div>
+
+              {/* Hidden file inputs */}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleImageUpload}
+                className="hidden"
+              />
+              <input
+                ref={attachmentInputRef}
+                type="file"
+                onChange={handleAttachmentUpload}
+                className="hidden"
+              />
+
+              {/* Attachments list */}
+              {attachments.length > 0 && (
+                <div className="mb-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                  <p className="text-sm font-medium text-blue-900 mb-2">Pièces jointes ({attachments.length})</p>
+                  <div className="space-y-1">
+                    {attachments.map((attachment, index) => (
+                      <div key={index} className="flex items-center justify-between text-sm bg-white rounded px-3 py-2">
+                        <span className="flex items-center gap-2 text-gray-700">
+                          {attachment.disposition === 'inline' ? (
+                            <ImageIcon className="h-4 w-4 text-blue-600" />
+                          ) : (
+                            <Paperclip className="h-4 w-4 text-gray-600" />
+                          )}
+                          {attachment.name}
+                          {attachment.disposition === 'inline' && (
+                            <span className="text-xs text-blue-600">(inline)</span>
+                          )}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => removeAttachment(index)}
+                          className="text-red-600 hover:text-red-800 transition"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <div
                 ref={editorRef}
                 contentEditable
@@ -602,7 +845,7 @@ export default function MailingAdminPage() {
                 }}
               />
               <p className="text-sm text-gray-500 mt-2">
-                💡 Astuce : Vous pouvez directement modifier le HTML ci-dessus
+                💡 Astuce : Vous pouvez directement modifier le HTML ci-dessus ou utiliser les boutons de formatage
               </p>
             </div>
 
@@ -774,6 +1017,66 @@ export default function MailingAdminPage() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Contenu HTML</label>
+
+                  {/* Formatting toolbar for template */}
+                  <div className="flex items-center gap-2 mb-2 p-2 bg-gray-50 rounded-lg border border-gray-200 flex-wrap">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const boldText = prompt('Texte en gras :') || 'Texte'
+                        setTemplateDraft({ ...templateDraft, html: templateDraft.html + `<strong>${boldText}</strong>` })
+                      }}
+                      className="p-2 hover:bg-white rounded-md transition border border-transparent hover:border-gray-300"
+                      title="Gras"
+                    >
+                      <Bold className="h-4 w-4 text-gray-700" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const italicText = prompt('Texte en italique :') || 'Texte'
+                        setTemplateDraft({ ...templateDraft, html: templateDraft.html + `<em>${italicText}</em>` })
+                      }}
+                      className="p-2 hover:bg-white rounded-md transition border border-transparent hover:border-gray-300"
+                      title="Italique"
+                    >
+                      <Italic className="h-4 w-4 text-gray-700" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const headingText = prompt('Texte du titre :') || 'Titre'
+                        setTemplateDraft({ ...templateDraft, html: templateDraft.html + `<h2 style="color:#7c3aed;font-size:24px;font-weight:bold;">${headingText}</h2>` })
+                      }}
+                      className="p-2 hover:bg-white rounded-md transition border border-transparent hover:border-gray-300"
+                      title="Titre"
+                    >
+                      <Heading2 className="h-4 w-4 text-gray-700" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const linkText = prompt('Texte du lien :') || 'Lien'
+                        const linkUrl = prompt('URL :') || '#'
+                        setTemplateDraft({ ...templateDraft, html: templateDraft.html + `<a href="${linkUrl}" style="color:#7c3aed;">${linkText}</a>` })
+                      }}
+                      className="p-2 hover:bg-white rounded-md transition border border-transparent hover:border-gray-300"
+                      title="Lien"
+                    >
+                      <Link2 className="h-4 w-4 text-gray-700" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setTemplateDraft({ ...templateDraft, html: templateDraft.html + `<ul style="margin:12px 0;padding-left:24px;"><li>Élément 1</li><li>Élément 2</li></ul>` })
+                      }}
+                      className="p-2 hover:bg-white rounded-md transition border border-transparent hover:border-gray-300"
+                      title="Liste"
+                    >
+                      <List className="h-4 w-4 text-gray-700" />
+                    </button>
+                  </div>
+
                   <textarea
                     value={templateDraft.html}
                     onChange={(e) => setTemplateDraft({ ...templateDraft, html: e.target.value })}
@@ -781,6 +1084,9 @@ export default function MailingAdminPage() {
                     className="w-full rounded-lg border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 font-mono text-sm"
                     placeholder="<div>Votre HTML ici...</div>"
                   />
+                  <p className="text-xs text-gray-500 mt-1">
+                    💡 Variables disponibles : {'{{first_name}}'}, {'{{last_name}}'}, {'{{email}}'}, {'{{full_name}}'}
+                  </p>
                 </div>
 
                 <div className="flex justify-end gap-3 pt-4">
