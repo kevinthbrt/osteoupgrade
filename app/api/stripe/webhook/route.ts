@@ -83,6 +83,8 @@ async function handleCheckoutCompleted(session: any) {
     subscription_start_date: commitmentStartDate.toISOString(),
     subscription_end_date: null,
     commitment_end_date: commitmentEndDate.toISOString(),
+    commitment_cycle_number: 1,
+    commitment_renewal_notification_sent: false,
     stripe_customer_id: session.customer,
     stripe_subscription_id: session.subscription
   }
@@ -244,8 +246,82 @@ async function handleSubscriptionDeleted(subscription: any) {
 
 // Paiement réussi (renouvellement)
 async function handlePaymentSucceeded(invoice: any) {
-  console.log(`✅ Payment succeeded for subscription ${invoice.subscription}`)
-  // Optionnel : envoyer un email de confirmation de paiement
+  const subscriptionId = invoice.subscription
+
+  if (!subscriptionId) {
+    console.log('ℹ️ Payment succeeded but no subscription ID (one-time payment)')
+    return
+  }
+
+  console.log(`✅ Payment succeeded for subscription ${subscriptionId}`)
+
+  // Trouver l'utilisateur par son stripe_subscription_id
+  const { data: profile, error: profileError } = await supabaseAdmin
+    .from('profiles')
+    .select('id, email, commitment_end_date, commitment_cycle_number, role')
+    .eq('stripe_subscription_id', subscriptionId)
+    .single()
+
+  if (profileError || !profile) {
+    console.error('❌ Profile not found for subscription:', subscriptionId, profileError)
+    return
+  }
+
+  console.log(`💰 Payment processed for user ${profile.id}`)
+
+  // Vérifier si le cycle d'engagement est terminé
+  const now = new Date()
+  const commitmentEndDate = profile.commitment_end_date ? new Date(profile.commitment_end_date) : null
+
+  if (commitmentEndDate && now >= commitmentEndDate) {
+    // Le cycle d'engagement est terminé, on démarre un nouveau cycle automatiquement
+    const currentCycle = profile.commitment_cycle_number || 1
+    const newCycleNumber = currentCycle + 1
+    const newCommitmentEndDate = new Date(now)
+    newCommitmentEndDate.setMonth(newCommitmentEndDate.getMonth() + 12)
+
+    console.log(`🔄 Starting new commitment cycle ${newCycleNumber} for user ${profile.id}`)
+    console.log(`📅 New commitment end date: ${newCommitmentEndDate.toISOString()}`)
+
+    // Mettre à jour le profil avec le nouveau cycle
+    const { error: updateError } = await supabaseAdmin
+      .from('profiles')
+      .update({
+        commitment_cycle_number: newCycleNumber,
+        commitment_end_date: newCommitmentEndDate.toISOString(),
+        commitment_renewal_notification_sent: false
+      })
+      .eq('id', profile.id)
+
+    if (updateError) {
+      console.error('❌ Error updating commitment cycle:', updateError)
+      return
+    }
+
+    console.log(`✅ Commitment cycle ${newCycleNumber} started successfully for user ${profile.id}`)
+
+    // 🚀 DÉCLENCHER L'AUTOMATISATION "Renouvellement effectué"
+    try {
+      await fetch(`${process.env.NEXT_PUBLIC_URL || 'http://localhost:3000'}/api/automations/trigger`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          event: 'Renouvellement effectué',
+          contact_email: profile.email,
+          metadata: {
+            cycle_number: newCycleNumber,
+            new_commitment_end_date: newCommitmentEndDate.toISOString(),
+            plan_type: profile.role
+          }
+        })
+      })
+      console.log('✅ Automation triggered: Renouvellement effectué')
+    } catch (err) {
+      console.error('❌ Error triggering automation:', err)
+    }
+  } else {
+    console.log(`ℹ️ Recurring payment within current commitment cycle (ends ${commitmentEndDate?.toISOString()})`)
+  }
 }
 
 // Paiement échoué

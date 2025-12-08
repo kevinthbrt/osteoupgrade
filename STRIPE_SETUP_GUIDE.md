@@ -136,20 +136,122 @@ Ces informations sont stockées dans Supabase pour référence.
 
 ## 🗄️ Étape 6 : Mise à Jour de la Base de Données Supabase
 
-Ajoutez un nouveau champ dans la table `profiles` :
+Ajoutez les nouveaux champs dans la table `profiles` pour gérer les cycles de renouvellement :
 
 ```sql
+-- Date de fin de l'engagement en cours
 ALTER TABLE profiles
 ADD COLUMN commitment_end_date TIMESTAMP WITH TIME ZONE;
 
--- Ajouter un commentaire pour documentation
+-- Numéro du cycle d'engagement (1, 2, 3, etc.)
+ALTER TABLE profiles
+ADD COLUMN commitment_cycle_number INTEGER DEFAULT 1;
+
+-- Indique si la notification de renouvellement a été envoyée
+ALTER TABLE profiles
+ADD COLUMN commitment_renewal_notification_sent BOOLEAN DEFAULT false;
+
+-- Ajouter des commentaires pour documentation
 COMMENT ON COLUMN profiles.commitment_end_date IS
 'Date de fin de l''engagement minimum de 12 mois pour les abonnements mensuels';
+
+COMMENT ON COLUMN profiles.commitment_cycle_number IS
+'Numéro du cycle d''engagement en cours (incrémenté à chaque renouvellement automatique)';
+
+COMMENT ON COLUMN profiles.commitment_renewal_notification_sent IS
+'Indique si l''email d''avertissement de renouvellement a été envoyé (7 jours avant la fin du cycle)';
 ```
 
-## 🧪 Étape 7 : Tester le Workflow Complet
+## ⏰ Étape 7 : Configurer le Cron Job de Renouvellement
 
-### 7.1 Mode Test
+### 7.1 Configuration Vercel Cron
+
+Le fichier `vercel.json` est déjà configuré pour exécuter le cron quotidiennement :
+
+```json
+{
+  "crons": [
+    {
+      "path": "/api/subscriptions/check-renewals",
+      "schedule": "0 9 * * *"
+    }
+  ]
+}
+```
+
+Ce cron s'exécute tous les jours à 9h00 (UTC) et vérifie les utilisateurs dont le cycle d'engagement se termine dans 7 jours.
+
+### 7.2 Configurer le CRON_SECRET
+
+Ajoutez cette variable d'environnement dans Vercel :
+
+```bash
+CRON_SECRET=un_token_secret_ultra_securise_aleatoire
+```
+
+⚠️ **Important** : Générez un token aléatoire fort (ex: via `openssl rand -base64 32`)
+
+### 7.3 Configurer les Automatisations Email
+
+Vous devez créer deux automatisations email dans votre système d'emailing :
+
+#### Automatisation 1 : "Renouvellement imminent"
+- **Déclencheur** : Événement personnalisé `Renouvellement imminent`
+- **Quand** : 7 jours avant la fin du cycle d'engagement
+- **Objectif** : Informer l'utilisateur qu'il peut annuler avant le renouvellement
+
+**Variables disponibles** :
+- `cycle_number` : Numéro du cycle actuel
+- `renewal_date` : Date de renouvellement
+- `days_until_renewal` : Nombre de jours restants (toujours 7)
+- `plan_type` : Type de plan (premium_silver ou premium_gold)
+
+**Exemple de contenu** :
+```
+Objet : 🔔 Votre engagement se renouvelle dans 7 jours
+
+Bonjour,
+
+Votre abonnement Premium arrive en fin de cycle d'engagement dans 7 jours.
+
+✅ Si vous souhaitez continuer : Rien à faire ! Votre abonnement se renouvellera automatiquement.
+❌ Si vous souhaitez annuler : Gérez votre abonnement avant le {{ renewal_date }}
+
+[Bouton : Gérer mon abonnement]
+```
+
+#### Automatisation 2 : "Renouvellement effectué"
+- **Déclencheur** : Événement personnalisé `Renouvellement effectué`
+- **Quand** : Lors du premier paiement après la fin du cycle
+- **Objectif** : Confirmer le renouvellement pour 12 mois supplémentaires
+
+**Variables disponibles** :
+- `cycle_number` : Nouveau numéro de cycle
+- `new_commitment_end_date` : Date de fin du nouveau cycle
+- `plan_type` : Type de plan
+
+**Exemple de contenu** :
+```
+Objet : ✅ Votre abonnement a été renouvelé
+
+Bonjour,
+
+Votre abonnement Premium a été renouvelé avec succès pour 12 mois supplémentaires.
+
+📅 Prochain renouvellement : {{ new_commitment_end_date }}
+💰 Paiement mensuel : 29,99€ ou 49,99€
+
+Merci de votre confiance !
+```
+
+### 7.4 Documentation Complète
+
+Pour plus de détails sur le système de renouvellement automatique, consultez :
+📖 **RENEWAL_SYSTEM.md** - Documentation technique complète du système
+
+## 🧪 Étape 8 : Tester le Workflow Complet
+
+### 8.1 Mode Test
 
 1. Utilisez les clés de test Stripe (`sk_test_...` et `pk_test_...`)
 2. Testez un abonnement avec une carte de test : `4242 4242 4242 4242`
@@ -159,7 +261,7 @@ COMMENT ON COLUMN profiles.commitment_end_date IS
    - Le profil utilisateur est mis à jour avec `commitment_end_date`
    - L'accès Premium est accordé
 
-### 7.2 Tester l'annulation
+### 8.2 Tester l'annulation
 
 1. Allez dans le portail client Stripe
 2. Essayez d'annuler l'abonnement
@@ -167,7 +269,7 @@ COMMENT ON COLUMN profiles.commitment_end_date IS
 4. Vérifiez que le webhook `customer.subscription.deleted` est reçu
 5. Vérifiez que la détection d'annulation anticipée fonctionne (logs dans Vercel)
 
-### 7.3 Cartes de test Stripe
+### 8.3 Cartes de test Stripe
 
 - **Succès** : `4242 4242 4242 4242`
 - **Échec de paiement** : `4000 0000 0000 0341`
@@ -178,9 +280,9 @@ Toutes avec :
 - CVC : N'importe quel code à 3 chiffres
 - Code postal : N'importe lequel
 
-## 🚀 Étape 8 : Passage en Production
+## 🚀 Étape 9 : Passage en Production
 
-### 8.1 Checklist
+### 9.1 Checklist
 
 - [ ] Créer les produits en mode Live dans Stripe
 - [ ] Copier les nouveaux `price_id` de production
@@ -191,7 +293,7 @@ Toutes avec :
 - [ ] Vérifier que le portail client est configuré
 - [ ] Activer les emails de Stripe (reçus, confirmations)
 
-### 8.2 Variables de Production
+### 9.2 Variables de Production
 
 ```bash
 STRIPE_SECRET_KEY=sk_live_...
@@ -201,9 +303,9 @@ STRIPE_PRICE_GOLD=price_live_...
 STRIPE_WEBHOOK_SECRET=whsec_live_...
 ```
 
-## 📊 Étape 9 : Monitoring et Alertes
+## 📊 Étape 10 : Monitoring et Alertes
 
-### 9.1 Dans Stripe Dashboard
+### 10.1 Dans Stripe Dashboard
 
 - Activez les **notifications par email** pour :
   - Paiements échoués
@@ -211,13 +313,13 @@ STRIPE_WEBHOOK_SECRET=whsec_live_...
   - Tentatives de fraude
   - Litiges
 
-### 9.2 Dans Vercel
+### 10.2 Dans Vercel
 
 - Surveillez les logs de vos webhooks :
   - Allez dans **Logs** → Filtrez par `/api/stripe/webhook`
   - Vérifiez qu'il n'y a pas d'erreurs
 
-### 9.3 Dans Supabase
+### 10.3 Dans Supabase
 
 Créez une vue pour suivre les engagements :
 
