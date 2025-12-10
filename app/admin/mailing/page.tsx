@@ -106,6 +106,20 @@ export default function MailingAdminPage() {
   const [showHtmlMode, setShowHtmlMode] = useState(false)
   const templateEditorRef = useRef<HTMLDivElement>(null)
 
+  // Initialize template editor content when modal opens
+  useEffect(() => {
+    if (templateModalOpen && templateEditorRef.current && !showHtmlMode) {
+      templateEditorRef.current.innerHTML = templateDraft.html
+    }
+  }, [templateModalOpen, showHtmlMode])
+
+  // Initialize main editor content
+  useEffect(() => {
+    if (editorRef.current && editorRef.current.innerHTML === '') {
+      editorRef.current.innerHTML = html
+    }
+  }, [])
+
   // Automations state
   const [automations, setAutomations] = useState<Automation[]>([])
   const [automationModalOpen, setAutomationModalOpen] = useState(false)
@@ -309,6 +323,7 @@ export default function MailingAdminPage() {
     if (template) {
       setSubject(template.subject)
       setHtml(template.html)
+      // Update editor content without using dangerouslySetInnerHTML
       if (editorRef.current) {
         editorRef.current.innerHTML = template.html
       }
@@ -896,7 +911,7 @@ export default function MailingAdminPage() {
                 contentEditable
                 onInput={(e) => setHtml(e.currentTarget.innerHTML)}
                 className="w-full min-h-[400px] p-6 rounded-lg border-2 border-gray-300 focus:border-purple-500 focus:outline-none bg-white"
-                dangerouslySetInnerHTML={{ __html: html }}
+                suppressContentEditableWarning
                 style={{
                   fontFamily: 'Inter, sans-serif',
                   fontSize: '14px',
@@ -1290,7 +1305,7 @@ export default function MailingAdminPage() {
                       contentEditable
                       onInput={(e) => setTemplateDraft({ ...templateDraft, html: e.currentTarget.innerHTML })}
                       className="w-full min-h-[400px] p-6 rounded-lg border-2 border-gray-300 focus:border-purple-500 focus:outline-none bg-white overflow-y-auto"
-                      dangerouslySetInnerHTML={{ __html: templateDraft.html }}
+                      suppressContentEditableWarning
                       style={{
                         fontFamily: 'Inter, sans-serif',
                         fontSize: '14px',
