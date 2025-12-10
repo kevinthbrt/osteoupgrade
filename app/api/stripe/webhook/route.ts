@@ -118,21 +118,26 @@ async function handleCheckoutCompleted(session: any) {
 
   console.log('📧 Triggering automation for:', profile.email)
 
-  // 🚀 DÉCLENCHER L'AUTOMATISATION "Passage à Premium"
+  // 🚀 DÉCLENCHER L'AUTOMATISATION selon le plan (Silver ou Gold)
+  const eventName = planType === 'premium_gold' ? 'Passage à Premium Gold' : 'Passage à Premium Silver'
+
   try {
     await fetch(`${process.env.NEXT_PUBLIC_URL || 'http://localhost:3000'}/api/automations/trigger`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        event: 'Passage à Premium',
+        event: eventName,
         contact_email: profile.email,
         metadata: {
           plan_type: planType,
-          upgrade_date: new Date().toISOString()
+          plan_name: planType === 'premium_gold' ? 'Premium Gold' : 'Premium Silver',
+          monthly_price: planType === 'premium_gold' ? '49,99€' : '29,99€',
+          upgrade_date: new Date().toISOString(),
+          next_billing_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString('fr-FR')
         }
       })
     })
-    console.log('✅ Automation triggered: Passage à Premium')
+    console.log(`✅ Automation triggered: ${eventName}`)
   } catch (err) {
     console.error('❌ Error triggering automation:', err)
   }
@@ -310,8 +315,11 @@ async function handlePaymentSucceeded(invoice: any) {
           contact_email: profile.email,
           metadata: {
             cycle_number: newCycleNumber,
-            new_commitment_end_date: newCommitmentEndDate.toISOString(),
-            plan_type: profile.role
+            new_commitment_end_date: newCommitmentEndDate.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }),
+            plan_type: profile.role === 'premium_gold' ? 'Premium Gold' : 'Premium Silver',
+            monthly_price: profile.role === 'premium_gold' ? '49,99€' : '29,99€',
+            next_billing_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString('fr-FR'),
+            is_gold: profile.role === 'premium_gold'
           }
         })
       })

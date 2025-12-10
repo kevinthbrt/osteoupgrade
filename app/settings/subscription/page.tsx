@@ -12,6 +12,7 @@ export default function SubscriptionPage() {
   const [loading, setLoading] = useState(true)
   const [processingPlan, setProcessingPlan] = useState<string | null>(null)
   const [openingPortal, setOpeningPortal] = useState(false)
+  const [acceptedCommitment, setAcceptedCommitment] = useState(false)
 
   useEffect(() => {
     loadProfile()
@@ -290,9 +291,30 @@ export default function SubscriptionPage() {
                 </p>
               </div>
 
+              {!isPremium && (
+                <div className="bg-amber-50 border-2 border-amber-200 rounded-lg p-4">
+                  <label className="flex items-start gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={acceptedCommitment}
+                      onChange={(e) => setAcceptedCommitment(e.target.checked)}
+                      className="mt-0.5 h-5 w-5 rounded border-amber-300 text-blue-600 focus:ring-blue-500 flex-shrink-0"
+                    />
+                    <div className="text-sm">
+                      <span className="font-semibold text-amber-900">
+                        Je reconnais avoir été informé(e) de l'engagement de 12 mois minimum
+                      </span>
+                      <p className="text-amber-800 mt-1">
+                        En cochant cette case, je confirme avoir lu et compris les conditions d'engagement. Mon abonnement sera facturé mensuellement avec un engagement minimum de 12 mois.
+                      </p>
+                    </div>
+                  </label>
+                </div>
+              )}
+
               <button
                 onClick={() => handleUpgrade('premium_silver')}
-                disabled={processingPlan !== null || profile?.role === 'premium_silver' || profile?.role === 'premium_gold'}
+                disabled={processingPlan !== null || profile?.role === 'premium_silver' || profile?.role === 'premium_gold' || !acceptedCommitment}
                 className="w-full bg-blue-600 text-white py-4 px-6 rounded-lg font-semibold hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 {processingPlan === 'premium_silver' ? (
@@ -394,9 +416,30 @@ export default function SubscriptionPage() {
                 </p>
               </div>
 
+              {!isPremium && (
+                <div className="bg-amber-50 border-2 border-amber-200 rounded-lg p-4">
+                  <label className="flex items-start gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={acceptedCommitment}
+                      onChange={(e) => setAcceptedCommitment(e.target.checked)}
+                      className="mt-0.5 h-5 w-5 rounded border-amber-300 text-yellow-600 focus:ring-yellow-500 flex-shrink-0"
+                    />
+                    <div className="text-sm">
+                      <span className="font-semibold text-amber-900">
+                        Je reconnais avoir été informé(e) de l'engagement de 12 mois minimum
+                      </span>
+                      <p className="text-amber-800 mt-1">
+                        En cochant cette case, je confirme avoir lu et compris les conditions d'engagement. Mon abonnement sera facturé mensuellement avec un engagement minimum de 12 mois.
+                      </p>
+                    </div>
+                  </label>
+                </div>
+              )}
+
               <button
                 onClick={() => handleUpgrade('premium_gold')}
-                disabled={processingPlan !== null || profile?.role === 'premium_gold'}
+                disabled={processingPlan !== null || profile?.role === 'premium_gold' || !acceptedCommitment}
                 className="w-full bg-gradient-to-r from-yellow-500 to-yellow-600 text-yellow-900 py-4 px-6 rounded-lg font-bold hover:from-yellow-600 hover:to-yellow-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg"
               >
                 {processingPlan === 'premium_gold' ? (

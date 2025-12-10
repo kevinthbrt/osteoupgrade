@@ -44,6 +44,11 @@ export async function GET(request: Request) {
       console.log(`📨 Sending renewal notification to ${user.email} (${daysUntilRenewal} days until renewal)`)
 
       try {
+        // Préparer les métadonnées
+        const renewalDate = new Date(user.commitment_end_date)
+        const planName = user.role === 'premium_gold' ? 'Premium Gold' : 'Premium Silver'
+        const monthlyPrice = user.role === 'premium_gold' ? '49,99€' : '29,99€'
+
         // Déclencher l'automatisation email "Renouvellement imminent"
         await fetch(`${process.env.NEXT_PUBLIC_URL || 'http://localhost:3000'}/api/automations/trigger`, {
           method: 'POST',
@@ -52,10 +57,11 @@ export async function GET(request: Request) {
             event: 'Renouvellement imminent',
             contact_email: user.email,
             metadata: {
-              cycle_number: user.commitment_cycle_number,
-              renewal_date: user.commitment_end_date,
+              cycle_number: user.commitment_cycle_number || 1,
+              renewal_date: renewalDate.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }),
               days_until_renewal: daysUntilRenewal,
-              plan_type: user.role
+              plan_type: planName,
+              monthly_price: monthlyPrice
             }
           })
         })
