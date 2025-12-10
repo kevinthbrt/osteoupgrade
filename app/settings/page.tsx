@@ -202,7 +202,7 @@ export default function SettingsPage() {
 
   const tabs = [
     { id: 'account', label: 'Compte', icon: User },
-    { id: 'subscription', label: 'Abonnement', icon: CreditCard },
+    { id: 'subscription', label: 'Abonnement', icon: CreditCard, redirect: '/settings/subscription' },
     { id: 'security', label: 'Sécurité', icon: Lock },
     { id: 'notifications', label: 'Notifications', icon: Bell },
     { id: 'preferences', label: 'Préférences', icon: Settings },
@@ -247,7 +247,13 @@ export default function SettingsPage() {
                 return (
                   <button
                     key={tab.id}
-                    onClick={() => setActiveTab(tab.id)}
+                    onClick={() => {
+                      if (tab.redirect) {
+                        router.push(tab.redirect)
+                      } else {
+                        setActiveTab(tab.id)
+                      }
+                    }}
                     className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg transition-colors ${
                       activeTab === tab.id
                         ? 'bg-primary-50 text-primary-600'
@@ -256,8 +262,11 @@ export default function SettingsPage() {
                   >
                     <Icon className="h-5 w-5" />
                     <span className="font-medium">{tab.label}</span>
-                    {activeTab === tab.id && (
+                    {activeTab === tab.id && !tab.redirect && (
                       <ChevronRight className="h-4 w-4 ml-auto" />
+                    )}
+                    {tab.redirect && (
+                      <ChevronRight className="h-4 w-4 ml-auto opacity-50" />
                     )}
                   </button>
                 )
