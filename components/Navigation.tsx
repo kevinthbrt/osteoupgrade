@@ -24,7 +24,8 @@ import {
   Stethoscope,
   Dumbbell,
   Calendar,
-  Mail
+  Mail,
+  FolderOpen
 } from 'lucide-react'
 
 type MenuItem = {
@@ -149,6 +150,13 @@ export default function Navigation() {
           label: 'Tests Orthopédiques',
           icon: Clipboard,
           description: 'Tests par zones'
+        },
+        {
+          href: '/admin/diagnostics',
+          label: 'Diagnostics',
+          icon: FolderOpen,
+          description: 'Dossiers avec tests',
+          badge: 'Nouveau'
         },
         {
           href: '/admin/anatomy-builder',
