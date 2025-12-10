@@ -53,18 +53,15 @@ export default function AuthPage() {
             full_name: fullName,
           }).eq('id', data.user.id)
 
-          // Déclencher les automatisations d'email
+          // Déclencher l'automatisation d'email de bienvenue
           try {
             await fetch('/api/automations/trigger', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
-                event: 'Nouvelle inscription',
+                event: 'Inscription',
                 contact_email: email,
-                metadata: {
-                  full_name: fullName,
-                  signup_date: new Date().toISOString()
-                }
+                metadata: {}
               })
             })
           } catch (err) {

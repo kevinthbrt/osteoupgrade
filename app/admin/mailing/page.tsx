@@ -103,6 +103,8 @@ export default function MailingAdminPage() {
   })
   const [editingTemplateId, setEditingTemplateId] = useState<string | null>(null)
   const [templateSaving, setTemplateSaving] = useState(false)
+  const [showHtmlMode, setShowHtmlMode] = useState(false)
+  const templateEditorRef = useRef<HTMLDivElement>(null)
 
   // Automations state
   const [automations, setAutomations] = useState<Automation[]>([])
@@ -625,6 +627,7 @@ export default function MailingAdminPage() {
                     setTemplateModalOpen(true)
                     setEditingTemplateId(null)
                     setTemplateDraft({ id: '', name: '', subject: '', description: '', html: '<p>Contenu du template...</p>', text: '' })
+                    setShowHtmlMode(false)
                   }}
                   className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition flex items-center gap-2"
                 >
@@ -641,6 +644,7 @@ export default function MailingAdminPage() {
                           setTemplateModalOpen(true)
                           setEditingTemplateId(template.id)
                           setTemplateDraft(template)
+                          setShowHtmlMode(false)
                         }
                       }}
                       className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center gap-2"
@@ -724,68 +728,121 @@ export default function MailingAdminPage() {
               <label className="block text-sm font-medium text-gray-700 mb-2">Contenu HTML</label>
 
               {/* Formatting toolbar */}
-              <div className="flex items-center gap-2 mb-2 p-3 bg-gray-50 rounded-lg border border-gray-200 flex-wrap">
-                <button
-                  type="button"
-                  onClick={() => insertHtml('strong')}
-                  className="p-2 hover:bg-white rounded-md transition border border-transparent hover:border-gray-300"
-                  title="Gras"
-                >
-                  <Bold className="h-4 w-4 text-gray-700" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => insertHtml('em')}
-                  className="p-2 hover:bg-white rounded-md transition border border-transparent hover:border-gray-300"
-                  title="Italique"
-                >
-                  <Italic className="h-4 w-4 text-gray-700" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => insertHtml('h2')}
-                  className="p-2 hover:bg-white rounded-md transition border border-transparent hover:border-gray-300"
-                  title="Titre"
-                >
-                  <Heading2 className="h-4 w-4 text-gray-700" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => insertHtml('link')}
-                  className="p-2 hover:bg-white rounded-md transition border border-transparent hover:border-gray-300"
-                  title="Lien"
-                >
-                  <Link2 className="h-4 w-4 text-gray-700" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => insertHtml('ul')}
-                  className="p-2 hover:bg-white rounded-md transition border border-transparent hover:border-gray-300"
-                  title="Liste"
-                >
-                  <List className="h-4 w-4 text-gray-700" />
-                </button>
+              <div className="mb-2 space-y-2">
+                <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg border border-gray-200 flex-wrap">
+                  <span className="text-xs font-semibold text-gray-600 mr-2">Mise en forme :</span>
+                  <button
+                    type="button"
+                    onClick={() => insertHtml('strong')}
+                    className="px-3 py-1.5 bg-white hover:bg-gray-100 rounded-md transition border border-gray-300 flex items-center gap-1.5"
+                    title="Gras"
+                  >
+                    <Bold className="h-4 w-4 text-gray-700" />
+                    <span className="text-sm text-gray-700">Gras</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => insertHtml('em')}
+                    className="px-3 py-1.5 bg-white hover:bg-gray-100 rounded-md transition border border-gray-300 flex items-center gap-1.5"
+                    title="Italique"
+                  >
+                    <Italic className="h-4 w-4 text-gray-700" />
+                    <span className="text-sm text-gray-700">Italique</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => insertHtml('h2')}
+                    className="px-3 py-1.5 bg-white hover:bg-gray-100 rounded-md transition border border-gray-300 flex items-center gap-1.5"
+                    title="Titre"
+                  >
+                    <Heading2 className="h-4 w-4 text-gray-700" />
+                    <span className="text-sm text-gray-700">Titre</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => insertHtml('link')}
+                    className="px-3 py-1.5 bg-white hover:bg-gray-100 rounded-md transition border border-gray-300 flex items-center gap-1.5"
+                    title="Lien"
+                  >
+                    <Link2 className="h-4 w-4 text-gray-700" />
+                    <span className="text-sm text-gray-700">Lien</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => insertHtml('ul')}
+                    className="px-3 py-1.5 bg-white hover:bg-gray-100 rounded-md transition border border-gray-300 flex items-center gap-1.5"
+                    title="Liste"
+                  >
+                    <List className="h-4 w-4 text-gray-700" />
+                    <span className="text-sm text-gray-700">Liste</span>
+                  </button>
 
-                <div className="w-px h-6 bg-gray-300 mx-1"></div>
+                  <div className="w-px h-6 bg-gray-300 mx-1"></div>
 
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="p-2 hover:bg-white rounded-md transition border border-transparent hover:border-gray-300 flex items-center gap-1"
-                  title="Insérer une image"
-                >
-                  <ImageIcon className="h-4 w-4 text-gray-700" />
-                  <span className="text-sm text-gray-700">Image</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => attachmentInputRef.current?.click()}
-                  className="p-2 hover:bg-white rounded-md transition border border-transparent hover:border-gray-300 flex items-center gap-1"
-                  title="Ajouter une pièce jointe"
-                >
-                  <Paperclip className="h-4 w-4 text-gray-700" />
-                  <span className="text-sm text-gray-700">Pièce jointe</span>
-                </button>
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="px-3 py-1.5 bg-white hover:bg-gray-100 rounded-md transition border border-gray-300 flex items-center gap-1.5"
+                    title="Insérer une image"
+                  >
+                    <ImageIcon className="h-4 w-4 text-gray-700" />
+                    <span className="text-sm text-gray-700">Image</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => attachmentInputRef.current?.click()}
+                    className="px-3 py-1.5 bg-white hover:bg-gray-100 rounded-md transition border border-gray-300 flex items-center gap-1.5"
+                    title="Ajouter une pièce jointe"
+                  >
+                    <Paperclip className="h-4 w-4 text-gray-700" />
+                    <span className="text-sm text-gray-700">Pièce jointe</span>
+                  </button>
+                </div>
+
+                {/* Variable selector */}
+                <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+                  <div className="flex items-start gap-3">
+                    <div className="flex-1">
+                      <p className="text-xs font-semibold text-blue-900 mb-2">📝 Variables disponibles (cliquez pour insérer) :</p>
+                      <div className="flex flex-wrap gap-2">
+                        {[
+                          { var: '{{nom}}', desc: 'Nom du plan (Premium Silver/Gold)' },
+                          { var: '{{prix}}', desc: 'Prix mensuel (29,99€ / 49,99€)' },
+                          { var: '{{date_fact}}', desc: 'Date de prochaine facturation' },
+                          { var: '{{date_renouv}}', desc: 'Date de renouvellement' },
+                          { var: '{{cycle}}', desc: 'Numéro du cycle' },
+                          { var: '{{jours}}', desc: 'Jours avant renouvellement' },
+                          { var: '{{full_name}}', desc: 'Nom complet' },
+                          { var: '{{email}}', desc: 'Email de l\'utilisateur' }
+                        ].map((variable) => (
+                          <button
+                            key={variable.var}
+                            type="button"
+                            onClick={() => {
+                              if (editorRef.current) {
+                                const selection = window.getSelection()
+                                if (selection && selection.rangeCount > 0) {
+                                  const range = selection.getRangeAt(0)
+                                  range.deleteContents()
+                                  const textNode = document.createTextNode(variable.var)
+                                  range.insertNode(textNode)
+                                } else {
+                                  editorRef.current.innerHTML += variable.var
+                                }
+                                setHtml(editorRef.current.innerHTML)
+                              }
+                            }}
+                            className="px-3 py-1.5 bg-white hover:bg-blue-100 rounded-md transition border border-blue-300 text-sm font-mono text-blue-900 hover:border-blue-400"
+                            title={variable.desc}
+                          >
+                            {variable.var}
+                          </button>
+                        ))}
+                      </div>
+                      <p className="text-xs text-blue-700 mt-2">💡 Cliquez sur une variable pour l'insérer dans votre email</p>
+                    </div>
+                  </div>
+                </div>
               </div>
 
               {/* Hidden file inputs */}
@@ -1021,73 +1078,228 @@ export default function MailingAdminPage() {
                   <label className="block text-sm font-medium text-gray-700 mb-2">Contenu HTML</label>
 
                   {/* Formatting toolbar for template */}
-                  <div className="flex items-center gap-2 mb-2 p-2 bg-gray-50 rounded-lg border border-gray-200 flex-wrap">
+                  <div className="mb-2 space-y-2">
+                    <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg border border-gray-200 flex-wrap">
+                      <span className="text-xs font-semibold text-gray-600 mr-2">Mise en forme :</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (templateEditorRef.current && !showHtmlMode) {
+                            const selection = window.getSelection()
+                            if (selection && selection.rangeCount > 0) {
+                              const range = selection.getRangeAt(0)
+                              const boldText = range.toString() || 'Texte en gras'
+                              range.deleteContents()
+                              const fragment = range.createContextualFragment(`<strong>${boldText}</strong>`)
+                              range.insertNode(fragment)
+                              setTemplateDraft({ ...templateDraft, html: templateEditorRef.current.innerHTML })
+                            }
+                          }
+                        }}
+                        className="px-3 py-1.5 bg-white hover:bg-gray-100 rounded-md transition border border-gray-300 flex items-center gap-1.5"
+                        title="Gras"
+                      >
+                        <Bold className="h-4 w-4 text-gray-700" />
+                        <span className="text-sm text-gray-700">Gras</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (templateEditorRef.current && !showHtmlMode) {
+                            const selection = window.getSelection()
+                            if (selection && selection.rangeCount > 0) {
+                              const range = selection.getRangeAt(0)
+                              const italicText = range.toString() || 'Texte en italique'
+                              range.deleteContents()
+                              const fragment = range.createContextualFragment(`<em>${italicText}</em>`)
+                              range.insertNode(fragment)
+                              setTemplateDraft({ ...templateDraft, html: templateEditorRef.current.innerHTML })
+                            }
+                          }
+                        }}
+                        className="px-3 py-1.5 bg-white hover:bg-gray-100 rounded-md transition border border-gray-300 flex items-center gap-1.5"
+                        title="Italique"
+                      >
+                        <Italic className="h-4 w-4 text-gray-700" />
+                        <span className="text-sm text-gray-700">Italique</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (templateEditorRef.current && !showHtmlMode) {
+                            const selection = window.getSelection()
+                            if (selection && selection.rangeCount > 0) {
+                              const range = selection.getRangeAt(0)
+                              const headingText = range.toString() || 'Titre'
+                              range.deleteContents()
+                              const fragment = range.createContextualFragment(`<h2 style="color:#7c3aed;font-size:24px;font-weight:bold;margin:16px 0 8px 0;">${headingText}</h2>`)
+                              range.insertNode(fragment)
+                              setTemplateDraft({ ...templateDraft, html: templateEditorRef.current.innerHTML })
+                            }
+                          }
+                        }}
+                        className="px-3 py-1.5 bg-white hover:bg-gray-100 rounded-md transition border border-gray-300 flex items-center gap-1.5"
+                        title="Titre"
+                      >
+                        <Heading2 className="h-4 w-4 text-gray-700" />
+                        <span className="text-sm text-gray-700">Titre</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (templateEditorRef.current && !showHtmlMode) {
+                            const selection = window.getSelection()
+                            if (selection && selection.rangeCount > 0) {
+                              const range = selection.getRangeAt(0)
+                              const linkText = range.toString() || 'Lien'
+                              const linkUrl = prompt('URL du lien :') || '#'
+                              range.deleteContents()
+                              const fragment = range.createContextualFragment(`<a href="${linkUrl}" style="color:#7c3aed;text-decoration:underline;">${linkText}</a>`)
+                              range.insertNode(fragment)
+                              setTemplateDraft({ ...templateDraft, html: templateEditorRef.current.innerHTML })
+                            }
+                          }
+                        }}
+                        className="px-3 py-1.5 bg-white hover:bg-gray-100 rounded-md transition border border-gray-300 flex items-center gap-1.5"
+                        title="Lien"
+                      >
+                        <Link2 className="h-4 w-4 text-gray-700" />
+                        <span className="text-sm text-gray-700">Lien</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (templateEditorRef.current && !showHtmlMode) {
+                            const selection = window.getSelection()
+                            if (selection && selection.rangeCount > 0) {
+                              const range = selection.getRangeAt(0)
+                              range.deleteContents()
+                              const fragment = range.createContextualFragment(`<ul style="margin:12px 0;padding-left:24px;"><li>Élément 1</li><li>Élément 2</li></ul>`)
+                              range.insertNode(fragment)
+                              setTemplateDraft({ ...templateDraft, html: templateEditorRef.current.innerHTML })
+                            }
+                          }
+                        }}
+                        className="px-3 py-1.5 bg-white hover:bg-gray-100 rounded-md transition border border-gray-300 flex items-center gap-1.5"
+                        title="Liste"
+                      >
+                        <List className="h-4 w-4 text-gray-700" />
+                        <span className="text-sm text-gray-700">Liste</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (templateEditorRef.current && !showHtmlMode) {
+                            const selection = window.getSelection()
+                            if (selection && selection.rangeCount > 0) {
+                              const range = selection.getRangeAt(0)
+                              const text = range.toString() || 'Votre texte ici...'
+                              range.deleteContents()
+                              const fragment = range.createContextualFragment(`<p style="margin:0 0 16px;line-height:1.6;color:#374151;">${text}</p>`)
+                              range.insertNode(fragment)
+                              setTemplateDraft({ ...templateDraft, html: templateEditorRef.current.innerHTML })
+                            }
+                          }
+                        }}
+                        className="px-3 py-1.5 bg-white hover:bg-gray-100 rounded-md transition border border-gray-300 flex items-center gap-1.5"
+                        title="Paragraphe"
+                      >
+                        <FileText className="h-4 w-4 text-gray-700" />
+                        <span className="text-sm text-gray-700">Paragraphe</span>
+                      </button>
+                    </div>
+
+                    {/* Variable selector */}
+                    <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+                      <div className="flex items-start gap-3">
+                        <div className="flex-1">
+                          <p className="text-xs font-semibold text-blue-900 mb-2">📝 Variables disponibles (cliquez pour insérer) :</p>
+                          <div className="flex flex-wrap gap-2">
+                            {[
+                              { var: '{{nom}}', desc: 'Nom du plan (Premium Silver/Gold)' },
+                              { var: '{{prix}}', desc: 'Prix mensuel (29,99€ / 49,99€)' },
+                              { var: '{{date_fact}}', desc: 'Date de prochaine facturation' },
+                              { var: '{{date_renouv}}', desc: 'Date de renouvellement' },
+                              { var: '{{cycle}}', desc: 'Numéro du cycle' },
+                              { var: '{{jours}}', desc: 'Jours avant renouvellement' },
+                              { var: '{{full_name}}', desc: 'Nom complet' },
+                              { var: '{{email}}', desc: 'Email de l\'utilisateur' }
+                            ].map((variable) => (
+                              <button
+                                key={variable.var}
+                                type="button"
+                                onClick={() => {
+                                  if (showHtmlMode) {
+                                    setTemplateDraft({ ...templateDraft, html: templateDraft.html + variable.var })
+                                  } else if (templateEditorRef.current) {
+                                    const selection = window.getSelection()
+                                    if (selection && selection.rangeCount > 0) {
+                                      const range = selection.getRangeAt(0)
+                                      range.deleteContents()
+                                      const textNode = document.createTextNode(variable.var)
+                                      range.insertNode(textNode)
+                                    } else {
+                                      templateEditorRef.current.innerHTML += variable.var
+                                    }
+                                    setTemplateDraft({ ...templateDraft, html: templateEditorRef.current.innerHTML })
+                                  }
+                                }}
+                                className="px-3 py-1.5 bg-white hover:bg-blue-100 rounded-md transition border border-blue-300 text-sm font-mono text-blue-900 hover:border-blue-400"
+                                title={variable.desc}
+                              >
+                                {variable.var}
+                              </button>
+                            ))}
+                          </div>
+                          <p className="text-xs text-blue-700 mt-2">💡 Cliquez sur une variable pour l'insérer dans votre template</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Mode toggle */}
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm text-gray-700 font-medium">
+                      {showHtmlMode ? '📝 Mode HTML' : '👁️ Mode Visuel'}
+                    </span>
                     <button
                       type="button"
                       onClick={() => {
-                        const boldText = prompt('Texte en gras :') || 'Texte'
-                        setTemplateDraft({ ...templateDraft, html: templateDraft.html + `<strong>${boldText}</strong>` })
+                        if (!showHtmlMode && templateEditorRef.current) {
+                          setTemplateDraft({ ...templateDraft, html: templateEditorRef.current.innerHTML })
+                        }
+                        setShowHtmlMode(!showHtmlMode)
                       }}
-                      className="p-2 hover:bg-white rounded-md transition border border-transparent hover:border-gray-300"
-                      title="Gras"
+                      className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-md transition text-sm font-medium"
                     >
-                      <Bold className="h-4 w-4 text-gray-700" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const italicText = prompt('Texte en italique :') || 'Texte'
-                        setTemplateDraft({ ...templateDraft, html: templateDraft.html + `<em>${italicText}</em>` })
-                      }}
-                      className="p-2 hover:bg-white rounded-md transition border border-transparent hover:border-gray-300"
-                      title="Italique"
-                    >
-                      <Italic className="h-4 w-4 text-gray-700" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const headingText = prompt('Texte du titre :') || 'Titre'
-                        setTemplateDraft({ ...templateDraft, html: templateDraft.html + `<h2 style="color:#7c3aed;font-size:24px;font-weight:bold;">${headingText}</h2>` })
-                      }}
-                      className="p-2 hover:bg-white rounded-md transition border border-transparent hover:border-gray-300"
-                      title="Titre"
-                    >
-                      <Heading2 className="h-4 w-4 text-gray-700" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const linkText = prompt('Texte du lien :') || 'Lien'
-                        const linkUrl = prompt('URL :') || '#'
-                        setTemplateDraft({ ...templateDraft, html: templateDraft.html + `<a href="${linkUrl}" style="color:#7c3aed;">${linkText}</a>` })
-                      }}
-                      className="p-2 hover:bg-white rounded-md transition border border-transparent hover:border-gray-300"
-                      title="Lien"
-                    >
-                      <Link2 className="h-4 w-4 text-gray-700" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setTemplateDraft({ ...templateDraft, html: templateDraft.html + `<ul style="margin:12px 0;padding-left:24px;"><li>Élément 1</li><li>Élément 2</li></ul>` })
-                      }}
-                      className="p-2 hover:bg-white rounded-md transition border border-transparent hover:border-gray-300"
-                      title="Liste"
-                    >
-                      <List className="h-4 w-4 text-gray-700" />
+                      {showHtmlMode ? '👁️ Passer en mode visuel' : '📝 Voir le code HTML'}
                     </button>
                   </div>
 
-                  <textarea
-                    value={templateDraft.html}
-                    onChange={(e) => setTemplateDraft({ ...templateDraft, html: e.target.value })}
-                    rows={12}
-                    className="w-full rounded-lg border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 font-mono text-sm"
-                    placeholder="<div>Votre HTML ici...</div>"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    💡 Variables disponibles : {'{{first_name}}'}, {'{{last_name}}'}, {'{{email}}'}, {'{{full_name}}'}
+                  {showHtmlMode ? (
+                    <textarea
+                      value={templateDraft.html}
+                      onChange={(e) => setTemplateDraft({ ...templateDraft, html: e.target.value })}
+                      rows={12}
+                      className="w-full rounded-lg border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 font-mono text-sm"
+                      placeholder="<div>Votre HTML ici...</div>"
+                    />
+                  ) : (
+                    <div
+                      ref={templateEditorRef}
+                      contentEditable
+                      onInput={(e) => setTemplateDraft({ ...templateDraft, html: e.currentTarget.innerHTML })}
+                      className="w-full min-h-[400px] p-6 rounded-lg border-2 border-gray-300 focus:border-purple-500 focus:outline-none bg-white overflow-y-auto"
+                      dangerouslySetInnerHTML={{ __html: templateDraft.html }}
+                      style={{
+                        fontFamily: 'Inter, sans-serif',
+                        fontSize: '14px',
+                        lineHeight: '1.6'
+                      }}
+                    />
+                  )}
+                  <p className="text-xs text-gray-500 mt-2">
+                    💡 {showHtmlMode ? 'Éditez le code HTML directement' : 'Éditez directement dans la zone ci-dessus comme dans un traitement de texte'}
                   </p>
                 </div>
 
