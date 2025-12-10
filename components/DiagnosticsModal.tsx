@@ -64,13 +64,30 @@ export default function DiagnosticsModal({
   const loadPathologies = async () => {
     setLoading(true)
     try {
+      // Normaliser le nom de région pour matcher avec la table pathologies
+      // Les zones 3D peuvent avoir des noms comme "Lombaire" ou "lombaire_basse"
+      // mais pathologies utilise "lombaire" (minuscules)
+      const normalizedRegion = region.toLowerCase().split('_')[0].trim()
+
+      console.log('🔍 DiagnosticsModal - Recherche diagnostics:', {
+        originalRegion: region,
+        normalizedRegion: normalizedRegion,
+        regionDisplay: regionDisplay
+      })
+
       // Charger les pathologies de la région
       const { data: pathologiesData, error: pathologiesError } = await supabase
         .from('pathologies')
         .select('*')
-        .eq('region', region)
+        .eq('region', normalizedRegion)
         .eq('is_active', true)
         .order('display_order')
+
+      console.log('📊 Résultat de la requête:', {
+        found: pathologiesData?.length || 0,
+        error: pathologiesError,
+        data: pathologiesData
+      })
 
       if (pathologiesError) throw pathologiesError
 
