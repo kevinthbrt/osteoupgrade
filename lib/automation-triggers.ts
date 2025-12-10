@@ -111,7 +111,8 @@ export async function triggerAutomations(
               .update({
                 status: 'pending',
                 next_step_order: 0,
-                last_run_at: null
+                last_run_at: null,
+                metadata: data.metadata || {}
               })
               .eq('id', existingEnrollment.id)
 
@@ -130,7 +131,8 @@ export async function triggerAutomations(
             automation_id: automation.id,
             contact_id: contactId,
             status: 'pending',
-            next_step_order: 0
+            next_step_order: 0,
+            metadata: data.metadata || {}
           })
 
         if (enrollError) {
