@@ -37,6 +37,9 @@ const TestingViewer3D = dynamic(() => import('@/components/TestingViewer3D'), {
   )
 })
 
+// Modal des diagnostics
+import DiagnosticsModal from '@/components/DiagnosticsModal'
+
 // ============================================================================
 // TYPES
 // ============================================================================
@@ -184,6 +187,9 @@ export default function TestingModulePage() {
   const [showTestList, setShowTestList] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [filterIndication, setFilterIndication] = useState('')
+
+  // Modal diagnostics
+  const [showDiagnosticsModal, setShowDiagnosticsModal] = useState(false)
 
   const specialCategoryZones: Record<string, AnatomicalZone> = {
     neurologique: {
@@ -340,7 +346,46 @@ export default function TestingModulePage() {
 
   const handleZoneClick = (zone: AnatomicalZone) => {
     setSelectedZone(zone)
-    setShowTestList(true)
+    setShowDiagnosticsModal(true) // Afficher d'abord le modal des diagnostics
+  }
+
+  const handleAddDiagnosticTests = (tests: OrthopedicTest[], diagnosticName: string) => {
+    // Ajouter tous les tests du diagnostic à la session
+    const newResults: TestingSessionResult[] = tests.map(test => ({
+      testId: test.id,
+      testName: test.name,
+      category: test.category || selectedZone?.name || '',
+      region: test.category || selectedZone?.name || '',
+      result: null,
+      notes: `Depuis diagnostic: ${diagnosticName}`,
+      sensitivity: test.sensitivity || undefined,
+      specificity: test.specificity || undefined
+    }))
+
+    // Filtrer les tests déjà dans la session
+    const filteredResults = newResults.filter(
+      newTest => !currentSession.results.some(
+        existingTest => existingTest.testId === newTest.testId
+      )
+    )
+
+    if (filteredResults.length === 0) {
+      alert('Tous ces tests sont déjà dans la session')
+      return
+    }
+
+    setCurrentSession((prev: TestingSession) => ({
+      ...prev,
+      results: [...prev.results, ...filteredResults]
+    }))
+
+    alert(`✅ ${filteredResults.length} test(s) ajouté(s) à la session`)
+  }
+
+  const handleCloseDiagnosticsModal = () => {
+    setShowDiagnosticsModal(false)
+    // Optionnel : afficher la liste des tests après fermeture
+    // setShowTestList(true)
   }
 
   const handleSpecialCategoryClick = (
@@ -1667,6 +1712,17 @@ export default function TestingModulePage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* MODAL DIAGNOSTICS */}
+      {showDiagnosticsModal && selectedZone && (
+        <DiagnosticsModal
+          region={selectedZone.name}
+          regionDisplay={selectedZone.display_name}
+          isOpen={showDiagnosticsModal}
+          onClose={handleCloseDiagnosticsModal}
+          onAddTests={handleAddDiagnosticTests}
+        />
       )}
     </AuthLayout>
   )

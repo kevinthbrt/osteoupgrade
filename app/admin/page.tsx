@@ -169,6 +169,14 @@ export default function AdminPage() {
       stats: `${stats.totalTests} tests, ${stats.totalClusters} clusters`
     },
     {
+      title: '📁 Diagnostics (Testing 3D)',
+      description: 'Créer des dossiers de diagnostics avec photos, signes cliniques et tests',
+      icon: Layers,
+      href: '/admin/diagnostics',
+      color: 'from-violet-500 to-violet-600',
+      stats: 'Module Testing 3D amélioré'
+    },
+    {
       title: '🩺 Pathologies',
       description: 'Gérer les pathologies pour les diagnostics (Consultation V3)',
       icon: Activity,
