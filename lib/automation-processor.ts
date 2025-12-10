@@ -18,6 +18,7 @@ interface Enrollment {
   next_step_order: number | null
   last_run_at: string | null
   created_at: string
+  metadata?: any
 }
 
 interface Contact {
@@ -32,7 +33,8 @@ interface Contact {
 async function generateEmailContent(
   templateSlug: string | null,
   payload: any,
-  contact: Contact
+  contact: Contact,
+  enrollmentMetadata?: any
 ): Promise<{ html: string; text: string }> {
   // Si un template_slug est fourni, charger le template depuis la base de données
   if (templateSlug) {
@@ -59,6 +61,13 @@ async function generateEmailContent(
       if (payload && typeof payload === 'object') {
         Object.keys(payload).forEach(key => {
           replacements[`{{${key}}}`] = String(payload[key] || '')
+        })
+      }
+
+      // Ajouter les variables custom des métadonnées de l'enrollment (priorité la plus haute)
+      if (enrollmentMetadata && typeof enrollmentMetadata === 'object') {
+        Object.keys(enrollmentMetadata).forEach(key => {
+          replacements[`{{${key}}}`] = String(enrollmentMetadata[key] || '')
         })
       }
 
@@ -128,7 +137,8 @@ async function processEnrollment(
     const { html, text } = await generateEmailContent(
       nextStep.template_slug,
       nextStep.payload,
-      contact
+      contact,
+      enrollment.metadata
     )
 
     // Envoyer l'email
@@ -233,6 +243,7 @@ export async function processAutomations(): Promise<{
           next_step_order,
           last_run_at,
           created_at,
+          metadata,
           contact:mail_contacts(
             id,
             email,
