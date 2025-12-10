@@ -103,6 +103,8 @@ export default function MailingAdminPage() {
   })
   const [editingTemplateId, setEditingTemplateId] = useState<string | null>(null)
   const [templateSaving, setTemplateSaving] = useState(false)
+  const [showHtmlMode, setShowHtmlMode] = useState(false)
+  const templateEditorRef = useRef<HTMLDivElement>(null)
 
   // Automations state
   const [automations, setAutomations] = useState<Automation[]>([])
@@ -625,6 +627,7 @@ export default function MailingAdminPage() {
                     setTemplateModalOpen(true)
                     setEditingTemplateId(null)
                     setTemplateDraft({ id: '', name: '', subject: '', description: '', html: '<p>Contenu du template...</p>', text: '' })
+                    setShowHtmlMode(false)
                   }}
                   className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition flex items-center gap-2"
                 >
@@ -641,6 +644,7 @@ export default function MailingAdminPage() {
                           setTemplateModalOpen(true)
                           setEditingTemplateId(template.id)
                           setTemplateDraft(template)
+                          setShowHtmlMode(false)
                         }
                       }}
                       className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center gap-2"
@@ -1080,8 +1084,17 @@ export default function MailingAdminPage() {
                       <button
                         type="button"
                         onClick={() => {
-                          const boldText = prompt('Texte en gras :') || 'Texte'
-                          setTemplateDraft({ ...templateDraft, html: templateDraft.html + `<strong>${boldText}</strong>` })
+                          if (templateEditorRef.current && !showHtmlMode) {
+                            const selection = window.getSelection()
+                            if (selection && selection.rangeCount > 0) {
+                              const range = selection.getRangeAt(0)
+                              const boldText = range.toString() || 'Texte en gras'
+                              range.deleteContents()
+                              const fragment = range.createContextualFragment(`<strong>${boldText}</strong>`)
+                              range.insertNode(fragment)
+                              setTemplateDraft({ ...templateDraft, html: templateEditorRef.current.innerHTML })
+                            }
+                          }
                         }}
                         className="px-3 py-1.5 bg-white hover:bg-gray-100 rounded-md transition border border-gray-300 flex items-center gap-1.5"
                         title="Gras"
@@ -1092,8 +1105,17 @@ export default function MailingAdminPage() {
                       <button
                         type="button"
                         onClick={() => {
-                          const italicText = prompt('Texte en italique :') || 'Texte'
-                          setTemplateDraft({ ...templateDraft, html: templateDraft.html + `<em>${italicText}</em>` })
+                          if (templateEditorRef.current && !showHtmlMode) {
+                            const selection = window.getSelection()
+                            if (selection && selection.rangeCount > 0) {
+                              const range = selection.getRangeAt(0)
+                              const italicText = range.toString() || 'Texte en italique'
+                              range.deleteContents()
+                              const fragment = range.createContextualFragment(`<em>${italicText}</em>`)
+                              range.insertNode(fragment)
+                              setTemplateDraft({ ...templateDraft, html: templateEditorRef.current.innerHTML })
+                            }
+                          }
                         }}
                         className="px-3 py-1.5 bg-white hover:bg-gray-100 rounded-md transition border border-gray-300 flex items-center gap-1.5"
                         title="Italique"
@@ -1104,8 +1126,17 @@ export default function MailingAdminPage() {
                       <button
                         type="button"
                         onClick={() => {
-                          const headingText = prompt('Texte du titre :') || 'Titre'
-                          setTemplateDraft({ ...templateDraft, html: templateDraft.html + `<h2 style="color:#7c3aed;font-size:24px;font-weight:bold;margin:16px 0 8px 0;">${headingText}</h2>` })
+                          if (templateEditorRef.current && !showHtmlMode) {
+                            const selection = window.getSelection()
+                            if (selection && selection.rangeCount > 0) {
+                              const range = selection.getRangeAt(0)
+                              const headingText = range.toString() || 'Titre'
+                              range.deleteContents()
+                              const fragment = range.createContextualFragment(`<h2 style="color:#7c3aed;font-size:24px;font-weight:bold;margin:16px 0 8px 0;">${headingText}</h2>`)
+                              range.insertNode(fragment)
+                              setTemplateDraft({ ...templateDraft, html: templateEditorRef.current.innerHTML })
+                            }
+                          }
                         }}
                         className="px-3 py-1.5 bg-white hover:bg-gray-100 rounded-md transition border border-gray-300 flex items-center gap-1.5"
                         title="Titre"
@@ -1116,9 +1147,18 @@ export default function MailingAdminPage() {
                       <button
                         type="button"
                         onClick={() => {
-                          const linkText = prompt('Texte du lien :') || 'Lien'
-                          const linkUrl = prompt('URL :') || '#'
-                          setTemplateDraft({ ...templateDraft, html: templateDraft.html + `<a href="${linkUrl}" style="color:#7c3aed;text-decoration:underline;">${linkText}</a>` })
+                          if (templateEditorRef.current && !showHtmlMode) {
+                            const selection = window.getSelection()
+                            if (selection && selection.rangeCount > 0) {
+                              const range = selection.getRangeAt(0)
+                              const linkText = range.toString() || 'Lien'
+                              const linkUrl = prompt('URL du lien :') || '#'
+                              range.deleteContents()
+                              const fragment = range.createContextualFragment(`<a href="${linkUrl}" style="color:#7c3aed;text-decoration:underline;">${linkText}</a>`)
+                              range.insertNode(fragment)
+                              setTemplateDraft({ ...templateDraft, html: templateEditorRef.current.innerHTML })
+                            }
+                          }
                         }}
                         className="px-3 py-1.5 bg-white hover:bg-gray-100 rounded-md transition border border-gray-300 flex items-center gap-1.5"
                         title="Lien"
@@ -1129,7 +1169,16 @@ export default function MailingAdminPage() {
                       <button
                         type="button"
                         onClick={() => {
-                          setTemplateDraft({ ...templateDraft, html: templateDraft.html + `<ul style="margin:12px 0;padding-left:24px;"><li>Élément 1</li><li>Élément 2</li></ul>` })
+                          if (templateEditorRef.current && !showHtmlMode) {
+                            const selection = window.getSelection()
+                            if (selection && selection.rangeCount > 0) {
+                              const range = selection.getRangeAt(0)
+                              range.deleteContents()
+                              const fragment = range.createContextualFragment(`<ul style="margin:12px 0;padding-left:24px;"><li>Élément 1</li><li>Élément 2</li></ul>`)
+                              range.insertNode(fragment)
+                              setTemplateDraft({ ...templateDraft, html: templateEditorRef.current.innerHTML })
+                            }
+                          }
                         }}
                         className="px-3 py-1.5 bg-white hover:bg-gray-100 rounded-md transition border border-gray-300 flex items-center gap-1.5"
                         title="Liste"
@@ -1140,8 +1189,17 @@ export default function MailingAdminPage() {
                       <button
                         type="button"
                         onClick={() => {
-                          const text = prompt('Texte du paragraphe :') || 'Votre texte ici...'
-                          setTemplateDraft({ ...templateDraft, html: templateDraft.html + `<p style="margin:0 0 16px;line-height:1.6;color:#374151;">${text}</p>` })
+                          if (templateEditorRef.current && !showHtmlMode) {
+                            const selection = window.getSelection()
+                            if (selection && selection.rangeCount > 0) {
+                              const range = selection.getRangeAt(0)
+                              const text = range.toString() || 'Votre texte ici...'
+                              range.deleteContents()
+                              const fragment = range.createContextualFragment(`<p style="margin:0 0 16px;line-height:1.6;color:#374151;">${text}</p>`)
+                              range.insertNode(fragment)
+                              setTemplateDraft({ ...templateDraft, html: templateEditorRef.current.innerHTML })
+                            }
+                          }
                         }}
                         className="px-3 py-1.5 bg-white hover:bg-gray-100 rounded-md transition border border-gray-300 flex items-center gap-1.5"
                         title="Paragraphe"
@@ -1171,7 +1229,20 @@ export default function MailingAdminPage() {
                                 key={variable.var}
                                 type="button"
                                 onClick={() => {
-                                  setTemplateDraft({ ...templateDraft, html: templateDraft.html + variable.var })
+                                  if (showHtmlMode) {
+                                    setTemplateDraft({ ...templateDraft, html: templateDraft.html + variable.var })
+                                  } else if (templateEditorRef.current) {
+                                    const selection = window.getSelection()
+                                    if (selection && selection.rangeCount > 0) {
+                                      const range = selection.getRangeAt(0)
+                                      range.deleteContents()
+                                      const textNode = document.createTextNode(variable.var)
+                                      range.insertNode(textNode)
+                                    } else {
+                                      templateEditorRef.current.innerHTML += variable.var
+                                    }
+                                    setTemplateDraft({ ...templateDraft, html: templateEditorRef.current.innerHTML })
+                                  }
                                 }}
                                 className="px-3 py-1.5 bg-white hover:bg-blue-100 rounded-md transition border border-blue-300 text-sm font-mono text-blue-900 hover:border-blue-400"
                                 title={variable.desc}
@@ -1186,15 +1257,49 @@ export default function MailingAdminPage() {
                     </div>
                   </div>
 
-                  <textarea
-                    value={templateDraft.html}
-                    onChange={(e) => setTemplateDraft({ ...templateDraft, html: e.target.value })}
-                    rows={12}
-                    className="w-full rounded-lg border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 font-mono text-sm"
-                    placeholder="<div>Votre HTML ici...</div>"
-                  />
+                  {/* Mode toggle */}
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm text-gray-700 font-medium">
+                      {showHtmlMode ? '📝 Mode HTML' : '👁️ Mode Visuel'}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (!showHtmlMode && templateEditorRef.current) {
+                          setTemplateDraft({ ...templateDraft, html: templateEditorRef.current.innerHTML })
+                        }
+                        setShowHtmlMode(!showHtmlMode)
+                      }}
+                      className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-md transition text-sm font-medium"
+                    >
+                      {showHtmlMode ? '👁️ Passer en mode visuel' : '📝 Voir le code HTML'}
+                    </button>
+                  </div>
+
+                  {showHtmlMode ? (
+                    <textarea
+                      value={templateDraft.html}
+                      onChange={(e) => setTemplateDraft({ ...templateDraft, html: e.target.value })}
+                      rows={12}
+                      className="w-full rounded-lg border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 font-mono text-sm"
+                      placeholder="<div>Votre HTML ici...</div>"
+                    />
+                  ) : (
+                    <div
+                      ref={templateEditorRef}
+                      contentEditable
+                      onInput={(e) => setTemplateDraft({ ...templateDraft, html: e.currentTarget.innerHTML })}
+                      className="w-full min-h-[400px] p-6 rounded-lg border-2 border-gray-300 focus:border-purple-500 focus:outline-none bg-white overflow-y-auto"
+                      dangerouslySetInnerHTML={{ __html: templateDraft.html }}
+                      style={{
+                        fontFamily: 'Inter, sans-serif',
+                        fontSize: '14px',
+                        lineHeight: '1.6'
+                      }}
+                    />
+                  )}
                   <p className="text-xs text-gray-500 mt-2">
-                    💡 Utilisez les boutons ci-dessus pour ajouter du formatage et des variables, ou éditez le HTML directement
+                    💡 {showHtmlMode ? 'Éditez le code HTML directement' : 'Éditez directement dans la zone ci-dessus comme dans un traitement de texte'}
                   </p>
                 </div>
 
