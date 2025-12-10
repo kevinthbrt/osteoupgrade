@@ -11,6 +11,12 @@ export type TriggerEvent =
   | 'email_clicked'
   | 'inactive_30_days'
   | 'free_14_days'
+  | 'Inscription'
+  | 'Passage à Premium Silver'
+  | 'Passage à Premium Gold'
+  | 'Renouvellement imminent'
+  | 'Renouvellement effectué'
+  | 'Abonnement expiré'
 
 interface TriggerData {
   contact_id?: string

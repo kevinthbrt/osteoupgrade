@@ -129,11 +129,9 @@ async function handleCheckoutCompleted(session: any) {
         event: eventName,
         contact_email: profile.email,
         metadata: {
-          plan_type: planType,
-          plan_name: planType === 'premium_gold' ? 'Premium Gold' : 'Premium Silver',
-          monthly_price: planType === 'premium_gold' ? '49,99€' : '29,99€',
-          upgrade_date: new Date().toISOString(),
-          next_billing_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString('fr-FR')
+          nom: planType === 'premium_gold' ? 'Premium Gold' : 'Premium Silver',
+          prix: planType === 'premium_gold' ? '49,99€' : '29,99€',
+          date_fact: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString('fr-FR')
         }
       })
     })
@@ -314,12 +312,11 @@ async function handlePaymentSucceeded(invoice: any) {
           event: 'Renouvellement effectué',
           contact_email: profile.email,
           metadata: {
-            cycle_number: newCycleNumber,
-            new_commitment_end_date: newCommitmentEndDate.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }),
-            plan_type: profile.role === 'premium_gold' ? 'Premium Gold' : 'Premium Silver',
-            monthly_price: profile.role === 'premium_gold' ? '49,99€' : '29,99€',
-            next_billing_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString('fr-FR'),
-            is_gold: profile.role === 'premium_gold'
+            cycle: newCycleNumber,
+            date_renouv: newCommitmentEndDate.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }),
+            nom: profile.role === 'premium_gold' ? 'Premium Gold' : 'Premium Silver',
+            prix: profile.role === 'premium_gold' ? '49,99€' : '29,99€',
+            date_fact: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString('fr-FR')
           }
         })
       })
