@@ -39,10 +39,12 @@ export async function POST(request: Request) {
     console.log('🔑 Creating Stripe session with:', {
       priceId: plan.priceId,
       email,
-      userId
+      userId,
+      commitment: plan.commitment
     })
 
-    // Créer une session de paiement Stripe
+    // Créer une session de paiement Stripe avec Subscription Schedule
+    // pour un paiement mensuel avec engagement de 12 mois
     const session = await stripe.checkout.sessions.create({
       customer_email: email,
       client_reference_id: userId,
@@ -58,11 +60,28 @@ export async function POST(request: Request) {
       cancel_url: `${process.env.NEXT_PUBLIC_URL || 'http://localhost:3000'}/dashboard?cancelled=true`,
       metadata: {
         userId,
-        planType
+        planType,
+        commitment_months: plan.commitment.toString(),
+        billing_type: 'monthly_with_commitment'
+      },
+      // Configuration pour l'engagement
+      subscription_data: {
+        metadata: {
+          userId,
+          planType,
+          commitment_months: plan.commitment.toString(),
+          commitment_start: new Date().toISOString()
+        },
+        trial_settings: {
+          end_behavior: { missing_payment_method: 'cancel' }
+        }
       }
     })
 
-    console.log('✅ Stripe session created:', session.id)
+    console.log('✅ Stripe session created with commitment:', {
+      sessionId: session.id,
+      commitment: `${plan.commitment} months`
+    })
 
     return NextResponse.json({ sessionId: session.id, url: session.url })
   } catch (error: any) {

@@ -4,13 +4,14 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import AuthLayout from '@/components/AuthLayout'
-import { Crown, Check, Sparkles, Users, Loader2, ArrowLeft } from 'lucide-react'
+import { Crown, Check, Sparkles, Users, Loader2, ArrowLeft, ExternalLink, Calendar, Shield } from 'lucide-react'
 
 export default function SubscriptionPage() {
   const router = useRouter()
   const [profile, setProfile] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [processingPlan, setProcessingPlan] = useState<string | null>(null)
+  const [openingPortal, setOpeningPortal] = useState(false)
 
   useEffect(() => {
     loadProfile()
@@ -70,6 +71,29 @@ export default function SubscriptionPage() {
     }
   }
 
+  const handleManageSubscription = async () => {
+    setOpeningPortal(true)
+
+    try {
+      const response = await fetch('/api/stripe/portal', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Erreur lors de l\'ouverture du portail')
+      }
+
+      // Rediriger vers le portail Stripe
+      window.location.href = data.url
+    } catch (error: any) {
+      alert(`Erreur: ${error.message}`)
+      setOpeningPortal(false)
+    }
+  }
+
   if (loading) {
     return (
       <AuthLayout>
@@ -110,7 +134,7 @@ export default function SubscriptionPage() {
 
         {/* Current Status */}
         {isPremium && (
-          <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-6">
+          <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-6 space-y-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-500">Votre abonnement actuel</p>
@@ -122,6 +146,77 @@ export default function SubscriptionPage() {
                 <Check className="h-4 w-4" />
                 Actif
               </span>
+            </div>
+
+            {/* Commitment Information */}
+            {profile.commitment_end_date && (
+              <div className="border-t border-gray-200 pt-6">
+                <div className="flex items-start gap-4">
+                  <div className="p-3 bg-blue-50 rounded-lg">
+                    <Shield className="h-6 w-6 text-blue-600" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-2">
+                      <h3 className="font-semibold text-gray-900">Période d'engagement</h3>
+                      {new Date() < new Date(profile.commitment_end_date) && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-1 text-xs font-semibold text-amber-700">
+                          <Calendar className="h-3 w-3" />
+                          En cours
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-sm text-gray-600 mb-3">
+                      {new Date() < new Date(profile.commitment_end_date) ? (
+                        <>
+                          Votre engagement se termine le{' '}
+                          <strong className="text-gray-900">
+                            {new Date(profile.commitment_end_date).toLocaleDateString('fr-FR', {
+                              day: 'numeric',
+                              month: 'long',
+                              year: 'numeric'
+                            })}
+                          </strong>
+                          . Vous pourrez annuler votre abonnement à partir de cette date.
+                        </>
+                      ) : (
+                        <>
+                          Votre période d'engagement est terminée. Vous pouvez annuler votre abonnement à tout moment.
+                        </>
+                      )}
+                    </p>
+                    {profile.commitment_cycle_number && profile.commitment_cycle_number > 1 && (
+                      <p className="text-xs text-gray-500">
+                        Cycle n°{profile.commitment_cycle_number}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Manage Subscription Button */}
+            <div className="border-t border-gray-200 pt-6">
+              <button
+                onClick={handleManageSubscription}
+                disabled={openingPortal}
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-gray-900 text-white px-6 py-3 rounded-lg font-semibold hover:bg-gray-800 transition disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {openingPortal ? (
+                  <>
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                    Ouverture...
+                  </>
+                ) : (
+                  <>
+                    <ExternalLink className="h-5 w-5" />
+                    Gérer mon abonnement
+                  </>
+                )}
+              </button>
+              <p className="text-xs text-gray-500 mt-3">
+                Accédez au portail de gestion pour mettre à jour vos informations de paiement, télécharger vos factures
+                {new Date() >= new Date(profile.commitment_end_date || 0) && ', ou annuler votre abonnement'}.
+              </p>
             </div>
           </div>
         )}
@@ -140,9 +235,10 @@ export default function SubscriptionPage() {
               <p className="text-blue-100">L'essentiel des outils cliniques, réunis dans une seule plateforme</p>
               <div className="mt-6">
                 <div className="flex items-baseline gap-2">
-                  <span className="text-5xl font-bold">299€</span>
-                  <span className="text-blue-100">/an</span>
+                  <span className="text-5xl font-bold">29,99€</span>
+                  <span className="text-blue-100">/mois</span>
                 </div>
+                <p className="text-sm text-blue-200 mt-2">Engagement 12 mois • 359,88€/an</p>
               </div>
             </div>
 
@@ -235,9 +331,10 @@ export default function SubscriptionPage() {
               <p className="text-yellow-900/90">L'expérience complète : outils avancés + formation présentielle</p>
               <div className="mt-6">
                 <div className="flex items-baseline gap-2">
-                  <span className="text-5xl font-bold">499€</span>
-                  <span className="text-yellow-900/80">/an</span>
+                  <span className="text-5xl font-bold">49,99€</span>
+                  <span className="text-yellow-900/80">/mois</span>
                 </div>
+                <p className="text-sm text-yellow-900/70 mt-2">Engagement 12 mois • 599,88€/an</p>
               </div>
             </div>
 
@@ -325,10 +422,33 @@ export default function SubscriptionPage() {
           <h3 className="font-semibold text-gray-900 mb-3">💡 Bon à savoir</h3>
           <div className="space-y-2 text-sm text-gray-700">
             <p>✅ Paiement sécurisé via Stripe</p>
-            <p>✅ Abonnement annuel, renouvelable automatiquement</p>
-            <p>✅ Annulation possible à tout moment</p>
+            <p>✅ <strong>Facturation mensuelle avec engagement de 12 mois</strong></p>
+            <p>✅ Renouvellement automatique après la période d'engagement</p>
+            <p>✅ Notification par email 7 jours avant chaque renouvellement</p>
+            <p>✅ Annulation possible après les 12 mois d'engagement</p>
             <p>✅ Accès immédiat à tous les contenus après validation du paiement</p>
+            <p>✅ Droit de rétractation de 14 jours</p>
+            <p className="text-xs text-gray-500 mt-3 pt-3 border-t border-gray-300">
+              ℹ️ Les abonnements sont facturés mensuellement avec un engagement minimum de 12 mois.
+              Après cette période, vous pouvez annuler à tout moment.
+            </p>
           </div>
+        </div>
+
+        {/* CGU Link */}
+        <div className="text-center text-sm text-gray-600">
+          <p>
+            En souscrivant à un abonnement Premium, vous acceptez nos{' '}
+            <a
+              href="/cgu"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-600 hover:text-blue-700 underline font-medium inline-flex items-center gap-1"
+            >
+              Conditions Générales d'Utilisation
+              <ExternalLink className="h-3 w-3" />
+            </a>
+          </p>
         </div>
       </div>
     </AuthLayout>
