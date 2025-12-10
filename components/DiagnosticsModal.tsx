@@ -19,8 +19,14 @@ interface OrthopedicTest {
   name: string
   description: string
   category: string
+  indications: string | null
+  video_url: string | null
   sensitivity: number | null
   specificity: number | null
+  rv_positive: number | null
+  rv_negative: number | null
+  interest: string | null
+  sources: string | null
 }
 
 interface PathologyWithTests extends Pathology {
@@ -88,7 +94,7 @@ export default function DiagnosticsModal({
 
           const { data: tests } = await supabase
             .from('orthopedic_tests')
-            .select('id, name, description, category, sensitivity, specificity')
+            .select('id, name, description, category, indications, video_url, sensitivity, specificity, rv_positive, rv_negative, interest, sources')
             .in('id', testIds)
 
           // Réorganiser les tests selon l'ordre défini
