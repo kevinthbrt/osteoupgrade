@@ -320,62 +320,71 @@ export default function DiagnosticsModal({
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {pathologies.map((pathology) => (
-                    <button
-                      key={pathology.id}
-                      onClick={() => handleSelectPathology(pathology)}
-                      className="group text-left border-2 border-gray-200 rounded-lg overflow-hidden hover:border-purple-500 hover:shadow-lg transition-all"
-                    >
-                      {pathology.image_url && (
-                        <div className="relative h-40 bg-gray-100">
-                          <Image
-                            src={pathology.image_url}
-                            alt={pathology.name}
-                            fill
-                            className="object-cover"
-                          />
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                          <div className="absolute bottom-3 left-3 right-3">
-                            <h3 className="font-semibold text-white text-lg">
-                              {pathology.name}
-                            </h3>
-                          </div>
-                        </div>
-                      )}
+                  {pathologies.map((pathology) => {
+                    // Extraire les bullet points des signes cliniques
+                    const clinicalSignsList = pathology.clinical_signs
+                      ? pathology.clinical_signs
+                          .split('\n')
+                          .map(s => s.trim())
+                          .filter(s => s.length > 0)
+                          .slice(0, 3) // Max 3 lignes
+                      : []
 
-                      <div className={`p-4 ${!pathology.image_url ? 'min-h-[120px]' : ''}`}>
-                        {!pathology.image_url && (
-                          <h3 className="font-semibold text-gray-900 text-lg mb-2">
+                    return (
+                      <button
+                        key={pathology.id}
+                        onClick={() => handleSelectPathology(pathology)}
+                        className="group text-left border-2 border-gray-200 rounded-lg overflow-hidden hover:border-purple-500 hover:shadow-lg transition-all"
+                      >
+                        {/* Image sans overlay */}
+                        {pathology.image_url && (
+                          <div className="relative h-40 bg-gray-100">
+                            <Image
+                              src={pathology.image_url}
+                              alt={pathology.name}
+                              fill
+                              className="object-cover"
+                            />
+                          </div>
+                        )}
+
+                        <div className="p-4">
+                          {/* Titre toujours en dessous de l'image */}
+                          <h3 className="font-semibold text-gray-900 text-lg mb-3">
                             {pathology.name}
                           </h3>
-                        )}
 
-                        {pathology.description && (
-                          <p className="text-sm text-gray-600 line-clamp-2 mb-3">
-                            {pathology.description}
-                          </p>
-                        )}
+                          {/* Signes cliniques sous forme de tirets */}
+                          {clinicalSignsList.length > 0 && (
+                            <ul className="space-y-1 mb-3">
+                              {clinicalSignsList.map((sign, idx) => (
+                                <li key={idx} className="text-sm text-gray-600 flex items-start gap-2">
+                                  <span className="text-purple-600 mt-1">•</span>
+                                  <span className="flex-1">{sign}</span>
+                                </li>
+                              ))}
+                              {pathology.clinical_signs && pathology.clinical_signs.split('\n').filter(s => s.trim()).length > 3 && (
+                                <li className="text-xs text-gray-500 italic">+ autres signes...</li>
+                              )}
+                            </ul>
+                          )}
 
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3 text-xs text-gray-500">
-                            {pathology.clinical_signs && (
-                              <span className="flex items-center gap-1">
-                                <AlertCircle className="h-3 w-3" />
-                                Signes cliniques
-                              </span>
-                            )}
-                            {pathology.tests.length > 0 && (
-                              <span className="flex items-center gap-1">
-                                <TestTube2 className="h-3 w-3" />
-                                {pathology.tests.length} test{pathology.tests.length > 1 ? 's' : ''}
-                              </span>
-                            )}
+                          {/* Indicateurs en bas */}
+                          <div className="flex items-center justify-between pt-2 border-t border-gray-100">
+                            <div className="flex items-center gap-3 text-xs text-gray-500">
+                              {pathology.tests.length > 0 && (
+                                <span className="flex items-center gap-1">
+                                  <TestTube2 className="h-3 w-3" />
+                                  {pathology.tests.length} test{pathology.tests.length > 1 ? 's' : ''}
+                                </span>
+                              )}
+                            </div>
+                            <ChevronRight className="h-5 w-5 text-gray-400 group-hover:text-purple-600 transition-colors" />
                           </div>
-                          <ChevronRight className="h-5 w-5 text-gray-400 group-hover:text-purple-600 transition-colors" />
                         </div>
-                      </div>
-                    </button>
-                  ))}
+                      </button>
+                    )
+                  })}
                 </div>
               )}
             </div>
