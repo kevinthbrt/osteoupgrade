@@ -29,7 +29,13 @@ import {
   GraduationCap,
   TrendingUp,
   Target,
-  Star
+  Star,
+  Trophy,
+  Zap,
+  Flame,
+  Award,
+  Gift,
+  BarChart3
 } from 'lucide-react'
 
 interface ModuleCard {
@@ -51,7 +57,10 @@ export default function Dashboard() {
   const [stats, setStats] = useState({
     totalSessions: 0,
     completionRate: 0,
-    streak: 0
+    streak: 0,
+    totalTests: 0,
+    weekSessions: 0,
+    allTimeSessions: 0
   })
 
   useEffect(() => {
@@ -114,10 +123,15 @@ export default function Dashboard() {
           }
         }
 
+        const totalTests = sessionsData.reduce((acc: number, s: any) => acc + (s.tests_count || 0), 0)
+
         setStats({
           totalSessions: weekSessions,
           completionRate,
-          streak
+          streak,
+          totalTests,
+          weekSessions,
+          allTimeSessions: sessionsData.length
         })
       }
     } catch (error) {
@@ -331,57 +345,24 @@ export default function Dashboard() {
           <div className="absolute top-0 right-0 w-96 h-96 bg-sky-500/30 rounded-full blur-3xl" />
           <div className="absolute bottom-0 left-0 w-96 h-96 bg-purple-500/20 rounded-full blur-3xl" />
 
-          <div className="relative px-8 py-12 md:px-12 md:py-16">
+          <div className="relative px-6 py-8 md:px-10 md:py-10">
             <div className="max-w-4xl">
               {/* Welcome badge */}
-              <div className="inline-flex items-center gap-2 rounded-full bg-white/10 backdrop-blur-sm px-4 py-2 mb-6 border border-white/20">
-                <Sparkles className="h-4 w-4 text-sky-300" />
-                <span className="text-sm font-semibold text-sky-100">
+              <div className="inline-flex items-center gap-2 rounded-full bg-white/10 backdrop-blur-sm px-3 py-1.5 mb-4 border border-white/20">
+                <Sparkles className="h-3.5 w-3.5 text-sky-300" />
+                <span className="text-xs font-semibold text-sky-100">
                   Bienvenue sur OsteoUpgrade
                 </span>
               </div>
 
               {/* Main heading */}
-              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-white to-sky-100">
+              <h1 className="text-3xl md:text-4xl font-bold mb-3 bg-clip-text text-transparent bg-gradient-to-r from-white to-sky-100">
                 Bonjour, {profile?.full_name || 'Docteur'} 👋
               </h1>
 
-              <p className="text-lg md:text-xl text-slate-300 mb-8 max-w-2xl">
+              <p className="text-base md:text-lg text-slate-300 mb-6 max-w-2xl">
                 Votre plateforme de raisonnement clinique nouvelle génération.
-                Explorez nos modules pour développer vos compétences et optimiser votre pratique.
               </p>
-
-              {/* Quick stats */}
-              {stats.totalSessions > 0 && (
-                <div className="grid grid-cols-3 gap-4 md:gap-6 mb-8">
-                  <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-4 border border-white/20">
-                    <div className="flex items-center gap-2 text-sky-300 mb-2">
-                      <TrendingUp className="h-4 w-4" />
-                      <span className="text-xs font-semibold uppercase tracking-wide">Cette semaine</span>
-                    </div>
-                    <p className="text-3xl font-bold">{stats.totalSessions}</p>
-                    <p className="text-sm text-slate-300 mt-1">Sessions</p>
-                  </div>
-
-                  <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-4 border border-white/20">
-                    <div className="flex items-center gap-2 text-purple-300 mb-2">
-                      <Target className="h-4 w-4" />
-                      <span className="text-xs font-semibold uppercase tracking-wide">Complétion</span>
-                    </div>
-                    <p className="text-3xl font-bold">{stats.completionRate}%</p>
-                    <p className="text-sm text-slate-300 mt-1">Taux</p>
-                  </div>
-
-                  <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-4 border border-white/20">
-                    <div className="flex items-center gap-2 text-amber-300 mb-2">
-                      <Star className="h-4 w-4" />
-                      <span className="text-xs font-semibold uppercase tracking-wide">Série</span>
-                    </div>
-                    <p className="text-3xl font-bold">{stats.streak}</p>
-                    <p className="text-sm text-slate-300 mt-1">Jours actifs</p>
-                  </div>
-                </div>
-              )}
 
               {/* User status */}
               <div className="flex flex-wrap items-center gap-4">
@@ -419,6 +400,240 @@ export default function Dashboard() {
             </div>
           </div>
         </div>
+
+        {/* Gamification Section - Progression & Achievements */}
+        {stats.allTimeSessions > 0 && (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+            {/* Niveau et XP */}
+            <div className="lg:col-span-2 rounded-2xl bg-gradient-to-br from-purple-500 via-purple-600 to-indigo-600 p-6 text-white shadow-xl">
+              <div className="flex items-start justify-between mb-4">
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <Trophy className="h-5 w-5 text-yellow-300" />
+                    <span className="text-sm font-semibold text-purple-100">Votre progression</span>
+                  </div>
+                  <h2 className="text-2xl font-bold">
+                    Niveau {Math.floor(stats.allTimeSessions / 10) + 1}
+                  </h2>
+                  <p className="text-sm text-purple-100 mt-1">
+                    {stats.allTimeSessions % 10}/10 sessions jusqu'au niveau {Math.floor(stats.allTimeSessions / 10) + 2}
+                  </p>
+                </div>
+                <div className="text-right">
+                  <div className="text-3xl font-bold">{stats.totalTests}</div>
+                  <div className="text-xs text-purple-100">tests réalisés</div>
+                </div>
+              </div>
+
+              {/* Progress bar */}
+              <div className="relative h-3 bg-white/20 rounded-full overflow-hidden mb-4">
+                <div
+                  className="absolute inset-y-0 left-0 bg-gradient-to-r from-yellow-300 to-yellow-400 rounded-full transition-all duration-500"
+                  style={{ width: `${(stats.allTimeSessions % 10) * 10}%` }}
+                />
+              </div>
+
+              {/* Weekly streak */}
+              <div className="grid grid-cols-3 gap-3">
+                <div className="bg-white/10 backdrop-blur-sm rounded-xl p-3 border border-white/20">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Flame className="h-4 w-4 text-orange-300" />
+                    <span className="text-xs font-semibold">Série</span>
+                  </div>
+                  <div className="text-2xl font-bold">{stats.streak}</div>
+                  <div className="text-xs text-purple-100">jours consécutifs</div>
+                </div>
+
+                <div className="bg-white/10 backdrop-blur-sm rounded-xl p-3 border border-white/20">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Zap className="h-4 w-4 text-yellow-300" />
+                    <span className="text-xs font-semibold">Cette semaine</span>
+                  </div>
+                  <div className="text-2xl font-bold">{stats.weekSessions}</div>
+                  <div className="text-xs text-purple-100">sessions</div>
+                </div>
+
+                <div className="bg-white/10 backdrop-blur-sm rounded-xl p-3 border border-white/20">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Target className="h-4 w-4 text-green-300" />
+                    <span className="text-xs font-semibold">Complétion</span>
+                  </div>
+                  <div className="text-2xl font-bold">{stats.completionRate}%</div>
+                  <div className="text-xs text-purple-100">taux</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Achievements/Badges */}
+            <div className="rounded-2xl bg-white p-6 shadow-lg border border-slate-200">
+              <div className="flex items-center gap-2 mb-4">
+                <Award className="h-5 w-5 text-amber-500" />
+                <h3 className="font-bold text-slate-900">Badges débloqués</h3>
+              </div>
+
+              <div className="space-y-3">
+                {/* Badge 1 - Premiers pas */}
+                {stats.allTimeSessions >= 1 && (
+                  <div className="flex items-center gap-3 p-2 rounded-lg bg-gradient-to-r from-sky-50 to-blue-50">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-sky-400 to-blue-500 flex items-center justify-center shadow-lg">
+                      <Sparkles className="h-5 w-5 text-white" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm font-semibold text-slate-900">Premiers pas</p>
+                      <p className="text-xs text-slate-600">1ère session réalisée</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Badge 2 - Régularité */}
+                {stats.streak >= 3 && (
+                  <div className="flex items-center gap-3 p-2 rounded-lg bg-gradient-to-r from-orange-50 to-amber-50">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-400 to-amber-500 flex items-center justify-center shadow-lg">
+                      <Flame className="h-5 w-5 text-white" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm font-semibold text-slate-900">En feu !</p>
+                      <p className="text-xs text-slate-600">{stats.streak} jours d'affilée</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Badge 3 - Expert */}
+                {stats.allTimeSessions >= 20 && (
+                  <div className="flex items-center gap-3 p-2 rounded-lg bg-gradient-to-r from-purple-50 to-indigo-50">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-400 to-indigo-500 flex items-center justify-center shadow-lg">
+                      <Trophy className="h-5 w-5 text-white" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm font-semibold text-slate-900">Expert</p>
+                      <p className="text-xs text-slate-600">20+ sessions</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Badge 4 - Perfectionniste */}
+                {stats.completionRate >= 80 && (
+                  <div className="flex items-center gap-3 p-2 rounded-lg bg-gradient-to-r from-emerald-50 to-green-50">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-400 to-green-500 flex items-center justify-center shadow-lg">
+                      <Star className="h-5 w-5 text-white" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm font-semibold text-slate-900">Perfectionniste</p>
+                      <p className="text-xs text-slate-600">80%+ de complétion</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Motivational message if no badges yet */}
+                {stats.allTimeSessions < 1 && (
+                  <div className="text-center py-4">
+                    <Gift className="h-8 w-8 text-slate-300 mx-auto mb-2" />
+                    <p className="text-sm text-slate-600">
+                      Commencez votre première session pour débloquer vos badges !
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Daily goals section */}
+        {stats.allTimeSessions > 0 && (
+          <div className="rounded-2xl bg-gradient-to-br from-sky-50 via-white to-indigo-50 p-6 border border-sky-100 mb-8">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <BarChart3 className="h-5 w-5 text-sky-600" />
+                <h3 className="font-bold text-slate-900">Objectifs de la semaine</h3>
+              </div>
+              <span className="text-xs font-semibold text-sky-600 bg-sky-100 px-3 py-1 rounded-full">
+                {stats.weekSessions}/3 sessions
+              </span>
+            </div>
+
+            <div className="space-y-3">
+              {/* Objectif 1 - 3 sessions par semaine */}
+              <div className="flex items-start gap-3">
+                <div className={`mt-0.5 w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 ${
+                  stats.weekSessions >= 3 ? 'bg-gradient-to-br from-emerald-400 to-green-500' : 'bg-slate-200'
+                }`}>
+                  {stats.weekSessions >= 3 ? (
+                    <CheckCircle2 className="h-4 w-4 text-white" />
+                  ) : (
+                    <span className="text-xs font-bold text-slate-500">{stats.weekSessions}/3</span>
+                  )}
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-semibold text-slate-900">Réaliser 3 sessions cette semaine</p>
+                  <div className="mt-2 h-2 bg-slate-200 rounded-full overflow-hidden">
+                    <div
+                      className={`h-full transition-all duration-500 ${
+                        stats.weekSessions >= 3
+                          ? 'bg-gradient-to-r from-emerald-400 to-green-500'
+                          : 'bg-gradient-to-r from-sky-400 to-blue-500'
+                      }`}
+                      style={{ width: `${Math.min((stats.weekSessions / 3) * 100, 100)}%` }}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Objectif 2 - Maintenir série */}
+              <div className="flex items-start gap-3">
+                <div className={`mt-0.5 w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 ${
+                  stats.streak >= 7 ? 'bg-gradient-to-br from-orange-400 to-amber-500' : 'bg-slate-200'
+                }`}>
+                  {stats.streak >= 7 ? (
+                    <CheckCircle2 className="h-4 w-4 text-white" />
+                  ) : (
+                    <Flame className="h-4 w-4 text-slate-500" />
+                  )}
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-semibold text-slate-900">Série de 7 jours consécutifs</p>
+                  <p className="text-xs text-slate-600 mt-1">
+                    {stats.streak >= 7
+                      ? `Incroyable ! Vous êtes à ${stats.streak} jours !`
+                      : `Plus que ${7 - stats.streak} jours à tenir !`
+                    }
+                  </p>
+                </div>
+              </div>
+
+              {/* Objectif 3 - Complétion */}
+              <div className="flex items-start gap-3">
+                <div className={`mt-0.5 w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 ${
+                  stats.completionRate >= 90 ? 'bg-gradient-to-br from-purple-400 to-indigo-500' : 'bg-slate-200'
+                }`}>
+                  {stats.completionRate >= 90 ? (
+                    <CheckCircle2 className="h-4 w-4 text-white" />
+                  ) : (
+                    <Target className="h-4 w-4 text-slate-500" />
+                  )}
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-semibold text-slate-900">Atteindre 90% de complétion</p>
+                  <p className="text-xs text-slate-600 mt-1">
+                    Actuellement à {stats.completionRate}%
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Reward message */}
+            {stats.weekSessions >= 3 && stats.streak >= 7 && (
+              <div className="mt-4 p-4 rounded-xl bg-gradient-to-r from-amber-400 via-orange-400 to-amber-500 text-white">
+                <div className="flex items-center gap-3">
+                  <Trophy className="h-6 w-6" />
+                  <div>
+                    <p className="font-bold">Bravo ! Vous êtes exceptionnel !</p>
+                    <p className="text-sm text-white/90">Continuez sur cette lancée, vous progressez rapidement ! 🎉</p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Profile completion alert */}
         {!profile?.full_name && (
