@@ -2,13 +2,13 @@
 
 ## 📋 Description
 
-Cette migration met en place un système complet de gamification pour OsteoUpgrade incluant :
+Cette migration met en place un système complet de gamification pour OsteoUpgrade basé sur l'e-learning :
 
-- ✅ **Système de niveaux et XP** : 1 niveau tous les 10 sessions
-- 🏆 **Achievements** : 16 badges prédéfinis (débutant, expert, streaks, perfectionniste, etc.)
-- 📊 **Statistiques automatiques** : Mise à jour en temps réel des stats utilisateur
-- 🔥 **Séries (Streaks)** : Tracking des jours consécutifs d'activité
-- 🎯 **Objectifs hebdomadaires** : Sessions, complétion, tests
+- ✅ **Système de niveaux et XP** : 1 niveau tous les 10 leçons complétées
+- 🏆 **Achievements** : 22 badges prédéfinis (débutant, expert, streaks, perfectionniste, etc.)
+- 📊 **Statistiques automatiques** : Mise à jour en temps réel des stats utilisateur basées sur la progression e-learning
+- 🔥 **Séries (Streaks)** : Tracking des jours consécutifs d'activité d'apprentissage
+- 🎯 **Objectifs hebdomadaires** : Leçons complétées, complétion, chapitres explorés
 
 ## 🗂️ Tables créées
 
@@ -40,11 +40,11 @@ Stocke toutes les statistiques de gamification par utilisateur.
 **Colonnes principales :**
 - `level` : Niveau actuel
 - `total_xp` : XP total
-- `current_streak` : Série actuelle (jours consécutifs)
+- `current_streak` : Série actuelle (jours consécutifs d'apprentissage)
 - `best_streak` : Meilleure série
-- `total_sessions` : Total de sessions
-- `total_tests` : Total de tests
-- `week_sessions` : Sessions de la semaine
+- `total_sessions` : Total de leçons complétées (subparts e-learning)
+- `total_tests` : Total de chapitres explorés
+- `week_sessions` : Leçons complétées cette semaine
 - `completion_rate` : Taux de complétion (%)
 
 ## 🔄 Fonctions et Triggers
@@ -52,8 +52,9 @@ Stocke toutes les statistiques de gamification par utilisateur.
 ### Fonctions
 
 1. **`update_user_gamification_stats()`**
-   - Recalcule automatiquement toutes les stats quand une session est créée/modifiée
-   - Calcule le niveau, l'XP, les streaks, le taux de complétion
+   - Recalcule automatiquement toutes les stats quand un subpart e-learning est complété
+   - Basé sur la table `elearning_subpart_progress`
+   - Calcule le niveau (1 niveau / 10 leçons), l'XP (100 XP / leçon), les streaks, le taux de complétion
    - Mise à jour automatique via trigger
 
 2. **`check_and_unlock_achievements()`**
@@ -62,13 +63,13 @@ Stocke toutes les statistiques de gamification par utilisateur.
    - Ajoute les points XP automatiquement
 
 3. **`initialize_existing_users_gamification()`**
-   - Fonction utilitaire pour initialiser les stats des utilisateurs existants
+   - Fonction utilitaire pour initialiser les stats des utilisateurs existants ayant déjà de la progression e-learning
    - À exécuter manuellement après la migration si besoin
 
 ### Triggers
 
 1. **`trigger_update_gamification_stats`**
-   - Se déclenche sur INSERT/UPDATE/DELETE de `user_sessions`
+   - Se déclenche sur INSERT/UPDATE/DELETE de `elearning_subpart_progress`
    - Appelle `update_user_gamification_stats()`
 
 2. **`trigger_check_achievements`**
@@ -106,27 +107,27 @@ psql -h <your-db-host> -U postgres -d postgres -f supabase/migrations/20250112_g
 
 ## 🔧 Initialiser les utilisateurs existants
 
-Si vous avez déjà des utilisateurs avec des sessions, exécutez cette fonction pour initialiser leurs stats :
+Si vous avez déjà des utilisateurs avec de la progression e-learning, exécutez cette fonction pour initialiser leurs stats :
 
 ```sql
 SELECT public.initialize_existing_users_gamification();
 ```
 
 Cette fonction va :
-- Parcourir tous les utilisateurs ayant des sessions
-- Calculer leurs stats (niveau, XP, streaks, etc.)
+- Parcourir tous les utilisateurs ayant complété au moins une leçon e-learning
+- Calculer leurs stats (niveau, XP, streaks, chapitres explorés, etc.)
 - Créer leur entrée dans `user_gamification_stats`
 - Débloquer automatiquement les achievements qu'ils méritent
 
 ## 📊 Achievements prédéfinis
 
-### Sessions
-- 🌟 **Premiers pas** : 1 session (100 XP)
-- 🎯 **Débutant** : 5 sessions (200 XP)
-- 📈 **Intermédiaire** : 10 sessions (300 XP)
-- 🏆 **Expert** : 20 sessions (500 XP)
-- 👑 **Maître** : 50 sessions (1000 XP)
-- 🥇 **Légende** : 100 sessions (2000 XP)
+### Leçons (Subparts e-learning complétés)
+- 🌟 **Premiers pas** : 1 leçon (100 XP)
+- 🎯 **Débutant** : 5 leçons (200 XP)
+- 📈 **Intermédiaire** : 10 leçons (300 XP)
+- 🏆 **Expert** : 20 leçons (500 XP)
+- 👑 **Maître** : 50 leçons (1000 XP)
+- 🥇 **Légende** : 100 leçons (2000 XP)
 
 ### Streaks
 - 🔥 **En feu !** : 3 jours consécutifs (150 XP)
@@ -138,15 +139,15 @@ Cette fonction va :
 - ⭐ **Perfectionniste** : 80% de complétion (400 XP)
 - ✅ **Impeccable** : 95% de complétion (800 XP)
 
-### Tests
-- 🧪 **Premier test** : 1 test (50 XP)
-- 🧪 **Découvreur** : 10 tests (100 XP)
-- 🧪 **Explorateur** : 30 tests (200 XP)
-- 📋 **Testeur confirmé** : 50 tests (300 XP)
-- 📋 **Expert testeur** : 70 tests (400 XP)
-- 🏅 **Centurion** : 100 tests (600 XP)
-- 🏆 **Maître des tests** : 150 tests (900 XP)
-- 👑 **Légende des tests** : 200 tests (1200 XP)
+### Chapitres explorés
+- 🧪 **Explorateur curieux** : 1 chapitre (50 XP)
+- 🧪 **Découvreur** : 10 chapitres (100 XP)
+- 🧪 **Explorateur** : 30 chapitres (200 XP)
+- 📋 **Apprenant confirmé** : 50 chapitres (300 XP)
+- 📋 **Expert curieux** : 70 chapitres (400 XP)
+- 🏅 **Centurion** : 100 chapitres (600 XP)
+- 🏆 **Maître explorateur** : 150 chapitres (900 XP)
+- 👑 **Légende de la connaissance** : 200 chapitres (1200 XP)
 
 ### Niveaux
 - 📊 **Niveau 5** : Atteindre le niveau 5 (500 XP)
@@ -190,11 +191,12 @@ ORDER BY ua.unlocked_at DESC;
 
 ## 📝 Notes
 
-- Les stats sont mises à jour **automatiquement** via triggers
+- Les stats sont mises à jour **automatiquement** via triggers dès qu'un subpart e-learning est complété
 - Les achievements sont débloqués **automatiquement** quand les conditions sont remplies
-- Le système est **rétroactif** : les utilisateurs existants obtiendront leurs achievements en exécutant la fonction d'initialisation
+- Le système est **rétroactif** : les utilisateurs existants avec de la progression e-learning obtiendront leurs achievements en exécutant la fonction d'initialisation
 - Les points XP sont automatiquement ajoutés quand un achievement est débloqué
-- Le niveau est calculé automatiquement : 1 niveau tous les 10 sessions
+- Le niveau est calculé automatiquement : 1 niveau tous les 10 leçons complétées
+- Un chapitre est considéré comme exploré dès qu'au moins un subpart de ce chapitre est complété
 
 ## 🐛 Troubleshooting
 
@@ -207,7 +209,7 @@ FROM information_schema.triggers
 WHERE trigger_schema = 'public';
 
 -- Forcer la mise à jour pour un utilisateur
-UPDATE user_sessions SET updated_at = NOW()
+UPDATE elearning_subpart_progress SET completed_at = completed_at
 WHERE user_id = '<user_id>' LIMIT 1;
 ```
 

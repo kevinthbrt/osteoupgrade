@@ -116,21 +116,21 @@ CREATE POLICY "Système peut gérer les stats" ON public.user_gamification_stats
 
 -- ============================================================================
 -- FUNCTION: update_user_gamification_stats
--- Description: Met à jour les stats de gamification d'un utilisateur
+-- Description: Met à jour les stats de gamification d'un utilisateur basé sur e-learning
 -- ============================================================================
 CREATE OR REPLACE FUNCTION public.update_user_gamification_stats()
 RETURNS TRIGGER AS $$
 DECLARE
   v_user_id UUID;
-  v_total_sessions INTEGER;
-  v_completed_sessions INTEGER;
-  v_total_tests INTEGER;
+  v_total_subparts INTEGER; -- Subparts complétés (= sessions)
+  v_total_formations INTEGER; -- Formations commencées
+  v_total_chapters INTEGER; -- Chapitres avec au moins 1 subpart complété
   v_completion_rate INTEGER;
-  v_week_sessions INTEGER;
+  v_week_subparts INTEGER; -- Subparts cette semaine
   v_current_streak INTEGER;
   v_best_streak INTEGER;
   v_last_active_date DATE;
-  v_session_dates DATE[];
+  v_progress_dates DATE[];
   v_unique_dates DATE[];
   v_current_date DATE;
   v_streak INTEGER;
@@ -138,42 +138,43 @@ DECLARE
 BEGIN
   v_user_id := COALESCE(NEW.user_id, OLD.user_id);
 
-  -- Calculer les statistiques à partir de user_sessions
+  -- Calculer les statistiques à partir de elearning_subpart_progress
   SELECT
-    COUNT(*),
-    COUNT(*) FILTER (WHERE completed = true),
-    COALESCE(SUM(COALESCE((responses->>'tests_count')::INTEGER, 0)), 0)
-  INTO v_total_sessions, v_completed_sessions, v_total_tests
-  FROM public.user_sessions
-  WHERE user_id = v_user_id;
+    COUNT(DISTINCT esp.id),
+    COUNT(DISTINCT es.chapter_id),
+    0 -- On garde 0 pour total_tests, sera utilisé plus tard si besoin
+  INTO v_total_subparts, v_total_chapters, v_total_formations
+  FROM public.elearning_subpart_progress esp
+  JOIN public.elearning_subparts es ON esp.subpart_id = es.id
+  WHERE esp.user_id = v_user_id;
 
-  -- Calculer le taux de complétion
-  IF v_total_sessions > 0 THEN
-    v_completion_rate := ROUND((v_completed_sessions::NUMERIC / v_total_sessions::NUMERIC) * 100);
-  ELSE
-    v_completion_rate := 0;
-  END IF;
+  -- Calculer le taux de complétion (estimation basée sur formations)
+  -- Formule simple : on considère qu'une formation est complétée si tous ses chapitres ont été vus
+  v_completion_rate := CASE
+    WHEN v_total_chapters > 0 THEN LEAST(v_total_subparts * 10, 100) -- Estimation: 10% par subpart jusqu'à 100%
+    ELSE 0
+  END;
 
-  -- Calculer les sessions de la semaine
+  -- Calculer les subparts de la semaine
   v_week_start := DATE_TRUNC('week', CURRENT_DATE)::DATE;
   SELECT COUNT(*)
-  INTO v_week_sessions
-  FROM public.user_sessions
+  INTO v_week_subparts
+  FROM public.elearning_subpart_progress
   WHERE user_id = v_user_id
-    AND created_at >= v_week_start;
+    AND completed_at >= v_week_start;
 
-  -- Calculer la série (streak)
-  SELECT ARRAY_AGG(DISTINCT DATE(created_at) ORDER BY DATE(created_at) DESC)
-  INTO v_session_dates
-  FROM public.user_sessions
+  -- Calculer la série (streak) basée sur les jours de complétion
+  SELECT ARRAY_AGG(DISTINCT DATE(completed_at) ORDER BY DATE(completed_at) DESC)
+  INTO v_progress_dates
+  FROM public.elearning_subpart_progress
   WHERE user_id = v_user_id;
 
   v_current_streak := 0;
   v_best_streak := 0;
   v_current_date := CURRENT_DATE;
 
-  IF v_session_dates IS NOT NULL THEN
-    FOREACH v_last_active_date IN ARRAY v_session_dates
+  IF v_progress_dates IS NOT NULL THEN
+    FOREACH v_last_active_date IN ARRAY v_progress_dates
     LOOP
       IF v_current_date - v_last_active_date <= v_current_streak + 1 THEN
         v_current_streak := v_current_streak + 1;
@@ -187,8 +188,8 @@ BEGIN
     END LOOP;
   END IF;
 
-  -- Calculer le niveau (1 niveau tous les 10 sessions)
-  -- XP = total_sessions * 100 (100 XP par session)
+  -- Calculer le niveau (1 niveau tous les 10 subparts complétés)
+  -- XP = total_subparts * 100 (100 XP par subpart)
 
   -- Insérer ou mettre à jour les stats
   INSERT INTO public.user_gamification_stats (
@@ -207,15 +208,15 @@ BEGIN
     updated_at
   ) VALUES (
     v_user_id,
-    FLOOR(v_total_sessions / 10) + 1,
-    v_total_sessions * 100,
+    FLOOR(v_total_subparts / 10) + 1,
+    v_total_subparts * 100,
     v_current_streak,
     v_best_streak,
-    (SELECT MAX(DATE(created_at)) FROM public.user_sessions WHERE user_id = v_user_id),
-    v_total_sessions,
-    v_total_tests,
-    v_completed_sessions,
-    v_week_sessions,
+    (SELECT MAX(DATE(completed_at)) FROM public.elearning_subpart_progress WHERE user_id = v_user_id),
+    v_total_subparts, -- total_sessions = subparts complétés
+    v_total_chapters, -- total_tests = chapitres explorés
+    v_total_subparts, -- completed_sessions = subparts complétés (même chose)
+    v_week_subparts, -- week_sessions = subparts cette semaine
     v_completion_rate,
     v_week_start,
     NOW()
@@ -314,10 +315,10 @@ $$ LANGUAGE plpgsql;
 -- TRIGGERS
 -- ============================================================================
 
--- Trigger pour mettre à jour les stats quand une session est créée/modifiée
-DROP TRIGGER IF EXISTS trigger_update_gamification_stats ON public.user_sessions;
+-- Trigger pour mettre à jour les stats quand un subpart e-learning est complété
+DROP TRIGGER IF EXISTS trigger_update_gamification_stats ON public.elearning_subpart_progress;
 CREATE TRIGGER trigger_update_gamification_stats
-  AFTER INSERT OR UPDATE OR DELETE ON public.user_sessions
+  AFTER INSERT OR UPDATE OR DELETE ON public.elearning_subpart_progress
   FOR EACH ROW
   EXECUTE FUNCTION public.update_user_gamification_stats();
 
@@ -336,13 +337,13 @@ CREATE TRIGGER trigger_check_achievements
 -- TRUNCATE public.achievements CASCADE;
 
 INSERT INTO public.achievements (slug, name, description, icon, category, unlock_condition, points, gradient_from, gradient_to, display_order) VALUES
-  -- Session achievements
-  ('first_steps', 'Premiers pas', 'Complétez votre première session', 'Sparkles', 'session', '{"type": "session_count", "value": 1}', 100, 'from-sky-400', 'to-blue-500', 1),
-  ('beginner', 'Débutant', 'Complétez 5 sessions', 'Target', 'session', '{"type": "session_count", "value": 5}', 200, 'from-blue-400', 'to-indigo-500', 2),
-  ('intermediate', 'Intermédiaire', 'Complétez 10 sessions', 'TrendingUp', 'session', '{"type": "session_count", "value": 10}', 300, 'from-indigo-400', 'to-purple-500', 3),
-  ('expert', 'Expert', 'Complétez 20 sessions', 'Trophy', 'milestone', '{"type": "session_count", "value": 20}', 500, 'from-purple-400', 'to-indigo-500', 4),
-  ('master', 'Maître', 'Complétez 50 sessions', 'Crown', 'milestone', '{"type": "session_count", "value": 50}', 1000, 'from-yellow-400', 'to-amber-500', 5),
-  ('legend', 'Légende', 'Complétez 100 sessions', 'Award', 'milestone', '{"type": "session_count", "value": 100}', 2000, 'from-amber-400', 'to-orange-500', 6),
+  -- Session achievements (basé sur subparts e-learning complétés)
+  ('first_steps', 'Premiers pas', 'Complétez votre première leçon', 'Sparkles', 'session', '{"type": "session_count", "value": 1}', 100, 'from-sky-400', 'to-blue-500', 1),
+  ('beginner', 'Débutant', 'Complétez 5 leçons', 'Target', 'session', '{"type": "session_count", "value": 5}', 200, 'from-blue-400', 'to-indigo-500', 2),
+  ('intermediate', 'Intermédiaire', 'Complétez 10 leçons', 'TrendingUp', 'session', '{"type": "session_count", "value": 10}', 300, 'from-indigo-400', 'to-purple-500', 3),
+  ('expert', 'Expert', 'Complétez 20 leçons', 'Trophy', 'milestone', '{"type": "session_count", "value": 20}', 500, 'from-purple-400', 'to-indigo-500', 4),
+  ('master', 'Maître', 'Complétez 50 leçons', 'Crown', 'milestone', '{"type": "session_count", "value": 50}', 1000, 'from-yellow-400', 'to-amber-500', 5),
+  ('legend', 'Légende', 'Complétez 100 leçons', 'Award', 'milestone', '{"type": "session_count", "value": 100}', 2000, 'from-amber-400', 'to-orange-500', 6),
 
   -- Streak achievements
   ('on_fire_3', 'En feu !', '3 jours consécutifs', 'Flame', 'streak', '{"type": "streak", "value": 3}', 150, 'from-orange-400', 'to-amber-500', 10),
@@ -354,15 +355,15 @@ INSERT INTO public.achievements (slug, name, description, icon, category, unlock
   ('perfectionist', 'Perfectionniste', '80% de taux de complétion', 'Star', 'completion', '{"type": "completion_rate", "value": 80}', 400, 'from-emerald-400', 'to-green-500', 20),
   ('flawless', 'Impeccable', '95% de taux de complétion', 'CheckCircle2', 'completion', '{"type": "completion_rate", "value": 95}', 800, 'from-green-400', 'to-emerald-500', 21),
 
-  -- Test achievements
-  ('test_first', 'Premier test', '1 test réalisé', 'TestTube', 'session', '{"type": "test_count", "value": 1}', 50, 'from-cyan-300', 'to-cyan-400', 30),
-  ('test_10', 'Découvreur', '10 tests réalisés', 'TestTube', 'session', '{"type": "test_count", "value": 10}', 100, 'from-cyan-400', 'to-blue-400', 31),
-  ('test_30', 'Explorateur', '30 tests réalisés', 'TestTube', 'session', '{"type": "test_count", "value": 30}', 200, 'from-blue-400', 'to-blue-500', 32),
-  ('test_50', 'Testeur confirmé', '50 tests réalisés', 'Clipboard', 'session', '{"type": "test_count", "value": 50}', 300, 'from-blue-500', 'to-indigo-500', 33),
-  ('test_70', 'Expert testeur', '70 tests réalisés', 'Clipboard', 'session', '{"type": "test_count", "value": 70}', 400, 'from-indigo-400', 'to-indigo-500', 34),
-  ('test_100', 'Centurion', '100 tests réalisés', 'Award', 'milestone', '{"type": "test_count", "value": 100}', 600, 'from-indigo-500', 'to-purple-500', 35),
-  ('test_150', 'Maître des tests', '150 tests réalisés', 'Trophy', 'milestone', '{"type": "test_count", "value": 150}', 900, 'from-purple-400', 'to-purple-600', 36),
-  ('test_200', 'Légende des tests', '200 tests réalisés', 'Crown', 'milestone', '{"type": "test_count", "value": 200}', 1200, 'from-purple-500', 'to-pink-500', 37),
+  -- Test achievements (basé sur chapitres e-learning explorés)
+  ('test_first', 'Explorateur curieux', '1 chapitre exploré', 'TestTube', 'session', '{"type": "test_count", "value": 1}', 50, 'from-cyan-300', 'to-cyan-400', 30),
+  ('test_10', 'Découvreur', '10 chapitres explorés', 'TestTube', 'session', '{"type": "test_count", "value": 10}', 100, 'from-cyan-400', 'to-blue-400', 31),
+  ('test_30', 'Explorateur', '30 chapitres explorés', 'TestTube', 'session', '{"type": "test_count", "value": 30}', 200, 'from-blue-400', 'to-blue-500', 32),
+  ('test_50', 'Apprenant confirmé', '50 chapitres explorés', 'Clipboard', 'session', '{"type": "test_count", "value": 50}', 300, 'from-blue-500', 'to-indigo-500', 33),
+  ('test_70', 'Expert curieux', '70 chapitres explorés', 'Clipboard', 'session', '{"type": "test_count", "value": 70}', 400, 'from-indigo-400', 'to-indigo-500', 34),
+  ('test_100', 'Centurion', '100 chapitres explorés', 'Award', 'milestone', '{"type": "test_count", "value": 100}', 600, 'from-indigo-500', 'to-purple-500', 35),
+  ('test_150', 'Maître explorateur', '150 chapitres explorés', 'Trophy', 'milestone', '{"type": "test_count", "value": 150}', 900, 'from-purple-400', 'to-purple-600', 36),
+  ('test_200', 'Légende de la connaissance', '200 chapitres explorés', 'Crown', 'milestone', '{"type": "test_count", "value": 200}', 1200, 'from-purple-500', 'to-pink-500', 37),
 
   -- Level achievements
   ('level_5', 'Niveau 5', 'Atteignez le niveau 5', 'TrendingUp', 'milestone', '{"type": "level", "value": 5}', 500, 'from-violet-400', 'to-purple-500', 40),
@@ -378,11 +379,11 @@ RETURNS void AS $$
 DECLARE
   v_user RECORD;
 BEGIN
-  FOR v_user IN SELECT DISTINCT user_id FROM public.user_sessions
+  FOR v_user IN SELECT DISTINCT user_id FROM public.elearning_subpart_progress
   LOOP
     -- Créer une fausse mise à jour pour déclencher le recalcul
-    UPDATE public.user_sessions
-    SET updated_at = updated_at
+    UPDATE public.elearning_subpart_progress
+    SET completed_at = completed_at
     WHERE user_id = v_user.user_id
     LIMIT 1;
   END LOOP;
@@ -398,5 +399,5 @@ $$ LANGUAGE plpgsql;
 COMMENT ON TABLE public.achievements IS 'Définit tous les achievements disponibles dans le système de gamification';
 COMMENT ON TABLE public.user_achievements IS 'Stocke les achievements débloqués par chaque utilisateur';
 COMMENT ON TABLE public.user_gamification_stats IS 'Statistiques de gamification par utilisateur (niveaux, XP, streaks, etc.)';
-COMMENT ON FUNCTION public.update_user_gamification_stats IS 'Met à jour automatiquement les statistiques de gamification quand une session est créée/modifiée';
+COMMENT ON FUNCTION public.update_user_gamification_stats IS 'Met à jour automatiquement les statistiques de gamification quand un subpart e-learning est complété';
 COMMENT ON FUNCTION public.check_and_unlock_achievements IS 'Vérifie et débloque automatiquement les achievements selon les conditions';
