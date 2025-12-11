@@ -65,9 +65,14 @@ export default function DiagnosticsModal({
     setLoading(true)
     try {
       // Normaliser le nom de région pour matcher avec la table pathologies
-      // Les zones 3D peuvent avoir des noms comme "Lombaire" ou "lombaire_basse"
-      // mais pathologies utilise "lombaire" (minuscules)
-      const normalizedRegion = region.toLowerCase().split('_')[0].trim()
+      // Les zones 3D peuvent avoir des noms comme "Lombaires", "lombaire_basse", etc.
+      // mais pathologies utilise "lombaire" (minuscules, singulier)
+      let normalizedRegion = region.toLowerCase().split('_')[0].trim()
+
+      // Retirer le 's' final si présent (lombaires -> lombaire)
+      if (normalizedRegion.endsWith('s')) {
+        normalizedRegion = normalizedRegion.slice(0, -1)
+      }
 
       console.log('🔍 DiagnosticsModal - Recherche diagnostics:', {
         originalRegion: region,

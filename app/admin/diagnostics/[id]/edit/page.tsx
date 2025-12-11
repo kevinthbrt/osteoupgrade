@@ -39,6 +39,7 @@ interface OrthopedicTest {
   name: string
   description: string
   category: string
+  indications: string | null
 }
 
 export default function EditDiagnosticPage() {
@@ -122,7 +123,7 @@ export default function EditDiagnosticPage() {
       // Charger tous les tests
       const { data: tests } = await supabase
         .from('orthopedic_tests')
-        .select('id, name, description, category')
+        .select('id, name, description, category, indications')
         .order('name')
 
       setAvailableTests(tests || [])
@@ -157,12 +158,13 @@ export default function EditDiagnosticPage() {
       )
     }
 
-    // Filtrer par recherche
+    // Filtrer par recherche (nom, description, indications)
     if (searchQuery) {
       const q = searchQuery.toLowerCase()
       filtered = filtered.filter(t =>
         t.name.toLowerCase().includes(q) ||
-        t.description?.toLowerCase().includes(q)
+        t.description?.toLowerCase().includes(q) ||
+        t.indications?.toLowerCase().includes(q)
       )
     }
 
@@ -522,7 +524,7 @@ export default function EditDiagnosticPage() {
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                     <input
                       type="text"
-                      placeholder="Rechercher un test..."
+                      placeholder="Rechercher un test (nom, description, indication)..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500"
