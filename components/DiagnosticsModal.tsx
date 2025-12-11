@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
-import { X, ChevronRight, Plus, AlertCircle, TestTube2 } from 'lucide-react'
+import { X, ChevronRight, Plus, AlertCircle, TestTube2, Eye } from 'lucide-react'
 import Image from 'next/image'
+import TestDetailModal from './TestDetailModal'
 
 interface Pathology {
   id: string
@@ -69,6 +70,9 @@ export default function DiagnosticsModal({
   const [pathologies, setPathologies] = useState<PathologyWithTests[]>([])
   const [selectedPathology, setSelectedPathology] = useState<PathologyWithTests | null>(null)
   const [loading, setLoading] = useState(true)
+  const [selectedTests, setSelectedTests] = useState<Set<string>>(new Set())
+  const [testDetail, setTestDetail] = useState<OrthopedicTest | null>(null)
+  const [isTestDetailOpen, setIsTestDetailOpen] = useState(false)
 
   useEffect(() => {
     if (isOpen && region) {
@@ -196,18 +200,56 @@ export default function DiagnosticsModal({
 
   const handleSelectPathology = (pathology: PathologyWithTests) => {
     setSelectedPathology(pathology)
+    setSelectedTests(new Set()) // Réinitialiser la sélection
   }
 
   const handleBack = () => {
     setSelectedPathology(null)
+    setSelectedTests(new Set())
   }
 
-  const handleAddAllTests = () => {
-    if (selectedPathology && selectedPathology.tests.length > 0) {
-      onAddTests(selectedPathology.tests, selectedPathology.name)
+  const toggleTestSelection = (testId: string) => {
+    setSelectedTests(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(testId)) {
+        newSet.delete(testId)
+      } else {
+        newSet.add(testId)
+      }
+      return newSet
+    })
+  }
+
+  const toggleSelectAll = () => {
+    if (!selectedPathology) return
+
+    if (selectedTests.size === selectedPathology.tests.length) {
+      // Tout désélectionner
+      setSelectedTests(new Set())
+    } else {
+      // Tout sélectionner
+      setSelectedTests(new Set(selectedPathology.tests.map(t => t.id)))
+    }
+  }
+
+  const handleAddSelectedTests = () => {
+    if (selectedPathology && selectedTests.size > 0) {
+      const testsToAdd = selectedPathology.tests.filter(t => selectedTests.has(t.id))
+      onAddTests(testsToAdd, selectedPathology.name)
       onClose()
       setSelectedPathology(null)
+      setSelectedTests(new Set())
     }
+  }
+
+  const handleViewTestDetail = (test: OrthopedicTest) => {
+    setTestDetail(test)
+    setIsTestDetailOpen(true)
+  }
+
+  const handleCloseTestDetail = () => {
+    setIsTestDetailOpen(false)
+    setTestDetail(null)
   }
 
   if (!isOpen) return null
@@ -292,10 +334,20 @@ export default function DiagnosticsModal({
 
               {/* Tests associés */}
               <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                  <TestTube2 className="h-5 w-5 text-purple-600" />
-                  Tests associés ({selectedPathology.tests.length})
-                </h3>
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                    <TestTube2 className="h-5 w-5 text-purple-600" />
+                    Tests associés ({selectedPathology.tests.length})
+                  </h3>
+                  {selectedPathology.tests.length > 0 && (
+                    <button
+                      onClick={toggleSelectAll}
+                      className="text-sm text-purple-600 hover:text-purple-700 font-medium"
+                    >
+                      {selectedTests.size === selectedPathology.tests.length ? 'Tout désélectionner' : 'Tout sélectionner'}
+                    </button>
+                  )}
+                </div>
 
                 {selectedPathology.tests.length === 0 ? (
                   <div className="text-center py-8 bg-gray-50 rounded-lg">
@@ -307,12 +359,21 @@ export default function DiagnosticsModal({
                     {selectedPathology.tests.map((test, index) => (
                       <div
                         key={test.id}
-                        className="border border-gray-200 rounded-lg p-4 hover:border-purple-300 hover:bg-purple-50/30 transition-colors"
+                        className="border border-gray-200 rounded-lg p-4 hover:border-purple-300 transition-colors"
                       >
                         <div className="flex items-start gap-3">
+                          {/* Checkbox */}
+                          <input
+                            type="checkbox"
+                            checked={selectedTests.has(test.id)}
+                            onChange={() => toggleTestSelection(test.id)}
+                            className="mt-1 h-5 w-5 text-purple-600 rounded border-gray-300 focus:ring-purple-500 cursor-pointer"
+                          />
+
                           <div className="flex-shrink-0 w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center text-purple-700 font-semibold text-sm">
                             {index + 1}
                           </div>
+
                           <div className="flex-1 min-w-0">
                             <h4 className="font-medium text-gray-900">{test.name}</h4>
                             {test.description && (
@@ -335,6 +396,15 @@ export default function DiagnosticsModal({
                               </div>
                             )}
                           </div>
+
+                          {/* Bouton voir détails */}
+                          <button
+                            onClick={() => handleViewTestDetail(test)}
+                            className="flex-shrink-0 px-3 py-2 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-lg flex items-center gap-2 text-sm font-medium transition-colors"
+                          >
+                            <Eye className="h-4 w-4" />
+                            Détails
+                          </button>
                         </div>
                       </div>
                     ))}
@@ -393,11 +463,18 @@ export default function DiagnosticsModal({
               {selectedPathology.tests.length > 0 && (
                 <div className="sticky bottom-0 pt-4 pb-2 bg-white border-t">
                   <button
-                    onClick={handleAddAllTests}
-                    className="w-full bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-lg font-semibold flex items-center justify-center gap-2"
+                    onClick={handleAddSelectedTests}
+                    disabled={selectedTests.size === 0}
+                    className={`w-full px-6 py-3 rounded-lg font-semibold flex items-center justify-center gap-2 transition-colors ${
+                      selectedTests.size === 0
+                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                        : 'bg-purple-600 hover:bg-purple-700 text-white'
+                    }`}
                   >
                     <Plus className="h-5 w-5" />
-                    Ajouter tous ces tests à la session ({selectedPathology.tests.length})
+                    {selectedTests.size === 0
+                      ? 'Sélectionnez des tests'
+                      : `Ajouter ${selectedTests.size} test${selectedTests.size > 1 ? 's' : ''} à la session`}
                   </button>
                 </div>
               )}
@@ -499,6 +576,13 @@ export default function DiagnosticsModal({
           )}
         </div>
       </div>
+
+      {/* Modal de détails du test */}
+      <TestDetailModal
+        test={testDetail}
+        isOpen={isTestDetailOpen}
+        onClose={handleCloseTestDetail}
+      />
     </div>
   )
 }
