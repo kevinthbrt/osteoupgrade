@@ -33,6 +33,7 @@ interface Pathology {
   is_active: boolean
   display_order: number
   test_count?: number
+  cluster_count?: number
 }
 
 const REGIONS: { value: AnatomicalRegion; label: string }[] = [
@@ -121,14 +122,25 @@ export default function DiagnosticsPage() {
         .from('pathology_tests')
         .select('pathology_id')
 
-      const countsMap = new Map<string, number>()
+      const testCountsMap = new Map<string, number>()
       testCounts?.forEach(item => {
-        countsMap.set(item.pathology_id, (countsMap.get(item.pathology_id) || 0) + 1)
+        testCountsMap.set(item.pathology_id, (testCountsMap.get(item.pathology_id) || 0) + 1)
+      })
+
+      // Charger le nombre de clusters pour chaque pathologie
+      const { data: clusterCounts } = await supabase
+        .from('pathology_clusters')
+        .select('pathology_id')
+
+      const clusterCountsMap = new Map<string, number>()
+      clusterCounts?.forEach(item => {
+        clusterCountsMap.set(item.pathology_id, (clusterCountsMap.get(item.pathology_id) || 0) + 1)
       })
 
       const pathologiesWithCounts = pathologiesData?.map(p => ({
         ...p,
-        test_count: countsMap.get(p.id) || 0
+        test_count: testCountsMap.get(p.id) || 0,
+        cluster_count: clusterCountsMap.get(p.id) || 0
       })) || []
 
       setPathologies(pathologiesWithCounts)
@@ -369,6 +381,12 @@ export default function DiagnosticsPage() {
                                     <span className="flex items-center gap-1">
                                       <TestTube className="h-3 w-3" />
                                       {pathology.test_count} test{pathology.test_count > 1 ? 's' : ''}
+                                    </span>
+                                  )}
+                                  {pathology.cluster_count !== undefined && pathology.cluster_count > 0 && (
+                                    <span className="flex items-center gap-1 text-purple-600">
+                                      <TestTube className="h-3 w-3" />
+                                      {pathology.cluster_count} cluster{pathology.cluster_count > 1 ? 's' : ''}
                                     </span>
                                   )}
                                 </div>
