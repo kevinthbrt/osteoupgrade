@@ -436,12 +436,12 @@ export default function Dashboard() {
                     Niveau {stats.level}
                   </h2>
                   <p className="text-sm text-purple-100 mt-1">
-                    {stats.allTimeSessions % 10}/10 leçons jusqu'au niveau {stats.level + 1}
+                    {stats.allTimeSessions % 10}/10 sessions jusqu'au niveau {stats.level + 1}
                   </p>
                 </div>
                 <div className="text-right">
                   <div className="text-3xl font-bold">{stats.totalTests}</div>
-                  <div className="text-xs text-purple-100">chapitres explorés</div>
+                  <div className="text-xs text-purple-100">tests réalisés</div>
                 </div>
               </div>
 
@@ -470,7 +470,7 @@ export default function Dashboard() {
                     <span className="text-xs font-semibold">Cette semaine</span>
                   </div>
                   <div className="text-2xl font-bold">{stats.weekSessions}</div>
-                  <div className="text-xs text-purple-100">leçons</div>
+                  <div className="text-xs text-purple-100">sessions</div>
                 </div>
 
                 <div className="bg-white/10 backdrop-blur-sm rounded-xl p-3 border border-white/20">
@@ -532,7 +532,7 @@ export default function Dashboard() {
                   <div className="text-center py-4">
                     <Gift className="h-8 w-8 text-slate-300 mx-auto mb-2" />
                     <p className="text-sm text-slate-600">
-                      Complétez votre première leçon e-learning pour débloquer vos badges !
+                      Complétez votre première session pour débloquer vos badges !
                     </p>
                   </div>
                 )}
@@ -559,12 +559,12 @@ export default function Dashboard() {
                 <h3 className="font-bold text-slate-900">Objectifs de la semaine</h3>
               </div>
               <span className="text-xs font-semibold text-sky-600 bg-sky-100 px-3 py-1 rounded-full">
-                {stats.weekSessions}/3 leçons
+                {stats.weekSessions}/3 sessions
               </span>
             </div>
 
             <div className="space-y-3">
-              {/* Objectif 1 - 3 leçons par semaine */}
+              {/* Objectif 1 - 3 sessions par semaine */}
               <div className="flex items-start gap-3">
                 <div className={`mt-0.5 w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 ${
                   stats.weekSessions >= 3 ? 'bg-gradient-to-br from-emerald-400 to-green-500' : 'bg-slate-200'
@@ -576,7 +576,7 @@ export default function Dashboard() {
                   )}
                 </div>
                 <div className="flex-1">
-                  <p className="text-sm font-semibold text-slate-900">Compléter 3 leçons e-learning cette semaine</p>
+                  <p className="text-sm font-semibold text-slate-900">Réaliser 3 sessions cette semaine</p>
                   <div className="mt-2 h-2 bg-slate-200 rounded-full overflow-hidden">
                     <div
                       className={`h-full transition-all duration-500 ${
