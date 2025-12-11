@@ -21,7 +21,7 @@ import {
 import Image from 'next/image'
 
 // Types
-type AnatomicalRegion = 'cervical' | 'thoracique' | 'lombaire' | 'epaule' | 'coude' | 'poignet' | 'main' | 'hanche' | 'genou' | 'cheville' | 'pied'
+type AnatomicalRegion = 'cervical' | 'atm' | 'crane' | 'thoracique' | 'lombaire' | 'sacro-iliaque' | 'cotes' | 'epaule' | 'coude' | 'poignet' | 'main' | 'hanche' | 'genou' | 'cheville' | 'pied' | 'neurologique' | 'vasculaire' | 'systemique'
 
 interface Pathology {
   id: string
@@ -33,12 +33,17 @@ interface Pathology {
   is_active: boolean
   display_order: number
   test_count?: number
+  cluster_count?: number
 }
 
 const REGIONS: { value: AnatomicalRegion; label: string }[] = [
   { value: 'cervical', label: 'Cervical' },
+  { value: 'atm', label: 'ATM' },
+  { value: 'crane', label: 'Crâne' },
   { value: 'thoracique', label: 'Thoracique' },
   { value: 'lombaire', label: 'Lombaire' },
+  { value: 'sacro-iliaque', label: 'Sacro-iliaque' },
+  { value: 'cotes', label: 'Côtes' },
   { value: 'epaule', label: 'Épaule' },
   { value: 'coude', label: 'Coude' },
   { value: 'poignet', label: 'Poignet' },
@@ -46,14 +51,18 @@ const REGIONS: { value: AnatomicalRegion; label: string }[] = [
   { value: 'hanche', label: 'Hanche' },
   { value: 'genou', label: 'Genou' },
   { value: 'cheville', label: 'Cheville' },
-  { value: 'pied', label: 'Pied' }
+  { value: 'pied', label: 'Pied' },
+  { value: 'neurologique', label: 'Neurologique' },
+  { value: 'vasculaire', label: 'Vasculaire' },
+  { value: 'systemique', label: 'Systémique' }
 ]
 
 const BODY_REGIONS = {
-  'Tête et Cou': ['cervical'],
+  'Tête et Cou': ['cervical', 'atm', 'crane'],
   'Membre Supérieur': ['epaule', 'coude', 'poignet', 'main'],
-  'Tronc': ['thoracique', 'lombaire'],
-  'Membre Inférieur': ['hanche', 'genou', 'cheville', 'pied']
+  'Tronc': ['thoracique', 'lombaire', 'sacro-iliaque', 'cotes'],
+  'Membre Inférieur': ['hanche', 'genou', 'cheville', 'pied'],
+  'Général': ['neurologique', 'vasculaire', 'systemique']
 }
 
 export default function DiagnosticsPage() {
@@ -113,14 +122,25 @@ export default function DiagnosticsPage() {
         .from('pathology_tests')
         .select('pathology_id')
 
-      const countsMap = new Map<string, number>()
+      const testCountsMap = new Map<string, number>()
       testCounts?.forEach(item => {
-        countsMap.set(item.pathology_id, (countsMap.get(item.pathology_id) || 0) + 1)
+        testCountsMap.set(item.pathology_id, (testCountsMap.get(item.pathology_id) || 0) + 1)
+      })
+
+      // Charger le nombre de clusters pour chaque pathologie
+      const { data: clusterCounts } = await supabase
+        .from('pathology_clusters')
+        .select('pathology_id')
+
+      const clusterCountsMap = new Map<string, number>()
+      clusterCounts?.forEach(item => {
+        clusterCountsMap.set(item.pathology_id, (clusterCountsMap.get(item.pathology_id) || 0) + 1)
       })
 
       const pathologiesWithCounts = pathologiesData?.map(p => ({
         ...p,
-        test_count: countsMap.get(p.id) || 0
+        test_count: testCountsMap.get(p.id) || 0,
+        cluster_count: clusterCountsMap.get(p.id) || 0
       })) || []
 
       setPathologies(pathologiesWithCounts)
@@ -361,6 +381,12 @@ export default function DiagnosticsPage() {
                                     <span className="flex items-center gap-1">
                                       <TestTube className="h-3 w-3" />
                                       {pathology.test_count} test{pathology.test_count > 1 ? 's' : ''}
+                                    </span>
+                                  )}
+                                  {pathology.cluster_count !== undefined && pathology.cluster_count > 0 && (
+                                    <span className="flex items-center gap-1 text-purple-600">
+                                      <TestTube className="h-3 w-3" />
+                                      {pathology.cluster_count} cluster{pathology.cluster_count > 1 ? 's' : ''}
                                     </span>
                                   )}
                                 </div>
