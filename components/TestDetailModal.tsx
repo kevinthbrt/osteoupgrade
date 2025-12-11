@@ -26,14 +26,14 @@ interface TestDetailModalProps {
 export default function TestDetailModal({ test, isOpen, onClose }: TestDetailModalProps) {
   if (!isOpen || !test) return null
 
-  // Extraire l'ID Vimeo de l'URL
-  const getVimeoId = (url: string | null) => {
+  // Extraire l'ID YouTube de l'URL
+  const getYoutubeId = (url: string | null) => {
     if (!url) return null
-    const match = url.match(/vimeo\.com\/(\d+)/)
+    const match = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\n?]*)/)
     return match ? match[1] : null
   }
 
-  const vimeoId = getVimeoId(test.video_url)
+  const youtubeId = getYoutubeId(test.video_url)
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-70 z-[60] flex items-center justify-center p-4">
@@ -64,13 +64,13 @@ export default function TestDetailModal({ test, isOpen, onClose }: TestDetailMod
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
           {/* Video */}
-          {vimeoId && (
+          {youtubeId && (
             <div className="aspect-video w-full rounded-lg overflow-hidden bg-black">
               <iframe
-                src={`https://player.vimeo.com/video/${vimeoId}?title=0&byline=0&portrait=0`}
+                src={`https://www.youtube.com/embed/${youtubeId}`}
                 className="w-full h-full"
                 frameBorder="0"
-                allow="autoplay; fullscreen; picture-in-picture"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 allowFullScreen
               ></iframe>
             </div>
