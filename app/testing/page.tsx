@@ -922,30 +922,33 @@ export default function TestingModulePage() {
           </div>
         )}
 
-        {/* Contenu principal - MODULE 3D À GAUCHE, TESTS À DROITE */}
+        {/* Module 3D centré en pleine largeur */}
+        <div className="max-w-5xl mx-auto">
+          <div className="bg-white rounded-xl shadow-sm p-6">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4 text-center">
+              Modèle anatomique 3D
+            </h2>
+            {zones.length === 0 ? (
+              <div className="text-center py-12 text-gray-500">
+                <p>Aucune zone anatomique configurée.</p>
+                <p className="text-sm mt-2">
+                  Utilisez Anatomy Builder pour créer des zones.
+                </p>
+              </div>
+            ) : (
+              <TestingViewer3D
+                zones={zones}
+                onZoneClick={handleZoneClick}
+                onSpecialCategoryClick={handleSpecialCategoryClick}
+              />
+            )}
+          </div>
+        </div>
+
+        {/* Contenu principal - TESTS ET CLUSTERS */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Module 3D - moitié gauche */}
+          {/* Tests et clusters sélectionnés - gauche */}
           <div className="space-y-6">
-            {/* Visualisateur 3D */}
-            <div className="bg-white rounded-xl shadow-sm p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">
-                Modèle anatomique 3D
-              </h2>
-              {zones.length === 0 ? (
-                <div className="text-center py-12 text-gray-500">
-                  <p>Aucune zone anatomique configurée.</p>
-                  <p className="text-sm mt-2">
-                    Utilisez Anatomy Builder pour créer des zones.
-                  </p>
-                </div>
-              ) : (
-                <TestingViewer3D
-                  zones={zones}
-                  onZoneClick={handleZoneClick}
-                  onSpecialCategoryClick={handleSpecialCategoryClick}
-                />
-              )}
-            </div>
 
             {/* Tests sélectionnés */}
             {currentSession.results.length > 0 && (
