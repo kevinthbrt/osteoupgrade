@@ -32,8 +32,23 @@ interface OrthopedicTest {
   updated_at: string
 }
 
+interface OrthopedicTestCluster {
+  id: string
+  name: string
+  region: string
+  description: string | null
+  indications: string | null
+  interest: string | null
+  sources: string | null
+  sensitivity: number | null
+  specificity: number | null
+  rv_positive: number | null
+  rv_negative: number | null
+}
+
 interface PathologyWithTests extends Pathology {
   tests: OrthopedicTest[]
+  clusters: OrthopedicTestCluster[]
 }
 
 interface DiagnosticsModalProps {
@@ -102,9 +117,10 @@ export default function DiagnosticsModal({
         return
       }
 
-      // Charger les tests associés pour chaque pathologie
+      // Charger les tests et clusters associés pour chaque pathologie
       const pathologiesWithTests = await Promise.all(
         pathologiesData.map(async (pathology) => {
+          // Charger les tests
           const { data: testLinks } = await supabase
             .from('pathology_tests')
             .select('test_id, order_index')
@@ -113,21 +129,42 @@ export default function DiagnosticsModal({
 
           const testIds = testLinks?.map(tl => tl.test_id) || []
 
-          if (testIds.length === 0) {
-            return { ...pathology, tests: [] }
+          let orderedTests: OrthopedicTest[] = []
+          if (testIds.length > 0) {
+            const { data: tests } = await supabase
+              .from('orthopedic_tests')
+              .select('*')
+              .in('id', testIds)
+
+            // Réorganiser les tests selon l'ordre défini
+            orderedTests = testIds
+              .map(id => tests?.find(t => t.id === id))
+              .filter(Boolean) as OrthopedicTest[]
           }
 
-          const { data: tests } = await supabase
-            .from('orthopedic_tests')
-            .select('*')
-            .in('id', testIds)
+          // Charger les clusters
+          const { data: clusterLinks } = await supabase
+            .from('pathology_clusters')
+            .select('cluster_id, order_index')
+            .eq('pathology_id', pathology.id)
+            .order('order_index')
 
-          // Réorganiser les tests selon l'ordre défini
-          const orderedTests = testIds
-            .map(id => tests?.find(t => t.id === id))
-            .filter(Boolean) as OrthopedicTest[]
+          const clusterIds = clusterLinks?.map(cl => cl.cluster_id) || []
 
-          return { ...pathology, tests: orderedTests }
+          let orderedClusters: OrthopedicTestCluster[] = []
+          if (clusterIds.length > 0) {
+            const { data: clusters } = await supabase
+              .from('orthopedic_test_clusters')
+              .select('*')
+              .in('id', clusterIds)
+
+            // Réorganiser les clusters selon l'ordre défini
+            orderedClusters = clusterIds
+              .map(id => clusters?.find(c => c.id === id))
+              .filter(Boolean) as OrthopedicTestCluster[]
+          }
+
+          return { ...pathology, tests: orderedTests, clusters: orderedClusters }
         })
       )
 
@@ -287,6 +324,53 @@ export default function DiagnosticsModal({
                 )}
               </div>
 
+              {/* Clusters de tests associés */}
+              {selectedPathology.clusters.length > 0 && (
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                    <TestTube2 className="h-5 w-5 text-purple-600" />
+                    Clusters de tests ({selectedPathology.clusters.length})
+                  </h3>
+
+                  <div className="space-y-3">
+                    {selectedPathology.clusters.map((cluster, index) => (
+                      <div
+                        key={cluster.id}
+                        className="border-2 border-purple-200 rounded-lg p-4 bg-purple-50/30"
+                      >
+                        <div className="flex items-start gap-3">
+                          <div className="flex-shrink-0 w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center text-white font-semibold text-sm">
+                            {index + 1}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-medium text-gray-900">{cluster.name}</h4>
+                            {cluster.description && (
+                              <p className="text-sm text-gray-600 mt-1 line-clamp-2">
+                                {cluster.description}
+                              </p>
+                            )}
+                            {(cluster.sensitivity || cluster.specificity) && (
+                              <div className="flex gap-3 mt-2 text-xs text-gray-500">
+                                {cluster.sensitivity && (
+                                  <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded">
+                                    Se: {cluster.sensitivity}%
+                                  </span>
+                                )}
+                                {cluster.specificity && (
+                                  <span className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded">
+                                    Sp: {cluster.specificity}%
+                                  </span>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Actions */}
               {selectedPathology.tests.length > 0 && (
                 <div className="sticky bottom-0 pt-4 pb-2 bg-white border-t">
@@ -376,6 +460,12 @@ export default function DiagnosticsModal({
                                 <span className="flex items-center gap-1">
                                   <TestTube2 className="h-3 w-3" />
                                   {pathology.tests.length} test{pathology.tests.length > 1 ? 's' : ''}
+                                </span>
+                              )}
+                              {pathology.clusters.length > 0 && (
+                                <span className="flex items-center gap-1 text-purple-600">
+                                  <TestTube2 className="h-3 w-3" />
+                                  {pathology.clusters.length} cluster{pathology.clusters.length > 1 ? 's' : ''}
                                 </span>
                               )}
                             </div>
