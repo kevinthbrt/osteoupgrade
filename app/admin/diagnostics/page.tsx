@@ -21,7 +21,7 @@ import {
 import Image from 'next/image'
 
 // Types
-type AnatomicalRegion = 'cervical' | 'thoracique' | 'lombaire' | 'epaule' | 'coude' | 'poignet' | 'main' | 'hanche' | 'genou' | 'cheville' | 'pied'
+type AnatomicalRegion = 'cervical' | 'atm' | 'crane' | 'thoracique' | 'lombaire' | 'sacro-iliaque' | 'cotes' | 'epaule' | 'coude' | 'poignet' | 'main' | 'hanche' | 'genou' | 'cheville' | 'pied' | 'neurologique' | 'vasculaire' | 'systemique'
 
 interface Pathology {
   id: string
@@ -37,8 +37,12 @@ interface Pathology {
 
 const REGIONS: { value: AnatomicalRegion; label: string }[] = [
   { value: 'cervical', label: 'Cervical' },
+  { value: 'atm', label: 'ATM' },
+  { value: 'crane', label: 'Crâne' },
   { value: 'thoracique', label: 'Thoracique' },
   { value: 'lombaire', label: 'Lombaire' },
+  { value: 'sacro-iliaque', label: 'Sacro-iliaque' },
+  { value: 'cotes', label: 'Côtes' },
   { value: 'epaule', label: 'Épaule' },
   { value: 'coude', label: 'Coude' },
   { value: 'poignet', label: 'Poignet' },
@@ -46,14 +50,18 @@ const REGIONS: { value: AnatomicalRegion; label: string }[] = [
   { value: 'hanche', label: 'Hanche' },
   { value: 'genou', label: 'Genou' },
   { value: 'cheville', label: 'Cheville' },
-  { value: 'pied', label: 'Pied' }
+  { value: 'pied', label: 'Pied' },
+  { value: 'neurologique', label: 'Neurologique' },
+  { value: 'vasculaire', label: 'Vasculaire' },
+  { value: 'systemique', label: 'Systémique' }
 ]
 
 const BODY_REGIONS = {
-  'Tête et Cou': ['cervical'],
+  'Tête et Cou': ['cervical', 'atm', 'crane'],
   'Membre Supérieur': ['epaule', 'coude', 'poignet', 'main'],
-  'Tronc': ['thoracique', 'lombaire'],
-  'Membre Inférieur': ['hanche', 'genou', 'cheville', 'pied']
+  'Tronc': ['thoracique', 'lombaire', 'sacro-iliaque', 'cotes'],
+  'Membre Inférieur': ['hanche', 'genou', 'cheville', 'pied'],
+  'Général': ['neurologique', 'vasculaire', 'systemique']
 }
 
 export default function DiagnosticsPage() {

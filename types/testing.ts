@@ -5,8 +5,12 @@
 // Régions anatomiques disponibles
 export type AnatomicalRegion =
   | 'cervical'
+  | 'atm'
+  | 'crane'
   | 'thoracique'
   | 'lombaire'
+  | 'sacro-iliaque'
+  | 'cotes'
   | 'epaule'
   | 'coude'
   | 'poignet'
@@ -15,6 +19,9 @@ export type AnatomicalRegion =
   | 'genou'
   | 'cheville'
   | 'pied'
+  | 'neurologique'
+  | 'vasculaire'
+  | 'systemique'
 
 // Sévérité des pathologies
 export type PathologySeverity = 'low' | 'medium' | 'high'
@@ -184,8 +191,12 @@ export interface PathologySearchFilters {
 // ============================================================================
 export const CATEGORY_TO_REGION_MAP: Record<string, AnatomicalRegion> = {
   'Cervical': 'cervical',
+  'ATM': 'atm',
+  'Crâne': 'crane',
   'Thoracique': 'thoracique',
   'Lombaire': 'lombaire',
+  'Sacro-iliaque': 'sacro-iliaque',
+  'Côtes': 'cotes',
   'Épaule': 'epaule',
   'Coude': 'coude',
   'Poignet': 'poignet',
@@ -193,7 +204,10 @@ export const CATEGORY_TO_REGION_MAP: Record<string, AnatomicalRegion> = {
   'Hanche': 'hanche',
   'Genou': 'genou',
   'Cheville': 'cheville',
-  'Pied': 'pied'
+  'Pied': 'pied',
+  'Neurologique': 'neurologique',
+  'Vasculaire': 'vasculaire',
+  'Systémique': 'systemique'
 }
 
 // ============================================================================
@@ -201,8 +215,12 @@ export const CATEGORY_TO_REGION_MAP: Record<string, AnatomicalRegion> = {
 // ============================================================================
 export const REGION_LABELS: Record<AnatomicalRegion, string> = {
   cervical: 'Cervical',
+  atm: 'ATM',
+  crane: 'Crâne',
   thoracique: 'Thoracique',
   lombaire: 'Lombaire',
+  'sacro-iliaque': 'Sacro-iliaque',
+  cotes: 'Côtes',
   epaule: 'Épaule',
   coude: 'Coude',
   poignet: 'Poignet',
@@ -210,7 +228,10 @@ export const REGION_LABELS: Record<AnatomicalRegion, string> = {
   hanche: 'Hanche',
   genou: 'Genou',
   cheville: 'Cheville',
-  pied: 'Pied'
+  pied: 'Pied',
+  neurologique: 'Neurologique',
+  vasculaire: 'Vasculaire',
+  systemique: 'Systémique'
 }
 
 export const SEVERITY_LABELS: Record<PathologySeverity, string> = {
