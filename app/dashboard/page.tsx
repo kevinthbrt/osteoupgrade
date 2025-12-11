@@ -35,7 +35,12 @@ import {
   Flame,
   Award,
   Gift,
-  BarChart3
+  BarChart3,
+  LogIn,
+  CalendarCheck,
+  Library,
+  Microscope,
+  Scan
 } from 'lucide-react'
 
 interface ModuleCard {
@@ -55,15 +60,27 @@ export default function Dashboard() {
   const [profile, setProfile] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [stats, setStats] = useState({
-    totalSessions: 0,
-    completionRate: 0,
-    streak: 0,
-    totalTests: 0,
-    weekSessions: 0,
-    allTimeSessions: 0,
     level: 1,
     totalXp: 0,
-    bestStreak: 0
+    currentStreak: 0,
+    bestStreak: 0,
+
+    // Stats par module
+    totalLogins: 0,
+    totalElearning: 0,
+    totalPractice: 0,
+    totalTesting: 0,
+
+    // Stats hebdomadaires
+    weekLogins: 0,
+    weekElearning: 0,
+    weekPractice: 0,
+    weekTesting: 0,
+
+    // Progression (%)
+    elearningProgress: 0,
+    practiceProgress: 0,
+    testingProgress: 0
   })
   const [achievements, setAchievements] = useState<any[]>([])
   const [unlockedAchievements, setUnlockedAchievements] = useState<any[]>([])
@@ -101,15 +118,27 @@ export default function Dashboard() {
 
       if (gamificationStats) {
         setStats({
-          totalSessions: gamificationStats.week_sessions,
-          completionRate: gamificationStats.completion_rate,
-          streak: gamificationStats.current_streak,
-          totalTests: gamificationStats.total_tests,
-          weekSessions: gamificationStats.week_sessions,
-          allTimeSessions: gamificationStats.total_sessions,
-          level: gamificationStats.level,
-          totalXp: gamificationStats.total_xp,
-          bestStreak: gamificationStats.best_streak
+          level: gamificationStats.level || 1,
+          totalXp: gamificationStats.total_xp || 0,
+          currentStreak: gamificationStats.current_streak || 0,
+          bestStreak: gamificationStats.best_streak || 0,
+
+          // Stats par module
+          totalLogins: gamificationStats.total_logins || 0,
+          totalElearning: gamificationStats.total_elearning_completed || 0,
+          totalPractice: gamificationStats.total_practice_viewed || 0,
+          totalTesting: gamificationStats.total_testing_viewed || 0,
+
+          // Stats hebdomadaires
+          weekLogins: gamificationStats.week_logins || 0,
+          weekElearning: gamificationStats.week_elearning || 0,
+          weekPractice: gamificationStats.week_practice || 0,
+          weekTesting: gamificationStats.week_testing || 0,
+
+          // Progression
+          elearningProgress: gamificationStats.elearning_progress || 0,
+          practiceProgress: gamificationStats.practice_progress || 0,
+          testingProgress: gamificationStats.testing_progress || 0
         })
       }
 
@@ -163,7 +192,17 @@ export default function Dashboard() {
     CheckCircle2,
     TestTube,
     Clipboard,
-    Gift
+    Gift,
+    LogIn,
+    Calendar,
+    CalendarCheck,
+    GraduationCap,
+    BookOpen,
+    Library,
+    Dumbbell,
+    Activity,
+    Microscope,
+    Scan
   }
 
   const modules: ModuleCard[] = [
@@ -421,65 +460,74 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Gamification Section - Progression & Achievements */}
-        {stats.allTimeSessions > 0 && (
+        {/* Gamification Section - Progression Multi-Modules */}
+        {stats.totalXp > 0 && (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-            {/* Niveau et XP */}
+            {/* Niveau global et XP */}
             <div className="lg:col-span-2 rounded-2xl bg-gradient-to-br from-purple-500 via-purple-600 to-indigo-600 p-6 text-white shadow-xl">
               <div className="flex items-start justify-between mb-4">
                 <div>
                   <div className="flex items-center gap-2 mb-1">
                     <Trophy className="h-5 w-5 text-yellow-300" />
-                    <span className="text-sm font-semibold text-purple-100">Votre progression</span>
+                    <span className="text-sm font-semibold text-purple-100">Progression globale</span>
                   </div>
-                  <h2 className="text-2xl font-bold">
+                  <h2 className="text-3xl font-bold">
                     Niveau {stats.level}
                   </h2>
                   <p className="text-sm text-purple-100 mt-1">
-                    {stats.allTimeSessions % 10}/10 sessions jusqu'au niveau {stats.level + 1}
+                    {stats.totalXp % 500}/{500} XP jusqu'au niveau {stats.level + 1}
                   </p>
                 </div>
                 <div className="text-right">
-                  <div className="text-3xl font-bold">{stats.totalTests}</div>
-                  <div className="text-xs text-purple-100">tests réalisés</div>
+                  <div className="text-3xl font-bold">{stats.totalXp.toLocaleString()}</div>
+                  <div className="text-xs text-purple-100">XP total</div>
                 </div>
               </div>
 
-              {/* Progress bar */}
-              <div className="relative h-3 bg-white/20 rounded-full overflow-hidden mb-4">
+              {/* Barre de progression XP */}
+              <div className="relative h-3 bg-white/20 rounded-full overflow-hidden mb-6">
                 <div
                   className="absolute inset-y-0 left-0 bg-gradient-to-r from-yellow-300 to-yellow-400 rounded-full transition-all duration-500"
-                  style={{ width: `${(stats.allTimeSessions % 10) * 10}%` }}
+                  style={{ width: `${((stats.totalXp % 500) / 500) * 100}%` }}
                 />
               </div>
 
-              {/* Weekly streak */}
-              <div className="grid grid-cols-3 gap-3">
+              {/* Stats globales */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 <div className="bg-white/10 backdrop-blur-sm rounded-xl p-3 border border-white/20">
                   <div className="flex items-center gap-2 mb-1">
                     <Flame className="h-4 w-4 text-orange-300" />
                     <span className="text-xs font-semibold">Série</span>
                   </div>
-                  <div className="text-2xl font-bold">{stats.streak}</div>
-                  <div className="text-xs text-purple-100">jours consécutifs</div>
+                  <div className="text-2xl font-bold">{stats.currentStreak}</div>
+                  <div className="text-xs text-purple-100">jours</div>
                 </div>
 
                 <div className="bg-white/10 backdrop-blur-sm rounded-xl p-3 border border-white/20">
                   <div className="flex items-center gap-2 mb-1">
-                    <Zap className="h-4 w-4 text-yellow-300" />
-                    <span className="text-xs font-semibold">Cette semaine</span>
+                    <LogIn className="h-4 w-4 text-sky-300" />
+                    <span className="text-xs font-semibold">Connexions</span>
                   </div>
-                  <div className="text-2xl font-bold">{stats.weekSessions}</div>
-                  <div className="text-xs text-purple-100">sessions</div>
+                  <div className="text-2xl font-bold">{stats.totalLogins}</div>
+                  <div className="text-xs text-purple-100">total</div>
                 </div>
 
                 <div className="bg-white/10 backdrop-blur-sm rounded-xl p-3 border border-white/20">
                   <div className="flex items-center gap-2 mb-1">
-                    <Target className="h-4 w-4 text-green-300" />
-                    <span className="text-xs font-semibold">Complétion</span>
+                    <GraduationCap className="h-4 w-4 text-emerald-300" />
+                    <span className="text-xs font-semibold">E-learning</span>
                   </div>
-                  <div className="text-2xl font-bold">{stats.completionRate}%</div>
-                  <div className="text-xs text-purple-100">taux</div>
+                  <div className="text-2xl font-bold">{stats.totalElearning}</div>
+                  <div className="text-xs text-purple-100">leçons</div>
+                </div>
+
+                <div className="bg-white/10 backdrop-blur-sm rounded-xl p-3 border border-white/20">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Activity className="h-4 w-4 text-amber-300" />
+                    <span className="text-xs font-semibold">Activité</span>
+                  </div>
+                  <div className="text-2xl font-bold">{stats.totalPractice + stats.totalTesting}</div>
+                  <div className="text-xs text-purple-100">actions</div>
                 </div>
               </div>
             </div>
@@ -550,90 +598,200 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* Daily goals section */}
-        {stats.allTimeSessions > 0 && (
-          <div className="rounded-2xl bg-gradient-to-br from-sky-50 via-white to-indigo-50 p-6 border border-sky-100 mb-8">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <BarChart3 className="h-5 w-5 text-sky-600" />
-                <h3 className="font-bold text-slate-900">Objectifs de la semaine</h3>
-              </div>
-              <span className="text-xs font-semibold text-sky-600 bg-sky-100 px-3 py-1 rounded-full">
-                {stats.weekSessions}/3 sessions
-              </span>
+        {/* Progress bars par module */}
+        {stats.totalXp > 0 && (
+          <div className="rounded-2xl bg-gradient-to-br from-slate-50 via-white to-slate-50 p-6 border border-slate-200 mb-8">
+            <div className="flex items-center gap-2 mb-6">
+              <BarChart3 className="h-5 w-5 text-slate-700" />
+              <h3 className="font-bold text-slate-900">Progression par module</h3>
             </div>
 
-            <div className="space-y-3">
-              {/* Objectif 1 - 3 sessions par semaine */}
-              <div className="flex items-start gap-3">
-                <div className={`mt-0.5 w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 ${
-                  stats.weekSessions >= 3 ? 'bg-gradient-to-br from-emerald-400 to-green-500' : 'bg-slate-200'
-                }`}>
-                  {stats.weekSessions >= 3 ? (
-                    <CheckCircle2 className="h-4 w-4 text-white" />
-                  ) : (
-                    <span className="text-xs font-bold text-slate-500">{stats.weekSessions}/3</span>
-                  )}
-                </div>
-                <div className="flex-1">
-                  <p className="text-sm font-semibold text-slate-900">Réaliser 3 sessions cette semaine</p>
-                  <div className="mt-2 h-2 bg-slate-200 rounded-full overflow-hidden">
-                    <div
-                      className={`h-full transition-all duration-500 ${
-                        stats.weekSessions >= 3
-                          ? 'bg-gradient-to-r from-emerald-400 to-green-500'
-                          : 'bg-gradient-to-r from-sky-400 to-blue-500'
-                      }`}
-                      style={{ width: `${Math.min((stats.weekSessions / 3) * 100, 100)}%` }}
-                    />
+            <div className="space-y-6">
+              {/* E-learning Progress */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <GraduationCap className="h-5 w-5 text-emerald-600" />
+                    <span className="text-sm font-semibold text-slate-900">E-learning</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs text-slate-600">
+                      {stats.totalElearning} leçons · {stats.elearningProgress}%
+                    </span>
+                    <span className="text-xs font-bold text-emerald-600">
+                      +{stats.totalElearning * 50} XP
+                    </span>
                   </div>
                 </div>
-              </div>
-
-              {/* Objectif 2 - Maintenir série */}
-              <div className="flex items-start gap-3">
-                <div className={`mt-0.5 w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 ${
-                  stats.streak >= 7 ? 'bg-gradient-to-br from-orange-400 to-amber-500' : 'bg-slate-200'
-                }`}>
-                  {stats.streak >= 7 ? (
-                    <CheckCircle2 className="h-4 w-4 text-white" />
-                  ) : (
-                    <Flame className="h-4 w-4 text-slate-500" />
-                  )}
-                </div>
-                <div className="flex-1">
-                  <p className="text-sm font-semibold text-slate-900">Série de 7 jours consécutifs</p>
-                  <p className="text-xs text-slate-600 mt-1">
-                    {stats.streak >= 7
-                      ? `Incroyable ! Vous êtes à ${stats.streak} jours !`
-                      : `Plus que ${7 - stats.streak} jours à tenir !`
-                    }
-                  </p>
+                <div className="relative h-3 bg-slate-100 rounded-full overflow-hidden">
+                  <div
+                    className="absolute inset-y-0 left-0 bg-gradient-to-r from-emerald-400 to-green-500 rounded-full transition-all duration-500"
+                    style={{ width: `${stats.elearningProgress}%` }}
+                  />
                 </div>
               </div>
 
-              {/* Objectif 3 - Complétion */}
-              <div className="flex items-start gap-3">
-                <div className={`mt-0.5 w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 ${
-                  stats.completionRate >= 90 ? 'bg-gradient-to-br from-purple-400 to-indigo-500' : 'bg-slate-200'
-                }`}>
-                  {stats.completionRate >= 90 ? (
-                    <CheckCircle2 className="h-4 w-4 text-white" />
-                  ) : (
-                    <Target className="h-4 w-4 text-slate-500" />
-                  )}
+              {/* Practice Progress */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <Dumbbell className="h-5 w-5 text-amber-600" />
+                    <span className="text-sm font-semibold text-slate-900">Pratique</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs text-slate-600">
+                      {stats.totalPractice} techniques · {stats.practiceProgress}%
+                    </span>
+                    <span className="text-xs font-bold text-amber-600">
+                      +{stats.totalPractice * 30} XP
+                    </span>
+                  </div>
                 </div>
-                <div className="flex-1">
-                  <p className="text-sm font-semibold text-slate-900">Atteindre 90% de complétion</p>
-                  <p className="text-xs text-slate-600 mt-1">
-                    Actuellement à {stats.completionRate}%
-                  </p>
+                <div className="relative h-3 bg-slate-100 rounded-full overflow-hidden">
+                  <div
+                    className="absolute inset-y-0 left-0 bg-gradient-to-r from-amber-400 to-orange-500 rounded-full transition-all duration-500"
+                    style={{ width: `${stats.practiceProgress}%` }}
+                  />
+                </div>
+              </div>
+
+              {/* Testing 3D Progress */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <TestTube className="h-5 w-5 text-violet-600" />
+                    <span className="text-sm font-semibold text-slate-900">Testing 3D</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs text-slate-600">
+                      {stats.totalTesting} tests · {stats.testingProgress}%
+                    </span>
+                    <span className="text-xs font-bold text-violet-600">
+                      +{stats.totalTesting * 40} XP
+                    </span>
+                  </div>
+                </div>
+                <div className="relative h-3 bg-slate-100 rounded-full overflow-hidden">
+                  <div
+                    className="absolute inset-y-0 left-0 bg-gradient-to-r from-violet-400 to-purple-500 rounded-full transition-all duration-500"
+                    style={{ width: `${stats.testingProgress}%` }}
+                  />
+                </div>
+              </div>
+
+              {/* Connexions / Streak */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <Flame className="h-5 w-5 text-orange-600" />
+                    <span className="text-sm font-semibold text-slate-900">Assiduité</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs text-slate-600">
+                      {stats.totalLogins} connexions · Série: {stats.currentStreak} jours
+                    </span>
+                    <span className="text-xs font-bold text-orange-600">
+                      +{stats.totalLogins * 10} XP
+                    </span>
+                  </div>
+                </div>
+                <div className="relative h-3 bg-slate-100 rounded-full overflow-hidden">
+                  <div
+                    className="absolute inset-y-0 left-0 bg-gradient-to-r from-orange-400 to-red-500 rounded-full transition-all duration-500"
+                    style={{ width: `${Math.min((stats.currentStreak / 30) * 100, 100)}%` }}
+                  />
+                </div>
+                <p className="text-xs text-slate-500 mt-1">
+                  {stats.currentStreak >= 30
+                    ? '🔥 Vous êtes au maximum !'
+                    : `${30 - stats.currentStreak} jours pour atteindre 30 jours consécutifs`
+                  }
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Weekly Goals */}
+        {stats.totalXp > 0 && (
+          <div className="rounded-2xl bg-gradient-to-br from-sky-50 via-white to-indigo-50 p-6 border border-sky-100 mb-8">
+            <div className="flex items-center gap-2 mb-6">
+              <Target className="h-5 w-5 text-sky-600" />
+              <h3 className="font-bold text-slate-900">Objectifs de la semaine</h3>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Goal: Logins */}
+              <div className="bg-white rounded-xl p-4 border border-sky-100">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <LogIn className="h-4 w-4 text-sky-600" />
+                    <span className="text-sm font-semibold text-slate-900">Connexions</span>
+                  </div>
+                  <span className="text-xs font-bold text-sky-600">{stats.weekLogins}/5</span>
+                </div>
+                <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-gradient-to-r from-sky-400 to-blue-500 transition-all duration-500"
+                    style={{ width: `${Math.min((stats.weekLogins / 5) * 100, 100)}%` }}
+                  />
+                </div>
+              </div>
+
+              {/* Goal: E-learning */}
+              <div className="bg-white rounded-xl p-4 border border-emerald-100">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <GraduationCap className="h-4 w-4 text-emerald-600" />
+                    <span className="text-sm font-semibold text-slate-900">E-learning</span>
+                  </div>
+                  <span className="text-xs font-bold text-emerald-600">{stats.weekElearning}/3</span>
+                </div>
+                <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-gradient-to-r from-emerald-400 to-green-500 transition-all duration-500"
+                    style={{ width: `${Math.min((stats.weekElearning / 3) * 100, 100)}%` }}
+                  />
+                </div>
+              </div>
+
+              {/* Goal: Practice */}
+              <div className="bg-white rounded-xl p-4 border border-amber-100">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <Dumbbell className="h-4 w-4 text-amber-600" />
+                    <span className="text-sm font-semibold text-slate-900">Pratique</span>
+                  </div>
+                  <span className="text-xs font-bold text-amber-600">{stats.weekPractice}/2</span>
+                </div>
+                <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-gradient-to-r from-amber-400 to-orange-500 transition-all duration-500"
+                    style={{ width: `${Math.min((stats.weekPractice / 2) * 100, 100)}%` }}
+                  />
+                </div>
+              </div>
+
+              {/* Goal: Testing */}
+              <div className="bg-white rounded-xl p-4 border border-violet-100">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <TestTube className="h-4 w-4 text-violet-600" />
+                    <span className="text-sm font-semibold text-slate-900">Testing 3D</span>
+                  </div>
+                  <span className="text-xs font-bold text-violet-600">{stats.weekTesting}/2</span>
+                </div>
+                <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-gradient-to-r from-violet-400 to-purple-500 transition-all duration-500"
+                    style={{ width: `${Math.min((stats.weekTesting / 2) * 100, 100)}%` }}
+                  />
                 </div>
               </div>
             </div>
 
             {/* Reward message */}
-            {stats.weekSessions >= 3 && stats.streak >= 7 && (
+            {stats.weekLogins >= 5 && stats.weekElearning >= 3 && stats.weekPractice >= 2 && stats.weekTesting >= 2 && (
               <div className="mt-4 p-4 rounded-xl bg-gradient-to-r from-amber-400 via-orange-400 to-amber-500 text-white">
                 <div className="flex items-center gap-3">
                   <Trophy className="h-6 w-6" />
