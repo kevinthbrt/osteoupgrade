@@ -355,8 +355,14 @@ INSERT INTO public.achievements (slug, name, description, icon, category, unlock
   ('flawless', 'Impeccable', '95% de taux de complétion', 'CheckCircle2', 'completion', '{"type": "completion_rate", "value": 95}', 800, 'from-green-400', 'to-emerald-500', 21),
 
   -- Test achievements
-  ('test_explorer', 'Explorateur', '50 tests réalisés', 'TestTube', 'session', '{"type": "test_count", "value": 50}', 300, 'from-cyan-400', 'to-blue-500', 30),
-  ('test_master', 'Maître des tests', '200 tests réalisés', 'Clipboard', 'milestone', '{"type": "test_count", "value": 200}', 1000, 'from-blue-400', 'to-purple-500', 31),
+  ('test_first', 'Premier test', '1 test réalisé', 'TestTube', 'session', '{"type": "test_count", "value": 1}', 50, 'from-cyan-300', 'to-cyan-400', 30),
+  ('test_10', 'Découvreur', '10 tests réalisés', 'TestTube', 'session', '{"type": "test_count", "value": 10}', 100, 'from-cyan-400', 'to-blue-400', 31),
+  ('test_30', 'Explorateur', '30 tests réalisés', 'TestTube', 'session', '{"type": "test_count", "value": 30}', 200, 'from-blue-400', 'to-blue-500', 32),
+  ('test_50', 'Testeur confirmé', '50 tests réalisés', 'Clipboard', 'session', '{"type": "test_count", "value": 50}', 300, 'from-blue-500', 'to-indigo-500', 33),
+  ('test_70', 'Expert testeur', '70 tests réalisés', 'Clipboard', 'session', '{"type": "test_count", "value": 70}', 400, 'from-indigo-400', 'to-indigo-500', 34),
+  ('test_100', 'Centurion', '100 tests réalisés', 'Award', 'milestone', '{"type": "test_count", "value": 100}', 600, 'from-indigo-500', 'to-purple-500', 35),
+  ('test_150', 'Maître des tests', '150 tests réalisés', 'Trophy', 'milestone', '{"type": "test_count", "value": 150}', 900, 'from-purple-400', 'to-purple-600', 36),
+  ('test_200', 'Légende des tests', '200 tests réalisés', 'Crown', 'milestone', '{"type": "test_count", "value": 200}', 1200, 'from-purple-500', 'to-pink-500', 37),
 
   -- Level achievements
   ('level_5', 'Niveau 5', 'Atteignez le niveau 5', 'TrendingUp', 'milestone', '{"type": "level", "value": 5}', 500, 'from-violet-400', 'to-purple-500', 40),

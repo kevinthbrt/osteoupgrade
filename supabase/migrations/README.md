@@ -139,8 +139,14 @@ Cette fonction va :
 - ✅ **Impeccable** : 95% de complétion (800 XP)
 
 ### Tests
-- 🧪 **Explorateur** : 50 tests (300 XP)
-- 📋 **Maître des tests** : 200 tests (1000 XP)
+- 🧪 **Premier test** : 1 test (50 XP)
+- 🧪 **Découvreur** : 10 tests (100 XP)
+- 🧪 **Explorateur** : 30 tests (200 XP)
+- 📋 **Testeur confirmé** : 50 tests (300 XP)
+- 📋 **Expert testeur** : 70 tests (400 XP)
+- 🏅 **Centurion** : 100 tests (600 XP)
+- 🏆 **Maître des tests** : 150 tests (900 XP)
+- 👑 **Légende des tests** : 200 tests (1200 XP)
 
 ### Niveaux
 - 📊 **Niveau 5** : Atteindre le niveau 5 (500 XP)
