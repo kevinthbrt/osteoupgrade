@@ -60,8 +60,13 @@ export default function Dashboard() {
     streak: 0,
     totalTests: 0,
     weekSessions: 0,
-    allTimeSessions: 0
+    allTimeSessions: 0,
+    level: 1,
+    totalXp: 0,
+    bestStreak: 0
   })
+  const [achievements, setAchievements] = useState<any[]>([])
+  const [unlockedAchievements, setUnlockedAchievements] = useState<any[]>([])
 
   useEffect(() => {
     loadDashboardData()
@@ -87,52 +92,50 @@ export default function Dashboard() {
         setProfile(profileData)
       }
 
-      // Get simple stats
-      const { data: sessionsData } = await supabase
-        .from('user_sessions')
+      // Get gamification stats from database
+      const { data: gamificationStats } = await supabase
+        .from('user_gamification_stats')
         .select('*')
         .eq('user_id', user.id)
+        .single()
 
-      if (sessionsData) {
-        const now = new Date()
-        const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
-        const weekSessions = sessionsData.filter((s: any) =>
-          new Date(s.created_at) >= weekAgo
-        ).length
-
-        const completedSessions = sessionsData.filter((s: any) => s.completed).length
-        const completionRate = sessionsData.length > 0
-          ? Math.round((completedSessions / sessionsData.length) * 100)
-          : 0
-
-        // Calculate streak
-        const sessionDates = sessionsData
-          .map((s: any) => new Date(s.created_at).toDateString())
-          .sort()
-        const uniqueDates = [...new Set(sessionDates)].reverse()
-        let streak = 0
-        let currentDate = new Date()
-        for (const dateStr of uniqueDates) {
-          const sessionDate = new Date(dateStr)
-          const daysDiff = Math.floor((currentDate.getTime() - sessionDate.getTime()) / (1000 * 60 * 60 * 24))
-          if (daysDiff <= streak + 1) {
-            streak++
-            currentDate = sessionDate
-          } else {
-            break
-          }
-        }
-
-        const totalTests = sessionsData.reduce((acc: number, s: any) => acc + (s.tests_count || 0), 0)
-
+      if (gamificationStats) {
         setStats({
-          totalSessions: weekSessions,
-          completionRate,
-          streak,
-          totalTests,
-          weekSessions,
-          allTimeSessions: sessionsData.length
+          totalSessions: gamificationStats.week_sessions,
+          completionRate: gamificationStats.completion_rate,
+          streak: gamificationStats.current_streak,
+          totalTests: gamificationStats.total_tests,
+          weekSessions: gamificationStats.week_sessions,
+          allTimeSessions: gamificationStats.total_sessions,
+          level: gamificationStats.level,
+          totalXp: gamificationStats.total_xp,
+          bestStreak: gamificationStats.best_streak
         })
+      }
+
+      // Get all achievements
+      const { data: achievementsData } = await supabase
+        .from('achievements')
+        .select('*')
+        .eq('is_active', true)
+        .order('display_order', { ascending: true })
+
+      if (achievementsData) {
+        setAchievements(achievementsData)
+      }
+
+      // Get user's unlocked achievements
+      const { data: userAchievementsData } = await supabase
+        .from('user_achievements')
+        .select(`
+          *,
+          achievement:achievements(*)
+        `)
+        .eq('user_id', user.id)
+        .order('unlocked_at', { ascending: false })
+
+      if (userAchievementsData) {
+        setUnlockedAchievements(userAchievementsData)
       }
     } catch (error) {
       console.error('Error loading dashboard:', error)
@@ -145,6 +148,23 @@ export default function Dashboard() {
   const isPremiumOrAdmin = ['premium', 'premium_silver', 'premium_gold', 'admin'].includes(profile?.role)
   const isPremiumGoldOrAdmin = ['premium', 'premium_gold', 'admin'].includes(profile?.role)
   const isAdmin = profile?.role === 'admin'
+
+  // Icon mapping for achievements
+  const iconMap: Record<string, any> = {
+    Sparkles,
+    Flame,
+    Trophy,
+    Star,
+    Target,
+    TrendingUp,
+    Crown,
+    Award,
+    Zap,
+    CheckCircle2,
+    TestTube,
+    Clipboard,
+    Gift
+  }
 
   const modules: ModuleCard[] = [
     // Main modules
@@ -413,10 +433,10 @@ export default function Dashboard() {
                     <span className="text-sm font-semibold text-purple-100">Votre progression</span>
                   </div>
                   <h2 className="text-2xl font-bold">
-                    Niveau {Math.floor(stats.allTimeSessions / 10) + 1}
+                    Niveau {stats.level}
                   </h2>
                   <p className="text-sm text-purple-100 mt-1">
-                    {stats.allTimeSessions % 10}/10 sessions jusqu'au niveau {Math.floor(stats.allTimeSessions / 10) + 2}
+                    {stats.allTimeSessions % 10}/10 sessions jusqu'au niveau {stats.level + 1}
                   </p>
                 </div>
                 <div className="text-right">
@@ -472,64 +492,56 @@ export default function Dashboard() {
               </div>
 
               <div className="space-y-3">
-                {/* Badge 1 - Premiers pas */}
-                {stats.allTimeSessions >= 1 && (
-                  <div className="flex items-center gap-3 p-2 rounded-lg bg-gradient-to-r from-sky-50 to-blue-50">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-sky-400 to-blue-500 flex items-center justify-center shadow-lg">
-                      <Sparkles className="h-5 w-5 text-white" />
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-sm font-semibold text-slate-900">Premiers pas</p>
-                      <p className="text-xs text-slate-600">1ère session réalisée</p>
-                    </div>
-                  </div>
-                )}
+                {/* Display unlocked achievements */}
+                {unlockedAchievements.length > 0 ? (
+                  unlockedAchievements.slice(0, 5).map((ua: any) => {
+                    const achievement = ua.achievement
+                    const IconComponent = iconMap[achievement.icon] || Sparkles
 
-                {/* Badge 2 - Régularité */}
-                {stats.streak >= 3 && (
-                  <div className="flex items-center gap-3 p-2 rounded-lg bg-gradient-to-r from-orange-50 to-amber-50">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-400 to-amber-500 flex items-center justify-center shadow-lg">
-                      <Flame className="h-5 w-5 text-white" />
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-sm font-semibold text-slate-900">En feu !</p>
-                      <p className="text-xs text-slate-600">{stats.streak} jours d'affilée</p>
-                    </div>
-                  </div>
-                )}
+                    // Convert gradient classes to lighter background versions
+                    const bgClass = achievement.gradient_from.includes('sky') ? 'from-sky-50' :
+                                   achievement.gradient_from.includes('orange') ? 'from-orange-50' :
+                                   achievement.gradient_from.includes('purple') ? 'from-purple-50' :
+                                   achievement.gradient_from.includes('emerald') ? 'from-emerald-50' :
+                                   achievement.gradient_from.includes('blue') ? 'from-blue-50' :
+                                   achievement.gradient_from.includes('amber') ? 'from-amber-50' :
+                                   achievement.gradient_from.includes('yellow') ? 'from-yellow-50' :
+                                   'from-sky-50'
 
-                {/* Badge 3 - Expert */}
-                {stats.allTimeSessions >= 20 && (
-                  <div className="flex items-center gap-3 p-2 rounded-lg bg-gradient-to-r from-purple-50 to-indigo-50">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-400 to-indigo-500 flex items-center justify-center shadow-lg">
-                      <Trophy className="h-5 w-5 text-white" />
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-sm font-semibold text-slate-900">Expert</p>
-                      <p className="text-xs text-slate-600">20+ sessions</p>
-                    </div>
-                  </div>
-                )}
+                    const bgToClass = achievement.gradient_to.includes('blue') ? 'to-blue-50' :
+                                     achievement.gradient_to.includes('amber') ? 'to-amber-50' :
+                                     achievement.gradient_to.includes('indigo') ? 'to-indigo-50' :
+                                     achievement.gradient_to.includes('green') ? 'to-green-50' :
+                                     achievement.gradient_to.includes('purple') ? 'to-purple-50' :
+                                     achievement.gradient_to.includes('yellow') ? 'to-yellow-50' :
+                                     'to-blue-50'
 
-                {/* Badge 4 - Perfectionniste */}
-                {stats.completionRate >= 80 && (
-                  <div className="flex items-center gap-3 p-2 rounded-lg bg-gradient-to-r from-emerald-50 to-green-50">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-400 to-green-500 flex items-center justify-center shadow-lg">
-                      <Star className="h-5 w-5 text-white" />
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-sm font-semibold text-slate-900">Perfectionniste</p>
-                      <p className="text-xs text-slate-600">80%+ de complétion</p>
-                    </div>
-                  </div>
-                )}
-
-                {/* Motivational message if no badges yet */}
-                {stats.allTimeSessions < 1 && (
+                    return (
+                      <div key={ua.id} className={`flex items-center gap-3 p-2 rounded-lg bg-gradient-to-r ${bgClass} ${bgToClass}`}>
+                        <div className={`w-10 h-10 rounded-full bg-gradient-to-br ${achievement.gradient_from} ${achievement.gradient_to} flex items-center justify-center shadow-lg`}>
+                          <IconComponent className="h-5 w-5 text-white" />
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-sm font-semibold text-slate-900">{achievement.name}</p>
+                          <p className="text-xs text-slate-600">{achievement.description}</p>
+                        </div>
+                      </div>
+                    )
+                  })
+                ) : (
                   <div className="text-center py-4">
                     <Gift className="h-8 w-8 text-slate-300 mx-auto mb-2" />
                     <p className="text-sm text-slate-600">
                       Commencez votre première session pour débloquer vos badges !
+                    </p>
+                  </div>
+                )}
+
+                {/* Show more achievements indicator */}
+                {unlockedAchievements.length > 5 && (
+                  <div className="text-center pt-2">
+                    <p className="text-xs text-slate-500">
+                      +{unlockedAchievements.length - 5} autres badges débloqués
                     </p>
                   </div>
                 )}
