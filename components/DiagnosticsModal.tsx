@@ -79,20 +79,32 @@ export default function DiagnosticsModal({
   const loadPathologies = async () => {
     setLoading(true)
     try {
+      // Map de correspondance entre les noms des zones 3D et les noms des régions en DB
+      const zoneToRegionMap: Record<string, string> = {
+        'sacroiliaque': 'sacro-iliaque',
+        'sacro-iliaque': 'sacro-iliaque',
+        // Ajoutez d'autres mappings si nécessaire
+      }
+
       // Normaliser le nom de région pour matcher avec la table pathologies
       // Les zones 3D peuvent avoir des noms comme "Lombaires", "lombaire_basse", etc.
       // mais pathologies utilise "lombaire" (minuscules, singulier)
       let normalizedRegion = region.toLowerCase().trim()
 
-      // Split sur underscore et prendre la première partie (ex: "lombaire_basse" -> "lombaire")
-      if (normalizedRegion.includes('_')) {
-        normalizedRegion = normalizedRegion.split('_')[0]
-      }
+      // Vérifier d'abord s'il y a un mapping explicite
+      if (zoneToRegionMap[normalizedRegion]) {
+        normalizedRegion = zoneToRegionMap[normalizedRegion]
+      } else {
+        // Split sur underscore et prendre la première partie (ex: "lombaire_basse" -> "lombaire")
+        if (normalizedRegion.includes('_')) {
+          normalizedRegion = normalizedRegion.split('_')[0]
+        }
 
-      // Retirer le 's' final si présent (lombaires -> lombaire)
-      // SAUF si c'est un mot composé avec tiret (sacro-iliaque, etc.)
-      if (normalizedRegion.endsWith('s') && !normalizedRegion.includes('-')) {
-        normalizedRegion = normalizedRegion.slice(0, -1)
+        // Retirer le 's' final si présent (lombaires -> lombaire)
+        // SAUF si c'est un mot composé avec tiret (sacro-iliaque, etc.)
+        if (normalizedRegion.endsWith('s') && !normalizedRegion.includes('-')) {
+          normalizedRegion = normalizedRegion.slice(0, -1)
+        }
       }
 
       console.log('🔍 DiagnosticsModal - Recherche diagnostics:', {
