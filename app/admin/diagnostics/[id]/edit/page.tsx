@@ -49,6 +49,14 @@ interface OrthopedicTest {
   indications: string | null
 }
 
+interface OrthopedicTestCluster {
+  id: string
+  name: string
+  region: string
+  description: string | null
+  indications: string | null
+}
+
 export default function EditDiagnosticPage() {
   const router = useRouter()
   const params = useParams()
@@ -74,6 +82,13 @@ export default function EditDiagnosticPage() {
   const [imageFile, setImageFile] = useState<File | null>(null)
   const [imagePreview, setImagePreview] = useState<string>('')
 
+  // Clusters
+  const [selectedClusters, setSelectedClusters] = useState<string[]>([])
+  const [availableClusters, setAvailableClusters] = useState<OrthopedicTestCluster[]>([])
+  const [filteredClusters, setFilteredClusters] = useState<OrthopedicTestCluster[]>([])
+  const [clusterSearchQuery, setClusterSearchQuery] = useState('')
+  const [activeTab, setActiveTab] = useState<'tests' | 'clusters'>('tests')
+
   useEffect(() => {
     checkAccess()
   }, [])
@@ -81,6 +96,10 @@ export default function EditDiagnosticPage() {
   useEffect(() => {
     filterTests()
   }, [searchQuery, availableTests, formData.region])
+
+  useEffect(() => {
+    filterClusters()
+  }, [clusterSearchQuery, availableClusters, formData.region])
 
   const checkAccess = async () => {
     const { data: { user } } = await supabase.auth.getUser()
@@ -135,6 +154,14 @@ export default function EditDiagnosticPage() {
 
       setAvailableTests(tests || [])
 
+      // Charger tous les clusters
+      const { data: clusters } = await supabase
+        .from('orthopedic_test_clusters')
+        .select('id, name, region, description, indications')
+        .order('name')
+
+      setAvailableClusters(clusters || [])
+
       // Charger les tests liés
       const { data: linkedTests } = await supabase
         .from('pathology_tests')
@@ -144,6 +171,16 @@ export default function EditDiagnosticPage() {
 
       const testIds = linkedTests?.map(lt => lt.test_id) || []
       setSelectedTests(testIds)
+
+      // Charger les clusters liés
+      const { data: linkedClusters } = await supabase
+        .from('pathology_clusters')
+        .select('cluster_id, order_index')
+        .eq('pathology_id', diagnosticId)
+        .order('order_index')
+
+      const clusterIds = linkedClusters?.map(lc => lc.cluster_id) || []
+      setSelectedClusters(clusterIds)
     } catch (error) {
       console.error('Error loading data:', error)
       alert('Erreur lors du chargement')
@@ -212,6 +249,49 @@ export default function EditDiagnosticPage() {
 
     [newTests[index], newTests[newIndex]] = [newTests[newIndex], newTests[index]]
     setSelectedTests(newTests)
+  }
+
+  const filterClusters = () => {
+    let filtered = [...availableClusters]
+
+    // Filtrer par région
+    const regionLabel = REGIONS.find(r => r.value === formData.region)?.label
+    if (regionLabel) {
+      filtered = filtered.filter(c =>
+        c.region?.toLowerCase().includes(regionLabel.toLowerCase()) ||
+        regionLabel.toLowerCase().includes(c.region?.toLowerCase() || '')
+      )
+    }
+
+    // Filtrer par recherche
+    if (clusterSearchQuery) {
+      const q = clusterSearchQuery.toLowerCase()
+      filtered = filtered.filter(c =>
+        c.name.toLowerCase().includes(q) ||
+        c.description?.toLowerCase().includes(q) ||
+        c.indications?.toLowerCase().includes(q)
+      )
+    }
+
+    setFilteredClusters(filtered)
+  }
+
+  const toggleCluster = (clusterId: string) => {
+    setSelectedClusters(prev =>
+      prev.includes(clusterId)
+        ? prev.filter(id => id !== clusterId)
+        : [...prev, clusterId]
+    )
+  }
+
+  const moveCluster = (index: number, direction: 'up' | 'down') => {
+    const newClusters = [...selectedClusters]
+    const newIndex = direction === 'up' ? index - 1 : index + 1
+
+    if (newIndex < 0 || newIndex >= newClusters.length) return
+
+    [newClusters[index], newClusters[newIndex]] = [newClusters[newIndex], newClusters[index]]
+    setSelectedClusters(newClusters)
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -284,6 +364,29 @@ export default function EditDiagnosticPage() {
         if (linksError) throw linksError
       }
 
+      // Supprimer les anciens liens de clusters
+      const { error: deleteClusterError } = await supabase
+        .from('pathology_clusters')
+        .delete()
+        .eq('pathology_id', diagnosticId)
+
+      if (deleteClusterError) throw deleteClusterError
+
+      // Créer les nouveaux liens de clusters
+      if (selectedClusters.length > 0) {
+        const clusterLinks = selectedClusters.map((clusterId, index) => ({
+          pathology_id: diagnosticId,
+          cluster_id: clusterId,
+          order_index: index
+        }))
+
+        const { error: clusterLinksError } = await supabase
+          .from('pathology_clusters')
+          .insert(clusterLinks)
+
+        if (clusterLinksError) throw clusterLinksError
+      }
+
       alert('✅ Diagnostic mis à jour avec succès !')
       router.push('/admin/diagnostics')
     } catch (error: any) {
@@ -296,6 +399,10 @@ export default function EditDiagnosticPage() {
 
   const getTestDetails = (testId: string) => {
     return availableTests.find(t => t.id === testId)
+  }
+
+  const getClusterDetails = (clusterId: string) => {
+    return availableClusters.find(c => c.id === clusterId)
   }
 
   if (loading) {
@@ -468,20 +575,52 @@ export default function EditDiagnosticPage() {
                 </div>
               </div>
 
-              {/* Colonne droite - Tests associés */}
+              {/* Colonne droite - Tests et Clusters associés */}
               <div className="space-y-6">
                 <div>
                   <h2 className="text-lg font-semibold text-gray-900 pb-2 border-b flex items-center gap-2">
                     <TestTube2 className="h-5 w-5 text-purple-600" />
-                    Tests associés ({selectedTests.length})
+                    Tests et Clusters associés ({selectedTests.length} tests, {selectedClusters.length} clusters)
                   </h2>
-                  <p className="text-sm text-gray-600 mt-2">
-                    Sélectionnez les tests pertinents pour ce diagnostic. Vous pouvez réorganiser l'ordre.
+
+                  {/* Onglets */}
+                  <div className="flex gap-2 mt-4">
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab('tests')}
+                      className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors ${
+                        activeTab === 'tests'
+                          ? 'bg-purple-600 text-white'
+                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      }`}
+                    >
+                      Tests ({selectedTests.length})
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab('clusters')}
+                      className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors ${
+                        activeTab === 'clusters'
+                          ? 'bg-purple-600 text-white'
+                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      }`}
+                    >
+                      Clusters ({selectedClusters.length})
+                    </button>
+                  </div>
+
+                  <p className="text-sm text-gray-600 mt-3">
+                    {activeTab === 'tests'
+                      ? 'Sélectionnez les tests individuels pertinents pour ce diagnostic.'
+                      : 'Sélectionnez les clusters de tests pertinents pour ce diagnostic.'}
                   </p>
                 </div>
 
-                {/* Tests sélectionnés */}
-                {selectedTests.length > 0 && (
+                {/* Contenu de l'onglet Tests */}
+                {activeTab === 'tests' && (
+                  <>
+                    {/* Tests sélectionnés */}
+                    {selectedTests.length > 0 && (
                   <div className="bg-purple-50 rounded-lg p-4">
                     <h3 className="text-sm font-semibold text-purple-900 mb-3">
                       Tests sélectionnés
@@ -573,6 +712,107 @@ export default function EditDiagnosticPage() {
                     )}
                   </div>
                 </div>
+                  </>
+                )}
+
+                {/* Contenu de l'onglet Clusters */}
+                {activeTab === 'clusters' && (
+                  <>
+                    {/* Clusters sélectionnés */}
+                    {selectedClusters.length > 0 && (
+                      <div className="bg-purple-50 rounded-lg p-4">
+                        <h3 className="text-sm font-semibold text-purple-900 mb-3">
+                          Clusters sélectionnés
+                        </h3>
+                        <div className="space-y-2">
+                          {selectedClusters.map((clusterId, index) => {
+                            const cluster = getClusterDetails(clusterId)
+                            if (!cluster) return null
+
+                            return (
+                              <div
+                                key={clusterId}
+                                className="flex items-center gap-2 bg-white rounded-lg p-3 border border-purple-200"
+                              >
+                                <div className="flex gap-1">
+                                  <button
+                                    type="button"
+                                    onClick={() => moveCluster(index, 'up')}
+                                    disabled={index === 0}
+                                    className="p-1 hover:bg-gray-100 rounded disabled:opacity-30"
+                                  >
+                                    <GripVertical className="h-4 w-4 text-gray-400" />
+                                  </button>
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-medium text-gray-900 truncate">
+                                    {index + 1}. {cluster.name}
+                                  </p>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => toggleCluster(clusterId)}
+                                  className="p-1 text-red-600 hover:bg-red-50 rounded"
+                                >
+                                  <X className="h-4 w-4" />
+                                </button>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Recherche et liste des clusters disponibles */}
+                    <div>
+                      <div className="relative mb-3">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                        <input
+                          type="text"
+                          placeholder="Rechercher un cluster (nom, description, indication)..."
+                          value={clusterSearchQuery}
+                          onChange={(e) => setClusterSearchQuery(e.target.value)}
+                          className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500"
+                        />
+                      </div>
+
+                      <div className="max-h-96 overflow-y-auto space-y-2 border border-gray-200 rounded-lg p-3">
+                        {filteredClusters.length === 0 ? (
+                          <p className="text-sm text-gray-500 text-center py-4">
+                            Aucun cluster trouvé pour cette région
+                          </p>
+                        ) : (
+                          filteredClusters.map(cluster => (
+                            <div
+                              key={cluster.id}
+                              className={`p-3 border rounded-lg cursor-pointer transition-colors ${
+                                selectedClusters.includes(cluster.id)
+                                  ? 'bg-purple-50 border-purple-300'
+                                  : 'hover:bg-gray-50 border-gray-200'
+                              }`}
+                              onClick={() => toggleCluster(cluster.id)}
+                            >
+                              <div className="flex items-start gap-2">
+                                <input
+                                  type="checkbox"
+                                  checked={selectedClusters.includes(cluster.id)}
+                                  onChange={() => {}}
+                                  className="mt-1"
+                                />
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-medium text-gray-900">{cluster.name}</p>
+                                  {cluster.region && (
+                                    <p className="text-xs text-gray-500 mt-0.5">{cluster.region}</p>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
 
