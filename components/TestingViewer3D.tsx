@@ -3,7 +3,7 @@
 import { Canvas } from '@react-three/fiber'
 import { OrbitControls, PerspectiveCamera, Html, useGLTF, Environment } from '@react-three/drei'
 import { useState, Suspense, useRef } from 'react'
-import { RotateCcw, ZoomIn, ZoomOut, Maximize2, Eye } from 'lucide-react'
+import { RotateCcw, Maximize2 } from 'lucide-react'
 import * as THREE from 'three'
 
 // Types partagés
@@ -105,8 +105,8 @@ function BodyModel({
     <group>
       <primitive
         object={scene}
-        scale={1.4}
-        position={[0, -0.5, 0]}
+        scale={1.3}
+        position={[0, -0.6, 0]}
         rotation={[0, Math.PI, 0]}
         castShadow
         receiveShadow
@@ -178,7 +178,6 @@ export default function TestingViewer3D({
 }: TestingViewer3DProps) {
   const [hoveredZone, setHoveredZone] = useState<string | null>(null)
   const controlsRef = useRef<any>(null)
-  const [activeView, setActiveView] = useState<string>('default')
 
   const handleZoneClick = (zone: AnatomicalZone, side: string = 'center') => {
     onZoneClick(zone)
@@ -212,31 +211,12 @@ export default function TestingViewer3D({
     }
   ]
 
-  // Contrôles de vue
+  // Contrôle reset de la vue
   const handleResetView = () => {
     if (controlsRef.current) {
       controlsRef.current.reset()
-      setActiveView('default')
     }
   }
-
-  const handleViewChange = (position: [number, number, number], target: [number, number, number], viewName: string) => {
-    if (controlsRef.current) {
-      const controls = controlsRef.current
-      const camera = controls.object
-
-      camera.position.set(...position)
-      controls.target.set(...target)
-      controls.update()
-      setActiveView(viewName)
-    }
-  }
-
-  const viewPresets = [
-    { name: 'Face', position: [0, 1.6, 6] as [number, number, number], target: [0, 0.9, 0] as [number, number, number], icon: <Eye className="w-4 h-4" /> },
-    { name: 'Profil', position: [6, 1.6, 0] as [number, number, number], target: [0, 0.9, 0] as [number, number, number], icon: <Eye className="w-4 h-4" /> },
-    { name: 'Dos', position: [0, 1.6, -6] as [number, number, number], target: [0, 0.9, 0] as [number, number, number], icon: <Eye className="w-4 h-4" /> },
-  ]
 
   return (
     <div className="space-y-4">
@@ -253,7 +233,7 @@ export default function TestingViewer3D({
         >
           <PerspectiveCamera
             makeDefault
-            position={[0, 1.6, 6]}
+            position={[0, 1.6, 7.5]}
             fov={25}
           />
           <OrbitControls
@@ -302,8 +282,8 @@ export default function TestingViewer3D({
           </Suspense>
         </Canvas>
 
-        {/* Contrôles de vue modernes - top right */}
-        <div className="absolute top-4 right-4 flex flex-col gap-2">
+        {/* Bouton reset vue - top right */}
+        <div className="absolute top-4 right-4">
           <button
             onClick={handleResetView}
             className="group bg-white/90 hover:bg-white backdrop-blur-lg p-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 border border-gray-200/50 hover:scale-105"
@@ -311,26 +291,6 @@ export default function TestingViewer3D({
           >
             <RotateCcw className="w-5 h-5 text-gray-700 group-hover:text-blue-600 transition-colors" />
           </button>
-
-          <div className="flex flex-col gap-1 bg-white/90 backdrop-blur-lg rounded-xl p-2 shadow-lg border border-gray-200/50">
-            {viewPresets.map((preset) => (
-              <button
-                key={preset.name}
-                onClick={() => handleViewChange(preset.position, preset.target, preset.name)}
-                className={`group p-2 rounded-lg transition-all duration-200 hover:scale-105 ${
-                  activeView === preset.name
-                    ? 'bg-blue-600 text-white shadow-md'
-                    : 'hover:bg-gray-100 text-gray-700'
-                }`}
-                title={`Vue ${preset.name}`}
-              >
-                <div className="flex items-center gap-2">
-                  {preset.icon}
-                  <span className="text-xs font-medium">{preset.name}</span>
-                </div>
-              </button>
-            ))}
-          </div>
         </div>
 
         {/* Encart zone survolée - top left corner avec animation */}

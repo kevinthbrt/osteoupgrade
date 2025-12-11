@@ -928,7 +928,7 @@ export default function TestingModulePage() {
           <div className="space-y-6">
             {/* Visualisateur 3D */}
             <div className="bg-white rounded-xl shadow-sm p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">
+              <h2 className="text-lg font-semibold text-gray-900 mb-4 text-center">
                 Modèle anatomique 3D
               </h2>
               {zones.length === 0 ? (
