@@ -233,9 +233,9 @@ DECLARE
   v_testing_progress INTEGER;
   v_total_subparts INTEGER;
   v_completed_subparts INTEGER;
-  v_total_practice INTEGER;
+  v_total_practice_videos INTEGER;
   v_viewed_practice INTEGER;
-  v_total_tests INTEGER;
+  v_total_orthopedic_tests INTEGER;
   v_viewed_tests INTEGER;
 
   -- XP et niveau
@@ -313,13 +313,13 @@ BEGIN
   SELECT
     COUNT(DISTINCT pv.id),
     COUNT(DISTINCT upp.practice_video_id)
-  INTO v_total_practice, v_viewed_practice
+  INTO v_total_practice_videos, v_viewed_practice
   FROM public.practice_videos pv
   LEFT JOIN public.user_practice_progress upp
     ON upp.practice_video_id = pv.id AND upp.user_id = v_user_id;
 
-  IF v_total_practice > 0 THEN
-    v_practice_progress := ROUND((v_viewed_practice::NUMERIC / v_total_practice::NUMERIC) * 100);
+  IF v_total_practice_videos > 0 THEN
+    v_practice_progress := ROUND((v_viewed_practice::NUMERIC / v_total_practice_videos::NUMERIC) * 100);
   ELSE
     v_practice_progress := 0;
   END IF;
@@ -336,13 +336,13 @@ BEGIN
   SELECT
     COUNT(DISTINCT ot.id),
     COUNT(DISTINCT utp.test_id)
-  INTO v_total_tests, v_viewed_tests
+  INTO v_total_orthopedic_tests, v_viewed_tests
   FROM public.orthopedic_tests ot
   LEFT JOIN public.user_testing_progress utp
     ON utp.test_id = ot.id AND utp.user_id = v_user_id;
 
-  IF v_total_tests > 0 THEN
-    v_testing_progress := ROUND((v_viewed_tests::NUMERIC / v_total_tests::NUMERIC) * 100);
+  IF v_total_orthopedic_tests > 0 THEN
+    v_testing_progress := ROUND((v_viewed_tests::NUMERIC / v_total_orthopedic_tests::NUMERIC) * 100);
   ELSE
     v_testing_progress := 0;
   END IF;
