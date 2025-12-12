@@ -199,9 +199,32 @@ export default function PracticePage() {
     setVideos((data || []) as PracticeVideo[])
   }
 
-  const handleOpenVideo = (video: PracticeVideo) => {
+  const handleOpenVideo = async (video: PracticeVideo) => {
     setSelectedVideo(video)
     setShowModal(true)
+
+    // Track video view for gamification
+    await trackVideoView(video.id)
+  }
+
+  const trackVideoView = async (videoId: string) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        await supabase.from('user_practice_progress').insert({
+          user_id: user.id,
+          practice_video_id: videoId,
+          viewed_at: new Date().toISOString(),
+          completed: true
+        })
+        console.log('✅ Vue de vidéo pratique enregistrée (+30 XP)')
+      }
+    } catch (error: any) {
+      // Ignore duplicate key errors (user already viewed this video)
+      if (!error?.message?.includes('duplicate key')) {
+        console.error('❌ Erreur tracking vidéo pratique:', error)
+      }
+    }
   }
 
   const resetForm = () => {
