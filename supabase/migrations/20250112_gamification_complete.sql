@@ -585,8 +585,8 @@ INSERT INTO public.achievements (slug, name, description, icon, category, unlock
   ('elearning_10', 'Apprenant', '10 leçons complétées', 'BookOpen', 'elearning', '{"type": "elearning_count", "value": 10}', 200, 'from-green-400', 'to-teal-500', 21),
   ('elearning_50', 'Studieux', '50 leçons complétées', 'Library', 'elearning', '{"type": "elearning_count", "value": 50}', 500, 'from-teal-400', 'to-cyan-500', 22),
   ('elearning_100', 'Érudit', '100 leçons complétées', 'Award', 'elearning', '{"type": "elearning_count", "value": 100}', 1000, 'from-cyan-400', 'to-sky-500', 23),
-  ('elearning_50pct', 'À mi-chemin', '50% de l\'e-learning', 'TrendingUp', 'elearning', '{"type": "elearning_progress", "value": 50}', 400, 'from-lime-400', 'to-green-500', 24),
-  ('elearning_100pct', 'Formation complète', '100% de l\'e-learning', 'Trophy', 'elearning', '{"type": "elearning_progress", "value": 100}', 2000, 'from-green-400', 'to-emerald-600', 25),
+  ('elearning_50pct', 'À mi-chemin', '50% de l''e-learning', 'TrendingUp', 'elearning', '{"type": "elearning_progress", "value": 50}', 400, 'from-lime-400', 'to-green-500', 24),
+  ('elearning_100pct', 'Formation complète', '100% de l''e-learning', 'Trophy', 'elearning', '{"type": "elearning_progress", "value": 100}', 2000, 'from-green-400', 'to-emerald-600', 25),
 
   -- PRATIQUE (30 XP chacune)
   ('practice_1', 'Première technique', 'Première vidéo de pratique vue', 'Dumbbell', 'practice', '{"type": "practice_count", "value": 1}', 50, 'from-amber-400', 'to-orange-500', 30),
