@@ -87,7 +87,21 @@ export default function Dashboard() {
 
   useEffect(() => {
     loadDashboardData()
+    trackDailyLogin()
   }, [])
+
+  const trackDailyLogin = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        // Enregistrer la connexion du jour (ne compte qu'une fois par jour)
+        await supabase.rpc('record_user_login', { p_user_id: user.id })
+        console.log('✅ Connexion quotidienne enregistrée')
+      }
+    } catch (error) {
+      console.error('❌ Erreur tracking login:', error)
+    }
+  }
 
   const loadDashboardData = async () => {
     try {

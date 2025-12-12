@@ -736,9 +736,32 @@ export default function TestingModulePage() {
     uncertain: statsBase.filter((r) => r.result === 'uncertain').length
   }
 
-  const openTestModal = (test: OrthopedicTest) => {
+  const openTestModal = async (test: OrthopedicTest) => {
     setSelectedTest(test)
     setShowTestModal(true)
+
+    // Track test view for gamification
+    await trackTestView(test.id)
+  }
+
+  const trackTestView = async (testId: string) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        await supabase.from('user_testing_progress').insert({
+          user_id: user.id,
+          test_id: testId,
+          viewed_at: new Date().toISOString(),
+          completed: true
+        })
+        console.log('✅ Vue de test 3D enregistrée (+40 XP)')
+      }
+    } catch (error: any) {
+      // Ignore duplicate key errors (user already viewed this test)
+      if (!error?.message?.includes('duplicate key')) {
+        console.error('❌ Erreur tracking test 3D:', error)
+      }
+    }
   }
 
   const closeTestModal = () => {
