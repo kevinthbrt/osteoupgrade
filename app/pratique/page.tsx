@@ -7,13 +7,18 @@ import { supabase } from '@/lib/supabase'
 import {
   AlertCircle,
   Check,
+  ChevronDown,
+  ChevronUp,
   Edit,
+  Grid3x3,
   Loader2,
   Lock,
   PlayCircle,
   Save,
   Video,
-  X
+  X,
+  Maximize2,
+  LayoutGrid
 } from 'lucide-react'
 
 const regions = [
@@ -139,8 +144,8 @@ export default function PracticePage() {
   const [selectedRegion, setSelectedRegion] = useState<string>('cervical')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [showModal, setShowModal] = useState(false)
-  const [selectedVideo, setSelectedVideo] = useState<PracticeVideo | null>(null)
+  const [viewMode, setViewMode] = useState<'grid' | 'scroll'>('grid')
+  const [currentVideoIndex, setCurrentVideoIndex] = useState(0)
   const [editingVideo, setEditingVideo] = useState<PracticeVideo | null>(null)
   const [form, setForm] = useState({
     title: '',
@@ -152,6 +157,8 @@ export default function PracticePage() {
     description: '',
     is_active: true
   })
+
+  const scrollContainerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const loadData = async () => {
@@ -199,14 +206,6 @@ export default function PracticePage() {
     setVideos((data || []) as PracticeVideo[])
   }
 
-  const handleOpenVideo = async (video: PracticeVideo) => {
-    setSelectedVideo(video)
-    setShowModal(true)
-
-    // Track video view for gamification
-    await trackVideoView(video.id)
-  }
-
   const trackVideoView = async (videoId: string) => {
     try {
       const { data: { user } } = await supabase.auth.getUser()
@@ -220,7 +219,6 @@ export default function PracticePage() {
         console.log('✅ Vue de vidéo pratique enregistrée (+30 XP)')
       }
     } catch (error: any) {
-      // Ignore duplicate key errors (user already viewed this video)
       if (!error?.message?.includes('duplicate key')) {
         console.error('❌ Erreur tracking vidéo pratique:', error)
       }
@@ -306,6 +304,56 @@ export default function PracticePage() {
     return filtered.filter((video) => video.is_active)
   }, [videos, selectedRegion, profile?.role])
 
+  const scrollToVideo = (index: number) => {
+    if (scrollContainerRef.current) {
+      const container = scrollContainerRef.current
+      const videoHeight = container.clientHeight
+      container.scrollTo({
+        top: index * videoHeight,
+        behavior: 'smooth'
+      })
+    }
+  }
+
+  const handleNextVideo = () => {
+    if (currentVideoIndex < visibleVideos.length - 1) {
+      const nextIndex = currentVideoIndex + 1
+      setCurrentVideoIndex(nextIndex)
+      scrollToVideo(nextIndex)
+      trackVideoView(visibleVideos[nextIndex].id)
+    }
+  }
+
+  const handlePrevVideo = () => {
+    if (currentVideoIndex > 0) {
+      const prevIndex = currentVideoIndex - 1
+      setCurrentVideoIndex(prevIndex)
+      scrollToVideo(prevIndex)
+    }
+  }
+
+  // Track current video on scroll in scroll mode
+  useEffect(() => {
+    if (viewMode !== 'scroll' || !scrollContainerRef.current) return
+
+    const handleScroll = () => {
+      if (!scrollContainerRef.current) return
+      const container = scrollContainerRef.current
+      const scrollTop = container.scrollTop
+      const videoHeight = container.clientHeight
+      const index = Math.round(scrollTop / videoHeight)
+
+      if (index !== currentVideoIndex && index >= 0 && index < visibleVideos.length) {
+        setCurrentVideoIndex(index)
+        trackVideoView(visibleVideos[index].id)
+      }
+    }
+
+    const container = scrollContainerRef.current
+    container.addEventListener('scroll', handleScroll)
+    return () => container.removeEventListener('scroll', handleScroll)
+  }, [viewMode, currentVideoIndex, visibleVideos])
+
   const premiumAccess = isPremium(profile?.role) || isAdmin(profile?.role)
 
   if (loading) {
@@ -336,40 +384,192 @@ export default function PracticePage() {
     )
   }
 
+  // Scroll Mode - TikTok Style
+  if (viewMode === 'scroll') {
+    return (
+      <div className="fixed inset-0 bg-black z-50">
+        {/* Header overlay */}
+        <div className="absolute top-0 left-0 right-0 z-10 bg-gradient-to-b from-black/80 via-black/40 to-transparent p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setViewMode('grid')}
+                className="p-2 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 hover:bg-white/20 transition"
+              >
+                <X className="h-5 w-5 text-white" />
+              </button>
+              <div className="text-white">
+                <p className="text-sm font-semibold">{regions.find(r => r.value === selectedRegion)?.label}</p>
+                <p className="text-xs text-white/70">{currentVideoIndex + 1} / {visibleVideos.length}</p>
+              </div>
+            </div>
+            <select
+              value={selectedRegion}
+              onChange={(e) => {
+                setSelectedRegion(e.target.value)
+                setCurrentVideoIndex(0)
+              }}
+              className="rounded-lg border border-white/20 bg-white/10 backdrop-blur-sm px-4 py-2 text-white text-sm"
+            >
+              {regions.map((region) => (
+                <option key={region.value} value={region.value} className="text-gray-900">
+                  {region.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {/* Video scroll container */}
+        <div
+          ref={scrollContainerRef}
+          className="h-full overflow-y-scroll snap-y snap-mandatory scrollbar-hide"
+          style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+        >
+          {visibleVideos.map((video, index) => (
+            <div
+              key={video.id}
+              className="h-screen w-full snap-start snap-always flex items-center justify-center relative"
+            >
+              {/* Video iframe */}
+              <div className="w-full h-full flex items-center justify-center bg-black">
+                {getVimeoEmbedUrl(video) ? (
+                  <iframe
+                    src={`${getVimeoEmbedUrl(video)}?autoplay=${index === currentVideoIndex ? '1' : '0'}&loop=1&background=1`}
+                    className="w-full h-full"
+                    allow="autoplay; fullscreen; picture-in-picture"
+                    allowFullScreen
+                    title={video.title}
+                  />
+                ) : (
+                  <div className="flex items-center justify-center h-full text-white gap-2">
+                    <AlertCircle className="h-5 w-5" />
+                    <span>Vidéo non disponible</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Info overlay */}
+              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/60 to-transparent p-6 pb-8">
+                <h3 className="text-white text-2xl font-bold mb-2">{video.title}</h3>
+                {video.description && (
+                  <div
+                    className="text-white/90 text-sm line-clamp-3"
+                    dangerouslySetInnerHTML={{ __html: video.description }}
+                  />
+                )}
+              </div>
+
+              {/* Navigation arrows */}
+              {index > 0 && (
+                <button
+                  onClick={handlePrevVideo}
+                  className="absolute top-1/2 left-4 -translate-y-1/2 p-3 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 hover:bg-white/20 transition text-white"
+                >
+                  <ChevronUp className="h-6 w-6" />
+                </button>
+              )}
+              {index < visibleVideos.length - 1 && (
+                <button
+                  onClick={handleNextVideo}
+                  className="absolute top-1/2 right-4 -translate-y-1/2 p-3 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 hover:bg-white/20 transition text-white"
+                >
+                  <ChevronDown className="h-6 w-6" />
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+
+        {/* Empty state */}
+        {visibleVideos.length === 0 && (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="text-center text-white">
+              <AlertCircle className="h-12 w-12 mx-auto mb-4 opacity-50" />
+              <p className="text-lg">Aucune vidéo disponible pour cette région</p>
+            </div>
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  // Grid Mode - Default
   return (
     <AuthLayout>
       <div className="space-y-8">
-        {/* Header */}
-        <div className="overflow-hidden rounded-2xl bg-gradient-to-br from-slate-900 via-slate-900 to-slate-800 text-white shadow-xl border border-white/10">
-          <div className="p-6 space-y-4">
-            <p className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-sky-200">
-              <Video className="h-4 w-4" />
-              Module Pratique
-            </p>
-            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-              <div className="space-y-2">
-                <h1 className="text-3xl font-bold leading-tight">Pratique par région</h1>
-                <p className="text-slate-200 text-sm md:text-base">
-                  Sélectionne une région pour explorer les vidéos pratiques. Les vidéos s&apos;ouvrent dans un modal afin de
-                  rester concentré sur l&apos;essentiel.
-                </p>
+        {/* Hero Section */}
+        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white shadow-2xl">
+          {/* Decorative elements */}
+          <div className="absolute inset-0 bg-grid-white/[0.02] bg-[size:60px_60px]" />
+          <div className="absolute top-0 right-0 w-96 h-96 bg-pink-500/30 rounded-full blur-3xl" />
+          <div className="absolute bottom-0 left-0 w-96 h-96 bg-rose-500/20 rounded-full blur-3xl" />
+
+          <div className="relative px-6 py-8 md:px-10 md:py-10">
+            <div className="max-w-4xl">
+              {/* Badge */}
+              <div className="inline-flex items-center gap-2 rounded-full bg-white/10 backdrop-blur-sm px-3 py-1.5 mb-4 border border-white/20">
+                <Video className="h-3.5 w-3.5 text-pink-300" />
+                <span className="text-xs font-semibold text-pink-100">
+                  Module Pratique Premium
+                </span>
               </div>
-              <div className="flex gap-3 items-center">
-                <span className="text-sm font-medium text-slate-200">Choisir la région</span>
-                <select
-                  value={selectedRegion}
-                  onChange={(e) => {
-                    setSelectedRegion(e.target.value)
-                    setForm((prev) => ({ ...prev, region: e.target.value }))
-                  }}
-                  className="rounded-lg border border-white/20 bg-white/10 px-4 py-2 text-white shadow-sm backdrop-blur"
-                >
-                  {regions.map((region) => (
-                    <option key={region.value} value={region.value} className="text-gray-900">
-                      {region.label}
-                    </option>
-                  ))}
-                </select>
+
+              {/* Main heading */}
+              <h1 className="text-3xl md:text-4xl font-bold mb-3 bg-clip-text text-transparent bg-gradient-to-r from-white to-pink-100">
+                Techniques par région
+              </h1>
+
+              <p className="text-base md:text-lg text-slate-300 mb-6 max-w-2xl">
+                Explorez nos vidéos de techniques cliniques organisées par région anatomique. Mode défilement immersif disponible.
+              </p>
+
+              {/* Controls */}
+              <div className="flex flex-wrap items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-slate-300">Région :</span>
+                  <select
+                    value={selectedRegion}
+                    onChange={(e) => {
+                      setSelectedRegion(e.target.value)
+                      setForm((prev) => ({ ...prev, region: e.target.value }))
+                      setCurrentVideoIndex(0)
+                    }}
+                    className="rounded-lg border border-white/20 bg-white/10 backdrop-blur-sm px-4 py-2 text-white shadow-sm"
+                  >
+                    {regions.map((region) => (
+                      <option key={region.value} value={region.value} className="text-gray-900">
+                        {region.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-slate-300">Affichage :</span>
+                  <div className="flex gap-2 bg-white/10 backdrop-blur-sm rounded-lg p-1 border border-white/20">
+                    <button
+                      onClick={() => setViewMode('grid')}
+                      className="px-3 py-1.5 rounded-md text-sm font-semibold transition flex items-center gap-2 bg-white text-slate-900"
+                    >
+                      <LayoutGrid className="h-4 w-4" />
+                      Grille
+                    </button>
+                    <button
+                      onClick={() => {
+                        setViewMode('scroll')
+                        setCurrentVideoIndex(0)
+                        if (visibleVideos.length > 0) {
+                          trackVideoView(visibleVideos[0].id)
+                        }
+                      }}
+                      className="px-3 py-1.5 rounded-md text-sm font-semibold transition flex items-center gap-2 text-white hover:bg-white/10"
+                    >
+                      <Maximize2 className="h-4 w-4" />
+                      Défilement
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -378,7 +578,7 @@ export default function PracticePage() {
         {isAdmin(profile?.role) && (
           <div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-6 space-y-4">
             <div className="flex items-center gap-2">
-              <Edit className="h-5 w-5 text-indigo-600" />
+              <Edit className="h-5 w-5 text-pink-600" />
               <h2 className="text-xl font-semibold text-gray-900">
                 {editingVideo ? 'Modifier une vidéo' : 'Ajouter une vidéo'}
               </h2>
@@ -389,7 +589,7 @@ export default function PracticePage() {
                 <input
                   value={form.title}
                   onChange={(e) => setForm((prev) => ({ ...prev, title: e.target.value }))}
-                  className="w-full rounded-lg border border-gray-200 px-4 py-2 focus:ring-2 focus:ring-indigo-200"
+                  className="w-full rounded-lg border border-gray-200 px-4 py-2 focus:ring-2 focus:ring-pink-200"
                   placeholder="Titre de la vidéo"
                 />
               </div>
@@ -412,7 +612,7 @@ export default function PracticePage() {
                 <input
                   value={form.vimeo_url}
                   onChange={(e) => setForm((prev) => ({ ...prev, vimeo_url: e.target.value }))}
-                  className="w-full rounded-lg border border-gray-200 px-4 py-2 focus:ring-2 focus:ring-indigo-200"
+                  className="w-full rounded-lg border border-gray-200 px-4 py-2 focus:ring-2 focus:ring-pink-200"
                   placeholder="https://vimeo.com/..."
                 />
               </div>
@@ -421,7 +621,7 @@ export default function PracticePage() {
                 <input
                   value={form.vimeo_id}
                   onChange={(e) => setForm((prev) => ({ ...prev, vimeo_id: e.target.value }))}
-                  className="w-full rounded-lg border border-gray-200 px-4 py-2 focus:ring-2 focus:ring-indigo-200"
+                  className="w-full rounded-lg border border-gray-200 px-4 py-2 focus:ring-2 focus:ring-pink-200"
                   placeholder="123456789"
                 />
               </div>
@@ -430,7 +630,7 @@ export default function PracticePage() {
                 <input
                   value={form.thumbnail_url}
                   onChange={(e) => setForm((prev) => ({ ...prev, thumbnail_url: e.target.value }))}
-                  className="w-full rounded-lg border border-gray-200 px-4 py-2 focus:ring-2 focus:ring-indigo-200"
+                  className="w-full rounded-lg border border-gray-200 px-4 py-2 focus:ring-2 focus:ring-pink-200"
                   placeholder="https://...jpg"
                 />
               </div>
@@ -440,7 +640,7 @@ export default function PracticePage() {
                   type="number"
                   value={form.order_index}
                   onChange={(e) => setForm((prev) => ({ ...prev, order_index: Number(e.target.value) }))}
-                  className="w-full rounded-lg border border-gray-200 px-4 py-2 focus:ring-2 focus:ring-indigo-200"
+                  className="w-full rounded-lg border border-gray-200 px-4 py-2 focus:ring-2 focus:ring-pink-200"
                 />
               </div>
               <div className="flex items-center gap-3">
@@ -449,7 +649,7 @@ export default function PracticePage() {
                   type="checkbox"
                   checked={form.is_active}
                   onChange={(e) => setForm((prev) => ({ ...prev, is_active: e.target.checked }))}
-                  className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                  className="h-4 w-4 rounded border-gray-300 text-pink-600 focus:ring-pink-500"
                 />
                 <label htmlFor="is_active" className="text-sm font-medium text-gray-700">
                   Vidéo active
@@ -479,7 +679,7 @@ export default function PracticePage() {
                 type="button"
                 onClick={handleSave}
                 disabled={saving}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-pink-600 text-white hover:bg-pink-700 disabled:opacity-50"
               >
                 {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : editingVideo ? <Save className="h-4 w-4" /> : <Check className="h-4 w-4" />}
                 {editingVideo ? 'Mettre à jour' : 'Ajouter'}
@@ -488,55 +688,56 @@ export default function PracticePage() {
           </div>
         )}
 
-        <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-5 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
           {visibleVideos.length === 0 && (
-            <div className="col-span-full flex flex-col items-center justify-center gap-3 bg-white border border-dashed border-gray-200 rounded-2xl p-10 text-gray-600">
-              <AlertCircle className="h-6 w-6" />
-              <p>Aucune vidéo disponible pour cette région pour le moment.</p>
+            <div className="col-span-full rounded-2xl border-2 border-dashed border-gray-200 bg-gradient-to-br from-slate-50 to-white p-12 text-center">
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-pink-100 to-rose-100 mb-4">
+                <Video className="h-8 w-8 text-pink-600" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">Aucune vidéo disponible</h3>
+              <p className="text-gray-600 text-sm">Les vidéos pour cette région apparaîtront ici.</p>
             </div>
           )}
 
           {visibleVideos.map((video) => (
             <div
               key={video.id}
-              className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden flex flex-col"
+              className="group bg-white border-2 border-transparent hover:border-pink-200 rounded-2xl shadow-lg hover:shadow-2xl overflow-hidden flex flex-col transition-all duration-300 hover:-translate-y-1"
             >
-              <div className="relative h-44 bg-gray-100">
+              <div className="relative h-48 bg-gradient-to-br from-slate-100 to-gray-100">
                 {video.thumbnail_url ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={video.thumbnail_url} alt={video.title} className="w-full h-full object-cover" />
                 ) : (
                   <div className="flex items-center justify-center h-full text-gray-400">
-                    <Video className="h-10 w-10" />
+                    <Video className="h-12 w-12" />
                   </div>
                 )}
-                <button
-                  type="button"
-                  onClick={() => handleOpenVideo(video)}
-                  className="absolute inset-0 flex items-center justify-center bg-black/30 text-white opacity-0 hover:opacity-100 transition"
-                >
-                  <PlayCircle className="h-12 w-12" />
-                </button>
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                  <div className="transform scale-75 group-hover:scale-100 transition-transform">
+                    <PlayCircle className="h-16 w-16 text-white drop-shadow-lg" />
+                  </div>
+                </div>
               </div>
-              <div className="p-4 flex-1 flex flex-col gap-3">
+              <div className="p-5 flex-1 flex flex-col gap-3">
                 <div className="flex items-center justify-between gap-2">
-                  <h3 className="text-lg font-semibold text-gray-900">{video.title}</h3>
+                  <h3 className="text-lg font-bold text-gray-900 group-hover:text-pink-600 transition-colors">{video.title}</h3>
                   {!video.is_active && (
-                    <span className="text-xs px-2 py-1 rounded-full bg-amber-100 text-amber-700">Brouillon</span>
+                    <span className="text-xs px-2 py-1 rounded-full bg-amber-100 text-amber-700 font-semibold">Brouillon</span>
                   )}
                 </div>
                 {video.description ? (
-                  <div className="text-gray-700 text-sm leading-relaxed" dangerouslySetInnerHTML={{ __html: video.description }} />
+                  <div className="text-gray-700 text-sm leading-relaxed line-clamp-3" dangerouslySetInnerHTML={{ __html: video.description }} />
                 ) : (
                   <p className="text-gray-500 text-sm">Aucune description fournie.</p>
                 )}
               </div>
               {isAdmin(profile?.role) && (
-                <div className="border-t border-gray-100 px-4 py-3 bg-gray-50 flex justify-between items-center">
+                <div className="border-t border-gray-100 px-5 py-3 bg-gradient-to-br from-gray-50 to-slate-50 flex justify-between items-center">
                   <button
                     type="button"
                     onClick={() => handleEdit(video)}
-                    className="inline-flex items-center gap-2 text-sm text-indigo-600 hover:text-indigo-700"
+                    className="inline-flex items-center gap-2 text-sm text-pink-600 hover:text-pink-700 font-semibold"
                   >
                     <Edit className="h-4 w-4" />
                     Modifier
@@ -548,50 +749,6 @@ export default function PracticePage() {
           ))}
         </div>
       </div>
-
-      {showModal && selectedVideo && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full overflow-hidden">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-              <div>
-                <p className="text-sm text-gray-500 uppercase tracking-wide">{selectedVideo.region}</p>
-                <h3 className="text-xl font-semibold text-gray-900">{selectedVideo.title}</h3>
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowModal(false)}
-                className="p-2 rounded-full text-gray-500 hover:bg-gray-100"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-            <div className="aspect-video bg-black">
-              {getVimeoEmbedUrl(selectedVideo) ? (
-                <iframe
-                  src={getVimeoEmbedUrl(selectedVideo)}
-                  className="w-full h-full"
-                  allow="autoplay; fullscreen; picture-in-picture"
-                  allowFullScreen
-                  title={selectedVideo.title}
-                />
-              ) : (
-                <div className="flex items-center justify-center h-full text-white gap-2">
-                  <AlertCircle className="h-5 w-5" />
-                  <span>Vidéo non disponible</span>
-                </div>
-              )}
-            </div>
-            {selectedVideo.description && (
-              <div className="p-6 bg-gray-50">
-                <div
-                  className="prose prose-sm max-w-none text-gray-800"
-                  dangerouslySetInnerHTML={{ __html: selectedVideo.description }}
-                />
-              </div>
-            )}
-          </div>
-        </div>
-      )}
     </AuthLayout>
   )
 }

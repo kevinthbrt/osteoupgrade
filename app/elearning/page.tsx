@@ -745,90 +745,145 @@ export default function ElearningPage() {
   return (
     <AuthLayout>
       <div className="space-y-6">
-        {/* Header */}
-        <div className="overflow-hidden rounded-2xl bg-gradient-to-br from-slate-900 via-slate-900 to-slate-800 text-white shadow-xl border border-white/10">
-          <div className="p-6">
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-              <div className="space-y-3">
-                <p className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-sky-200">
-                  <GraduationCap className="h-4 w-4" />
-                  E-learning
-                </p>
-                <h1 className="text-3xl font-bold leading-tight">Construire et suivre les parcours</h1>
-                <p className="text-slate-200 text-sm md:text-base">
-                  Créez des formations avec chapitres et sous-parties vidéo. Les membres Premium marquent chaque étape comme
-                  terminée pour valider leur progression.
-                </p>
+        {/* Hero Section */}
+        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white shadow-2xl mb-8">
+          {/* Decorative elements */}
+          <div className="absolute inset-0 bg-grid-white/[0.02] bg-[size:60px_60px]" />
+          <div className="absolute top-0 right-0 w-96 h-96 bg-blue-500/30 rounded-full blur-3xl" />
+          <div className="absolute bottom-0 left-0 w-96 h-96 bg-emerald-500/20 rounded-full blur-3xl" />
+
+          <div className="relative px-6 py-8 md:px-10 md:py-10">
+            <div className="max-w-4xl">
+              {/* Badge */}
+              <div className="inline-flex items-center gap-2 rounded-full bg-white/10 backdrop-blur-sm px-3 py-1.5 mb-4 border border-white/20">
+                <GraduationCap className="h-3.5 w-3.5 text-blue-300" />
+                <span className="text-xs font-semibold text-blue-100">
+                  E-learning Premium
+                </span>
               </div>
-              <div className="flex items-center gap-3">
-                <div className="flex items-center gap-2 px-4 py-2 bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg">
-                  <Shield className="h-4 w-4 text-emerald-300" />
-                  <span className="text-sm font-semibold">{isAdmin ? 'Admin : construction active' : 'Accès Premium'}</span>
+
+              {/* Main heading */}
+              <h1 className="text-3xl md:text-4xl font-bold mb-3 bg-clip-text text-transparent bg-gradient-to-r from-white to-blue-100">
+                Formations professionnelles
+              </h1>
+
+              <p className="text-base md:text-lg text-slate-300 mb-6 max-w-2xl">
+                Développez vos compétences avec nos parcours de formation structurés. Vidéos, exercices et suivi de progression inclus.
+              </p>
+
+              {/* Status badge */}
+              <div className="flex flex-wrap items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-slate-300">Accès :</span>
+                  <span className={`px-3 py-1.5 rounded-full text-sm font-semibold flex items-center gap-2 ${
+                    isAdmin
+                      ? 'bg-gradient-to-r from-purple-500 to-purple-600'
+                      : 'bg-gradient-to-r from-blue-500 to-blue-600'
+                  }`}>
+                    {isAdmin ? <Shield className="h-4 w-4" /> : <Sparkles className="h-4 w-4" />}
+                    {isAdmin ? 'Mode Administration' : 'Premium'}
+                  </span>
                 </div>
               </div>
             </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-          <div className="lg:col-span-2 space-y-4">
-            <div className="bg-white rounded-xl shadow-sm p-5 space-y-6">
-              <div className="flex items-center gap-2 text-primary-600 font-semibold">
-                <BookOpen className="h-5 w-5" />
-                Formations disponibles
-              </div>
-
-              <div className="grid gap-4 md:grid-cols-2">
-                {formations.map((formation) => {
-                  const stats = computeProgress(formation)
-                  return (
-                    <button
-                      key={formation.id}
-                      onClick={() => {
-                        setSelectedFormationId(formation.id)
-                        setShowFormationModal(true)
-                      }}
-                      className={`text-left border rounded-xl overflow-hidden shadow-sm hover:shadow-md transition bg-white ${
-                        selectedFormationId === formation.id ? 'border-primary-200 ring-2 ring-primary-100' : 'border-gray-100'
-                      }`}
-                    >
-                      <div className="bg-sky-50 px-3 py-2 flex items-center gap-2 text-sky-700 font-semibold">
-                        <Sparkles className="h-4 w-4" />
-                        <span className="text-base">{formation.title}</span>
-                      </div>
-                      <div className="p-4 flex items-start justify-between gap-3">
-                        <div className="space-y-2">
-                          {formation.description && (
-                            <div
-                              className="text-sm text-gray-700 prose prose-sm max-w-none"
-                              dangerouslySetInnerHTML={{ __html: formation.description }}
-                            />
-                          )}
-                          <div className="flex items-center gap-2 text-xs text-gray-600">
-                            <Layers className="h-3 w-3" /> {formation.chapters.length} chapitres
-                          </div>
-                        </div>
-                        <div className="text-right space-y-2">
-                          {formation.is_private && (
-                            <span className="px-2 py-1 rounded-full text-[11px] bg-gray-100 text-gray-700 font-semibold uppercase">Privé</span>
-                          )}
-                          <div className="text-xs text-gray-600">
-                            {stats.done}/{stats.total} terminées
-                          </div>
-                          <div className="w-20 h-2 bg-gray-100 rounded-full overflow-hidden">
-                            <div className="h-full bg-primary-600" style={{ width: `${stats.percent}%` }} />
-                          </div>
-                        </div>
-                      </div>
-                    </button>
-                  )
-                })}
-              </div>
-
-              {formations.length === 0 && (
-                <div className="text-gray-600 text-sm">Aucune formation disponible pour le moment.</div>
-              )}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2 space-y-6">
+            {/* Section title */}
+            <div className="mb-4">
+              <h2 className="text-2xl md:text-3xl font-bold text-slate-900 mb-2 flex items-center gap-3">
+                <BookOpen className="h-7 w-7 text-blue-600" />
+                Mes formations
+              </h2>
+              <p className="text-slate-600">
+                Sélectionnez une formation pour commencer votre parcours d'apprentissage
+              </p>
             </div>
+
+            <div className="grid gap-5 md:grid-cols-2">
+              {formations.map((formation) => {
+                const stats = computeProgress(formation)
+                return (
+                  <button
+                    key={formation.id}
+                    onClick={() => {
+                      setSelectedFormationId(formation.id)
+                      setShowFormationModal(true)
+                    }}
+                    className={`group text-left border-2 rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 bg-white ${
+                      selectedFormationId === formation.id
+                        ? 'border-blue-500 ring-4 ring-blue-100 transform scale-[1.02]'
+                        : 'border-transparent hover:border-blue-200 hover:-translate-y-1'
+                    }`}
+                  >
+                    {/* Header with gradient */}
+                    <div className="bg-gradient-to-br from-blue-500 via-blue-600 to-indigo-600 px-4 py-3 flex items-center justify-between">
+                      <div className="flex items-center gap-2 text-white">
+                        <Sparkles className="h-5 w-5" />
+                        <span className="font-bold text-base">{formation.title}</span>
+                      </div>
+                      {formation.is_private && (
+                        <span className="px-2 py-1 rounded-full text-[10px] bg-white/20 text-white font-semibold uppercase backdrop-blur-sm">
+                          Privé
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Content */}
+                    <div className="p-5 space-y-4">
+                      {formation.description && (
+                        <div
+                          className="text-sm text-gray-700 prose prose-sm max-w-none line-clamp-2"
+                          dangerouslySetInnerHTML={{ __html: formation.description }}
+                        />
+                      )}
+
+                      {/* Stats */}
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 text-sm text-gray-600">
+                          <Layers className="h-4 w-4 text-blue-600" />
+                          <span>{formation.chapters.length} chapitres</span>
+                        </div>
+                        <div className="text-sm font-semibold text-gray-700">
+                          {stats.done}/{stats.total} terminées
+                        </div>
+                      </div>
+
+                      {/* Progress bar */}
+                      <div className="space-y-1">
+                        <div className="relative h-2.5 bg-slate-100 rounded-full overflow-hidden">
+                          <div
+                            className="absolute inset-y-0 left-0 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full transition-all duration-500"
+                            style={{ width: `${stats.percent}%` }}
+                          />
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs text-gray-500">{stats.percent}% complété</span>
+                          {stats.percent === 100 && (
+                            <span className="text-xs font-semibold text-emerald-600 flex items-center gap-1">
+                              <CheckCircle2 className="h-3 w-3" />
+                              Terminé
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
+
+            {formations.length === 0 && (
+              <div className="rounded-2xl border-2 border-dashed border-gray-200 bg-gradient-to-br from-slate-50 to-white p-12 text-center">
+                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-blue-100 to-indigo-100 mb-4">
+                  <BookOpen className="h-8 w-8 text-blue-600" />
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">Aucune formation disponible</h3>
+                <p className="text-gray-600 text-sm">Les formations apparaîtront ici une fois ajoutées.</p>
+              </div>
+            )}
           </div>
 
           {showFormationModal && selectedFormation && (
