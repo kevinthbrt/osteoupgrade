@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, type ChangeEvent } from 'react'
 import { useRouter } from 'next/navigation'
 import AuthLayout from '@/components/AuthLayout'
 import { supabase } from '@/lib/supabase'
@@ -11,11 +11,14 @@ interface Seminar {
   id: string
   title: string
   date: string
+  start_date?: string | null
+  end_date?: string | null
   location: string
   theme: string | null
   facilitator: string | null
   created_by?: string | null
   capacity?: number | null
+  image_url?: string | null
 }
 
 interface SeminarRegistration {
@@ -38,20 +41,27 @@ export default function SeminarsPage() {
     id: '',
     title: '',
     date: '',
+    start_date: '',
+    end_date: '',
     location: '',
     theme: '',
     facilitator: '',
-    capacity: null
+    capacity: null,
+    image_url: ''
   })
   const [userRegistrations, setUserRegistrations] = useState<SeminarRegistration[]>([])
   const [allRegistrations, setAllRegistrations] = useState<SeminarRegistration[]>([])
   const [loadingError, setLoadingError] = useState<string | null>(null)
+  const [isUploadingNewImage, setIsUploadingNewImage] = useState(false)
+  const [isUploadingEditImage, setIsUploadingEditImage] = useState(false)
 
   const fallbackSeminars: Seminar[] = [
     {
       id: 'fallback-1',
       title: 'Séminaire clinique - Membres supérieurs',
       date: '2025-04-18',
+      start_date: '2025-04-18',
+      end_date: '2025-04-19',
       location: 'Lyon',
       theme: 'Épaule & coude : trajectoires décisionnelles',
       facilitator: 'Gérald Stoppini',
@@ -61,12 +71,105 @@ export default function SeminarsPage() {
       id: 'fallback-2',
       title: 'Rachis et chaînes fasciales',
       date: '2025-06-12',
+      start_date: '2025-06-12',
+      end_date: '2025-06-14',
       location: 'Bordeaux',
       theme: 'Rachis lombaire et thoracique - cas complexes',
       facilitator: 'Kevin Thubert',
       capacity: 22
     }
   ]
+
+  const uploadSeminarImage = async (file: File) => {
+    const formData = new FormData()
+    formData.append('file', file)
+
+    const response = await fetch('/api/seminar-image-upload', {
+      method: 'POST',
+      body: formData
+    })
+
+    if (!response.ok) {
+      throw new Error('Le téléchargement a échoué')
+    }
+
+    const data = await response.json()
+    return data.url as string
+  }
+
+  const formatSeminarDates = (seminar: Seminar) => {
+    const startDate = seminar.start_date || seminar.date
+    const endDate = seminar.end_date
+
+    if (!startDate) return 'Dates à confirmer'
+
+    const start = new Date(startDate)
+
+    if (!endDate) {
+      return start.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
+    }
+
+    const end = new Date(endDate)
+    const sameMonthAndYear =
+      start.getFullYear() === end.getFullYear() && start.getMonth() === end.getMonth()
+
+    if (sameMonthAndYear) {
+      return `${start.toLocaleDateString('fr-FR', { day: 'numeric' })} - ${end.toLocaleDateString('fr-FR', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric'
+      })}`
+    }
+
+    const sameYear = start.getFullYear() === end.getFullYear()
+
+    if (sameYear) {
+      return `${start.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })} - ${end.toLocaleDateString('fr-FR', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric'
+      })}`
+    }
+
+    return `${start.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })} - ${end.toLocaleDateString(
+      'fr-FR',
+      { day: 'numeric', month: 'long', year: 'numeric' }
+    )}`
+  }
+
+  const handleNewImageChange = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    setIsUploadingNewImage(true)
+    try {
+      const imageUrl = await uploadSeminarImage(file)
+      setNewSeminar((prev) => ({ ...prev, image_url: imageUrl }))
+    } catch (err) {
+      console.error("Erreur lors de l'upload de l'image du séminaire:", err)
+      alert("Impossible de téléverser l'image pour le moment. Merci de réessayer plus tard.")
+    } finally {
+      setIsUploadingNewImage(false)
+      event.target.value = ''
+    }
+  }
+
+  const handleEditImageChange = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file || !editedSeminar) return
+
+    setIsUploadingEditImage(true)
+    try {
+      const imageUrl = await uploadSeminarImage(file)
+      setEditedSeminar((prev) => (prev ? { ...prev, image_url: imageUrl } : prev))
+    } catch (err) {
+      console.error("Erreur lors de l'upload de l'image du séminaire:", err)
+      alert("Impossible de téléverser l'image pour le moment. Merci de réessayer plus tard.")
+    } finally {
+      setIsUploadingEditImage(false)
+      event.target.value = ''
+    }
+  }
 
   useEffect(() => {
     const loadData = async () => {
@@ -88,14 +191,21 @@ export default function SeminarsPage() {
       const { data: seminarsData, error: seminarsError } = await supabase
         .from('seminars')
         .select('*')
-        .order('date', { ascending: true })
 
       if (seminarsError) {
         console.warn('Chargement des séminaires en mode secours :', seminarsError.message)
         setLoadingError('Les séminaires utilisent un jeu de données local car la table Supabase est absente ou inaccessible.')
         setSeminars(fallbackSeminars)
       } else {
-        setSeminars(seminarsData || [])
+        const sortedSeminars = (seminarsData || []).sort((a: Seminar, b: Seminar) => {
+          const startA = a.start_date || a.date
+          const startB = b.start_date || b.date
+
+          if (!startA || !startB) return 0
+          return new Date(startA).getTime() - new Date(startB).getTime()
+        })
+
+        setSeminars(sortedSeminars)
       }
 
       const { data: registrationsData, error: regError } = await supabase
@@ -186,6 +296,7 @@ export default function SeminarsPage() {
 
     const targetSeminar = seminars.find((seminar) => seminar.id === id)
     const seminarRegistrations = allRegistrations.filter((registration) => registration.seminar_id === id)
+    const seminarDateLabel = targetSeminar ? formatSeminarDates(targetSeminar) : undefined
 
     if (targetSeminar?.capacity && seminarRegistrations.length >= targetSeminar.capacity) {
       alert('Il ne reste plus de places pour ce séminaire')
@@ -227,7 +338,7 @@ export default function SeminarsPage() {
           metadata: {
             seminar_id: id,
             seminar_title: targetSeminar?.title,
-            seminar_date: targetSeminar?.date
+            seminar_date: seminarDateLabel
           }
         })
       })
@@ -247,6 +358,7 @@ export default function SeminarsPage() {
     }
 
     const targetSeminar = seminars.find((seminar) => seminar.id === id)
+    const seminarDateLabel = targetSeminar ? formatSeminarDates(targetSeminar) : undefined
 
     const { error } = await supabase.from('seminar_registrations').delete().eq('id', registrationToRemove.id)
 
@@ -274,7 +386,7 @@ export default function SeminarsPage() {
           metadata: {
             seminar_id: id,
             seminar_title: targetSeminar?.title,
-            seminar_date: targetSeminar?.date
+            seminar_date: seminarDateLabel
           }
         })
       })
@@ -287,8 +399,16 @@ export default function SeminarsPage() {
 
   const handleAddSeminar = async () => {
     if (profile?.role !== 'admin') return
-    if (!newSeminar.title || !newSeminar.date) {
-      alert('Merci de renseigner un titre et une date')
+    const startDate = newSeminar.start_date || newSeminar.date
+    const endDate = newSeminar.end_date
+
+    if (!newSeminar.title || !startDate) {
+      alert('Merci de renseigner un titre et une date de début')
+      return
+    }
+
+    if (endDate && new Date(endDate) < new Date(startDate)) {
+      alert('La date de fin doit être postérieure ou égale à la date de début')
       return
     }
 
@@ -296,11 +416,14 @@ export default function SeminarsPage() {
 
     const payload = {
       title: newSeminar.title,
-      date: newSeminar.date,
+      date: startDate,
+      start_date: startDate,
+      end_date: endDate || null,
       location: newSeminar.location,
       theme: newSeminar.theme,
       facilitator: newSeminar.facilitator,
       capacity,
+      image_url: newSeminar.image_url || null,
       created_by: profile?.id
     }
 
@@ -310,13 +433,24 @@ export default function SeminarsPage() {
       console.warn('Ajout du séminaire en mode local :', error.message)
       setSeminars((prev) => [
         ...prev,
-        { ...newSeminar, id: `${Date.now()}`, capacity }
+        { ...newSeminar, id: `${Date.now()}`, capacity, date: startDate, start_date: startDate, end_date: endDate }
       ])
     } else if (data) {
       setSeminars((prev) => [...prev, data])
     }
 
-    setNewSeminar({ id: '', title: '', date: '', location: '', theme: '', facilitator: '', capacity: null })
+    setNewSeminar({
+      id: '',
+      title: '',
+      date: '',
+      start_date: '',
+      end_date: '',
+      location: '',
+      theme: '',
+      facilitator: '',
+      capacity: null,
+      image_url: ''
+    })
   }
 
   const handleStartEdit = (seminar: Seminar) => {
@@ -327,19 +461,30 @@ export default function SeminarsPage() {
 
   const handleUpdateSeminar = async () => {
     if (!editingSeminarId || !editedSeminar || profile?.role !== 'admin') return
-    if (!editedSeminar.title || !editedSeminar.date) {
-      alert('Merci de renseigner un titre et une date')
+    const startDate = editedSeminar.start_date || editedSeminar.date
+    const endDate = editedSeminar.end_date
+
+    if (!editedSeminar.title || !startDate) {
+      alert('Merci de renseigner un titre et une date de début')
+      return
+    }
+
+    if (endDate && new Date(endDate) < new Date(startDate)) {
+      alert('La date de fin doit être postérieure ou égale à la date de début')
       return
     }
 
     const capacity = editedSeminar.capacity ?? null
     const payload = {
       title: editedSeminar.title,
-      date: editedSeminar.date,
+      date: startDate,
+      start_date: startDate,
+      end_date: endDate || null,
       location: editedSeminar.location,
       theme: editedSeminar.theme,
       facilitator: editedSeminar.facilitator,
-      capacity
+      capacity,
+      image_url: editedSeminar.image_url || null
     }
 
     const { data, error } = await supabase
@@ -488,9 +633,18 @@ export default function SeminarsPage() {
                   </div>
                   <User className="h-5 w-5 text-primary-600" />
                 </div>
+                {seminar.image_url && (
+                  <div className="w-full h-40 rounded-lg overflow-hidden border border-gray-100 bg-gray-50">
+                    <img
+                      src={seminar.image_url}
+                      alt={`Visuel du séminaire ${seminar.title}`}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                )}
                 <div className="flex items-center gap-3 text-sm text-gray-700">
                   <Calendar className="h-4 w-4 text-primary-600" />
-                  <span>{new Date(seminar.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
+                  <span>{formatSeminarDates(seminar)}</span>
                 </div>
                 <div className="flex items-center gap-3 text-sm text-gray-700">
                   <MapPin className="h-4 w-4 text-primary-600" />
@@ -618,8 +772,16 @@ export default function SeminarsPage() {
                         />
                         <input
                           type="date"
-                          value={editedSeminar.date}
-                          onChange={(e) => setEditedSeminar({ ...editedSeminar, date: e.target.value })}
+                          value={editedSeminar.start_date || editedSeminar.date}
+                          onChange={(e) =>
+                            setEditedSeminar({ ...editedSeminar, start_date: e.target.value, date: e.target.value })
+                          }
+                          className="px-3 py-2 border rounded-lg text-sm"
+                        />
+                        <input
+                          type="date"
+                          value={editedSeminar.end_date || ''}
+                          onChange={(e) => setEditedSeminar({ ...editedSeminar, end_date: e.target.value })}
                           className="px-3 py-2 border rounded-lg text-sm"
                         />
                         <input
@@ -653,6 +815,33 @@ export default function SeminarsPage() {
                           className="px-3 py-2 border rounded-lg text-sm"
                           placeholder="Nombre de places"
                         />
+                        <div className="md:col-span-2 flex flex-wrap items-center gap-3">
+                          {editedSeminar.image_url && (
+                            <img
+                              src={editedSeminar.image_url}
+                              alt={`Illustration du séminaire ${editedSeminar.title}`}
+                              className="h-16 w-24 object-cover rounded-lg border border-gray-200"
+                            />
+                          )}
+                          <label className="inline-flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold border border-primary-200 text-primary-700 hover:bg-primary-50 cursor-pointer">
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={handleEditImageChange}
+                              className="hidden"
+                              disabled={isUploadingEditImage}
+                            />
+                            {isUploadingEditImage ? 'Téléversement...' : 'Modifier la photo'}
+                          </label>
+                          {editedSeminar.image_url && (
+                            <button
+                              onClick={() => setEditedSeminar({ ...editedSeminar, image_url: '' })}
+                              className="px-3 py-2 rounded-lg text-xs font-semibold border border-gray-200 text-gray-700 hover:bg-gray-50"
+                            >
+                              Retirer la photo
+                            </button>
+                          )}
+                        </div>
                       </div>
                     )}
                   </div>
@@ -678,8 +867,14 @@ export default function SeminarsPage() {
               />
               <input
                 type="date"
-                value={newSeminar.date}
-                onChange={(e) => setNewSeminar({ ...newSeminar, date: e.target.value })}
+                value={newSeminar.start_date || newSeminar.date}
+                onChange={(e) => setNewSeminar({ ...newSeminar, start_date: e.target.value, date: e.target.value })}
+                className="px-3 py-2 border rounded-lg"
+              />
+              <input
+                type="date"
+                value={newSeminar.end_date || ''}
+                onChange={(e) => setNewSeminar({ ...newSeminar, end_date: e.target.value })}
                 className="px-3 py-2 border rounded-lg"
               />
               <input
@@ -713,6 +908,33 @@ export default function SeminarsPage() {
                 }
                 className="px-3 py-2 border rounded-lg"
               />
+              <div className="md:col-span-2 flex flex-wrap items-center gap-3">
+                {newSeminar.image_url && (
+                  <img
+                    src={newSeminar.image_url}
+                    alt={`Illustration du séminaire ${newSeminar.title}`}
+                    className="h-16 w-24 object-cover rounded-lg border border-gray-200"
+                  />
+                )}
+                <label className="inline-flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold border border-primary-200 text-primary-700 hover:bg-primary-50 cursor-pointer">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleNewImageChange}
+                    className="hidden"
+                    disabled={isUploadingNewImage}
+                  />
+                  {isUploadingNewImage ? 'Téléversement...' : 'Ajouter une photo'}
+                </label>
+                {newSeminar.image_url && (
+                  <button
+                    onClick={() => setNewSeminar({ ...newSeminar, image_url: '' })}
+                    className="px-3 py-2 rounded-lg text-xs font-semibold border border-gray-200 text-gray-700 hover:bg-gray-50"
+                  >
+                    Retirer la photo
+                  </button>
+                )}
+              </div>
             </div>
             <button
               onClick={handleAddSeminar}

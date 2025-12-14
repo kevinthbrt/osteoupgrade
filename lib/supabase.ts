@@ -253,11 +253,14 @@ export type Database = {
         id: string
         title: string
         date: string
+        start_date: string | null
+        end_date: string | null
         location: string
         theme: string | null
         facilitator: string | null
         capacity: number | null
         created_by: string | null
+        image_url: string | null
         created_at: string
       }>
       seminar_registrations?: TableDefinition<{
