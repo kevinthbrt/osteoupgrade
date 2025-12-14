@@ -104,7 +104,7 @@ export default function TopographiePage() {
   }, [router])
 
   useEffect(() => {
-    if (role === 'premium' || role === 'admin') {
+    if (role && ['premium_silver', 'premium_gold', 'admin'].includes(role)) {
       loadViews()
     }
   }, [role])
@@ -214,7 +214,7 @@ export default function TopographiePage() {
     }
   }
 
-  const isPremium = role === 'premium' || role === 'admin'
+  const isPremium = role ? ['premium_silver', 'premium_gold', 'admin'].includes(role) : false
   const isAdmin = role === 'admin'
 
   const filteredZones = useMemo(() => {
