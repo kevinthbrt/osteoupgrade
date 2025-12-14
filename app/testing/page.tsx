@@ -792,415 +792,424 @@ export default function TestingModulePage() {
   return (
     <AuthLayout>
       <div className="space-y-6">
-        {/* Header */}
-        <div className="overflow-hidden rounded-2xl bg-gradient-to-br from-slate-900 via-slate-900 to-slate-800 text-white shadow-xl border border-white/10">
-          <div className="p-6">
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-              <div className="space-y-3">
-                <p className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-sky-200">
-                  <span className="h-2 w-2 rounded-full bg-sky-400" />
-                  Module Testing
-                </p>
-                <h1 className="text-3xl font-bold leading-tight">Testing 3D</h1>
-                <p className="text-slate-200 text-sm md:text-base">
-                  Sélectionnez une zone anatomique pour voir les tests et
-                  clusters disponibles
-                </p>
+        {/* Hero Section Moderne */}
+        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white shadow-2xl">
+          {/* Decorative elements */}
+          <div className="absolute inset-0 bg-grid-white/[0.02] bg-[size:60px_60px]" />
+          <div className="absolute top-0 right-0 w-96 h-96 bg-purple-500/30 rounded-full blur-3xl" />
+          <div className="absolute bottom-0 left-0 w-96 h-96 bg-indigo-500/20 rounded-full blur-3xl" />
+
+          <div className="relative px-6 py-8 md:px-10 md:py-10">
+            <div className="max-w-7xl mx-auto">
+              {/* Badge */}
+              <div className="inline-flex items-center gap-2 rounded-full bg-white/10 backdrop-blur-sm px-3 py-1.5 mb-4 border border-white/20">
+                <div className="h-2 w-2 rounded-full bg-purple-400 animate-pulse" />
+                <span className="text-xs font-semibold text-purple-100">
+                  Testing 3D Premium
+                </span>
               </div>
-              <button
-                onClick={newSession}
-                className="inline-flex items-center gap-2 rounded-lg bg-sky-500 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-sky-500/20 transition hover:bg-sky-400"
-              >
-                <Plus className="h-5 w-5" />
-                Nouvelle Session
-              </button>
-            </div>
-          </div>
-        </div>
 
-        {/* Informations patient - EN HAUT */}
-        <div className="bg-white rounded-xl shadow-sm p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">
-            <User className="h-5 w-5 inline mr-2" />
-            Informations patient
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Nom du patient
-              </label>
-              <input
-                type="text"
-                value={currentSession.patientName}
-                onChange={(e) =>
-                  setCurrentSession((prev: TestingSession) => ({
-                    ...prev,
-                    patientName: e.target.value
-                  }))
-                }
-                className="w-full px-3 py-2 border rounded-lg"
-                placeholder="Nom complet"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Âge
-              </label>
-              <input
-                type="text"
-                value={currentSession.patientAge}
-                onChange={(e) =>
-                  setCurrentSession((prev: TestingSession) => ({
-                    ...prev,
-                    patientAge: e.target.value
-                  }))
-                }
-                className="w-full px-3 py-2 border rounded-lg"
-                placeholder="ex: 45 ans"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                <Calendar className="h-4 w-4 inline mr-1" />
-                Date
-              </label>
-              <input
-                type="date"
-                value={currentSession.sessionDate}
-                onChange={(e) =>
-                  setCurrentSession((prev: TestingSession) => ({
-                    ...prev,
-                    sessionDate: e.target.value
-                  }))
-                }
-                className="w-full px-3 py-2 border rounded-lg"
-              />
-            </div>
-          </div>
-
-          <div className="mt-4">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Notes générales
-            </label>
-            <textarea
-              value={currentSession.notes}
-              onChange={(e) =>
-                setCurrentSession((prev: TestingSession) => ({
-                  ...prev,
-                  notes: e.target.value
-                }))
-              }
-              className="w-full px-3 py-2 border rounded-lg resize-none"
-              rows={2}
-              placeholder="Observations générales..."
-            />
-          </div>
-
-          {/* Actions */}
-          <div className="flex gap-2 mt-4">
-            <button
-              onClick={saveSession}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2"
-            >
-              <Save className="h-4 w-4" />
-              Sauvegarder
-            </button>
-            <button
-              onClick={exportToPDF}
-              className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2"
-            >
-              <Download className="h-4 w-4" />
-              Exporter PDF
-            </button>
-          </div>
-        </div>
-
-        {/* Stats */}
-        {stats.total > 0 && (
-          <div className="grid grid-cols-4 gap-4">
-            <div className="bg-white rounded-lg p-4 shadow-sm">
-              <p className="text-sm text-gray-600">Total (tests + clusters)</p>
-              <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
-            </div>
-            <div className="bg-green-50 rounded-lg p-4 shadow-sm">
-              <p className="text-sm text-green-600">Positifs</p>
-              <p className="text-2xl font-bold text-green-700">
-                {stats.positive}
-              </p>
-            </div>
-            <div className="bg-red-50 rounded-lg p-4 shadow-sm">
-              <p className="text-sm text-red-600">Négatifs</p>
-              <p className="text-2xl font-bold text-red-700">
-                {stats.negative}
-              </p>
-            </div>
-            <div className="bg-yellow-50 rounded-lg p-4 shadow-sm">
-              <p className="text-sm text-yellow-600">Incertains</p>
-              <p className="text-2xl font-bold text-yellow-700">
-                {stats.uncertain}
-              </p>
-            </div>
-          </div>
-        )}
-
-        {/* Module 3D centré en pleine largeur */}
-        <div className="max-w-5xl mx-auto">
-          <div className="bg-white rounded-xl shadow-sm p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4 text-center">
-              Modèle anatomique 3D
-            </h2>
-            {zones.length === 0 ? (
-              <div className="text-center py-12 text-gray-500">
-                <p>Aucune zone anatomique configurée.</p>
-                <p className="text-sm mt-2">
-                  Utilisez Anatomy Builder pour créer des zones.
-                </p>
+              {/* Main heading */}
+              <div className="flex items-end justify-between">
+                <div>
+                  <h1 className="text-3xl md:text-4xl font-bold mb-3 bg-clip-text text-transparent bg-gradient-to-r from-white to-purple-100">
+                    Module Testing 3D
+                  </h1>
+                  <p className="text-base md:text-lg text-slate-300 max-w-2xl">
+                    Interface professionnelle de testing orthopédique. Sélectionnez une zone sur le modèle 3D pour explorer les tests disponibles.
+                  </p>
+                </div>
+                <button
+                  onClick={newSession}
+                  className="hidden md:inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-white text-slate-900 font-bold shadow-xl transition-all transform hover:scale-105 hover:shadow-2xl"
+                >
+                  <Plus className="h-5 w-5" />
+                  Nouvelle Session
+                </button>
               </div>
-            ) : (
-              <TestingViewer3D
-                zones={zones}
-                onZoneClick={handleZoneClick}
-                onSpecialCategoryClick={handleSpecialCategoryClick}
-              />
-            )}
+            </div>
           </div>
         </div>
 
-        {/* Contenu principal - TESTS ET CLUSTERS */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Tests et clusters sélectionnés - gauche */}
-          <div className="space-y-6">
+        {/* Layout 3 colonnes moderne */}
+        <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
+          {/* ========== COLONNE GAUCHE : Infos Patient + Stats + Actions ========== */}
+          <div className="xl:col-span-3 space-y-6">
+            <div className="xl:sticky xl:top-6 space-y-6">
+              {/* Card Patient */}
+              <div className="rounded-2xl bg-gradient-to-br from-white to-slate-50 p-5 shadow-lg border border-slate-200">
+                <div className="flex items-center gap-2 mb-4">
+                  <div className="p-2 rounded-lg bg-gradient-to-br from-purple-500 to-purple-600">
+                    <User className="h-4 w-4 text-white" />
+                  </div>
+                  <h2 className="text-base font-bold text-slate-900">Patient</h2>
+                </div>
 
-            {/* Tests sélectionnés */}
-            {currentSession.results.length > 0 && (
-              <div className="bg-white rounded-xl shadow-sm p-6">
-                <h2 className="text-lg font-semibold text-gray-900 mb-4">
-                  Tests de la session ({currentSession.results.length})
-                </h2>
-                <div className="space-y-4">
-                  {currentSession.results.map(
-                    (result: TestingSessionResult) => (
-                      <div key={result.testId} className="border rounded-lg p-4">
-                        <div className="flex items-start justify-between mb-3">
-                          <div className="flex-1">
-                            <h3 className="font-medium text-gray-900">
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-xs font-medium text-slate-600 mb-1">Nom complet</label>
+                    <input
+                      type="text"
+                      value={currentSession.patientName}
+                      onChange={(e) =>
+                        setCurrentSession((prev: TestingSession) => ({
+                          ...prev,
+                          patientName: e.target.value
+                        }))
+                      }
+                      className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-purple-200 focus:border-purple-400 transition"
+                      placeholder="Nom du patient"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-xs font-medium text-slate-600 mb-1">Âge</label>
+                      <input
+                        type="text"
+                        value={currentSession.patientAge}
+                        onChange={(e) =>
+                          setCurrentSession((prev: TestingSession) => ({
+                            ...prev,
+                            patientAge: e.target.value
+                          }))
+                        }
+                        className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-purple-200"
+                        placeholder="45 ans"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-slate-600 mb-1">Date</label>
+                      <input
+                        type="date"
+                        value={currentSession.sessionDate}
+                        onChange={(e) =>
+                          setCurrentSession((prev: TestingSession) => ({
+                            ...prev,
+                            sessionDate: e.target.value
+                          }))
+                        }
+                        className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-purple-200"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-slate-600 mb-1">Notes générales</label>
+                    <textarea
+                      value={currentSession.notes}
+                      onChange={(e) =>
+                        setCurrentSession((prev: TestingSession) => ({
+                          ...prev,
+                          notes: e.target.value
+                        }))
+                      }
+                      className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg resize-none focus:ring-2 focus:ring-purple-200"
+                      rows={3}
+                      placeholder="Observations..."
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Card Stats */}
+              {stats.total > 0 && (
+                <div className="rounded-2xl bg-gradient-to-br from-white to-slate-50 p-5 shadow-lg border border-slate-200">
+                  <div className="flex items-center gap-2 mb-4">
+                    <div className="p-2 rounded-lg bg-gradient-to-br from-indigo-500 to-indigo-600">
+                      <FileText className="h-4 w-4 text-white" />
+                    </div>
+                    <h2 className="text-base font-bold text-slate-900">Résultats</h2>
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between p-2.5 rounded-lg bg-slate-100">
+                      <span className="text-xs font-medium text-slate-600">Total</span>
+                      <span className="text-lg font-bold text-slate-900">{stats.total}</span>
+                    </div>
+                    <div className="flex items-center justify-between p-2.5 rounded-lg bg-green-50 border border-green-100">
+                      <span className="text-xs font-medium text-green-600">Positifs</span>
+                      <span className="text-lg font-bold text-green-700">{stats.positive}</span>
+                    </div>
+                    <div className="flex items-center justify-between p-2.5 rounded-lg bg-red-50 border border-red-100">
+                      <span className="text-xs font-medium text-red-600">Négatifs</span>
+                      <span className="text-lg font-bold text-red-700">{stats.negative}</span>
+                    </div>
+                    <div className="flex items-center justify-between p-2.5 rounded-lg bg-yellow-50 border border-yellow-100">
+                      <span className="text-xs font-medium text-yellow-600">Incertains</span>
+                      <span className="text-lg font-bold text-yellow-700">{stats.uncertain}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Card Actions */}
+              <div className="rounded-2xl bg-gradient-to-br from-white to-slate-50 p-5 shadow-lg border border-slate-200">
+                <div className="space-y-2">
+                  <button
+                    onClick={saveSession}
+                    className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-4 py-2.5 rounded-xl flex items-center justify-center gap-2 font-semibold text-sm shadow-lg transition-all transform hover:scale-[1.02]"
+                  >
+                    <Save className="h-4 w-4" />
+                    Sauvegarder
+                  </button>
+                  <button
+                    onClick={exportToPDF}
+                    className="w-full bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white px-4 py-2.5 rounded-xl flex items-center justify-center gap-2 font-semibold text-sm shadow-lg transition-all transform hover:scale-[1.02]"
+                  >
+                    <Download className="h-4 w-4" />
+                    Exporter PDF
+                  </button>
+                  <button
+                    onClick={newSession}
+                    className="w-full border-2 border-slate-200 hover:border-purple-200 hover:bg-purple-50 text-slate-700 hover:text-purple-700 px-4 py-2.5 rounded-xl flex items-center justify-center gap-2 font-semibold text-sm transition-all"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Nouvelle Session
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* ========== COLONNE CENTRALE : Module 3D ========== */}
+          <div className="xl:col-span-6">
+            <div className="rounded-2xl bg-gradient-to-br from-white to-slate-50 p-6 shadow-2xl border border-slate-200">
+              <div className="flex items-center gap-3 mb-5">
+                <div className="p-2 rounded-lg bg-gradient-to-br from-purple-500 to-indigo-600">
+                  <FileText className="h-5 w-5 text-white" />
+                </div>
+                <h2 className="text-xl font-bold text-slate-900">Modèle anatomique 3D</h2>
+              </div>
+
+              {zones.length === 0 ? (
+                <div className="rounded-xl border-2 border-dashed border-slate-200 bg-slate-50 py-24 text-center">
+                  <FileText className="h-12 w-12 text-slate-300 mx-auto mb-3" />
+                  <p className="text-slate-600 font-medium">Aucune zone anatomique configurée.</p>
+                  <p className="text-sm text-slate-500 mt-1">
+                    Utilisez Anatomy Builder pour créer des zones.
+                  </p>
+                </div>
+              ) : (
+                <div className="rounded-xl overflow-hidden border border-slate-200 shadow-inner">
+                  <TestingViewer3D
+                    zones={zones}
+                    onZoneClick={handleZoneClick}
+                    onSpecialCategoryClick={handleSpecialCategoryClick}
+                  />
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* ========== COLONNE DROITE : Tests/Clusters sélectionnés ========== */}
+          <div className="xl:col-span-3">
+            <div className="xl:sticky xl:top-6 space-y-6">
+              {/* Tests sélectionnés - Version compacte */}
+              {currentSession.results.length > 0 && (
+                <div className="rounded-2xl bg-gradient-to-br from-white to-slate-50 p-5 shadow-lg border border-slate-200">
+                  <div className="flex items-center gap-2 mb-4">
+                    <div className="p-2 rounded-lg bg-gradient-to-br from-emerald-500 to-emerald-600">
+                      <CheckCircle className="h-4 w-4 text-white" />
+                    </div>
+                    <h2 className="text-base font-bold text-slate-900">
+                      Tests ({currentSession.results.length})
+                    </h2>
+                  </div>
+
+                  <div className="space-y-3 max-h-[600px] overflow-y-auto pr-2 scrollbar-hide">
+                    {currentSession.results.map((result: TestingSessionResult) => (
+                      <div
+                        key={result.testId}
+                        className="border border-slate-200 rounded-xl p-3 bg-white hover:shadow-md transition-all"
+                      >
+                        <div className="flex items-start justify-between mb-2">
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-semibold text-sm text-slate-900 truncate">
                               {result.testName}
                             </h3>
-                            <p className="text-sm text-gray-600">
-                              {result.category}
-                            </p>
+                            <p className="text-xs text-slate-500 truncate">{result.category}</p>
                           </div>
                           <button
                             onClick={() => removeTestResult(result.testId)}
-                            className="text-red-600 hover:text-red-700"
+                            className="text-red-500 hover:text-red-700 hover:bg-red-50 p-1 rounded transition"
                           >
-                            <Trash2 className="h-4 w-4" />
+                            <Trash2 className="h-3.5 w-3.5" />
                           </button>
                         </div>
 
-                        {/* Boutons résultat */}
-                        <div className="grid grid-cols-3 gap-2 mb-3">
+                        {/* Boutons résultat compacts */}
+                        <div className="grid grid-cols-3 gap-1.5 mb-2">
                           <button
-                            onClick={() =>
-                              updateTestResult(result.testId, 'positive')
-                            }
-                            className={`px-3 py-2 rounded-lg flex items-center justify-center gap-2 text-sm font-medium transition-colors ${
+                            onClick={() => updateTestResult(result.testId, 'positive')}
+                            className={`px-2 py-1.5 rounded-lg text-xs font-medium transition-all ${
                               result.result === 'positive'
-                                ? 'bg-green-100 text-green-700 border-2 border-green-600'
-                                : 'bg-gray-50 text-gray-700 hover:bg-green-50'
+                                ? 'bg-green-100 text-green-700 border border-green-300 shadow-sm'
+                                : 'bg-slate-50 text-slate-600 hover:bg-green-50'
                             }`}
+                            title="Positif"
                           >
-                            <CheckCircle className="h-4 w-4" />
-                            Positif
+                            <CheckCircle className="h-3.5 w-3.5 mx-auto" />
                           </button>
                           <button
-                            onClick={() =>
-                              updateTestResult(result.testId, 'negative')
-                            }
-                            className={`px-3 py-2 rounded-lg flex items-center justify-center gap-2 text-sm font-medium transition-colors ${
+                            onClick={() => updateTestResult(result.testId, 'negative')}
+                            className={`px-2 py-1.5 rounded-lg text-xs font-medium transition-all ${
                               result.result === 'negative'
-                                ? 'bg-red-100 text-red-700 border-2 border-red-600'
-                                : 'bg-gray-50 text-gray-700 hover:bg-red-50'
+                                ? 'bg-red-100 text-red-700 border border-red-300 shadow-sm'
+                                : 'bg-slate-50 text-slate-600 hover:bg-red-50'
                             }`}
+                            title="Négatif"
                           >
-                            <XCircle className="h-4 w-4" />
-                            Négatif
+                            <XCircle className="h-3.5 w-3.5 mx-auto" />
                           </button>
                           <button
-                            onClick={() =>
-                              updateTestResult(result.testId, 'uncertain')
-                            }
-                            className={`px-3 py-2 rounded-lg flex items-center justify-center gap-2 text-sm font-medium transition-colors ${
+                            onClick={() => updateTestResult(result.testId, 'uncertain')}
+                            className={`px-2 py-1.5 rounded-lg text-xs font-medium transition-all ${
                               result.result === 'uncertain'
-                                ? 'bg-yellow-100 text-yellow-700 border-2 border-yellow-600'
-                                : 'bg-gray-50 text-gray-700 hover:bg-yellow-50'
+                                ? 'bg-yellow-100 text-yellow-700 border border-yellow-300 shadow-sm'
+                                : 'bg-slate-50 text-slate-600 hover:bg-yellow-50'
                             }`}
+                            title="Incertain"
                           >
-                            <AlertCircle className="h-4 w-4" />
-                            Incertain
+                            <AlertCircle className="h-3.5 w-3.5 mx-auto" />
                           </button>
                         </div>
 
-                        {/* Commentaires */}
+                        {/* Notes compactes */}
                         <textarea
                           value={result.notes}
-                          onChange={(e) =>
-                            updateTestNotes(result.testId, e.target.value)
-                          }
-                          placeholder="Commentaires..."
-                          className="w-full px-3 py-2 border rounded-lg text-sm resize-none"
+                          onChange={(e) => updateTestNotes(result.testId, e.target.value)}
+                          placeholder="Notes..."
+                          className="w-full px-2 py-1.5 text-xs border border-slate-200 rounded-lg resize-none focus:ring-2 focus:ring-purple-200 focus:border-purple-400"
                           rows={2}
                         />
 
-                        {/* Stats test */}
+                        {/* Stats en badges */}
                         {(result.sensitivity || result.specificity) && (
-                          <div className="flex gap-4 mt-2 text-xs text-gray-500">
+                          <div className="flex gap-1 mt-2">
                             {result.sensitivity && (
-                              <span>
-                                Sensibilité: {result.sensitivity}%
+                              <span className="px-2 py-0.5 rounded-full text-xs bg-green-50 text-green-700 border border-green-200">
+                                Se {result.sensitivity}%
                               </span>
                             )}
                             {result.specificity && (
-                              <span>
-                                Spécificité: {result.specificity}%
+                              <span className="px-2 py-0.5 rounded-full text-xs bg-blue-50 text-blue-700 border border-blue-200">
+                                Sp {result.specificity}%
                               </span>
                             )}
                           </div>
                         )}
                       </div>
-                    )
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* Clusters sélectionnés */}
-            {currentSession.clusterResults &&
-              currentSession.clusterResults.length > 0 && (
-                <div className="bg-white rounded-xl shadow-sm p-6">
-                  <h2 className="text-lg font-semibold text-gray-900 mb-4">
-                    Clusters de tests ({currentSession.clusterResults.length})
-                  </h2>
-                  <div className="space-y-4">
-                    {currentSession.clusterResults.map(
-                      (clusterResult: TestingClusterResult) => (
-                        <div
-                          key={clusterResult.clusterId}
-                          className="border rounded-lg p-4"
-                        >
-                          <div className="flex items-start justify-between mb-3">
-                            <div className="flex-1">
-                              <h3 className="font-medium text-gray-900">
-                                {clusterResult.clusterName}
-                              </h3>
-                              <p className="text-sm text-gray-600">
-                                {clusterResult.region}
-                              </p>
-                            </div>
-                            <button
-                              onClick={() =>
-                                removeClusterResult(clusterResult.clusterId)
-                              }
-                              className="text-red-600 hover:text-red-700"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
-                          </div>
-
-                          {/* Boutons résultat */}
-                          <div className="grid grid-cols-3 gap-2 mb-3">
-                            <button
-                              onClick={() =>
-                                updateClusterResult(
-                                  clusterResult.clusterId,
-                                  'positive'
-                                )
-                              }
-                              className={`px-3 py-2 rounded-lg flex items-center justify-center gap-2 text-sm font-medium transition-colors ${
-                                clusterResult.result === 'positive'
-                                  ? 'bg-green-100 text-green-700 border-2 border-green-600'
-                                  : 'bg-gray-50 text-gray-700 hover:bg-green-50'
-                              }`}
-                            >
-                              <CheckCircle className="h-4 w-4" />
-                              Positif
-                            </button>
-                            <button
-                              onClick={() =>
-                                updateClusterResult(
-                                  clusterResult.clusterId,
-                                  'negative'
-                                )
-                              }
-                              className={`px-3 py-2 rounded-lg flex items-center justify-center gap-2 text-sm font-medium transition-colors ${
-                                clusterResult.result === 'negative'
-                                  ? 'bg-red-100 text-red-700 border-2 border-red-600'
-                                  : 'bg-gray-50 text-gray-700 hover:bg-red-50'
-                              }`}
-                            >
-                              <XCircle className="h-4 w-4" />
-                              Négatif
-                            </button>
-                            <button
-                              onClick={() =>
-                                updateClusterResult(
-                                  clusterResult.clusterId,
-                                  'uncertain'
-                                )
-                              }
-                              className={`px-3 py-2 rounded-lg flex items-center justify-center gap-2 text-sm font-medium transition-colors ${
-                                clusterResult.result === 'uncertain'
-                                  ? 'bg-yellow-100 text-yellow-700 border-2 border-yellow-600'
-                                  : 'bg-gray-50 text-gray-700 hover:bg-yellow-50'
-                              }`}
-                            >
-                              <AlertCircle className="h-4 w-4" />
-                              Incertain
-                            </button>
-                          </div>
-
-                          {/* Commentaires */}
-                          <textarea
-                            value={clusterResult.notes}
-                            onChange={(e) =>
-                              updateClusterNotes(
-                                clusterResult.clusterId,
-                                e.target.value
-                              )
-                            }
-                            placeholder="Commentaires..."
-                            className="w-full px-3 py-2 border rounded-lg text-sm resize-none"
-                            rows={2}
-                          />
-
-                          {/* Stats cluster */}
-                          {(clusterResult.sensitivity ||
-                            clusterResult.specificity) && (
-                            <div className="flex gap-4 mt-2 text-xs text-gray-500">
-                              {clusterResult.sensitivity && (
-                                <span>
-                                  Sensibilité: {clusterResult.sensitivity}%
-                                </span>
-                              )}
-                              {clusterResult.specificity && (
-                                <span>
-                                  Spécificité: {clusterResult.specificity}%
-                                </span>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      )
-                    )}
+                    ))}
                   </div>
                 </div>
               )}
-          </div>
 
-          {/* TESTS / CLUSTERS À DROITE - moitié droite */}
-          <div className="space-y-6">
+              {/* Clusters sélectionnés - Version compacte */}
+              {currentSession.clusterResults && currentSession.clusterResults.length > 0 && (
+                <div className="rounded-2xl bg-gradient-to-br from-white to-slate-50 p-5 shadow-lg border border-slate-200">
+                  <div className="flex items-center gap-2 mb-4">
+                    <div className="p-2 rounded-lg bg-gradient-to-br from-violet-500 to-violet-600">
+                      <Filter className="h-4 w-4 text-white" />
+                    </div>
+                    <h2 className="text-base font-bold text-slate-900">
+                      Clusters ({currentSession.clusterResults.length})
+                    </h2>
+                  </div>
+
+                  <div className="space-y-3 max-h-[600px] overflow-y-auto pr-2 scrollbar-hide">
+                    {currentSession.clusterResults.map((clusterResult: TestingClusterResult) => (
+                      <div
+                        key={clusterResult.clusterId}
+                        className="border border-slate-200 rounded-xl p-3 bg-white hover:shadow-md transition-all"
+                      >
+                        <div className="flex items-start justify-between mb-2">
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-semibold text-sm text-slate-900 truncate">
+                              {clusterResult.clusterName}
+                            </h3>
+                            <p className="text-xs text-slate-500 truncate">{clusterResult.region}</p>
+                          </div>
+                          <button
+                            onClick={() => removeClusterResult(clusterResult.clusterId)}
+                            className="text-red-500 hover:text-red-700 hover:bg-red-50 p-1 rounded transition"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+
+                        {/* Boutons résultat compacts */}
+                        <div className="grid grid-cols-3 gap-1.5 mb-2">
+                          <button
+                            onClick={() => updateClusterResult(clusterResult.clusterId, 'positive')}
+                            className={`px-2 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                              clusterResult.result === 'positive'
+                                ? 'bg-green-100 text-green-700 border border-green-300 shadow-sm'
+                                : 'bg-slate-50 text-slate-600 hover:bg-green-50'
+                            }`}
+                            title="Positif"
+                          >
+                            <CheckCircle className="h-3.5 w-3.5 mx-auto" />
+                          </button>
+                          <button
+                            onClick={() => updateClusterResult(clusterResult.clusterId, 'negative')}
+                            className={`px-2 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                              clusterResult.result === 'negative'
+                                ? 'bg-red-100 text-red-700 border border-red-300 shadow-sm'
+                                : 'bg-slate-50 text-slate-600 hover:bg-red-50'
+                            }`}
+                            title="Négatif"
+                          >
+                            <XCircle className="h-3.5 w-3.5 mx-auto" />
+                          </button>
+                          <button
+                            onClick={() => updateClusterResult(clusterResult.clusterId, 'uncertain')}
+                            className={`px-2 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                              clusterResult.result === 'uncertain'
+                                ? 'bg-yellow-100 text-yellow-700 border border-yellow-300 shadow-sm'
+                                : 'bg-slate-50 text-slate-600 hover:bg-yellow-50'
+                            }`}
+                            title="Incertain"
+                          >
+                            <AlertCircle className="h-3.5 w-3.5 mx-auto" />
+                          </button>
+                        </div>
+
+                        {/* Notes compactes */}
+                        <textarea
+                          value={clusterResult.notes}
+                          onChange={(e) => updateClusterNotes(clusterResult.clusterId, e.target.value)}
+                          placeholder="Notes..."
+                          className="w-full px-2 py-1.5 text-xs border border-slate-200 rounded-lg resize-none focus:ring-2 focus:ring-purple-200 focus:border-purple-400"
+                          rows={2}
+                        />
+
+                        {/* Stats en badges */}
+                        {(clusterResult.sensitivity || clusterResult.specificity) && (
+                          <div className="flex gap-1 mt-2">
+                            {clusterResult.sensitivity && (
+                              <span className="px-2 py-0.5 rounded-full text-xs bg-green-50 text-green-700 border border-green-200">
+                                Se {clusterResult.sensitivity}%
+                              </span>
+                            )}
+                            {clusterResult.specificity && (
+                              <span className="px-2 py-0.5 rounded-full text-xs bg-blue-50 text-blue-700 border border-blue-200">
+                                Sp {clusterResult.specificity}%
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Ancien contenu - Section en bas : Liste des tests et sessions (devient des modals/popovers) */}
+        <div className="space-y-6">
             {/* Liste des tests / clusters de la zone */}
             {showTestList && selectedZone && (
               <div className="bg-white rounded-xl shadow-sm p-6">
@@ -1434,7 +1443,6 @@ export default function TestingModulePage() {
                 </div>
               </div>
             )}
-          </div>
         </div>
       </div>
 
