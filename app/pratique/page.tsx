@@ -550,11 +550,7 @@ export default function PracticePage() {
                   <div className="flex gap-2 bg-white/10 backdrop-blur-sm rounded-lg p-1 border border-white/20">
                     <button
                       onClick={() => setViewMode('grid')}
-                      className={`px-3 py-1.5 rounded-md text-sm font-semibold transition flex items-center gap-2 ${
-                        viewMode === 'grid'
-                          ? 'bg-white text-slate-900'
-                          : 'text-white hover:bg-white/10'
-                      }`}
+                      className="px-3 py-1.5 rounded-md text-sm font-semibold transition flex items-center gap-2 bg-white text-slate-900"
                     >
                       <LayoutGrid className="h-4 w-4" />
                       Grille
@@ -567,11 +563,7 @@ export default function PracticePage() {
                           trackVideoView(visibleVideos[0].id)
                         }
                       }}
-                      className={`px-3 py-1.5 rounded-md text-sm font-semibold transition flex items-center gap-2 ${
-                        viewMode === 'scroll'
-                          ? 'bg-white text-slate-900'
-                          : 'text-white hover:bg-white/10'
-                      }`}
+                      className="px-3 py-1.5 rounded-md text-sm font-semibold transition flex items-center gap-2 text-white hover:bg-white/10"
                     >
                       <Maximize2 className="h-4 w-4" />
                       Défilement
