@@ -1443,7 +1443,6 @@ export default function TestingModulePage() {
                 </div>
               </div>
             )}
-          </div>
         </div>
       </div>
 
