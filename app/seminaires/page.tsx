@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState, type ChangeEvent } from 'react'
 import { useRouter } from 'next/navigation'
 import AuthLayout from '@/components/AuthLayout'
 import { supabase } from '@/lib/supabase'
+import { getEffectiveRole, useAdminView } from '@/components/AdminViewContext'
 import { Calendar, MapPin, User, Plus, CheckCircle, Users, PenSquare, AlertTriangle } from 'lucide-react'
 import { formatCycleWindow, getCurrentSubscriptionCycle, isDateWithinCycle } from '@/utils/subscriptionCycle'
 
@@ -54,6 +55,10 @@ export default function SeminarsPage() {
   const [loadingError, setLoadingError] = useState<string | null>(null)
   const [isUploadingNewImage, setIsUploadingNewImage] = useState(false)
   const [isUploadingEditImage, setIsUploadingEditImage] = useState(false)
+  const { viewRole } = useAdminView()
+  const effectiveRole = getEffectiveRole(profile?.role, viewRole)
+  const isAdminUser = profile?.role === 'admin'
+  const adminView = isAdminUser && effectiveRole === 'admin'
 
   const fallbackSeminars: Seminar[] = [
     {
@@ -258,8 +263,8 @@ export default function SeminarsPage() {
 
   // Vérifier si l'abonnement Gold est actif
   const isGoldActive = useMemo(() => {
-    if (profile?.role === 'admin') return true
-    if (profile?.role !== 'premium_gold') return false
+    if (adminView) return true
+    if (effectiveRole !== 'premium_gold') return false
 
     const isActive = profile?.subscription_status === 'active'
     const now = new Date()
@@ -267,17 +272,17 @@ export default function SeminarsPage() {
     const isExpired = endDate && now > endDate
 
     return isActive && !isExpired
-  }, [profile?.role, profile?.subscription_status, profile?.subscription_end_date])
+  }, [adminView, effectiveRole, profile?.subscription_status, profile?.subscription_end_date])
 
   const handleRegister = async (id: string) => {
     // Vérifier le rôle Gold (admin toujours autorisé)
-    if (profile?.role !== 'premium_gold' && profile?.role !== 'admin') {
+    if (effectiveRole !== 'premium_gold' && effectiveRole !== 'admin') {
       alert('Inscription réservée aux membres Premium Gold uniquement')
       return
     }
 
     // Vérifier que l'abonnement Gold est actif (sauf pour admin)
-    if (profile?.role === 'premium_gold') {
+    if (effectiveRole === 'premium_gold') {
       const isActive = profile?.subscription_status === 'active'
       const now = new Date()
       const endDate = profile?.subscription_end_date ? new Date(profile.subscription_end_date) : null
@@ -398,7 +403,7 @@ export default function SeminarsPage() {
   }
 
   const handleAddSeminar = async () => {
-    if (profile?.role !== 'admin') return
+    if (!isAdminUser) return
     const startDate = newSeminar.start_date || newSeminar.date
     const endDate = newSeminar.end_date
 
@@ -454,13 +459,13 @@ export default function SeminarsPage() {
   }
 
   const handleStartEdit = (seminar: Seminar) => {
-    if (profile?.role !== 'admin') return
+    if (!isAdminUser) return
     setEditingSeminarId(seminar.id)
     setEditedSeminar({ ...seminar })
   }
 
   const handleUpdateSeminar = async () => {
-    if (!editingSeminarId || !editedSeminar || profile?.role !== 'admin') return
+    if (!editingSeminarId || !editedSeminar || !isAdminUser) return
     const startDate = editedSeminar.start_date || editedSeminar.date
     const endDate = editedSeminar.end_date
 
@@ -507,7 +512,7 @@ export default function SeminarsPage() {
   }
 
   const handleDeleteSeminar = async (id: string) => {
-    if (profile?.role !== 'admin') return
+    if (!isAdminUser) return
     if (!confirm('Supprimer définitivement ce séminaire ?')) return
 
     const { error } = await supabase.from('seminars').delete().eq('id', id)
@@ -536,7 +541,7 @@ export default function SeminarsPage() {
     )
   }
 
-  const isFree = profile?.role === 'free'
+  const isFree = effectiveRole === 'free'
 
   return (
     <AuthLayout>
@@ -574,7 +579,7 @@ export default function SeminarsPage() {
           </div>
         </div>
 
-        {(isFree || profile?.role === 'premium_silver') && (
+        {(isFree || effectiveRole === 'premium_silver') && (
           <div className="bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-xl p-6 shadow-lg flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
               <p className="text-sm uppercase tracking-wide text-white/80">Accès Premium Gold requis</p>
@@ -595,7 +600,7 @@ export default function SeminarsPage() {
           </div>
         )}
 
-        {profile?.role === 'premium_gold' && !isGoldActive && (
+        {effectiveRole === 'premium_gold' && !isGoldActive && (
           <div className="bg-gradient-to-r from-red-500 to-rose-500 text-white rounded-xl p-6 shadow-lg flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
               <p className="text-sm uppercase tracking-wide text-white/80">Abonnement expiré</p>
@@ -668,11 +673,11 @@ export default function SeminarsPage() {
                   {!isRegistered ? (
                     <button
                       onClick={() => handleRegister(seminar.id)}
-                      disabled={isFree || profile?.role === 'premium_silver' || !isGoldActive || hasReachedLimit || isFull}
+                      disabled={isFree || effectiveRole === 'premium_silver' || !isGoldActive || hasReachedLimit || isFull}
                       className={`px-4 py-2 rounded-lg text-sm font-semibold border transition flex items-center justify-center gap-2 ${
-                        isFree || profile?.role === 'premium_silver'
+                        isFree || effectiveRole === 'premium_silver'
                           ? 'border-dashed border-gray-200 text-gray-400'
-                          : profile?.role === 'premium_gold' && !isGoldActive
+                          : effectiveRole === 'premium_gold' && !isGoldActive
                             ? 'border-red-200 text-red-600 bg-red-50 cursor-not-allowed'
                             : hasReachedLimit
                               ? 'border-red-200 text-red-600 bg-red-50'
@@ -683,9 +688,9 @@ export default function SeminarsPage() {
                     >
                       {isFree
                         ? 'Gold requis'
-                        : profile?.role === 'premium_silver'
+                        : effectiveRole === 'premium_silver'
                           ? 'Gold requis'
-                          : profile?.role === 'premium_gold' && !isGoldActive
+                          : effectiveRole === 'premium_gold' && !isGoldActive
                             ? 'Abonnement expiré'
                             : hasReachedLimit
                               ? 'Limite atteinte'
@@ -710,7 +715,7 @@ export default function SeminarsPage() {
                     </>
                   )}
                 </div>
-                {profile?.role === 'admin' && (
+                {adminView && (
                   <div className="border-t border-gray-100 pt-3 mt-2">
                     <div className="text-xs font-semibold text-gray-700 mb-2">Inscriptions ({seminarRegistrations.length}{seminar.capacity ? `/${seminar.capacity}` : ''})</div>
                     {seminarRegistrations.length === 0 ? (
@@ -851,7 +856,7 @@ export default function SeminarsPage() {
           })}
         </div>
 
-        {profile?.role === 'admin' && (
+        {adminView && (
           <div className="bg-white rounded-xl shadow-sm p-5 border border-gray-100 space-y-3">
             <div className="flex items-center gap-2 text-sm font-semibold text-gray-900">
               <PenSquare className="h-4 w-4 text-primary-600" />

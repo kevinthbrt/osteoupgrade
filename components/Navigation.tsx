@@ -27,6 +27,7 @@ import {
   Mail,
   FolderOpen
 } from 'lucide-react'
+import { getEffectiveRole, useAdminView } from './AdminViewContext'
 
 type MenuItem = {
   href: string
@@ -46,6 +47,7 @@ export default function Navigation() {
   const [user, setUser] = useState<any>(null)
   const [profile, setProfile] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  const { viewRole } = useAdminView()
 
   useEffect(() => {
     const getUser = async () => {
@@ -229,6 +231,10 @@ export default function Navigation() {
   const getRoleBadge = () => {
     if (!profile) return null
 
+    const effectiveRole = getEffectiveRole(profile.role, viewRole)
+
+    if (!effectiveRole) return null
+
     const badges = {
       free: { text: 'Gratuit', bg: 'bg-gray-100', color: 'text-gray-700' },
       premium: { text: 'Premium (ancien)', bg: 'bg-gradient-to-r from-yellow-400 to-yellow-500', color: 'text-white' },
@@ -237,13 +243,16 @@ export default function Navigation() {
       admin: { text: 'Admin', bg: 'bg-gradient-to-r from-purple-500 to-purple-600', color: 'text-white' }
     }
 
-    const badge = badges[profile.role as keyof typeof badges] || badges.free
+    const badge = badges[effectiveRole as keyof typeof badges] || badges.free
 
     return (
       <span className={`px-2 py-1 rounded-full text-xs font-medium ${badge.bg} ${badge.color} flex items-center gap-1`}>
-        {(profile.role === 'premium' || profile.role === 'premium_silver' || profile.role === 'premium_gold') && <Crown className="h-3 w-3" />}
-        {profile.role === 'admin' && <Shield className="h-3 w-3" />}
+        {(effectiveRole === 'premium' || effectiveRole === 'premium_silver' || effectiveRole === 'premium_gold') && <Crown className="h-3 w-3" />}
+        {effectiveRole === 'admin' && <Shield className="h-3 w-3" />}
         {badge.text}
+        {viewRole && profile.role === 'admin' && (
+          <span className="ml-1 text-[10px] font-semibold">(simulation)</span>
+        )}
       </span>
     )
   }
@@ -298,12 +307,13 @@ export default function Navigation() {
             {menuItems.map((item) => {
               const Icon = item.icon
               const isActive = pathname === item.href
-              const isRestricted = item.roles && profile && !item.roles.includes(profile.role)
+              const effectiveRole = getEffectiveRole(profile?.role, viewRole)
+              const isRestricted = item.roles && effectiveRole && !item.roles.includes(effectiveRole)
               const shouldHide = isRestricted && item.hideWhenRestricted
 
               if (shouldHide) return null
 
-              if (item.roles && !profile?.role) return null
+              if (item.roles && !effectiveRole) return null
 
               return (
                 <Link
@@ -317,7 +327,7 @@ export default function Navigation() {
                   onClick={() => {
                     if (!isRestricted) {
                       setIsOpen(false)
-                    } else if (profile?.role === 'free') {
+                    } else if (effectiveRole === 'free') {
                       alert('Cette section est réservée aux membres Premium')
                     } else {
                       alert('Accès réservé aux administrateurs pendant la phase de pré-lancement')
@@ -341,7 +351,7 @@ export default function Navigation() {
               )
             })}
 
-            {profile?.role === 'admin' && (
+            {getEffectiveRole(profile?.role, viewRole) === 'admin' && (
               <>
                 <div className="pt-4 pb-2">
                   <p className="px-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">

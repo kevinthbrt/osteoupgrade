@@ -6,6 +6,7 @@ import AuthLayout from '@/components/AuthLayout'
 import { Dumbbell, Download, Edit, Plus, Save, Search, Trash2, X } from 'lucide-react'
 import jsPDF from 'jspdf'
 import 'jspdf-autotable'
+import { getEffectiveRole, useAdminView } from '@/components/AdminViewContext'
 
 interface RehabExercise {
   id: string
@@ -75,6 +76,9 @@ export default function ExercisesModule() {
   const [exerciseForm, setExerciseForm] = useState({ ...EMPTY_EXERCISE_FORM })
   const [editingExerciseId, setEditingExerciseId] = useState<string | null>(null)
   const [feedback, setFeedback] = useState<string | null>(null)
+  const { viewRole } = useAdminView()
+  const effectiveRole = getEffectiveRole(profile?.role, viewRole)
+  const isAdminUser = profile?.role === 'admin'
 
   useEffect(() => {
     const loadData = async () => {
@@ -95,7 +99,7 @@ export default function ExercisesModule() {
 
         setProfile(profileData)
 
-        if (!profileData || !ALLOWED_ROLES.includes(profileData.role)) {
+        if (!profileData) {
           setAccessDenied(true)
           return
         }
@@ -111,6 +115,17 @@ export default function ExercisesModule() {
 
     loadData()
   }, [])
+
+  useEffect(() => {
+    if (!profile) return
+
+    const allowedRole = getEffectiveRole(profile.role, viewRole)
+    if (!allowedRole || !ALLOWED_ROLES.includes(allowedRole)) {
+      setAccessDenied(true)
+    } else {
+      setAccessDenied(false)
+    }
+  }, [profile, viewRole])
 
   const fetchExercises = async () => {
     const { data, error } = await supabase
@@ -223,7 +238,7 @@ export default function ExercisesModule() {
   }
 
   const handleSaveExercise = async () => {
-    if (profile?.role !== 'admin') return
+    if (!isAdminUser || effectiveRole !== 'admin') return
 
     setFeedback(null)
     const payload = {
@@ -248,6 +263,8 @@ export default function ExercisesModule() {
   }
 
   const handleDeleteExercise = async (id: string) => {
+    if (!isAdminUser || effectiveRole !== 'admin') return
+
     if (!confirm('Supprimer définitivement cet exercice ?')) return
 
     const { error } = await supabase.from('rehab_exercises').delete().eq('id', id)
@@ -529,7 +546,7 @@ export default function ExercisesModule() {
           )}
         </div>
 
-        {profile?.role === 'admin' && (
+        {isAdminUser && effectiveRole === 'admin' && (
           <div className="rounded-2xl bg-white p-6 shadow-sm">
             <div className="flex items-center gap-2 text-sm text-purple-600">
               <Dumbbell className="h-4 w-4" />

@@ -20,6 +20,7 @@ import {
   Maximize2,
   LayoutGrid
 } from 'lucide-react'
+import { getEffectiveRole, useAdminView } from '@/components/AdminViewContext'
 
 const regions = [
   { value: 'cervical', label: 'Cervicales' },
@@ -159,6 +160,10 @@ export default function PracticePage() {
   })
 
   const scrollContainerRef = useRef<HTMLDivElement>(null)
+  const { viewRole } = useAdminView()
+  const effectiveRole = getEffectiveRole(profile?.role, viewRole)
+  const isAdminUser = profile?.role === 'admin'
+  const adminView = isAdminUser && effectiveRole === 'admin'
 
   useEffect(() => {
     const loadData = async () => {
@@ -176,10 +181,6 @@ export default function PracticePage() {
           .single()
 
         setProfile(profileData as Profile)
-
-        if (isPremium(profileData?.role) || isAdmin(profileData?.role)) {
-          await fetchVideos()
-        }
       } catch (error) {
         console.error('Impossible de charger les données Pratique', error)
       } finally {
@@ -189,6 +190,12 @@ export default function PracticePage() {
 
     loadData()
   }, [])
+
+  useEffect(() => {
+    if (effectiveRole && (isPremium(effectiveRole) || isAdmin(effectiveRole))) {
+      fetchVideos()
+    }
+  }, [effectiveRole])
 
   const fetchVideos = async () => {
     const { data, error } = await supabase
@@ -300,9 +307,9 @@ export default function PracticePage() {
 
   const visibleVideos = useMemo(() => {
     const filtered = videos.filter((video) => video.region === selectedRegion)
-    if (isAdmin(profile?.role)) return filtered
+    if (adminView) return filtered
     return filtered.filter((video) => video.is_active)
-  }, [videos, selectedRegion, profile?.role])
+  }, [videos, selectedRegion, adminView])
 
   const scrollToVideo = (index: number) => {
     if (scrollContainerRef.current) {
@@ -354,7 +361,7 @@ export default function PracticePage() {
     return () => container.removeEventListener('scroll', handleScroll)
   }, [viewMode, currentVideoIndex, visibleVideos])
 
-  const premiumAccess = isPremium(profile?.role) || isAdmin(profile?.role)
+  const premiumAccess = effectiveRole ? isPremium(effectiveRole) || isAdmin(effectiveRole) : false
 
   if (loading) {
     return (
@@ -575,7 +582,7 @@ export default function PracticePage() {
           </div>
         </div>
 
-        {isAdmin(profile?.role) && (
+        {adminView && (
           <div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-6 space-y-4">
             <div className="flex items-center gap-2">
               <Edit className="h-5 w-5 text-pink-600" />
@@ -732,7 +739,7 @@ export default function PracticePage() {
                   <p className="text-gray-500 text-sm">Aucune description fournie.</p>
                 )}
               </div>
-              {isAdmin(profile?.role) && (
+              {adminView && (
                 <div className="border-t border-gray-100 px-5 py-3 bg-gradient-to-br from-gray-50 to-slate-50 flex justify-between items-center">
                   <button
                     type="button"

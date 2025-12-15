@@ -17,6 +17,7 @@ import {
   Upload,
   X
 } from 'lucide-react'
+import { getEffectiveRole, useAdminView } from '@/components/AdminViewContext'
 
 const REGIONS: { value: AnatomicalRegion; label: string; icon: string }[] = [
   { value: 'cervical', label: 'Cervical', icon: '🔵' },
@@ -59,6 +60,7 @@ export default function TopographiePage() {
     description: '',
     image_url: ''
   })
+  const { viewRole } = useAdminView()
 
   const descriptionRef = useRef<HTMLDivElement>(null)
 
@@ -104,10 +106,13 @@ export default function TopographiePage() {
   }, [router])
 
   useEffect(() => {
-    if (role && ['premium_silver', 'premium_gold', 'admin'].includes(role)) {
+    const allowedRole = getEffectiveRole(role, viewRole)
+    if (allowedRole && ['premium_silver', 'premium_gold', 'admin'].includes(allowedRole)) {
       loadViews()
+    } else {
+      setViews([])
     }
-  }, [role])
+  }, [role, viewRole])
 
   useEffect(() => {
     if (showCreateModal && descriptionRef.current) {
@@ -214,8 +219,10 @@ export default function TopographiePage() {
     }
   }
 
-  const isPremium = role ? ['premium_silver', 'premium_gold', 'admin'].includes(role) : false
-  const isAdmin = role === 'admin'
+  const effectiveRole = getEffectiveRole(role, viewRole)
+  const isPremium = effectiveRole ? ['premium_silver', 'premium_gold', 'admin'].includes(effectiveRole) : false
+  const isAdminUser = role === 'admin'
+  const isAdmin = isAdminUser && effectiveRole === 'admin'
 
   const filteredZones = useMemo(() => {
     if (selectedRegion === 'all') return views

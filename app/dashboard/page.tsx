@@ -42,6 +42,7 @@ import {
   Microscope,
   Scan
 } from 'lucide-react'
+import { getEffectiveRole, useAdminView } from '@/components/AdminViewContext'
 
 interface ModuleCard {
   title: string
@@ -84,6 +85,7 @@ export default function Dashboard() {
   })
   const [achievements, setAchievements] = useState<any[]>([])
   const [unlockedAchievements, setUnlockedAchievements] = useState<any[]>([])
+  const { viewRole } = useAdminView()
 
   useEffect(() => {
     loadDashboardData()
@@ -187,10 +189,11 @@ export default function Dashboard() {
     }
   }
 
-  const isFree = profile?.role === 'free'
-  const isPremiumOrAdmin = ['premium', 'premium_silver', 'premium_gold', 'admin'].includes(profile?.role)
-  const isPremiumGoldOrAdmin = ['premium', 'premium_gold', 'admin'].includes(profile?.role)
-  const isAdmin = profile?.role === 'admin'
+  const effectiveRole = getEffectiveRole(profile?.role, viewRole)
+  const isFree = effectiveRole === 'free'
+  const isPremiumOrAdmin = ['premium', 'premium_silver', 'premium_gold', 'admin'].includes(effectiveRole || '')
+  const isPremiumGoldOrAdmin = ['premium', 'premium_gold', 'admin'].includes(effectiveRole || '')
+  const isAdmin = effectiveRole === 'admin'
 
   // Icon mapping for achievements
   const iconMap: Record<string, any> = {
@@ -390,8 +393,8 @@ export default function Dashboard() {
 
   const canAccessModule = (module: ModuleCard) => {
     if (!module.roles) return true
-    if (!profile?.role) return false
-    return module.roles.includes(profile.role)
+    if (!effectiveRole) return false
+    return module.roles.includes(effectiveRole)
   }
 
   const getVisibleModules = () => {
@@ -442,23 +445,26 @@ export default function Dashboard() {
                 <div className="flex items-center gap-2">
                   <span className="text-sm text-slate-300">Statut :</span>
                   <span className={`px-3 py-1.5 rounded-full text-sm font-semibold flex items-center gap-2 ${
-                    profile?.role === 'admin'
+                    effectiveRole === 'admin'
                       ? 'bg-gradient-to-r from-purple-500 to-purple-600'
-                      : profile?.role === 'premium_gold'
+                      : effectiveRole === 'premium_gold'
                         ? 'bg-gradient-to-r from-yellow-400 to-amber-500'
-                        : profile?.role === 'premium_silver'
+                        : effectiveRole === 'premium_silver'
                           ? 'bg-gradient-to-r from-gray-300 to-gray-400 text-slate-800'
                           : 'bg-white/20'
                   }`}>
-                    {(profile?.role === 'premium_gold' || profile?.role === 'premium_silver') && <Crown className="h-4 w-4" />}
-                    {profile?.role === 'admin' && <Shield className="h-4 w-4" />}
-                    {profile?.role === 'admin'
+                    {(effectiveRole === 'premium_gold' || effectiveRole === 'premium_silver') && <Crown className="h-4 w-4" />}
+                    {effectiveRole === 'admin' && <Shield className="h-4 w-4" />}
+                    {effectiveRole === 'admin'
                       ? 'Administrateur'
-                      : profile?.role === 'premium_gold'
+                      : effectiveRole === 'premium_gold'
                         ? 'Premium Gold'
-                        : profile?.role === 'premium_silver'
+                        : effectiveRole === 'premium_silver'
                           ? 'Premium Silver'
                           : 'Gratuit'}
+                    {viewRole && profile?.role === 'admin' && (
+                      <span className="text-[10px] uppercase tracking-wide">(simulation)</span>
+                    )}
                   </span>
                 </div>
 

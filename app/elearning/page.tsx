@@ -22,6 +22,7 @@ import {
   Video,
   X
 } from 'lucide-react'
+import { getEffectiveRole, useAdminView } from '@/components/AdminViewContext'
 
 type Subpart = {
   id: string
@@ -180,10 +181,19 @@ export default function ElearningPage() {
   const [showFormationModal, setShowFormationModal] = useState(false)
   const [expandedChapters, setExpandedChapters] = useState<Record<string, boolean>>({})
   const [expandedSubparts, setExpandedSubparts] = useState<Record<string, boolean>>({})
+  const { viewRole } = useAdminView()
+  const effectiveRole = getEffectiveRole(profile?.role, viewRole)
+  const isAdminUser = profile?.role === 'admin'
 
   useEffect(() => {
     loadData()
   }, [])
+
+  useEffect(() => {
+    if (profile) {
+      loadFormationsFromSupabase(profile.id, effectiveRole)
+    }
+  }, [effectiveRole, profile])
 
   const loadData = async () => {
     try {
@@ -204,7 +214,7 @@ export default function ElearningPage() {
 
       setProfile(profileData as Profile)
 
-      await loadFormationsFromSupabase(user.id, (profileData as Profile | null)?.role)
+      await loadFormationsFromSupabase(user.id, getEffectiveRole((profileData as Profile | null)?.role, viewRole))
     } catch (error) {
       console.error('Error loading data:', error)
     } finally {
@@ -213,7 +223,7 @@ export default function ElearningPage() {
   }
 
   const loadFormationsFromSupabase = async (userId: string, role?: string) => {
-    const roleToUse = role ?? profile?.role
+    const roleToUse = getEffectiveRole(role ?? profile?.role, viewRole)
 
     try {
       const { data, error } = await supabase
@@ -278,8 +288,8 @@ export default function ElearningPage() {
     }
   }
 
-  const isPremium = profile?.role === 'premium_silver' || profile?.role === 'premium_gold' || profile?.role === 'admin'
-  const isAdmin = profile?.role === 'admin'
+  const isPremium = effectiveRole === 'premium_silver' || effectiveRole === 'premium_gold' || effectiveRole === 'admin' || effectiveRole === 'premium'
+  const isAdmin = isAdminUser && effectiveRole === 'admin'
 
   const selectedFormation = useMemo(
     () => formations.find((f) => f.id === selectedFormationId) ?? formations[0],
