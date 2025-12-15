@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import AuthLayout from '@/components/AuthLayout'
 import { supabase } from '@/lib/supabase'
+import CourseCreationWizard from './components/CourseCreationWizard'
 import {
   AlertCircle,
   BookOpen,
@@ -180,6 +181,7 @@ export default function ElearningPage() {
   const [showFormationModal, setShowFormationModal] = useState(false)
   const [expandedChapters, setExpandedChapters] = useState<Record<string, boolean>>({})
   const [expandedSubparts, setExpandedSubparts] = useState<Record<string, boolean>>({})
+  const [showWizard, setShowWizard] = useState(false)
 
   useEffect(() => {
     loadData()
@@ -1239,10 +1241,27 @@ export default function ElearningPage() {
 
           {isAdmin && (
             <div className="space-y-4">
+              <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg p-6 border border-blue-400">
+                <h3 className="text-white font-bold text-lg mb-2 flex items-center gap-2">
+                  <Sparkles className="h-5 w-5" />
+                  Création simplifiée
+                </h3>
+                <p className="text-blue-100 text-sm mb-4">
+                  Créez une formation complète avec tous ses chapitres et sous-parties en une seule fois.
+                </p>
+                <button
+                  onClick={() => setShowWizard(true)}
+                  className="w-full bg-white text-blue-600 font-semibold px-4 py-3 rounded-lg hover:bg-blue-50 transition-colors flex items-center justify-center gap-2"
+                >
+                  <Plus className="h-5 w-5" />
+                  Créer une formation (nouveau)
+                </button>
+              </div>
+
               <div className="bg-white rounded-xl shadow-sm p-5 border border-primary-100">
                 <div className="flex items-center gap-2 text-primary-600 font-semibold mb-3">
                   <ListChecks className="h-5 w-5" />
-                  Construction des parcours
+                  Construction des parcours (ancien mode)
                 </div>
                 <p className="text-sm text-gray-600 mb-4">
                   Créez la formation, ajoutez des chapitres puis des sous-parties avec liens Vimeo et description
@@ -1406,6 +1425,16 @@ export default function ElearningPage() {
           )}
         </div>
       </div>
+
+      {showWizard && (
+        <CourseCreationWizard
+          onClose={() => setShowWizard(false)}
+          onSuccess={() => {
+            setShowWizard(false)
+            loadData()
+          }}
+        />
+      )}
     </AuthLayout>
   )
 }
