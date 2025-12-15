@@ -19,7 +19,8 @@ import {
   Settings,
   Bell,
   Globe,
-  Smartphone
+  Smartphone,
+  Loader2
 } from 'lucide-react'
 import { Button, Breadcrumbs, PageSpinner, Spinner } from '@/components/ui'
 
