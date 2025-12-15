@@ -231,11 +231,21 @@ export default function SettingsPage() {
     <AuthLayout>
       <div className="max-w-6xl mx-auto space-y-6">
         {/* Header */}
-        <div className="bg-white rounded-xl shadow-sm p-6">
-          <h1 className="text-2xl font-bold text-gray-900">Paramètres</h1>
-          <p className="mt-1 text-gray-600">
-            Gérez votre compte et vos préférences
-          </p>
+        <div className="overflow-hidden rounded-2xl bg-gradient-to-br from-slate-900 via-slate-900 to-slate-800 text-white shadow-xl border border-white/10">
+          <div className="p-6">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <div className="space-y-3">
+                <p className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-sky-200">
+                  <Settings className="h-4 w-4" />
+                  Paramètres
+                </p>
+                <h1 className="text-3xl font-bold leading-tight">Gérez votre compte</h1>
+                <p className="text-slate-200 text-sm md:text-base">
+                  Personnalisez vos préférences, gérez votre abonnement et sécurisez votre compte
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
 
         <div className="flex flex-col lg:flex-row gap-6">

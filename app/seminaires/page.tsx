@@ -542,35 +542,53 @@ export default function SeminarsPage() {
     <AuthLayout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="overflow-hidden rounded-2xl bg-gradient-to-br from-slate-900 via-slate-900 to-slate-800 text-white shadow-xl border border-white/10">
-          <div className="p-6 space-y-4">
-            <p className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-sky-200">
-              <Calendar className="h-4 w-4" />
-              Séminaires présentiels
-            </p>
-            <h1 className="text-3xl font-bold leading-tight">Rencontres en présentiel (1 séminaire de 2 jours inclus/an)</h1>
-            <p className="text-slate-200 text-sm md:text-base">
-              Réservés aux abonnés Premium Gold <strong>actifs uniquement</strong>. Vous pouvez vous inscrire à <strong>1 séminaire maximum par période d'abonnement de 12 mois</strong>, calculée depuis votre date de souscription.
-            </p>
-            <div className="flex flex-wrap items-center gap-3">
-              <div className="flex items-center gap-2 bg-white/5 px-3 py-2 rounded-lg backdrop-blur-sm border border-white/10">
-                <Users className="h-4 w-4 text-emerald-300" />
-                <span className="text-sm font-semibold">
-                  {cycleRegistrations.length}/1 inscription autorisée entre {formatCycleWindow(currentCycle)}
+        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white shadow-2xl">
+          {/* Decorative elements */}
+          <div className="absolute inset-0 bg-grid-white/[0.02] bg-[size:60px_60px]" />
+          <div className="absolute top-0 right-0 w-96 h-96 bg-amber-500/30 rounded-full blur-3xl" />
+          <div className="absolute bottom-0 left-0 w-96 h-96 bg-orange-500/20 rounded-full blur-3xl" />
+
+          <div className="relative px-6 py-8 md:px-10 md:py-10">
+            <div className="max-w-4xl">
+              {/* Badge */}
+              <div className="inline-flex items-center gap-2 rounded-full bg-white/10 backdrop-blur-sm px-3 py-1.5 mb-4 border border-white/20">
+                <Calendar className="h-3.5 w-3.5 text-amber-300" />
+                <span className="text-xs font-semibold text-amber-100">
+                  Séminaires Présentiels
                 </span>
               </div>
-              {hasReachedLimit && (
-                <span className="inline-flex items-center gap-2 rounded-full bg-red-500/20 px-3 py-1 text-xs font-semibold text-red-200">
-                  Limite atteinte
-                </span>
+
+              {/* Main heading */}
+              <h1 className="text-3xl md:text-4xl font-bold mb-3 bg-clip-text text-transparent bg-gradient-to-r from-white to-amber-100">
+                Rencontres en présentiel
+              </h1>
+
+              <p className="text-base md:text-lg text-slate-300 mb-6 max-w-2xl">
+                Réservés aux abonnés Premium Gold <strong>actifs uniquement</strong>. Vous pouvez vous inscrire à <strong>1 séminaire maximum par période d'abonnement de 12 mois</strong>, calculée depuis votre date de souscription.
+              </p>
+
+              {/* Status badges */}
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/10 backdrop-blur-sm border border-white/20">
+                  <Users className="h-4 w-4 text-emerald-300" />
+                  <span className="text-sm font-semibold">
+                    {cycleRegistrations.length}/1 inscription autorisée entre {formatCycleWindow(currentCycle)}
+                  </span>
+                </div>
+                {hasReachedLimit && (
+                  <span className="inline-flex items-center gap-2 rounded-full bg-red-500/20 px-3 py-1 text-xs font-semibold text-red-200">
+                    Limite atteinte
+                  </span>
+                )}
+              </div>
+
+              {loadingError && (
+                <div className="flex items-center gap-2 text-xs bg-amber-500/20 border border-amber-400/30 rounded-lg px-3 py-2 text-amber-100 mt-3">
+                  <AlertTriangle className="h-4 w-4" />
+                  {loadingError}
+                </div>
               )}
             </div>
-            {loadingError && (
-              <div className="flex items-center gap-2 text-xs bg-amber-500/20 border border-amber-400/30 rounded-lg px-3 py-2 text-amber-100">
-                <AlertTriangle className="h-4 w-4" />
-                {loadingError}
-              </div>
-            )}
           </div>
         </div>
 

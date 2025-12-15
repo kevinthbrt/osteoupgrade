@@ -70,6 +70,28 @@ const getVimeoEmbedUrl = (video: PracticeVideo) => {
   }
 }
 
+const getVimeoThumbnail = (video: PracticeVideo) => {
+  // Si on a déjà un vimeo_id, on l'utilise directement
+  if (video.vimeo_id) {
+    return `https://vumbnail.com/${video.vimeo_id}.jpg`
+  }
+
+  // Sinon, on extrait l'ID depuis l'URL Vimeo
+  if (video.vimeo_url) {
+    try {
+      const parsed = new URL(video.vimeo_url)
+      const segments = parsed.pathname.split('/').filter(Boolean)
+      const id = segments.pop()
+      return id ? `https://vumbnail.com/${id}.jpg` : ''
+    } catch (error) {
+      console.error('Impossible d\'extraire l\'ID Vimeo pour la miniature', error)
+      return ''
+    }
+  }
+
+  return ''
+}
+
 const ToolbarButton = ({ label, onClick }: { label: string; onClick: () => void }) => (
   <button
     type="button"
@@ -708,6 +730,9 @@ export default function PracticePage() {
                 {video.thumbnail_url ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={video.thumbnail_url} alt={video.title} className="w-full h-full object-cover" />
+                ) : getVimeoThumbnail(video) ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={getVimeoThumbnail(video)} alt={video.title} className="w-full h-full object-cover" />
                 ) : (
                   <div className="flex items-center justify-center h-full text-gray-400">
                     <Video className="h-12 w-12" />
