@@ -3,7 +3,8 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { Eye, EyeOff, Loader2, Stethoscope } from 'lucide-react'
+import { Eye, EyeOff, Stethoscope } from 'lucide-react'
+import { Button, Spinner } from '@/components/ui'
 
 export default function AuthPage() {
   const router = useRouter()
@@ -195,20 +196,21 @@ export default function AuthPage() {
               </div>
             </div>
 
-            <button
+            <Button
               type="submit"
               disabled={loading}
-              className="w-full bg-gradient-to-r from-primary-600 to-primary-700 text-white py-3 px-4 rounded-lg font-medium hover:from-primary-700 hover:to-primary-800 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center"
+              variant="primary"
+              className="w-full py-3 px-4 bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 flex items-center justify-center"
             >
               {loading ? (
                 <>
-                  <Loader2 className="animate-spin h-5 w-5 mr-2" />
+                  <Spinner size="sm" className="mr-2" />
                   Chargement...
                 </>
               ) : (
                 isLogin ? 'Se connecter' : 'Créer mon compte'
               )}
-            </button>
+            </Button>
           </form>
         </div>
 

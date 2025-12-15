@@ -6,6 +6,7 @@ import AuthLayout from '@/components/AuthLayout'
 import { supabase } from '@/lib/supabase'
 import { Calendar, MapPin, User, Plus, CheckCircle, Users, PenSquare, AlertTriangle } from 'lucide-react'
 import { formatCycleWindow, getCurrentSubscriptionCycle, isDateWithinCycle } from '@/utils/subscriptionCycle'
+import { Button, Breadcrumbs, PageSpinner } from '@/components/ui'
 
 interface Seminar {
   id: string
@@ -384,9 +385,7 @@ export default function SeminarsPage() {
   if (loading) {
     return (
       <AuthLayout>
-        <div className="flex items-center justify-center h-96">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-        </div>
+        <PageSpinner text="Chargement..." />
       </AuthLayout>
     )
   }
@@ -395,6 +394,10 @@ export default function SeminarsPage() {
 
   return (
     <AuthLayout>
+      <Breadcrumbs items={[
+        { label: 'Modules', href: '/dashboard' },
+        { label: 'Séminaires' }
+      ]} />
       <div className="space-y-6">
         {/* Header */}
         <div className="overflow-hidden rounded-2xl bg-gradient-to-br from-slate-900 via-slate-900 to-slate-800 text-white shadow-xl border border-white/10">

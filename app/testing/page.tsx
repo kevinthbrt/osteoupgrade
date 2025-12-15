@@ -18,11 +18,11 @@ import {
   Edit,
   Trash2,
   FileText,
-  Loader2,
   X,
   Search,
   Filter
 } from 'lucide-react'
+import { Button, Breadcrumbs, PageSpinner, Spinner } from '@/components/ui'
 
 // Composant 3D chargé côté client
 const TestingViewer3D = dynamic(() => import('@/components/TestingViewer3D'), {
@@ -782,15 +782,17 @@ export default function TestingModulePage() {
   if (loading || loadingData) {
     return (
       <AuthLayout>
-        <div className="flex items-center justify-center h-96">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-        </div>
+        <PageSpinner text="Chargement du module Testing 3D..." />
       </AuthLayout>
     )
   }
 
   return (
     <AuthLayout>
+      <Breadcrumbs items={[
+        { label: 'Modules', href: '/dashboard' },
+        { label: 'Testing 3D' }
+      ]} />
       <div className="space-y-6">
         {/* Hero Section Moderne */}
         <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white shadow-2xl">
@@ -819,13 +821,14 @@ export default function TestingModulePage() {
                     Interface professionnelle de testing orthopédique. Sélectionnez une zone sur le modèle 3D pour explorer les tests disponibles.
                   </p>
                 </div>
-                <button
+                <Button
                   onClick={newSession}
-                  className="hidden md:inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-white text-slate-900 font-bold shadow-xl transition-all transform hover:scale-105 hover:shadow-2xl"
+                  variant="primary"
+                  className="hidden md:inline-flex items-center gap-2 px-6 py-3 bg-white text-slate-900 hover:bg-gray-100 shadow-xl"
                 >
                   <Plus className="h-5 w-5" />
                   Nouvelle Session
-                </button>
+                </Button>
               </div>
             </div>
           </div>
@@ -946,27 +949,30 @@ export default function TestingModulePage() {
               {/* Card Actions */}
               <div className="rounded-2xl bg-gradient-to-br from-white to-slate-50 p-5 shadow-lg border border-slate-200">
                 <div className="space-y-2">
-                  <button
+                  <Button
                     onClick={saveSession}
-                    className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-4 py-2.5 rounded-xl flex items-center justify-center gap-2 font-semibold text-sm shadow-lg transition-all transform hover:scale-[1.02]"
+                    variant="primary"
+                    className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 px-4 py-2.5 flex items-center justify-center gap-2 text-sm shadow-lg"
                   >
                     <Save className="h-4 w-4" />
                     Sauvegarder
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     onClick={exportToPDF}
-                    className="w-full bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white px-4 py-2.5 rounded-xl flex items-center justify-center gap-2 font-semibold text-sm shadow-lg transition-all transform hover:scale-[1.02]"
+                    variant="primary"
+                    className="w-full bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 px-4 py-2.5 flex items-center justify-center gap-2 text-sm shadow-lg"
                   >
                     <Download className="h-4 w-4" />
                     Exporter PDF
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     onClick={newSession}
-                    className="w-full border-2 border-slate-200 hover:border-purple-200 hover:bg-purple-50 text-slate-700 hover:text-purple-700 px-4 py-2.5 rounded-xl flex items-center justify-center gap-2 font-semibold text-sm transition-all"
+                    variant="outline"
+                    className="w-full px-4 py-2.5 flex items-center justify-center gap-2 text-sm hover:bg-purple-50 hover:border-purple-200"
                   >
                     <Plus className="h-4 w-4" />
                     Nouvelle Session
-                  </button>
+                  </Button>
                 </div>
               </div>
             </div>

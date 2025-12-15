@@ -17,6 +17,7 @@ import {
   Upload,
   X
 } from 'lucide-react'
+import { Button, Breadcrumbs, PageSpinner, Spinner } from '@/components/ui'
 
 const REGIONS: { value: AnatomicalRegion; label: string; icon: string }[] = [
   { value: 'cervical', label: 'Cervical', icon: '🔵' },
@@ -225,9 +226,7 @@ export default function TopographiePage() {
   if (loading) {
     return (
       <AuthLayout>
-        <div className="flex items-center justify-center h-96">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600" />
-        </div>
+        <PageSpinner text="Chargement..." />
       </AuthLayout>
     )
   }
@@ -235,6 +234,10 @@ export default function TopographiePage() {
   if (!isPremium) {
     return (
       <AuthLayout>
+        <Breadcrumbs items={[
+          { label: 'Modules', href: '/dashboard' },
+          { label: 'Topographie' }
+        ]} />
         <div className="max-w-4xl mx-auto space-y-6">
           <div className="bg-white rounded-xl shadow-sm p-6 flex items-center gap-3">
             <div className="p-3 rounded-lg bg-primary-50 text-primary-700">
@@ -258,12 +261,13 @@ export default function TopographiePage() {
               Les vues topographiques par zone sont réservées aux membres Premium. Passez à l'abonnement pour débloquer les
               contenus et visualiser chaque zone en détail.
             </p>
-            <button
+            <Button
               onClick={() => router.push('/settings')}
-              className="bg-primary-600 hover:bg-primary-700 text-white px-5 py-3 rounded-lg font-semibold transition"
+              variant="primary"
+              className="px-5 py-3"
             >
               Activer le Premium
-            </button>
+            </Button>
           </div>
         </div>
       </AuthLayout>
@@ -272,6 +276,10 @@ export default function TopographiePage() {
 
   return (
     <AuthLayout>
+      <Breadcrumbs items={[
+        { label: 'Modules', href: '/dashboard' },
+        { label: 'Topographie' }
+      ]} />
       <div className="max-w-6xl mx-auto space-y-6">
         <div className="overflow-hidden rounded-2xl bg-gradient-to-br from-slate-900 via-slate-900 to-slate-800 text-white shadow-xl border border-white/10">
           <div className="p-6">
@@ -337,20 +345,21 @@ export default function TopographiePage() {
           </div>
 
           {isAdmin && (
-            <button
+            <Button
               onClick={openCreateModal}
-              className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors flex items-center gap-2"
+              variant="primary"
+              className="px-4 py-2 flex items-center gap-2"
             >
               <Plus className="h-4 w-4" />
               Nouvelle vue
-            </button>
+            </Button>
           )}
         </div>
 
         <div className="bg-white rounded-xl shadow-sm p-6">
           {zonesLoading ? (
             <div className="flex items-center justify-center h-64">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600" />
+              <Spinner />
             </div>
           ) : filteredZones.length === 0 ? (
             <div className="text-center py-16">

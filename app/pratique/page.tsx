@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import AuthLayout from '@/components/AuthLayout'
 import { supabase } from '@/lib/supabase'
+import { Button, Breadcrumbs, PageSpinner, Spinner } from '@/components/ui'
 import {
   AlertCircle,
   Check,
@@ -18,7 +19,8 @@ import {
   Video,
   X,
   Maximize2,
-  LayoutGrid
+  LayoutGrid,
+  Stethoscope
 } from 'lucide-react'
 
 const regions = [
@@ -359,10 +361,7 @@ export default function PracticePage() {
   if (loading) {
     return (
       <AuthLayout>
-        <div className="flex flex-col items-center justify-center gap-3 py-24 text-gray-600">
-          <Loader2 className="h-10 w-10 animate-spin" />
-          <p>Chargement du module Pratique...</p>
-        </div>
+        <PageSpinner text="Chargement du module Pratique..." />
       </AuthLayout>
     )
   }
@@ -497,6 +496,16 @@ export default function PracticePage() {
   // Grid Mode - Default
   return (
     <AuthLayout>
+      {/* Breadcrumbs */}
+      <div className="mb-6">
+        <Breadcrumbs
+          items={[
+            { label: 'Modules', href: '/dashboard' },
+            { label: 'Pratique', icon: <Stethoscope className="h-4 w-4" /> }
+          ]}
+        />
+      </div>
+
       <div className="space-y-8">
         {/* Hero Section */}
         <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white shadow-2xl">

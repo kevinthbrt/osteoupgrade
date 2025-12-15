@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import AuthLayout from '@/components/AuthLayout'
+import { Button, Breadcrumbs, PageSpinner } from '@/components/ui'
 import { Dumbbell, Download, Edit, Plus, Save, Search, Trash2, X } from 'lucide-react'
 import jsPDF from 'jspdf'
 import 'jspdf-autotable'
@@ -263,7 +264,7 @@ export default function ExercisesModule() {
   if (loading) {
     return (
       <AuthLayout>
-        <div className="flex items-center justify-center h-80 text-gray-500">Chargement du module…</div>
+        <PageSpinner text="Chargement des exercices..." />
       </AuthLayout>
     )
   }
@@ -286,6 +287,16 @@ export default function ExercisesModule() {
 
   return (
     <AuthLayout>
+      {/* Breadcrumbs */}
+      <div className="mb-6">
+        <Breadcrumbs
+          items={[
+            { label: 'Modules', href: '/dashboard' },
+            { label: 'Exercices', icon: <Dumbbell className="h-4 w-4" /> }
+          ]}
+        />
+      </div>
+
       <div className="space-y-8">
         {/* Header */}
         <div className="overflow-hidden rounded-2xl bg-gradient-to-br from-slate-900 via-slate-900 to-slate-800 text-white shadow-xl border border-white/10">

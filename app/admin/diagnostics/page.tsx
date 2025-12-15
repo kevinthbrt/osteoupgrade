@@ -19,6 +19,7 @@ import {
   TestTube
 } from 'lucide-react'
 import Image from 'next/image'
+import { Button, Breadcrumbs, PageSpinner } from '@/components/ui'
 
 // Types
 type AnatomicalRegion = 'cervical' | 'atm' | 'crane' | 'thoracique' | 'lombaire' | 'sacro-iliaque' | 'cotes' | 'epaule' | 'coude' | 'poignet' | 'main' | 'hanche' | 'genou' | 'cheville' | 'pied' | 'neurologique' | 'vasculaire' | 'systemique'
@@ -223,9 +224,7 @@ export default function DiagnosticsPage() {
   if (loading) {
     return (
       <AuthLayout>
-        <div className="flex items-center justify-center h-96">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-        </div>
+        <PageSpinner text="Chargement..." />
       </AuthLayout>
     )
   }
@@ -237,6 +236,10 @@ export default function DiagnosticsPage() {
 
   return (
     <AuthLayout>
+      <Breadcrumbs items={[
+        { label: 'Administration', href: '/admin' },
+        { label: 'Diagnostics' }
+      ]} />
       <div className="space-y-6">
         {/* Header */}
         <div className="bg-gradient-to-r from-purple-600 to-indigo-600 rounded-xl shadow-sm p-6 text-white">

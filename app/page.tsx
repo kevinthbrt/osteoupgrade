@@ -12,6 +12,7 @@ import {
   Clock,
   Zap
 } from 'lucide-react'
+import { Button } from '@/components/ui'
 
 export default function LandingPage() {
   const router = useRouter()
@@ -42,18 +43,20 @@ export default function LandingPage() {
               </a>
             </div>
             <div className="flex items-center gap-3">
-              <button
+              <Button
                 onClick={() => router.push('/auth')}
-                className="text-slate-900 px-4 py-2 rounded-lg font-semibold hover:bg-slate-100 transition-all text-sm"
+                variant="ghost"
+                className="text-sm"
               >
                 Se connecter
-              </button>
-              <button
+              </Button>
+              <Button
                 onClick={() => router.push('/auth')}
-                className="bg-sky-500 text-white px-4 sm:px-6 py-2 rounded-lg font-semibold hover:bg-sky-400 transition-all text-sm sm:text-base"
+                variant="primary"
+                className="text-sm sm:text-base"
               >
                 Tester gratuitement
-              </button>
+              </Button>
             </div>
           </div>
         </div>
@@ -83,18 +86,20 @@ export default function LandingPage() {
               </p>
               
               <div className="flex flex-col sm:flex-row gap-4">
-                <button
+                <Button
                   onClick={() => router.push('/auth')}
-                  className="bg-sky-500 text-white px-8 py-4 rounded-lg font-semibold hover:bg-sky-400 transition-all flex items-center justify-center gap-2 text-lg"
+                  variant="primary"
+                  className="px-8 py-4 text-lg"
                 >
                   Tester gratuitement avec l&apos;épaule
-                </button>
-                <button
+                </Button>
+                <Button
                   onClick={() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })}
-                  className="border-2 border-slate-900 text-slate-900 px-8 py-4 rounded-lg font-semibold hover:bg-slate-900 hover:text-white transition-all text-lg"
+                  variant="outline"
+                  className="px-8 py-4 text-lg"
                 >
                   Voir comment ça marche
-                </button>
+                </Button>
               </div>
             </div>
 
@@ -347,12 +352,13 @@ export default function LandingPage() {
                 ))}
               </ul>
 
-              <button
+              <Button
                 onClick={() => router.push('/auth')}
-                className="w-full border-2 border-slate-900 text-slate-900 px-6 py-3 rounded-lg font-semibold hover:bg-slate-900 hover:text-white transition-all"
+                variant="outline"
+                className="w-full px-6 py-3"
               >
                 Commencer gratuitement
-              </button>
+              </Button>
             </div>
 
             {/* Plan Premium Silver */}
@@ -383,12 +389,13 @@ export default function LandingPage() {
                 ))}
               </ul>
 
-              <button
+              <Button
                 onClick={() => router.push('/auth')}
-                className="w-full bg-slate-900 text-white px-6 py-3 rounded-lg font-semibold hover:bg-slate-800 transition-all"
+                variant="primary"
+                className="w-full px-6 py-3 bg-slate-900 hover:bg-slate-800"
               >
                 Choisir Silver
-              </button>
+              </Button>
             </div>
 
             {/* Plan Premium Gold - Featured */}
@@ -423,12 +430,13 @@ export default function LandingPage() {
                 ))}
               </ul>
 
-              <button
+              <Button
                 onClick={() => router.push('/auth')}
-                className="w-full bg-slate-900 text-white px-6 py-3 rounded-lg font-semibold hover:bg-slate-800 transition-all"
+                variant="primary"
+                className="w-full px-6 py-3 bg-slate-900 hover:bg-slate-800"
               >
                 Choisir Gold
-              </button>
+              </Button>
             </div>
           </div>
 
@@ -452,13 +460,14 @@ export default function LandingPage() {
             Teste gratuitement le module épaule et découvre comment OsteoUpgrade 
             s&apos;intègre naturellement dans ta pratique quotidienne.
           </p>
-          <button
+          <Button
             onClick={() => router.push('/auth')}
-            className="bg-sky-500 text-white px-10 py-4 rounded-lg font-semibold hover:bg-sky-400 transition-all text-lg inline-flex items-center gap-2"
+            variant="primary"
+            className="px-10 py-4 text-lg inline-flex items-center gap-2"
           >
             Tester gratuitement avec l&apos;épaule
             <ArrowRight className="h-5 w-5" />
-          </button>
+          </Button>
           <div className="mt-8 bg-sky-500/10 border border-sky-500/30 rounded-2xl p-6 max-w-2xl mx-auto">
             <p className="text-white/90">
               <strong className="text-white">Permet de voir exactement comment fonctionne l&apos;application au cabinet.</strong>

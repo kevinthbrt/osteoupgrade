@@ -19,6 +19,7 @@ import {
   Download,
   MoreVertical
 } from 'lucide-react'
+import { Button, Breadcrumbs, PageSpinner } from '@/components/ui'
 
 export default function UsersManagementPage() {
   const router = useRouter()
@@ -166,15 +167,17 @@ export default function UsersManagementPage() {
   if (loading) {
     return (
       <AuthLayout>
-        <div className="flex items-center justify-center h-96">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
-        </div>
+        <PageSpinner text="Chargement..." />
       </AuthLayout>
     )
   }
 
   return (
     <AuthLayout>
+      <Breadcrumbs items={[
+        { label: 'Administration', href: '/admin' },
+        { label: 'Utilisateurs' }
+      ]} />
       <div className="space-y-6">
         {/* Header */}
         <div className="bg-white rounded-xl shadow-sm p-6">

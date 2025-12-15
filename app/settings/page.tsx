@@ -13,7 +13,6 @@ import {
   Shield,
   Check,
   X,
-  Loader2,
   Calendar,
   AlertCircle,
   ChevronRight,
@@ -22,6 +21,7 @@ import {
   Globe,
   Smartphone
 } from 'lucide-react'
+import { Button, Breadcrumbs, PageSpinner, Spinner } from '@/components/ui'
 
 export default function SettingsPage() {
   const router = useRouter()
@@ -220,15 +220,17 @@ export default function SettingsPage() {
   if (loading) {
     return (
       <AuthLayout>
-        <div className="flex items-center justify-center h-96">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-        </div>
+        <PageSpinner text="Chargement..." />
       </AuthLayout>
     )
   }
 
   return (
     <AuthLayout>
+      <Breadcrumbs items={[
+        { label: 'Tableau de bord', href: '/dashboard' },
+        { label: 'Paramètres' }
+      ]} />
       <div className="max-w-6xl mx-auto space-y-6">
         {/* Header */}
         <div className="bg-white rounded-xl shadow-sm p-6">

@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import AuthLayout from '@/components/AuthLayout'
 import { supabase } from '@/lib/supabase'
+import { Button, Breadcrumbs, PageSpinner } from '@/components/ui'
 import {
   AlertCircle,
   BookOpen,
@@ -690,9 +691,7 @@ export default function ElearningPage() {
   if (loading) {
     return (
       <AuthLayout>
-        <div className="flex items-center justify-center h-96">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-        </div>
+        <PageSpinner text="Chargement de l'e-learning..." />
       </AuthLayout>
     )
   }
@@ -744,6 +743,16 @@ export default function ElearningPage() {
 
   return (
     <AuthLayout>
+      {/* Breadcrumbs */}
+      <div className="mb-6">
+        <Breadcrumbs
+          items={[
+            { label: 'Modules', href: '/dashboard' },
+            { label: 'E-learning', icon: <GraduationCap className="h-4 w-4" /> }
+          ]}
+        />
+      </div>
+
       <div className="space-y-6">
         {/* Hero Section */}
         <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white shadow-2xl mb-8">
