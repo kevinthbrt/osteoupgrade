@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import AuthLayout from '@/components/AuthLayout'
+import { Button, Breadcrumbs, PageSpinner } from '@/components/ui'
 import {
   TestTube,
   BookOpen,
@@ -40,7 +41,8 @@ import {
   CalendarCheck,
   Library,
   Microscope,
-  Scan
+  Scan,
+  Home
 } from 'lucide-react'
 
 interface ModuleCard {
@@ -401,9 +403,7 @@ export default function Dashboard() {
   if (loading) {
     return (
       <AuthLayout>
-        <div className="flex items-center justify-center h-96">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600" />
-        </div>
+        <PageSpinner text="Chargement de votre tableau de bord..." />
       </AuthLayout>
     )
   }
@@ -411,6 +411,16 @@ export default function Dashboard() {
   return (
     <AuthLayout>
       <div className="min-h-screen">
+        {/* Breadcrumbs */}
+        <div className="mb-6">
+          <Breadcrumbs
+            items={[
+              { label: 'Dashboard', icon: <Home className="h-4 w-4" /> }
+            ]}
+            showHome={false}
+          />
+        </div>
+
         {/* Hero Section */}
         <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white shadow-2xl mb-8">
           {/* Decorative elements */}
@@ -462,13 +472,15 @@ export default function Dashboard() {
                   </span>
                 </div>
 
-                <button
+                <Button
                   onClick={() => router.push('/settings')}
-                  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 transition-all text-sm font-semibold"
+                  variant="ghost"
+                  size="sm"
+                  className="bg-white/10 hover:bg-white/20 border border-white/20 text-white"
                 >
                   <Settings className="h-4 w-4" />
                   Paramètres
-                </button>
+                </Button>
               </div>
             </div>
           </div>
@@ -881,13 +893,14 @@ export default function Dashboard() {
                     </div>
                   </div>
 
-                  <button
+                  <Button
                     onClick={() => router.push('/settings/subscription')}
-                    className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold shadow-xl transition-all transform hover:scale-105"
+                    size="lg"
+                    className="bg-slate-900 hover:bg-slate-800 shadow-xl transform hover:scale-105"
                   >
                     Passer Premium maintenant
                     <ArrowRight className="h-5 w-5" />
-                  </button>
+                  </Button>
                 </div>
               </div>
             </div>
