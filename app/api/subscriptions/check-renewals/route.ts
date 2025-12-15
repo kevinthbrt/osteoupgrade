@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase-server'
 
+export const dynamic = 'force-dynamic'
+
 // Cette route doit être appelée quotidiennement (via un cron job Vercel)
 // Elle vérifie les utilisateurs dont le cycle d'engagement se termine bientôt
 
