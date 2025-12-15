@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import AuthLayout from '@/components/AuthLayout'
 import { supabase } from '@/lib/supabase'
+import CourseCreationWizard from './components/CourseCreationWizard'
 import {
   AlertCircle,
   BookOpen,
@@ -75,79 +76,6 @@ const getVimeoEmbedUrl = (url: string) => {
   }
 }
 
-const ToolbarButton = ({
-  label,
-  onClick
-}: {
-  label: string
-  onClick: () => void
-}) => (
-  <button
-    type="button"
-    onClick={onClick}
-    className="px-2 py-1 text-sm rounded border border-gray-200 bg-white hover:bg-gray-50"
-  >
-    {label}
-  </button>
-)
-
-const RichTextEditor = ({ value, onChange }: { value: string; onChange: (html: string) => void }) => {
-  const editorRef = useRef<HTMLDivElement | null>(null)
-
-  useEffect(() => {
-    if (editorRef.current && editorRef.current.innerHTML !== value) {
-      editorRef.current.innerHTML = value
-    }
-  }, [value])
-
-  const applyFormat = (command: string, value?: string) => {
-    if (!editorRef.current) return
-    editorRef.current.focus()
-    document.execCommand(command, false, value)
-    onChange(editorRef.current.innerHTML)
-  }
-
-  const handleInput = () => {
-    if (!editorRef.current) return
-    onChange(editorRef.current.innerHTML)
-  }
-
-  return (
-    <div className="border rounded-xl overflow-hidden">
-      <div className="flex flex-wrap gap-2 p-3 bg-gray-50 border-b border-gray-200">
-        <ToolbarButton label="Gras" onClick={() => applyFormat('bold')} />
-        <ToolbarButton label="Italique" onClick={() => applyFormat('italic')} />
-        <ToolbarButton label="Liste" onClick={() => applyFormat('insertUnorderedList')} />
-        <ToolbarButton label="Titre" onClick={() => applyFormat('formatBlock', 'h3')} />
-        <select
-          className="px-2 py-1 text-sm rounded border border-gray-200 bg-white"
-          onChange={(e) => applyFormat('fontSize', e.target.value)}
-          defaultValue="16"
-        >
-          {[12, 14, 16, 20, 24].map((size) => (
-            <option key={size} value={size}>
-              {size}px
-            </option>
-          ))}
-        </select>
-        <input
-          type="color"
-          className="w-10 h-8 border border-gray-200 rounded"
-          onChange={(e) => applyFormat('foreColor', e.target.value)}
-          aria-label="Choisir une couleur"
-        />
-      </div>
-      <div
-        ref={editorRef}
-        className="min-h-[140px] p-4 focus:outline-none"
-        contentEditable
-        onInput={handleInput}
-        suppressContentEditableWarning
-      />
-    </div>
-  )
-}
-
 export default function ElearningPage() {
   const router = useRouter()
   const [profile, setProfile] = useState<Profile | null>(null)
@@ -155,31 +83,11 @@ export default function ElearningPage() {
   const [selectedFormationId, setSelectedFormationId] = useState<string>('')
   const subpartRefs = useRef<Record<string, HTMLDivElement | null>>({})
   const [loading, setLoading] = useState(true)
-  const [creating, setCreating] = useState(false)
-
-  const [formationForm, setFormationForm] = useState({ title: '', description: '', is_private: false })
-  const [chapterForm, setChapterForm] = useState({ title: '', order_index: 1, formationId: '' })
-  const [subpartForm, setSubpartForm] = useState({
-    title: '',
-    vimeo_url: '',
-    order_index: 1,
-    chapterId: '',
-    description_html: ''
-  })
-  const [editingFormationId, setEditingFormationId] = useState<string | null>(null)
-  const [editingChapterId, setEditingChapterId] = useState<string | null>(null)
-  const [editingSubpartId, setEditingSubpartId] = useState<string | null>(null)
-  const [editFormationForm, setEditFormationForm] = useState({ title: '', description: '', is_private: false })
-  const [editChapterForm, setEditChapterForm] = useState({ title: '', order_index: 1 })
-  const [editSubpartForm, setEditSubpartForm] = useState({
-    title: '',
-    vimeo_url: '',
-    description_html: '',
-    order_index: 1
-  })
   const [showFormationModal, setShowFormationModal] = useState(false)
   const [expandedChapters, setExpandedChapters] = useState<Record<string, boolean>>({})
   const [expandedSubparts, setExpandedSubparts] = useState<Record<string, boolean>>({})
+  const [showWizard, setShowWizard] = useState(false)
+  const [formationToEdit, setFormationToEdit] = useState<Formation | null>(null)
 
   useEffect(() => {
     loadData()
@@ -258,23 +166,15 @@ export default function ElearningPage() {
         if (accessible.length) {
           setFormations(accessible)
           setSelectedFormationId(accessible[0].id)
-          setChapterForm((prev) => ({ ...prev, formationId: accessible[0].id }))
-          if (accessible[0].chapters[0]) {
-            setSubpartForm((prev) => ({ ...prev, chapterId: accessible[0].chapters[0].id }))
-          }
         } else {
           setFormations([])
           setSelectedFormationId('')
-          setChapterForm((prev) => ({ ...prev, formationId: '' }))
-          setSubpartForm((prev) => ({ ...prev, chapterId: '' }))
         }
       }
     } catch (error) {
       console.error('Erreur de chargement des formations', error)
       setFormations([])
       setSelectedFormationId('')
-      setChapterForm((prev) => ({ ...prev, formationId: '' }))
-      setSubpartForm((prev) => ({ ...prev, chapterId: '' }))
     }
   }
 
@@ -335,249 +235,22 @@ export default function ElearningPage() {
 
   const progress = useMemo(() => computeProgress(selectedFormation), [selectedFormation])
 
-  const handleCreateFormation = async () => {
-    if (!formationForm.title.trim()) return
-    setCreating(true)
-    try {
-      const { data, error } = await supabase
-        .from('elearning_formations')
-        .insert({
-          title: formationForm.title,
-          description: formationForm.description,
-          is_private: formationForm.is_private
-        })
-        .select()
-        .single()
-
-      if (error) throw error
-
-      const newFormation: Formation = {
-        id: data.id,
-        title: data.title,
-        description: data.description,
-        is_private: data.is_private,
-        chapters: []
-      }
-
-      setFormations((prev) => [...prev, newFormation])
-      setSelectedFormationId(newFormation.id)
-      setChapterForm((prev) => ({ ...prev, formationId: newFormation.id }))
-      setSubpartForm((prev) => ({ ...prev, chapterId: '' }))
-      setFormationForm({ title: '', description: '', is_private: false })
-    } catch (error) {
-      console.error('Impossible de créer la formation', error)
-    } finally {
-      setCreating(false)
-    }
-  }
-
-  const handleCreateChapter = async () => {
-    if (!chapterForm.title.trim() || !isValidUuid(chapterForm.formationId)) return
-    setCreating(true)
-    try {
-      const { data, error } = await supabase
-        .from('elearning_chapters')
-        .insert({
-          title: chapterForm.title,
-          order_index: chapterForm.order_index,
-          formation_id: chapterForm.formationId
-        })
-        .select()
-        .single()
-
-      if (error) throw error
-
-      const newChapter: Chapter = { id: data.id, title: data.title, order_index: data.order_index, subparts: [] }
-
-      setFormations((prev) =>
-        prev.map((formation) =>
-          formation.id === chapterForm.formationId
-            ? { ...formation, chapters: [...formation.chapters, newChapter] }
-            : formation
-        )
-      )
-
-      setChapterForm({ title: '', order_index: 1, formationId: chapterForm.formationId })
-      setSubpartForm((prev) => ({ ...prev, chapterId: newChapter.id }))
-    } catch (error) {
-      console.error('Impossible de créer le chapitre', error)
-    } finally {
-      setCreating(false)
-    }
-  }
-
-  const handleCreateSubpart = async () => {
-    if (!subpartForm.title.trim() || !isValidUuid(subpartForm.chapterId)) return
-    setCreating(true)
-    try {
-      const { data, error } = await supabase
-        .from('elearning_subparts')
-        .insert({
-          title: subpartForm.title,
-          vimeo_url: subpartForm.vimeo_url || null,
-          description_html: subpartForm.description_html,
-          order_index: subpartForm.order_index,
-          chapter_id: subpartForm.chapterId
-        })
-        .select()
-        .single()
-
-      if (error) throw error
-
-      const newSubpart: Subpart = {
-        id: data.id,
-        title: data.title,
-        vimeo_url: data.vimeo_url,
-        description_html: data.description_html,
-        order_index: data.order_index
-      }
-
-      setFormations((prev) =>
-        prev.map((formation) => ({
-          ...formation,
-          chapters: formation.chapters.map((chapter) =>
-            chapter.id === subpartForm.chapterId
-              ? { ...chapter, subparts: [...chapter.subparts, newSubpart] }
-              : chapter
-          )
-        }))
-      )
-
-      setSubpartForm({ title: '', vimeo_url: '', order_index: 1, chapterId: subpartForm.chapterId, description_html: '' })
-    } catch (error) {
-      console.error('Impossible de créer la sous-partie', error)
-    } finally {
-      setCreating(false)
-    }
-  }
-
-  const startEditFormation = (formation: Formation) => {
-    setEditingFormationId(formation.id)
-    setEditFormationForm({
-      title: formation.title,
-      description: formation.description || '',
-      is_private: !!formation.is_private
-    })
-  }
-
-  const handleUpdateFormation = async () => {
-    if (!editingFormationId || !editFormationForm.title.trim()) return
-    setCreating(true)
-    try {
-      const { data, error } = await supabase
-        .from('elearning_formations')
-        .update({
-          title: editFormationForm.title,
-          description: editFormationForm.description,
-          is_private: editFormationForm.is_private
-        })
-        .eq('id', editingFormationId)
-        .select()
-        .single()
-
-      if (error) throw error
-
-      setFormations((prev) =>
-        prev.map((formation) =>
-          formation.id === editingFormationId
-            ? {
-                ...formation,
-                title: data.title,
-                description: data.description,
-                is_private: data.is_private
-              }
-            : formation
-        )
-      )
-      setEditingFormationId(null)
-    } catch (error) {
-      console.error('Impossible de mettre à jour la formation', error)
-    } finally {
-      setCreating(false)
-    }
-  }
-
   const handleDeleteFormation = async (id: string) => {
-    setCreating(true)
+    if (!confirm('Êtes-vous sûr de vouloir supprimer cette formation ? Cette action est irréversible.')) {
+      return
+    }
+
     try {
       await supabase.from('elearning_formations').delete().eq('id', id)
       setFormations((prev) => prev.filter((formation) => formation.id !== id))
       if (selectedFormationId === id) {
         setSelectedFormationId('')
+        setShowFormationModal(false)
       }
     } catch (error) {
       console.error('Impossible de supprimer la formation', error)
-    } finally {
-      setCreating(false)
+      alert('Erreur lors de la suppression de la formation')
     }
-  }
-
-  const startEditChapter = (chapter: Chapter) => {
-    setEditingChapterId(chapter.id)
-    setEditChapterForm({ title: chapter.title, order_index: chapter.order_index || 1 })
-    setExpandedChapters((prev) => ({ ...prev, [chapter.id]: true }))
-  }
-
-  const handleUpdateChapter = async (chapterId: string) => {
-    if (!chapterId || !editChapterForm.title.trim()) return
-    setCreating(true)
-    try {
-      const { data, error } = await supabase
-        .from('elearning_chapters')
-        .update({ title: editChapterForm.title, order_index: editChapterForm.order_index })
-        .eq('id', chapterId)
-        .select()
-        .single()
-
-      if (error) throw error
-
-      setFormations((prev) =>
-        prev.map((formation) => ({
-          ...formation,
-          chapters: formation.chapters.map((chapter) =>
-            chapter.id === chapterId
-              ? { ...chapter, title: data.title, order_index: data.order_index }
-              : chapter
-          )
-        }))
-      )
-      setEditingChapterId(null)
-    } catch (error) {
-      console.error('Impossible de mettre à jour le chapitre', error)
-    } finally {
-      setCreating(false)
-    }
-  }
-
-  const handleDeleteChapter = async (chapterId: string) => {
-    setCreating(true)
-    try {
-      await supabase.from('elearning_chapters').delete().eq('id', chapterId)
-      setFormations((prev) =>
-        prev.map((formation) => ({
-          ...formation,
-          chapters: formation.chapters.filter((chapter) => chapter.id !== chapterId)
-        }))
-      )
-    } catch (error) {
-      console.error('Impossible de supprimer le chapitre', error)
-    } finally {
-      setCreating(false)
-    }
-  }
-
-  const startEditSubpart = (subpart: Subpart, chapterId?: string) => {
-    setEditingSubpartId(subpart.id)
-    setEditSubpartForm({
-      title: subpart.title,
-      vimeo_url: subpart.vimeo_url || '',
-      description_html: subpart.description_html || '',
-      order_index: subpart.order_index || 1
-    })
-    if (chapterId) {
-      setExpandedChapters((prev) => ({ ...prev, [chapterId]: true }))
-    }
-    setExpandedSubparts((prev) => ({ ...prev, [subpart.id]: true }))
   }
 
   const toggleChapterExpansion = (chapterId: string) => {
@@ -586,71 +259,6 @@ export default function ElearningPage() {
 
   const toggleSubpartExpansion = (subpartId: string) => {
     setExpandedSubparts((prev) => ({ ...prev, [subpartId]: !prev[subpartId] }))
-  }
-
-  const handleUpdateSubpart = async (subpartId: string) => {
-    if (!subpartId || !editSubpartForm.title.trim()) return
-    setCreating(true)
-    try {
-      const { data, error } = await supabase
-        .from('elearning_subparts')
-        .update({
-          title: editSubpartForm.title,
-          vimeo_url: editSubpartForm.vimeo_url || null,
-          description_html: editSubpartForm.description_html,
-          order_index: editSubpartForm.order_index
-        })
-        .eq('id', subpartId)
-        .select()
-        .single()
-
-      if (error) throw error
-
-      setFormations((prev) =>
-        prev.map((formation) => ({
-          ...formation,
-          chapters: formation.chapters.map((chapter) => ({
-            ...chapter,
-            subparts: chapter.subparts.map((subpart) =>
-              subpart.id === subpartId
-                ? {
-                    ...subpart,
-                    title: data.title,
-                    vimeo_url: data.vimeo_url,
-                    description_html: data.description_html,
-                    order_index: data.order_index
-                  }
-                : subpart
-            )
-          }))
-        }))
-      )
-      setEditingSubpartId(null)
-    } catch (error) {
-      console.error('Impossible de mettre à jour la sous-partie', error)
-    } finally {
-      setCreating(false)
-    }
-  }
-
-  const handleDeleteSubpart = async (subpartId: string) => {
-    setCreating(true)
-    try {
-      await supabase.from('elearning_subparts').delete().eq('id', subpartId)
-      setFormations((prev) =>
-        prev.map((formation) => ({
-          ...formation,
-          chapters: formation.chapters.map((chapter) => ({
-            ...chapter,
-            subparts: chapter.subparts.filter((subpart) => subpart.id !== subpartId)
-          }))
-        }))
-      )
-    } catch (error) {
-      console.error('Impossible de supprimer la sous-partie', error)
-    } finally {
-      setCreating(false)
-    }
   }
 
   const toggleCompletion = async (subpartId: string, completed: boolean) => {
@@ -902,64 +510,38 @@ export default function ElearningPage() {
                       </span>
                     )}
                   </div>
-                  <button
-                    onClick={() => setShowFormationModal(false)}
-                    className="text-gray-600 hover:text-gray-800 rounded-full p-2 bg-white/70 border border-gray-200"
-                    aria-label="Fermer"
-                  >
-                    <X className="h-5 w-5" />
-                  </button>
+                  <div className="flex items-center gap-2">
+                    {isAdmin && (
+                      <button
+                        onClick={() => {
+                          setFormationToEdit(selectedFormation)
+                          setShowWizard(true)
+                          setShowFormationModal(false)
+                        }}
+                        className="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium flex items-center gap-2"
+                      >
+                        <Plus className="h-4 w-4" />
+                        Modifier
+                      </button>
+                    )}
+                    <button
+                      onClick={() => setShowFormationModal(false)}
+                      className="text-gray-600 hover:text-gray-800 rounded-full p-2 bg-white/70 border border-gray-200"
+                      aria-label="Fermer"
+                    >
+                      <X className="h-5 w-5" />
+                    </button>
+                  </div>
                 </div>
 
                 <div className="p-6 space-y-6">
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <div className="space-y-2 flex-1 min-w-[260px]">
-                      {editingFormationId === selectedFormation.id ? (
-                        <div className="space-y-2">
-                          <input
-                            value={editFormationForm.title}
-                            onChange={(e) => setEditFormationForm({ ...editFormationForm, title: e.target.value })}
-                            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
-                            placeholder="Titre de la formation"
-                          />
-                          <RichTextEditor
-                            value={editFormationForm.description}
-                            onChange={(html) => setEditFormationForm({ ...editFormationForm, description: html })}
-                          />
-                          <label className="inline-flex items-center gap-2 text-sm">
-                            <input
-                              type="checkbox"
-                              checked={editFormationForm.is_private}
-                              onChange={(e) => setEditFormationForm({ ...editFormationForm, is_private: e.target.checked })}
-                              className="rounded border-gray-300"
-                            />
-                            Formation privée (admin uniquement)
-                          </label>
-                          <div className="flex gap-2">
-                            <button
-                              onClick={handleUpdateFormation}
-                              className="px-4 py-2 bg-primary-600 text-white rounded-lg text-sm font-semibold"
-                              disabled={creating}
-                            >
-                              Enregistrer
-                            </button>
-                            <button
-                              onClick={() => setEditingFormationId(null)}
-                              className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-semibold"
-                            >
-                              Annuler
-                            </button>
-                          </div>
-                        </div>
-                      ) : (
-                        <>
-                          {selectedFormation.description && (
-                            <div
-                              className="text-gray-700 text-sm prose prose-sm max-w-none"
-                              dangerouslySetInnerHTML={{ __html: selectedFormation.description }}
-                            />
-                          )}
-                        </>
+                      {selectedFormation.description && (
+                        <div
+                          className="text-gray-700 text-sm prose prose-sm max-w-none"
+                          dangerouslySetInnerHTML={{ __html: selectedFormation.description }}
+                        />
                       )}
                     </div>
                     <div className="flex flex-col gap-2 items-end min-w-[220px]">
@@ -974,20 +556,12 @@ export default function ElearningPage() {
                       </div>
                       <span className="text-xs text-gray-500">{progress.percent}%</span>
                       {isAdmin && (
-                        <div className="flex flex-wrap gap-2 justify-end">
-                          <button
-                            onClick={() => startEditFormation(selectedFormation)}
-                            className="px-3 py-1 text-xs font-semibold border border-gray-200 rounded-lg hover:bg-white"
-                          >
-                            Modifier
-                          </button>
-                          <button
-                            onClick={() => handleDeleteFormation(selectedFormation.id)}
-                            className="px-3 py-1 text-xs font-semibold border border-red-200 text-red-700 rounded-lg hover:bg-red-50"
-                          >
-                            Supprimer
-                          </button>
-                        </div>
+                        <button
+                          onClick={() => handleDeleteFormation(selectedFormation.id)}
+                          className="px-3 py-1 text-xs font-semibold border border-red-200 text-red-700 rounded-lg hover:bg-red-50"
+                        >
+                          Supprimer
+                        </button>
                       )}
                     </div>
                   </div>
@@ -1002,76 +576,26 @@ export default function ElearningPage() {
                       }}
                     >
                         <div className="flex items-center justify-between bg-gray-50 px-4 py-3">
-                          {editingChapterId === chapter.id ? (
-                            <div className="flex items-center gap-3 text-gray-800 font-semibold">
-                              <ChevronRight className="h-4 w-4 text-primary-600 opacity-50" />
-                              <Layers className="h-4 w-4 text-primary-600" />
-                              <input
-                                value={editChapterForm.title}
-                                onChange={(e) => setEditChapterForm({ ...editChapterForm, title: e.target.value })}
-                                className="border border-gray-200 rounded-lg px-2 py-1 text-sm"
-                              />
-                            </div>
-                          ) : (
-                            <button
-                              type="button"
-                              onClick={() => toggleChapterExpansion(chapter.id)}
-                              className="flex items-center gap-3 text-gray-800 font-semibold hover:text-primary-700 focus:outline-none"
-                              aria-label={`Basculer l'affichage du chapitre ${chapter.title}`}
-                            >
-                              <ChevronRight
-                                className={`h-4 w-4 text-primary-600 transition-transform ${
-                                  expandedChapters[chapter.id] ? 'rotate-90' : ''
-                                }`}
-                              />
-                              <Layers className="h-4 w-4 text-primary-600" />
-                              {chapter.title}
-                            </button>
-                          )}
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs text-gray-500">{chapter.subparts.length} sous-parties</span>
-                            {isAdmin && (
-                              <div className="flex items-center gap-1">
-                                {editingChapterId === chapter.id ? (
-                                  <>
-                                    <button
-                                      onClick={() => handleUpdateChapter(chapter.id)}
-                                      className="px-2 py-1 text-xs border border-primary-200 text-primary-700 rounded-lg"
-                                      disabled={creating}
-                                    >
-                                      Sauvegarder
-                                    </button>
-                                    <button
-                                      onClick={() => setEditingChapterId(null)}
-                                      className="px-2 py-1 text-xs border border-gray-200 rounded-lg"
-                                    >
-                                      Annuler
-                                    </button>
-                                  </>
-                                ) : (
-                                  <>
-                                    <button
-                                      onClick={() => startEditChapter(chapter)}
-                                      className="px-2 py-1 text-xs border border-gray-200 rounded-lg"
-                                    >
-                                      Modifier
-                                    </button>
-                                    <button
-                                      onClick={() => handleDeleteChapter(chapter.id)}
-                                      className="px-2 py-1 text-xs border border-red-200 text-red-700 rounded-lg"
-                                    >
-                                      Supprimer
-                                    </button>
-                                  </>
-                                )}
-                              </div>
-                            )}
-                          </div>
+                          <button
+                            type="button"
+                            onClick={() => toggleChapterExpansion(chapter.id)}
+                            className="flex items-center gap-3 text-gray-800 font-semibold hover:text-primary-700 focus:outline-none"
+                            aria-label={`Basculer l'affichage du chapitre ${chapter.title}`}
+                          >
+                            <ChevronRight
+                              className={`h-4 w-4 text-primary-600 transition-transform ${
+                                expandedChapters[chapter.id] ? 'rotate-90' : ''
+                              }`}
+                            />
+                            <Layers className="h-4 w-4 text-primary-600" />
+                            {chapter.title}
+                          </button>
+                          <span className="text-xs text-gray-500">{chapter.subparts.length} sous-parties</span>
                         </div>
-                        {(expandedChapters[chapter.id] || editingChapterId === chapter.id) && (
+                        {expandedChapters[chapter.id] && (
                           <div className="divide-y divide-gray-100">
                             {chapter.subparts.map((subpart) => {
-                              const subpartOpen = expandedSubparts[subpart.id] || editingSubpartId === subpart.id
+                              const subpartOpen = expandedSubparts[subpart.id]
                               return (
                                 <div
                                   key={subpart.id}
@@ -1082,69 +606,27 @@ export default function ElearningPage() {
                                 >
                                   <div className="flex items-start justify-between gap-3">
                                     <div className="flex-1 space-y-2">
-                                      {editingSubpartId === subpart.id ? (
-                                        <div className="flex items-center gap-2 text-gray-900 font-semibold">
-                                          <ChevronDown className="h-4 w-4 text-primary-500 opacity-50" />
-                                          <Video className="h-4 w-4 text-primary-500" />
-                                          <input
-                                            value={editSubpartForm.title}
-                                            onChange={(e) => setEditSubpartForm({ ...editSubpartForm, title: e.target.value })}
-                                            className="border border-gray-200 rounded-lg px-2 py-1 text-sm"
-                                          />
-                                        </div>
-                                      ) : (
-                                        <button
-                                          type="button"
-                                          onClick={() => toggleSubpartExpansion(subpart.id)}
-                                          className="flex items-center gap-2 text-gray-900 font-semibold hover:text-primary-700 focus:outline-none"
-                                          aria-label={`Basculer l'affichage de la sous-partie ${subpart.title}`}
-                                        >
-                                          <ChevronDown
-                                            className={`h-4 w-4 text-primary-500 transition-transform ${
-                                              subpartOpen ? 'rotate-180' : ''
-                                            }`}
-                                          />
-                                          <Video className="h-4 w-4 text-primary-500" />
-                                          {subpart.title}
-                                        </button>
-                                      )}
+                                      <button
+                                        type="button"
+                                        onClick={() => toggleSubpartExpansion(subpart.id)}
+                                        className="flex items-center gap-2 text-gray-900 font-semibold hover:text-primary-700 focus:outline-none"
+                                        aria-label={`Basculer l'affichage de la sous-partie ${subpart.title}`}
+                                      >
+                                        <ChevronDown
+                                          className={`h-4 w-4 text-primary-500 transition-transform ${
+                                            subpartOpen ? 'rotate-180' : ''
+                                          }`}
+                                        />
+                                        <Video className="h-4 w-4 text-primary-500" />
+                                        {subpart.title}
+                                      </button>
                                       {subpartOpen && (
                                         <>
-                                          {editingSubpartId === subpart.id ? (
-                                            <div className="space-y-2">
-                                              <input
-                                                value={editSubpartForm.vimeo_url}
-                                                onChange={(e) =>
-                                                  setEditSubpartForm({ ...editSubpartForm, vimeo_url: e.target.value })
-                                                }
-                                                placeholder="URL Vimeo (optionnelle)"
-                                                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
-                                              />
-                                              <input
-                                                type="number"
-                                                min={1}
-                                                value={editSubpartForm.order_index}
-                                                onChange={(e) =>
-                                                  setEditSubpartForm({
-                                                    ...editSubpartForm,
-                                                    order_index: Number(e.target.value)
-                                                  })
-                                                }
-                                                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
-                                                placeholder="Ordre d'affichage"
-                                              />
-                                              <RichTextEditor
-                                                value={editSubpartForm.description_html}
-                                                onChange={(html) => setEditSubpartForm({ ...editSubpartForm, description_html: html })}
-                                              />
-                                            </div>
-                                          ) : (
-                                            subpart.description_html && (
-                                              <div
-                                                className="text-sm text-gray-700 prose prose-sm max-w-none"
-                                                dangerouslySetInnerHTML={{ __html: subpart.description_html }}
-                                              />
-                                            )
+                                          {subpart.description_html && (
+                                            <div
+                                              className="text-sm text-gray-700 prose prose-sm max-w-none"
+                                              dangerouslySetInnerHTML={{ __html: subpart.description_html }}
+                                            />
                                           )}
                                           <div className="mt-1 space-y-2">
                                             {subpart.vimeo_url ? (
@@ -1186,42 +668,6 @@ export default function ElearningPage() {
                                         <CheckSquare className="h-4 w-4" />
                                         {subpart.completed ? 'Terminé' : 'Marquer terminé'}
                                       </button>
-                                      {isAdmin && (
-                                        <div className="flex flex-wrap gap-2 justify-end">
-                                          {editingSubpartId === subpart.id ? (
-                                            <>
-                                              <button
-                                                onClick={() => handleUpdateSubpart(subpart.id)}
-                                                className="px-3 py-1 text-xs border border-primary-200 text-primary-700 rounded-lg"
-                                                disabled={creating}
-                                              >
-                                                Sauvegarder
-                                              </button>
-                                              <button
-                                                onClick={() => setEditingSubpartId(null)}
-                                                className="px-3 py-1 text-xs border border-gray-200 rounded-lg"
-                                              >
-                                                Annuler
-                                              </button>
-                                            </>
-                                          ) : (
-                                            <>
-                                              <button
-                                                onClick={() => startEditSubpart(subpart, chapter.id)}
-                                                className="px-3 py-1 text-xs border border-gray-200 rounded-lg"
-                                              >
-                                                Modifier
-                                              </button>
-                                              <button
-                                                onClick={() => handleDeleteSubpart(subpart.id)}
-                                                className="px-3 py-1 text-xs border border-red-200 text-red-700 rounded-lg"
-                                              >
-                                                Supprimer
-                                              </button>
-                                            </>
-                                          )}
-                                        </div>
-                                      )}
                                     </div>
                                   </div>
                                 </div>
@@ -1239,157 +685,21 @@ export default function ElearningPage() {
 
           {isAdmin && (
             <div className="space-y-4">
-              <div className="bg-white rounded-xl shadow-sm p-5 border border-primary-100">
-                <div className="flex items-center gap-2 text-primary-600 font-semibold mb-3">
-                  <ListChecks className="h-5 w-5" />
-                  Construction des parcours
-                </div>
-                <p className="text-sm text-gray-600 mb-4">
-                  Créez la formation, ajoutez des chapitres puis des sous-parties avec liens Vimeo et description
-                  enrichie. Toutes les actions sont enregistrées dans Supabase.
+              <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg p-6 border border-blue-400">
+                <h3 className="text-white font-bold text-lg mb-2 flex items-center gap-2">
+                  <Sparkles className="h-5 w-5" />
+                  Gestion des formations
+                </h3>
+                <p className="text-blue-100 text-sm mb-4">
+                  Créez une formation complète avec tous ses chapitres et sous-parties en une seule fois, ou modifiez une formation existante.
                 </p>
-                <div className="space-y-4">
-                  <div className="border border-gray-100 rounded-lg p-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <h3 className="font-semibold text-gray-800 flex items-center gap-2">
-                        <Plus className="h-4 w-4" /> Nouvelle formation
-                      </h3>
-                      {creating && <span className="text-xs text-primary-600">Enregistrement...</span>}
-                    </div>
-                    <div className="space-y-3">
-                      <input
-                        value={formationForm.title}
-                        onChange={(e) => setFormationForm({ ...formationForm, title: e.target.value })}
-                        placeholder="Titre de la formation"
-                        className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
-                      />
-                      <label className="flex items-center gap-3 text-sm text-gray-700">
-                        <input
-                          type="checkbox"
-                          checked={formationForm.is_private}
-                          onChange={(e) => setFormationForm({ ...formationForm, is_private: e.target.checked })}
-                          className="h-4 w-4 rounded border-gray-300"
-                        />
-                        Formation privée (visible seulement par les admins)
-                      </label>
-                      <RichTextEditor
-                        value={formationForm.description}
-                        onChange={(html) => setFormationForm({ ...formationForm, description: html })}
-                      />
-                      <button
-                        onClick={handleCreateFormation}
-                        disabled={creating}
-                        className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg font-semibold hover:bg-primary-700 transition"
-                      >
-                        <CheckCircle2 className="h-4 w-4" /> Enregistrer la formation
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="border border-gray-100 rounded-lg p-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <h3 className="font-semibold text-gray-800 flex items-center gap-2">
-                        <Plus className="h-4 w-4" /> Nouveau chapitre
-                      </h3>
-                      {creating && <span className="text-xs text-primary-600">Enregistrement...</span>}
-                    </div>
-                    <div className="space-y-3">
-                      <select
-                        value={chapterForm.formationId}
-                        onChange={(e) => setChapterForm({ ...chapterForm, formationId: e.target.value })}
-                        className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
-                      >
-                        <option value="" disabled>
-                          Sélectionnez une formation
-                        </option>
-                        {formations.map((formation) => (
-                          <option key={formation.id} value={formation.id}>
-                            {formation.title}
-                          </option>
-                        ))}
-                      </select>
-                      <input
-                        value={chapterForm.title}
-                        onChange={(e) => setChapterForm({ ...chapterForm, title: e.target.value })}
-                        placeholder="Titre du chapitre"
-                        className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
-                      />
-                      <input
-                        type="number"
-                        min={1}
-                        value={chapterForm.order_index}
-                        onChange={(e) => setChapterForm({ ...chapterForm, order_index: Number(e.target.value) })}
-                        className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
-                        placeholder="Ordre d'affichage"
-                      />
-                      <button
-                        onClick={handleCreateChapter}
-                        disabled={creating}
-                        className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 bg-primary-50 text-primary-700 rounded-lg font-semibold border border-primary-200 hover:bg-primary-100"
-                      >
-                        <CheckCircle2 className="h-4 w-4" /> Ajouter le chapitre
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="border border-gray-100 rounded-lg p-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <h3 className="font-semibold text-gray-800 flex items-center gap-2">
-                        <Plus className="h-4 w-4" /> Nouvelle sous-partie
-                      </h3>
-                      {creating && <span className="text-xs text-primary-600">Enregistrement...</span>}
-                    </div>
-                    <div className="space-y-3">
-                      <select
-                        value={subpartForm.chapterId}
-                        onChange={(e) => setSubpartForm({ ...subpartForm, chapterId: e.target.value })}
-                        className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
-                      >
-                        <option value="" disabled>
-                          Sélectionnez un chapitre
-                        </option>
-                        {formations.flatMap((formation) =>
-                          formation.chapters.map((chapter) => (
-                            <option key={chapter.id} value={chapter.id}>
-                              {formation.title} — {chapter.title}
-                            </option>
-                          ))
-                        )}
-                      </select>
-                      <input
-                        value={subpartForm.title}
-                        onChange={(e) => setSubpartForm({ ...subpartForm, title: e.target.value })}
-                        placeholder="Titre de la sous-partie"
-                        className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
-                      />
-                      <input
-                        value={subpartForm.vimeo_url}
-                        onChange={(e) => setSubpartForm({ ...subpartForm, vimeo_url: e.target.value })}
-                        placeholder="URL du lecteur Vimeo (optionnelle)"
-                        className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
-                      />
-                      <input
-                        type="number"
-                        min={1}
-                        value={subpartForm.order_index}
-                        onChange={(e) => setSubpartForm({ ...subpartForm, order_index: Number(e.target.value) })}
-                        className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
-                        placeholder="Ordre d'affichage"
-                      />
-                      <RichTextEditor
-                        value={subpartForm.description_html}
-                        onChange={(html) => setSubpartForm({ ...subpartForm, description_html: html })}
-                      />
-                      <button
-                        onClick={handleCreateSubpart}
-                        disabled={creating}
-                        className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg font-semibold hover:bg-emerald-700"
-                      >
-                        <CheckCircle2 className="h-4 w-4" /> Ajouter la sous-partie
-                      </button>
-                    </div>
-                  </div>
-                </div>
+                <button
+                  onClick={() => setShowWizard(true)}
+                  className="w-full bg-white text-blue-600 font-semibold px-4 py-3 rounded-lg hover:bg-blue-50 transition-colors flex items-center justify-center gap-2"
+                >
+                  <Plus className="h-5 w-5" />
+                  Créer une formation
+                </button>
               </div>
 
               <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 rounded-xl p-4 space-y-3">
@@ -1406,6 +716,21 @@ export default function ElearningPage() {
           )}
         </div>
       </div>
+
+      {showWizard && (
+        <CourseCreationWizard
+          onClose={() => {
+            setShowWizard(false)
+            setFormationToEdit(null)
+          }}
+          onSuccess={() => {
+            setShowWizard(false)
+            setFormationToEdit(null)
+            loadData()
+          }}
+          existingFormation={formationToEdit || undefined}
+        />
+      )}
     </AuthLayout>
   )
 }
