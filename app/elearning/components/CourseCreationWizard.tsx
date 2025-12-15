@@ -1,10 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { ChevronDown, ChevronUp, Plus, Trash2, Save, X } from 'lucide-react'
 
 interface Subpart {
+  id?: string // Real ID from database
   tempId: string
   title: string
   vimeoUrl: string
@@ -13,6 +14,7 @@ interface Subpart {
 }
 
 interface Chapter {
+  id?: string // Real ID from database
   tempId: string
   title: string
   orderIndex: number
@@ -20,18 +22,39 @@ interface Chapter {
 }
 
 interface FormationData {
+  id?: string // Real ID from database
   title: string
   description: string
   isPrivate: boolean
   chapters: Chapter[]
 }
 
+interface ExistingFormation {
+  id: string
+  title: string
+  description?: string
+  is_private?: boolean
+  chapters: Array<{
+    id: string
+    title: string
+    order_index?: number
+    subparts: Array<{
+      id: string
+      title: string
+      vimeo_url?: string
+      description_html?: string
+      order_index?: number
+    }>
+  }>
+}
+
 interface Props {
   onClose: () => void
   onSuccess: () => void
+  existingFormation?: ExistingFormation
 }
 
-export default function CourseCreationWizard({ onClose, onSuccess }: Props) {
+export default function CourseCreationWizard({ onClose, onSuccess, existingFormation }: Props) {
   const supabase = createClientComponentClient()
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -42,6 +65,45 @@ export default function CourseCreationWizard({ onClose, onSuccess }: Props) {
     isPrivate: false,
     chapters: []
   })
+
+  // Initialize with existing data if editing
+  useEffect(() => {
+    if (existingFormation) {
+      const allChapterIds = new Set<string>()
+      const allSubpartIds = new Set<string>()
+
+      setFormation({
+        id: existingFormation.id,
+        title: existingFormation.title,
+        description: existingFormation.description || '',
+        isPrivate: existingFormation.is_private || false,
+        chapters: existingFormation.chapters.map(chapter => {
+          allChapterIds.add(chapter.id)
+          return {
+            id: chapter.id,
+            tempId: chapter.id,
+            title: chapter.title,
+            orderIndex: chapter.order_index || 0,
+            subparts: chapter.subparts.map(subpart => {
+              allSubpartIds.add(subpart.id)
+              return {
+                id: subpart.id,
+                tempId: subpart.id,
+                title: subpart.title,
+                vimeoUrl: subpart.vimeo_url || '',
+                descriptionHtml: subpart.description_html || '',
+                orderIndex: subpart.order_index || 0
+              }
+            })
+          }
+        })
+      })
+
+      // Auto-expand all chapters and subparts when editing
+      setExpandedChapters(allChapterIds)
+      setExpandedSubparts(allSubpartIds)
+    }
+  }, [existingFormation])
 
   const [expandedChapters, setExpandedChapters] = useState<Set<string>>(new Set())
   const [expandedSubparts, setExpandedSubparts] = useState<Set<string>>(new Set())
@@ -202,55 +264,168 @@ export default function CourseCreationWizard({ onClose, onSuccess }: Props) {
     setError(null)
 
     try {
-      // 1. Create formation
-      const { data: formationData, error: formationError } = await supabase
-        .from('elearning_formations')
-        .insert({
-          title: formation.title,
-          description: formation.description,
-          is_private: formation.isPrivate
-        })
-        .select()
-        .single()
+      let formationId: string
 
-      if (formationError) throw formationError
+      if (formation.id) {
+        // UPDATE MODE
+        formationId = formation.id
 
-      // 2. Create chapters with their subparts
-      for (const chapter of formation.chapters) {
-        const { data: chapterData, error: chapterError } = await supabase
+        // 1. Update formation
+        const { error: formationError } = await supabase
+          .from('elearning_formations')
+          .update({
+            title: formation.title,
+            description: formation.description,
+            is_private: formation.isPrivate
+          })
+          .eq('id', formationId)
+
+        if (formationError) throw formationError
+
+        // 2. Get existing chapters and subparts IDs to determine what to delete
+        const { data: existingChapters } = await supabase
           .from('elearning_chapters')
+          .select('id, subparts:elearning_subparts(id)')
+          .eq('formation_id', formationId)
+
+        const currentChapterIds = formation.chapters.filter(c => c.id).map(c => c.id!)
+        const chaptersToDelete = existingChapters?.filter(ec => !currentChapterIds.includes(ec.id)) || []
+
+        // Delete removed chapters (cascade will delete subparts)
+        for (const chapter of chaptersToDelete) {
+          await supabase.from('elearning_chapters').delete().eq('id', chapter.id)
+        }
+
+        // 3. Update/Create chapters and subparts
+        for (const chapter of formation.chapters) {
+          let chapterId: string
+
+          if (chapter.id) {
+            // Update existing chapter
+            chapterId = chapter.id
+            const { error: chapterError } = await supabase
+              .from('elearning_chapters')
+              .update({
+                title: chapter.title,
+                order_index: chapter.orderIndex
+              })
+              .eq('id', chapterId)
+
+            if (chapterError) throw chapterError
+
+            // Get existing subparts for this chapter
+            const { data: existingSubparts } = await supabase
+              .from('elearning_subparts')
+              .select('id')
+              .eq('chapter_id', chapterId)
+
+            const currentSubpartIds = chapter.subparts.filter(s => s.id).map(s => s.id!)
+            const subpartsToDelete = existingSubparts?.filter(es => !currentSubpartIds.includes(es.id)) || []
+
+            // Delete removed subparts
+            for (const subpart of subpartsToDelete) {
+              await supabase.from('elearning_subparts').delete().eq('id', subpart.id)
+            }
+          } else {
+            // Create new chapter
+            const { data: chapterData, error: chapterError } = await supabase
+              .from('elearning_chapters')
+              .insert({
+                formation_id: formationId,
+                title: chapter.title,
+                order_index: chapter.orderIndex
+              })
+              .select()
+              .single()
+
+            if (chapterError) throw chapterError
+            chapterId = chapterData.id
+          }
+
+          // Update/Create subparts
+          for (const subpart of chapter.subparts) {
+            if (subpart.id) {
+              // Update existing subpart
+              const { error: subpartError } = await supabase
+                .from('elearning_subparts')
+                .update({
+                  title: subpart.title,
+                  vimeo_url: subpart.vimeoUrl || null,
+                  description_html: subpart.descriptionHtml || null,
+                  order_index: subpart.orderIndex
+                })
+                .eq('id', subpart.id)
+
+              if (subpartError) throw subpartError
+            } else {
+              // Create new subpart
+              const { error: subpartError } = await supabase
+                .from('elearning_subparts')
+                .insert({
+                  chapter_id: chapterId,
+                  title: subpart.title,
+                  vimeo_url: subpart.vimeoUrl || null,
+                  description_html: subpart.descriptionHtml || null,
+                  order_index: subpart.orderIndex
+                })
+
+              if (subpartError) throw subpartError
+            }
+          }
+        }
+      } else {
+        // CREATE MODE
+        // 1. Create formation
+        const { data: formationData, error: formationError } = await supabase
+          .from('elearning_formations')
           .insert({
-            formation_id: formationData.id,
-            title: chapter.title,
-            order_index: chapter.orderIndex
+            title: formation.title,
+            description: formation.description,
+            is_private: formation.isPrivate
           })
           .select()
           .single()
 
-        if (chapterError) throw chapterError
+        if (formationError) throw formationError
+        formationId = formationData.id
 
-        // 3. Create subparts for this chapter
-        if (chapter.subparts.length > 0) {
-          const subpartsToInsert = chapter.subparts.map(s => ({
-            chapter_id: chapterData.id,
-            title: s.title,
-            vimeo_url: s.vimeoUrl || null,
-            description_html: s.descriptionHtml || null,
-            order_index: s.orderIndex
-          }))
+        // 2. Create chapters with their subparts
+        for (const chapter of formation.chapters) {
+          const { data: chapterData, error: chapterError } = await supabase
+            .from('elearning_chapters')
+            .insert({
+              formation_id: formationId,
+              title: chapter.title,
+              order_index: chapter.orderIndex
+            })
+            .select()
+            .single()
 
-          const { error: subpartsError } = await supabase
-            .from('elearning_subparts')
-            .insert(subpartsToInsert)
+          if (chapterError) throw chapterError
 
-          if (subpartsError) throw subpartsError
+          // 3. Create subparts for this chapter
+          if (chapter.subparts.length > 0) {
+            const subpartsToInsert = chapter.subparts.map(s => ({
+              chapter_id: chapterData.id,
+              title: s.title,
+              vimeo_url: s.vimeoUrl || null,
+              description_html: s.descriptionHtml || null,
+              order_index: s.orderIndex
+            }))
+
+            const { error: subpartsError } = await supabase
+              .from('elearning_subparts')
+              .insert(subpartsToInsert)
+
+            if (subpartsError) throw subpartsError
+          }
         }
       }
 
       onSuccess()
     } catch (err: any) {
-      console.error('Error creating course:', err)
-      setError(err.message || 'Une erreur est survenue lors de la création')
+      console.error('Error saving course:', err)
+      setError(err.message || 'Une erreur est survenue lors de l\'enregistrement')
     } finally {
       setSaving(false)
     }
@@ -261,7 +436,9 @@ export default function CourseCreationWizard({ onClose, onSuccess }: Props) {
       <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b">
-          <h2 className="text-2xl font-bold text-gray-900">Créer une formation</h2>
+          <h2 className="text-2xl font-bold text-gray-900">
+            {formation.id ? 'Modifier la formation' : 'Créer une formation'}
+          </h2>
           <button
             onClick={onClose}
             className="text-gray-400 hover:text-gray-600 transition-colors"
@@ -500,7 +677,7 @@ export default function CourseCreationWizard({ onClose, onSuccess }: Props) {
               ) : (
                 <>
                   <Save className="w-4 h-4" />
-                  Créer la formation
+                  {formation.id ? 'Enregistrer les modifications' : 'Créer la formation'}
                 </>
               )}
             </button>
