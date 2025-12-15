@@ -76,79 +76,6 @@ const getVimeoEmbedUrl = (url: string) => {
   }
 }
 
-const ToolbarButton = ({
-  label,
-  onClick
-}: {
-  label: string
-  onClick: () => void
-}) => (
-  <button
-    type="button"
-    onClick={onClick}
-    className="px-2 py-1 text-sm rounded border border-gray-200 bg-white hover:bg-gray-50"
-  >
-    {label}
-  </button>
-)
-
-const RichTextEditor = ({ value, onChange }: { value: string; onChange: (html: string) => void }) => {
-  const editorRef = useRef<HTMLDivElement | null>(null)
-
-  useEffect(() => {
-    if (editorRef.current && editorRef.current.innerHTML !== value) {
-      editorRef.current.innerHTML = value
-    }
-  }, [value])
-
-  const applyFormat = (command: string, value?: string) => {
-    if (!editorRef.current) return
-    editorRef.current.focus()
-    document.execCommand(command, false, value)
-    onChange(editorRef.current.innerHTML)
-  }
-
-  const handleInput = () => {
-    if (!editorRef.current) return
-    onChange(editorRef.current.innerHTML)
-  }
-
-  return (
-    <div className="border rounded-xl overflow-hidden">
-      <div className="flex flex-wrap gap-2 p-3 bg-gray-50 border-b border-gray-200">
-        <ToolbarButton label="Gras" onClick={() => applyFormat('bold')} />
-        <ToolbarButton label="Italique" onClick={() => applyFormat('italic')} />
-        <ToolbarButton label="Liste" onClick={() => applyFormat('insertUnorderedList')} />
-        <ToolbarButton label="Titre" onClick={() => applyFormat('formatBlock', 'h3')} />
-        <select
-          className="px-2 py-1 text-sm rounded border border-gray-200 bg-white"
-          onChange={(e) => applyFormat('fontSize', e.target.value)}
-          defaultValue="16"
-        >
-          {[12, 14, 16, 20, 24].map((size) => (
-            <option key={size} value={size}>
-              {size}px
-            </option>
-          ))}
-        </select>
-        <input
-          type="color"
-          className="w-10 h-8 border border-gray-200 rounded"
-          onChange={(e) => applyFormat('foreColor', e.target.value)}
-          aria-label="Choisir une couleur"
-        />
-      </div>
-      <div
-        ref={editorRef}
-        className="min-h-[140px] p-4 focus:outline-none"
-        contentEditable
-        onInput={handleInput}
-        suppressContentEditableWarning
-      />
-    </div>
-  )
-}
-
 export default function ElearningPage() {
   const router = useRouter()
   const [profile, setProfile] = useState<Profile | null>(null)
@@ -239,23 +166,15 @@ export default function ElearningPage() {
         if (accessible.length) {
           setFormations(accessible)
           setSelectedFormationId(accessible[0].id)
-          setChapterForm((prev) => ({ ...prev, formationId: accessible[0].id }))
-          if (accessible[0].chapters[0]) {
-            setSubpartForm((prev) => ({ ...prev, chapterId: accessible[0].chapters[0].id }))
-          }
         } else {
           setFormations([])
           setSelectedFormationId('')
-          setChapterForm((prev) => ({ ...prev, formationId: '' }))
-          setSubpartForm((prev) => ({ ...prev, chapterId: '' }))
         }
       }
     } catch (error) {
       console.error('Erreur de chargement des formations', error)
       setFormations([])
       setSelectedFormationId('')
-      setChapterForm((prev) => ({ ...prev, formationId: '' }))
-      setSubpartForm((prev) => ({ ...prev, chapterId: '' }))
     }
   }
 
@@ -618,52 +537,11 @@ export default function ElearningPage() {
                 <div className="p-6 space-y-6">
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <div className="space-y-2 flex-1 min-w-[260px]">
-                      {editingFormationId === selectedFormation.id ? (
-                        <div className="space-y-2">
-                          <input
-                            value={editFormationForm.title}
-                            onChange={(e) => setEditFormationForm({ ...editFormationForm, title: e.target.value })}
-                            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
-                            placeholder="Titre de la formation"
-                          />
-                          <RichTextEditor
-                            value={editFormationForm.description}
-                            onChange={(html) => setEditFormationForm({ ...editFormationForm, description: html })}
-                          />
-                          <label className="inline-flex items-center gap-2 text-sm">
-                            <input
-                              type="checkbox"
-                              checked={editFormationForm.is_private}
-                              onChange={(e) => setEditFormationForm({ ...editFormationForm, is_private: e.target.checked })}
-                              className="rounded border-gray-300"
-                            />
-                            Formation privée (admin uniquement)
-                          </label>
-                          <div className="flex gap-2">
-                            <button
-                              onClick={handleUpdateFormation}
-                              className="px-4 py-2 bg-primary-600 text-white rounded-lg text-sm font-semibold"
-                              disabled={creating}
-                            >
-                              Enregistrer
-                            </button>
-                            <button
-                              onClick={() => setEditingFormationId(null)}
-                              className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-semibold"
-                            >
-                              Annuler
-                            </button>
-                          </div>
-                        </div>
-                      ) : (
-                        <>
-                          {selectedFormation.description && (
-                            <div
-                              className="text-gray-700 text-sm prose prose-sm max-w-none"
-                              dangerouslySetInnerHTML={{ __html: selectedFormation.description }}
-                            />
-                          )}
-                        </>
+                      {selectedFormation.description && (
+                        <div
+                          className="text-gray-700 text-sm prose prose-sm max-w-none"
+                          dangerouslySetInnerHTML={{ __html: selectedFormation.description }}
+                        />
                       )}
                     </div>
                     <div className="flex flex-col gap-2 items-end min-w-[220px]">
@@ -678,20 +556,12 @@ export default function ElearningPage() {
                       </div>
                       <span className="text-xs text-gray-500">{progress.percent}%</span>
                       {isAdmin && (
-                        <div className="flex flex-wrap gap-2 justify-end">
-                          <button
-                            onClick={() => startEditFormation(selectedFormation)}
-                            className="px-3 py-1 text-xs font-semibold border border-gray-200 rounded-lg hover:bg-white"
-                          >
-                            Modifier
-                          </button>
-                          <button
-                            onClick={() => handleDeleteFormation(selectedFormation.id)}
-                            className="px-3 py-1 text-xs font-semibold border border-red-200 text-red-700 rounded-lg hover:bg-red-50"
-                          >
-                            Supprimer
-                          </button>
-                        </div>
+                        <button
+                          onClick={() => handleDeleteFormation(selectedFormation.id)}
+                          className="px-3 py-1 text-xs font-semibold border border-red-200 text-red-700 rounded-lg hover:bg-red-50"
+                        >
+                          Supprimer
+                        </button>
                       )}
                     </div>
                   </div>
@@ -706,76 +576,26 @@ export default function ElearningPage() {
                       }}
                     >
                         <div className="flex items-center justify-between bg-gray-50 px-4 py-3">
-                          {editingChapterId === chapter.id ? (
-                            <div className="flex items-center gap-3 text-gray-800 font-semibold">
-                              <ChevronRight className="h-4 w-4 text-primary-600 opacity-50" />
-                              <Layers className="h-4 w-4 text-primary-600" />
-                              <input
-                                value={editChapterForm.title}
-                                onChange={(e) => setEditChapterForm({ ...editChapterForm, title: e.target.value })}
-                                className="border border-gray-200 rounded-lg px-2 py-1 text-sm"
-                              />
-                            </div>
-                          ) : (
-                            <button
-                              type="button"
-                              onClick={() => toggleChapterExpansion(chapter.id)}
-                              className="flex items-center gap-3 text-gray-800 font-semibold hover:text-primary-700 focus:outline-none"
-                              aria-label={`Basculer l'affichage du chapitre ${chapter.title}`}
-                            >
-                              <ChevronRight
-                                className={`h-4 w-4 text-primary-600 transition-transform ${
-                                  expandedChapters[chapter.id] ? 'rotate-90' : ''
-                                }`}
-                              />
-                              <Layers className="h-4 w-4 text-primary-600" />
-                              {chapter.title}
-                            </button>
-                          )}
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs text-gray-500">{chapter.subparts.length} sous-parties</span>
-                            {isAdmin && (
-                              <div className="flex items-center gap-1">
-                                {editingChapterId === chapter.id ? (
-                                  <>
-                                    <button
-                                      onClick={() => handleUpdateChapter(chapter.id)}
-                                      className="px-2 py-1 text-xs border border-primary-200 text-primary-700 rounded-lg"
-                                      disabled={creating}
-                                    >
-                                      Sauvegarder
-                                    </button>
-                                    <button
-                                      onClick={() => setEditingChapterId(null)}
-                                      className="px-2 py-1 text-xs border border-gray-200 rounded-lg"
-                                    >
-                                      Annuler
-                                    </button>
-                                  </>
-                                ) : (
-                                  <>
-                                    <button
-                                      onClick={() => startEditChapter(chapter)}
-                                      className="px-2 py-1 text-xs border border-gray-200 rounded-lg"
-                                    >
-                                      Modifier
-                                    </button>
-                                    <button
-                                      onClick={() => handleDeleteChapter(chapter.id)}
-                                      className="px-2 py-1 text-xs border border-red-200 text-red-700 rounded-lg"
-                                    >
-                                      Supprimer
-                                    </button>
-                                  </>
-                                )}
-                              </div>
-                            )}
-                          </div>
+                          <button
+                            type="button"
+                            onClick={() => toggleChapterExpansion(chapter.id)}
+                            className="flex items-center gap-3 text-gray-800 font-semibold hover:text-primary-700 focus:outline-none"
+                            aria-label={`Basculer l'affichage du chapitre ${chapter.title}`}
+                          >
+                            <ChevronRight
+                              className={`h-4 w-4 text-primary-600 transition-transform ${
+                                expandedChapters[chapter.id] ? 'rotate-90' : ''
+                              }`}
+                            />
+                            <Layers className="h-4 w-4 text-primary-600" />
+                            {chapter.title}
+                          </button>
+                          <span className="text-xs text-gray-500">{chapter.subparts.length} sous-parties</span>
                         </div>
-                        {(expandedChapters[chapter.id] || editingChapterId === chapter.id) && (
+                        {expandedChapters[chapter.id] && (
                           <div className="divide-y divide-gray-100">
                             {chapter.subparts.map((subpart) => {
-                              const subpartOpen = expandedSubparts[subpart.id] || editingSubpartId === subpart.id
+                              const subpartOpen = expandedSubparts[subpart.id]
                               return (
                                 <div
                                   key={subpart.id}
@@ -786,69 +606,27 @@ export default function ElearningPage() {
                                 >
                                   <div className="flex items-start justify-between gap-3">
                                     <div className="flex-1 space-y-2">
-                                      {editingSubpartId === subpart.id ? (
-                                        <div className="flex items-center gap-2 text-gray-900 font-semibold">
-                                          <ChevronDown className="h-4 w-4 text-primary-500 opacity-50" />
-                                          <Video className="h-4 w-4 text-primary-500" />
-                                          <input
-                                            value={editSubpartForm.title}
-                                            onChange={(e) => setEditSubpartForm({ ...editSubpartForm, title: e.target.value })}
-                                            className="border border-gray-200 rounded-lg px-2 py-1 text-sm"
-                                          />
-                                        </div>
-                                      ) : (
-                                        <button
-                                          type="button"
-                                          onClick={() => toggleSubpartExpansion(subpart.id)}
-                                          className="flex items-center gap-2 text-gray-900 font-semibold hover:text-primary-700 focus:outline-none"
-                                          aria-label={`Basculer l'affichage de la sous-partie ${subpart.title}`}
-                                        >
-                                          <ChevronDown
-                                            className={`h-4 w-4 text-primary-500 transition-transform ${
-                                              subpartOpen ? 'rotate-180' : ''
-                                            }`}
-                                          />
-                                          <Video className="h-4 w-4 text-primary-500" />
-                                          {subpart.title}
-                                        </button>
-                                      )}
+                                      <button
+                                        type="button"
+                                        onClick={() => toggleSubpartExpansion(subpart.id)}
+                                        className="flex items-center gap-2 text-gray-900 font-semibold hover:text-primary-700 focus:outline-none"
+                                        aria-label={`Basculer l'affichage de la sous-partie ${subpart.title}`}
+                                      >
+                                        <ChevronDown
+                                          className={`h-4 w-4 text-primary-500 transition-transform ${
+                                            subpartOpen ? 'rotate-180' : ''
+                                          }`}
+                                        />
+                                        <Video className="h-4 w-4 text-primary-500" />
+                                        {subpart.title}
+                                      </button>
                                       {subpartOpen && (
                                         <>
-                                          {editingSubpartId === subpart.id ? (
-                                            <div className="space-y-2">
-                                              <input
-                                                value={editSubpartForm.vimeo_url}
-                                                onChange={(e) =>
-                                                  setEditSubpartForm({ ...editSubpartForm, vimeo_url: e.target.value })
-                                                }
-                                                placeholder="URL Vimeo (optionnelle)"
-                                                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
-                                              />
-                                              <input
-                                                type="number"
-                                                min={1}
-                                                value={editSubpartForm.order_index}
-                                                onChange={(e) =>
-                                                  setEditSubpartForm({
-                                                    ...editSubpartForm,
-                                                    order_index: Number(e.target.value)
-                                                  })
-                                                }
-                                                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
-                                                placeholder="Ordre d'affichage"
-                                              />
-                                              <RichTextEditor
-                                                value={editSubpartForm.description_html}
-                                                onChange={(html) => setEditSubpartForm({ ...editSubpartForm, description_html: html })}
-                                              />
-                                            </div>
-                                          ) : (
-                                            subpart.description_html && (
-                                              <div
-                                                className="text-sm text-gray-700 prose prose-sm max-w-none"
-                                                dangerouslySetInnerHTML={{ __html: subpart.description_html }}
-                                              />
-                                            )
+                                          {subpart.description_html && (
+                                            <div
+                                              className="text-sm text-gray-700 prose prose-sm max-w-none"
+                                              dangerouslySetInnerHTML={{ __html: subpart.description_html }}
+                                            />
                                           )}
                                           <div className="mt-1 space-y-2">
                                             {subpart.vimeo_url ? (
@@ -890,42 +668,6 @@ export default function ElearningPage() {
                                         <CheckSquare className="h-4 w-4" />
                                         {subpart.completed ? 'Terminé' : 'Marquer terminé'}
                                       </button>
-                                      {isAdmin && (
-                                        <div className="flex flex-wrap gap-2 justify-end">
-                                          {editingSubpartId === subpart.id ? (
-                                            <>
-                                              <button
-                                                onClick={() => handleUpdateSubpart(subpart.id)}
-                                                className="px-3 py-1 text-xs border border-primary-200 text-primary-700 rounded-lg"
-                                                disabled={creating}
-                                              >
-                                                Sauvegarder
-                                              </button>
-                                              <button
-                                                onClick={() => setEditingSubpartId(null)}
-                                                className="px-3 py-1 text-xs border border-gray-200 rounded-lg"
-                                              >
-                                                Annuler
-                                              </button>
-                                            </>
-                                          ) : (
-                                            <>
-                                              <button
-                                                onClick={() => startEditSubpart(subpart, chapter.id)}
-                                                className="px-3 py-1 text-xs border border-gray-200 rounded-lg"
-                                              >
-                                                Modifier
-                                              </button>
-                                              <button
-                                                onClick={() => handleDeleteSubpart(subpart.id)}
-                                                className="px-3 py-1 text-xs border border-red-200 text-red-700 rounded-lg"
-                                              >
-                                                Supprimer
-                                              </button>
-                                            </>
-                                          )}
-                                        </div>
-                                      )}
                                     </div>
                                   </div>
                                 </div>
