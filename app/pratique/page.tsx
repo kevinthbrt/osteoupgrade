@@ -385,6 +385,18 @@ export default function PracticePage() {
     return () => container.removeEventListener('scroll', handleScroll)
   }, [viewMode, currentVideoIndex, visibleVideos])
 
+  // Exit scroll mode with Escape key
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && viewMode === 'scroll') {
+        setViewMode('grid')
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [viewMode])
+
   const premiumAccess = isPremium(profile?.role) || isAdmin(profile?.role)
 
   if (loading) {
@@ -477,17 +489,6 @@ export default function PracticePage() {
                     <AlertCircle className="h-5 w-5" />
                     <span>Vidéo non disponible</span>
                   </div>
-                )}
-              </div>
-
-              {/* Info overlay */}
-              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/60 to-transparent p-6 pb-8 pointer-events-none">
-                <h3 className="text-white text-2xl font-bold mb-2">{video.title}</h3>
-                {video.description && (
-                  <div
-                    className="text-white/90 text-sm line-clamp-3"
-                    dangerouslySetInnerHTML={{ __html: video.description }}
-                  />
                 )}
               </div>
 
