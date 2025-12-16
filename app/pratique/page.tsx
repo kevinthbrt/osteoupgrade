@@ -385,6 +385,18 @@ export default function PracticePage() {
     return () => container.removeEventListener('scroll', handleScroll)
   }, [viewMode, currentVideoIndex, visibleVideos])
 
+  // Exit scroll mode with Escape key
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && viewMode === 'scroll') {
+        setViewMode('grid')
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [viewMode])
+
   const premiumAccess = isPremium(profile?.role) || isAdmin(profile?.role)
 
   if (loading) {
