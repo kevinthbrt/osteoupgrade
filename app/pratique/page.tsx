@@ -354,6 +354,15 @@ export default function PracticePage() {
     }
   }
 
+  const handleVideoClick = (video: PracticeVideo) => {
+    const index = visibleVideos.findIndex((v) => v.id === video.id)
+    if (index !== -1) {
+      setCurrentVideoIndex(index)
+      setViewMode('scroll')
+      trackVideoView(video.id)
+    }
+  }
+
   // Track current video on scroll in scroll mode
   useEffect(() => {
     if (viewMode !== 'scroll' || !scrollContainerRef.current) return
@@ -457,7 +466,7 @@ export default function PracticePage() {
               <div className="w-full h-full flex items-center justify-center bg-black">
                 {getVimeoEmbedUrl(video) ? (
                   <iframe
-                    src={`${getVimeoEmbedUrl(video)}?autoplay=${index === currentVideoIndex ? '1' : '0'}&loop=1&background=1`}
+                    src={`${getVimeoEmbedUrl(video)}?autoplay=${index === currentVideoIndex ? '1' : '0'}`}
                     className="w-full h-full"
                     allow="autoplay; fullscreen; picture-in-picture"
                     allowFullScreen
@@ -472,7 +481,7 @@ export default function PracticePage() {
               </div>
 
               {/* Info overlay */}
-              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/60 to-transparent p-6 pb-8">
+              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/60 to-transparent p-6 pb-8 pointer-events-none">
                 <h3 className="text-white text-2xl font-bold mb-2">{video.title}</h3>
                 {video.description && (
                   <div
@@ -726,7 +735,10 @@ export default function PracticePage() {
               key={video.id}
               className="group bg-white border-2 border-transparent hover:border-pink-200 rounded-2xl shadow-lg hover:shadow-2xl overflow-hidden flex flex-col transition-all duration-300 hover:-translate-y-1"
             >
-              <div className="relative h-48 bg-gradient-to-br from-slate-100 to-gray-100">
+              <div
+                className="relative h-48 bg-gradient-to-br from-slate-100 to-gray-100 cursor-pointer"
+                onClick={() => handleVideoClick(video)}
+              >
                 {video.thumbnail_url ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={video.thumbnail_url} alt={video.title} className="w-full h-full object-cover" />
@@ -744,7 +756,10 @@ export default function PracticePage() {
                   </div>
                 </div>
               </div>
-              <div className="p-5 flex-1 flex flex-col gap-3">
+              <div
+                className="p-5 flex-1 flex flex-col gap-3 cursor-pointer"
+                onClick={() => handleVideoClick(video)}
+              >
                 <div className="flex items-center justify-between gap-2">
                   <h3 className="text-lg font-bold text-gray-900 group-hover:text-pink-600 transition-colors">{video.title}</h3>
                   {!video.is_active && (
@@ -761,7 +776,10 @@ export default function PracticePage() {
                 <div className="border-t border-gray-100 px-5 py-3 bg-gradient-to-br from-gray-50 to-slate-50 flex justify-between items-center">
                   <button
                     type="button"
-                    onClick={() => handleEdit(video)}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleEdit(video)
+                    }}
                     className="inline-flex items-center gap-2 text-sm text-pink-600 hover:text-pink-700 font-semibold"
                   >
                     <Edit className="h-4 w-4" />
