@@ -466,7 +466,7 @@ export default function PracticePage() {
               <div className="w-full h-full flex items-center justify-center bg-black">
                 {getVimeoEmbedUrl(video) ? (
                   <iframe
-                    src={`${getVimeoEmbedUrl(video)}?autoplay=${index === currentVideoIndex ? '1' : '0'}&loop=1&background=1`}
+                    src={`${getVimeoEmbedUrl(video)}?autoplay=${index === currentVideoIndex ? '1' : '0'}`}
                     className="w-full h-full"
                     allow="autoplay; fullscreen; picture-in-picture"
                     allowFullScreen
