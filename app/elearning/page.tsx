@@ -45,6 +45,7 @@ type Formation = {
   title: string
   description?: string
   is_private?: boolean
+  photo_url?: string
   chapters: Chapter[]
 }
 
@@ -127,7 +128,7 @@ export default function ElearningPage() {
       const { data, error } = await supabase
         .from('elearning_formations')
         .select(
-          `id, title, description, is_private,
+          `id, title, description, is_private, photo_url,
           chapters:elearning_chapters(id, title, order_index,
             subparts:elearning_subparts(id, title, vimeo_url, description_html, order_index,
               progress:elearning_subpart_progress(user_id, completed_at)
@@ -144,6 +145,7 @@ export default function ElearningPage() {
           title: formation.title,
           description: formation.description,
           is_private: formation.is_private,
+          photo_url: formation.photo_url,
           chapters:
             formation.chapters?.map((chapter: any) => ({
               id: chapter.id,
@@ -438,6 +440,17 @@ export default function ElearningPage() {
                         </span>
                       )}
                     </div>
+
+                    {/* Photo illustrative */}
+                    {formation.photo_url && (
+                      <div className="w-full h-48 overflow-hidden bg-gray-100">
+                        <img
+                          src={formation.photo_url}
+                          alt={`Illustration de ${formation.title}`}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    )}
 
                     {/* Content */}
                     <div className="p-5 space-y-4">

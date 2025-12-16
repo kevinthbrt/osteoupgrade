@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, type ChangeEvent } from 'react'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
-import { ChevronDown, ChevronUp, Plus, Trash2, Save, X } from 'lucide-react'
+import { ChevronDown, ChevronUp, Plus, Trash2, Save, X, Image } from 'lucide-react'
 
 interface Subpart {
   id?: string // Real ID from database
@@ -26,6 +26,7 @@ interface FormationData {
   title: string
   description: string
   isPrivate: boolean
+  photoUrl?: string
   chapters: Chapter[]
 }
 
@@ -34,6 +35,7 @@ interface ExistingFormation {
   title: string
   description?: string
   is_private?: boolean
+  photo_url?: string
   chapters: Array<{
     id: string
     title: string
@@ -58,11 +60,13 @@ export default function CourseCreationWizard({ onClose, onSuccess, existingForma
   const supabase = createClientComponentClient()
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false)
 
   const [formation, setFormation] = useState<FormationData>({
     title: '',
     description: '',
     isPrivate: false,
+    photoUrl: '',
     chapters: []
   })
 
@@ -77,6 +81,7 @@ export default function CourseCreationWizard({ onClose, onSuccess, existingForma
         title: existingFormation.title,
         description: existingFormation.description || '',
         isPrivate: existingFormation.is_private || false,
+        photoUrl: existingFormation.photo_url || '',
         chapters: existingFormation.chapters.map(chapter => {
           allChapterIds.add(chapter.id)
           return {
@@ -126,6 +131,40 @@ export default function CourseCreationWizard({ onClose, onSuccess, existingForma
       newExpanded.add(tempId)
     }
     setExpandedSubparts(newExpanded)
+  }
+
+  const uploadCourseImage = async (file: File) => {
+    const formData = new FormData()
+    formData.append('file', file)
+
+    const response = await fetch('/api/course-image-upload', {
+      method: 'POST',
+      body: formData
+    })
+
+    if (!response.ok) {
+      throw new Error('Le téléchargement a échoué')
+    }
+
+    const data = await response.json()
+    return data.url as string
+  }
+
+  const handlePhotoChange = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    setIsUploadingPhoto(true)
+    try {
+      const imageUrl = await uploadCourseImage(file)
+      setFormation((prev) => ({ ...prev, photoUrl: imageUrl }))
+    } catch (err) {
+      console.error("Erreur lors de l'upload de la photo de formation:", err)
+      alert("Impossible de téléverser la photo pour le moment. Merci de réessayer plus tard.")
+    } finally {
+      setIsUploadingPhoto(false)
+      event.target.value = ''
+    }
   }
 
   const addChapter = () => {
@@ -276,7 +315,8 @@ export default function CourseCreationWizard({ onClose, onSuccess, existingForma
           .update({
             title: formation.title,
             description: formation.description,
-            is_private: formation.isPrivate
+            is_private: formation.isPrivate,
+            photo_url: formation.photoUrl || null
           })
           .eq('id', formationId)
 
@@ -381,7 +421,8 @@ export default function CourseCreationWizard({ onClose, onSuccess, existingForma
           .insert({
             title: formation.title,
             description: formation.description,
-            is_private: formation.isPrivate
+            is_private: formation.isPrivate,
+            photo_url: formation.photoUrl || null
           })
           .select()
           .single()
@@ -477,6 +518,43 @@ export default function CourseCreationWizard({ onClose, onSuccess, existingForma
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="Décrivez le contenu de la formation..."
               />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Photo illustrative
+              </label>
+              <div className="flex flex-wrap items-center gap-3">
+                {formation.photoUrl && (
+                  <div className="relative w-32 h-32 rounded-lg overflow-hidden border-2 border-gray-200">
+                    <img
+                      src={formation.photoUrl}
+                      alt="Photo de la formation"
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                )}
+                <label className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 cursor-pointer transition-colors border border-gray-300">
+                  <Image className="w-4 h-4" />
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handlePhotoChange}
+                    className="hidden"
+                    disabled={isUploadingPhoto}
+                  />
+                  {isUploadingPhoto ? 'Téléversement...' : formation.photoUrl ? 'Changer la photo' : 'Ajouter une photo'}
+                </label>
+                {formation.photoUrl && (
+                  <button
+                    type="button"
+                    onClick={() => setFormation({ ...formation, photoUrl: '' })}
+                    className="px-4 py-2 text-sm text-red-600 hover:text-red-700 border border-red-200 rounded-md hover:bg-red-50 transition-colors"
+                  >
+                    Retirer
+                  </button>
+                )}
+              </div>
             </div>
 
             <div className="flex items-center">
