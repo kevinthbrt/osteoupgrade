@@ -481,7 +481,7 @@ export default function PracticePage() {
               </div>
 
               {/* Info overlay */}
-              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/60 to-transparent p-6 pb-8">
+              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/60 to-transparent p-6 pb-8 pointer-events-none">
                 <h3 className="text-white text-2xl font-bold mb-2">{video.title}</h3>
                 {video.description && (
                   <div
