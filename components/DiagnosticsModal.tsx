@@ -297,12 +297,12 @@ export default function DiagnosticsModal({
 
               {/* Image */}
               {selectedPathology.image_url && (
-                <div className="relative h-64 rounded-lg overflow-hidden bg-gray-100">
+                <div className="relative h-96 rounded-lg overflow-hidden bg-gray-100">
                   <Image
                     src={selectedPathology.image_url}
                     alt={selectedPathology.name}
                     fill
-                    className="object-cover"
+                    className="object-contain"
                   />
                 </div>
               )}
@@ -506,7 +506,6 @@ export default function DiagnosticsModal({
                           .split('\n')
                           .map(s => s.trim())
                           .filter(s => s.length > 0)
-                          .slice(0, 3) // Max 3 lignes
                       : []
 
                     return (
@@ -517,12 +516,12 @@ export default function DiagnosticsModal({
                       >
                         {/* Image sans overlay */}
                         {pathology.image_url && (
-                          <div className="relative h-40 bg-gray-100">
+                          <div className="relative h-64 bg-gray-100">
                             <Image
                               src={pathology.image_url}
                               alt={pathology.name}
                               fill
-                              className="object-cover"
+                              className="object-contain"
                             />
                           </div>
                         )}
@@ -542,9 +541,6 @@ export default function DiagnosticsModal({
                                   <span className="flex-1">{sign}</span>
                                 </li>
                               ))}
-                              {pathology.clinical_signs && pathology.clinical_signs.split('\n').filter(s => s.trim()).length > 3 && (
-                                <li className="text-xs text-gray-500 italic">+ autres signes...</li>
-                              )}
                             </ul>
                           )}
 
