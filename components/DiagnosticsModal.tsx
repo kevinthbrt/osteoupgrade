@@ -527,9 +527,16 @@ export default function DiagnosticsModal({
                         onClick={() => handleSelectPathology(pathology)}
                         className="group text-left border-2 border-gray-200 rounded-lg overflow-hidden hover:border-purple-500 hover:shadow-lg transition-all"
                       >
-                        {/* Image sans overlay */}
+                        {/* Titre en haut */}
+                        <div className="p-4 pb-0">
+                          <h3 className="font-semibold text-gray-900 text-lg mb-3">
+                            {pathology.name}
+                          </h3>
+                        </div>
+
+                        {/* Image */}
                         {pathology.image_url && (
-                          <div className="relative h-64 bg-gray-100">
+                          <div className="relative h-64 bg-gray-100 mx-4 mb-3 rounded-lg overflow-hidden">
                             <Image
                               src={pathology.image_url}
                               alt={pathology.name}
@@ -539,12 +546,7 @@ export default function DiagnosticsModal({
                           </div>
                         )}
 
-                        <div className="p-4">
-                          {/* Titre toujours en dessous de l'image */}
-                          <h3 className="font-semibold text-gray-900 text-lg mb-3">
-                            {pathology.name}
-                          </h3>
-
+                        <div className="px-4 pb-4">
                           {/* Signes cliniques sous forme de tirets */}
                           {clinicalSignsList.length > 0 && (
                             <div className="mb-3">
