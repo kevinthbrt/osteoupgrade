@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
-import { X, ChevronRight, Plus, AlertCircle, TestTube2, Eye } from 'lucide-react'
+import { X, ChevronRight, Plus, AlertCircle, TestTube2, Eye, ChevronDown } from 'lucide-react'
 import Image from 'next/image'
 import TestDetailModal from './TestDetailModal'
 
@@ -73,6 +73,7 @@ export default function DiagnosticsModal({
   const [selectedTests, setSelectedTests] = useState<Set<string>>(new Set())
   const [testDetail, setTestDetail] = useState<OrthopedicTest | null>(null)
   const [isTestDetailOpen, setIsTestDetailOpen] = useState(false)
+  const [expandedSigns, setExpandedSigns] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     if (isOpen && region) {
@@ -250,6 +251,18 @@ export default function DiagnosticsModal({
   const handleCloseTestDetail = () => {
     setIsTestDetailOpen(false)
     setTestDetail(null)
+  }
+
+  const toggleSignsExpansion = (pathologyId: string) => {
+    setExpandedSigns(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(pathologyId)) {
+        newSet.delete(pathologyId)
+      } else {
+        newSet.add(pathologyId)
+      }
+      return newSet
+    })
   }
 
   if (!isOpen) return null
@@ -534,14 +547,34 @@ export default function DiagnosticsModal({
 
                           {/* Signes cliniques sous forme de tirets */}
                           {clinicalSignsList.length > 0 && (
-                            <ul className="space-y-1 mb-3">
-                              {clinicalSignsList.map((sign, idx) => (
-                                <li key={idx} className="text-sm text-gray-600 flex items-start gap-2">
-                                  <span className="text-purple-600 mt-1">•</span>
-                                  <span className="flex-1">{sign}</span>
-                                </li>
-                              ))}
-                            </ul>
+                            <div className="mb-3">
+                              <ul className="space-y-1">
+                                {(expandedSigns.has(pathology.id)
+                                  ? clinicalSignsList
+                                  : clinicalSignsList.slice(0, 3)
+                                ).map((sign, idx) => (
+                                  <li key={idx} className="text-sm text-gray-600 flex items-start gap-2">
+                                    <span className="text-purple-600 mt-1">•</span>
+                                    <span className="flex-1">{sign}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                              {clinicalSignsList.length > 3 && (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    toggleSignsExpansion(pathology.id)
+                                  }}
+                                  className="mt-2 text-xs text-purple-600 hover:text-purple-700 font-medium flex items-center gap-1 transition-colors"
+                                >
+                                  <ChevronDown className={`h-3 w-3 transition-transform ${expandedSigns.has(pathology.id) ? 'rotate-180' : ''}`} />
+                                  {expandedSigns.has(pathology.id)
+                                    ? 'Voir moins'
+                                    : `Voir ${clinicalSignsList.length - 3} signe${clinicalSignsList.length - 3 > 1 ? 's' : ''} de plus`
+                                  }
+                                </button>
+                              )}
+                            </div>
                           )}
 
                           {/* Indicateurs en bas */}
