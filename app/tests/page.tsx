@@ -21,7 +21,8 @@ import {
   X,
   Layers,
   FolderOpen,
-  GraduationCap
+  GraduationCap,
+  Stethoscope
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import RelatedContent, { RelatedItem } from '@/components/RelatedContent'
