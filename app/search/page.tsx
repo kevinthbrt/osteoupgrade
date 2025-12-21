@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import AuthLayout from '@/components/AuthLayout'
 import { supabase } from '@/lib/supabase'
@@ -28,7 +28,7 @@ type SearchResult = {
   icon: any
 }
 
-export default function SearchPage() {
+function SearchPageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const query = searchParams.get('q') || ''
@@ -345,5 +345,19 @@ export default function SearchPage() {
         )}
       </div>
     </AuthLayout>
+  )
+}
+
+export default function SearchPage() {
+  return (
+    <Suspense fallback={
+      <AuthLayout>
+        <div className="flex items-center justify-center h-96">
+          <Loader2 className="h-12 w-12 text-slate-400 animate-spin" />
+        </div>
+      </AuthLayout>
+    }>
+      <SearchPageContent />
+    </Suspense>
   )
 }
