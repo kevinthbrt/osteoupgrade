@@ -125,9 +125,9 @@ export default function DiagnosticsPage() {
         .from('pathology_tests')
         .select('pathology_id')
 
-      const testCountsMap = new Map<string, number>()
+      const testCountsMap: Record<string, number> = {}
       testCounts?.forEach(item => {
-        testCountsMap.set(item.pathology_id, (testCountsMap.get(item.pathology_id) || 0) + 1)
+        testCountsMap[item.pathology_id] = (testCountsMap[item.pathology_id] || 0) + 1
       })
 
       // Charger le nombre de clusters pour chaque pathologie
@@ -135,15 +135,15 @@ export default function DiagnosticsPage() {
         .from('pathology_clusters')
         .select('pathology_id')
 
-      const clusterCountsMap = new Map<string, number>()
+      const clusterCountsMap: Record<string, number> = {}
       clusterCounts?.forEach(item => {
-        clusterCountsMap.set(item.pathology_id, (clusterCountsMap.get(item.pathology_id) || 0) + 1)
+        clusterCountsMap[item.pathology_id] = (clusterCountsMap[item.pathology_id] || 0) + 1
       })
 
       const pathologiesWithCounts = pathologiesData?.map(p => ({
         ...p,
-        test_count: testCountsMap.get(p.id) || 0,
-        cluster_count: clusterCountsMap.get(p.id) || 0
+        test_count: testCountsMap[p.id] || 0,
+        cluster_count: clusterCountsMap[p.id] || 0
       })) || []
 
       setPathologies(pathologiesWithCounts)
