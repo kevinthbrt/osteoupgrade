@@ -16,8 +16,11 @@ import {
   ChevronRight,
   FolderOpen,
   Image as ImageIcon,
-  TestTube
+  TestTube,
+  Map,
+  GraduationCap
 } from 'lucide-react'
+import RelatedContent, { RelatedItem } from '@/components/RelatedContent'
 import Image from 'next/image'
 
 // Types
@@ -451,6 +454,42 @@ export default function DiagnosticsPage() {
             </button>
           </div>
         )}
+
+        {/* Related Modules */}
+        <div className="bg-white rounded-xl shadow-sm p-6 mt-6">
+          <RelatedContent
+            title="📚 Explorer aussi"
+            items={[
+              {
+                id: 'tests',
+                title: 'Tests Orthopédiques',
+                description: 'Base de données complète des tests organisés par région avec vidéos',
+                module: 'Référence Clinique',
+                href: '/tests',
+                gradient: 'from-emerald-500 to-teal-600',
+                icon: TestTube
+              },
+              {
+                id: 'topographie',
+                title: 'Topographie',
+                description: 'Guides topographiques pour structurer votre raisonnement clinique',
+                module: 'Référence Clinique',
+                href: '/topographie',
+                gradient: 'from-sky-500 to-blue-600',
+                icon: Map
+              },
+              {
+                id: 'elearning',
+                title: 'Retour à E-Learning',
+                description: 'Voir tous les modules de contenu théorique',
+                module: 'Hub',
+                href: '/elearning',
+                gradient: 'from-blue-500 to-cyan-600',
+                icon: GraduationCap
+              }
+            ]}
+          />
+        </div>
       </div>
     </AuthLayout>
   )

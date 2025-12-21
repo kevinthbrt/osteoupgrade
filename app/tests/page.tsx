@@ -20,9 +20,11 @@ import {
   Activity,
   X,
   Layers,
-  FolderOpen
+  FolderOpen,
+  GraduationCap
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import RelatedContent, { RelatedItem } from '@/components/RelatedContent'
 
 // Catégories de régions anatomiques
 const BODY_REGIONS = {
@@ -944,6 +946,42 @@ export default function ImprovedTestsPage() {
             })}
           </div>
         )}
+
+        {/* Related Modules */}
+        <div className="bg-white rounded-xl shadow-sm p-6">
+          <RelatedContent
+            title="📚 Explorer aussi"
+            items={[
+              {
+                id: 'diagnostics',
+                title: 'Diagnostics & Pathologies',
+                description: 'Pathologies par région avec photos, signes cliniques et red flags',
+                module: 'Référence Clinique',
+                href: '/admin/diagnostics',
+                gradient: 'from-rose-500 to-pink-600',
+                icon: Stethoscope
+              },
+              {
+                id: 'topographie',
+                title: 'Topographie',
+                description: 'Guides topographiques pour structurer votre raisonnement clinique',
+                module: 'Référence Clinique',
+                href: '/topographie',
+                gradient: 'from-sky-500 to-blue-600',
+                icon: User
+              },
+              {
+                id: 'elearning',
+                title: 'Retour à E-Learning',
+                description: 'Voir tous les modules de contenu théorique',
+                module: 'Hub',
+                href: '/elearning',
+                gradient: 'from-blue-500 to-cyan-600',
+                icon: GraduationCap
+              }
+            ]}
+          />
+        </div>
       </div>
 
       {/* Modal création CLUSTER */}
