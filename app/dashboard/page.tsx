@@ -255,48 +255,47 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6">
-                <div className="bg-white/5 border border-white/10 rounded-xl p-3">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Zap className="h-4 w-4 text-sky-300" />
-                    <span className="text-xs text-slate-300 font-medium">Cette semaine</span>
-                  </div>
-                  <div className="flex flex-wrap gap-3 text-xs text-slate-300">
-                    <span>Connexions: <strong className="text-white">{stats.weekLogins}</strong></span>
-                    <span>E-learning: <strong className="text-white">{stats.weekElearning}</strong></span>
-                    <span>Pratique: <strong className="text-white">{stats.weekPractice}</strong></span>
-                    <span>Testing: <strong className="text-white">{stats.weekTesting}</strong></span>
-                  </div>
+              <div className="bg-white/5 border border-white/10 rounded-xl p-4 mb-6">
+                <div className="flex items-center gap-2 mb-3">
+                  <Zap className="h-4 w-4 text-sky-300" />
+                  <span className="text-xs text-slate-300 font-medium">Barres d’expérience</span>
                 </div>
-
-                <div className="bg-white/5 border border-white/10 rounded-xl p-3">
-                  <div className="flex items-center gap-2 mb-2">
-                    <BookOpen className="h-4 w-4 text-blue-300" />
-                    <span className="text-xs text-slate-300 font-medium">Progression modules</span>
-                  </div>
-                  <div className="grid grid-cols-3 gap-3 text-center">
-                    <div>
-                      <div className="text-lg font-bold text-white">{stats.elearningProgress}%</div>
-                      <div className="text-[10px] text-slate-400">E-learning</div>
+                <div className="space-y-3">
+                  <div>
+                    <div className="flex items-center justify-between text-xs text-slate-300 mb-1">
+                      <span>E-learning</span>
+                      <span className="text-white font-semibold">{stats.elearningProgress}%</span>
                     </div>
-                    <div>
-                      <div className="text-lg font-bold text-white">{stats.practiceProgress}%</div>
-                      <div className="text-[10px] text-slate-400">Pratique</div>
-                    </div>
-                    <div>
-                      <div className="text-lg font-bold text-white">{stats.testingProgress}%</div>
-                      <div className="text-[10px] text-slate-400">Testing</div>
+                    <div className="h-2 rounded-full bg-white/10 overflow-hidden">
+                      <div
+                        className="h-full bg-gradient-to-r from-blue-400 to-cyan-400"
+                        style={{ width: `${stats.elearningProgress}%` }}
+                      />
                     </div>
                   </div>
-                </div>
-
-                <div className="bg-white/5 border border-white/10 rounded-xl p-3">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Award className="h-4 w-4 text-amber-300" />
-                    <span className="text-xs text-slate-300 font-medium">Objectifs</span>
+                  <div>
+                    <div className="flex items-center justify-between text-xs text-slate-300 mb-1">
+                      <span>Pratique</span>
+                      <span className="text-white font-semibold">{stats.practiceProgress}%</span>
+                    </div>
+                    <div className="h-2 rounded-full bg-white/10 overflow-hidden">
+                      <div
+                        className="h-full bg-gradient-to-r from-pink-400 to-rose-400"
+                        style={{ width: `${stats.practiceProgress}%` }}
+                      />
+                    </div>
                   </div>
-                  <div className="text-xs text-slate-300">
-                    Débloquez de nouveaux badges en continuant vos activités sur la plateforme.
+                  <div>
+                    <div className="flex items-center justify-between text-xs text-slate-300 mb-1">
+                      <span>Testing</span>
+                      <span className="text-white font-semibold">{stats.testingProgress}%</span>
+                    </div>
+                    <div className="h-2 rounded-full bg-white/10 overflow-hidden">
+                      <div
+                        className="h-full bg-gradient-to-r from-purple-400 to-indigo-400"
+                        style={{ width: `${stats.testingProgress}%` }}
+                      />
+                    </div>
                   </div>
                 </div>
               </div>
