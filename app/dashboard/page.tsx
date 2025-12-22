@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ComponentType } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import AuthLayout from '@/components/AuthLayout'
@@ -20,7 +20,13 @@ import {
   Sparkles,
   Target,
   BookOpen,
-  Brain
+  Brain,
+  GraduationCap,
+  Zap,
+  Calendar,
+  Dumbbell,
+  Flame,
+  LogIn
 } from 'lucide-react'
 
 export default function Dashboard() {
@@ -42,6 +48,15 @@ export default function Dashboard() {
     practiceProgress: 0,
     testingProgress: 0
   })
+
+  const badgeIconMap: Record<string, ComponentType<{ className?: string }>> = {
+    GraduationCap,
+    Zap,
+    Calendar,
+    Dumbbell,
+    Flame,
+    LogIn
+  }
 
   useEffect(() => {
     loadDashboardData()
@@ -295,16 +310,23 @@ export default function Dashboard() {
                 </div>
                 <div className="mt-4 flex flex-wrap gap-2">
                   {badges.length > 0 ? (
-                    badges.map((badge) => (
+                    badges.map((badge) => {
+                      const BadgeIcon = badge.icon ? badgeIconMap[badge.icon] : null
+                      return (
                       <span
                         key={badge.id}
                         className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs text-white"
                         title={badge.name}
                       >
-                        <span className="text-base">{badge.icon || '🏅'}</span>
+                        {BadgeIcon ? (
+                          <BadgeIcon className="h-4 w-4 text-amber-300" />
+                        ) : (
+                          <span className="text-base">🏅</span>
+                        )}
                         <span className="max-w-[140px] truncate">{badge.name}</span>
                       </span>
-                    ))
+                      )
+                    })
                   ) : (
                     <span className="text-xs text-slate-400">
                       Aucun badge débloqué pour le moment.
