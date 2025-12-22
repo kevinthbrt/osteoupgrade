@@ -52,15 +52,80 @@ function SearchPageContent() {
     const allResults: SearchResult[] = []
 
     try {
-      // Search formations/cours
-      const { data: formations } = await supabase
-        .from('elearning_formations')
-        .select('id, title, description')
-        .or(`title.ilike.%${q}%,description.ilike.%${q}%`)
-        .limit(10)
+      const searchValue = q.trim()
 
-      if (formations) {
-        formations.forEach(f => {
+      const [
+        formationsResponse,
+        chaptersResponse,
+        subpartsResponse,
+        pathologiesResponse,
+        testsResponse,
+        zonesResponse,
+        videosResponse,
+        quizzesResponse,
+        casesResponse
+      ] = await Promise.all([
+        supabase
+          .from('elearning_formations')
+          .select('id, title, description')
+          .or(`title.ilike.%${searchValue}%,description.ilike.%${searchValue}%`)
+          .limit(10),
+        supabase
+          .from('elearning_chapters')
+          .select('id, title, formation_id')
+          .or(`title.ilike.%${searchValue}%`)
+          .limit(10),
+        supabase
+          .from('elearning_subparts')
+          .select('id, title, chapter_id')
+          .or(`title.ilike.%${searchValue}%`)
+          .limit(10),
+        supabase
+          .from('pathologies')
+          .select('id, name, description, region')
+          .or(`name.ilike.%${searchValue}%,description.ilike.%${searchValue}%,region.ilike.%${searchValue}%`)
+          .limit(10),
+        supabase
+          .from('orthopedic_tests')
+          .select('id, name, description, category')
+          .or(`name.ilike.%${searchValue}%,description.ilike.%${searchValue}%,category.ilike.%${searchValue}%`)
+          .limit(10),
+        supabase
+          .from('topographic_zones')
+          .select('id, name, description, region')
+          .or(`name.ilike.%${searchValue}%,description.ilike.%${searchValue}%,region.ilike.%${searchValue}%`)
+          .limit(10),
+        supabase
+          .from('practice_videos')
+          .select('id, title, description, region')
+          .or(`title.ilike.%${searchValue}%,description.ilike.%${searchValue}%,region.ilike.%${searchValue}%`)
+          .limit(10),
+        supabase
+          .from('quizzes')
+          .select('id, title, description, theme')
+          .eq('is_active', true)
+          .or(`title.ilike.%${searchValue}%,description.ilike.%${searchValue}%,theme.ilike.%${searchValue}%`)
+          .limit(10),
+        supabase
+          .from('clinical_cases')
+          .select('id, title, description, region')
+          .eq('is_active', true)
+          .or(`title.ilike.%${searchValue}%,description.ilike.%${searchValue}%,region.ilike.%${searchValue}%`)
+          .limit(10)
+      ])
+
+      const formations = formationsResponse.data || []
+      const chapters = chaptersResponse.data || []
+      const subparts = subpartsResponse.data || []
+      const pathologies = pathologiesResponse.data || []
+      const tests = testsResponse.data || []
+      const zones = zonesResponse.data || []
+      const videos = videosResponse.data || []
+      const quizzes = quizzesResponse.data || []
+      const cases = casesResponse.data || []
+
+      if (formations.length > 0) {
+        formations.forEach((f: { id: string; title: string; description: string | null }) => {
           allResults.push({
             id: f.id,
             title: f.title,
@@ -74,15 +139,39 @@ function SearchPageContent() {
         })
       }
 
-      // Search pathologies
-      const { data: pathologies } = await supabase
-        .from('pathologies')
-        .select('id, name, description, region')
-        .or(`name.ilike.%${q}%,description.ilike.%${q}%,region.ilike.%${q}%`)
-        .limit(10)
+      if (chapters.length > 0) {
+        chapters.forEach((chapter: { id: string; title: string; formation_id: string }) => {
+          allResults.push({
+            id: chapter.id,
+            title: chapter.title,
+            description: 'Chapitre e-learning',
+            type: 'cours',
+            href: '/elearning/cours',
+            module: 'Cours',
+            gradient: 'from-blue-500 to-cyan-600',
+            icon: BookOpen
+          })
+        })
+      }
 
-      if (pathologies) {
-        pathologies.forEach(p => {
+      if (subparts.length > 0) {
+        subparts.forEach((subpart: { id: string; title: string; chapter_id: string }) => {
+          allResults.push({
+            id: subpart.id,
+            title: subpart.title,
+            description: 'Leçon e-learning',
+            type: 'cours',
+            href: '/elearning/cours',
+            module: 'Cours',
+            gradient: 'from-blue-500 to-cyan-600',
+            icon: BookOpen
+          })
+        })
+      }
+
+      // Search pathologies
+      if (pathologies.length > 0) {
+        pathologies.forEach((p: { id: string; name: string; description: string | null; region: string | null }) => {
           allResults.push({
             id: p.id,
             title: p.name,
@@ -97,14 +186,8 @@ function SearchPageContent() {
       }
 
       // Search orthopedic tests
-      const { data: tests } = await supabase
-        .from('orthopedic_tests')
-        .select('id, name, description, category')
-        .or(`name.ilike.%${q}%,description.ilike.%${q}%,category.ilike.%${q}%`)
-        .limit(10)
-
-      if (tests) {
-        tests.forEach(t => {
+      if (tests.length > 0) {
+        tests.forEach((t: { id: string; name: string; description: string | null; category: string | null }) => {
           allResults.push({
             id: t.id,
             title: t.name,
@@ -119,14 +202,8 @@ function SearchPageContent() {
       }
 
       // Search topographic zones
-      const { data: zones } = await supabase
-        .from('topographic_zones')
-        .select('id, name, description, region')
-        .or(`name.ilike.%${q}%,description.ilike.%${q}%,region.ilike.%${q}%`)
-        .limit(10)
-
-      if (zones) {
-        zones.forEach(z => {
+      if (zones.length > 0) {
+        zones.forEach((z: { id: string; name: string; description: string | null; region: string | null }) => {
           allResults.push({
             id: z.id,
             title: z.name,
@@ -141,14 +218,8 @@ function SearchPageContent() {
       }
 
       // Search practice videos
-      const { data: videos } = await supabase
-        .from('practice_videos')
-        .select('id, title, description, region')
-        .or(`title.ilike.%${q}%,description.ilike.%${q}%,region.ilike.%${q}%`)
-        .limit(10)
-
-      if (videos) {
-        videos.forEach(v => {
+      if (videos.length > 0) {
+        videos.forEach((v: { id: string; title: string; description: string | null; region: string | null }) => {
           allResults.push({
             id: v.id,
             title: v.title,
@@ -163,15 +234,8 @@ function SearchPageContent() {
       }
 
       // Search quizzes
-      const { data: quizzes } = await supabase
-        .from('quizzes')
-        .select('id, title, description, theme')
-        .eq('is_active', true)
-        .or(`title.ilike.%${q}%,description.ilike.%${q}%,theme.ilike.%${q}%`)
-        .limit(10)
-
-      if (quizzes) {
-        quizzes.forEach(quiz => {
+      if (quizzes.length > 0) {
+        quizzes.forEach((quiz: { id: string; title: string; description: string | null; theme: string | null }) => {
           allResults.push({
             id: quiz.id,
             title: quiz.title,
@@ -186,15 +250,8 @@ function SearchPageContent() {
       }
 
       // Search clinical cases
-      const { data: cases } = await supabase
-        .from('clinical_cases')
-        .select('id, title, description, region')
-        .eq('is_active', true)
-        .or(`title.ilike.%${q}%,description.ilike.%${q}%,region.ilike.%${q}%`)
-        .limit(10)
-
-      if (cases) {
-        cases.forEach(caseItem => {
+      if (cases.length > 0) {
+        cases.forEach((caseItem: { id: string; title: string; description: string | null; region: string | null }) => {
           allResults.push({
             id: caseItem.id,
             title: caseItem.title,
