@@ -16,7 +16,12 @@ import {
   Flame,
   Award,
   ArrowRight,
-  Loader2
+  Loader2,
+  Sparkles,
+  Zap,
+  Target,
+  BookOpen,
+  Brain
 } from 'lucide-react'
 
 export default function Dashboard() {
@@ -110,7 +115,9 @@ export default function Dashboard() {
       icon: Stethoscope,
       href: '/pratique',
       gradient: 'from-pink-500 via-pink-600 to-rose-600',
+      bgPattern: 'bg-pink-50',
       count: '150+ vidéos',
+      emoji: '🩺',
       features: ['HVLA', 'Mobilisation', 'Techniques tissulaires']
     },
     {
@@ -120,7 +127,9 @@ export default function Dashboard() {
       icon: GraduationCap,
       href: '/elearning',
       gradient: 'from-blue-500 via-blue-600 to-cyan-600',
+      bgPattern: 'bg-blue-50',
       count: '500+ contenus',
+      emoji: '📚',
       features: ['Cours', 'Tests ortho', 'Diagnostics', 'Quiz', 'Cas pratiques']
     },
     {
@@ -130,7 +139,9 @@ export default function Dashboard() {
       icon: Wrench,
       href: '/outils',
       gradient: 'from-orange-500 via-orange-600 to-red-600',
+      bgPattern: 'bg-orange-50',
       count: '150+ exercices',
+      emoji: '🛠️',
       features: ['Exercices par région', 'Fiches patients', 'Protocoles']
     },
     {
@@ -140,7 +151,9 @@ export default function Dashboard() {
       icon: TestTube,
       href: '/testing',
       gradient: 'from-purple-500 via-purple-600 to-indigo-600',
+      bgPattern: 'bg-purple-50',
       count: 'Modèle 3D',
+      emoji: '🧬',
       features: ['Anatomie 3D', 'Tests interactifs', 'Zones cliquables']
     }
   ]
@@ -159,107 +172,171 @@ export default function Dashboard() {
 
   return (
     <AuthLayout>
-      <div className="min-h-screen">
-        {/* Header with Search */}
-        <div className="mb-6">
-          <h1 className="text-3xl md:text-4xl font-bold text-slate-900 mb-4">
-            Bienvenue, {profile?.full_name || 'Docteur'} 👋
-          </h1>
+      <div className="min-h-screen pb-12">
+        {/* Hero Header */}
+        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white mb-8 shadow-2xl">
+          {/* Animated background pattern */}
+          <div className="absolute inset-0 opacity-10">
+            <div className="absolute top-0 left-0 w-96 h-96 bg-sky-400 rounded-full blur-3xl animate-pulse" />
+            <div className="absolute bottom-0 right-0 w-96 h-96 bg-purple-400 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
+          </div>
 
-          {/* Global Search */}
-          <form onSubmit={handleSearch} className="relative max-w-2xl">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Rechercher une technique, pathologie, cours, test..."
-              className="w-full pl-12 pr-4 py-4 rounded-2xl bg-white border-2 border-slate-200 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-transparent transition-all shadow-sm"
-            />
-          </form>
-        </div>
-
-        {/* Gamification - Compact */}
-        {stats.totalXp > 0 && (
-          <div className="bg-gradient-to-r from-slate-800 to-slate-900 rounded-2xl p-4 mb-8 shadow-lg">
-            <div className="flex items-center justify-between text-white">
-              <div className="flex items-center gap-6">
-                <div className="flex items-center gap-2">
-                  <Trophy className="h-5 w-5 text-yellow-400" />
-                  <span className="font-semibold">Niveau {stats.level}</span>
-                  <span className="text-slate-300">•</span>
-                  <span className="text-slate-300">{stats.totalXp.toLocaleString()} XP</span>
+          <div className="relative px-6 py-10 md:px-12 md:py-16">
+            <div className="max-w-6xl mx-auto">
+              {/* Welcome Message */}
+              <div className="flex items-center gap-3 mb-6">
+                <div className="p-3 rounded-2xl bg-white/10 backdrop-blur-sm border border-white/20">
+                  <Sparkles className="h-6 w-6 text-yellow-300" />
                 </div>
-
-                <div className="flex items-center gap-2">
-                  <Flame className="h-5 w-5 text-orange-400" />
-                  <span className="font-semibold">{stats.currentStreak} jours</span>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <Award className="h-5 w-5 text-purple-400" />
-                  <span className="font-semibold">{stats.unlockedAchievements} badges</span>
+                <div>
+                  <div className="text-sm text-slate-400 font-medium">Bienvenue dans votre espace</div>
+                  <h1 className="text-3xl md:text-4xl font-bold">
+                    {profile?.full_name || 'Docteur'} 👋
+                  </h1>
                 </div>
               </div>
 
-              <button
-                onClick={() => router.push('/stats')}
-                className="px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 transition-all text-sm font-semibold"
-              >
-                Voir progression détaillée →
-              </button>
+              <p className="text-lg text-slate-300 mb-8 max-w-2xl">
+                Développez vos compétences en ostéopathie avec nos modules interactifs et contenus premium.
+              </p>
+
+              {/* Stats Cards */}
+              {stats.totalXp > 0 && (
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                  <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl p-4 hover:bg-white/15 transition-all cursor-pointer" onClick={() => router.push('/stats')}>
+                    <div className="flex items-center gap-2 mb-2">
+                      <Trophy className="h-5 w-5 text-yellow-400" />
+                      <span className="text-xs text-slate-300 font-medium">Niveau</span>
+                    </div>
+                    <div className="text-3xl font-bold">{stats.level}</div>
+                    <div className="text-xs text-slate-400 mt-1">{stats.totalXp.toLocaleString()} XP</div>
+                  </div>
+
+                  <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl p-4 hover:bg-white/15 transition-all cursor-pointer" onClick={() => router.push('/stats')}>
+                    <div className="flex items-center gap-2 mb-2">
+                      <Flame className="h-5 w-5 text-orange-400" />
+                      <span className="text-xs text-slate-300 font-medium">Série</span>
+                    </div>
+                    <div className="text-3xl font-bold">{stats.currentStreak}</div>
+                    <div className="text-xs text-slate-400 mt-1">jours consécutifs</div>
+                  </div>
+
+                  <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl p-4 hover:bg-white/15 transition-all cursor-pointer" onClick={() => router.push('/stats')}>
+                    <div className="flex items-center gap-2 mb-2">
+                      <Award className="h-5 w-5 text-purple-400" />
+                      <span className="text-xs text-slate-300 font-medium">Badges</span>
+                    </div>
+                    <div className="text-3xl font-bold">{stats.unlockedAchievements}</div>
+                    <div className="text-xs text-slate-400 mt-1">débloqués</div>
+                  </div>
+
+                  <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl p-4 hover:bg-white/15 transition-all cursor-pointer" onClick={() => router.push('/stats')}>
+                    <div className="flex items-center gap-2 mb-2">
+                      <Target className="h-5 w-5 text-green-400" />
+                      <span className="text-xs text-slate-300 font-medium">Progression</span>
+                    </div>
+                    <div className="text-3xl font-bold">87%</div>
+                    <div className="text-xs text-slate-400 mt-1">ce mois</div>
+                  </div>
+                </div>
+              )}
+
+              {/* Search Bar */}
+              <form onSubmit={handleSearch} className="relative max-w-3xl">
+                <Search className="absolute left-5 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Rechercher une technique, pathologie, cours, test..."
+                  className="w-full pl-14 pr-6 py-5 rounded-2xl bg-white/95 backdrop-blur-sm border-2 border-white/50 text-slate-900 placeholder-slate-500 focus:outline-none focus:ring-4 focus:ring-sky-400/50 focus:border-white transition-all shadow-xl text-lg"
+                />
+                {searchQuery && (
+                  <button
+                    type="submit"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 px-5 py-2.5 bg-gradient-to-r from-sky-500 to-blue-600 text-white rounded-xl font-semibold hover:from-sky-600 hover:to-blue-700 transition-all shadow-lg"
+                  >
+                    Rechercher
+                  </button>
+                )}
+              </form>
             </div>
           </div>
-        )}
+        </div>
 
-        {/* Main Modules Grid */}
-        <div className="mb-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {modules.map((module) => {
+        {/* Main Modules Section */}
+        <div className="mb-12">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h2 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
+                <Brain className="h-7 w-7 text-sky-600" />
+                Vos Modules d'Apprentissage
+              </h2>
+              <p className="text-slate-600 mt-1">Sélectionnez un module pour commencer</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            {modules.map((module, index) => {
               const Icon = module.icon
 
               return (
                 <button
                   key={module.id}
                   onClick={() => router.push(module.href)}
-                  className="group relative overflow-hidden rounded-2xl bg-white border-2 border-slate-200 hover:border-sky-300 p-8 text-left shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-1"
+                  className="group relative overflow-hidden rounded-3xl bg-white border-2 border-slate-200 hover:border-transparent p-8 text-left shadow-lg hover:shadow-2xl transition-all duration-500 hover:scale-[1.02]"
+                  style={{ animationDelay: `${index * 100}ms` }}
                 >
-                  {/* Gradient overlay */}
-                  <div className={`absolute inset-0 bg-gradient-to-br ${module.gradient} opacity-0 group-hover:opacity-5 transition-opacity`} />
+                  {/* Animated gradient border on hover */}
+                  <div className={`absolute inset-0 bg-gradient-to-br ${module.gradient} opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
+                  <div className="absolute inset-[2px] bg-white rounded-3xl" />
 
-                  <div className="relative">
-                    {/* Icon + Badge */}
-                    <div className="flex items-start justify-between mb-4">
-                      <div className={`inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br ${module.gradient} shadow-lg transform transition-transform group-hover:scale-110`}>
-                        <Icon className="h-8 w-8 text-white" />
+                  {/* Background pattern */}
+                  <div className={`absolute top-0 right-0 w-64 h-64 ${module.bgPattern} rounded-full blur-3xl opacity-0 group-hover:opacity-30 transition-all duration-500 transform translate-x-32 -translate-y-32 group-hover:translate-x-20 group-hover:-translate-y-20`} />
+
+                  <div className="relative z-10">
+                    {/* Emoji + Icon */}
+                    <div className="flex items-start justify-between mb-6">
+                      <div className="flex items-center gap-4">
+                        <div className={`relative inline-flex items-center justify-center w-20 h-20 rounded-3xl bg-gradient-to-br ${module.gradient} shadow-xl transform transition-all duration-500 group-hover:scale-110 group-hover:rotate-3`}>
+                          <Icon className="h-10 w-10 text-white relative z-10" />
+                          <div className="absolute inset-0 bg-white/20 rounded-3xl group-hover:animate-pulse" />
+                        </div>
+                        <div className="text-5xl transform transition-transform group-hover:scale-110 group-hover:rotate-12 duration-500">
+                          {module.emoji}
+                        </div>
                       </div>
-                      <span className="px-3 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-600">
+                      <span className="px-4 py-2 rounded-full text-xs font-bold bg-slate-100 text-slate-700 group-hover:bg-slate-900 group-hover:text-white transition-colors">
                         {module.count}
                       </span>
                     </div>
 
                     {/* Content */}
-                    <h3 className="text-2xl font-bold text-slate-900 mb-2">
+                    <h3 className="text-3xl font-bold text-slate-900 mb-3 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-slate-900 group-hover:to-slate-700 transition-all">
                       {module.title}
                     </h3>
 
-                    <p className="text-slate-600 mb-4 leading-relaxed">
+                    <p className="text-slate-600 mb-6 leading-relaxed text-base">
                       {module.description}
                     </p>
 
-                    {/* Features */}
-                    <div className="flex flex-wrap gap-2 mb-4">
+                    {/* Features Tags */}
+                    <div className="flex flex-wrap gap-2 mb-6">
                       {module.features.map((feature, idx) => (
-                        <span key={idx} className="px-3 py-1 rounded-lg text-xs font-semibold bg-slate-100 text-slate-700">
+                        <span
+                          key={idx}
+                          className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-100 text-slate-700 group-hover:bg-slate-800 group-hover:text-white transition-colors"
+                        >
                           {feature}
                         </span>
                       ))}
                     </div>
 
-                    {/* Arrow */}
-                    <div className="flex items-center gap-2 text-slate-400 group-hover:text-sky-600 transition-colors">
-                      <span className="text-sm font-semibold">Explorer le module</span>
-                      <ArrowRight className="h-4 w-4 transform group-hover:translate-x-1 transition-transform" />
+                    {/* Action Button */}
+                    <div className={`flex items-center gap-3 px-5 py-3 rounded-2xl bg-gradient-to-r ${module.gradient} text-white font-semibold transition-all group-hover:shadow-xl`}>
+                      <span>Explorer le module</span>
+                      <ArrowRight className="h-5 w-5 transform group-hover:translate-x-2 transition-transform" />
+                      <Zap className="h-5 w-5 ml-auto opacity-0 group-hover:opacity-100 transition-opacity" />
                     </div>
                   </div>
                 </button>
@@ -268,48 +345,72 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Secondary Links */}
-        <div className="flex flex-wrap gap-4">
-          <button
-            onClick={() => router.push('/seminaires')}
-            className="flex items-center gap-3 px-6 py-4 rounded-xl bg-white border-2 border-slate-200 hover:border-amber-300 hover:shadow-lg transition-all group"
-          >
-            <div className="p-2 rounded-lg bg-gradient-to-br from-amber-500 to-orange-600">
-              <Calendar className="h-5 w-5 text-white" />
-            </div>
-            <div className="text-left">
-              <div className="font-semibold text-slate-900">Séminaires</div>
-              <div className="text-xs text-slate-600">Formations présentielles</div>
-            </div>
-            <ArrowRight className="h-4 w-4 text-slate-400 group-hover:text-amber-600 transition-colors ml-auto" />
-          </button>
+        {/* Quick Access Section */}
+        <div className="bg-gradient-to-br from-slate-50 to-white rounded-3xl p-8 border-2 border-slate-200 shadow-lg">
+          <h3 className="text-xl font-bold text-slate-900 mb-6 flex items-center gap-2">
+            <Sparkles className="h-6 w-6 text-amber-500" />
+            Accès Rapide
+          </h3>
 
-          <button
-            onClick={() => router.push('/settings')}
-            className="flex items-center gap-3 px-6 py-4 rounded-xl bg-white border-2 border-slate-200 hover:border-slate-300 hover:shadow-lg transition-all group"
-          >
-            <div className="p-2 rounded-lg bg-gradient-to-br from-slate-500 to-slate-600">
-              <Settings className="h-5 w-5 text-white" />
-            </div>
-            <div className="text-left">
-              <div className="font-semibold text-slate-900">Paramètres</div>
-              <div className="text-xs text-slate-600">Profil et abonnement</div>
-            </div>
-            <ArrowRight className="h-4 w-4 text-slate-400 group-hover:text-slate-600 transition-colors ml-auto" />
-          </button>
-
-          {isAdmin && (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <button
-              onClick={() => router.push('/admin')}
-              className="flex items-center gap-3 px-6 py-4 rounded-xl bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 border-2 border-transparent shadow-lg hover:shadow-xl transition-all group"
+              onClick={() => router.push('/seminaires')}
+              className="group flex items-center gap-4 px-6 py-5 rounded-2xl bg-white border-2 border-slate-200 hover:border-amber-400 hover:shadow-xl transition-all"
             >
-              <div className="text-left text-white">
-                <div className="font-semibold">Administration</div>
-                <div className="text-xs text-purple-100">Gestion de la plateforme</div>
+              <div className="p-3 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 group-hover:scale-110 transition-transform">
+                <Calendar className="h-6 w-6 text-white" />
               </div>
-              <ArrowRight className="h-4 w-4 text-white transition-transform group-hover:translate-x-1 ml-auto" />
+              <div className="text-left flex-1">
+                <div className="font-bold text-slate-900 text-lg">Séminaires</div>
+                <div className="text-sm text-slate-600">Formations présentielles</div>
+              </div>
+              <ArrowRight className="h-5 w-5 text-slate-400 group-hover:text-amber-600 group-hover:translate-x-1 transition-all" />
             </button>
-          )}
+
+            <button
+              onClick={() => router.push('/settings')}
+              className="group flex items-center gap-4 px-6 py-5 rounded-2xl bg-white border-2 border-slate-200 hover:border-slate-400 hover:shadow-xl transition-all"
+            >
+              <div className="p-3 rounded-xl bg-gradient-to-br from-slate-600 to-slate-700 group-hover:scale-110 transition-transform">
+                <Settings className="h-6 w-6 text-white" />
+              </div>
+              <div className="text-left flex-1">
+                <div className="font-bold text-slate-900 text-lg">Paramètres</div>
+                <div className="text-sm text-slate-600">Profil et abonnement</div>
+              </div>
+              <ArrowRight className="h-5 w-5 text-slate-400 group-hover:text-slate-700 group-hover:translate-x-1 transition-all" />
+            </button>
+
+            {isAdmin ? (
+              <button
+                onClick={() => router.push('/admin')}
+                className="group flex items-center gap-4 px-6 py-5 rounded-2xl bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 border-2 border-transparent shadow-lg hover:shadow-2xl transition-all"
+              >
+                <div className="p-3 rounded-xl bg-white/20 backdrop-blur-sm group-hover:scale-110 transition-transform">
+                  <Settings className="h-6 w-6 text-white" />
+                </div>
+                <div className="text-left flex-1 text-white">
+                  <div className="font-bold text-lg">Administration</div>
+                  <div className="text-sm text-purple-100">Gestion plateforme</div>
+                </div>
+                <ArrowRight className="h-5 w-5 text-white group-hover:translate-x-1 transition-transform" />
+              </button>
+            ) : (
+              <button
+                onClick={() => router.push('/stats')}
+                className="group flex items-center gap-4 px-6 py-5 rounded-2xl bg-gradient-to-r from-indigo-600 to-purple-700 hover:from-indigo-700 hover:to-purple-800 border-2 border-transparent shadow-lg hover:shadow-2xl transition-all"
+              >
+                <div className="p-3 rounded-xl bg-white/20 backdrop-blur-sm group-hover:scale-110 transition-transform">
+                  <Trophy className="h-6 w-6 text-white" />
+                </div>
+                <div className="text-left flex-1 text-white">
+                  <div className="font-bold text-lg">Statistiques</div>
+                  <div className="text-sm text-indigo-100">Progression détaillée</div>
+                </div>
+                <ArrowRight className="h-5 w-5 text-white group-hover:translate-x-1 transition-transform" />
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </AuthLayout>
