@@ -164,11 +164,6 @@ export default function Navigation() {
       icon: Clipboard,
       items: [
         {
-          href: '/tests',
-          label: 'Tests Orthopédiques',
-          icon: TestTube
-        },
-        {
           href: '/admin/diagnostics',
           label: 'Diagnostics',
           icon: FolderOpen

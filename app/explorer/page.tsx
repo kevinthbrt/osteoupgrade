@@ -6,11 +6,8 @@ import AuthLayout from '@/components/AuthLayout'
 import { supabase } from '@/lib/supabase'
 import {
   Stethoscope,
-  TestTube,
-  Lock,
   Sparkles,
   Search,
-  Filter,
   ChevronRight,
   Info,
   Activity,
@@ -22,7 +19,6 @@ import {
   Eye,
   Loader2,
   AlertCircle,
-  Play,
   X,
   Plus,
   Edit,
@@ -39,16 +35,7 @@ type Pathology = {
   is_red_flag: boolean
   clinical_signs: string
   image_url: string
-}
-
-type OrthopedicTest = {
-  id: string
-  name: string
-  description: string
-  category?: string
-  sensitivity: number
-  specificity: number
-  video_url: string
+  is_active?: boolean
 }
 
 const REGIONS = [
@@ -66,14 +53,12 @@ export default function ExplorerPage() {
   const [profile, setProfile] = useState<any>(null)
   const [selectedRegion, setSelectedRegion] = useState('all')
   const [searchQuery, setSearchQuery] = useState('')
-  const [selectedType, setSelectedType] = useState<'pathologies' | 'tests'>('pathologies')
   const [pathologies, setPathologies] = useState<Pathology[]>([])
-  const [tests, setTests] = useState<OrthopedicTest[]>([])
   const [selectedItem, setSelectedItem] = useState<any>(null)
 
   useEffect(() => {
     loadData()
-  }, [selectedRegion, selectedType])
+  }, [selectedRegion])
 
   const loadData = async () => {
     try {
@@ -104,14 +89,6 @@ export default function ExplorerPage() {
       const { data: pathologiesData } = await pathologiesQuery
       setPathologies(pathologiesData || [])
 
-      // Load tests
-      let testsQuery = supabase
-        .from('orthopedic_tests')
-        .select('id, name, description, category, sensitivity, specificity, video_url')
-
-      const { data: testsData } = await testsQuery
-      setTests(testsData || [])
-
     } catch (error) {
       console.error('Error loading data:', error)
     } finally {
@@ -122,39 +99,25 @@ export default function ExplorerPage() {
   const isPremium = profile?.role && ['premium_silver', 'premium_gold', 'admin'].includes(profile.role)
   const isAdmin = profile?.role === 'admin'
 
-  const filteredItems = selectedType === 'pathologies'
-    ? pathologies.filter(p =>
-        p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        p.description?.toLowerCase().includes(searchQuery.toLowerCase())
-      )
-    : tests.filter(t =>
-        t.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        t.description?.toLowerCase().includes(searchQuery.toLowerCase())
-      )
+  const filteredItems = pathologies.filter(p =>
+    p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    p.description?.toLowerCase().includes(searchQuery.toLowerCase())
+  )
 
   const handleCreateNew = () => {
-    if (selectedType === 'pathologies') {
-      router.push('/admin/diagnostics/new')
-    } else {
-      router.push('/admin/tests/new')
-    }
+    router.push('/admin/diagnostics/new')
   }
 
   const handleEdit = (id: string) => {
-    if (selectedType === 'pathologies') {
-      router.push(`/admin/diagnostics/${id}/edit`)
-    } else {
-      router.push(`/admin/tests/${id}/edit`)
-    }
+    router.push(`/admin/diagnostics/${id}/edit`)
   }
 
   const handleDelete = async (id: string, name: string) => {
     if (!confirm(`Êtes-vous sûr de vouloir supprimer "${name}" ?`)) return
 
     try {
-      const table = selectedType === 'pathologies' ? 'pathologies' : 'orthopedic_tests'
       const { error } = await supabase
-        .from(table)
+        .from('pathologies')
         .delete()
         .eq('id', id)
 
@@ -224,7 +187,7 @@ export default function ExplorerPage() {
             </h1>
             <p className="text-lg text-slate-600 mb-8">
               L'explorateur interactif de diagnostics et pathologies est réservé aux membres Premium.
-              Découvrez plus de 200 pathologies et 150+ tests orthopédiques de manière ludique et interactive.
+              Découvrez plus de 200 pathologies de manière ludique et interactive.
             </p>
             <button
               onClick={() => router.push('/settings')}
@@ -264,13 +227,13 @@ export default function ExplorerPage() {
               <div className="flex items-start justify-between">
                 <div>
                   <h1 className="text-3xl md:text-4xl font-bold mb-3 bg-clip-text text-transparent bg-gradient-to-r from-white to-rose-100">
-                    {isAdmin ? 'Gestion Diagnostics & Tests' : 'Explorateur Interactif'}
+                    {isAdmin ? 'Gestion Diagnostics' : 'Explorateur Interactif'}
                   </h1>
 
                   <p className="text-base md:text-lg text-rose-100 mb-6 max-w-2xl">
                     {isAdmin
-                      ? 'Gérez les pathologies et tests orthopédiques : créer, modifier, supprimer et organiser le contenu'
-                      : 'Découvrez et explorez les pathologies et tests orthopédiques de manière ludique et interactive'
+                      ? 'Gérez les pathologies : créer, modifier, supprimer et organiser le contenu'
+                      : 'Découvrez et explorez les pathologies de manière ludique et interactive'
                     }
                   </p>
                 </div>
@@ -281,50 +244,9 @@ export default function ExplorerPage() {
                     className="px-6 py-3 bg-white text-rose-600 rounded-xl hover:bg-rose-50 flex items-center gap-2 font-semibold shadow-lg transition-colors"
                   >
                     <Plus className="h-5 w-5" />
-                    Créer {selectedType === 'pathologies' ? 'Pathologie' : 'Test'}
+                    Créer une pathologie
                   </button>
                 )}
-              </div>
-
-              {/* Type Selector */}
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setSelectedType('pathologies')}
-                  className={`px-6 py-3 rounded-xl font-semibold transition-all flex items-center gap-2 ${
-                    selectedType === 'pathologies'
-                      ? 'bg-white text-rose-600 shadow-lg'
-                      : 'bg-white/10 text-white hover:bg-white/20'
-                  }`}
-                >
-                  <Stethoscope className="h-5 w-5" />
-                  Pathologies
-                  <span className={`px-2 py-0.5 rounded-full text-xs ${
-                    selectedType === 'pathologies'
-                      ? 'bg-rose-100 text-rose-700'
-                      : 'bg-white/20 text-white'
-                  }`}>
-                    {pathologies.length}
-                  </span>
-                </button>
-
-                <button
-                  onClick={() => setSelectedType('tests')}
-                  className={`px-6 py-3 rounded-xl font-semibold transition-all flex items-center gap-2 ${
-                    selectedType === 'tests'
-                      ? 'bg-white text-rose-600 shadow-lg'
-                      : 'bg-white/10 text-white hover:bg-white/20'
-                  }`}
-                >
-                  <TestTube className="h-5 w-5" />
-                  Tests Orthopédiques
-                  <span className={`px-2 py-0.5 rounded-full text-xs ${
-                    selectedType === 'tests'
-                      ? 'bg-rose-100 text-rose-700'
-                      : 'bg-white/20 text-white'
-                  }`}>
-                    {tests.length}
-                  </span>
-                </button>
               </div>
             </div>
           </div>
@@ -340,7 +262,7 @@ export default function ExplorerPage() {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder={`Rechercher ${selectedType === 'pathologies' ? 'une pathologie' : 'un test'}...`}
+                placeholder="Rechercher une pathologie..."
                 className="w-full pl-12 pr-4 py-3 border-2 border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-rose-400 focus:border-transparent"
               />
             </div>
@@ -373,8 +295,6 @@ export default function ExplorerPage() {
         {/* Results Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredItems.map((item: any) => {
-            const isPathology = selectedType === 'pathologies'
-
             return (
               <button
                 key={item.id}
@@ -382,7 +302,7 @@ export default function ExplorerPage() {
                 className="group relative overflow-hidden rounded-2xl bg-white border-2 border-slate-200 hover:border-rose-300 shadow-sm hover:shadow-xl transition-all duration-300 text-left"
               >
                 {/* Image de fond pour pathologies */}
-                {isPathology && item.image_url && (
+                {item.image_url && (
                   <div className="relative h-48 bg-gradient-to-br from-slate-100 to-slate-200">
                     <img
                       src={item.image_url}
@@ -402,7 +322,7 @@ export default function ExplorerPage() {
                 )}
 
                 {/* Placeholder si pas d'image */}
-                {isPathology && !item.image_url && (
+                {!item.image_url && (
                   <div className="relative h-48 bg-gradient-to-br from-rose-100 via-pink-100 to-purple-100 flex items-center justify-center">
                     <Stethoscope className="h-16 w-16 text-rose-300" />
                     {item.is_red_flag && (
@@ -416,13 +336,6 @@ export default function ExplorerPage() {
                   </div>
                 )}
 
-                {/* Image/placeholder pour tests */}
-                {!isPathology && (
-                  <div className="relative h-48 bg-gradient-to-br from-emerald-100 via-teal-100 to-cyan-100 flex items-center justify-center">
-                    <TestTube className="h-16 w-16 text-emerald-300" />
-                  </div>
-                )}
-
                 <div className="p-5">
                   {/* Header */}
                   <div className="mb-3">
@@ -431,21 +344,11 @@ export default function ExplorerPage() {
                     </h3>
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="px-2 py-1 rounded-lg text-xs font-semibold bg-blue-100 text-blue-700">
-                        {item.region || item.category || 'Non classé'}
+                        {item.region || 'Non classé'}
                       </span>
-                      {isPathology && item.severity && (
+                      {item.severity && (
                         <span className={`px-2 py-1 rounded-lg text-xs font-semibold border ${getSeverityColor(item.severity)}`}>
                           {getSeverityLabel(item.severity)}
-                        </span>
-                      )}
-                      {!isPathology && item.sensitivity && (
-                        <span className="px-2 py-1 rounded-lg text-xs font-semibold bg-green-100 text-green-700">
-                          Se: {item.sensitivity}%
-                        </span>
-                      )}
-                      {!isPathology && item.specificity && (
-                        <span className="px-2 py-1 rounded-lg text-xs font-semibold bg-blue-100 text-blue-700">
-                          Sp: {item.specificity}%
                         </span>
                       )}
                     </div>
@@ -459,16 +362,14 @@ export default function ExplorerPage() {
                   )}
 
                   {/* Indicateurs pour pathologies */}
-                  {isPathology && (
-                    <div className="flex items-center gap-3 text-xs text-slate-500">
-                      {item.clinical_signs && (
-                        <span className="flex items-center gap-1">
-                          <Info className="h-3 w-3" />
-                          Signes cliniques
-                        </span>
-                      )}
-                    </div>
-                  )}
+                  <div className="flex items-center gap-3 text-xs text-slate-500">
+                    {item.clinical_signs && (
+                      <span className="flex items-center gap-1">
+                        <Info className="h-3 w-3" />
+                        Signes cliniques
+                      </span>
+                    )}
+                  </div>
 
                   {/* Bouton voir plus ou actions admin */}
                   <div className="mt-4 pt-4 border-t border-slate-100">
@@ -482,18 +383,16 @@ export default function ExplorerPage() {
                     ) : (
                       <div className="flex items-center justify-between gap-2">
                         <div className="flex items-center gap-1">
-                          {isPathology && (
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                handleToggleActive(item.id, item.is_active)
-                              }}
-                              className="p-2 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition-colors"
-                              title={item.is_active ? 'Désactiver' : 'Activer'}
-                            >
-                              {item.is_active ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
-                            </button>
-                          )}
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleToggleActive(item.id, item.is_active)
+                            }}
+                            className="p-2 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition-colors"
+                            title={item.is_active ? 'Désactiver' : 'Activer'}
+                          >
+                            {item.is_active ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+                          </button>
                           <button
                             onClick={(e) => {
                               e.stopPropagation()
@@ -555,7 +454,7 @@ export default function ExplorerPage() {
               onClick={(e) => e.stopPropagation()}
             >
               {/* Image en haut pour pathologies */}
-              {selectedType === 'pathologies' && selectedItem.image_url && (
+              {selectedItem.image_url && (
                 <div className="relative h-64 bg-gradient-to-br from-slate-100 to-slate-200">
                   <img
                     src={selectedItem.image_url}
@@ -573,9 +472,9 @@ export default function ExplorerPage() {
                     <h2 className="text-3xl font-bold text-white mb-2">{selectedItem.name}</h2>
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="px-3 py-1 rounded-lg bg-white/90 backdrop-blur-sm text-sm font-semibold text-slate-900">
-                        {selectedItem.region || selectedItem.category}
+                        {selectedItem.region || 'Non classé'}
                       </span>
-                      {selectedType === 'pathologies' && selectedItem.severity && (
+                      {selectedItem.severity && (
                         <span className={`px-3 py-1 rounded-lg text-sm font-semibold ${getSeverityColor(selectedItem.severity)} backdrop-blur-sm`}>
                           {getSeverityLabel(selectedItem.severity)}
                         </span>
@@ -592,11 +491,11 @@ export default function ExplorerPage() {
               )}
 
               {/* Header sans image */}
-              {(!selectedItem.image_url || selectedType === 'tests') && (
-                <div className={`sticky top-0 ${selectedType === 'pathologies' ? 'bg-gradient-to-br from-rose-600 to-purple-700' : 'bg-gradient-to-br from-emerald-600 to-teal-700'} text-white p-6 rounded-t-2xl`}>
+              {!selectedItem.image_url && (
+                <div className="sticky top-0 bg-gradient-to-br from-rose-600 to-purple-700 text-white p-6 rounded-t-2xl">
                   <div className="flex items-start justify-between">
                     <div>
-                      {selectedType === 'pathologies' && selectedItem.is_red_flag && (
+                      {selectedItem.is_red_flag && (
                         <span className="inline-flex items-center gap-1 px-3 py-1 rounded-lg bg-red-500 text-white text-xs font-semibold mb-2">
                           <AlertCircle className="h-3 w-3" />
                           Drapeau rouge
@@ -604,21 +503,12 @@ export default function ExplorerPage() {
                       )}
                       <h2 className="text-2xl font-bold mb-2">{selectedItem.name}</h2>
                       <div className="flex items-center gap-2 flex-wrap">
-                        {selectedType === 'pathologies' && (
-                          <>
-                            <span className="px-2 py-1 rounded bg-white/20 text-sm font-semibold">
-                              {selectedItem.region}
-                            </span>
-                            {selectedItem.severity && (
-                              <span className="px-2 py-1 rounded bg-white/20 text-sm font-semibold">
-                                {getSeverityLabel(selectedItem.severity)}
-                              </span>
-                            )}
-                          </>
-                        )}
-                        {selectedType === 'tests' && selectedItem.category && (
+                        <span className="px-2 py-1 rounded bg-white/20 text-sm font-semibold">
+                          {selectedItem.region}
+                        </span>
+                        {selectedItem.severity && (
                           <span className="px-2 py-1 rounded bg-white/20 text-sm font-semibold">
-                            {selectedItem.category}
+                            {getSeverityLabel(selectedItem.severity)}
                           </span>
                         )}
                       </div>
@@ -644,7 +534,7 @@ export default function ExplorerPage() {
                   </div>
                 )}
 
-                {selectedType === 'pathologies' && selectedItem.clinical_signs && (
+                {selectedItem.clinical_signs && (
                   <div className="bg-amber-50 border-2 border-amber-200 rounded-xl p-4">
                     <h3 className="text-sm font-semibold text-amber-900 mb-2 flex items-center gap-2">
                       <AlertCircle className="h-4 w-4" />
@@ -652,41 +542,6 @@ export default function ExplorerPage() {
                     </h3>
                     <p className="text-amber-800 leading-relaxed">{selectedItem.clinical_signs}</p>
                   </div>
-                )}
-
-                {selectedType === 'tests' && (
-                  <>
-                    <div className="grid grid-cols-2 gap-4">
-                      {selectedItem.sensitivity && (
-                        <div className="p-4 rounded-xl bg-green-50 border-2 border-green-200">
-                          <div className="text-xs text-green-700 font-semibold mb-1">Sensibilité</div>
-                          <div className="text-3xl font-bold text-green-700">{selectedItem.sensitivity}%</div>
-                        </div>
-                      )}
-                      {selectedItem.specificity && (
-                        <div className="p-4 rounded-xl bg-blue-50 border-2 border-blue-200">
-                          <div className="text-xs text-blue-700 font-semibold mb-1">Spécificité</div>
-                          <div className="text-3xl font-bold text-blue-700">{selectedItem.specificity}%</div>
-                        </div>
-                      )}
-                    </div>
-
-                    {selectedItem.video_url && (
-                      <div>
-                        <h3 className="text-sm font-semibold text-slate-700 mb-3 flex items-center gap-2">
-                          <Play className="h-4 w-4" />
-                          Vidéo du test
-                        </h3>
-                        <button
-                          onClick={() => window.open(selectedItem.video_url, '_blank')}
-                          className="w-full px-6 py-4 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-xl font-semibold transition-all flex items-center justify-center gap-2 shadow-lg"
-                        >
-                          <Play className="h-5 w-5" />
-                          Voir la vidéo de démonstration
-                        </button>
-                      </div>
-                    )}
-                  </>
                 )}
 
                 {/* Admin actions in modal */}
