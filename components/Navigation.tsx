@@ -16,15 +16,15 @@ import {
   Users,
   ChevronRight,
   Crown,
-  Activity,
-  Filter,
-  Map,
-  Box,
   TestTube,
   Stethoscope,
-  Dumbbell,
+  Wrench,
   Calendar,
   Mail,
+  GraduationCap,
+  TrendingUp,
+  FileQuestion,
+  Target,
   FolderOpen
 } from 'lucide-react'
 
@@ -35,7 +35,6 @@ type MenuItem = {
   roles?: string[]
   badge?: string
   isNew?: boolean
-  description?: string
   hideWhenRestricted?: boolean
 }
 
@@ -61,7 +60,6 @@ export default function Navigation() {
             .single()
           setProfile(profile)
         } else {
-          // Fallback en mode démo quand l'utilisateur n'est pas authentifié
           setProfile({ role: 'free', full_name: 'Invité' })
         }
       } catch (error) {
@@ -80,36 +78,13 @@ export default function Navigation() {
   }
 
   const menuItems: MenuItem[] = [
-    { href: '/dashboard', label: 'Tableau de bord', icon: Home },
-    {
-      href: '/testing',
-      label: 'Testing 3D',
-      icon: TestTube,
-      isNew: true,
-      badge: 'Premium',
-      roles: ['premium_silver', 'premium_gold', 'admin']
-    },
-    {
-      href: '/exercices',
-      label: 'Exercices',
-      icon: Dumbbell,
-      badge: 'Premium',
-      roles: ['premium_silver', 'premium_gold', 'admin']
-    },
-    {
-      href: '/topographie',
-      label: 'Topographie',
-      icon: BookOpen,
-      badge: 'Premium',
-      roles: ['premium_silver', 'premium_gold', 'admin']
-    },
+    { href: '/dashboard', label: 'Dashboard', icon: Home },
     {
       href: '/elearning',
-      label: 'E-learning',
-      icon: BookOpen,
-      badge: 'Premium',
-      roles: ['premium_silver', 'premium_gold', 'admin'],
-      description: 'Formations System.io'
+      label: 'E-Learning',
+      icon: GraduationCap,
+      badge: 'Hub',
+      roles: ['premium_silver', 'premium_gold', 'admin']
     },
     {
       href: '/pratique',
@@ -119,96 +94,96 @@ export default function Navigation() {
       roles: ['premium_silver', 'premium_gold', 'admin']
     },
     {
+      href: '/outils',
+      label: 'Outils',
+      icon: Wrench,
+      badge: 'Premium',
+      roles: ['premium_silver', 'premium_gold', 'admin']
+    },
+    {
+      href: '/testing',
+      label: 'Testing 3D',
+      icon: TestTube,
+      badge: 'Premium',
+      roles: ['premium_silver', 'premium_gold', 'admin']
+    },
+    {
       href: '/seminaires',
-      label: 'Séminaires présentiels',
+      label: 'Séminaires',
       icon: Calendar,
       badge: 'Gold',
       roles: ['premium_gold', 'admin']
     },
     {
-      href: '/consultation-v3',
-      label: 'Consultation guidée',
-      icon: Map,
-      badge: 'Bientôt',
-      roles: ['admin']
+      href: '/stats',
+      label: 'Statistiques',
+      icon: TrendingUp,
+      isNew: true
     },
     { href: '/settings', label: 'Paramètres', icon: Settings },
   ]
 
-  const adminOverviewItem: MenuItem = { href: '/admin', label: "Vue d'ensemble", icon: Shield }
-
-  const adminUserItem: MenuItem = { href: '/admin/users', label: 'Utilisateurs', icon: Users }
+  const adminOverviewItem: MenuItem = { href: '/admin', label: "Administration", icon: Shield }
 
   const adminGroups: { id: string; label: string; icon: React.ComponentType<React.SVGProps<SVGSVGElement>>; items: MenuItem[] }[] = [
     {
+      id: 'elearning',
+      label: 'E-Learning',
+      icon: GraduationCap,
+      items: [
+        {
+          href: '/elearning/cours',
+          label: 'Cours',
+          icon: BookOpen
+        },
+        {
+          href: '/encyclopedia/learning/quizzes',
+          label: 'Quiz',
+          icon: FileQuestion,
+          badge: 'Nouveau'
+        },
+        {
+          href: '/encyclopedia/learning/cases',
+          label: 'Cas Pratiques',
+          icon: Target,
+          badge: 'Nouveau'
+        }
+      ]
+    },
+    {
       id: 'tests',
-      label: 'Tests orthopédiques',
+      label: 'Tests & Diagnostics',
       icon: Clipboard,
       items: [
         {
           href: '/tests',
           label: 'Tests Orthopédiques',
-          icon: Clipboard,
-          description: 'Tests par zones'
+          icon: TestTube
         },
         {
           href: '/admin/diagnostics',
           label: 'Diagnostics',
-          icon: FolderOpen,
-          description: 'Dossiers avec tests',
-          badge: 'Nouveau'
+          icon: FolderOpen
         },
         {
-          href: '/admin/anatomy-builder',
-          label: 'Anatomy Builder',
-          icon: Box,
-          description: 'Zones 3D Testing',
-          badge: '3D'
-        },
-      ]
-    },
-    {
-      id: 'consultation',
-      label: 'Consultation guidée',
-      icon: Map,
-      items: [
-        {
-          href: '/admin/pathologies',
-          label: 'Pathologies',
-          icon: Activity,
-          description: 'Diagnostics simples'
-        },
-        {
-          href: '/admin/topographic-zones',
-          label: 'Zones Topographiques',
-          icon: Map,
-          description: 'Pour Consultation V3',
-          badge: 'V3'
-        },
-        {
-          href: '/admin/decision-trees',
-          label: 'Arbres Décisionnels',
-          icon: Filter,
-          description: 'Pour Consultation V3',
-          badge: 'V3'
-        },
+          href: '/topographie',
+          label: 'Topographie',
+          icon: BookOpen
+        }
       ]
     },
     {
       id: 'marketing',
-      label: 'Marketing & Mailing',
+      label: 'Marketing',
       icon: Mail,
       items: [
         {
           href: '/admin/mailing',
-          label: 'Mailing & Newsletter',
-          icon: Mail,
-          description: 'Campagnes, automation, relances',
-          badge: 'Nouveau'
-        },
+          label: 'Mailing',
+          icon: Mail
+        }
       ]
     }
-
   ]
 
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>(() => {
@@ -231,9 +206,9 @@ export default function Navigation() {
 
     const badges = {
       free: { text: 'Gratuit', bg: 'bg-gray-100', color: 'text-gray-700' },
-      premium: { text: 'Premium (ancien)', bg: 'bg-gradient-to-r from-yellow-400 to-yellow-500', color: 'text-white' },
-      premium_silver: { text: 'Premium Silver', bg: 'bg-gradient-to-r from-gray-300 to-gray-400', color: 'text-white' },
-      premium_gold: { text: 'Premium Gold', bg: 'bg-gradient-to-r from-yellow-400 to-yellow-500', color: 'text-white' },
+      premium: { text: 'Premium', bg: 'bg-gradient-to-r from-yellow-400 to-yellow-500', color: 'text-white' },
+      premium_silver: { text: 'Silver', bg: 'bg-gradient-to-r from-gray-300 to-gray-400', color: 'text-white' },
+      premium_gold: { text: 'Gold', bg: 'bg-gradient-to-r from-yellow-400 to-yellow-500', color: 'text-white' },
       admin: { text: 'Admin', bg: 'bg-gradient-to-r from-purple-500 to-purple-600', color: 'text-white' }
     }
 
@@ -275,7 +250,7 @@ export default function Navigation() {
               </div>
               <div>
                 <h2 className="text-xl font-bold text-white">OsteoUpgrade</h2>
-                <p className="text-xs text-slate-300">L'application pour les thérapeutes 2.0</p>
+                <p className="text-xs text-slate-300">Plateforme V2</p>
               </div>
             </div>
           </div>
@@ -302,7 +277,6 @@ export default function Navigation() {
               const shouldHide = isRestricted && item.hideWhenRestricted
 
               if (shouldHide) return null
-
               if (item.roles && !profile?.role) return null
 
               return (
@@ -320,7 +294,7 @@ export default function Navigation() {
                     } else if (profile?.role === 'free') {
                       alert('Cette section est réservée aux membres Premium')
                     } else {
-                      alert('Accès réservé aux administrateurs pendant la phase de pré-lancement')
+                      alert('Accès réservé aux administrateurs')
                     }
                   }}
                 >
@@ -348,6 +322,7 @@ export default function Navigation() {
                     Administration
                   </p>
                 </div>
+
                 {(() => {
                   const Icon = adminOverviewItem.icon
                   const isActive = pathname === adminOverviewItem.href
@@ -355,23 +330,16 @@ export default function Navigation() {
                     <Link
                       key={adminOverviewItem.href}
                       href={adminOverviewItem.href}
-                      className={`flex flex-col px-3 py-2.5 rounded-lg transition-all group ${
+                      className={`flex items-center px-3 py-2.5 rounded-lg transition-all group ${
                         isActive
                           ? 'bg-purple-500/20 text-white font-medium shadow-sm'
                           : 'text-slate-300 hover:bg-white/5 hover:text-white'
                       }`}
                       onClick={() => setIsOpen(false)}
                     >
-                      <div className="flex items-center w-full">
-                        <Icon className={`h-5 w-5 mr-3 flex-shrink-0 ${isActive ? 'text-purple-300' : 'text-slate-400 group-hover:text-slate-200'}`} />
-                        <span className="flex-1">{adminOverviewItem.label}</span>
-                        {isActive && <ChevronRight className="h-4 w-4 ml-2 text-purple-300" />}
-                      </div>
-                      {adminOverviewItem.description && !isActive && (
-                        <p className="text-[10px] text-slate-400 ml-8 mt-0.5">
-                          {adminOverviewItem.description}
-                        </p>
-                      )}
+                      <Icon className={`h-5 w-5 mr-3 ${isActive ? 'text-purple-300' : 'text-slate-400 group-hover:text-slate-200'}`} />
+                      <span className="flex-1">{adminOverviewItem.label}</span>
+                      {isActive && <ChevronRight className="h-4 w-4 text-purple-300" />}
                     </Link>
                   )
                 })()}
@@ -392,13 +360,13 @@ export default function Navigation() {
                             : 'text-slate-300 hover:bg-white/5 hover:text-white'
                         }`}
                       >
-                        <GroupIcon className={`h-5 w-5 mr-3 flex-shrink-0 ${isGroupActive ? 'text-purple-300' : 'text-slate-400'}`} />
-                        <span className="flex-1 text-left font-medium">{group.label}</span>
-                        <ChevronRight className={`h-4 w-4 ml-2 transition-transform ${isExpanded ? 'rotate-90 text-purple-300' : 'text-slate-400'}`} />
+                        <GroupIcon className={`h-5 w-5 mr-3 ${isGroupActive ? 'text-purple-300' : 'text-slate-400'}`} />
+                        <span className="flex-1 text-left text-sm font-medium">{group.label}</span>
+                        <ChevronRight className={`h-4 w-4 transition-transform ${isExpanded ? 'rotate-90 text-purple-300' : 'text-slate-400'}`} />
                       </button>
 
                       {isExpanded && (
-                        <div className="mt-1 space-y-1">
+                        <div className="mt-1 space-y-1 ml-2">
                           {group.items.map((item) => {
                             const Icon = item.icon
                             const isActive = pathname === item.href
@@ -406,32 +374,21 @@ export default function Navigation() {
                               <Link
                                 key={item.href}
                                 href={item.href}
-                                className={`flex flex-col px-4 py-2.5 rounded-lg transition-all group ${
+                                className={`flex items-center px-4 py-2 rounded-lg transition-all group ${
                                   isActive
                                     ? 'bg-purple-500/20 text-white font-medium shadow-sm'
                                     : 'text-slate-300 hover:bg-white/5 hover:text-white'
                                 }`}
                                 onClick={() => setIsOpen(false)}
                               >
-                                <div className="flex items-center w-full">
-                                  <Icon className={`h-5 w-5 mr-3 flex-shrink-0 ${isActive ? 'text-purple-300' : 'text-slate-400 group-hover:text-slate-200'}`} />
-                                  <span className="flex-1 text-sm">{item.label}</span>
-                                  {item.badge && (
-                                    <span className={`ml-2 px-1.5 py-0.5 text-[10px] font-semibold rounded ${
-                                      item.badge === 'V3'
-                                        ? 'bg-purple-400/20 text-purple-300'
-                                        : 'bg-emerald-500/20 text-emerald-300'
-                                    }`}>
-                                      {item.badge}
-                                    </span>
-                                  )}
-                                  {isActive && <ChevronRight className="h-4 w-4 ml-2 text-purple-300" />}
-                                </div>
-                                {item.description && !isActive && (
-                                  <p className="text-[10px] text-slate-400 ml-8 mt-0.5">
-                                    {item.description}
-                                  </p>
+                                <Icon className={`h-4 w-4 mr-3 ${isActive ? 'text-purple-300' : 'text-slate-400 group-hover:text-slate-200'}`} />
+                                <span className="flex-1 text-sm">{item.label}</span>
+                                {item.badge && (
+                                  <span className="ml-2 px-1.5 py-0.5 bg-emerald-500/20 text-emerald-300 text-[10px] font-semibold rounded">
+                                    {item.badge}
+                                  </span>
                                 )}
+                                {isActive && <ChevronRight className="h-3 w-3 text-purple-300" />}
                               </Link>
                             )
                           })}
@@ -441,33 +398,19 @@ export default function Navigation() {
                   )
                 })}
 
-                {(() => {
-                  const Icon = adminUserItem.icon
-                  const isActive = pathname === adminUserItem.href
-                  return (
-                    <Link
-                      key={adminUserItem.href}
-                      href={adminUserItem.href}
-                      className={`flex flex-col px-3 py-2.5 rounded-lg transition-all group ${
-                        isActive
-                          ? 'bg-purple-500/20 text-white font-medium shadow-sm'
-                          : 'text-slate-300 hover:bg-white/5 hover:text-white'
-                      }`}
-                      onClick={() => setIsOpen(false)}
-                    >
-                      <div className="flex items-center w-full">
-                        <Icon className={`h-5 w-5 mr-3 flex-shrink-0 ${isActive ? 'text-purple-300' : 'text-slate-400 group-hover:text-slate-200'}`} />
-                        <span className="flex-1">{adminUserItem.label}</span>
-                        {isActive && <ChevronRight className="h-4 w-4 ml-2 text-purple-300" />}
-                      </div>
-                      {adminUserItem.description && !isActive && (
-                        <p className="text-[10px] text-slate-400 ml-8 mt-0.5">
-                          {adminUserItem.description}
-                        </p>
-                      )}
-                    </Link>
-                  )
-                })()}
+                <Link
+                  href="/admin/users"
+                  className={`flex items-center px-3 py-2.5 rounded-lg transition-all group ${
+                    pathname === '/admin/users'
+                      ? 'bg-purple-500/20 text-white font-medium shadow-sm'
+                      : 'text-slate-300 hover:bg-white/5 hover:text-white'
+                  }`}
+                  onClick={() => setIsOpen(false)}
+                >
+                  <Users className={`h-5 w-5 mr-3 ${pathname === '/admin/users' ? 'text-purple-300' : 'text-slate-400 group-hover:text-slate-200'}`} />
+                  <span className="flex-1">Utilisateurs</span>
+                  {pathname === '/admin/users' && <ChevronRight className="h-4 w-4 text-purple-300" />}
+                </Link>
               </>
             )}
           </nav>
