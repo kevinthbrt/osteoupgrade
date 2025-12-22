@@ -73,109 +73,40 @@ export default function ClinicalCasesPage() {
 
       setProfile(profileData)
 
-      // Load clinical cases (mock data for now - you'll need to create the table)
-      // TODO: Create clinical_cases tables in database
-      const mockCases: ClinicalCase[] = [
-        {
-          id: '1',
-          title: 'Cervicalgie post-traumatique',
-          description: 'Patient de 35 ans consultant pour cervicalgie suite à un accident de voiture. Évaluez les drapeaux rouges et proposez une prise en charge appropriée.',
-          region: 'Cervical',
-          difficulty: 'débutant',
-          duration_minutes: 15,
-          objectives: [
-            'Identifier les drapeaux rouges',
-            'Réaliser un examen physique ciblé',
-            'Proposer un plan de traitement adapté'
-          ],
-          patient_profile: 'Homme, 35 ans, actif',
-          is_active: true,
-          created_at: new Date().toISOString()
-        },
-        {
-          id: '2',
-          title: 'Syndrome de conflit sous-acromial',
-          description: 'Patiente de 48 ans, secrétaire, présentant une douleur d\'épaule progressive depuis 3 mois. Analysez la biomécanique et établissez un diagnostic différentiel.',
-          region: 'Épaule',
-          difficulty: 'intermédiaire',
-          duration_minutes: 20,
-          objectives: [
-            'Réaliser les tests orthopédiques appropriés',
-            'Établir un diagnostic différentiel',
-            'Proposer un traitement conservateur complet',
-            'Identifier les critères de référence'
-          ],
-          patient_profile: 'Femme, 48 ans, travail de bureau',
-          is_active: true,
-          created_at: new Date().toISOString()
-        },
-        {
-          id: '3',
-          title: 'Lombalgie chronique complexe',
-          description: 'Patient de 52 ans avec lombalgie chronique, irradiation membre inférieur et composante psychosociale. Cas complexe nécessitant une approche globale.',
-          region: 'Lombaire',
-          difficulty: 'avancé',
-          duration_minutes: 30,
-          objectives: [
-            'Évaluer les facteurs biopsychosociaux',
-            'Interpréter l\'imagerie médicale',
-            'Gérer les attentes du patient',
-            'Élaborer un plan de traitement multidisciplinaire',
-            'Identifier les drapeaux jaunes'
-          ],
-          patient_profile: 'Homme, 52 ans, ouvrier du bâtiment',
-          is_active: true,
-          created_at: new Date().toISOString()
-        },
-        {
-          id: '4',
-          title: 'Lésion méniscale du genou',
-          description: 'Sportif de 28 ans présentant une douleur au genou suite à un mouvement de rotation. Suspicion de lésion méniscale à confirmer.',
-          region: 'Genou',
-          difficulty: 'intermédiaire',
-          duration_minutes: 20,
-          objectives: [
-            'Réaliser les tests méniscaux',
-            'Différencier lésion méniscale vs ligamentaire',
-            'Déterminer la nécessité d\'imagerie',
-            'Proposer une prise en charge adaptée'
-          ],
-          patient_profile: 'Homme, 28 ans, footballeur amateur',
-          is_active: true,
-          created_at: new Date().toISOString()
-        },
-        {
-          id: '5',
-          title: 'Céphalée cervicogénique',
-          description: 'Patiente de 42 ans souffrant de céphalées unilatérales avec raideur cervicale. Établissez le lien entre les symptômes et la région cervicale.',
-          region: 'Cervical',
-          difficulty: 'intermédiaire',
-          duration_minutes: 18,
-          objectives: [
-            'Différencier céphalée cervicogénique vs migraine',
-            'Identifier les dysfonctions cervicales',
-            'Proposer un traitement ostéopathique ciblé',
-            'Gérer les drapeaux rouges céphaliques'
-          ],
-          patient_profile: 'Femme, 42 ans, enseignante',
-          is_active: true,
-          created_at: new Date().toISOString()
-        }
-      ]
+      // Load clinical cases from database
+      const { data: casesData, error: casesError } = await supabase
+        .from('clinical_cases')
+        .select('*')
+        .eq('is_active', true)
+        .order('created_at', { ascending: false })
 
-      setCases(mockCases)
-
-      // Load user progress (mock for now)
-      const mockProgress: Record<string, CaseProgress> = {
-        '1': {
-          case_id: '1',
-          completed: true,
-          score: 92,
-          completed_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString()
-        }
+      if (casesError) {
+        console.error('Error loading cases:', casesError)
+      } else {
+        setCases(casesData || [])
       }
 
-      setUserProgress(mockProgress)
+      // Load user progress
+      const { data: progressData, error: progressError } = await supabase
+        .from('case_progress')
+        .select('*')
+        .eq('user_id', user.id)
+
+      if (progressError) {
+        console.error('Error loading progress:', progressError)
+      } else if (progressData) {
+        // Create a map of case_id to progress
+        const progressMap: Record<string, CaseProgress> = {}
+        progressData.forEach((progress: any) => {
+          progressMap[progress.case_id] = {
+            case_id: progress.case_id,
+            completed: progress.completed,
+            score: progress.score,
+            completed_at: progress.completed_at
+          }
+        })
+        setUserProgress(progressMap)
+      }
     } catch (error) {
       console.error('Error loading cases:', error)
     } finally {
@@ -319,7 +250,7 @@ export default function ClinicalCasesPage() {
             {isAdmin && (
               <div className="flex items-end">
                 <button
-                  onClick={() => alert('🚧 Création de cas pratiques disponible prochainement')}
+                  onClick={() => router.push('/admin/cases/new')}
                   className="px-6 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-semibold transition-colors flex items-center gap-2"
                 >
                   <Plus className="h-5 w-5" />

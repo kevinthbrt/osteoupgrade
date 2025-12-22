@@ -71,67 +71,42 @@ export default function QuizzesPage() {
 
       setProfile(profileData)
 
-      // Load quizzes (mock data for now - you'll need to create the table)
-      // TODO: Create quiz tables in database
-      const mockQuizzes: Quiz[] = [
-        {
-          id: '1',
-          title: 'Anatomie Cervicale - Niveau 1',
-          description: 'Testez vos connaissances sur l\'anatomie de la région cervicale : vertèbres, muscles, ligaments et vascularisation.',
-          theme: 'Anatomie',
-          difficulty: 'facile',
-          question_count: 15,
-          duration_minutes: 10,
-          created_at: new Date().toISOString(),
-          is_active: true
-        },
-        {
-          id: '2',
-          title: 'Biomécanique de l\'Épaule',
-          description: 'Quiz avancé sur la biomécanique de l\'épaule : mouvements, stabilité, forces musculaires et pathomécanique.',
-          theme: 'Biomécanique',
-          difficulty: 'moyen',
-          question_count: 20,
-          duration_minutes: 15,
-          created_at: new Date().toISOString(),
-          is_active: true
-        },
-        {
-          id: '3',
-          title: 'HVLA Thoracique - Maîtrise',
-          description: 'Quiz expert sur les techniques HVLA thoraciques : indications, contre-indications, biomécanique et sécurité.',
-          theme: 'HVLA',
-          difficulty: 'difficile',
-          question_count: 25,
-          duration_minutes: 20,
-          created_at: new Date().toISOString(),
-          is_active: true
-        },
-        {
-          id: '4',
-          title: 'Tests Orthopédiques du Genou',
-          description: 'Évaluez votre maîtrise des tests orthopédiques du genou : sensibilité, spécificité et interprétation clinique.',
-          theme: 'Tests Orthopédiques',
-          difficulty: 'moyen',
-          question_count: 18,
-          duration_minutes: 12,
-          created_at: new Date().toISOString(),
-          is_active: true
-        }
-      ]
+      // Load quizzes from database
+      const { data: quizzesData, error: quizzesError } = await supabase
+        .from('quizzes')
+        .select('*')
+        .eq('is_active', true)
+        .order('created_at', { ascending: false })
 
-      setQuizzes(mockQuizzes)
-
-      // Load user attempts (mock for now)
-      const mockAttempts: Record<string, QuizAttempt> = {
-        '1': {
-          quiz_id: '1',
-          score: 87,
-          completed_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString()
-        }
+      if (quizzesError) {
+        console.error('Error loading quizzes:', quizzesError)
+      } else {
+        setQuizzes(quizzesData || [])
       }
 
-      setUserAttempts(mockAttempts)
+      // Load user attempts
+      const { data: attemptsData, error: attemptsError } = await supabase
+        .from('quiz_attempts')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('completed_at', { ascending: false })
+
+      if (attemptsError) {
+        console.error('Error loading attempts:', attemptsError)
+      } else if (attemptsData) {
+        // Create a map of quiz_id to the most recent attempt
+        const attemptsMap: Record<string, QuizAttempt> = {}
+        attemptsData.forEach((attempt: any) => {
+          if (!attemptsMap[attempt.quiz_id]) {
+            attemptsMap[attempt.quiz_id] = {
+              quiz_id: attempt.quiz_id,
+              score: attempt.score,
+              completed_at: attempt.completed_at
+            }
+          }
+        })
+        setUserAttempts(attemptsMap)
+      }
     } catch (error) {
       console.error('Error loading quizzes:', error)
     } finally {
@@ -273,7 +248,7 @@ export default function QuizzesPage() {
             {isAdmin && (
               <div className="flex items-end">
                 <button
-                  onClick={() => alert('🚧 Création de quiz disponible prochainement')}
+                  onClick={() => router.push('/admin/quizzes/new')}
                   className="px-6 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-semibold transition-colors flex items-center gap-2"
                 >
                   <Plus className="h-5 w-5" />
