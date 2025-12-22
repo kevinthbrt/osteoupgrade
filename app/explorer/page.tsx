@@ -40,7 +40,7 @@ type OrthopedicTest = {
   id: string
   name: string
   description: string
-  region: string
+  category?: string
   sensitivity: number
   specificity: number
   video_url: string
@@ -102,11 +102,9 @@ export default function ExplorerPage() {
       // Load tests
       let testsQuery = supabase
         .from('orthopedic_tests')
-        .select('id, name, description, sensitivity, specificity, video_url')
+        .select('id, name, description, category, sensitivity, specificity, video_url')
 
       const { data: testsData } = await testsQuery
-
-      // Filter tests by region if needed (assuming tests don't have region field directly)
       setTests(testsData || [])
 
     } catch (error) {
