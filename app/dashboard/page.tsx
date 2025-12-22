@@ -21,11 +21,8 @@ import {
   Target,
   BookOpen,
   Brain,
-  GraduationCap,
   Zap,
-  Calendar,
   Dumbbell,
-  Flame,
   LogIn
 } from 'lucide-react'
 
