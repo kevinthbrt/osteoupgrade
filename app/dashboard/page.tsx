@@ -33,7 +33,14 @@ export default function Dashboard() {
     level: 1,
     totalXp: 0,
     currentStreak: 0,
-    unlockedAchievements: 0
+    unlockedAchievements: 0,
+    weekLogins: 0,
+    weekElearning: 0,
+    weekPractice: 0,
+    weekTesting: 0,
+    elearningProgress: 0,
+    practiceProgress: 0,
+    testingProgress: 0
   })
 
   useEffect(() => {
@@ -90,7 +97,14 @@ export default function Dashboard() {
           level: gamificationStats.level || 1,
           totalXp: gamificationStats.total_xp || 0,
           currentStreak: gamificationStats.current_streak || 0,
-          unlockedAchievements: achievementsCount || 0
+          unlockedAchievements: achievementsCount || 0,
+          weekLogins: gamificationStats.week_logins || 0,
+          weekElearning: gamificationStats.week_elearning || 0,
+          weekPractice: gamificationStats.week_practice || 0,
+          weekTesting: gamificationStats.week_testing || 0,
+          elearningProgress: gamificationStats.elearning_progress || 0,
+          practiceProgress: gamificationStats.practice_progress || 0,
+          testingProgress: gamificationStats.testing_progress || 0
         })
       }
     } catch (error) {
@@ -234,8 +248,56 @@ export default function Dashboard() {
                     <Target className="h-4 w-4 text-green-400" />
                     <span className="text-xs text-slate-300 font-medium">Progression</span>
                   </div>
-                  <div className="text-2xl font-bold">87%</div>
-                  <div className="text-xs text-slate-400">ce mois</div>
+                  <div className="text-2xl font-bold">
+                    {Math.round((stats.elearningProgress + stats.practiceProgress + stats.testingProgress) / 3)}%
+                  </div>
+                  <div className="text-xs text-slate-400">globale</div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6">
+                <div className="bg-white/5 border border-white/10 rounded-xl p-3">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Zap className="h-4 w-4 text-sky-300" />
+                    <span className="text-xs text-slate-300 font-medium">Cette semaine</span>
+                  </div>
+                  <div className="flex flex-wrap gap-3 text-xs text-slate-300">
+                    <span>Connexions: <strong className="text-white">{stats.weekLogins}</strong></span>
+                    <span>E-learning: <strong className="text-white">{stats.weekElearning}</strong></span>
+                    <span>Pratique: <strong className="text-white">{stats.weekPractice}</strong></span>
+                    <span>Testing: <strong className="text-white">{stats.weekTesting}</strong></span>
+                  </div>
+                </div>
+
+                <div className="bg-white/5 border border-white/10 rounded-xl p-3">
+                  <div className="flex items-center gap-2 mb-2">
+                    <BookOpen className="h-4 w-4 text-blue-300" />
+                    <span className="text-xs text-slate-300 font-medium">Progression modules</span>
+                  </div>
+                  <div className="grid grid-cols-3 gap-3 text-center">
+                    <div>
+                      <div className="text-lg font-bold text-white">{stats.elearningProgress}%</div>
+                      <div className="text-[10px] text-slate-400">E-learning</div>
+                    </div>
+                    <div>
+                      <div className="text-lg font-bold text-white">{stats.practiceProgress}%</div>
+                      <div className="text-[10px] text-slate-400">Pratique</div>
+                    </div>
+                    <div>
+                      <div className="text-lg font-bold text-white">{stats.testingProgress}%</div>
+                      <div className="text-[10px] text-slate-400">Testing</div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-white/5 border border-white/10 rounded-xl p-3">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Award className="h-4 w-4 text-amber-300" />
+                    <span className="text-xs text-slate-300 font-medium">Objectifs</span>
+                  </div>
+                  <div className="text-xs text-slate-300">
+                    Débloquez de nouveaux badges en continuant vos activités sur la plateforme.
+                  </div>
                 </div>
               </div>
 
