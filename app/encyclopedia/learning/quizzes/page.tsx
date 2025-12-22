@@ -172,8 +172,7 @@ export default function QuizzesPage() {
   })
 
   const handleStartQuiz = (quizId: string) => {
-    // TODO: Navigate to quiz taking page
-    alert(`🚧 Module Quiz en cours de développement.\n\nLe quiz sera bientôt disponible avec :\n- Questions interactives\n- Timer en temps réel\n- Feedback instantané\n- Scoring et progression`)
+    router.push(`/encyclopedia/learning/quizzes/${quizId}/take`)
   }
 
   const isAdmin = profile?.role === 'admin'
