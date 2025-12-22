@@ -22,7 +22,8 @@ import {
   Eye,
   Loader2,
   AlertCircle,
-  Play
+  Play,
+  X
 } from 'lucide-react'
 
 type Pathology = {
@@ -298,7 +299,7 @@ export default function ExplorerPage() {
         </div>
 
         {/* Results Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredItems.map((item: any) => {
             const isPathology = selectedType === 'pathologies'
 
@@ -306,69 +307,104 @@ export default function ExplorerPage() {
               <button
                 key={item.id}
                 onClick={() => setSelectedItem(item)}
-                className="group relative overflow-hidden rounded-2xl bg-white border-2 border-slate-200 hover:border-rose-300 p-6 text-left shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
+                className="group relative overflow-hidden rounded-2xl bg-white border-2 border-slate-200 hover:border-rose-300 shadow-sm hover:shadow-xl transition-all duration-300 text-left"
               >
-                <div className="absolute inset-0 bg-gradient-to-br from-rose-500/5 to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
-
-                <div className="relative">
-                  {/* Header */}
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex-1">
-                      {isPathology && item.is_red_flag && (
-                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-red-100 text-red-700 text-xs font-semibold mb-2">
+                {/* Image de fond pour pathologies */}
+                {isPathology && item.image_url && (
+                  <div className="relative h-48 bg-gradient-to-br from-slate-100 to-slate-200">
+                    <img
+                      src={item.image_url}
+                      alt={item.name}
+                      className="w-full h-full object-cover"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
+                    {item.is_red_flag && (
+                      <div className="absolute top-3 right-3">
+                        <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-red-600 text-white text-xs font-bold shadow-lg">
                           <AlertCircle className="h-3 w-3" />
                           Drapeau rouge
                         </span>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Placeholder si pas d'image */}
+                {isPathology && !item.image_url && (
+                  <div className="relative h-48 bg-gradient-to-br from-rose-100 via-pink-100 to-purple-100 flex items-center justify-center">
+                    <Stethoscope className="h-16 w-16 text-rose-300" />
+                    {item.is_red_flag && (
+                      <div className="absolute top-3 right-3">
+                        <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-red-600 text-white text-xs font-bold shadow-lg">
+                          <AlertCircle className="h-3 w-3" />
+                          Drapeau rouge
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Image/placeholder pour tests */}
+                {!isPathology && (
+                  <div className="relative h-48 bg-gradient-to-br from-emerald-100 via-teal-100 to-cyan-100 flex items-center justify-center">
+                    <TestTube className="h-16 w-16 text-emerald-300" />
+                  </div>
+                )}
+
+                <div className="p-5">
+                  {/* Header */}
+                  <div className="mb-3">
+                    <h3 className="text-lg font-bold text-slate-900 mb-2 group-hover:text-rose-700 transition-colors">
+                      {item.name}
+                    </h3>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="px-2 py-1 rounded-lg text-xs font-semibold bg-blue-100 text-blue-700">
+                        {item.region || item.category || 'Non classé'}
+                      </span>
+                      {isPathology && item.severity && (
+                        <span className={`px-2 py-1 rounded-lg text-xs font-semibold border ${getSeverityColor(item.severity)}`}>
+                          {getSeverityLabel(item.severity)}
+                        </span>
                       )}
-                      <h3 className="text-lg font-bold text-slate-900 mb-1 group-hover:text-rose-700 transition-colors">
-                        {item.name}
-                      </h3>
-                      {isPathology && (
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="px-2 py-0.5 rounded text-xs font-semibold bg-slate-100 text-slate-700">
-                            {item.region}
-                          </span>
-                          <span className={`px-2 py-0.5 rounded text-xs font-semibold border ${getSeverityColor(item.severity)}`}>
-                            {getSeverityLabel(item.severity)}
-                          </span>
-                        </div>
+                      {!isPathology && item.sensitivity && (
+                        <span className="px-2 py-1 rounded-lg text-xs font-semibold bg-green-100 text-green-700">
+                          Se: {item.sensitivity}%
+                        </span>
                       )}
-                      {!isPathology && (
-                        <div className="flex gap-2 text-xs">
-                          {item.sensitivity && (
-                            <span className="px-2 py-0.5 rounded bg-green-100 text-green-700 font-semibold">
-                              Se: {item.sensitivity}%
-                            </span>
-                          )}
-                          {item.specificity && (
-                            <span className="px-2 py-0.5 rounded bg-blue-100 text-blue-700 font-semibold">
-                              Sp: {item.specificity}%
-                            </span>
-                          )}
-                        </div>
+                      {!isPathology && item.specificity && (
+                        <span className="px-2 py-1 rounded-lg text-xs font-semibold bg-blue-100 text-blue-700">
+                          Sp: {item.specificity}%
+                        </span>
                       )}
                     </div>
-
-                    <ChevronRight className="h-5 w-5 text-slate-400 group-hover:text-rose-600 group-hover:translate-x-1 transition-all flex-shrink-0" />
                   </div>
 
                   {/* Description */}
-                  <p className="text-sm text-slate-600 line-clamp-3">
-                    {item.description}
-                  </p>
+                  {item.description && (
+                    <p className="text-sm text-slate-600 line-clamp-2 mb-3">
+                      {item.description}
+                    </p>
+                  )}
 
-                  {/* Clinical Signs for pathologies */}
-                  {isPathology && item.clinical_signs && (
-                    <div className="mt-3 pt-3 border-t border-slate-100">
-                      <div className="flex items-center gap-1 text-xs font-semibold text-slate-700 mb-1">
-                        <Info className="h-3 w-3" />
-                        Signes cliniques
-                      </div>
-                      <p className="text-xs text-slate-600 line-clamp-2">
-                        {item.clinical_signs}
-                      </p>
+                  {/* Indicateurs pour pathologies */}
+                  {isPathology && (
+                    <div className="flex items-center gap-3 text-xs text-slate-500">
+                      {item.clinical_signs && (
+                        <span className="flex items-center gap-1">
+                          <Info className="h-3 w-3" />
+                          Signes cliniques
+                        </span>
+                      )}
                     </div>
                   )}
+
+                  {/* Bouton voir plus */}
+                  <div className="mt-4 pt-4 border-t border-slate-100 flex items-center justify-between">
+                    <span className="text-sm font-semibold text-rose-600 group-hover:text-rose-700">
+                      Voir les détails
+                    </span>
+                    <ChevronRight className="h-5 w-5 text-rose-600 group-hover:translate-x-1 transition-all" />
+                  </div>
                 </div>
               </button>
             )
@@ -396,82 +432,142 @@ export default function ExplorerPage() {
             onClick={() => setSelectedItem(null)}
           >
             <div
-              className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl"
+              className="bg-white rounded-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto shadow-2xl"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="sticky top-0 bg-gradient-to-br from-rose-600 to-purple-700 text-white p-6 rounded-t-2xl">
-                <div className="flex items-start justify-between">
-                  <div>
-                    {selectedType === 'pathologies' && selectedItem.is_red_flag && (
-                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-red-500 text-white text-xs font-semibold mb-2">
-                        <AlertCircle className="h-3 w-3" />
+              {/* Image en haut pour pathologies */}
+              {selectedType === 'pathologies' && selectedItem.image_url && (
+                <div className="relative h-64 bg-gradient-to-br from-slate-100 to-slate-200">
+                  <img
+                    src={selectedItem.image_url}
+                    alt={selectedItem.name}
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
+                  <div className="absolute bottom-6 left-6 right-6">
+                    {selectedItem.is_red_flag && (
+                      <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-red-600 text-white text-sm font-bold mb-3 shadow-lg">
+                        <AlertCircle className="h-4 w-4" />
                         Drapeau rouge
                       </span>
                     )}
-                    <h2 className="text-2xl font-bold mb-2">{selectedItem.name}</h2>
+                    <h2 className="text-3xl font-bold text-white mb-2">{selectedItem.name}</h2>
                     <div className="flex items-center gap-2 flex-wrap">
-                      {selectedType === 'pathologies' && (
-                        <>
-                          <span className="px-2 py-1 rounded bg-white/20 text-sm font-semibold">
-                            {selectedItem.region}
-                          </span>
-                          <span className="px-2 py-1 rounded bg-white/20 text-sm font-semibold">
-                            {getSeverityLabel(selectedItem.severity)}
-                          </span>
-                        </>
+                      <span className="px-3 py-1 rounded-lg bg-white/90 backdrop-blur-sm text-sm font-semibold text-slate-900">
+                        {selectedItem.region || selectedItem.category}
+                      </span>
+                      {selectedType === 'pathologies' && selectedItem.severity && (
+                        <span className={`px-3 py-1 rounded-lg text-sm font-semibold ${getSeverityColor(selectedItem.severity)} backdrop-blur-sm`}>
+                          {getSeverityLabel(selectedItem.severity)}
+                        </span>
                       )}
                     </div>
                   </div>
                   <button
                     onClick={() => setSelectedItem(null)}
-                    className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+                    className="absolute top-4 right-4 p-2 bg-white/90 hover:bg-white rounded-lg transition-colors shadow-lg"
                   >
-                    ✕
+                    <X className="h-5 w-5 text-slate-900" />
                   </button>
                 </div>
-              </div>
+              )}
 
-              <div className="p-6 space-y-4">
-                <div>
-                  <h3 className="text-sm font-semibold text-slate-700 mb-2">Description</h3>
-                  <p className="text-slate-600">{selectedItem.description}</p>
+              {/* Header sans image */}
+              {(!selectedItem.image_url || selectedType === 'tests') && (
+                <div className={`sticky top-0 ${selectedType === 'pathologies' ? 'bg-gradient-to-br from-rose-600 to-purple-700' : 'bg-gradient-to-br from-emerald-600 to-teal-700'} text-white p-6 rounded-t-2xl`}>
+                  <div className="flex items-start justify-between">
+                    <div>
+                      {selectedType === 'pathologies' && selectedItem.is_red_flag && (
+                        <span className="inline-flex items-center gap-1 px-3 py-1 rounded-lg bg-red-500 text-white text-xs font-semibold mb-2">
+                          <AlertCircle className="h-3 w-3" />
+                          Drapeau rouge
+                        </span>
+                      )}
+                      <h2 className="text-2xl font-bold mb-2">{selectedItem.name}</h2>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {selectedType === 'pathologies' && (
+                          <>
+                            <span className="px-2 py-1 rounded bg-white/20 text-sm font-semibold">
+                              {selectedItem.region}
+                            </span>
+                            {selectedItem.severity && (
+                              <span className="px-2 py-1 rounded bg-white/20 text-sm font-semibold">
+                                {getSeverityLabel(selectedItem.severity)}
+                              </span>
+                            )}
+                          </>
+                        )}
+                        {selectedType === 'tests' && selectedItem.category && (
+                          <span className="px-2 py-1 rounded bg-white/20 text-sm font-semibold">
+                            {selectedItem.category}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => setSelectedItem(null)}
+                      className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+                    >
+                      <X className="h-5 w-5" />
+                    </button>
+                  </div>
                 </div>
+              )}
+
+              <div className="p-6 space-y-6">
+                {selectedItem.description && (
+                  <div>
+                    <h3 className="text-sm font-semibold text-slate-700 mb-2 flex items-center gap-2">
+                      <Info className="h-4 w-4" />
+                      Description
+                    </h3>
+                    <p className="text-slate-600 leading-relaxed">{selectedItem.description}</p>
+                  </div>
+                )}
 
                 {selectedType === 'pathologies' && selectedItem.clinical_signs && (
-                  <div>
-                    <h3 className="text-sm font-semibold text-slate-700 mb-2">Signes cliniques</h3>
-                    <p className="text-slate-600">{selectedItem.clinical_signs}</p>
+                  <div className="bg-amber-50 border-2 border-amber-200 rounded-xl p-4">
+                    <h3 className="text-sm font-semibold text-amber-900 mb-2 flex items-center gap-2">
+                      <AlertCircle className="h-4 w-4" />
+                      Signes cliniques
+                    </h3>
+                    <p className="text-amber-800 leading-relaxed">{selectedItem.clinical_signs}</p>
                   </div>
                 )}
 
                 {selectedType === 'tests' && (
-                  <div className="grid grid-cols-2 gap-4">
-                    {selectedItem.sensitivity && (
-                      <div className="p-4 rounded-xl bg-green-50 border border-green-200">
-                        <div className="text-xs text-green-700 font-semibold mb-1">Sensibilité</div>
-                        <div className="text-2xl font-bold text-green-700">{selectedItem.sensitivity}%</div>
-                      </div>
-                    )}
-                    {selectedItem.specificity && (
-                      <div className="p-4 rounded-xl bg-blue-50 border border-blue-200">
-                        <div className="text-xs text-blue-700 font-semibold mb-1">Spécificité</div>
-                        <div className="text-2xl font-bold text-blue-700">{selectedItem.specificity}%</div>
-                      </div>
-                    )}
-                  </div>
-                )}
+                  <>
+                    <div className="grid grid-cols-2 gap-4">
+                      {selectedItem.sensitivity && (
+                        <div className="p-4 rounded-xl bg-green-50 border-2 border-green-200">
+                          <div className="text-xs text-green-700 font-semibold mb-1">Sensibilité</div>
+                          <div className="text-3xl font-bold text-green-700">{selectedItem.sensitivity}%</div>
+                        </div>
+                      )}
+                      {selectedItem.specificity && (
+                        <div className="p-4 rounded-xl bg-blue-50 border-2 border-blue-200">
+                          <div className="text-xs text-blue-700 font-semibold mb-1">Spécificité</div>
+                          <div className="text-3xl font-bold text-blue-700">{selectedItem.specificity}%</div>
+                        </div>
+                      )}
+                    </div>
 
-                {selectedType === 'tests' && selectedItem.video_url && (
-                  <div>
-                    <h3 className="text-sm font-semibold text-slate-700 mb-2">Vidéo du test</h3>
-                    <button
-                      onClick={() => window.open(selectedItem.video_url, '_blank')}
-                      className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-lg font-semibold transition-colors flex items-center gap-2"
-                    >
-                      <Play className="h-4 w-4" />
-                      Voir la vidéo
-                    </button>
-                  </div>
+                    {selectedItem.video_url && (
+                      <div>
+                        <h3 className="text-sm font-semibold text-slate-700 mb-3 flex items-center gap-2">
+                          <Play className="h-4 w-4" />
+                          Vidéo du test
+                        </h3>
+                        <button
+                          onClick={() => window.open(selectedItem.video_url, '_blank')}
+                          className="w-full px-6 py-4 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-xl font-semibold transition-all flex items-center justify-center gap-2 shadow-lg"
+                        >
+                          <Play className="h-5 w-5" />
+                          Voir la vidéo de démonstration
+                        </button>
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             </div>
