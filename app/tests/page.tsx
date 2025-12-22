@@ -468,7 +468,7 @@ export default function ImprovedTestsPage() {
             {profile?.role === 'admin' && (
               <div className="flex gap-2">
                 <button
-                  onClick={() => router.push('/admin/diagnostics')}
+                  onClick={() => router.push('/diagnostics')}
                   className="bg-purple-100 hover:bg-purple-200 text-purple-700 px-4 py-2 rounded-lg font-medium transition-colors flex items-center space-x-2"
                   title="Gérer les diagnostics (dossiers avec tests)"
                 >
@@ -958,7 +958,7 @@ export default function ImprovedTestsPage() {
                 title: 'Diagnostics & Pathologies',
                 description: 'Pathologies par région avec photos, signes cliniques et red flags',
                 module: 'Référence Clinique',
-                href: '/admin/diagnostics',
+                href: '/diagnostics',
                 gradient: 'from-rose-500 to-pink-600',
                 icon: Stethoscope
               },

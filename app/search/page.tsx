@@ -88,7 +88,7 @@ function SearchPageContent() {
             title: p.name,
             description: p.description || `Région: ${p.region}`,
             type: 'pathologie',
-            href: '/admin/diagnostics',
+            href: '/diagnostics',
             module: 'Diagnostics',
             gradient: 'from-rose-500 to-pink-600',
             icon: Stethoscope

@@ -108,8 +108,8 @@ export default function Navigation() {
       roles: ['premium_silver', 'premium_gold', 'admin']
     },
     {
-      href: '/explorer',
-      label: 'Explorateur',
+      href: '/diagnostics',
+      label: 'Diagnostics',
       icon: FolderOpen,
       badge: 'Premium',
       roles: ['premium_silver', 'premium_gold', 'admin'],

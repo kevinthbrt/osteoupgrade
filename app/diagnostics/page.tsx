@@ -47,7 +47,7 @@ const REGIONS = [
   { value: 'cheville', label: 'Cheville', icon: Eye, color: 'amber' }
 ]
 
-export default function ExplorerPage() {
+export default function DiagnosticsPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(true)
   const [profile, setProfile] = useState<any>(null)
@@ -80,7 +80,10 @@ export default function ExplorerPage() {
       let pathologiesQuery = supabase
         .from('pathologies')
         .select('*')
-        .eq('is_active', true)
+
+      if (profileData?.role !== 'admin') {
+        pathologiesQuery = pathologiesQuery.eq('is_active', true)
+      }
 
       if (selectedRegion !== 'all') {
         pathologiesQuery = pathologiesQuery.eq('region', selectedRegion)
@@ -186,7 +189,7 @@ export default function ExplorerPage() {
               Fonctionnalité Premium
             </h1>
             <p className="text-lg text-slate-600 mb-8">
-              L'explorateur interactif de diagnostics et pathologies est réservé aux membres Premium.
+              Les diagnostics et pathologies sont réservés aux membres Premium.
               Découvrez plus de 200 pathologies de manière ludique et interactive.
             </p>
             <button
@@ -227,7 +230,7 @@ export default function ExplorerPage() {
               <div className="flex items-start justify-between">
                 <div>
                   <h1 className="text-3xl md:text-4xl font-bold mb-3 bg-clip-text text-transparent bg-gradient-to-r from-white to-rose-100">
-                    {isAdmin ? 'Gestion Diagnostics' : 'Explorateur Interactif'}
+                    {isAdmin ? 'Gestion Diagnostics' : 'Diagnostics & Pathologies'}
                   </h1>
 
                   <p className="text-base md:text-lg text-rose-100 mb-6 max-w-2xl">

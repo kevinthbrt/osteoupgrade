@@ -461,7 +461,7 @@ export default function TopographiePage() {
                 title: 'Diagnostics & Pathologies',
                 description: 'Pathologies par région avec photos, signes cliniques et red flags',
                 module: 'Référence Clinique',
-                href: '/admin/diagnostics',
+                href: '/diagnostics',
                 gradient: 'from-rose-500 to-pink-600',
                 icon: Stethoscope
               },

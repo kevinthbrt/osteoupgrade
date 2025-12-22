@@ -63,7 +63,7 @@ export default function ElearningHubPage() {
       title: 'Diagnostics & Pathologies',
       description: 'Pathologies par région avec photos, signes cliniques, red flags et tests associés',
       icon: Stethoscope,
-      href: '/admin/diagnostics',
+      href: '/diagnostics',
       gradient: 'from-rose-500 to-pink-600',
       count: '150+ pathologies',
       category: 'Référence Clinique'
