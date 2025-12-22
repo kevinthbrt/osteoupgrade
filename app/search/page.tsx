@@ -78,7 +78,7 @@ function SearchPageContent() {
       const { data: pathologies } = await supabase
         .from('pathologies')
         .select('id, name, description, region')
-        .or(`name.ilike.%${q}%,description.ilike.%${q}%`)
+        .or(`name.ilike.%${q}%,description.ilike.%${q}%,region.ilike.%${q}%`)
         .limit(10)
 
       if (pathologies) {
@@ -100,7 +100,7 @@ function SearchPageContent() {
       const { data: tests } = await supabase
         .from('orthopedic_tests')
         .select('id, name, description, region')
-        .or(`name.ilike.%${q}%,description.ilike.%${q}%`)
+        .or(`name.ilike.%${q}%,description.ilike.%${q}%,region.ilike.%${q}%`)
         .limit(10)
 
       if (tests) {
@@ -122,7 +122,7 @@ function SearchPageContent() {
       const { data: zones } = await supabase
         .from('topographic_zones')
         .select('id, name, description, region')
-        .or(`name.ilike.%${q}%,description.ilike.%${q}%`)
+        .or(`name.ilike.%${q}%,description.ilike.%${q}%,region.ilike.%${q}%`)
         .limit(10)
 
       if (zones) {
@@ -144,7 +144,7 @@ function SearchPageContent() {
       const { data: videos } = await supabase
         .from('practice_videos')
         .select('id, name, description, region')
-        .or(`name.ilike.%${q}%,description.ilike.%${q}%`)
+        .or(`name.ilike.%${q}%,description.ilike.%${q}%,region.ilike.%${q}%`)
         .limit(10)
 
       if (videos) {
@@ -158,6 +158,52 @@ function SearchPageContent() {
             module: 'Pratique',
             gradient: 'from-pink-500 to-rose-600',
             icon: Stethoscope
+          })
+        })
+      }
+
+      // Search quizzes
+      const { data: quizzes } = await supabase
+        .from('quizzes')
+        .select('id, title, description, theme')
+        .eq('is_active', true)
+        .or(`title.ilike.%${q}%,description.ilike.%${q}%,theme.ilike.%${q}%`)
+        .limit(10)
+
+      if (quizzes) {
+        quizzes.forEach(quiz => {
+          allResults.push({
+            id: quiz.id,
+            title: quiz.title,
+            description: quiz.description || `Thème: ${quiz.theme}`,
+            type: 'quiz',
+            href: `/encyclopedia/learning/quizzes/${quiz.id}/take`,
+            module: 'Quiz',
+            gradient: 'from-purple-500 to-indigo-600',
+            icon: FileQuestion
+          })
+        })
+      }
+
+      // Search clinical cases
+      const { data: cases } = await supabase
+        .from('clinical_cases')
+        .select('id, title, description, region')
+        .eq('is_active', true)
+        .or(`title.ilike.%${q}%,description.ilike.%${q}%,region.ilike.%${q}%`)
+        .limit(10)
+
+      if (cases) {
+        cases.forEach(caseItem => {
+          allResults.push({
+            id: caseItem.id,
+            title: caseItem.title,
+            description: caseItem.description || `Région: ${caseItem.region}`,
+            type: 'case',
+            href: `/encyclopedia/learning/cases`,
+            module: 'Cas Pratiques',
+            gradient: 'from-amber-500 to-orange-600',
+            icon: Target
           })
         })
       }
