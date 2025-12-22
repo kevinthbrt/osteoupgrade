@@ -28,6 +28,7 @@ export default function Dashboard() {
   const [profile, setProfile] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
+  const [badges, setBadges] = useState<{ id: string; name: string; icon: string | null }[]>([])
   const [stats, setStats] = useState({
     level: 1,
     totalXp: 0,
@@ -105,6 +106,21 @@ export default function Dashboard() {
           practiceProgress: gamificationStats.practice_progress || 0,
           testingProgress: gamificationStats.testing_progress || 0
         })
+      }
+
+      const { data: achievements } = await supabase
+        .from('user_achievements')
+        .select('achievement:achievements(id, name, icon)')
+        .eq('user_id', user.id)
+        .order('unlocked_at', { ascending: false })
+        .limit(6)
+
+      if (achievements) {
+        setBadges(
+          achievements
+            .map((item: { achievement: { id: string; name: string; icon: string | null } | null }) => item.achievement)
+            .filter((achievement): achievement is { id: string; name: string; icon: string | null } => Boolean(achievement))
+        )
       }
     } catch (error) {
       console.error('Error loading dashboard:', error)
@@ -271,6 +287,24 @@ export default function Dashboard() {
                   >
                     Voir mes badges
                   </button>
+                </div>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {badges.length > 0 ? (
+                    badges.map((badge) => (
+                      <span
+                        key={badge.id}
+                        className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs text-white"
+                        title={badge.name}
+                      >
+                        <span className="text-base">{badge.icon || '🏅'}</span>
+                        <span className="max-w-[140px] truncate">{badge.name}</span>
+                      </span>
+                    ))
+                  ) : (
+                    <span className="text-xs text-slate-400">
+                      Aucun badge débloqué pour le moment.
+                    </span>
+                  )}
                 </div>
               </div>
 
