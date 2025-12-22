@@ -417,7 +417,7 @@ export default function TakeQuizPage() {
   }
 
   // Quiz in progress
-  const current Question = quiz.questions[currentQuestionIndex]
+  const currentQuestion = quiz.questions[currentQuestionIndex]
   const progress = ((currentQuestionIndex + 1) / quiz.questions.length) * 100
   const timePercentage = (timeRemaining / (quiz.duration_minutes * 60)) * 100
 
