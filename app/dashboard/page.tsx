@@ -201,45 +201,43 @@ export default function Dashboard() {
               </p>
 
               {/* Stats Cards */}
-              {stats.totalXp > 0 && (
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-                  <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl p-3 hover:bg-white/15 transition-all cursor-pointer" onClick={() => router.push('/stats')}>
-                    <div className="flex items-center gap-2 mb-1">
-                      <Trophy className="h-4 w-4 text-yellow-400" />
-                      <span className="text-xs text-slate-300 font-medium">Niveau</span>
-                    </div>
-                    <div className="text-2xl font-bold">{stats.level}</div>
-                    <div className="text-xs text-slate-400">{stats.totalXp.toLocaleString()} XP</div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+                <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl p-3 hover:bg-white/15 transition-all cursor-pointer" onClick={() => router.push('/stats')}>
+                  <div className="flex items-center gap-2 mb-1">
+                    <Trophy className="h-4 w-4 text-yellow-400" />
+                    <span className="text-xs text-slate-300 font-medium">Niveau</span>
                   </div>
-
-                  <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl p-3 hover:bg-white/15 transition-all cursor-pointer" onClick={() => router.push('/stats')}>
-                    <div className="flex items-center gap-2 mb-1">
-                      <Flame className="h-4 w-4 text-orange-400" />
-                      <span className="text-xs text-slate-300 font-medium">Série</span>
-                    </div>
-                    <div className="text-2xl font-bold">{stats.currentStreak}</div>
-                    <div className="text-xs text-slate-400">jours</div>
-                  </div>
-
-                  <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl p-3 hover:bg-white/15 transition-all cursor-pointer" onClick={() => router.push('/stats')}>
-                    <div className="flex items-center gap-2 mb-1">
-                      <Award className="h-4 w-4 text-purple-400" />
-                      <span className="text-xs text-slate-300 font-medium">Badges</span>
-                    </div>
-                    <div className="text-2xl font-bold">{stats.unlockedAchievements}</div>
-                    <div className="text-xs text-slate-400">débloqués</div>
-                  </div>
-
-                  <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl p-3 hover:bg-white/15 transition-all cursor-pointer" onClick={() => router.push('/stats')}>
-                    <div className="flex items-center gap-2 mb-1">
-                      <Target className="h-4 w-4 text-green-400" />
-                      <span className="text-xs text-slate-300 font-medium">Progression</span>
-                    </div>
-                    <div className="text-2xl font-bold">87%</div>
-                    <div className="text-xs text-slate-400">ce mois</div>
-                  </div>
+                  <div className="text-2xl font-bold">{stats.level}</div>
+                  <div className="text-xs text-slate-400">{stats.totalXp.toLocaleString()} XP</div>
                 </div>
-              )}
+
+                <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl p-3 hover:bg-white/15 transition-all cursor-pointer" onClick={() => router.push('/stats')}>
+                  <div className="flex items-center gap-2 mb-1">
+                    <Flame className="h-4 w-4 text-orange-400" />
+                    <span className="text-xs text-slate-300 font-medium">Série</span>
+                  </div>
+                  <div className="text-2xl font-bold">{stats.currentStreak}</div>
+                  <div className="text-xs text-slate-400">jours</div>
+                </div>
+
+                <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl p-3 hover:bg-white/15 transition-all cursor-pointer" onClick={() => router.push('/stats')}>
+                  <div className="flex items-center gap-2 mb-1">
+                    <Award className="h-4 w-4 text-purple-400" />
+                    <span className="text-xs text-slate-300 font-medium">Badges</span>
+                  </div>
+                  <div className="text-2xl font-bold">{stats.unlockedAchievements}</div>
+                  <div className="text-xs text-slate-400">débloqués</div>
+                </div>
+
+                <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl p-3 hover:bg-white/15 transition-all cursor-pointer" onClick={() => router.push('/stats')}>
+                  <div className="flex items-center gap-2 mb-1">
+                    <Target className="h-4 w-4 text-green-400" />
+                    <span className="text-xs text-slate-300 font-medium">Progression</span>
+                  </div>
+                  <div className="text-2xl font-bold">87%</div>
+                  <div className="text-xs text-slate-400">ce mois</div>
+                </div>
+              </div>
 
               {/* Search Bar */}
               <form onSubmit={handleSearch} className="relative max-w-2xl">
