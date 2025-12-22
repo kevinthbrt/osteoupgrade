@@ -174,87 +174,87 @@ export default function Dashboard() {
     <AuthLayout>
       <div className="min-h-screen pb-12">
         {/* Hero Header */}
-        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white mb-8 shadow-2xl">
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white mb-6 shadow-xl">
           {/* Animated background pattern */}
           <div className="absolute inset-0 opacity-10">
-            <div className="absolute top-0 left-0 w-96 h-96 bg-sky-400 rounded-full blur-3xl animate-pulse" />
-            <div className="absolute bottom-0 right-0 w-96 h-96 bg-purple-400 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
+            <div className="absolute top-0 left-0 w-64 h-64 bg-sky-400 rounded-full blur-3xl animate-pulse" />
+            <div className="absolute bottom-0 right-0 w-64 h-64 bg-purple-400 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
           </div>
 
-          <div className="relative px-6 py-10 md:px-12 md:py-16">
+          <div className="relative px-6 py-6 md:px-8 md:py-8">
             <div className="max-w-6xl mx-auto">
               {/* Welcome Message */}
-              <div className="flex items-center gap-3 mb-6">
-                <div className="p-3 rounded-2xl bg-white/10 backdrop-blur-sm border border-white/20">
-                  <Sparkles className="h-6 w-6 text-yellow-300" />
+              <div className="flex items-center gap-3 mb-4">
+                <div className="p-2 rounded-xl bg-white/10 backdrop-blur-sm border border-white/20">
+                  <Sparkles className="h-5 w-5 text-yellow-300" />
                 </div>
                 <div>
-                  <div className="text-sm text-slate-400 font-medium">Bienvenue dans votre espace</div>
-                  <h1 className="text-3xl md:text-4xl font-bold">
+                  <div className="text-xs text-slate-400 font-medium">Bienvenue</div>
+                  <h1 className="text-2xl md:text-3xl font-bold">
                     {profile?.full_name || 'Docteur'} 👋
                   </h1>
                 </div>
               </div>
 
-              <p className="text-lg text-slate-300 mb-8 max-w-2xl">
-                Développez vos compétences en ostéopathie avec nos modules interactifs et contenus premium.
+              <p className="text-sm text-slate-300 mb-6 max-w-2xl">
+                Développez vos compétences en ostéopathie avec nos modules interactifs
               </p>
 
               {/* Stats Cards */}
               {stats.totalXp > 0 && (
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-                  <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl p-4 hover:bg-white/15 transition-all cursor-pointer" onClick={() => router.push('/stats')}>
-                    <div className="flex items-center gap-2 mb-2">
-                      <Trophy className="h-5 w-5 text-yellow-400" />
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+                  <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl p-3 hover:bg-white/15 transition-all cursor-pointer" onClick={() => router.push('/stats')}>
+                    <div className="flex items-center gap-2 mb-1">
+                      <Trophy className="h-4 w-4 text-yellow-400" />
                       <span className="text-xs text-slate-300 font-medium">Niveau</span>
                     </div>
-                    <div className="text-3xl font-bold">{stats.level}</div>
-                    <div className="text-xs text-slate-400 mt-1">{stats.totalXp.toLocaleString()} XP</div>
+                    <div className="text-2xl font-bold">{stats.level}</div>
+                    <div className="text-xs text-slate-400">{stats.totalXp.toLocaleString()} XP</div>
                   </div>
 
-                  <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl p-4 hover:bg-white/15 transition-all cursor-pointer" onClick={() => router.push('/stats')}>
-                    <div className="flex items-center gap-2 mb-2">
-                      <Flame className="h-5 w-5 text-orange-400" />
+                  <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl p-3 hover:bg-white/15 transition-all cursor-pointer" onClick={() => router.push('/stats')}>
+                    <div className="flex items-center gap-2 mb-1">
+                      <Flame className="h-4 w-4 text-orange-400" />
                       <span className="text-xs text-slate-300 font-medium">Série</span>
                     </div>
-                    <div className="text-3xl font-bold">{stats.currentStreak}</div>
-                    <div className="text-xs text-slate-400 mt-1">jours consécutifs</div>
+                    <div className="text-2xl font-bold">{stats.currentStreak}</div>
+                    <div className="text-xs text-slate-400">jours</div>
                   </div>
 
-                  <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl p-4 hover:bg-white/15 transition-all cursor-pointer" onClick={() => router.push('/stats')}>
-                    <div className="flex items-center gap-2 mb-2">
-                      <Award className="h-5 w-5 text-purple-400" />
+                  <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl p-3 hover:bg-white/15 transition-all cursor-pointer" onClick={() => router.push('/stats')}>
+                    <div className="flex items-center gap-2 mb-1">
+                      <Award className="h-4 w-4 text-purple-400" />
                       <span className="text-xs text-slate-300 font-medium">Badges</span>
                     </div>
-                    <div className="text-3xl font-bold">{stats.unlockedAchievements}</div>
-                    <div className="text-xs text-slate-400 mt-1">débloqués</div>
+                    <div className="text-2xl font-bold">{stats.unlockedAchievements}</div>
+                    <div className="text-xs text-slate-400">débloqués</div>
                   </div>
 
-                  <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl p-4 hover:bg-white/15 transition-all cursor-pointer" onClick={() => router.push('/stats')}>
-                    <div className="flex items-center gap-2 mb-2">
-                      <Target className="h-5 w-5 text-green-400" />
+                  <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl p-3 hover:bg-white/15 transition-all cursor-pointer" onClick={() => router.push('/stats')}>
+                    <div className="flex items-center gap-2 mb-1">
+                      <Target className="h-4 w-4 text-green-400" />
                       <span className="text-xs text-slate-300 font-medium">Progression</span>
                     </div>
-                    <div className="text-3xl font-bold">87%</div>
-                    <div className="text-xs text-slate-400 mt-1">ce mois</div>
+                    <div className="text-2xl font-bold">87%</div>
+                    <div className="text-xs text-slate-400">ce mois</div>
                   </div>
                 </div>
               )}
 
               {/* Search Bar */}
-              <form onSubmit={handleSearch} className="relative max-w-3xl">
-                <Search className="absolute left-5 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
+              <form onSubmit={handleSearch} className="relative max-w-2xl">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Rechercher une technique, pathologie, cours, test..."
-                  className="w-full pl-14 pr-6 py-5 rounded-2xl bg-white/95 backdrop-blur-sm border-2 border-white/50 text-slate-900 placeholder-slate-500 focus:outline-none focus:ring-4 focus:ring-sky-400/50 focus:border-white transition-all shadow-xl text-lg"
+                  className="w-full pl-11 pr-6 py-3 rounded-xl bg-white/95 backdrop-blur-sm border-2 border-white/50 text-slate-900 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-400/50 focus:border-white transition-all shadow-lg text-sm"
                 />
                 {searchQuery && (
                   <button
                     type="submit"
-                    className="absolute right-3 top-1/2 -translate-y-1/2 px-5 py-2.5 bg-gradient-to-r from-sky-500 to-blue-600 text-white rounded-xl font-semibold hover:from-sky-600 hover:to-blue-700 transition-all shadow-lg"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 px-4 py-1.5 bg-gradient-to-r from-sky-500 to-blue-600 text-white rounded-lg text-sm font-semibold hover:from-sky-600 hover:to-blue-700 transition-all shadow-lg"
                   >
                     Rechercher
                   </button>

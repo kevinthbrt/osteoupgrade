@@ -1,0 +1,485 @@
+'use client'
+
+import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import AuthLayout from '@/components/AuthLayout'
+import { supabase } from '@/lib/supabase'
+import {
+  Stethoscope,
+  TestTube,
+  Lock,
+  Sparkles,
+  Search,
+  Filter,
+  ChevronRight,
+  Info,
+  Activity,
+  Zap,
+  Crown,
+  Heart,
+  Brain,
+  Bone,
+  Eye,
+  Loader2,
+  AlertCircle,
+  Play
+} from 'lucide-react'
+
+type Pathology = {
+  id: string
+  name: string
+  description: string
+  region: string
+  severity: string
+  is_red_flag: boolean
+  clinical_signs: string
+  image_url: string
+}
+
+type OrthopedicTest = {
+  id: string
+  name: string
+  description: string
+  region: string
+  sensitivity: number
+  specificity: number
+  video_url: string
+}
+
+const REGIONS = [
+  { value: 'all', label: 'Toutes', icon: Activity, color: 'slate' },
+  { value: 'cervical', label: 'Cervical', icon: Brain, color: 'purple' },
+  { value: 'epaule', label: 'Épaule', icon: Bone, color: 'blue' },
+  { value: 'lombaire', label: 'Lombaire', icon: Heart, color: 'rose' },
+  { value: 'genou', label: 'Genou', icon: Zap, color: 'emerald' },
+  { value: 'cheville', label: 'Cheville', icon: Eye, color: 'amber' }
+]
+
+export default function ExplorerPage() {
+  const router = useRouter()
+  const [loading, setLoading] = useState(true)
+  const [profile, setProfile] = useState<any>(null)
+  const [selectedRegion, setSelectedRegion] = useState('all')
+  const [searchQuery, setSearchQuery] = useState('')
+  const [selectedType, setSelectedType] = useState<'pathologies' | 'tests'>('pathologies')
+  const [pathologies, setPathologies] = useState<Pathology[]>([])
+  const [tests, setTests] = useState<OrthopedicTest[]>([])
+  const [selectedItem, setSelectedItem] = useState<any>(null)
+
+  useEffect(() => {
+    loadData()
+  }, [selectedRegion, selectedType])
+
+  const loadData = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        router.push('/')
+        return
+      }
+
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single()
+
+      setProfile(profileData)
+
+      // Load pathologies
+      let pathologiesQuery = supabase
+        .from('pathologies')
+        .select('*')
+        .eq('is_active', true)
+
+      if (selectedRegion !== 'all') {
+        pathologiesQuery = pathologiesQuery.eq('region', selectedRegion)
+      }
+
+      const { data: pathologiesData } = await pathologiesQuery
+      setPathologies(pathologiesData || [])
+
+      // Load tests
+      let testsQuery = supabase
+        .from('orthopedic_tests')
+        .select('id, name, description, sensitivity, specificity, video_url')
+
+      const { data: testsData } = await testsQuery
+
+      // Filter tests by region if needed (assuming tests don't have region field directly)
+      setTests(testsData || [])
+
+    } catch (error) {
+      console.error('Error loading data:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const isPremium = profile?.role && ['premium_silver', 'premium_gold', 'admin'].includes(profile.role)
+
+  const filteredItems = selectedType === 'pathologies'
+    ? pathologies.filter(p =>
+        p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        p.description?.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    : tests.filter(t =>
+        t.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        t.description?.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+
+  const getSeverityColor = (severity: string) => {
+    switch (severity) {
+      case 'low': return 'bg-green-100 text-green-700 border-green-200'
+      case 'medium': return 'bg-amber-100 text-amber-700 border-amber-200'
+      case 'high': return 'bg-red-100 text-red-700 border-red-200'
+      default: return 'bg-slate-100 text-slate-700 border-slate-200'
+    }
+  }
+
+  const getSeverityLabel = (severity: string) => {
+    switch (severity) {
+      case 'low': return '🟢 Légère'
+      case 'medium': return '🟡 Modérée'
+      case 'high': return '🔴 Sévère'
+      default: return '⚪ Non définie'
+    }
+  }
+
+  if (loading) {
+    return (
+      <AuthLayout>
+        <div className="flex items-center justify-center h-96">
+          <Loader2 className="h-12 w-12 text-slate-400 animate-spin" />
+        </div>
+      </AuthLayout>
+    )
+  }
+
+  if (!isPremium) {
+    return (
+      <AuthLayout>
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="max-w-2xl mx-auto text-center p-8">
+            <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-br from-amber-500 to-orange-600 mb-6">
+              <Crown className="h-10 w-10 text-white" />
+            </div>
+            <h1 className="text-3xl font-bold text-slate-900 mb-4">
+              Fonctionnalité Premium
+            </h1>
+            <p className="text-lg text-slate-600 mb-8">
+              L'explorateur interactif de diagnostics et pathologies est réservé aux membres Premium.
+              Découvrez plus de 200 pathologies et 150+ tests orthopédiques de manière ludique et interactive.
+            </p>
+            <button
+              onClick={() => router.push('/settings')}
+              className="px-8 py-4 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white rounded-xl font-semibold transition-all shadow-lg flex items-center gap-2 mx-auto"
+            >
+              <Crown className="h-5 w-5" />
+              Passer à Premium
+            </button>
+          </div>
+        </div>
+      </AuthLayout>
+    )
+  }
+
+  return (
+    <AuthLayout>
+      <div className="min-h-screen pb-12">
+        {/* Header */}
+        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-rose-600 via-pink-600 to-purple-700 text-white mb-8 shadow-2xl">
+          <div className="absolute inset-0 bg-grid-white/[0.02] bg-[size:60px_60px]" />
+          <div className="absolute top-0 right-0 w-96 h-96 bg-purple-500/30 rounded-full blur-3xl" />
+
+          <div className="relative px-6 py-8 md:px-10 md:py-10">
+            <button
+              onClick={() => router.push('/dashboard')}
+              className="text-sm text-rose-100 hover:text-white mb-4 flex items-center gap-2"
+            >
+              ← Retour au dashboard
+            </button>
+
+            <div className="max-w-4xl">
+              <div className="inline-flex items-center gap-2 rounded-full bg-white/10 backdrop-blur-sm px-3 py-1.5 mb-4 border border-white/20">
+                <Sparkles className="h-3.5 w-3.5 text-yellow-300" />
+                <span className="text-xs font-semibold text-rose-100">Premium</span>
+              </div>
+
+              <h1 className="text-3xl md:text-4xl font-bold mb-3 bg-clip-text text-transparent bg-gradient-to-r from-white to-rose-100">
+                Explorateur Interactif
+              </h1>
+
+              <p className="text-base md:text-lg text-rose-100 mb-6 max-w-2xl">
+                Découvrez et explorez les pathologies et tests orthopédiques de manière ludique et interactive.
+                Filtrez par région, recherchez et apprenez visuellement.
+              </p>
+
+              {/* Type Selector */}
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setSelectedType('pathologies')}
+                  className={`px-6 py-3 rounded-xl font-semibold transition-all flex items-center gap-2 ${
+                    selectedType === 'pathologies'
+                      ? 'bg-white text-rose-600 shadow-lg'
+                      : 'bg-white/10 text-white hover:bg-white/20'
+                  }`}
+                >
+                  <Stethoscope className="h-5 w-5" />
+                  Pathologies
+                  <span className={`px-2 py-0.5 rounded-full text-xs ${
+                    selectedType === 'pathologies'
+                      ? 'bg-rose-100 text-rose-700'
+                      : 'bg-white/20 text-white'
+                  }`}>
+                    {pathologies.length}
+                  </span>
+                </button>
+
+                <button
+                  onClick={() => setSelectedType('tests')}
+                  className={`px-6 py-3 rounded-xl font-semibold transition-all flex items-center gap-2 ${
+                    selectedType === 'tests'
+                      ? 'bg-white text-rose-600 shadow-lg'
+                      : 'bg-white/10 text-white hover:bg-white/20'
+                  }`}
+                >
+                  <TestTube className="h-5 w-5" />
+                  Tests Orthopédiques
+                  <span className={`px-2 py-0.5 rounded-full text-xs ${
+                    selectedType === 'tests'
+                      ? 'bg-rose-100 text-rose-700'
+                      : 'bg-white/20 text-white'
+                  }`}>
+                    {tests.length}
+                  </span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Filters & Search */}
+        <div className="bg-white rounded-2xl shadow-sm p-6 mb-6">
+          <div className="flex flex-col md:flex-row gap-4">
+            {/* Search */}
+            <div className="flex-1 relative">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder={`Rechercher ${selectedType === 'pathologies' ? 'une pathologie' : 'un test'}...`}
+                className="w-full pl-12 pr-4 py-3 border-2 border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-rose-400 focus:border-transparent"
+              />
+            </div>
+
+            {/* Region Filter */}
+            <div className="flex gap-2 overflow-x-auto pb-2">
+              {REGIONS.map((region) => {
+                const Icon = region.icon
+                const isSelected = selectedRegion === region.value
+
+                return (
+                  <button
+                    key={region.value}
+                    onClick={() => setSelectedRegion(region.value)}
+                    className={`flex items-center gap-2 px-4 py-3 rounded-xl font-medium whitespace-nowrap transition-all ${
+                      isSelected
+                        ? `bg-${region.color}-100 text-${region.color}-700 border-2 border-${region.color}-300`
+                        : 'bg-slate-50 text-slate-600 border-2 border-transparent hover:bg-slate-100'
+                    }`}
+                  >
+                    <Icon className="h-4 w-4" />
+                    {region.label}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        </div>
+
+        {/* Results Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filteredItems.map((item: any) => {
+            const isPathology = selectedType === 'pathologies'
+
+            return (
+              <button
+                key={item.id}
+                onClick={() => setSelectedItem(item)}
+                className="group relative overflow-hidden rounded-2xl bg-white border-2 border-slate-200 hover:border-rose-300 p-6 text-left shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
+              >
+                <div className="absolute inset-0 bg-gradient-to-br from-rose-500/5 to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+
+                <div className="relative">
+                  {/* Header */}
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex-1">
+                      {isPathology && item.is_red_flag && (
+                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-red-100 text-red-700 text-xs font-semibold mb-2">
+                          <AlertCircle className="h-3 w-3" />
+                          Drapeau rouge
+                        </span>
+                      )}
+                      <h3 className="text-lg font-bold text-slate-900 mb-1 group-hover:text-rose-700 transition-colors">
+                        {item.name}
+                      </h3>
+                      {isPathology && (
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="px-2 py-0.5 rounded text-xs font-semibold bg-slate-100 text-slate-700">
+                            {item.region}
+                          </span>
+                          <span className={`px-2 py-0.5 rounded text-xs font-semibold border ${getSeverityColor(item.severity)}`}>
+                            {getSeverityLabel(item.severity)}
+                          </span>
+                        </div>
+                      )}
+                      {!isPathology && (
+                        <div className="flex gap-2 text-xs">
+                          {item.sensitivity && (
+                            <span className="px-2 py-0.5 rounded bg-green-100 text-green-700 font-semibold">
+                              Se: {item.sensitivity}%
+                            </span>
+                          )}
+                          {item.specificity && (
+                            <span className="px-2 py-0.5 rounded bg-blue-100 text-blue-700 font-semibold">
+                              Sp: {item.specificity}%
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    <ChevronRight className="h-5 w-5 text-slate-400 group-hover:text-rose-600 group-hover:translate-x-1 transition-all flex-shrink-0" />
+                  </div>
+
+                  {/* Description */}
+                  <p className="text-sm text-slate-600 line-clamp-3">
+                    {item.description}
+                  </p>
+
+                  {/* Clinical Signs for pathologies */}
+                  {isPathology && item.clinical_signs && (
+                    <div className="mt-3 pt-3 border-t border-slate-100">
+                      <div className="flex items-center gap-1 text-xs font-semibold text-slate-700 mb-1">
+                        <Info className="h-3 w-3" />
+                        Signes cliniques
+                      </div>
+                      <p className="text-xs text-slate-600 line-clamp-2">
+                        {item.clinical_signs}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </button>
+            )
+          })}
+        </div>
+
+        {filteredItems.length === 0 && (
+          <div className="text-center py-12 bg-white rounded-2xl shadow-sm">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-slate-100 mb-4">
+              <Search className="h-8 w-8 text-slate-400" />
+            </div>
+            <h3 className="text-lg font-semibold text-slate-900 mb-2">
+              Aucun résultat trouvé
+            </h3>
+            <p className="text-slate-600">
+              Essayez de modifier vos filtres ou votre recherche
+            </p>
+          </div>
+        )}
+
+        {/* Detail Modal */}
+        {selectedItem && (
+          <div
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            onClick={() => setSelectedItem(null)}
+          >
+            <div
+              className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="sticky top-0 bg-gradient-to-br from-rose-600 to-purple-700 text-white p-6 rounded-t-2xl">
+                <div className="flex items-start justify-between">
+                  <div>
+                    {selectedType === 'pathologies' && selectedItem.is_red_flag && (
+                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-red-500 text-white text-xs font-semibold mb-2">
+                        <AlertCircle className="h-3 w-3" />
+                        Drapeau rouge
+                      </span>
+                    )}
+                    <h2 className="text-2xl font-bold mb-2">{selectedItem.name}</h2>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {selectedType === 'pathologies' && (
+                        <>
+                          <span className="px-2 py-1 rounded bg-white/20 text-sm font-semibold">
+                            {selectedItem.region}
+                          </span>
+                          <span className="px-2 py-1 rounded bg-white/20 text-sm font-semibold">
+                            {getSeverityLabel(selectedItem.severity)}
+                          </span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setSelectedItem(null)}
+                    className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+
+              <div className="p-6 space-y-4">
+                <div>
+                  <h3 className="text-sm font-semibold text-slate-700 mb-2">Description</h3>
+                  <p className="text-slate-600">{selectedItem.description}</p>
+                </div>
+
+                {selectedType === 'pathologies' && selectedItem.clinical_signs && (
+                  <div>
+                    <h3 className="text-sm font-semibold text-slate-700 mb-2">Signes cliniques</h3>
+                    <p className="text-slate-600">{selectedItem.clinical_signs}</p>
+                  </div>
+                )}
+
+                {selectedType === 'tests' && (
+                  <div className="grid grid-cols-2 gap-4">
+                    {selectedItem.sensitivity && (
+                      <div className="p-4 rounded-xl bg-green-50 border border-green-200">
+                        <div className="text-xs text-green-700 font-semibold mb-1">Sensibilité</div>
+                        <div className="text-2xl font-bold text-green-700">{selectedItem.sensitivity}%</div>
+                      </div>
+                    )}
+                    {selectedItem.specificity && (
+                      <div className="p-4 rounded-xl bg-blue-50 border border-blue-200">
+                        <div className="text-xs text-blue-700 font-semibold mb-1">Spécificité</div>
+                        <div className="text-2xl font-bold text-blue-700">{selectedItem.specificity}%</div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {selectedType === 'tests' && selectedItem.video_url && (
+                  <div>
+                    <h3 className="text-sm font-semibold text-slate-700 mb-2">Vidéo du test</h3>
+                    <button
+                      onClick={() => window.open(selectedItem.video_url, '_blank')}
+                      className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-lg font-semibold transition-colors flex items-center gap-2"
+                    >
+                      <Play className="h-4 w-4" />
+                      Voir la vidéo
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </AuthLayout>
+  )
+}

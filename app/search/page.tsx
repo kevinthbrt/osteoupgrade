@@ -99,8 +99,8 @@ function SearchPageContent() {
       // Search orthopedic tests
       const { data: tests } = await supabase
         .from('orthopedic_tests')
-        .select('id, name, description, region')
-        .or(`name.ilike.%${q}%,description.ilike.%${q}%,region.ilike.%${q}%`)
+        .select('id, name, description, category')
+        .or(`name.ilike.%${q}%,description.ilike.%${q}%,category.ilike.%${q}%`)
         .limit(10)
 
       if (tests) {
@@ -108,7 +108,7 @@ function SearchPageContent() {
           allResults.push({
             id: t.id,
             title: t.name,
-            description: t.description || `Région: ${t.region}`,
+            description: t.description || (t.category ? `Catégorie: ${t.category}` : ''),
             type: 'test',
             href: '/tests',
             module: 'Tests Orthopédiques',
@@ -143,15 +143,15 @@ function SearchPageContent() {
       // Search practice videos
       const { data: videos } = await supabase
         .from('practice_videos')
-        .select('id, name, description, region')
-        .or(`name.ilike.%${q}%,description.ilike.%${q}%,region.ilike.%${q}%`)
+        .select('id, title, description, region')
+        .or(`title.ilike.%${q}%,description.ilike.%${q}%,region.ilike.%${q}%`)
         .limit(10)
 
       if (videos) {
         videos.forEach(v => {
           allResults.push({
             id: v.id,
-            title: v.name,
+            title: v.title,
             description: v.description || `Région: ${v.region}`,
             type: 'video',
             href: '/pratique',
