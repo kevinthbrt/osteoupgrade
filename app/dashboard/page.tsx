@@ -118,7 +118,12 @@ export default function Dashboard() {
       if (achievements) {
         setBadges(
           achievements
-            .map((item: { achievement: { id: string; name: string; icon: string | null } | null }) => item.achievement)
+            .map((item: { achievement: { id: string; name: string; icon: string | null }[] | { id: string; name: string; icon: string | null } | null }) => {
+              if (Array.isArray(item.achievement)) {
+                return item.achievement[0] ?? null
+              }
+              return item.achievement
+            })
             .filter((achievement): achievement is { id: string; name: string; icon: string | null } => Boolean(achievement))
         )
       }
