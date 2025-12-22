@@ -23,7 +23,11 @@ import {
   Loader2,
   AlertCircle,
   Play,
-  X
+  X,
+  Plus,
+  Edit,
+  Trash2,
+  EyeOff
 } from 'lucide-react'
 
 type Pathology = {
@@ -116,6 +120,7 @@ export default function ExplorerPage() {
   }
 
   const isPremium = profile?.role && ['premium_silver', 'premium_gold', 'admin'].includes(profile.role)
+  const isAdmin = profile?.role === 'admin'
 
   const filteredItems = selectedType === 'pathologies'
     ? pathologies.filter(p =>
@@ -126,6 +131,57 @@ export default function ExplorerPage() {
         t.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         t.description?.toLowerCase().includes(searchQuery.toLowerCase())
       )
+
+  const handleCreateNew = () => {
+    if (selectedType === 'pathologies') {
+      router.push('/admin/diagnostics/new')
+    } else {
+      router.push('/admin/tests/new')
+    }
+  }
+
+  const handleEdit = (id: string) => {
+    if (selectedType === 'pathologies') {
+      router.push(`/admin/diagnostics/${id}/edit`)
+    } else {
+      router.push(`/admin/tests/${id}/edit`)
+    }
+  }
+
+  const handleDelete = async (id: string, name: string) => {
+    if (!confirm(`Êtes-vous sûr de vouloir supprimer "${name}" ?`)) return
+
+    try {
+      const table = selectedType === 'pathologies' ? 'pathologies' : 'orthopedic_tests'
+      const { error } = await supabase
+        .from(table)
+        .delete()
+        .eq('id', id)
+
+      if (error) throw error
+
+      alert('✅ Supprimé avec succès')
+      loadData() // Reload data
+    } catch (error) {
+      console.error('Error deleting:', error)
+      alert('❌ Erreur lors de la suppression')
+    }
+  }
+
+  const handleToggleActive = async (id: string, currentStatus: boolean) => {
+    try {
+      const { error } = await supabase
+        .from('pathologies')
+        .update({ is_active: !currentStatus })
+        .eq('id', id)
+
+      if (error) throw error
+      loadData() // Reload data
+    } catch (error) {
+      console.error('Error toggling active:', error)
+      alert('❌ Erreur')
+    }
+  }
 
   const getSeverityColor = (severity: string) => {
     switch (severity) {
@@ -205,14 +261,30 @@ export default function ExplorerPage() {
                 <span className="text-xs font-semibold text-rose-100">Premium</span>
               </div>
 
-              <h1 className="text-3xl md:text-4xl font-bold mb-3 bg-clip-text text-transparent bg-gradient-to-r from-white to-rose-100">
-                Explorateur Interactif
-              </h1>
+              <div className="flex items-start justify-between">
+                <div>
+                  <h1 className="text-3xl md:text-4xl font-bold mb-3 bg-clip-text text-transparent bg-gradient-to-r from-white to-rose-100">
+                    {isAdmin ? 'Gestion Diagnostics & Tests' : 'Explorateur Interactif'}
+                  </h1>
 
-              <p className="text-base md:text-lg text-rose-100 mb-6 max-w-2xl">
-                Découvrez et explorez les pathologies et tests orthopédiques de manière ludique et interactive.
-                Filtrez par région, recherchez et apprenez visuellement.
-              </p>
+                  <p className="text-base md:text-lg text-rose-100 mb-6 max-w-2xl">
+                    {isAdmin
+                      ? 'Gérez les pathologies et tests orthopédiques : créer, modifier, supprimer et organiser le contenu'
+                      : 'Découvrez et explorez les pathologies et tests orthopédiques de manière ludique et interactive'
+                    }
+                  </p>
+                </div>
+
+                {isAdmin && (
+                  <button
+                    onClick={handleCreateNew}
+                    className="px-6 py-3 bg-white text-rose-600 rounded-xl hover:bg-rose-50 flex items-center gap-2 font-semibold shadow-lg transition-colors"
+                  >
+                    <Plus className="h-5 w-5" />
+                    Créer {selectedType === 'pathologies' ? 'Pathologie' : 'Test'}
+                  </button>
+                )}
+              </div>
 
               {/* Type Selector */}
               <div className="flex gap-3">
@@ -398,12 +470,59 @@ export default function ExplorerPage() {
                     </div>
                   )}
 
-                  {/* Bouton voir plus */}
-                  <div className="mt-4 pt-4 border-t border-slate-100 flex items-center justify-between">
-                    <span className="text-sm font-semibold text-rose-600 group-hover:text-rose-700">
-                      Voir les détails
-                    </span>
-                    <ChevronRight className="h-5 w-5 text-rose-600 group-hover:translate-x-1 transition-all" />
+                  {/* Bouton voir plus ou actions admin */}
+                  <div className="mt-4 pt-4 border-t border-slate-100">
+                    {!isAdmin ? (
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-semibold text-rose-600 group-hover:text-rose-700">
+                          Voir les détails
+                        </span>
+                        <ChevronRight className="h-5 w-5 text-rose-600 group-hover:translate-x-1 transition-all" />
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-1">
+                          {isPathology && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                handleToggleActive(item.id, item.is_active)
+                              }}
+                              className="p-2 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition-colors"
+                              title={item.is_active ? 'Désactiver' : 'Activer'}
+                            >
+                              {item.is_active ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+                            </button>
+                          )}
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleEdit(item.id)
+                            }}
+                            className="p-2 text-slate-400 hover:text-blue-600 rounded-lg hover:bg-blue-50 transition-colors"
+                            title="Modifier"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleDelete(item.id, item.name)
+                            }}
+                            className="p-2 text-slate-400 hover:text-red-600 rounded-lg hover:bg-red-50 transition-colors"
+                            title="Supprimer"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                        <button
+                          className="text-sm font-semibold text-rose-600 hover:text-rose-700 flex items-center gap-1"
+                        >
+                          Détails
+                          <ChevronRight className="h-4 w-4" />
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
               </button>
@@ -568,6 +687,34 @@ export default function ExplorerPage() {
                       </div>
                     )}
                   </>
+                )}
+
+                {/* Admin actions in modal */}
+                {isAdmin && (
+                  <div className="pt-4 border-t border-slate-200">
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={() => {
+                          setSelectedItem(null)
+                          handleEdit(selectedItem.id)
+                        }}
+                        className="flex-1 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold transition-colors flex items-center justify-center gap-2"
+                      >
+                        <Edit className="h-4 w-4" />
+                        Modifier
+                      </button>
+                      <button
+                        onClick={() => {
+                          setSelectedItem(null)
+                          handleDelete(selectedItem.id, selectedItem.name)
+                        }}
+                        className="flex-1 px-4 py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl font-semibold transition-colors flex items-center justify-center gap-2"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                        Supprimer
+                      </button>
+                    </div>
+                  </div>
                 )}
               </div>
             </div>
