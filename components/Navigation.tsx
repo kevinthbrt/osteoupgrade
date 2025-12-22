@@ -108,14 +108,6 @@ export default function Navigation() {
       roles: ['premium_silver', 'premium_gold', 'admin']
     },
     {
-      href: '/diagnostics',
-      label: 'Diagnostics',
-      icon: FolderOpen,
-      badge: 'Premium',
-      roles: ['premium_silver', 'premium_gold', 'admin'],
-      isNew: true
-    },
-    {
       href: '/seminaires',
       label: 'Séminaires',
       icon: Calendar,

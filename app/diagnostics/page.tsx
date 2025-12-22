@@ -40,11 +40,24 @@ type Pathology = {
 
 const REGIONS = [
   { value: 'all', label: 'Toutes', icon: Activity, color: 'slate' },
+  { value: 'atm', label: 'ATM', icon: Activity, color: 'slate' },
   { value: 'cervical', label: 'Cervical', icon: Brain, color: 'purple' },
+  { value: 'crane', label: 'Crâne', icon: Brain, color: 'purple' },
+  { value: 'thoracique', label: 'Thoracique', icon: Heart, color: 'rose' },
   { value: 'epaule', label: 'Épaule', icon: Bone, color: 'blue' },
+  { value: 'coude', label: 'Coude', icon: Bone, color: 'blue' },
+  { value: 'poignet', label: 'Poignet', icon: Bone, color: 'blue' },
+  { value: 'main', label: 'Main', icon: Bone, color: 'blue' },
+  { value: 'cotes', label: 'Côtes', icon: Bone, color: 'blue' },
+  { value: 'hanche', label: 'Hanche', icon: Heart, color: 'rose' },
   { value: 'lombaire', label: 'Lombaire', icon: Heart, color: 'rose' },
+  { value: 'sacro-iliaque', label: 'Sacro-iliaque', icon: Heart, color: 'rose' },
   { value: 'genou', label: 'Genou', icon: Zap, color: 'emerald' },
-  { value: 'cheville', label: 'Cheville', icon: Eye, color: 'amber' }
+  { value: 'cheville', label: 'Cheville', icon: Eye, color: 'amber' },
+  { value: 'pied', label: 'Pied', icon: Eye, color: 'amber' },
+  { value: 'neurologique', label: 'Neurologique', icon: Brain, color: 'purple' },
+  { value: 'vasculaire', label: 'Vasculaire', icon: Heart, color: 'rose' },
+  { value: 'systemique', label: 'Systémique', icon: Activity, color: 'slate' }
 ]
 
 export default function DiagnosticsPage() {
@@ -230,14 +243,12 @@ export default function DiagnosticsPage() {
               <div className="flex items-start justify-between">
                 <div>
                   <h1 className="text-3xl md:text-4xl font-bold mb-3 bg-clip-text text-transparent bg-gradient-to-r from-white to-rose-100">
-                    {isAdmin ? 'Gestion Diagnostics' : 'Diagnostics & Pathologies'}
+                    Diagnostics
                   </h1>
 
                   <p className="text-base md:text-lg text-rose-100 mb-6 max-w-2xl">
-                    {isAdmin
-                      ? 'Gérez les pathologies : créer, modifier, supprimer et organiser le contenu'
-                      : 'Découvrez et explorez les pathologies de manière ludique et interactive'
-                    }
+                    Accédez rapidement aux pathologies par région, avec les signes cliniques,
+                    la gravité et les drapeaux rouges pour guider votre raisonnement.
                   </p>
                 </div>
 
