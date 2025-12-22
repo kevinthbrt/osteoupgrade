@@ -18,7 +18,6 @@ import {
   ArrowRight,
   Loader2,
   Sparkles,
-  Zap,
   Target,
   BookOpen,
   Brain
@@ -257,46 +256,21 @@ export default function Dashboard() {
 
               <div className="bg-white/5 border border-white/10 rounded-xl p-4 mb-6">
                 <div className="flex items-center gap-2 mb-3">
-                  <Zap className="h-4 w-4 text-sky-300" />
-                  <span className="text-xs text-slate-300 font-medium">Barres d’expérience</span>
+                  <Award className="h-4 w-4 text-amber-300" />
+                  <span className="text-xs text-slate-300 font-medium">Badges acquis</span>
                 </div>
-                <div className="space-y-3">
+                <div className="flex items-center justify-between">
                   <div>
-                    <div className="flex items-center justify-between text-xs text-slate-300 mb-1">
-                      <span>E-learning</span>
-                      <span className="text-white font-semibold">{stats.elearningProgress}%</span>
-                    </div>
-                    <div className="h-2 rounded-full bg-white/10 overflow-hidden">
-                      <div
-                        className="h-full bg-gradient-to-r from-blue-400 to-cyan-400"
-                        style={{ width: `${stats.elearningProgress}%` }}
-                      />
-                    </div>
+                    <div className="text-3xl font-bold text-white">{stats.unlockedAchievements}</div>
+                    <div className="text-xs text-slate-400">badges débloqués</div>
                   </div>
-                  <div>
-                    <div className="flex items-center justify-between text-xs text-slate-300 mb-1">
-                      <span>Pratique</span>
-                      <span className="text-white font-semibold">{stats.practiceProgress}%</span>
-                    </div>
-                    <div className="h-2 rounded-full bg-white/10 overflow-hidden">
-                      <div
-                        className="h-full bg-gradient-to-r from-pink-400 to-rose-400"
-                        style={{ width: `${stats.practiceProgress}%` }}
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <div className="flex items-center justify-between text-xs text-slate-300 mb-1">
-                      <span>Testing</span>
-                      <span className="text-white font-semibold">{stats.testingProgress}%</span>
-                    </div>
-                    <div className="h-2 rounded-full bg-white/10 overflow-hidden">
-                      <div
-                        className="h-full bg-gradient-to-r from-purple-400 to-indigo-400"
-                        style={{ width: `${stats.testingProgress}%` }}
-                      />
-                    </div>
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() => router.push('/stats')}
+                    className="px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-xs font-semibold text-white transition-colors"
+                  >
+                    Voir mes badges
+                  </button>
                 </div>
               </div>
 
