@@ -276,7 +276,7 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {modules.map((module, index) => {
               const Icon = module.icon
 
@@ -284,59 +284,47 @@ export default function Dashboard() {
                 <button
                   key={module.id}
                   onClick={() => router.push(module.href)}
-                  className="group relative overflow-hidden rounded-3xl bg-white border-2 border-slate-200 hover:border-transparent p-8 text-left shadow-lg hover:shadow-2xl transition-all duration-500 hover:scale-[1.02]"
+                  className="group relative overflow-hidden rounded-2xl bg-white border-2 border-slate-200 hover:border-transparent p-6 text-left shadow-lg hover:shadow-2xl transition-all duration-500 hover:scale-105"
                   style={{ animationDelay: `${index * 100}ms` }}
                 >
                   {/* Animated gradient border on hover */}
                   <div className={`absolute inset-0 bg-gradient-to-br ${module.gradient} opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
-                  <div className="absolute inset-[2px] bg-white rounded-3xl" />
+                  <div className="absolute inset-[2px] bg-white rounded-2xl" />
 
                   {/* Background pattern */}
-                  <div className={`absolute top-0 right-0 w-64 h-64 ${module.bgPattern} rounded-full blur-3xl opacity-0 group-hover:opacity-30 transition-all duration-500 transform translate-x-32 -translate-y-32 group-hover:translate-x-20 group-hover:-translate-y-20`} />
+                  <div className={`absolute top-0 right-0 w-40 h-40 ${module.bgPattern} rounded-full blur-3xl opacity-0 group-hover:opacity-30 transition-all duration-500`} />
 
                   <div className="relative z-10">
-                    {/* Emoji + Icon */}
-                    <div className="flex items-start justify-between mb-6">
-                      <div className="flex items-center gap-4">
-                        <div className={`relative inline-flex items-center justify-center w-20 h-20 rounded-3xl bg-gradient-to-br ${module.gradient} shadow-xl transform transition-all duration-500 group-hover:scale-110 group-hover:rotate-3`}>
-                          <Icon className="h-10 w-10 text-white relative z-10" />
-                          <div className="absolute inset-0 bg-white/20 rounded-3xl group-hover:animate-pulse" />
-                        </div>
-                        <div className="text-5xl transform transition-transform group-hover:scale-110 group-hover:rotate-12 duration-500">
-                          {module.emoji}
-                        </div>
+                    {/* Icon + Badge */}
+                    <div className="flex items-start justify-between mb-4">
+                      <div className={`inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br ${module.gradient} shadow-lg transform transition-all duration-500 group-hover:scale-110 group-hover:rotate-3`}>
+                        <Icon className="h-7 w-7 text-white" />
                       </div>
-                      <span className="px-4 py-2 rounded-full text-xs font-bold bg-slate-100 text-slate-700 group-hover:bg-slate-900 group-hover:text-white transition-colors">
-                        {module.count}
+                      <span className="text-3xl transform transition-transform group-hover:scale-110 group-hover:rotate-12 duration-500">
+                        {module.emoji}
                       </span>
                     </div>
 
                     {/* Content */}
-                    <h3 className="text-3xl font-bold text-slate-900 mb-3 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-slate-900 group-hover:to-slate-700 transition-all">
+                    <h3 className="text-xl font-bold text-slate-900 mb-2">
                       {module.title}
                     </h3>
 
-                    <p className="text-slate-600 mb-6 leading-relaxed text-base">
+                    <p className="text-sm text-slate-600 mb-3 line-clamp-2">
                       {module.description}
                     </p>
 
-                    {/* Features Tags */}
-                    <div className="flex flex-wrap gap-2 mb-6">
-                      {module.features.map((feature, idx) => (
-                        <span
-                          key={idx}
-                          className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-100 text-slate-700 group-hover:bg-slate-800 group-hover:text-white transition-colors"
-                        >
-                          {feature}
-                        </span>
-                      ))}
+                    {/* Count badge */}
+                    <div className="mb-3">
+                      <span className="px-2 py-1 rounded-lg text-xs font-semibold bg-slate-100 text-slate-700 group-hover:bg-slate-800 group-hover:text-white transition-colors">
+                        {module.count}
+                      </span>
                     </div>
 
-                    {/* Action Button */}
-                    <div className={`flex items-center gap-3 px-5 py-3 rounded-2xl bg-gradient-to-r ${module.gradient} text-white font-semibold transition-all group-hover:shadow-xl`}>
-                      <span>Explorer le module</span>
-                      <ArrowRight className="h-5 w-5 transform group-hover:translate-x-2 transition-transform" />
-                      <Zap className="h-5 w-5 ml-auto opacity-0 group-hover:opacity-100 transition-opacity" />
+                    {/* Arrow */}
+                    <div className="flex items-center gap-2 text-slate-400 group-hover:text-sky-600 transition-colors">
+                      <span className="text-xs font-semibold">Explorer</span>
+                      <ArrowRight className="h-4 w-4 transform group-hover:translate-x-1 transition-transform" />
                     </div>
                   </div>
                 </button>
