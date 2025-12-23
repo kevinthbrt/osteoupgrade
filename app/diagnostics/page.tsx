@@ -787,14 +787,20 @@ export default function DiagnosticsPage() {
                     )}
                   </div>
                 )}
-                {selectedTest.video_url && (
-                  <button
-                    onClick={() => window.open(selectedTest.video_url as string, '_blank')}
-                    className="w-full px-4 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold transition-colors"
-                  >
-                    Voir la vidéo du test
-                  </button>
-                )}
+              {selectedTest.video_url && (
+                <div className="space-y-3">
+                  <div className="text-sm font-semibold text-slate-700">Vidéo du test</div>
+                  <div className="relative w-full overflow-hidden rounded-xl border border-slate-200 bg-black" style={{ paddingTop: '56.25%' }}>
+                    <iframe
+                      src={selectedTest.video_url}
+                      className="absolute inset-0 h-full w-full"
+                      title={`Vidéo ${selectedTest.name}`}
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                    />
+                  </div>
+                </div>
+              )}
               </div>
             </div>
           </div>
