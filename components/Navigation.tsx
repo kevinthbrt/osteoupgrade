@@ -101,21 +101,6 @@ export default function Navigation() {
       roles: ['premium_silver', 'premium_gold', 'admin']
     },
     {
-      href: '/testing',
-      label: 'Testing 3D',
-      icon: TestTube,
-      badge: 'Premium',
-      roles: ['premium_silver', 'premium_gold', 'admin']
-    },
-    {
-      href: '/explorer',
-      label: 'Explorateur',
-      icon: FolderOpen,
-      badge: 'Premium',
-      roles: ['premium_silver', 'premium_gold', 'admin'],
-      isNew: true
-    },
-    {
       href: '/seminaires',
       label: 'Séminaires',
       icon: Calendar,
@@ -163,11 +148,6 @@ export default function Navigation() {
       label: 'Tests & Diagnostics',
       icon: Clipboard,
       items: [
-        {
-          href: '/tests',
-          label: 'Tests Orthopédiques',
-          icon: TestTube
-        },
         {
           href: '/admin/diagnostics',
           label: 'Diagnostics',

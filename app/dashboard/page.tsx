@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ComponentType } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import AuthLayout from '@/components/AuthLayout'
@@ -8,9 +8,7 @@ import {
   Stethoscope,
   GraduationCap,
   Wrench,
-  TestTube,
   Calendar,
-  Settings,
   Search,
   Trophy,
   Flame,
@@ -18,10 +16,10 @@ import {
   ArrowRight,
   Loader2,
   Sparkles,
+  Brain,
   Zap,
-  Target,
-  BookOpen,
-  Brain
+  Dumbbell,
+  LogIn
 } from 'lucide-react'
 
 export default function Dashboard() {
@@ -29,12 +27,33 @@ export default function Dashboard() {
   const [profile, setProfile] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
+  const [badges, setBadges] = useState<{ id: string; name: string; icon: string | null; description?: string | null }[]>([])
   const [stats, setStats] = useState({
     level: 1,
     totalXp: 0,
     currentStreak: 0,
-    unlockedAchievements: 0
+    unlockedAchievements: 0,
+    weekLogins: 0,
+    weekElearning: 0,
+    weekPractice: 0,
+    weekTesting: 0,
+    elearningProgress: 0,
+    practiceProgress: 0,
+    testingProgress: 0,
+    totalLogins: 0,
+    totalElearningCompleted: 0,
+    totalPracticeViewed: 0,
+    totalTestingViewed: 0
   })
+
+  const badgeIconMap: Record<string, ComponentType<{ className?: string }>> = {
+    GraduationCap,
+    Zap,
+    Calendar,
+    Dumbbell,
+    Flame,
+    LogIn
+  }
 
   useEffect(() => {
     loadDashboardData()
@@ -90,8 +109,39 @@ export default function Dashboard() {
           level: gamificationStats.level || 1,
           totalXp: gamificationStats.total_xp || 0,
           currentStreak: gamificationStats.current_streak || 0,
-          unlockedAchievements: achievementsCount || 0
+          unlockedAchievements: achievementsCount || 0,
+          weekLogins: gamificationStats.week_logins || 0,
+          weekElearning: gamificationStats.week_elearning || 0,
+          weekPractice: gamificationStats.week_practice || 0,
+          weekTesting: gamificationStats.week_testing || 0,
+          elearningProgress: gamificationStats.elearning_progress || 0,
+          practiceProgress: gamificationStats.practice_progress || 0,
+          testingProgress: gamificationStats.testing_progress || 0,
+          totalLogins: gamificationStats.total_logins || 0,
+          totalElearningCompleted: gamificationStats.total_elearning_completed || 0,
+          totalPracticeViewed: gamificationStats.total_practice_viewed || 0,
+          totalTestingViewed: gamificationStats.total_testing_viewed || 0
         })
+      }
+
+      const { data: achievements } = await supabase
+        .from('user_achievements')
+        .select('achievement:achievements(id, name, icon, description)')
+        .eq('user_id', user.id)
+        .order('unlocked_at', { ascending: false })
+        .limit(6)
+
+      if (achievements) {
+        setBadges(
+          achievements
+            .map((item: { achievement: { id: string; name: string; icon: string | null; description?: string | null }[] | { id: string; name: string; icon: string | null; description?: string | null } | null }) => {
+              if (Array.isArray(item.achievement)) {
+                return item.achievement[0] ?? null
+              }
+              return item.achievement
+            })
+            .filter((achievement): achievement is { id: string; name: string; icon: string | null; description?: string | null } => Boolean(achievement))
+        )
       }
     } catch (error) {
       console.error('Error loading dashboard:', error)
@@ -145,20 +195,18 @@ export default function Dashboard() {
       features: ['Exercices par région', 'Fiches patients', 'Protocoles']
     },
     {
-      id: 'testing',
-      title: 'Testing 3D',
-      description: 'Explorez l\'anatomie en 3D et réalisez des tests orthopédiques interactifs',
-      icon: TestTube,
-      href: '/testing',
-      gradient: 'from-purple-500 via-purple-600 to-indigo-600',
-      bgPattern: 'bg-purple-50',
-      count: 'Modèle 3D',
-      emoji: '🧬',
-      features: ['Anatomie 3D', 'Tests interactifs', 'Zones cliquables']
+      id: 'seminaires',
+      title: 'Séminaires',
+      description: 'Formations présentielles pour approfondir vos compétences',
+      icon: Calendar,
+      href: '/seminaires',
+      gradient: 'from-amber-500 via-orange-500 to-red-500',
+      bgPattern: 'bg-amber-50',
+      count: 'Sessions',
+      emoji: '📅',
+      features: ['Ateliers', 'Intervenants', 'Réseau']
     }
   ]
-
-  const isAdmin = profile?.role === 'admin'
 
   if (loading) {
     return (
@@ -200,42 +248,126 @@ export default function Dashboard() {
                 Développez vos compétences en ostéopathie avec nos modules interactifs
               </p>
 
-              {/* Stats Cards */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-                <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl p-3 hover:bg-white/15 transition-all cursor-pointer" onClick={() => router.push('/stats')}>
-                  <div className="flex items-center gap-2 mb-1">
-                    <Trophy className="h-4 w-4 text-yellow-400" />
-                    <span className="text-xs text-slate-300 font-medium">Niveau</span>
+              <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-4 mb-6">
+                <div className="rounded-3xl bg-gradient-to-br from-purple-600 via-fuchsia-600 to-indigo-600 p-6 shadow-2xl border border-white/10">
+                  <div className="flex items-start justify-between text-white mb-4">
+                    <div>
+                      <div className="flex items-center gap-2 text-sm font-semibold text-purple-100">
+                        <Trophy className="h-4 w-4 text-yellow-300" />
+                        Progression globale
+                      </div>
+                      <div className="text-3xl font-bold mt-1">Niveau {stats.level}</div>
+                      <div className="text-sm text-purple-100">
+                        {stats.totalXp % 500}/{500} XP jusqu'au niveau {stats.level + 1}
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-3xl font-bold">{stats.totalXp}</div>
+                      <div className="text-xs text-purple-100">XP total</div>
+                    </div>
                   </div>
-                  <div className="text-2xl font-bold">{stats.level}</div>
-                  <div className="text-xs text-slate-400">{stats.totalXp.toLocaleString()} XP</div>
+
+                  <div className="h-3 w-full rounded-full bg-white/20 overflow-hidden mb-5">
+                    <div
+                      className="h-full rounded-full bg-gradient-to-r from-yellow-300 to-amber-400"
+                      style={{ width: `${Math.min((stats.totalXp % 500) / 500 * 100, 100)}%` }}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <div className="rounded-2xl bg-white/15 p-3 text-white">
+                      <div className="flex items-center gap-2 text-xs text-purple-100">
+                        <Flame className="h-4 w-4 text-orange-200" />
+                        Série
+                      </div>
+                      <div className="text-2xl font-bold mt-1">{stats.currentStreak}</div>
+                      <div className="text-xs text-purple-100">jours</div>
+                    </div>
+                    <div className="rounded-2xl bg-white/15 p-3 text-white">
+                      <div className="flex items-center gap-2 text-xs text-purple-100">
+                        <LogIn className="h-4 w-4 text-emerald-200" />
+                        Connexions
+                      </div>
+                      <div className="text-2xl font-bold mt-1">{stats.totalLogins}</div>
+                      <div className="text-xs text-purple-100">total</div>
+                    </div>
+                    <div className="rounded-2xl bg-white/15 p-3 text-white">
+                      <div className="flex items-center gap-2 text-xs text-purple-100">
+                        <GraduationCap className="h-4 w-4 text-sky-200" />
+                        E-learning
+                      </div>
+                      <div className="text-2xl font-bold mt-1">{stats.totalElearningCompleted}</div>
+                      <div className="text-xs text-purple-100">leçons</div>
+                    </div>
+                    <div className="rounded-2xl bg-white/15 p-3 text-white">
+                      <div className="flex items-center gap-2 text-xs text-purple-100">
+                        <Zap className="h-4 w-4 text-yellow-200" />
+                        Activité
+                      </div>
+                      <div className="text-2xl font-bold mt-1">{stats.totalPracticeViewed + stats.totalTestingViewed}</div>
+                      <div className="text-xs text-purple-100">actions</div>
+                    </div>
+                  </div>
                 </div>
 
-                <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl p-3 hover:bg-white/15 transition-all cursor-pointer" onClick={() => router.push('/stats')}>
-                  <div className="flex items-center gap-2 mb-1">
-                    <Flame className="h-4 w-4 text-orange-400" />
-                    <span className="text-xs text-slate-300 font-medium">Série</span>
+                <div className="rounded-3xl bg-white p-5 shadow-xl border border-slate-200">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-2 text-slate-900 font-semibold">
+                      <Award className="h-4 w-4 text-amber-500" />
+                      Badges débloqués
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => router.push('/stats')}
+                      className="text-xs font-semibold text-slate-500 hover:text-slate-700"
+                    >
+                      Voir tout
+                    </button>
                   </div>
-                  <div className="text-2xl font-bold">{stats.currentStreak}</div>
-                  <div className="text-xs text-slate-400">jours</div>
-                </div>
 
-                <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl p-3 hover:bg-white/15 transition-all cursor-pointer" onClick={() => router.push('/stats')}>
-                  <div className="flex items-center gap-2 mb-1">
-                    <Award className="h-4 w-4 text-purple-400" />
-                    <span className="text-xs text-slate-300 font-medium">Badges</span>
+                  <div className="space-y-3">
+                    {badges.length > 0 ? (
+                      badges.slice(0, 5).map((badge, index) => {
+                        const BadgeIcon = badge.icon ? badgeIconMap[badge.icon] : null
+                        const colorClasses = [
+                          'bg-emerald-50 text-emerald-600',
+                          'bg-sky-50 text-sky-600',
+                          'bg-indigo-50 text-indigo-600',
+                          'bg-amber-50 text-amber-600',
+                          'bg-rose-50 text-rose-600'
+                        ]
+                        const colorClass = colorClasses[index % colorClasses.length]
+                        return (
+                          <div
+                            key={badge.id}
+                            className="flex items-center gap-3 rounded-2xl bg-slate-50 px-3 py-2"
+                          >
+                            <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${colorClass}`}>
+                              {BadgeIcon ? (
+                                <BadgeIcon className="h-5 w-5" />
+                              ) : (
+                                <span className="text-lg">🏅</span>
+                              )}
+                            </div>
+                            <div className="min-w-0">
+                              <div className="text-sm font-semibold text-slate-900 truncate">{badge.name}</div>
+                              <div className="text-xs text-slate-500 truncate">
+                                {badge.description || 'Badge débloqué'}
+                              </div>
+                            </div>
+                          </div>
+                        )
+                      })
+                    ) : (
+                      <div className="text-sm text-slate-500">Aucun badge débloqué pour le moment.</div>
+                    )}
                   </div>
-                  <div className="text-2xl font-bold">{stats.unlockedAchievements}</div>
-                  <div className="text-xs text-slate-400">débloqués</div>
-                </div>
 
-                <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl p-3 hover:bg-white/15 transition-all cursor-pointer" onClick={() => router.push('/stats')}>
-                  <div className="flex items-center gap-2 mb-1">
-                    <Target className="h-4 w-4 text-green-400" />
-                    <span className="text-xs text-slate-300 font-medium">Progression</span>
-                  </div>
-                  <div className="text-2xl font-bold">87%</div>
-                  <div className="text-xs text-slate-400">ce mois</div>
+                  {stats.unlockedAchievements > badges.length && (
+                    <div className="mt-3 text-xs text-slate-500 text-center">
+                      +{stats.unlockedAchievements - badges.length} autres badges débloqués
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -331,73 +463,6 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Quick Access Section */}
-        <div className="bg-gradient-to-br from-slate-50 to-white rounded-3xl p-8 border-2 border-slate-200 shadow-lg">
-          <h3 className="text-xl font-bold text-slate-900 mb-6 flex items-center gap-2">
-            <Sparkles className="h-6 w-6 text-amber-500" />
-            Accès Rapide
-          </h3>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <button
-              onClick={() => router.push('/seminaires')}
-              className="group flex items-center gap-4 px-6 py-5 rounded-2xl bg-white border-2 border-slate-200 hover:border-amber-400 hover:shadow-xl transition-all"
-            >
-              <div className="p-3 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 group-hover:scale-110 transition-transform">
-                <Calendar className="h-6 w-6 text-white" />
-              </div>
-              <div className="text-left flex-1">
-                <div className="font-bold text-slate-900 text-lg">Séminaires</div>
-                <div className="text-sm text-slate-600">Formations présentielles</div>
-              </div>
-              <ArrowRight className="h-5 w-5 text-slate-400 group-hover:text-amber-600 group-hover:translate-x-1 transition-all" />
-            </button>
-
-            <button
-              onClick={() => router.push('/settings')}
-              className="group flex items-center gap-4 px-6 py-5 rounded-2xl bg-white border-2 border-slate-200 hover:border-slate-400 hover:shadow-xl transition-all"
-            >
-              <div className="p-3 rounded-xl bg-gradient-to-br from-slate-600 to-slate-700 group-hover:scale-110 transition-transform">
-                <Settings className="h-6 w-6 text-white" />
-              </div>
-              <div className="text-left flex-1">
-                <div className="font-bold text-slate-900 text-lg">Paramètres</div>
-                <div className="text-sm text-slate-600">Profil et abonnement</div>
-              </div>
-              <ArrowRight className="h-5 w-5 text-slate-400 group-hover:text-slate-700 group-hover:translate-x-1 transition-all" />
-            </button>
-
-            {isAdmin ? (
-              <button
-                onClick={() => router.push('/admin')}
-                className="group flex items-center gap-4 px-6 py-5 rounded-2xl bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 border-2 border-transparent shadow-lg hover:shadow-2xl transition-all"
-              >
-                <div className="p-3 rounded-xl bg-white/20 backdrop-blur-sm group-hover:scale-110 transition-transform">
-                  <Settings className="h-6 w-6 text-white" />
-                </div>
-                <div className="text-left flex-1 text-white">
-                  <div className="font-bold text-lg">Administration</div>
-                  <div className="text-sm text-purple-100">Gestion plateforme</div>
-                </div>
-                <ArrowRight className="h-5 w-5 text-white group-hover:translate-x-1 transition-transform" />
-              </button>
-            ) : (
-              <button
-                onClick={() => router.push('/stats')}
-                className="group flex items-center gap-4 px-6 py-5 rounded-2xl bg-gradient-to-r from-indigo-600 to-purple-700 hover:from-indigo-700 hover:to-purple-800 border-2 border-transparent shadow-lg hover:shadow-2xl transition-all"
-              >
-                <div className="p-3 rounded-xl bg-white/20 backdrop-blur-sm group-hover:scale-110 transition-transform">
-                  <Trophy className="h-6 w-6 text-white" />
-                </div>
-                <div className="text-left flex-1 text-white">
-                  <div className="font-bold text-lg">Statistiques</div>
-                  <div className="text-sm text-indigo-100">Progression détaillée</div>
-                </div>
-                <ArrowRight className="h-5 w-5 text-white group-hover:translate-x-1 transition-transform" />
-              </button>
-            )}
-          </div>
-        </div>
       </div>
     </AuthLayout>
   )

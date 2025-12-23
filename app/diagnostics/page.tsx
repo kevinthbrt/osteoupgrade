@@ -6,11 +6,8 @@ import AuthLayout from '@/components/AuthLayout'
 import { supabase } from '@/lib/supabase'
 import {
   Stethoscope,
-  TestTube,
-  Lock,
   Sparkles,
   Search,
-  Filter,
   ChevronRight,
   Info,
   Activity,
@@ -22,7 +19,6 @@ import {
   Eye,
   Loader2,
   AlertCircle,
-  Play,
   X,
   Plus,
   Edit,
@@ -39,41 +35,87 @@ type Pathology = {
   is_red_flag: boolean
   clinical_signs: string
   image_url: string
+  is_active?: boolean
+  tests?: OrthopedicTest[]
+  clusters?: OrthopedicTestCluster[]
 }
 
 type OrthopedicTest = {
   id: string
   name: string
-  description: string
-  category?: string
-  sensitivity: number
-  specificity: number
-  video_url: string
+  description?: string | null
+  category?: string | null
+  video_url?: string | null
+  sensitivity?: number | null
+  specificity?: number | null
+}
+
+type OrthopedicTestCluster = {
+  id: string
+  name: string
+  description?: string | null
+  region?: string | null
+  indications?: string | null
+  interest?: string | null
+  sources?: string | null
+  sensitivity?: number | null
+  specificity?: number | null
+}
+
+const getVideoEmbedUrl = (url: string) => {
+  if (url.includes('youtube.com') || url.includes('youtu.be')) {
+    const idMatch = url.match(/(?:v=|\/)([0-9A-Za-z_-]{11})/)
+    if (idMatch?.[1]) {
+      return `https://www.youtube.com/embed/${idMatch[1]}`
+    }
+  }
+
+  if (url.includes('vimeo.com')) {
+    const idMatch = url.match(/vimeo\.com\/(\d+)/)
+    if (idMatch?.[1]) {
+      return `https://player.vimeo.com/video/${idMatch[1]}`
+    }
+  }
+
+  return url
 }
 
 const REGIONS = [
   { value: 'all', label: 'Toutes', icon: Activity, color: 'slate' },
+  { value: 'atm', label: 'ATM', icon: Activity, color: 'slate' },
   { value: 'cervical', label: 'Cervical', icon: Brain, color: 'purple' },
+  { value: 'crane', label: 'Crâne', icon: Brain, color: 'purple' },
+  { value: 'thoracique', label: 'Thoracique', icon: Heart, color: 'rose' },
   { value: 'epaule', label: 'Épaule', icon: Bone, color: 'blue' },
+  { value: 'coude', label: 'Coude', icon: Bone, color: 'blue' },
+  { value: 'poignet', label: 'Poignet', icon: Bone, color: 'blue' },
+  { value: 'main', label: 'Main', icon: Bone, color: 'blue' },
+  { value: 'cotes', label: 'Côtes', icon: Bone, color: 'blue' },
+  { value: 'hanche', label: 'Hanche', icon: Heart, color: 'rose' },
   { value: 'lombaire', label: 'Lombaire', icon: Heart, color: 'rose' },
+  { value: 'sacro-iliaque', label: 'Sacro-iliaque', icon: Heart, color: 'rose' },
   { value: 'genou', label: 'Genou', icon: Zap, color: 'emerald' },
-  { value: 'cheville', label: 'Cheville', icon: Eye, color: 'amber' }
+  { value: 'cheville', label: 'Cheville', icon: Eye, color: 'amber' },
+  { value: 'pied', label: 'Pied', icon: Eye, color: 'amber' },
+  { value: 'neurologique', label: 'Neurologique', icon: Brain, color: 'purple' },
+  { value: 'vasculaire', label: 'Vasculaire', icon: Heart, color: 'rose' },
+  { value: 'systemique', label: 'Systémique', icon: Activity, color: 'slate' }
 ]
 
-export default function ExplorerPage() {
+export default function DiagnosticsPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(true)
   const [profile, setProfile] = useState<any>(null)
   const [selectedRegion, setSelectedRegion] = useState('all')
   const [searchQuery, setSearchQuery] = useState('')
-  const [selectedType, setSelectedType] = useState<'pathologies' | 'tests'>('pathologies')
   const [pathologies, setPathologies] = useState<Pathology[]>([])
-  const [tests, setTests] = useState<OrthopedicTest[]>([])
   const [selectedItem, setSelectedItem] = useState<any>(null)
+  const [selectedTest, setSelectedTest] = useState<OrthopedicTest | null>(null)
+  const [selectedCluster, setSelectedCluster] = useState<OrthopedicTestCluster | null>(null)
 
   useEffect(() => {
     loadData()
-  }, [selectedRegion, selectedType])
+  }, [selectedRegion])
 
   const loadData = async () => {
     try {
@@ -95,22 +137,74 @@ export default function ExplorerPage() {
       let pathologiesQuery = supabase
         .from('pathologies')
         .select('*')
-        .eq('is_active', true)
+
+      if (profileData?.role !== 'admin') {
+        pathologiesQuery = pathologiesQuery.eq('is_active', true)
+      }
 
       if (selectedRegion !== 'all') {
         pathologiesQuery = pathologiesQuery.eq('region', selectedRegion)
       }
 
       const { data: pathologiesData } = await pathologiesQuery
-      setPathologies(pathologiesData || [])
+      const pathologiesList = pathologiesData || []
 
-      // Load tests
-      let testsQuery = supabase
-        .from('orthopedic_tests')
-        .select('id, name, description, category, sensitivity, specificity, video_url')
+      if (pathologiesList.length > 0) {
+        const pathologyIds = pathologiesList.map((pathology) => pathology.id)
+        const { data: testLinks } = await supabase
+          .from('pathology_tests')
+          .select('pathology_id, test:orthopedic_tests(id, name, description, category, video_url, sensitivity, specificity)')
+          .in('pathology_id', pathologyIds)
 
-      const { data: testsData } = await testsQuery
-      setTests(testsData || [])
+        const { data: clusterLinks } = await supabase
+          .from('pathology_clusters')
+          .select('pathology_id, cluster:orthopedic_test_clusters(id, name, description, region, indications, interest, sources, sensitivity, specificity)')
+          .in('pathology_id', pathologyIds)
+
+        const testsByPathology = (testLinks || []).reduce(
+          (
+            acc,
+            link: {
+              pathology_id: string
+              test: OrthopedicTest | OrthopedicTest[] | null
+            }
+          ) => {
+            const test = Array.isArray(link.test) ? link.test[0] : link.test
+            if (!test) return acc
+            acc[link.pathology_id] = acc[link.pathology_id] || []
+            acc[link.pathology_id].push(test)
+            return acc
+          },
+          {} as Record<string, OrthopedicTest[]>
+        )
+
+        const clustersByPathology = (clusterLinks || []).reduce(
+          (
+            acc,
+            link: {
+              pathology_id: string
+              cluster: OrthopedicTestCluster | OrthopedicTestCluster[] | null
+            }
+          ) => {
+            const cluster = Array.isArray(link.cluster) ? link.cluster[0] : link.cluster
+            if (!cluster) return acc
+            acc[link.pathology_id] = acc[link.pathology_id] || []
+            acc[link.pathology_id].push(cluster)
+            return acc
+          },
+          {} as Record<string, OrthopedicTestCluster[]>
+        )
+
+        const enrichedPathologies = pathologiesList.map((pathology) => ({
+          ...pathology,
+          tests: testsByPathology[pathology.id] || [],
+          clusters: clustersByPathology[pathology.id] || []
+        }))
+
+        setPathologies(enrichedPathologies)
+      } else {
+        setPathologies([])
+      }
 
     } catch (error) {
       console.error('Error loading data:', error)
@@ -122,39 +216,25 @@ export default function ExplorerPage() {
   const isPremium = profile?.role && ['premium_silver', 'premium_gold', 'admin'].includes(profile.role)
   const isAdmin = profile?.role === 'admin'
 
-  const filteredItems = selectedType === 'pathologies'
-    ? pathologies.filter(p =>
-        p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        p.description?.toLowerCase().includes(searchQuery.toLowerCase())
-      )
-    : tests.filter(t =>
-        t.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        t.description?.toLowerCase().includes(searchQuery.toLowerCase())
-      )
+  const filteredItems = pathologies.filter(p =>
+    p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    p.description?.toLowerCase().includes(searchQuery.toLowerCase())
+  )
 
   const handleCreateNew = () => {
-    if (selectedType === 'pathologies') {
-      router.push('/admin/diagnostics/new')
-    } else {
-      router.push('/admin/tests/new')
-    }
+    router.push('/admin/diagnostics/new')
   }
 
   const handleEdit = (id: string) => {
-    if (selectedType === 'pathologies') {
-      router.push(`/admin/diagnostics/${id}/edit`)
-    } else {
-      router.push(`/admin/tests/${id}/edit`)
-    }
+    router.push(`/admin/diagnostics/${id}/edit`)
   }
 
   const handleDelete = async (id: string, name: string) => {
     if (!confirm(`Êtes-vous sûr de vouloir supprimer "${name}" ?`)) return
 
     try {
-      const table = selectedType === 'pathologies' ? 'pathologies' : 'orthopedic_tests'
       const { error } = await supabase
-        .from(table)
+        .from('pathologies')
         .delete()
         .eq('id', id)
 
@@ -223,8 +303,8 @@ export default function ExplorerPage() {
               Fonctionnalité Premium
             </h1>
             <p className="text-lg text-slate-600 mb-8">
-              L'explorateur interactif de diagnostics et pathologies est réservé aux membres Premium.
-              Découvrez plus de 200 pathologies et 150+ tests orthopédiques de manière ludique et interactive.
+              Les diagnostics et pathologies sont réservés aux membres Premium.
+              Découvrez plus de 200 pathologies de manière ludique et interactive.
             </p>
             <button
               onClick={() => router.push('/settings')}
@@ -264,14 +344,12 @@ export default function ExplorerPage() {
               <div className="flex items-start justify-between">
                 <div>
                   <h1 className="text-3xl md:text-4xl font-bold mb-3 bg-clip-text text-transparent bg-gradient-to-r from-white to-rose-100">
-                    {isAdmin ? 'Gestion Diagnostics & Tests' : 'Explorateur Interactif'}
+                    Diagnostics
                   </h1>
 
                   <p className="text-base md:text-lg text-rose-100 mb-6 max-w-2xl">
-                    {isAdmin
-                      ? 'Gérez les pathologies et tests orthopédiques : créer, modifier, supprimer et organiser le contenu'
-                      : 'Découvrez et explorez les pathologies et tests orthopédiques de manière ludique et interactive'
-                    }
+                    Accédez rapidement aux pathologies par région, avec les signes cliniques,
+                    la gravité et les drapeaux rouges pour guider votre raisonnement.
                   </p>
                 </div>
 
@@ -281,50 +359,9 @@ export default function ExplorerPage() {
                     className="px-6 py-3 bg-white text-rose-600 rounded-xl hover:bg-rose-50 flex items-center gap-2 font-semibold shadow-lg transition-colors"
                   >
                     <Plus className="h-5 w-5" />
-                    Créer {selectedType === 'pathologies' ? 'Pathologie' : 'Test'}
+                    Créer une pathologie
                   </button>
                 )}
-              </div>
-
-              {/* Type Selector */}
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setSelectedType('pathologies')}
-                  className={`px-6 py-3 rounded-xl font-semibold transition-all flex items-center gap-2 ${
-                    selectedType === 'pathologies'
-                      ? 'bg-white text-rose-600 shadow-lg'
-                      : 'bg-white/10 text-white hover:bg-white/20'
-                  }`}
-                >
-                  <Stethoscope className="h-5 w-5" />
-                  Pathologies
-                  <span className={`px-2 py-0.5 rounded-full text-xs ${
-                    selectedType === 'pathologies'
-                      ? 'bg-rose-100 text-rose-700'
-                      : 'bg-white/20 text-white'
-                  }`}>
-                    {pathologies.length}
-                  </span>
-                </button>
-
-                <button
-                  onClick={() => setSelectedType('tests')}
-                  className={`px-6 py-3 rounded-xl font-semibold transition-all flex items-center gap-2 ${
-                    selectedType === 'tests'
-                      ? 'bg-white text-rose-600 shadow-lg'
-                      : 'bg-white/10 text-white hover:bg-white/20'
-                  }`}
-                >
-                  <TestTube className="h-5 w-5" />
-                  Tests Orthopédiques
-                  <span className={`px-2 py-0.5 rounded-full text-xs ${
-                    selectedType === 'tests'
-                      ? 'bg-rose-100 text-rose-700'
-                      : 'bg-white/20 text-white'
-                  }`}>
-                    {tests.length}
-                  </span>
-                </button>
               </div>
             </div>
           </div>
@@ -340,7 +377,7 @@ export default function ExplorerPage() {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder={`Rechercher ${selectedType === 'pathologies' ? 'une pathologie' : 'un test'}...`}
+                placeholder="Rechercher une pathologie..."
                 className="w-full pl-12 pr-4 py-3 border-2 border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-rose-400 focus:border-transparent"
               />
             </div>
@@ -373,8 +410,6 @@ export default function ExplorerPage() {
         {/* Results Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredItems.map((item: any) => {
-            const isPathology = selectedType === 'pathologies'
-
             return (
               <button
                 key={item.id}
@@ -382,7 +417,7 @@ export default function ExplorerPage() {
                 className="group relative overflow-hidden rounded-2xl bg-white border-2 border-slate-200 hover:border-rose-300 shadow-sm hover:shadow-xl transition-all duration-300 text-left"
               >
                 {/* Image de fond pour pathologies */}
-                {isPathology && item.image_url && (
+                {item.image_url && (
                   <div className="relative h-48 bg-gradient-to-br from-slate-100 to-slate-200">
                     <img
                       src={item.image_url}
@@ -402,7 +437,7 @@ export default function ExplorerPage() {
                 )}
 
                 {/* Placeholder si pas d'image */}
-                {isPathology && !item.image_url && (
+                {!item.image_url && (
                   <div className="relative h-48 bg-gradient-to-br from-rose-100 via-pink-100 to-purple-100 flex items-center justify-center">
                     <Stethoscope className="h-16 w-16 text-rose-300" />
                     {item.is_red_flag && (
@@ -416,13 +451,6 @@ export default function ExplorerPage() {
                   </div>
                 )}
 
-                {/* Image/placeholder pour tests */}
-                {!isPathology && (
-                  <div className="relative h-48 bg-gradient-to-br from-emerald-100 via-teal-100 to-cyan-100 flex items-center justify-center">
-                    <TestTube className="h-16 w-16 text-emerald-300" />
-                  </div>
-                )}
-
                 <div className="p-5">
                   {/* Header */}
                   <div className="mb-3">
@@ -431,21 +459,11 @@ export default function ExplorerPage() {
                     </h3>
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="px-2 py-1 rounded-lg text-xs font-semibold bg-blue-100 text-blue-700">
-                        {item.region || item.category || 'Non classé'}
+                        {item.region || 'Non classé'}
                       </span>
-                      {isPathology && item.severity && (
+                      {item.severity && (
                         <span className={`px-2 py-1 rounded-lg text-xs font-semibold border ${getSeverityColor(item.severity)}`}>
                           {getSeverityLabel(item.severity)}
-                        </span>
-                      )}
-                      {!isPathology && item.sensitivity && (
-                        <span className="px-2 py-1 rounded-lg text-xs font-semibold bg-green-100 text-green-700">
-                          Se: {item.sensitivity}%
-                        </span>
-                      )}
-                      {!isPathology && item.specificity && (
-                        <span className="px-2 py-1 rounded-lg text-xs font-semibold bg-blue-100 text-blue-700">
-                          Sp: {item.specificity}%
                         </span>
                       )}
                     </div>
@@ -453,22 +471,20 @@ export default function ExplorerPage() {
 
                   {/* Description */}
                   {item.description && (
-                    <p className="text-sm text-slate-600 line-clamp-2 mb-3">
+                    <p className="text-sm text-slate-600 line-clamp-2 mb-3 whitespace-pre-line">
                       {item.description}
                     </p>
                   )}
 
                   {/* Indicateurs pour pathologies */}
-                  {isPathology && (
-                    <div className="flex items-center gap-3 text-xs text-slate-500">
-                      {item.clinical_signs && (
-                        <span className="flex items-center gap-1">
-                          <Info className="h-3 w-3" />
-                          Signes cliniques
-                        </span>
-                      )}
-                    </div>
-                  )}
+                  <div className="flex items-center gap-3 text-xs text-slate-500">
+                    {item.clinical_signs && (
+                      <span className="flex items-center gap-1">
+                        <Info className="h-3 w-3" />
+                        Signes cliniques
+                      </span>
+                    )}
+                  </div>
 
                   {/* Bouton voir plus ou actions admin */}
                   <div className="mt-4 pt-4 border-t border-slate-100">
@@ -482,18 +498,16 @@ export default function ExplorerPage() {
                     ) : (
                       <div className="flex items-center justify-between gap-2">
                         <div className="flex items-center gap-1">
-                          {isPathology && (
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                handleToggleActive(item.id, item.is_active)
-                              }}
-                              className="p-2 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition-colors"
-                              title={item.is_active ? 'Désactiver' : 'Activer'}
-                            >
-                              {item.is_active ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
-                            </button>
-                          )}
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleToggleActive(item.id, item.is_active)
+                            }}
+                            className="p-2 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition-colors"
+                            title={item.is_active ? 'Désactiver' : 'Activer'}
+                          >
+                            {item.is_active ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+                          </button>
                           <button
                             onClick={(e) => {
                               e.stopPropagation()
@@ -555,7 +569,7 @@ export default function ExplorerPage() {
               onClick={(e) => e.stopPropagation()}
             >
               {/* Image en haut pour pathologies */}
-              {selectedType === 'pathologies' && selectedItem.image_url && (
+              {selectedItem.image_url && (
                 <div className="relative h-64 bg-gradient-to-br from-slate-100 to-slate-200">
                   <img
                     src={selectedItem.image_url}
@@ -573,9 +587,9 @@ export default function ExplorerPage() {
                     <h2 className="text-3xl font-bold text-white mb-2">{selectedItem.name}</h2>
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="px-3 py-1 rounded-lg bg-white/90 backdrop-blur-sm text-sm font-semibold text-slate-900">
-                        {selectedItem.region || selectedItem.category}
+                        {selectedItem.region || 'Non classé'}
                       </span>
-                      {selectedType === 'pathologies' && selectedItem.severity && (
+                      {selectedItem.severity && (
                         <span className={`px-3 py-1 rounded-lg text-sm font-semibold ${getSeverityColor(selectedItem.severity)} backdrop-blur-sm`}>
                           {getSeverityLabel(selectedItem.severity)}
                         </span>
@@ -592,11 +606,11 @@ export default function ExplorerPage() {
               )}
 
               {/* Header sans image */}
-              {(!selectedItem.image_url || selectedType === 'tests') && (
-                <div className={`sticky top-0 ${selectedType === 'pathologies' ? 'bg-gradient-to-br from-rose-600 to-purple-700' : 'bg-gradient-to-br from-emerald-600 to-teal-700'} text-white p-6 rounded-t-2xl`}>
+              {!selectedItem.image_url && (
+                <div className="sticky top-0 bg-gradient-to-br from-rose-600 to-purple-700 text-white p-6 rounded-t-2xl">
                   <div className="flex items-start justify-between">
                     <div>
-                      {selectedType === 'pathologies' && selectedItem.is_red_flag && (
+                      {selectedItem.is_red_flag && (
                         <span className="inline-flex items-center gap-1 px-3 py-1 rounded-lg bg-red-500 text-white text-xs font-semibold mb-2">
                           <AlertCircle className="h-3 w-3" />
                           Drapeau rouge
@@ -604,21 +618,12 @@ export default function ExplorerPage() {
                       )}
                       <h2 className="text-2xl font-bold mb-2">{selectedItem.name}</h2>
                       <div className="flex items-center gap-2 flex-wrap">
-                        {selectedType === 'pathologies' && (
-                          <>
-                            <span className="px-2 py-1 rounded bg-white/20 text-sm font-semibold">
-                              {selectedItem.region}
-                            </span>
-                            {selectedItem.severity && (
-                              <span className="px-2 py-1 rounded bg-white/20 text-sm font-semibold">
-                                {getSeverityLabel(selectedItem.severity)}
-                              </span>
-                            )}
-                          </>
-                        )}
-                        {selectedType === 'tests' && selectedItem.category && (
+                        <span className="px-2 py-1 rounded bg-white/20 text-sm font-semibold">
+                          {selectedItem.region}
+                        </span>
+                        {selectedItem.severity && (
                           <span className="px-2 py-1 rounded bg-white/20 text-sm font-semibold">
-                            {selectedItem.category}
+                            {getSeverityLabel(selectedItem.severity)}
                           </span>
                         )}
                       </div>
@@ -640,54 +645,87 @@ export default function ExplorerPage() {
                       <Info className="h-4 w-4" />
                       Description
                     </h3>
-                    <p className="text-slate-600 leading-relaxed">{selectedItem.description}</p>
+                    <p className="text-slate-600 leading-relaxed whitespace-pre-line">{selectedItem.description}</p>
                   </div>
                 )}
 
-                {selectedType === 'pathologies' && selectedItem.clinical_signs && (
+                {selectedItem.clinical_signs && (
                   <div className="bg-amber-50 border-2 border-amber-200 rounded-xl p-4">
                     <h3 className="text-sm font-semibold text-amber-900 mb-2 flex items-center gap-2">
                       <AlertCircle className="h-4 w-4" />
                       Signes cliniques
                     </h3>
-                    <p className="text-amber-800 leading-relaxed">{selectedItem.clinical_signs}</p>
+                    <p className="text-amber-800 leading-relaxed whitespace-pre-line">{selectedItem.clinical_signs}</p>
                   </div>
                 )}
 
-                {selectedType === 'tests' && (
-                  <>
-                    <div className="grid grid-cols-2 gap-4">
-                      {selectedItem.sensitivity && (
-                        <div className="p-4 rounded-xl bg-green-50 border-2 border-green-200">
-                          <div className="text-xs text-green-700 font-semibold mb-1">Sensibilité</div>
-                          <div className="text-3xl font-bold text-green-700">{selectedItem.sensitivity}%</div>
-                        </div>
-                      )}
-                      {selectedItem.specificity && (
-                        <div className="p-4 rounded-xl bg-blue-50 border-2 border-blue-200">
-                          <div className="text-xs text-blue-700 font-semibold mb-1">Spécificité</div>
-                          <div className="text-3xl font-bold text-blue-700">{selectedItem.specificity}%</div>
-                        </div>
-                      )}
-                    </div>
-
-                    {selectedItem.video_url && (
-                      <div>
-                        <h3 className="text-sm font-semibold text-slate-700 mb-3 flex items-center gap-2">
-                          <Play className="h-4 w-4" />
-                          Vidéo du test
-                        </h3>
-                        <button
-                          onClick={() => window.open(selectedItem.video_url, '_blank')}
-                          className="w-full px-6 py-4 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-xl font-semibold transition-all flex items-center justify-center gap-2 shadow-lg"
+                <div>
+                  <h3 className="text-sm font-semibold text-slate-700 mb-2 flex items-center gap-2">
+                    <Info className="h-4 w-4" />
+                    Clusters associés
+                  </h3>
+                  {selectedItem.clusters?.length > 0 ? (
+                    <div className="space-y-2">
+                      {selectedItem.clusters.map((cluster: OrthopedicTestCluster) => (
+                        <div
+                          key={cluster.id}
+                          className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 hover:border-slate-300 hover:bg-slate-100 transition"
+                          role="button"
+                          tabIndex={0}
+                          onClick={() => setSelectedCluster(cluster)}
+                          onKeyDown={(event) => {
+                            if (event.key === 'Enter' || event.key === ' ') {
+                              setSelectedCluster(cluster)
+                            }
+                          }}
                         >
-                          <Play className="h-5 w-5" />
-                          Voir la vidéo de démonstration
-                        </button>
-                      </div>
-                    )}
-                  </>
-                )}
+                          <div className="text-sm font-semibold text-slate-900">{cluster.name}</div>
+                          {cluster.description && (
+                            <div className="text-xs text-slate-600 whitespace-pre-line">
+                              {cluster.description}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-sm text-slate-500">Aucun cluster associé.</div>
+                  )}
+                </div>
+
+                <div>
+                  <h3 className="text-sm font-semibold text-slate-700 mb-2 flex items-center gap-2">
+                    <Info className="h-4 w-4" />
+                    Tests associés
+                  </h3>
+                  {selectedItem.tests?.length > 0 ? (
+                    <div className="space-y-2">
+                      {selectedItem.tests.map((test: OrthopedicTest) => (
+                        <div
+                          key={test.id}
+                          className="rounded-xl border border-slate-200 bg-white px-3 py-2 hover:border-slate-300 hover:bg-slate-50 transition"
+                          role="button"
+                          tabIndex={0}
+                          onClick={() => setSelectedTest(test)}
+                          onKeyDown={(event) => {
+                            if (event.key === 'Enter' || event.key === ' ') {
+                              setSelectedTest(test)
+                            }
+                          }}
+                        >
+                          <div className="text-sm font-semibold text-slate-900">{test.name}</div>
+                          {test.description && (
+                            <div className="text-xs text-slate-600 whitespace-pre-line">
+                              {test.description}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-sm text-slate-500">Aucun test associé.</div>
+                  )}
+                </div>
 
                 {/* Admin actions in modal */}
                 {isAdmin && (
@@ -714,6 +752,140 @@ export default function ExplorerPage() {
                         Supprimer
                       </button>
                     </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {selectedTest && (
+          <div
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] flex items-center justify-center p-4"
+            onClick={() => setSelectedTest(null)}
+          >
+            <div
+              className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="p-6 border-b border-slate-200 flex items-start justify-between">
+                <div>
+                  <h2 className="text-2xl font-bold text-slate-900">{selectedTest.name}</h2>
+                  {selectedTest.category && (
+                    <div className="text-sm text-slate-500">{selectedTest.category}</div>
+                  )}
+                </div>
+                <button
+                  onClick={() => setSelectedTest(null)}
+                  className="p-2 rounded-lg hover:bg-slate-100 transition-colors"
+                >
+                  <X className="h-5 w-5 text-slate-600" />
+                </button>
+              </div>
+              <div className="p-6 space-y-4">
+                {selectedTest.description && (
+                  <div>
+                    <h3 className="text-sm font-semibold text-slate-700 mb-2">Description</h3>
+                    <p className="text-slate-600 whitespace-pre-line">{selectedTest.description}</p>
+                  </div>
+                )}
+                {(selectedTest.sensitivity || selectedTest.specificity) && (
+                  <div className="flex flex-wrap gap-4 text-sm text-slate-600">
+                    {selectedTest.sensitivity && (
+                      <div>
+                        <span className="font-semibold text-slate-800">Sensibilité:</span>{' '}
+                        {selectedTest.sensitivity}%
+                      </div>
+                    )}
+                    {selectedTest.specificity && (
+                      <div>
+                        <span className="font-semibold text-slate-800">Spécificité:</span>{' '}
+                        {selectedTest.specificity}%
+                      </div>
+                    )}
+                  </div>
+                )}
+              {selectedTest.video_url && (
+                <div className="space-y-3">
+                  <div className="text-sm font-semibold text-slate-700">Vidéo du test</div>
+                  <div className="relative w-full overflow-hidden rounded-xl border border-slate-200 bg-black" style={{ paddingTop: '56.25%' }}>
+                    <iframe
+                      src={getVideoEmbedUrl(selectedTest.video_url)}
+                      className="absolute inset-0 h-full w-full"
+                      title={`Vidéo ${selectedTest.name}`}
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                    />
+                  </div>
+                </div>
+              )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {selectedCluster && (
+          <div
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] flex items-center justify-center p-4"
+            onClick={() => setSelectedCluster(null)}
+          >
+            <div
+              className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="p-6 border-b border-slate-200 flex items-start justify-between">
+                <div>
+                  <h2 className="text-2xl font-bold text-slate-900">{selectedCluster.name}</h2>
+                  {selectedCluster.region && (
+                    <div className="text-sm text-slate-500">{selectedCluster.region}</div>
+                  )}
+                </div>
+                <button
+                  onClick={() => setSelectedCluster(null)}
+                  className="p-2 rounded-lg hover:bg-slate-100 transition-colors"
+                >
+                  <X className="h-5 w-5 text-slate-600" />
+                </button>
+              </div>
+              <div className="p-6 space-y-4">
+                {selectedCluster.description && (
+                  <div>
+                    <h3 className="text-sm font-semibold text-slate-700 mb-2">Description</h3>
+                    <p className="text-slate-600 whitespace-pre-line">{selectedCluster.description}</p>
+                  </div>
+                )}
+                {selectedCluster.indications && (
+                  <div>
+                    <h3 className="text-sm font-semibold text-slate-700 mb-2">Indications</h3>
+                    <p className="text-slate-600 whitespace-pre-line">{selectedCluster.indications}</p>
+                  </div>
+                )}
+                {selectedCluster.interest && (
+                  <div>
+                    <h3 className="text-sm font-semibold text-slate-700 mb-2">Intérêt</h3>
+                    <p className="text-slate-600 whitespace-pre-line">{selectedCluster.interest}</p>
+                  </div>
+                )}
+                {selectedCluster.sources && (
+                  <div>
+                    <h3 className="text-sm font-semibold text-slate-700 mb-2">Sources</h3>
+                    <p className="text-slate-600 whitespace-pre-line">{selectedCluster.sources}</p>
+                  </div>
+                )}
+                {(selectedCluster.sensitivity || selectedCluster.specificity) && (
+                  <div className="flex flex-wrap gap-4 text-sm text-slate-600">
+                    {selectedCluster.sensitivity && (
+                      <div>
+                        <span className="font-semibold text-slate-800">Sensibilité:</span>{' '}
+                        {selectedCluster.sensitivity}%
+                      </div>
+                    )}
+                    {selectedCluster.specificity && (
+                      <div>
+                        <span className="font-semibold text-slate-800">Spécificité:</span>{' '}
+                        {selectedCluster.specificity}%
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
