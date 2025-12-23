@@ -36,6 +36,18 @@ type Pathology = {
   clinical_signs: string
   image_url: string
   is_active?: boolean
+  tests?: {
+    id: string
+    name: string
+    description?: string | null
+    category?: string | null
+  }[]
+  clusters?: {
+    id: string
+    name: string
+    description?: string | null
+    region?: string | null
+  }[]
 }
 
 const REGIONS = [
@@ -103,7 +115,50 @@ export default function DiagnosticsPage() {
       }
 
       const { data: pathologiesData } = await pathologiesQuery
-      setPathologies(pathologiesData || [])
+      const pathologiesList = pathologiesData || []
+
+      if (pathologiesList.length > 0) {
+        const pathologyIds = pathologiesList.map((pathology) => pathology.id)
+        const { data: testLinks } = await supabase
+          .from('pathology_tests')
+          .select('pathology_id, test:orthopedic_tests(id, name, description, category)')
+          .in('pathology_id', pathologyIds)
+
+        const { data: clusterLinks } = await supabase
+          .from('pathology_clusters')
+          .select('pathology_id, cluster:orthopedic_test_clusters(id, name, description, region)')
+          .in('pathology_id', pathologyIds)
+
+        const testsByPathology = (testLinks || []).reduce(
+          (acc, link: { pathology_id: string; test: Pathology['tests'][number] | null }) => {
+            if (!link.test) return acc
+            acc[link.pathology_id] = acc[link.pathology_id] || []
+            acc[link.pathology_id].push(link.test)
+            return acc
+          },
+          {} as Record<string, Pathology['tests']>
+        )
+
+        const clustersByPathology = (clusterLinks || []).reduce(
+          (acc, link: { pathology_id: string; cluster: Pathology['clusters'][number] | null }) => {
+            if (!link.cluster) return acc
+            acc[link.pathology_id] = acc[link.pathology_id] || []
+            acc[link.pathology_id].push(link.cluster)
+            return acc
+          },
+          {} as Record<string, Pathology['clusters']>
+        )
+
+        const enrichedPathologies = pathologiesList.map((pathology) => ({
+          ...pathology,
+          tests: testsByPathology[pathology.id] || [],
+          clusters: clustersByPathology[pathology.id] || []
+        }))
+
+        setPathologies(enrichedPathologies)
+      } else {
+        setPathologies([])
+      }
 
     } catch (error) {
       console.error('Error loading data:', error)
@@ -555,6 +610,54 @@ export default function DiagnosticsPage() {
                       Signes cliniques
                     </h3>
                     <p className="text-amber-800 leading-relaxed whitespace-pre-line">{selectedItem.clinical_signs}</p>
+                  </div>
+                )}
+
+                {selectedItem.clusters?.length > 0 && (
+                  <div>
+                    <h3 className="text-sm font-semibold text-slate-700 mb-2 flex items-center gap-2">
+                      <Info className="h-4 w-4" />
+                      Clusters associés
+                    </h3>
+                    <div className="space-y-2">
+                      {selectedItem.clusters.map((cluster: Pathology['clusters'][number]) => (
+                        <div
+                          key={cluster.id}
+                          className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2"
+                        >
+                          <div className="text-sm font-semibold text-slate-900">{cluster.name}</div>
+                          {cluster.description && (
+                            <div className="text-xs text-slate-600 whitespace-pre-line">
+                              {cluster.description}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {selectedItem.tests?.length > 0 && (
+                  <div>
+                    <h3 className="text-sm font-semibold text-slate-700 mb-2 flex items-center gap-2">
+                      <Info className="h-4 w-4" />
+                      Tests associés
+                    </h3>
+                    <div className="space-y-2">
+                      {selectedItem.tests.map((test: Pathology['tests'][number]) => (
+                        <div
+                          key={test.id}
+                          className="rounded-xl border border-slate-200 bg-white px-3 py-2"
+                        >
+                          <div className="text-sm font-semibold text-slate-900">{test.name}</div>
+                          {test.description && (
+                            <div className="text-xs text-slate-600 whitespace-pre-line">
+                              {test.description}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
 
