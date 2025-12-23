@@ -36,18 +36,22 @@ type Pathology = {
   clinical_signs: string
   image_url: string
   is_active?: boolean
-  tests?: {
-    id: string
-    name: string
-    description?: string | null
-    category?: string | null
-  }[]
-  clusters?: {
-    id: string
-    name: string
-    description?: string | null
-    region?: string | null
-  }[]
+  tests?: OrthopedicTest[]
+  clusters?: OrthopedicTestCluster[]
+}
+
+type OrthopedicTest = {
+  id: string
+  name: string
+  description?: string | null
+  category?: string | null
+}
+
+type OrthopedicTestCluster = {
+  id: string
+  name: string
+  description?: string | null
+  region?: string | null
 }
 
 const REGIONS = [
@@ -130,23 +134,23 @@ export default function DiagnosticsPage() {
           .in('pathology_id', pathologyIds)
 
         const testsByPathology = (testLinks || []).reduce(
-          (acc, link: { pathology_id: string; test: Pathology['tests'][number] | null }) => {
+          (acc, link: { pathology_id: string; test: OrthopedicTest | null }) => {
             if (!link.test) return acc
             acc[link.pathology_id] = acc[link.pathology_id] || []
             acc[link.pathology_id].push(link.test)
             return acc
           },
-          {} as Record<string, Pathology['tests']>
+          {} as Record<string, OrthopedicTest[]>
         )
 
         const clustersByPathology = (clusterLinks || []).reduce(
-          (acc, link: { pathology_id: string; cluster: Pathology['clusters'][number] | null }) => {
+          (acc, link: { pathology_id: string; cluster: OrthopedicTestCluster | null }) => {
             if (!link.cluster) return acc
             acc[link.pathology_id] = acc[link.pathology_id] || []
             acc[link.pathology_id].push(link.cluster)
             return acc
           },
-          {} as Record<string, Pathology['clusters']>
+          {} as Record<string, OrthopedicTestCluster[]>
         )
 
         const enrichedPathologies = pathologiesList.map((pathology) => ({
@@ -620,7 +624,7 @@ export default function DiagnosticsPage() {
                       Clusters associés
                     </h3>
                     <div className="space-y-2">
-                      {selectedItem.clusters.map((cluster: Pathology['clusters'][number]) => (
+                      {selectedItem.clusters.map((cluster: OrthopedicTestCluster) => (
                         <div
                           key={cluster.id}
                           className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2"
@@ -644,7 +648,7 @@ export default function DiagnosticsPage() {
                       Tests associés
                     </h3>
                     <div className="space-y-2">
-                      {selectedItem.tests.map((test: Pathology['tests'][number]) => (
+                      {selectedItem.tests.map((test: OrthopedicTest) => (
                         <div
                           key={test.id}
                           className="rounded-xl border border-slate-200 bg-white px-3 py-2"
