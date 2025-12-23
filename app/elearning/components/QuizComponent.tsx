@@ -62,6 +62,7 @@ export default function QuizComponent({ quiz, subpartId, userId, onQuizPassed, o
   }
 
   const handleAnswerSelection = (answerId: string) => {
+    if (!currentQuestion?.id) return
     const questionId = currentQuestion.id
 
     if (currentQuestion.question_type === 'multiple_answer') {
@@ -87,6 +88,7 @@ export default function QuizComponent({ quiz, subpartId, userId, onQuizPassed, o
   }
 
   const isAnswerSelected = (answerId: string) => {
+    if (!currentQuestion?.id) return false
     const questionId = currentQuestion.id
     return (userAnswers[questionId] || []).includes(answerId)
   }
@@ -169,11 +171,11 @@ export default function QuizComponent({ quiz, subpartId, userId, onQuizPassed, o
   }
 
   const getAnswerStatus = (answer: QuizAnswer) => {
-    if (!showResults) return null
+    if (!showResults || !currentQuestion?.id) return null
 
     const questionId = currentQuestion.id
     const userAnswer = userAnswers[questionId] || []
-    const isSelected = userAnswer.includes(answer.id)
+    const isSelected = answer.id ? userAnswer.includes(answer.id) : false
 
     if (answer.is_correct) {
       return 'correct'
