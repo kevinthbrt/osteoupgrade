@@ -617,12 +617,12 @@ export default function DiagnosticsPage() {
                   </div>
                 )}
 
-                {selectedItem.clusters?.length > 0 && (
-                  <div>
-                    <h3 className="text-sm font-semibold text-slate-700 mb-2 flex items-center gap-2">
-                      <Info className="h-4 w-4" />
-                      Clusters associés
-                    </h3>
+                <div>
+                  <h3 className="text-sm font-semibold text-slate-700 mb-2 flex items-center gap-2">
+                    <Info className="h-4 w-4" />
+                    Clusters associés
+                  </h3>
+                  {selectedItem.clusters?.length > 0 ? (
                     <div className="space-y-2">
                       {selectedItem.clusters.map((cluster: OrthopedicTestCluster) => (
                         <div
@@ -638,15 +638,17 @@ export default function DiagnosticsPage() {
                         </div>
                       ))}
                     </div>
-                  </div>
-                )}
+                  ) : (
+                    <div className="text-sm text-slate-500">Aucun cluster associé.</div>
+                  )}
+                </div>
 
-                {selectedItem.tests?.length > 0 && (
-                  <div>
-                    <h3 className="text-sm font-semibold text-slate-700 mb-2 flex items-center gap-2">
-                      <Info className="h-4 w-4" />
-                      Tests associés
-                    </h3>
+                <div>
+                  <h3 className="text-sm font-semibold text-slate-700 mb-2 flex items-center gap-2">
+                    <Info className="h-4 w-4" />
+                    Tests associés
+                  </h3>
+                  {selectedItem.tests?.length > 0 ? (
                     <div className="space-y-2">
                       {selectedItem.tests.map((test: OrthopedicTest) => (
                         <div
@@ -662,8 +664,10 @@ export default function DiagnosticsPage() {
                         </div>
                       ))}
                     </div>
-                  </div>
-                )}
+                  ) : (
+                    <div className="text-sm text-slate-500">Aucun test associé.</div>
+                  )}
+                </div>
 
                 {/* Admin actions in modal */}
                 {isAdmin && (
