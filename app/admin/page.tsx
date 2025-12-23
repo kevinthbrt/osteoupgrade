@@ -212,7 +212,7 @@ export default function AdminPage() {
       title: '📄 Communication',
       description: 'Gérer les modèles de courriers et documents pour utilisateurs premium',
       icon: Clipboard,
-      href: '/admin/communication',
+      href: '/outils/communication',
       color: 'from-blue-500 to-cyan-600',
       stats: 'Modèles de documents'
     },

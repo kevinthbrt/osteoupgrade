@@ -7,17 +7,21 @@ Le module Communication permet aux administrateurs de télécharger des fichiers
 ## Fonctionnalités
 
 ### Pour les Administrateurs
+- Interface de gestion intégrée directement sur `/outils/communication`
 - Upload de fichiers Word (.doc, .docx) et PDF
 - Gestion des documents (création, modification, suppression)
 - Catégorisation des documents (Courrier, Attestation, Facture, Autre)
-- Activation/désactivation des documents
+- Activation/désactivation des documents en un clic
 - Ordre d'affichage personnalisable
+- Badge "Mode Administrateur" pour identifier les droits étendus
+- Boutons de gestion (Activer/Désactiver, Modifier, Supprimer) sur chaque document
 
 ### Pour les Utilisateurs Premium
 - Visualisation des documents actifs
 - Filtrage par catégorie
 - Recherche par titre ou description
 - Téléchargement des fichiers
+- Interface organisée par catégories
 
 ## Structure du Module
 
@@ -59,18 +63,19 @@ Le module Communication permet aux administrateurs de télécharger des fichiers
    - Upload de fichiers vers Vercel Blob
    - Validation des types de fichiers (doc, docx, pdf)
 
-4. **Page Admin**
-   - `app/admin/communication/page.tsx`
-   - Interface de gestion des documents
-   - Upload, édition, suppression
-   - Activation/désactivation
-
-5. **Page Utilisateur**
+4. **Page Unifiée (Utilisateurs Premium + Admin)**
    - `app/outils/communication/page.tsx`
-   - Affichage des documents par catégorie
-   - Recherche et filtrage
-   - Téléchargement
-   - Restriction aux utilisateurs premium
+   - **Pour tous les utilisateurs premium :**
+     - Affichage des documents actifs par catégorie
+     - Recherche et filtrage
+     - Téléchargement
+   - **Interface admin (visible uniquement pour les admins) :**
+     - Bouton "Ajouter un document" dans le header
+     - Badge "Mode Administrateur"
+     - Boutons de gestion sur chaque document (Activer/Désactiver, Modifier, Supprimer)
+     - Modal d'ajout/édition de documents
+     - Affichage de tous les documents (actifs et inactifs)
+     - Indicateurs visuels pour les documents inactifs
 
 ### Intégrations
 
@@ -78,10 +83,12 @@ Le module Communication permet aux administrateurs de télécharger des fichiers
    - Ajout du module Communication
    - Carte avec gradient bleu-cyan
    - Badge "Premium"
+   - Lien vers `/outils/communication`
 
 2. **Dashboard Admin** (`app/admin/page.tsx`)
-   - Lien vers la gestion des documents
+   - Lien vers la page Communication (`/outils/communication`)
    - Section dans les actions de management
+   - Note : L'interface admin est intégrée directement dans la page Communication
 
 ## Restrictions d'Accès
 
