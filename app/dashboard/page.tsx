@@ -9,7 +9,6 @@ import {
   GraduationCap,
   Wrench,
   Calendar,
-  Settings,
   Search,
   Trophy,
   Flame,
@@ -194,10 +193,20 @@ export default function Dashboard() {
       count: '150+ exercices',
       emoji: '🛠️',
       features: ['Exercices par région', 'Fiches patients', 'Protocoles']
+    },
+    {
+      id: 'seminaires',
+      title: 'Séminaires',
+      description: 'Formations présentielles pour approfondir vos compétences',
+      icon: Calendar,
+      href: '/seminaires',
+      gradient: 'from-amber-500 via-orange-500 to-red-500',
+      bgPattern: 'bg-amber-50',
+      count: 'Sessions',
+      emoji: '📅',
+      features: ['Ateliers', 'Intervenants', 'Réseau']
     }
   ]
-
-  const isAdmin = profile?.role === 'admin'
 
   if (loading) {
     return (
@@ -454,73 +463,6 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Quick Access Section */}
-        <div className="bg-gradient-to-br from-slate-50 to-white rounded-3xl p-8 border-2 border-slate-200 shadow-lg">
-          <h3 className="text-xl font-bold text-slate-900 mb-6 flex items-center gap-2">
-            <Sparkles className="h-6 w-6 text-amber-500" />
-            Accès Rapide
-          </h3>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <button
-              onClick={() => router.push('/seminaires')}
-              className="group flex items-center gap-4 px-6 py-5 rounded-2xl bg-white border-2 border-slate-200 hover:border-amber-400 hover:shadow-xl transition-all"
-            >
-              <div className="p-3 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 group-hover:scale-110 transition-transform">
-                <Calendar className="h-6 w-6 text-white" />
-              </div>
-              <div className="text-left flex-1">
-                <div className="font-bold text-slate-900 text-lg">Séminaires</div>
-                <div className="text-sm text-slate-600">Formations présentielles</div>
-              </div>
-              <ArrowRight className="h-5 w-5 text-slate-400 group-hover:text-amber-600 group-hover:translate-x-1 transition-all" />
-            </button>
-
-            <button
-              onClick={() => router.push('/settings')}
-              className="group flex items-center gap-4 px-6 py-5 rounded-2xl bg-white border-2 border-slate-200 hover:border-slate-400 hover:shadow-xl transition-all"
-            >
-              <div className="p-3 rounded-xl bg-gradient-to-br from-slate-600 to-slate-700 group-hover:scale-110 transition-transform">
-                <Settings className="h-6 w-6 text-white" />
-              </div>
-              <div className="text-left flex-1">
-                <div className="font-bold text-slate-900 text-lg">Paramètres</div>
-                <div className="text-sm text-slate-600">Profil et abonnement</div>
-              </div>
-              <ArrowRight className="h-5 w-5 text-slate-400 group-hover:text-slate-700 group-hover:translate-x-1 transition-all" />
-            </button>
-
-            {isAdmin ? (
-              <button
-                onClick={() => router.push('/admin')}
-                className="group flex items-center gap-4 px-6 py-5 rounded-2xl bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 border-2 border-transparent shadow-lg hover:shadow-2xl transition-all"
-              >
-                <div className="p-3 rounded-xl bg-white/20 backdrop-blur-sm group-hover:scale-110 transition-transform">
-                  <Settings className="h-6 w-6 text-white" />
-                </div>
-                <div className="text-left flex-1 text-white">
-                  <div className="font-bold text-lg">Administration</div>
-                  <div className="text-sm text-purple-100">Gestion plateforme</div>
-                </div>
-                <ArrowRight className="h-5 w-5 text-white group-hover:translate-x-1 transition-transform" />
-              </button>
-            ) : (
-              <button
-                onClick={() => router.push('/stats')}
-                className="group flex items-center gap-4 px-6 py-5 rounded-2xl bg-gradient-to-r from-indigo-600 to-purple-700 hover:from-indigo-700 hover:to-purple-800 border-2 border-transparent shadow-lg hover:shadow-2xl transition-all"
-              >
-                <div className="p-3 rounded-xl bg-white/20 backdrop-blur-sm group-hover:scale-110 transition-transform">
-                  <Trophy className="h-6 w-6 text-white" />
-                </div>
-                <div className="text-left flex-1 text-white">
-                  <div className="font-bold text-lg">Statistiques</div>
-                  <div className="text-sm text-indigo-100">Progression détaillée</div>
-                </div>
-                <ArrowRight className="h-5 w-5 text-white group-hover:translate-x-1 transition-transform" />
-              </button>
-            )}
-          </div>
-        </div>
       </div>
     </AuthLayout>
   )
