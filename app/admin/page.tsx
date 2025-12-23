@@ -209,6 +209,14 @@ export default function AdminPage() {
       stats: `${stats.totalAnatomicalZones} zones 3D`
     },
     {
+      title: '📄 Communication',
+      description: 'Gérer les modèles de courriers et documents pour utilisateurs premium',
+      icon: Clipboard,
+      href: '/admin/communication',
+      color: 'from-blue-500 to-cyan-600',
+      stats: 'Modèles de documents'
+    },
+    {
       title: '📧 Mailing & Newsletter',
       description: 'Campagnes, automation, relances et onboarding',
       icon: Mail,
