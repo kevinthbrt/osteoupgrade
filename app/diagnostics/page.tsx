@@ -62,6 +62,24 @@ type OrthopedicTestCluster = {
   specificity?: number | null
 }
 
+const getVideoEmbedUrl = (url: string) => {
+  if (url.includes('youtube.com') || url.includes('youtu.be')) {
+    const idMatch = url.match(/(?:v=|\/)([0-9A-Za-z_-]{11})/)
+    if (idMatch?.[1]) {
+      return `https://www.youtube.com/embed/${idMatch[1]}`
+    }
+  }
+
+  if (url.includes('vimeo.com')) {
+    const idMatch = url.match(/vimeo\.com\/(\d+)/)
+    if (idMatch?.[1]) {
+      return `https://player.vimeo.com/video/${idMatch[1]}`
+    }
+  }
+
+  return url
+}
+
 const REGIONS = [
   { value: 'all', label: 'Toutes', icon: Activity, color: 'slate' },
   { value: 'atm', label: 'ATM', icon: Activity, color: 'slate' },
@@ -792,7 +810,7 @@ export default function DiagnosticsPage() {
                   <div className="text-sm font-semibold text-slate-700">Vidéo du test</div>
                   <div className="relative w-full overflow-hidden rounded-xl border border-slate-200 bg-black" style={{ paddingTop: '56.25%' }}>
                     <iframe
-                      src={selectedTest.video_url}
+                      src={getVideoEmbedUrl(selectedTest.video_url)}
                       className="absolute inset-0 h-full w-full"
                       title={`Vidéo ${selectedTest.name}`}
                       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
