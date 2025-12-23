@@ -472,7 +472,7 @@ export default function QuizComponent({ quiz, subpartId, userId, onQuizPassed, o
 
               <button
                 onClick={handleNext}
-                disabled={!isQuestionAnswered(currentQuestion.id)}
+                disabled={!currentQuestion.id || !isQuestionAnswered(currentQuestion.id)}
                 className="px-6 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg font-semibold hover:from-blue-600 hover:to-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
               >
                 {currentQuestionIndex === totalQuestions - 1 ? 'Terminer' : 'Suivant'}
