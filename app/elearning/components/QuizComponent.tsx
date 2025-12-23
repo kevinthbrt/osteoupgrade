@@ -117,10 +117,13 @@ export default function QuizComponent({ quiz, subpartId, userId, onQuizPassed, o
     let correctCount = 0
 
     quiz.questions.forEach((question) => {
+      if (!question.id) return
+
       const userAnswer = userAnswers[question.id] || []
       const correctAnswers = question.answers
         .filter((a) => a.is_correct)
         .map((a) => a.id)
+        .filter((id): id is string => id !== undefined)
 
       // Check if answer is correct
       const isCorrect =
