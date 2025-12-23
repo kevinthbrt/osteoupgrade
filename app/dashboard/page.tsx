@@ -8,7 +8,6 @@ import {
   Stethoscope,
   GraduationCap,
   Wrench,
-  TestTube,
   Calendar,
   Settings,
   Search,
@@ -195,18 +194,6 @@ export default function Dashboard() {
       count: '150+ exercices',
       emoji: '🛠️',
       features: ['Exercices par région', 'Fiches patients', 'Protocoles']
-    },
-    {
-      id: 'testing',
-      title: 'Testing 3D',
-      description: 'Explorez l\'anatomie en 3D et réalisez des tests orthopédiques interactifs',
-      icon: TestTube,
-      href: '/testing',
-      gradient: 'from-purple-500 via-purple-600 to-indigo-600',
-      bgPattern: 'bg-purple-50',
-      count: 'Modèle 3D',
-      emoji: '🧬',
-      features: ['Anatomie 3D', 'Tests interactifs', 'Zones cliquables']
     }
   ]
 
