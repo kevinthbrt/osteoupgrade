@@ -380,6 +380,7 @@ export default function QuizComponent({ quiz, subpartId, userId, onQuizPassed, o
             {currentQuestion.answers
               .sort((a, b) => a.order_index - b.order_index)
               .map((answer) => {
+                if (!answer.id) return null
                 const isSelected = isAnswerSelected(answer.id)
                 const status = getAnswerStatus(answer)
 
