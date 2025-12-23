@@ -370,7 +370,7 @@ export default function DiagnosticsPage() {
 
                   {/* Description */}
                   {item.description && (
-                    <p className="text-sm text-slate-600 line-clamp-2 mb-3">
+                    <p className="text-sm text-slate-600 line-clamp-2 mb-3 whitespace-pre-line">
                       {item.description}
                     </p>
                   )}
@@ -544,7 +544,7 @@ export default function DiagnosticsPage() {
                       <Info className="h-4 w-4" />
                       Description
                     </h3>
-                    <p className="text-slate-600 leading-relaxed">{selectedItem.description}</p>
+                    <p className="text-slate-600 leading-relaxed whitespace-pre-line">{selectedItem.description}</p>
                   </div>
                 )}
 
@@ -554,7 +554,7 @@ export default function DiagnosticsPage() {
                       <AlertCircle className="h-4 w-4" />
                       Signes cliniques
                     </h3>
-                    <p className="text-amber-800 leading-relaxed">{selectedItem.clinical_signs}</p>
+                    <p className="text-amber-800 leading-relaxed whitespace-pre-line">{selectedItem.clinical_signs}</p>
                   </div>
                 )}
 
