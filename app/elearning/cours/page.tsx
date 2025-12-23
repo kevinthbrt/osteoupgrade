@@ -129,7 +129,7 @@ export default function CoursPage() {
     }
   }
 
-  const loadFormationsFromSupabase = async (userId: string, role?: string) => {
+  const loadFormationsFromSupabase = async (userId: string, role?: string, preserveFormationId?: string) => {
     const roleToUse = role ?? profile?.role
 
     try {
@@ -215,7 +215,12 @@ export default function CoursPage() {
 
         if (accessible.length) {
           setFormations(accessible)
-          setSelectedFormationId(accessible[0].id)
+          // Preserve the selected formation if it's provided and still exists
+          if (preserveFormationId && accessible.some((f) => f.id === preserveFormationId)) {
+            setSelectedFormationId(preserveFormationId)
+          } else {
+            setSelectedFormationId(accessible[0].id)
+          }
         } else {
           setFormations([])
           setSelectedFormationId('')
@@ -346,9 +351,9 @@ export default function CoursPage() {
   }
 
   const handleQuizPassed = async () => {
-    // Reload data to refresh quiz_passed status
+    // Reload data to refresh quiz_passed status, preserving the current formation
     if (profile) {
-      await loadFormationsFromSupabase(profile.id, profile.role)
+      await loadFormationsFromSupabase(profile.id, profile.role, selectedFormationId)
     }
   }
 
