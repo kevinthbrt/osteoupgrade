@@ -18,8 +18,6 @@ import {
   ArrowRight,
   Loader2,
   Sparkles,
-  Target,
-  BookOpen,
   Brain,
   Zap,
   Dumbbell,
@@ -31,7 +29,7 @@ export default function Dashboard() {
   const [profile, setProfile] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
-  const [badges, setBadges] = useState<{ id: string; name: string; icon: string | null }[]>([])
+  const [badges, setBadges] = useState<{ id: string; name: string; icon: string | null; description?: string | null }[]>([])
   const [stats, setStats] = useState({
     level: 1,
     totalXp: 0,
@@ -43,7 +41,11 @@ export default function Dashboard() {
     weekTesting: 0,
     elearningProgress: 0,
     practiceProgress: 0,
-    testingProgress: 0
+    testingProgress: 0,
+    totalLogins: 0,
+    totalElearningCompleted: 0,
+    totalPracticeViewed: 0,
+    totalTestingViewed: 0
   })
 
   const badgeIconMap: Record<string, ComponentType<{ className?: string }>> = {
@@ -116,13 +118,17 @@ export default function Dashboard() {
           weekTesting: gamificationStats.week_testing || 0,
           elearningProgress: gamificationStats.elearning_progress || 0,
           practiceProgress: gamificationStats.practice_progress || 0,
-          testingProgress: gamificationStats.testing_progress || 0
+          testingProgress: gamificationStats.testing_progress || 0,
+          totalLogins: gamificationStats.total_logins || 0,
+          totalElearningCompleted: gamificationStats.total_elearning_completed || 0,
+          totalPracticeViewed: gamificationStats.total_practice_viewed || 0,
+          totalTestingViewed: gamificationStats.total_testing_viewed || 0
         })
       }
 
       const { data: achievements } = await supabase
         .from('user_achievements')
-        .select('achievement:achievements(id, name, icon)')
+        .select('achievement:achievements(id, name, icon, description)')
         .eq('user_id', user.id)
         .order('unlocked_at', { ascending: false })
         .limit(6)
@@ -130,13 +136,13 @@ export default function Dashboard() {
       if (achievements) {
         setBadges(
           achievements
-            .map((item: { achievement: { id: string; name: string; icon: string | null }[] | { id: string; name: string; icon: string | null } | null }) => {
+            .map((item: { achievement: { id: string; name: string; icon: string | null; description?: string | null }[] | { id: string; name: string; icon: string | null; description?: string | null } | null }) => {
               if (Array.isArray(item.achievement)) {
                 return item.achievement[0] ?? null
               }
               return item.achievement
             })
-            .filter((achievement): achievement is { id: string; name: string; icon: string | null } => Boolean(achievement))
+            .filter((achievement): achievement is { id: string; name: string; icon: string | null; description?: string | null } => Boolean(achievement))
         )
       }
     } catch (error) {
@@ -246,88 +252,125 @@ export default function Dashboard() {
                 Développez vos compétences en ostéopathie avec nos modules interactifs
               </p>
 
-              {/* Stats Cards */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-                <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl p-3 hover:bg-white/15 transition-all cursor-pointer" onClick={() => router.push('/stats')}>
-                  <div className="flex items-center gap-2 mb-1">
-                    <Trophy className="h-4 w-4 text-yellow-400" />
-                    <span className="text-xs text-slate-300 font-medium">Niveau</span>
+              <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-4 mb-6">
+                <div className="rounded-3xl bg-gradient-to-br from-purple-600 via-fuchsia-600 to-indigo-600 p-6 shadow-2xl border border-white/10">
+                  <div className="flex items-start justify-between text-white mb-4">
+                    <div>
+                      <div className="flex items-center gap-2 text-sm font-semibold text-purple-100">
+                        <Trophy className="h-4 w-4 text-yellow-300" />
+                        Progression globale
+                      </div>
+                      <div className="text-3xl font-bold mt-1">Niveau {stats.level}</div>
+                      <div className="text-sm text-purple-100">
+                        {stats.totalXp % 500}/{500} XP jusqu'au niveau {stats.level + 1}
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-3xl font-bold">{stats.totalXp}</div>
+                      <div className="text-xs text-purple-100">XP total</div>
+                    </div>
                   </div>
-                  <div className="text-2xl font-bold">{stats.level}</div>
-                  <div className="text-xs text-slate-400">{stats.totalXp.toLocaleString()} XP</div>
+
+                  <div className="h-3 w-full rounded-full bg-white/20 overflow-hidden mb-5">
+                    <div
+                      className="h-full rounded-full bg-gradient-to-r from-yellow-300 to-amber-400"
+                      style={{ width: `${Math.min((stats.totalXp % 500) / 500 * 100, 100)}%` }}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <div className="rounded-2xl bg-white/15 p-3 text-white">
+                      <div className="flex items-center gap-2 text-xs text-purple-100">
+                        <Flame className="h-4 w-4 text-orange-200" />
+                        Série
+                      </div>
+                      <div className="text-2xl font-bold mt-1">{stats.currentStreak}</div>
+                      <div className="text-xs text-purple-100">jours</div>
+                    </div>
+                    <div className="rounded-2xl bg-white/15 p-3 text-white">
+                      <div className="flex items-center gap-2 text-xs text-purple-100">
+                        <LogIn className="h-4 w-4 text-emerald-200" />
+                        Connexions
+                      </div>
+                      <div className="text-2xl font-bold mt-1">{stats.totalLogins}</div>
+                      <div className="text-xs text-purple-100">total</div>
+                    </div>
+                    <div className="rounded-2xl bg-white/15 p-3 text-white">
+                      <div className="flex items-center gap-2 text-xs text-purple-100">
+                        <GraduationCap className="h-4 w-4 text-sky-200" />
+                        E-learning
+                      </div>
+                      <div className="text-2xl font-bold mt-1">{stats.totalElearningCompleted}</div>
+                      <div className="text-xs text-purple-100">leçons</div>
+                    </div>
+                    <div className="rounded-2xl bg-white/15 p-3 text-white">
+                      <div className="flex items-center gap-2 text-xs text-purple-100">
+                        <Zap className="h-4 w-4 text-yellow-200" />
+                        Activité
+                      </div>
+                      <div className="text-2xl font-bold mt-1">{stats.totalPracticeViewed + stats.totalTestingViewed}</div>
+                      <div className="text-xs text-purple-100">actions</div>
+                    </div>
+                  </div>
                 </div>
 
-                <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl p-3 hover:bg-white/15 transition-all cursor-pointer" onClick={() => router.push('/stats')}>
-                  <div className="flex items-center gap-2 mb-1">
-                    <Flame className="h-4 w-4 text-orange-400" />
-                    <span className="text-xs text-slate-300 font-medium">Série</span>
+                <div className="rounded-3xl bg-white p-5 shadow-xl border border-slate-200">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-2 text-slate-900 font-semibold">
+                      <Award className="h-4 w-4 text-amber-500" />
+                      Badges débloqués
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => router.push('/stats')}
+                      className="text-xs font-semibold text-slate-500 hover:text-slate-700"
+                    >
+                      Voir tout
+                    </button>
                   </div>
-                  <div className="text-2xl font-bold">{stats.currentStreak}</div>
-                  <div className="text-xs text-slate-400">jours</div>
-                </div>
 
-                <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl p-3 hover:bg-white/15 transition-all cursor-pointer" onClick={() => router.push('/stats')}>
-                  <div className="flex items-center gap-2 mb-1">
-                    <Award className="h-4 w-4 text-purple-400" />
-                    <span className="text-xs text-slate-300 font-medium">Badges</span>
+                  <div className="space-y-3">
+                    {badges.length > 0 ? (
+                      badges.slice(0, 5).map((badge, index) => {
+                        const BadgeIcon = badge.icon ? badgeIconMap[badge.icon] : null
+                        const colorClasses = [
+                          'bg-emerald-50 text-emerald-600',
+                          'bg-sky-50 text-sky-600',
+                          'bg-indigo-50 text-indigo-600',
+                          'bg-amber-50 text-amber-600',
+                          'bg-rose-50 text-rose-600'
+                        ]
+                        const colorClass = colorClasses[index % colorClasses.length]
+                        return (
+                          <div
+                            key={badge.id}
+                            className="flex items-center gap-3 rounded-2xl bg-slate-50 px-3 py-2"
+                          >
+                            <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${colorClass}`}>
+                              {BadgeIcon ? (
+                                <BadgeIcon className="h-5 w-5" />
+                              ) : (
+                                <span className="text-lg">🏅</span>
+                              )}
+                            </div>
+                            <div className="min-w-0">
+                              <div className="text-sm font-semibold text-slate-900 truncate">{badge.name}</div>
+                              <div className="text-xs text-slate-500 truncate">
+                                {badge.description || 'Badge débloqué'}
+                              </div>
+                            </div>
+                          </div>
+                        )
+                      })
+                    ) : (
+                      <div className="text-sm text-slate-500">Aucun badge débloqué pour le moment.</div>
+                    )}
                   </div>
-                  <div className="text-2xl font-bold">{stats.unlockedAchievements}</div>
-                  <div className="text-xs text-slate-400">débloqués</div>
-                </div>
 
-                <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl p-3 hover:bg-white/15 transition-all cursor-pointer" onClick={() => router.push('/stats')}>
-                  <div className="flex items-center gap-2 mb-1">
-                    <Target className="h-4 w-4 text-green-400" />
-                    <span className="text-xs text-slate-300 font-medium">Progression</span>
-                  </div>
-                  <div className="text-2xl font-bold">
-                    {Math.round((stats.elearningProgress + stats.practiceProgress + stats.testingProgress) / 3)}%
-                  </div>
-                  <div className="text-xs text-slate-400">globale</div>
-                </div>
-              </div>
-
-              <div className="bg-white/5 border border-white/10 rounded-xl p-4 mb-6">
-                <div className="flex items-center gap-2 mb-3">
-                  <Award className="h-4 w-4 text-amber-300" />
-                  <span className="text-xs text-slate-300 font-medium">Badges acquis</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="text-3xl font-bold text-white">{stats.unlockedAchievements}</div>
-                    <div className="text-xs text-slate-400">badges débloqués</div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => router.push('/stats')}
-                    className="px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-xs font-semibold text-white transition-colors"
-                  >
-                    Voir mes badges
-                  </button>
-                </div>
-                <div className="mt-4 flex flex-wrap gap-2">
-                  {badges.length > 0 ? (
-                    badges.map((badge) => {
-                      const BadgeIcon = badge.icon ? badgeIconMap[badge.icon] : null
-                      return (
-                      <span
-                        key={badge.id}
-                        className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs text-white"
-                        title={badge.name}
-                      >
-                        {BadgeIcon ? (
-                          <BadgeIcon className="h-4 w-4 text-amber-300" />
-                        ) : (
-                          <span className="text-base">🏅</span>
-                        )}
-                        <span className="max-w-[140px] truncate">{badge.name}</span>
-                      </span>
-                      )
-                    })
-                  ) : (
-                    <span className="text-xs text-slate-400">
-                      Aucun badge débloqué pour le moment.
-                    </span>
+                  {stats.unlockedAchievements > badges.length && (
+                    <div className="mt-3 text-xs text-slate-500 text-center">
+                      +{stats.unlockedAchievements - badges.length} autres badges débloqués
+                    </div>
                   )}
                 </div>
               </div>
