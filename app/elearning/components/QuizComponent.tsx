@@ -12,31 +12,7 @@ import {
   Trophy,
   Target
 } from 'lucide-react'
-
-type QuizAnswer = {
-  id: string
-  answer_text: string
-  is_correct: boolean
-  order_index: number
-}
-
-type QuizQuestion = {
-  id: string
-  question_text: string
-  question_type: 'multiple_choice' | 'true_false' | 'multiple_answer'
-  points: number
-  order_index: number
-  explanation?: string
-  answers: QuizAnswer[]
-}
-
-type Quiz = {
-  id: string
-  title: string
-  description?: string
-  passing_score: number
-  questions: QuizQuestion[]
-}
+import type { Quiz, QuizAnswer, QuizQuestion } from '../types/quiz'
 
 type QuizAttempt = {
   id: string

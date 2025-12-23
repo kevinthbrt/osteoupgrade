@@ -7,6 +7,7 @@ import { supabase } from '@/lib/supabase'
 import CourseCreationWizard from '../components/CourseCreationWizard'
 import QuizComponent from '../components/QuizComponent'
 import QuizManager from '../components/QuizManager'
+import type { Quiz } from '../types/quiz'
 import {
   AlertCircle,
   BookOpen,
@@ -28,31 +29,6 @@ import {
   Lock,
   Trophy
 } from 'lucide-react'
-
-type QuizAnswer = {
-  id: string
-  answer_text: string
-  is_correct: boolean
-  order_index: number
-}
-
-type QuizQuestion = {
-  id: string
-  question_text: string
-  question_type: 'multiple_choice' | 'true_false' | 'multiple_answer'
-  points: number
-  order_index: number
-  explanation?: string
-  answers: QuizAnswer[]
-}
-
-type Quiz = {
-  id: string
-  title: string
-  description?: string
-  passing_score: number
-  questions: QuizQuestion[]
-}
 
 type Subpart = {
   id: string

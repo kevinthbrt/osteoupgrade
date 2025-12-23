@@ -12,32 +12,7 @@ import {
   GripVertical,
   ClipboardCheck
 } from 'lucide-react'
-
-type QuizAnswer = {
-  id?: string
-  answer_text: string
-  is_correct: boolean
-  order_index: number
-}
-
-type QuizQuestion = {
-  id?: string
-  question_text: string
-  question_type: 'multiple_choice' | 'true_false' | 'multiple_answer'
-  points: number
-  order_index: number
-  explanation?: string
-  answers: QuizAnswer[]
-}
-
-type Quiz = {
-  id?: string
-  subpart_id: string
-  title: string
-  description?: string
-  passing_score: number
-  questions: QuizQuestion[]
-}
+import type { Quiz, QuizAnswer, QuizQuestion } from '../types/quiz'
 
 interface QuizManagerProps {
   subpartId: string
@@ -48,15 +23,14 @@ interface QuizManagerProps {
 }
 
 export default function QuizManager({ subpartId, subpartTitle, existingQuiz, onClose, onSave }: QuizManagerProps) {
-  const [quiz, setQuiz] = useState<Quiz>(
-    existingQuiz || {
-      subpart_id: subpartId,
-      title: `Quiz - ${subpartTitle}`,
-      description: '',
-      passing_score: 100,
-      questions: []
-    }
-  )
+  const [quiz, setQuiz] = useState<Quiz>({
+    ...existingQuiz,
+    subpart_id: subpartId,
+    title: existingQuiz?.title || `Quiz - ${subpartTitle}`,
+    description: existingQuiz?.description || '',
+    passing_score: existingQuiz?.passing_score || 100,
+    questions: existingQuiz?.questions || []
+  })
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
