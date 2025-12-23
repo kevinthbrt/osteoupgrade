@@ -101,13 +101,6 @@ export default function Navigation() {
       roles: ['premium_silver', 'premium_gold', 'admin']
     },
     {
-      href: '/testing',
-      label: 'Testing 3D',
-      icon: TestTube,
-      badge: 'Premium',
-      roles: ['premium_silver', 'premium_gold', 'admin']
-    },
-    {
       href: '/seminaires',
       label: 'Séminaires',
       icon: Calendar,
