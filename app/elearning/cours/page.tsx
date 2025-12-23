@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation'
 import AuthLayout from '@/components/AuthLayout'
 import { supabase } from '@/lib/supabase'
 import CourseCreationWizard from '../components/CourseCreationWizard'
+import QuizComponent from '../components/QuizComponent'
+import QuizManager from '../components/QuizManager'
 import {
   AlertCircle,
   BookOpen,
@@ -21,8 +23,36 @@ import {
   Sparkles,
   Video,
   X,
-  Loader2
+  Loader2,
+  ClipboardCheck,
+  Lock,
+  Trophy
 } from 'lucide-react'
+
+type QuizAnswer = {
+  id: string
+  answer_text: string
+  is_correct: boolean
+  order_index: number
+}
+
+type QuizQuestion = {
+  id: string
+  question_text: string
+  question_type: 'multiple_choice' | 'true_false' | 'multiple_answer'
+  points: number
+  order_index: number
+  explanation?: string
+  answers: QuizAnswer[]
+}
+
+type Quiz = {
+  id: string
+  title: string
+  description?: string
+  passing_score: number
+  questions: QuizQuestion[]
+}
 
 type Subpart = {
   id: string
@@ -31,6 +61,8 @@ type Subpart = {
   description_html?: string
   order_index?: number
   completed?: boolean
+  quiz?: Quiz
+  quiz_passed?: boolean
 }
 
 type Chapter = {
@@ -87,6 +119,8 @@ export default function CoursPage() {
   const [expandedSubparts, setExpandedSubparts] = useState<Record<string, boolean>>({})
   const [showWizard, setShowWizard] = useState(false)
   const [formationToEdit, setFormationToEdit] = useState<Formation | null>(null)
+  const [activeQuiz, setActiveQuiz] = useState<{ quiz: Quiz; subpartId: string } | null>(null)
+  const [quizManager, setQuizManager] = useState<{ subpartId: string; subpartTitle: string; quiz?: Quiz } | null>(null)
 
   useEffect(() => {
     loadData()
@@ -129,7 +163,12 @@ export default function CoursPage() {
           `id, title, description, is_private, photo_url,
           chapters:elearning_chapters(id, title, order_index,
             subparts:elearning_subparts(id, title, vimeo_url, description_html, order_index,
-              progress:elearning_subpart_progress(user_id, completed_at)
+              progress:elearning_subpart_progress(user_id, completed_at),
+              quiz:elearning_quizzes(id, title, description, passing_score,
+                questions:elearning_quiz_questions(id, question_text, question_type, points, order_index, explanation,
+                  answers:elearning_quiz_answers(id, answer_text, is_correct, order_index)
+                )
+              )
             )
           )`
         )
@@ -138,6 +177,15 @@ export default function CoursPage() {
       if (error) throw error
 
       if (data) {
+        // Fetch quiz attempts for the user
+        const { data: quizAttempts } = await supabase
+          .from('elearning_quiz_attempts')
+          .select('quiz_id, passed')
+          .eq('user_id', userId)
+          .eq('passed', true)
+
+        const passedQuizIds = new Set((quizAttempts || []).map((a: any) => a.quiz_id))
+
         const parsed: Formation[] = data.map((formation: any) => ({
           id: formation.id,
           title: formation.title,
@@ -150,14 +198,40 @@ export default function CoursPage() {
               title: chapter.title,
               order_index: chapter.order_index,
               subparts:
-                chapter.subparts?.map((sub: any) => ({
-                  id: sub.id,
-                  title: sub.title,
-                  vimeo_url: sub.vimeo_url,
-                  description_html: sub.description_html,
-                  order_index: sub.order_index,
-                  completed: (sub.progress || []).some((p: any) => p.user_id === userId)
-                })) || []
+                chapter.subparts?.map((sub: any) => {
+                  const quizData = sub.quiz && sub.quiz.length > 0 ? sub.quiz[0] : null
+                  const quiz = quizData ? {
+                    id: quizData.id,
+                    title: quizData.title,
+                    description: quizData.description,
+                    passing_score: quizData.passing_score,
+                    questions: (quizData.questions || []).map((q: any) => ({
+                      id: q.id,
+                      question_text: q.question_text,
+                      question_type: q.question_type,
+                      points: q.points,
+                      order_index: q.order_index,
+                      explanation: q.explanation,
+                      answers: (q.answers || []).map((a: any) => ({
+                        id: a.id,
+                        answer_text: a.answer_text,
+                        is_correct: a.is_correct,
+                        order_index: a.order_index
+                      }))
+                    }))
+                  } : undefined
+
+                  return {
+                    id: sub.id,
+                    title: sub.title,
+                    vimeo_url: sub.vimeo_url,
+                    description_html: sub.description_html,
+                    order_index: sub.order_index,
+                    completed: (sub.progress || []).some((p: any) => p.user_id === userId),
+                    quiz,
+                    quiz_passed: quiz ? passedQuizIds.has(quiz.id) : true
+                  }
+                }) || []
             })) || []
         }))
 
@@ -293,6 +367,44 @@ export default function CoursPage() {
         }))
       }))
     )
+  }
+
+  const handleQuizPassed = async () => {
+    // Reload data to refresh quiz_passed status
+    if (profile) {
+      await loadFormationsFromSupabase(profile.id, profile.role)
+    }
+  }
+
+  const isSubpartAccessible = (formation: Formation, chapter: Chapter, subpartIndex: number) => {
+    if (subpartIndex === 0) return true // First subpart is always accessible
+
+    // Find previous subpart
+    let previousSubpart: Subpart | null = null
+    for (const ch of formation.chapters) {
+      const idx = ch.subparts.findIndex((s) => s.id === chapter.subparts[subpartIndex].id)
+      if (idx > 0) {
+        previousSubpart = ch.subparts[idx - 1]
+        break
+      } else if (idx === 0) {
+        // Check previous chapter's last subpart
+        const chapterIdx = formation.chapters.findIndex((c) => c.id === ch.id)
+        if (chapterIdx > 0) {
+          const prevChapter = formation.chapters[chapterIdx - 1]
+          if (prevChapter.subparts.length > 0) {
+            previousSubpart = prevChapter.subparts[prevChapter.subparts.length - 1]
+          }
+        }
+        break
+      }
+    }
+
+    // If there's a previous subpart with a quiz, it must be passed
+    if (previousSubpart && previousSubpart.quiz) {
+      return previousSubpart.quiz_passed === true
+    }
+
+    return true
   }
 
   if (loading) {
@@ -588,33 +700,70 @@ export default function CoursPage() {
                         </div>
                         {expandedChapters[chapter.id] && (
                           <div className="divide-y divide-gray-100">
-                            {chapter.subparts.map((subpart) => {
+                            {chapter.subparts.map((subpart, subpartIdx) => {
                               const subpartOpen = expandedSubparts[subpart.id]
+                              const isAccessible = isSubpartAccessible(selectedFormation, chapter, subpartIdx)
+
                               return (
                                 <div
                                   key={subpart.id}
                                   ref={(ref) => {
                                     subpartRefs.current[subpart.id] = ref
                                   }}
-                                  className="p-4 space-y-3"
+                                  className={`p-4 space-y-3 ${!isAccessible ? 'bg-gray-50/50' : ''}`}
                                 >
                                   <div className="flex items-start justify-between gap-3">
-                                    <div className="flex-1 space-y-2">
-                                      <button
-                                        type="button"
-                                        onClick={() => toggleSubpartExpansion(subpart.id)}
-                                        className="flex items-center gap-2 text-gray-900 font-semibold hover:text-primary-700 focus:outline-none"
-                                        aria-label={`Basculer l'affichage de la sous-partie ${subpart.title}`}
-                                      >
-                                        <ChevronDown
-                                          className={`h-4 w-4 text-primary-500 transition-transform ${
-                                            subpartOpen ? 'rotate-180' : ''
+                                    <div className="flex-1 space-y-3">
+                                      <div className="flex items-center gap-3">
+                                        <button
+                                          type="button"
+                                          onClick={() => isAccessible && toggleSubpartExpansion(subpart.id)}
+                                          disabled={!isAccessible}
+                                          className={`flex items-center gap-2 font-semibold focus:outline-none ${
+                                            isAccessible
+                                              ? 'text-gray-900 hover:text-primary-700'
+                                              : 'text-gray-400 cursor-not-allowed'
                                           }`}
-                                        />
-                                        <Video className="h-4 w-4 text-primary-500" />
-                                        {subpart.title}
-                                      </button>
-                                      {subpartOpen && (
+                                          aria-label={`Basculer l'affichage de la sous-partie ${subpart.title}`}
+                                        >
+                                          {!isAccessible ? (
+                                            <Lock className="h-4 w-4 text-gray-400" />
+                                          ) : (
+                                            <ChevronDown
+                                              className={`h-4 w-4 text-primary-500 transition-transform ${
+                                                subpartOpen ? 'rotate-180' : ''
+                                              }`}
+                                            />
+                                          )}
+                                          <Video className={`h-4 w-4 ${isAccessible ? 'text-primary-500' : 'text-gray-400'}`} />
+                                          {subpart.title}
+                                        </button>
+
+                                        {subpart.quiz && (
+                                          <div className="flex items-center gap-2">
+                                            {subpart.quiz_passed ? (
+                                              <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs bg-emerald-100 text-emerald-700 font-semibold">
+                                                <Trophy className="h-3 w-3" />
+                                                Quiz validé
+                                              </span>
+                                            ) : (
+                                              <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-700 font-semibold">
+                                                <ClipboardCheck className="h-3 w-3" />
+                                                Quiz requis
+                                              </span>
+                                            )}
+                                          </div>
+                                        )}
+                                      </div>
+
+                                      {!isAccessible && (
+                                        <div className="flex items-center gap-2 text-sm text-orange-600 bg-orange-50 rounded-lg px-3 py-2 border border-orange-200">
+                                          <AlertCircle className="h-4 w-4 shrink-0" />
+                                          <span>Terminez le quiz précédent pour débloquer cette vidéo</span>
+                                        </div>
+                                      )}
+
+                                      {subpartOpen && isAccessible && (
                                         <>
                                           {subpart.description_html && (
                                             <div
@@ -622,9 +771,9 @@ export default function CoursPage() {
                                               dangerouslySetInnerHTML={{ __html: subpart.description_html }}
                                             />
                                           )}
-                                          <div className="mt-1 space-y-2">
+                                          <div className="space-y-3">
                                             {subpart.vimeo_url ? (
-                                              <div className="relative w-full overflow-hidden rounded-lg border border-gray-200 bg-black aspect-video">
+                                              <div className="relative w-full overflow-hidden rounded-xl border-2 border-gray-200 bg-black aspect-video shadow-lg">
                                                 <iframe
                                                   src={getVimeoEmbedUrl(subpart.vimeo_url)}
                                                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
@@ -634,35 +783,74 @@ export default function CoursPage() {
                                                 />
                                               </div>
                                             ) : (
-                                              <div className="rounded-lg border border-dashed border-gray-300 p-4 text-sm text-gray-500 bg-gray-50">
+                                              <div className="rounded-xl border-2 border-dashed border-gray-300 p-6 text-sm text-gray-500 bg-gray-50 text-center">
+                                                <Video className="h-8 w-8 text-gray-400 mx-auto mb-2" />
                                                 Vidéo à venir
                                               </div>
                                             )}
-                                            <div className="flex items-center gap-2 text-xs text-gray-500">
-                                              <PlayCircle className="h-4 w-4" />
-                                              {subpart.vimeo_url ? 'Lecture intégrée' : 'Support en cours de préparation'}
-                                            </div>
+
+                                            {subpart.quiz && (
+                                              <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-4 border-2 border-blue-200">
+                                                <div className="flex items-start justify-between gap-4">
+                                                  <div className="flex-1">
+                                                    <div className="flex items-center gap-2 mb-2">
+                                                      <ClipboardCheck className="h-5 w-5 text-blue-600" />
+                                                      <h4 className="font-bold text-blue-900">{subpart.quiz.title}</h4>
+                                                    </div>
+                                                    {subpart.quiz.description && (
+                                                      <p className="text-sm text-blue-700 mb-3">{subpart.quiz.description}</p>
+                                                    )}
+                                                    <div className="flex items-center gap-4 text-sm text-blue-600">
+                                                      <span>{subpart.quiz.questions.length} questions</span>
+                                                      <span>•</span>
+                                                      <span>Score requis : {subpart.quiz.passing_score}%</span>
+                                                    </div>
+                                                  </div>
+                                                  <button
+                                                    onClick={() => setActiveQuiz({ quiz: subpart.quiz!, subpartId: subpart.id })}
+                                                    className={`px-4 py-2 rounded-lg font-semibold transition-all ${
+                                                      subpart.quiz_passed
+                                                        ? 'bg-white text-blue-600 border-2 border-blue-300 hover:bg-blue-50'
+                                                        : 'bg-gradient-to-r from-blue-500 to-blue-600 text-white hover:from-blue-600 hover:to-blue-700 shadow-lg'
+                                                    }`}
+                                                  >
+                                                    {subpart.quiz_passed ? 'Refaire le quiz' : 'Commencer le quiz'}
+                                                  </button>
+                                                </div>
+                                              </div>
+                                            )}
                                           </div>
                                         </>
                                       )}
                                     </div>
-                                    <div className="flex flex-col items-end gap-2 min-w-[140px]">
-                                      <span className="text-xs text-gray-500 flex items-center gap-1">
-                                        <Clock3 className="h-4 w-4" />
-                                        Suivi
-                                      </span>
-                                      <button
-                                        onClick={() => toggleCompletion(subpart.id, !subpart.completed)}
-                                        className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold border ${
-                                          subpart.completed
-                                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                                            : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
-                                        }`}
-                                      >
-                                        <CheckSquare className="h-4 w-4" />
-                                        {subpart.completed ? 'Terminé' : 'Marquer terminé'}
-                                      </button>
-                                    </div>
+                                    {isAccessible && (
+                                      <div className="flex flex-col items-end gap-2 min-w-[140px]">
+                                        <span className="text-xs text-gray-500 flex items-center gap-1">
+                                          <Clock3 className="h-4 w-4" />
+                                          Suivi
+                                        </span>
+                                        <button
+                                          onClick={() => toggleCompletion(subpart.id, !subpart.completed)}
+                                          className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold border-2 transition-all ${
+                                            subpart.completed
+                                              ? 'bg-emerald-50 text-emerald-700 border-emerald-300 hover:bg-emerald-100'
+                                              : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                                          }`}
+                                        >
+                                          <CheckSquare className="h-4 w-4" />
+                                          {subpart.completed ? 'Terminé' : 'Marquer terminé'}
+                                        </button>
+                                        {isAdmin && (
+                                          <button
+                                            onClick={() => setQuizManager({ subpartId: subpart.id, subpartTitle: subpart.title, quiz: subpart.quiz })}
+                                            className="w-full px-3 py-2 bg-blue-50 text-blue-700 border-2 border-blue-200 rounded-lg text-sm font-semibold hover:bg-blue-100 transition flex items-center justify-center gap-2"
+                                          >
+                                            <ClipboardCheck className="h-4 w-4" />
+                                            {subpart.quiz ? 'Modifier quiz' : 'Créer quiz'}
+                                          </button>
+                                        )}
+                                      </div>
+                                    )}
                                   </div>
                                 </div>
                               )
@@ -723,6 +911,29 @@ export default function CoursPage() {
             loadData()
           }}
           existingFormation={formationToEdit || undefined}
+        />
+      )}
+
+      {activeQuiz && profile && (
+        <QuizComponent
+          quiz={activeQuiz.quiz}
+          subpartId={activeQuiz.subpartId}
+          userId={profile.id}
+          onQuizPassed={handleQuizPassed}
+          onClose={() => setActiveQuiz(null)}
+        />
+      )}
+
+      {quizManager && (
+        <QuizManager
+          subpartId={quizManager.subpartId}
+          subpartTitle={quizManager.subpartTitle}
+          existingQuiz={quizManager.quiz}
+          onClose={() => setQuizManager(null)}
+          onSave={() => {
+            setQuizManager(null)
+            loadData()
+          }}
         />
       )}
     </AuthLayout>
