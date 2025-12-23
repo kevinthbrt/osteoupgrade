@@ -19,7 +19,7 @@ export default function OutilsPage() {
     {
       id: 'testing',
       title: 'Testing 3D',
-      description: 'Module 3D interactif pour explorer l'anatomie et réaliser les tests orthopédiques',
+      description: 'Module 3D interactif pour explorer l\'anatomie et réaliser les tests orthopédiques',
       icon: TestTube,
       href: '/testing',
       gradient: 'from-purple-500 to-indigo-600',
