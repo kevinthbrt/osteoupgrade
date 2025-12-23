@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { supabase } from '@/lib/supabase'
 import {
   CheckCircle2,
   XCircle,
@@ -49,12 +50,21 @@ export default function QuizComponent({ quiz, subpartId, userId, onQuizPassed, o
 
   const checkLastAttempt = async () => {
     try {
-      const response = await fetch(`/api/quiz/attempts?quiz_id=${quiz.id}&user_id=${userId}`)
-      const data = await response.json()
+      const { data: attempts, error } = await supabase
+        .from('elearning_quiz_attempts')
+        .select('*')
+        .eq('quiz_id', quiz.id)
+        .eq('user_id', userId)
+        .order('completed_at', { ascending: false })
+        .limit(1)
 
-      if (data.attempts && data.attempts.length > 0) {
-        const latest = data.attempts[0]
-        setLastAttempt(latest)
+      if (error) {
+        console.error('Error checking quiz attempts:', error)
+        return
+      }
+
+      if (attempts && attempts.length > 0) {
+        setLastAttempt(attempts[0] as QuizAttempt)
       }
     } catch (error) {
       console.error('Error checking quiz attempts:', error)
@@ -142,19 +152,23 @@ export default function QuizComponent({ quiz, subpartId, userId, onQuizPassed, o
 
     // Save attempt to database
     try {
-      await fetch('/api/quiz/attempts', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+      const { error } = await supabase
+        .from('elearning_quiz_attempts')
+        .insert({
           quiz_id: quiz.id,
           user_id: userId,
           score: finalScore,
           total_questions: totalQuestions,
           correct_answers: correctCount,
           passed,
-          answers_data: userAnswers
+          answers_data: userAnswers,
+          completed_at: new Date().toISOString()
         })
-      })
+
+      if (error) {
+        console.error('Error saving quiz attempt:', error)
+        return
+      }
 
       if (passed) {
         onQuizPassed()
