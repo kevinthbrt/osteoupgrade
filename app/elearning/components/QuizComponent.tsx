@@ -381,13 +381,14 @@ export default function QuizComponent({ quiz, subpartId, userId, onQuizPassed, o
               .sort((a, b) => a.order_index - b.order_index)
               .map((answer) => {
                 if (!answer.id) return null
-                const isSelected = isAnswerSelected(answer.id)
+                const answerId = answer.id // Store in variable for TypeScript
+                const isSelected = isAnswerSelected(answerId)
                 const status = getAnswerStatus(answer)
 
                 return (
                   <button
-                    key={answer.id}
-                    onClick={() => !showResults && handleAnswerSelection(answer.id)}
+                    key={answerId}
+                    onClick={() => !showResults && handleAnswerSelection(answerId)}
                     disabled={showResults}
                     className={`w-full text-left p-4 rounded-xl border-2 transition-all duration-200 ${
                       status === 'correct'
