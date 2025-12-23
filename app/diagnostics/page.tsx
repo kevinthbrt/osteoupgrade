@@ -45,6 +45,9 @@ type OrthopedicTest = {
   name: string
   description?: string | null
   category?: string | null
+  video_url?: string | null
+  sensitivity?: number | null
+  specificity?: number | null
 }
 
 type OrthopedicTestCluster = {
@@ -52,6 +55,11 @@ type OrthopedicTestCluster = {
   name: string
   description?: string | null
   region?: string | null
+  indications?: string | null
+  interest?: string | null
+  sources?: string | null
+  sensitivity?: number | null
+  specificity?: number | null
 }
 
 const REGIONS = [
@@ -84,6 +92,8 @@ export default function DiagnosticsPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [pathologies, setPathologies] = useState<Pathology[]>([])
   const [selectedItem, setSelectedItem] = useState<any>(null)
+  const [selectedTest, setSelectedTest] = useState<OrthopedicTest | null>(null)
+  const [selectedCluster, setSelectedCluster] = useState<OrthopedicTestCluster | null>(null)
 
   useEffect(() => {
     loadData()
@@ -125,12 +135,12 @@ export default function DiagnosticsPage() {
         const pathologyIds = pathologiesList.map((pathology) => pathology.id)
         const { data: testLinks } = await supabase
           .from('pathology_tests')
-          .select('pathology_id, test:orthopedic_tests(id, name, description, category)')
+          .select('pathology_id, test:orthopedic_tests(id, name, description, category, video_url, sensitivity, specificity)')
           .in('pathology_id', pathologyIds)
 
         const { data: clusterLinks } = await supabase
           .from('pathology_clusters')
-          .select('pathology_id, cluster:orthopedic_test_clusters(id, name, description, region)')
+          .select('pathology_id, cluster:orthopedic_test_clusters(id, name, description, region, indications, interest, sources, sensitivity, specificity)')
           .in('pathology_id', pathologyIds)
 
         const testsByPathology = (testLinks || []).reduce(
@@ -641,7 +651,15 @@ export default function DiagnosticsPage() {
                       {selectedItem.clusters.map((cluster: OrthopedicTestCluster) => (
                         <div
                           key={cluster.id}
-                          className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2"
+                          className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 hover:border-slate-300 hover:bg-slate-100 transition"
+                          role="button"
+                          tabIndex={0}
+                          onClick={() => setSelectedCluster(cluster)}
+                          onKeyDown={(event) => {
+                            if (event.key === 'Enter' || event.key === ' ') {
+                              setSelectedCluster(cluster)
+                            }
+                          }}
                         >
                           <div className="text-sm font-semibold text-slate-900">{cluster.name}</div>
                           {cluster.description && (
@@ -667,7 +685,15 @@ export default function DiagnosticsPage() {
                       {selectedItem.tests.map((test: OrthopedicTest) => (
                         <div
                           key={test.id}
-                          className="rounded-xl border border-slate-200 bg-white px-3 py-2"
+                          className="rounded-xl border border-slate-200 bg-white px-3 py-2 hover:border-slate-300 hover:bg-slate-50 transition"
+                          role="button"
+                          tabIndex={0}
+                          onClick={() => setSelectedTest(test)}
+                          onKeyDown={(event) => {
+                            if (event.key === 'Enter' || event.key === ' ') {
+                              setSelectedTest(test)
+                            }
+                          }}
                         >
                           <div className="text-sm font-semibold text-slate-900">{test.name}</div>
                           {test.description && (
@@ -708,6 +734,134 @@ export default function DiagnosticsPage() {
                         Supprimer
                       </button>
                     </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {selectedTest && (
+          <div
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] flex items-center justify-center p-4"
+            onClick={() => setSelectedTest(null)}
+          >
+            <div
+              className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="p-6 border-b border-slate-200 flex items-start justify-between">
+                <div>
+                  <h2 className="text-2xl font-bold text-slate-900">{selectedTest.name}</h2>
+                  {selectedTest.category && (
+                    <div className="text-sm text-slate-500">{selectedTest.category}</div>
+                  )}
+                </div>
+                <button
+                  onClick={() => setSelectedTest(null)}
+                  className="p-2 rounded-lg hover:bg-slate-100 transition-colors"
+                >
+                  <X className="h-5 w-5 text-slate-600" />
+                </button>
+              </div>
+              <div className="p-6 space-y-4">
+                {selectedTest.description && (
+                  <div>
+                    <h3 className="text-sm font-semibold text-slate-700 mb-2">Description</h3>
+                    <p className="text-slate-600 whitespace-pre-line">{selectedTest.description}</p>
+                  </div>
+                )}
+                {(selectedTest.sensitivity || selectedTest.specificity) && (
+                  <div className="flex flex-wrap gap-4 text-sm text-slate-600">
+                    {selectedTest.sensitivity && (
+                      <div>
+                        <span className="font-semibold text-slate-800">Sensibilité:</span>{' '}
+                        {selectedTest.sensitivity}%
+                      </div>
+                    )}
+                    {selectedTest.specificity && (
+                      <div>
+                        <span className="font-semibold text-slate-800">Spécificité:</span>{' '}
+                        {selectedTest.specificity}%
+                      </div>
+                    )}
+                  </div>
+                )}
+                {selectedTest.video_url && (
+                  <button
+                    onClick={() => window.open(selectedTest.video_url as string, '_blank')}
+                    className="w-full px-4 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold transition-colors"
+                  >
+                    Voir la vidéo du test
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {selectedCluster && (
+          <div
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] flex items-center justify-center p-4"
+            onClick={() => setSelectedCluster(null)}
+          >
+            <div
+              className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="p-6 border-b border-slate-200 flex items-start justify-between">
+                <div>
+                  <h2 className="text-2xl font-bold text-slate-900">{selectedCluster.name}</h2>
+                  {selectedCluster.region && (
+                    <div className="text-sm text-slate-500">{selectedCluster.region}</div>
+                  )}
+                </div>
+                <button
+                  onClick={() => setSelectedCluster(null)}
+                  className="p-2 rounded-lg hover:bg-slate-100 transition-colors"
+                >
+                  <X className="h-5 w-5 text-slate-600" />
+                </button>
+              </div>
+              <div className="p-6 space-y-4">
+                {selectedCluster.description && (
+                  <div>
+                    <h3 className="text-sm font-semibold text-slate-700 mb-2">Description</h3>
+                    <p className="text-slate-600 whitespace-pre-line">{selectedCluster.description}</p>
+                  </div>
+                )}
+                {selectedCluster.indications && (
+                  <div>
+                    <h3 className="text-sm font-semibold text-slate-700 mb-2">Indications</h3>
+                    <p className="text-slate-600 whitespace-pre-line">{selectedCluster.indications}</p>
+                  </div>
+                )}
+                {selectedCluster.interest && (
+                  <div>
+                    <h3 className="text-sm font-semibold text-slate-700 mb-2">Intérêt</h3>
+                    <p className="text-slate-600 whitespace-pre-line">{selectedCluster.interest}</p>
+                  </div>
+                )}
+                {selectedCluster.sources && (
+                  <div>
+                    <h3 className="text-sm font-semibold text-slate-700 mb-2">Sources</h3>
+                    <p className="text-slate-600 whitespace-pre-line">{selectedCluster.sources}</p>
+                  </div>
+                )}
+                {(selectedCluster.sensitivity || selectedCluster.specificity) && (
+                  <div className="flex flex-wrap gap-4 text-sm text-slate-600">
+                    {selectedCluster.sensitivity && (
+                      <div>
+                        <span className="font-semibold text-slate-800">Sensibilité:</span>{' '}
+                        {selectedCluster.sensitivity}%
+                      </div>
+                    )}
+                    {selectedCluster.specificity && (
+                      <div>
+                        <span className="font-semibold text-slate-800">Spécificité:</span>{' '}
+                        {selectedCluster.specificity}%
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
