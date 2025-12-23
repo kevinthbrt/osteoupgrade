@@ -68,6 +68,9 @@ export default function NewDiagnosticPage() {
     region: 'lombaire' as AnatomicalRegion,
     clinical_signs: '',
     image_url: '',
+    severity: '' as '' | 'low' | 'medium' | 'high',
+    is_red_flag: false,
+    red_flag_reason: '',
     is_active: true
   })
 
@@ -284,6 +287,9 @@ export default function NewDiagnosticPage() {
           region: formData.region,
           clinical_signs: formData.clinical_signs || null,
           image_url: imageUrl || null,
+          severity: formData.severity || null,
+          is_red_flag: formData.is_red_flag,
+          red_flag_reason: formData.red_flag_reason || null,
           is_active: formData.is_active,
           display_order: 0,
           created_by: user?.id
@@ -418,6 +424,54 @@ export default function NewDiagnosticPage() {
                       placeholder="Description clinique de la pathologie..."
                     />
                   </div>
+
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Gravité
+                      </label>
+                      <select
+                        value={formData.severity}
+                        onChange={(e) => setFormData({ ...formData, severity: e.target.value as 'low' | 'medium' | 'high' | '' })}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                      >
+                        <option value="">Non définie</option>
+                        <option value="low">🟢 Légère</option>
+                        <option value="medium">🟡 Modérée</option>
+                        <option value="high">🔴 Sévère</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Drapeau rouge
+                      </label>
+                      <label className="flex items-center gap-2 text-sm text-gray-700">
+                        <input
+                          type="checkbox"
+                          checked={formData.is_red_flag}
+                          onChange={(e) => setFormData({ ...formData, is_red_flag: e.target.checked })}
+                          className="h-4 w-4 text-red-600 border-gray-300 rounded"
+                        />
+                        Oui, c'est un drapeau rouge
+                      </label>
+                    </div>
+                  </div>
+
+                  {formData.is_red_flag && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Raison du drapeau rouge
+                      </label>
+                      <textarea
+                        value={formData.red_flag_reason}
+                        onChange={(e) => setFormData({ ...formData, red_flag_reason: e.target.value })}
+                        rows={3}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                        placeholder="Expliquez brièvement pourquoi cette pathologie est un drapeau rouge..."
+                      />
+                    </div>
+                  )}
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">

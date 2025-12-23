@@ -11,7 +11,6 @@ import {
   TrendingUp,
   TrendingDown,
   Plus,
-  Lock,
   Edit,
   Trash2,
   ChevronRight,
@@ -20,9 +19,12 @@ import {
   Activity,
   X,
   Layers,
-  FolderOpen
+  FolderOpen,
+  GraduationCap,
+  Stethoscope
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import RelatedContent, { RelatedItem } from '@/components/RelatedContent'
 
 // Catégories de régions anatomiques
 const BODY_REGIONS = {
@@ -104,12 +106,6 @@ export default function ImprovedTestsPage() {
         .single()
 
       setProfile(profileData)
-
-      if (profileData?.role !== 'admin') {
-        router.push('/testing')
-        setLoading(false)
-        return
-      }
 
       // Tous les tests
       const { data: testsData } = await supabase
@@ -417,29 +413,6 @@ export default function ImprovedTestsPage() {
     )
   }
 
-  if (profile && profile.role !== 'admin') {
-    return (
-      <AuthLayout>
-        <div className="max-w-3xl mx-auto bg-white rounded-xl shadow-sm p-8 text-center space-y-4">
-          <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-amber-100 text-amber-700 mx-auto">
-            <Lock className="h-6 w-6" />
-          </div>
-          <h1 className="text-2xl font-bold text-gray-900">Accès administrateur requis</h1>
-          <p className="text-gray-600">
-            La création et la gestion des tests orthopédiques sont réservées aux administrateurs. Utilisez le module Testing
-            3D pour réaliser vos évaluations.
-          </p>
-          <button
-            onClick={() => router.push('/testing')}
-            className="bg-primary-600 hover:bg-primary-700 text-white px-5 py-3 rounded-lg font-semibold transition"
-          >
-            Accéder au Testing 3D
-          </button>
-        </div>
-      </AuthLayout>
-    )
-  }
-
   // Regroupement par grandes catégories
   const categories = Object.keys(BODY_REGIONS).map((category) => {
     const subRegions = BODY_REGIONS[category as keyof typeof BODY_REGIONS]
@@ -459,13 +432,13 @@ export default function ImprovedTestsPage() {
             <div>
               <h1 className="text-2xl font-bold text-gray-900">Tests orthopédiques</h1>
               <p className="mt-1 text-gray-600">
-                Base de données complète organisée par région anatomique
+                Tests et clusters organisés par grandes régions anatomiques
               </p>
             </div>
             {profile?.role === 'admin' && (
               <div className="flex gap-2">
                 <button
-                  onClick={() => router.push('/admin/diagnostics')}
+                  onClick={() => router.push('/diagnostics')}
                   className="bg-purple-100 hover:bg-purple-200 text-purple-700 px-4 py-2 rounded-lg font-medium transition-colors flex items-center space-x-2"
                   title="Gérer les diagnostics (dossiers avec tests)"
                 >
@@ -944,6 +917,42 @@ export default function ImprovedTestsPage() {
             })}
           </div>
         )}
+
+        {/* Related Modules */}
+        <div className="bg-white rounded-xl shadow-sm p-6">
+          <RelatedContent
+            title="📚 Explorer aussi"
+            items={[
+              {
+                id: 'diagnostics',
+                title: 'Diagnostics & Pathologies',
+                description: 'Pathologies par région avec photos, signes cliniques et red flags',
+                module: 'Référence Clinique',
+                href: '/diagnostics',
+                gradient: 'from-rose-500 to-pink-600',
+                icon: Stethoscope
+              },
+              {
+                id: 'topographie',
+                title: 'Topographie',
+                description: 'Guides topographiques pour structurer votre raisonnement clinique',
+                module: 'Référence Clinique',
+                href: '/topographie',
+                gradient: 'from-sky-500 to-blue-600',
+                icon: User
+              },
+              {
+                id: 'elearning',
+                title: 'Retour à E-Learning',
+                description: 'Voir tous les modules de contenu théorique',
+                module: 'Hub',
+                href: '/elearning',
+                gradient: 'from-blue-500 to-cyan-600',
+                icon: GraduationCap
+              }
+            ]}
+          />
+        </div>
       </div>
 
       {/* Modal création CLUSTER */}
