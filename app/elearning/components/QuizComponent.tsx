@@ -461,9 +461,9 @@ export default function QuizComponent({ quiz, subpartId, userId, onQuizPassed, o
             </button>
 
             <div className="flex gap-2">
-              {currentQuestion.explanation && (
+              {currentQuestion.explanation && currentQuestion.id && (
                 <button
-                  onClick={() => setShowExplanation(showExplanation ? null : currentQuestion.id)}
+                  onClick={() => setShowExplanation(showExplanation ? null : currentQuestion.id!)}
                   className="px-4 py-2 rounded-lg font-medium text-blue-600 hover:bg-blue-50 transition"
                 >
                   {showExplanation ? 'Masquer' : 'Voir'} l'explication
