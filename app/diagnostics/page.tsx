@@ -134,20 +134,34 @@ export default function DiagnosticsPage() {
           .in('pathology_id', pathologyIds)
 
         const testsByPathology = (testLinks || []).reduce(
-          (acc, link: { pathology_id: string; test: OrthopedicTest | null }) => {
-            if (!link.test) return acc
+          (
+            acc,
+            link: {
+              pathology_id: string
+              test: OrthopedicTest | OrthopedicTest[] | null
+            }
+          ) => {
+            const test = Array.isArray(link.test) ? link.test[0] : link.test
+            if (!test) return acc
             acc[link.pathology_id] = acc[link.pathology_id] || []
-            acc[link.pathology_id].push(link.test)
+            acc[link.pathology_id].push(test)
             return acc
           },
           {} as Record<string, OrthopedicTest[]>
         )
 
         const clustersByPathology = (clusterLinks || []).reduce(
-          (acc, link: { pathology_id: string; cluster: OrthopedicTestCluster | null }) => {
-            if (!link.cluster) return acc
+          (
+            acc,
+            link: {
+              pathology_id: string
+              cluster: OrthopedicTestCluster | OrthopedicTestCluster[] | null
+            }
+          ) => {
+            const cluster = Array.isArray(link.cluster) ? link.cluster[0] : link.cluster
+            if (!cluster) return acc
             acc[link.pathology_id] = acc[link.pathology_id] || []
-            acc[link.pathology_id].push(link.cluster)
+            acc[link.pathology_id].push(cluster)
             return acc
           },
           {} as Record<string, OrthopedicTestCluster[]>
