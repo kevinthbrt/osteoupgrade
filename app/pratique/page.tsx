@@ -18,8 +18,11 @@ import {
   Video,
   X,
   Maximize2,
-  LayoutGrid
+  LayoutGrid,
+  Filter,
+  Tag
 } from 'lucide-react'
+import CategoryManager, { PracticeCategory } from './CategoryManager'
 
 const regions = [
   { value: 'cervical', label: 'Cervicales' },
@@ -40,6 +43,7 @@ type Profile = { id: string; role: string; full_name?: string }
 type PracticeVideo = {
   id: string
   region: string
+  category_id?: string | null
   topographic_zone_id?: string | null
   title: string
   description?: string | null
@@ -163,15 +167,19 @@ export default function PracticePage() {
   const router = useRouter()
   const [profile, setProfile] = useState<Profile | null>(null)
   const [videos, setVideos] = useState<PracticeVideo[]>([])
+  const [categories, setCategories] = useState<PracticeCategory[]>([])
   const [selectedRegion, setSelectedRegion] = useState<string>('cervical')
+  const [selectedCategory, setSelectedCategory] = useState<string>('all')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [viewMode, setViewMode] = useState<'grid' | 'scroll'>('grid')
   const [currentVideoIndex, setCurrentVideoIndex] = useState(0)
   const [editingVideo, setEditingVideo] = useState<PracticeVideo | null>(null)
+  const [showCategoryManager, setShowCategoryManager] = useState(false)
   const [form, setForm] = useState({
     title: '',
     region: 'cervical',
+    category_id: '',
     vimeo_url: '',
     vimeo_id: '',
     thumbnail_url: '',
@@ -200,7 +208,7 @@ export default function PracticePage() {
         setProfile(profileData as Profile)
 
         if (isPremium(profileData?.role) || isAdmin(profileData?.role)) {
-          await fetchVideos()
+          await Promise.all([fetchVideos(), fetchCategories()])
         }
       } catch (error) {
         console.error('Impossible de charger les données Pratique', error)
@@ -228,6 +236,28 @@ export default function PracticePage() {
     setVideos((data || []) as PracticeVideo[])
   }
 
+  const fetchCategories = async () => {
+    const query = supabase
+      .from('practice_categories')
+      .select('*')
+      .order('order_index', { ascending: true })
+
+    // Admins can see all categories, users only active ones
+    if (!isAdmin(profile?.role)) {
+      query.eq('is_active', true)
+    }
+
+    const { data, error } = await query
+
+    if (error) {
+      console.error('Erreur de chargement des catégories', error)
+      setCategories([])
+      return
+    }
+
+    setCategories((data || []) as PracticeCategory[])
+  }
+
   const trackVideoView = async (videoId: string) => {
     try {
       const { data: { user } } = await supabase.auth.getUser()
@@ -252,6 +282,7 @@ export default function PracticePage() {
     setForm({
       title: '',
       region: selectedRegion,
+      category_id: '',
       vimeo_url: '',
       vimeo_id: '',
       thumbnail_url: '',
@@ -266,6 +297,7 @@ export default function PracticePage() {
     setForm({
       title: video.title,
       region: video.region,
+      category_id: video.category_id || '',
       vimeo_url: video.vimeo_url || '',
       vimeo_id: video.vimeo_id || '',
       thumbnail_url: video.thumbnail_url || '',
@@ -286,6 +318,7 @@ export default function PracticePage() {
           .update({
             title: form.title,
             region: form.region,
+            category_id: form.category_id || null,
             vimeo_url: form.vimeo_url || null,
             vimeo_id: form.vimeo_id || null,
             thumbnail_url: form.thumbnail_url || null,
@@ -300,6 +333,7 @@ export default function PracticePage() {
         const { error } = await supabase.from('practice_videos').insert({
           title: form.title,
           region: form.region,
+          category_id: form.category_id || null,
           vimeo_url: form.vimeo_url || null,
           vimeo_id: form.vimeo_id || null,
           thumbnail_url: form.thumbnail_url || null,
@@ -321,10 +355,16 @@ export default function PracticePage() {
   }
 
   const visibleVideos = useMemo(() => {
-    const filtered = videos.filter((video) => video.region === selectedRegion)
+    let filtered = videos.filter((video) => video.region === selectedRegion)
+
+    // Filter by category if one is selected
+    if (selectedCategory !== 'all') {
+      filtered = filtered.filter((video) => video.category_id === selectedCategory)
+    }
+
     if (isAdmin(profile?.role)) return filtered
     return filtered.filter((video) => video.is_active)
-  }, [videos, selectedRegion, profile?.role])
+  }, [videos, selectedRegion, selectedCategory, profile?.role])
 
   const scrollToVideo = (index: number) => {
     if (scrollContainerRef.current) {
@@ -577,6 +617,28 @@ export default function PracticePage() {
                   </select>
                 </div>
 
+                {categories.length > 0 && (
+                  <div className="flex items-center gap-2">
+                    <Filter className="h-4 w-4 text-slate-300" />
+                    <span className="text-sm text-slate-300">Catégorie :</span>
+                    <select
+                      value={selectedCategory}
+                      onChange={(e) => {
+                        setSelectedCategory(e.target.value)
+                        setCurrentVideoIndex(0)
+                      }}
+                      className="rounded-lg border border-white/20 bg-white/10 backdrop-blur-sm px-4 py-2 text-white shadow-sm"
+                    >
+                      <option value="all" className="text-gray-900">Toutes les catégories</option>
+                      {categories.map((category) => (
+                        <option key={category.id} value={category.id} className="text-gray-900">
+                          {category.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
                 <div className="flex items-center gap-2">
                   <span className="text-sm text-slate-300">Affichage :</span>
                   <div className="flex gap-2 bg-white/10 backdrop-blur-sm rounded-lg p-1 border border-white/20">
@@ -608,13 +670,31 @@ export default function PracticePage() {
         </div>
 
         {isAdmin(profile?.role) && (
-          <div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-6 space-y-4">
-            <div className="flex items-center gap-2">
-              <Edit className="h-5 w-5 text-pink-600" />
-              <h2 className="text-xl font-semibold text-gray-900">
-                {editingVideo ? 'Modifier une vidéo' : 'Ajouter une vidéo'}
-              </h2>
+          <>
+            {/* Category Manager */}
+            <div className="mb-6">
+              <div className="flex items-center justify-between mb-4">
+                <button
+                  onClick={() => setShowCategoryManager(!showCategoryManager)}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-pink-600 to-rose-600 text-white hover:from-pink-700 hover:to-rose-700 transition shadow-lg"
+                >
+                  <Tag className="h-5 w-5" />
+                  {showCategoryManager ? 'Masquer' : 'Gérer'} les catégories
+                </button>
+              </div>
+              {showCategoryManager && (
+                <CategoryManager onCategoryChange={fetchCategories} />
+              )}
             </div>
+
+            {/* Video Form */}
+            <div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-6 space-y-4">
+              <div className="flex items-center gap-2">
+                <Edit className="h-5 w-5 text-pink-600" />
+                <h2 className="text-xl font-semibold text-gray-900">
+                  {editingVideo ? 'Modifier une vidéo' : 'Ajouter une vidéo'}
+                </h2>
+              </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <label className="text-sm font-medium text-gray-700">Titre</label>
@@ -635,6 +715,21 @@ export default function PracticePage() {
                   {regions.map((region) => (
                     <option key={region.value} value={region.value}>
                       {region.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-700">Catégorie (optionnelle)</label>
+                <select
+                  value={form.category_id}
+                  onChange={(e) => setForm((prev) => ({ ...prev, category_id: e.target.value }))}
+                  className="w-full rounded-lg border border-gray-200 px-4 py-2 bg-white"
+                >
+                  <option value="">Aucune catégorie</option>
+                  {categories.map((category) => (
+                    <option key={category.id} value={category.id}>
+                      {category.name}
                     </option>
                   ))}
                 </select>
@@ -718,6 +813,7 @@ export default function PracticePage() {
               </button>
             </div>
           </div>
+          </>
         )}
 
         <div className="grid gap-5 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">

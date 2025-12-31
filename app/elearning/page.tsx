@@ -4,7 +4,6 @@ import { useRouter } from 'next/navigation'
 import AuthLayout from '@/components/AuthLayout'
 import {
   BookOpen,
-  FileQuestion,
   Target,
   TestTube as TestTubeIcon,
   Stethoscope,
@@ -27,16 +26,6 @@ export default function ElearningHubPage() {
       href: '/elearning/cours',
       gradient: 'from-blue-500 to-cyan-600',
       count: '50+ cours',
-      category: 'Apprentissage'
-    },
-    {
-      id: 'quizzes',
-      title: 'Quiz',
-      description: 'Testez vos connaissances avec des quiz interactifs et obtenez un feedback instantané',
-      icon: FileQuestion,
-      href: '/encyclopedia/learning/quizzes',
-      gradient: 'from-purple-500 to-indigo-600',
-      count: 'Nouveauté',
       category: 'Apprentissage'
     },
     {
@@ -116,7 +105,7 @@ export default function ElearningHubPage() {
               </h1>
 
               <p className="text-base md:text-lg text-slate-300 mb-6 max-w-2xl">
-                Accédez à tout le contenu théorique et clinique : cours, quiz, cas pratiques, tests orthopédiques, diagnostics et guides topographiques.
+                Accédez à tout le contenu théorique et clinique : cours, cas pratiques, tests orthopédiques, diagnostics et guides topographiques.
               </p>
 
               <div className="grid grid-cols-3 gap-4 max-w-lg">
@@ -125,7 +114,7 @@ export default function ElearningHubPage() {
                   <div className="text-xs text-slate-300">Contenus</div>
                 </div>
                 <div className="bg-white/10 backdrop-blur-sm rounded-xl p-3 border border-white/20">
-                  <div className="text-2xl font-bold text-white">7</div>
+                  <div className="text-2xl font-bold text-white">6</div>
                   <div className="text-xs text-slate-300">Modules</div>
                 </div>
                 <div className="bg-white/10 backdrop-blur-sm rounded-xl p-3 border border-white/20">
@@ -245,7 +234,7 @@ export default function ElearningHubPage() {
             <div className="bg-white rounded-lg p-4">
               <div className="text-2xl mb-2">2️⃣</div>
               <h4 className="font-semibold text-slate-900 mb-1">Testez-vous</h4>
-              <p className="text-sm text-slate-600">Validez vos connaissances avec les quiz</p>
+              <p className="text-sm text-slate-600">Validez vos connaissances avec les quiz intégrés aux cours</p>
             </div>
             <div className="bg-white rounded-lg p-4">
               <div className="text-2xl mb-2">3️⃣</div>
