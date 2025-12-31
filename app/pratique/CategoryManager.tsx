@@ -10,8 +10,54 @@ import {
   X,
   Loader2,
   Tag,
-  AlertCircle
+  AlertCircle,
+  Zap,
+  Move,
+  Hand,
+  Dumbbell,
+  ScanFace,
+  Maximize2,
+  HeartPulse,
+  Brain,
+  Sticker,
+  MoreHorizontal,
+  Flame,
+  Target,
+  Activity,
+  Wind,
+  Waves,
+  Sparkles,
+  CircleDot,
+  Users,
+  Boxes,
+  Sliders,
+  Crosshair
 } from 'lucide-react'
+
+// Liste des icônes disponibles pour les catégories
+const AVAILABLE_ICONS = [
+  { name: 'Zap', component: Zap, label: 'Éclair' },
+  { name: 'Move', component: Move, label: 'Mouvement' },
+  { name: 'Hand', component: Hand, label: 'Main' },
+  { name: 'Dumbbell', component: Dumbbell, label: 'Force' },
+  { name: 'ScanFace', component: ScanFace, label: 'Scan' },
+  { name: 'Maximize2', component: Maximize2, label: 'Extension' },
+  { name: 'HeartPulse', component: HeartPulse, label: 'Pouls' },
+  { name: 'Brain', component: Brain, label: 'Cerveau' },
+  { name: 'Sticker', component: Sticker, label: 'Sticker' },
+  { name: 'MoreHorizontal', component: MoreHorizontal, label: 'Autre' },
+  { name: 'Flame', component: Flame, label: 'Flamme' },
+  { name: 'Target', component: Target, label: 'Cible' },
+  { name: 'Activity', component: Activity, label: 'Activité' },
+  { name: 'Wind', component: Wind, label: 'Vent' },
+  { name: 'Waves', component: Waves, label: 'Vagues' },
+  { name: 'Sparkles', component: Sparkles, label: 'Étincelles' },
+  { name: 'CircleDot', component: CircleDot, label: 'Point' },
+  { name: 'Users', component: Users, label: 'Utilisateurs' },
+  { name: 'Boxes', component: Boxes, label: 'Boîtes' },
+  { name: 'Sliders', component: Sliders, label: 'Contrôles' },
+  { name: 'Crosshair', component: Crosshair, label: 'Viseur' }
+]
 
 export type PracticeCategory = {
   id: string
@@ -28,6 +74,62 @@ export type PracticeCategory = {
 
 type CategoryManagerProps = {
   onCategoryChange?: () => void
+}
+
+type IconSelectorProps = {
+  selectedIcon: string
+  onSelectIcon: (iconName: string) => void
+  currentColor: string
+}
+
+const IconSelector = ({ selectedIcon, onSelectIcon, currentColor }: IconSelectorProps) => {
+  return (
+    <div className="space-y-3">
+      <label className="text-sm font-medium text-gray-700">Icône</label>
+      <div className="grid grid-cols-7 gap-2 p-4 bg-gray-50 rounded-lg border border-gray-200 max-h-64 overflow-y-auto">
+        {AVAILABLE_ICONS.map((icon) => {
+          const IconComponent = icon.component
+          const isSelected = selectedIcon === icon.name
+
+          return (
+            <button
+              key={icon.name}
+              type="button"
+              onClick={() => onSelectIcon(icon.name)}
+              className={`group relative p-3 rounded-lg border-2 transition-all hover:scale-110 ${
+                isSelected
+                  ? 'border-pink-500 bg-pink-50 shadow-lg'
+                  : 'border-gray-200 bg-white hover:border-pink-300 hover:bg-pink-50'
+              }`}
+              title={icon.label}
+            >
+              <IconComponent
+                className="h-6 w-6 mx-auto"
+                style={{
+                  color: isSelected ? currentColor : '#6b7280'
+                }}
+              />
+              {isSelected && (
+                <div className="absolute -top-1 -right-1 w-4 h-4 bg-pink-500 rounded-full flex items-center justify-center">
+                  <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                  </svg>
+                </div>
+              )}
+              <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+                {icon.label}
+              </span>
+            </button>
+          )
+        })}
+      </div>
+      {selectedIcon && (
+        <p className="text-xs text-gray-500 flex items-center gap-2">
+          Icône sélectionnée : <span className="font-semibold">{selectedIcon}</span>
+        </p>
+      )}
+    </div>
+  )
 }
 
 export default function CategoryManager({ onCategoryChange }: CategoryManagerProps) {
@@ -261,16 +363,6 @@ export default function CategoryManager({ onCategoryChange }: CategoryManagerPro
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-700">Icône (Lucide)</label>
-              <input
-                value={form.icon}
-                onChange={(e) => setForm((prev) => ({ ...prev, icon: e.target.value }))}
-                className="w-full rounded-lg border border-gray-200 px-4 py-2 focus:ring-2 focus:ring-pink-200"
-                placeholder="Zap, Move, Hand, etc."
-              />
-            </div>
-
-            <div className="space-y-2">
               <label className="text-sm font-medium text-gray-700">Ordre</label>
               <input
                 type="number"
@@ -293,6 +385,13 @@ export default function CategoryManager({ onCategoryChange }: CategoryManagerPro
               </label>
             </div>
           </div>
+
+          {/* Icon Selector - Full width */}
+          <IconSelector
+            selectedIcon={form.icon}
+            onSelectIcon={(iconName) => setForm((prev) => ({ ...prev, icon: iconName }))}
+            currentColor={form.color}
+          />
 
           <div className="space-y-2">
             <label className="text-sm font-medium text-gray-700">Description</label>
@@ -333,25 +432,32 @@ export default function CategoryManager({ onCategoryChange }: CategoryManagerPro
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {categories.map((category) => (
-            <div
-              key={category.id}
-              className="group relative bg-gradient-to-br from-white to-gray-50 border-2 border-gray-200 rounded-xl p-4 hover:shadow-lg transition"
-              style={{ borderColor: category.is_active ? category.color + '40' : '#e5e7eb' }}
-            >
-              <div className="flex items-start justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <div
-                    className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold"
-                    style={{ backgroundColor: category.color }}
-                  >
-                    {category.icon || category.name.charAt(0)}
+          {categories.map((category) => {
+            const IconComponent = AVAILABLE_ICONS.find(icon => icon.name === category.icon)?.component
+
+            return (
+              <div
+                key={category.id}
+                className="group relative bg-gradient-to-br from-white to-gray-50 border-2 border-gray-200 rounded-xl p-4 hover:shadow-lg transition"
+                style={{ borderColor: category.is_active ? category.color + '40' : '#e5e7eb' }}
+              >
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <div
+                      className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold"
+                      style={{ backgroundColor: category.color }}
+                    >
+                      {IconComponent ? (
+                        <IconComponent className="h-5 w-5" />
+                      ) : (
+                        category.name.charAt(0)
+                      )}
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-gray-900">{category.name}</h3>
+                      <p className="text-xs text-gray-500">{category.slug}</p>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="font-semibold text-gray-900">{category.name}</h3>
-                    <p className="text-xs text-gray-500">{category.slug}</p>
-                  </div>
-                </div>
                 <button
                   onClick={() => handleToggleActive(category)}
                   className={`px-2 py-1 rounded text-xs font-semibold ${
@@ -390,7 +496,8 @@ export default function CategoryManager({ onCategoryChange }: CategoryManagerPro
                 #{category.order_index}
               </div>
             </div>
-          ))}
+            )
+          })}
         </div>
       )}
     </div>
