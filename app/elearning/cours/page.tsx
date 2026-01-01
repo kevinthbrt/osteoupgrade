@@ -899,7 +899,6 @@ export default function CoursPage() {
               </div>
             </div>
           )}
-
         </div>
       </div>
 
