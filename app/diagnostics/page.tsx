@@ -108,7 +108,7 @@ export default function DiagnosticsPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(true)
   const [profile, setProfile] = useState<any>(null)
-  const [selectedRegion, setSelectedRegion] = useState('all')
+  const [selectedRegion, setSelectedRegion] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [pathologies, setPathologies] = useState<Pathology[]>([])
   const [selectedItem, setSelectedItem] = useState<any>(null)
@@ -136,17 +136,21 @@ export default function DiagnosticsPage() {
 
       setProfile(profileData)
 
+      // Ne charger les pathologies que si une région est sélectionnée
+      if (!selectedRegion) {
+        setPathologies([])
+        setLoading(false)
+        return
+      }
+
       // Load pathologies
       let pathologiesQuery = supabase
         .from('pathologies')
         .select('*')
+        .eq('region', selectedRegion)
 
       if (profileData?.role !== 'admin') {
         pathologiesQuery = pathologiesQuery.eq('is_active', true)
-      }
-
-      if (selectedRegion !== 'all') {
-        pathologiesQuery = pathologiesQuery.eq('region', selectedRegion)
       }
 
       const { data: pathologiesData } = await pathologiesQuery
@@ -382,49 +386,72 @@ export default function DiagnosticsPage() {
           </div>
         </div>
 
-        {/* Filters & Search */}
-        <div className="bg-white rounded-2xl shadow-sm p-6 mb-6">
-          <div className="flex flex-col md:flex-row gap-4">
-            {/* Search */}
-            <div className="flex-1 relative">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Rechercher une pathologie..."
-                className="w-full pl-12 pr-4 py-3 border-2 border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-rose-400 focus:border-transparent"
-              />
-            </div>
+        {/* Breadcrumb et recherche */}
+        {selectedRegion && (
+          <div className="bg-white rounded-2xl shadow-sm p-6 mb-6">
+            <div className="flex flex-col md:flex-row gap-4">
+              {/* Bouton retour */}
+              <button
+                onClick={() => {
+                  setSelectedRegion(null)
+                  setSearchQuery('')
+                }}
+                className="text-rose-600 hover:text-rose-700 flex items-center gap-2 text-sm font-medium"
+              >
+                ← Retour aux régions
+              </button>
 
-            {/* Region Filter */}
-            <div className="flex gap-2 overflow-x-auto pb-2">
-              {REGIONS.map((region) => {
+              {/* Search */}
+              <div className="flex-1 relative">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Rechercher une pathologie..."
+                  className="w-full pl-12 pr-4 py-3 border-2 border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-rose-400 focus:border-transparent"
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Grille des régions (quand aucune région sélectionnée) */}
+        {!selectedRegion ? (
+          <div>
+            <h2 className="text-2xl font-bold text-slate-900 mb-6">Sélectionnez une région</h2>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              {REGIONS.filter(r => r.value !== 'all').map((region) => {
                 const Icon = region.icon
-                const isSelected = selectedRegion === region.value
+                const colorClasses = {
+                  slate: 'from-slate-500 to-slate-600 hover:from-slate-600 hover:to-slate-700',
+                  purple: 'from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700',
+                  rose: 'from-rose-500 to-rose-600 hover:from-rose-600 hover:to-rose-700',
+                  blue: 'from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700',
+                  emerald: 'from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700',
+                  amber: 'from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700'
+                }
 
                 return (
                   <button
                     key={region.value}
                     onClick={() => setSelectedRegion(region.value)}
-                    className={`flex items-center gap-2 px-4 py-3 rounded-xl font-medium whitespace-nowrap transition-all ${
-                      isSelected
-                        ? `bg-${region.color}-100 text-${region.color}-700 border-2 border-${region.color}-300`
-                        : 'bg-slate-50 text-slate-600 border-2 border-transparent hover:bg-slate-100'
-                    }`}
+                    className={`group relative overflow-hidden rounded-2xl bg-gradient-to-br ${colorClasses[region.color as keyof typeof colorClasses] || colorClasses.slate} text-white p-6 shadow-lg transition-all duration-300 hover:shadow-2xl hover:scale-105`}
                   >
-                    <Icon className="h-4 w-4" />
-                    {region.label}
+                    <div className="relative z-10">
+                      <Icon className="h-12 w-12 mb-3 opacity-90" />
+                      <h3 className="text-lg font-bold">{region.label}</h3>
+                    </div>
+                    <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity" />
                   </button>
                 )
               })}
             </div>
           </div>
-        </div>
-
-        {/* Results Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredItems.map((item: any) => {
+        ) : (
+          /* Grille des pathologies (quand une région est sélectionnée) */
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredItems.map((item: any) => {
             // Extraire les bullet points des signes cliniques
             const clinicalSignsList = item.clinical_signs
               ? item.clinical_signs
@@ -439,12 +466,12 @@ export default function DiagnosticsPage() {
                 onClick={() => setSelectedItem(item)}
                 className="group relative overflow-hidden rounded-2xl bg-white border-2 border-slate-200 hover:border-rose-300 shadow-sm hover:shadow-xl transition-all duration-300 text-left"
               >
-                {/* Titre en haut */}
-                <div className="p-5 pb-0">
-                  <h3 className="text-lg font-bold text-slate-900 mb-3 group-hover:text-rose-700 transition-colors">
+                {/* Titre en haut - hauteur fixe pour alignement */}
+                <div className="p-5 pb-0 min-h-[120px] flex flex-col">
+                  <h3 className="text-lg font-bold text-slate-900 mb-3 group-hover:text-rose-700 transition-colors line-clamp-2">
                     {item.name}
                   </h3>
-                  <div className="flex items-center gap-2 flex-wrap mb-3">
+                  <div className="flex items-center gap-2 flex-wrap mt-auto">
                     <span className="px-2 py-1 rounded-lg text-xs font-semibold bg-blue-100 text-blue-700">
                       {item.region || 'Non classé'}
                     </span>
@@ -587,19 +614,20 @@ export default function DiagnosticsPage() {
               </button>
             )
           })}
-        </div>
 
-        {filteredItems.length === 0 && (
-          <div className="text-center py-12 bg-white rounded-2xl shadow-sm">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-slate-100 mb-4">
-              <Search className="h-8 w-8 text-slate-400" />
-            </div>
-            <h3 className="text-lg font-semibold text-slate-900 mb-2">
-              Aucun résultat trouvé
-            </h3>
-            <p className="text-slate-600">
-              Essayez de modifier vos filtres ou votre recherche
-            </p>
+            {filteredItems.length === 0 && (
+              <div className="col-span-full text-center py-12 bg-white rounded-2xl shadow-sm">
+                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-slate-100 mb-4">
+                  <Search className="h-8 w-8 text-slate-400" />
+                </div>
+                <h3 className="text-lg font-semibold text-slate-900 mb-2">
+                  Aucun résultat trouvé
+                </h3>
+                <p className="text-slate-600">
+                  Essayez de modifier votre recherche
+                </p>
+              </div>
+            )}
           </div>
         )}
 
