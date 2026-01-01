@@ -95,9 +95,9 @@ export default function AuthPage() {
                 <Image
                   src="/logo.svg"
                   alt="OsteoUpgrade Logo"
-                  width={48}
-                  height={48}
-                  className="h-12 w-12"
+                  width={96}
+                  height={96}
+                  className="h-24 w-24"
                 />
               </div>
             </div>
