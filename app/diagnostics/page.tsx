@@ -82,26 +82,55 @@ const getVideoEmbedUrl = (url: string) => {
   return url
 }
 
-const REGIONS = [
-  { value: 'all', label: 'Toutes', icon: Activity, color: 'slate' },
-  { value: 'atm', label: 'ATM', icon: Activity, color: 'slate' },
-  { value: 'cervical', label: 'Cervical', icon: Brain, color: 'purple' },
-  { value: 'crane', label: 'Crâne', icon: Brain, color: 'purple' },
-  { value: 'thoracique', label: 'Thoracique', icon: Heart, color: 'rose' },
-  { value: 'epaule', label: 'Épaule', icon: Bone, color: 'blue' },
-  { value: 'coude', label: 'Coude', icon: Bone, color: 'blue' },
-  { value: 'poignet', label: 'Poignet', icon: Bone, color: 'blue' },
-  { value: 'main', label: 'Main', icon: Bone, color: 'blue' },
-  { value: 'cotes', label: 'Côtes', icon: Bone, color: 'blue' },
-  { value: 'hanche', label: 'Hanche', icon: Heart, color: 'rose' },
-  { value: 'lombaire', label: 'Lombaire', icon: Heart, color: 'rose' },
-  { value: 'sacro-iliaque', label: 'Sacro-iliaque', icon: Heart, color: 'rose' },
-  { value: 'genou', label: 'Genou', icon: Zap, color: 'emerald' },
-  { value: 'cheville', label: 'Cheville', icon: Eye, color: 'amber' },
-  { value: 'pied', label: 'Pied', icon: Eye, color: 'amber' },
-  { value: 'neurologique', label: 'Neurologique', icon: Brain, color: 'purple' },
-  { value: 'vasculaire', label: 'Vasculaire', icon: Heart, color: 'rose' },
-  { value: 'systemique', label: 'Systémique', icon: Activity, color: 'slate' }
+const REGION_CATEGORIES = [
+  {
+    name: 'Tête et Cou',
+    icon: Brain,
+    regions: [
+      { value: 'cervical', label: 'Cervical' },
+      { value: 'atm', label: 'ATM' },
+      { value: 'crane', label: 'Crâne' }
+    ]
+  },
+  {
+    name: 'Membre Supérieur',
+    icon: Bone,
+    regions: [
+      { value: 'epaule', label: 'Épaule' },
+      { value: 'coude', label: 'Coude' },
+      { value: 'poignet', label: 'Poignet' },
+      { value: 'main', label: 'Main' }
+    ]
+  },
+  {
+    name: 'Tronc',
+    icon: Heart,
+    regions: [
+      { value: 'thoracique', label: 'Thoracique' },
+      { value: 'lombaire', label: 'Lombaire' },
+      { value: 'sacro-iliaque', label: 'Sacro-iliaque' },
+      { value: 'cotes', label: 'Côtes' }
+    ]
+  },
+  {
+    name: 'Membre Inférieur',
+    icon: Zap,
+    regions: [
+      { value: 'hanche', label: 'Hanche' },
+      { value: 'genou', label: 'Genou' },
+      { value: 'cheville', label: 'Cheville' },
+      { value: 'pied', label: 'Pied' }
+    ]
+  },
+  {
+    name: 'Général',
+    icon: Activity,
+    regions: [
+      { value: 'neurologique', label: 'Neurologique' },
+      { value: 'vasculaire', label: 'Vasculaire' },
+      { value: 'systemique', label: 'Systémique' }
+    ]
+  }
 ]
 
 export default function DiagnosticsPage() {
@@ -418,32 +447,31 @@ export default function DiagnosticsPage() {
 
         {/* Grille des régions (quand aucune région sélectionnée) */}
         {!selectedRegion ? (
-          <div>
-            <h2 className="text-2xl font-bold text-slate-900 mb-6">Sélectionnez une région</h2>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {REGIONS.filter(r => r.value !== 'all').map((region) => {
-                const Icon = region.icon
-                const colorClasses = {
-                  slate: 'from-slate-500 to-slate-600 hover:from-slate-600 hover:to-slate-700',
-                  purple: 'from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700',
-                  rose: 'from-rose-500 to-rose-600 hover:from-rose-600 hover:to-rose-700',
-                  blue: 'from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700',
-                  emerald: 'from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700',
-                  amber: 'from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700'
-                }
+          <div className="bg-white rounded-2xl shadow-sm p-8">
+            <h2 className="text-2xl font-bold text-slate-900 mb-6">Sélectionnez une zone anatomique</h2>
+            <p className="text-slate-600 mb-8">Cliquez sur une région pour afficher les diagnostics associés</p>
 
+            <div className="space-y-8">
+              {REGION_CATEGORIES.map((category) => {
+                const CategoryIcon = category.icon
                 return (
-                  <button
-                    key={region.value}
-                    onClick={() => setSelectedRegion(region.value)}
-                    className={`group relative overflow-hidden rounded-2xl bg-gradient-to-br ${colorClasses[region.color as keyof typeof colorClasses] || colorClasses.slate} text-white p-6 shadow-lg transition-all duration-300 hover:shadow-2xl hover:scale-105`}
-                  >
-                    <div className="relative z-10">
-                      <Icon className="h-12 w-12 mb-3 opacity-90" />
-                      <h3 className="text-lg font-bold">{region.label}</h3>
+                  <div key={category.name}>
+                    <div className="flex items-center gap-3 mb-4">
+                      <CategoryIcon className="h-5 w-5 text-slate-600" />
+                      <h3 className="text-lg font-semibold text-slate-900">{category.name}</h3>
                     </div>
-                    <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity" />
-                  </button>
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                      {category.regions.map((region) => (
+                        <button
+                          key={region.value}
+                          onClick={() => setSelectedRegion(region.value)}
+                          className="px-4 py-3 bg-white border-2 border-slate-200 rounded-xl hover:border-rose-400 hover:bg-rose-50 transition-all text-slate-900 font-medium text-sm text-center"
+                        >
+                          {region.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                 )
               })}
             </div>
@@ -467,11 +495,11 @@ export default function DiagnosticsPage() {
                 className="group relative overflow-hidden rounded-2xl bg-white border-2 border-slate-200 hover:border-rose-300 shadow-sm hover:shadow-xl transition-all duration-300 text-left"
               >
                 {/* Titre en haut - hauteur fixe pour alignement */}
-                <div className="p-5 pb-0 min-h-[120px] flex flex-col">
-                  <h3 className="text-lg font-bold text-slate-900 mb-3 group-hover:text-rose-700 transition-colors line-clamp-2">
+                <div className="p-5 pb-0 h-[140px] flex flex-col">
+                  <h3 className="text-lg font-bold text-slate-900 mb-3 group-hover:text-rose-700 transition-colors line-clamp-2 flex-grow-0">
                     {item.name}
                   </h3>
-                  <div className="flex items-center gap-2 flex-wrap mt-auto">
+                  <div className="flex items-center gap-2 flex-wrap mt-auto flex-shrink-0">
                     <span className="px-2 py-1 rounded-lg text-xs font-semibold bg-blue-100 text-blue-700">
                       {item.region || 'Non classé'}
                     </span>
