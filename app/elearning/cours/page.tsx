@@ -20,6 +20,7 @@ import {
   ChevronRight,
   PlayCircle,
   Plus,
+  Search,
   Shield,
   Sparkles,
   Video,
@@ -87,6 +88,7 @@ export default function CoursPage() {
   const router = useRouter()
   const [profile, setProfile] = useState<Profile | null>(null)
   const [formations, setFormations] = useState<Formation[]>([])
+  const [searchTerm, setSearchTerm] = useState('')
   const [selectedFormationId, setSelectedFormationId] = useState<string>('')
   const subpartRefs = useRef<Record<string, HTMLDivElement | null>>({})
   const [loading, setLoading] = useState(true)
@@ -240,6 +242,15 @@ export default function CoursPage() {
     () => formations.find((f) => f.id === selectedFormationId) ?? formations[0],
     [formations, selectedFormationId]
   )
+
+  const filteredFormations = useMemo(() => {
+    const term = searchTerm.trim().toLowerCase()
+    if (!term) return formations
+    return formations.filter((formation) => {
+      const haystack = `${formation.title} ${formation.description ?? ''}`.toLowerCase()
+      return haystack.includes(term)
+    })
+  }, [formations, searchTerm])
 
   useEffect(() => {
     if (!selectedFormation || !showFormationModal) return
@@ -446,41 +457,52 @@ export default function CoursPage() {
           <div className="absolute bottom-0 left-0 w-96 h-96 bg-emerald-500/20 rounded-full blur-3xl" />
 
           <div className="relative px-6 py-8 md:px-10 md:py-10">
-            <div className="max-w-4xl">
-              <div className="inline-flex items-center gap-2 rounded-full bg-white/10 backdrop-blur-sm px-3 py-1.5 mb-4 border border-white/20">
-                <GraduationCap className="h-3.5 w-3.5 text-blue-300" />
-                <span className="text-xs font-semibold text-blue-100">
-                  Cours Premium
-                </span>
-              </div>
-
-              <h1 className="text-3xl md:text-4xl font-bold mb-3 bg-clip-text text-transparent bg-gradient-to-r from-white to-blue-100">
-                Formations professionnelles
-              </h1>
-
-              <p className="text-base md:text-lg text-slate-300 mb-6 max-w-2xl">
-                Développez vos compétences avec nos parcours de formation structurés. Vidéos, exercices et suivi de progression inclus.
-              </p>
-
-              <div className="flex flex-wrap items-center gap-4">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-slate-300">Accès :</span>
-                  <span className={`px-3 py-1.5 rounded-full text-sm font-semibold flex items-center gap-2 ${
-                    isAdmin
-                      ? 'bg-gradient-to-r from-purple-500 to-purple-600'
-                      : 'bg-gradient-to-r from-blue-500 to-blue-600'
-                  }`}>
-                    {isAdmin ? <Shield className="h-4 w-4" /> : <Sparkles className="h-4 w-4" />}
-                    {isAdmin ? 'Mode Administration' : 'Premium'}
+            <div className="flex flex-wrap items-start justify-between gap-6">
+              <div className="max-w-4xl">
+                <div className="inline-flex items-center gap-2 rounded-full bg-white/10 backdrop-blur-sm px-3 py-1.5 mb-4 border border-white/20">
+                  <GraduationCap className="h-3.5 w-3.5 text-blue-300" />
+                  <span className="text-xs font-semibold text-blue-100">
+                    Cours Premium
                   </span>
                 </div>
+
+                <h1 className="text-3xl md:text-4xl font-bold mb-3 bg-clip-text text-transparent bg-gradient-to-r from-white to-blue-100">
+                  Formations vidéo
+                </h1>
+
+                <p className="text-base md:text-lg text-slate-300 mb-6 max-w-2xl">
+                  Développez vos compétences avec nos parcours de formation structurés. Vidéos, exercices et suivi de progression inclus.
+                </p>
+
+                <div className="flex flex-wrap items-center gap-4">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-slate-300">Accès :</span>
+                    <span className={`px-3 py-1.5 rounded-full text-sm font-semibold flex items-center gap-2 ${
+                      isAdmin
+                        ? 'bg-gradient-to-r from-purple-500 to-purple-600'
+                        : 'bg-gradient-to-r from-blue-500 to-blue-600'
+                    }`}>
+                      {isAdmin ? <Shield className="h-4 w-4" /> : <Sparkles className="h-4 w-4" />}
+                      {isAdmin ? 'Mode Administration' : 'Premium'}
+                    </span>
+                  </div>
+                </div>
               </div>
+
+              {isAdmin && (
+                <button
+                  onClick={() => setShowWizard(true)}
+                  className="inline-flex items-center gap-2 rounded-xl bg-white/10 px-4 py-3 text-sm font-semibold text-white shadow-lg backdrop-blur-sm border border-white/20 hover:bg-white/20 transition"
+                >
+                  <Plus className="h-4 w-4" />
+                  Ajouter une formation
+                </button>
+              )}
             </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 space-y-6">
+        <div className="space-y-6">
             <div className="mb-4">
               <h2 className="text-2xl md:text-3xl font-bold text-slate-900 mb-2 flex items-center gap-3">
                 <BookOpen className="h-7 w-7 text-blue-600" />
@@ -491,8 +513,19 @@ export default function CoursPage() {
               </p>
             </div>
 
-            <div className="grid gap-5 md:grid-cols-2">
-              {formations.map((formation) => {
+            <div className="relative max-w-md">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(event) => setSearchTerm(event.target.value)}
+                placeholder="Rechercher une formation"
+                className="w-full rounded-xl border border-slate-200 bg-white py-3 pl-10 pr-4 text-sm text-slate-700 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
+              />
+            </div>
+
+            <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+              {filteredFormations.map((formation) => {
                 const stats = computeProgress(formation)
                 return (
                   <button
@@ -530,11 +563,13 @@ export default function CoursPage() {
                     )}
 
                     <div className="p-5 space-y-4">
-                      {formation.description && (
+                      {formation.description ? (
                         <div
-                          className="text-sm text-gray-700 prose prose-sm max-w-none line-clamp-2"
+                          className="text-sm text-gray-700 prose prose-sm max-w-none"
                           dangerouslySetInnerHTML={{ __html: formation.description }}
                         />
+                      ) : (
+                        <p className="text-sm text-gray-500">Description à venir.</p>
                       )}
 
                       <div className="flex items-center justify-between">
@@ -579,6 +614,13 @@ export default function CoursPage() {
                 <p className="text-gray-600 text-sm">Les formations apparaîtront ici une fois ajoutées.</p>
               </div>
             )}
+
+            {formations.length > 0 && filteredFormations.length === 0 && (
+              <div className="rounded-2xl border border-slate-200 bg-white p-6 text-center text-sm text-slate-600">
+                Aucune formation ne correspond à votre recherche.
+              </div>
+            )}
+
           </div>
 
           {showFormationModal && selectedFormation && (
@@ -639,7 +681,11 @@ export default function CoursPage() {
                         </span>
                       </div>
                       <div className="w-full h-3 bg-gray-100 rounded-full border border-gray-200 overflow-hidden">
-                        <div className="h-full bg-primary-600" style={{ width: `${progress.percent}%` }} aria-label={`Progression ${progress.percent}%`} />
+                        <div
+                          className="h-full bg-primary-600"
+                          style={{ width: `${progress.percent}%` }}
+                          aria-label={`Progression ${progress.percent}%`}
+                        />
                       </div>
                       <span className="text-xs text-gray-500">{progress.percent}%</span>
                       {isAdmin && (
@@ -653,15 +699,15 @@ export default function CoursPage() {
                     </div>
                   </div>
 
-                <div className="space-y-3">
-                  {selectedFormation.chapters.map((chapter) => (
-                    <div
-                      key={chapter.id}
-                      className="border border-gray-100 rounded-xl overflow-hidden"
-                      ref={(ref) => {
-                        subpartRefs.current[chapter.id] = ref
-                      }}
-                    >
+                  <div className="space-y-3">
+                    {selectedFormation.chapters.map((chapter) => (
+                      <div
+                        key={chapter.id}
+                        className="border border-gray-100 rounded-xl overflow-hidden"
+                        ref={(ref) => {
+                          subpartRefs.current[chapter.id] = ref
+                        }}
+                      >
                         <div className="flex items-center justify-between bg-gray-50 px-4 py-3">
                           <button
                             type="button"
@@ -716,7 +762,9 @@ export default function CoursPage() {
                                               }`}
                                             />
                                           )}
-                                          <Video className={`h-4 w-4 ${isAccessible ? 'text-primary-500' : 'text-gray-400'}`} />
+                                          <Video
+                                            className={`h-4 w-4 ${isAccessible ? 'text-primary-500' : 'text-gray-400'}`}
+                                          />
                                           {subpart.title}
                                         </button>
 
@@ -788,7 +836,9 @@ export default function CoursPage() {
                                                     </div>
                                                   </div>
                                                   <button
-                                                    onClick={() => setActiveQuiz({ quiz: subpart.quiz!, subpartId: subpart.id })}
+                                                    onClick={() =>
+                                                      setActiveQuiz({ quiz: subpart.quiz!, subpartId: subpart.id })
+                                                    }
                                                     className={`px-4 py-2 rounded-lg font-semibold transition-all ${
                                                       subpart.quiz_passed
                                                         ? 'bg-white text-blue-600 border-2 border-blue-300 hover:bg-blue-50'
@@ -823,7 +873,13 @@ export default function CoursPage() {
                                         </button>
                                         {isAdmin && (
                                           <button
-                                            onClick={() => setQuizManager({ subpartId: subpart.id, subpartTitle: subpart.title, quiz: subpart.quiz })}
+                                            onClick={() =>
+                                              setQuizManager({
+                                                subpartId: subpart.id,
+                                                subpartTitle: subpart.title,
+                                                quiz: subpart.quiz
+                                              })
+                                            }
                                             className="w-full px-3 py-2 bg-blue-50 text-blue-700 border-2 border-blue-200 rounded-lg text-sm font-semibold hover:bg-blue-100 transition flex items-center justify-center gap-2"
                                           >
                                             <ClipboardCheck className="h-4 w-4" />
@@ -839,45 +895,12 @@ export default function CoursPage() {
                           </div>
                         )}
                       </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
           )}
-
-          {isAdmin && (
-            <div className="space-y-4">
-              <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg p-6 border border-blue-400">
-                <h3 className="text-white font-bold text-lg mb-2 flex items-center gap-2">
-                  <Sparkles className="h-5 w-5" />
-                  Gestion des formations
-                </h3>
-                <p className="text-blue-100 text-sm mb-4">
-                  Créez une formation complète avec tous ses chapitres et sous-parties en une seule fois.
-                </p>
-                <button
-                  onClick={() => setShowWizard(true)}
-                  className="w-full bg-white text-blue-600 font-semibold px-4 py-3 rounded-lg hover:bg-blue-50 transition-colors flex items-center justify-center gap-2"
-                >
-                  <Plus className="h-5 w-5" />
-                  Créer une formation
-                </button>
-              </div>
-
-              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 rounded-xl p-4 space-y-3">
-                <div className="flex items-center gap-2 text-blue-700 font-semibold">
-                  <Shield className="h-4 w-4" /> Règles d'accès
-                </div>
-                <ul className="text-sm text-gray-700 list-disc list-inside space-y-2">
-                  <li>Les formations Premium sont visibles par les membres Silver et Gold.</li>
-                  <li>Les formations privées sont réservées aux administrateurs.</li>
-                  <li>Le suivi de progression est automatiquement enregistré.</li>
-                </ul>
-              </div>
-            </div>
-          )}
-        </div>
       </div>
 
       {showWizard && (
