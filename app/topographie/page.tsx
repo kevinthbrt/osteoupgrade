@@ -344,64 +344,84 @@ export default function TopographiePage() {
           </div>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm p-6">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900 mb-1">Sélectionnez une zone anatomique</h2>
-              <p className="text-sm text-gray-600">Cliquez sur une région pour afficher les vues topographiques associées</p>
+        {/* Grille de sélection des zones anatomiques */}
+        {selectedRegion === 'all' ? (
+          <div className="bg-white rounded-xl shadow-sm p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900 mb-1">Sélectionnez une zone anatomique</h2>
+                <p className="text-sm text-gray-600">Cliquez sur une région pour afficher les vues topographiques associées</p>
+              </div>
+              {isAdmin && (
+                <button
+                  onClick={openCreateModal}
+                  className="px-4 py-2 bg-rose-600 text-white rounded-lg hover:bg-rose-700 transition-colors flex items-center gap-2"
+                >
+                  <Plus className="h-4 w-4" />
+                  Nouvelle vue
+                </button>
+              )}
             </div>
-            {isAdmin && (
-              <button
-                onClick={openCreateModal}
-                className="px-4 py-2 bg-rose-600 text-white rounded-lg hover:bg-rose-700 transition-colors flex items-center gap-2"
-              >
-                <Plus className="h-4 w-4" />
-                Nouvelle vue
-              </button>
-            )}
-          </div>
 
-          {/* Bouton "Toutes les régions" */}
-          <div className="mb-6">
-            <button
-              onClick={() => setSelectedRegion('all')}
-              className={`px-4 py-3 rounded-lg font-medium transition-all text-sm ${
-                selectedRegion === 'all'
-                  ? 'bg-rose-600 text-white shadow-md'
-                  : 'bg-white text-gray-700 border-2 border-slate-200 hover:border-rose-400 hover:bg-rose-50'
-              }`}
-            >
-              📍 Toutes les régions
-            </button>
+            {/* Grille de régions organisée par catégories */}
+            <div className="space-y-6">
+              {Object.entries(BODY_REGIONS).map(([category, regions]) => (
+                <div key={category}>
+                  <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                    {getRegionIcon(category)}
+                    {category}
+                  </h3>
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                    {regions.map((region) => (
+                      <button
+                        key={region}
+                        onClick={() => setSelectedRegion(region as AnatomicalRegion)}
+                        className="px-4 py-3 rounded-lg font-medium transition-all text-sm bg-white text-gray-700 border-2 border-slate-200 hover:border-rose-400 hover:bg-rose-50"
+                      >
+                        {REGION_LABELS[region as AnatomicalRegion]}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
-
-          {/* Grille de régions organisée par catégories */}
-          <div className="space-y-6">
-            {Object.entries(BODY_REGIONS).map(([category, regions]) => (
-              <div key={category}>
-                <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                  {getRegionIcon(category)}
-                  {category}
-                </h3>
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                  {regions.map((region) => (
-                    <button
-                      key={region}
-                      onClick={() => setSelectedRegion(region as AnatomicalRegion)}
-                      className={`px-4 py-3 rounded-lg font-medium transition-all text-sm ${
-                        selectedRegion === region
-                          ? 'bg-rose-600 text-white shadow-md'
-                          : 'bg-white text-gray-700 border-2 border-slate-200 hover:border-rose-400 hover:bg-rose-50'
-                      }`}
-                    >
-                      {REGION_LABELS[region as AnatomicalRegion]}
-                    </button>
-                  ))}
+        ) : (
+          <div className="bg-gradient-to-r from-rose-50 to-rose-100 rounded-xl shadow-sm p-4 border-2 border-rose-200">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 px-4 py-2 bg-rose-600 text-white rounded-lg shadow-md">
+                  {getRegionIcon(
+                    Object.entries(BODY_REGIONS).find(([_, regions]) =>
+                      regions.includes(selectedRegion)
+                    )?.[0] || ''
+                  )}
+                  <span className="font-semibold">{REGION_LABELS[selectedRegion as AnatomicalRegion]}</span>
+                </div>
+                <div className="text-sm text-gray-700">
+                  <span className="font-medium">{filteredZones.length}</span> vue(s) topographique(s)
                 </div>
               </div>
-            ))}
+              <div className="flex items-center gap-2">
+                {isAdmin && (
+                  <button
+                    onClick={openCreateModal}
+                    className="px-4 py-2 bg-rose-600 text-white rounded-lg hover:bg-rose-700 transition-colors flex items-center gap-2"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Nouvelle vue
+                  </button>
+                )}
+                <button
+                  onClick={() => setSelectedRegion('all')}
+                  className="px-4 py-2 bg-white border-2 border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 hover:border-gray-400 font-medium transition-all shadow-sm"
+                >
+                  Changer de région
+                </button>
+              </div>
+            </div>
           </div>
-        </div>
+        )}
 
         <div className="bg-white rounded-xl shadow-sm p-6">
           {zonesLoading ? (
