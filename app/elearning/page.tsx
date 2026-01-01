@@ -222,27 +222,6 @@ export default function ElearningHubPage() {
           </div>
         </div>
 
-        {/* Info Section */}
-        <div className="rounded-2xl bg-gradient-to-br from-indigo-50 via-white to-purple-50 p-6 border border-indigo-100">
-          <h3 className="font-bold text-slate-900 mb-2">💡 Comment utiliser le module E-Learning ?</h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-            <div className="bg-white rounded-lg p-4">
-              <div className="text-2xl mb-2">1️⃣</div>
-              <h4 className="font-semibold text-slate-900 mb-1">Apprenez</h4>
-              <p className="text-sm text-slate-600">Suivez les cours et consultez les références cliniques</p>
-            </div>
-            <div className="bg-white rounded-lg p-4">
-              <div className="text-2xl mb-2">2️⃣</div>
-              <h4 className="font-semibold text-slate-900 mb-1">Testez-vous</h4>
-              <p className="text-sm text-slate-600">Validez vos connaissances avec les quiz intégrés aux cours</p>
-            </div>
-            <div className="bg-white rounded-lg p-4">
-              <div className="text-2xl mb-2">3️⃣</div>
-              <h4 className="font-semibold text-slate-900 mb-1">Pratiquez</h4>
-              <p className="text-sm text-slate-600">Appliquez vos acquis avec les cas pratiques</p>
-            </div>
-          </div>
-        </div>
       </div>
     </AuthLayout>
   )
