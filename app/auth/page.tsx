@@ -91,7 +91,7 @@ export default function AuthPage() {
         <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
           <div className="bg-gradient-to-r from-primary-600 to-primary-700 p-8 text-white">
             <div className="flex items-center justify-center mb-4">
-              <div className="bg-white p-3 rounded-lg">
+              <div className="p-3">
                 <Image
                   src="/logo.svg"
                   alt="OsteoUpgrade Logo"

@@ -233,8 +233,8 @@ export default function Navigation() {
         <div className="flex flex-col h-full">
           {/* Logo */}
           <div className="p-6 border-b border-white/10">
-            <div className="flex items-center space-x-3">
-              <div className="bg-white p-2 rounded-lg shadow-lg">
+            <div className="flex items-center justify-center space-x-3">
+              <div className="p-2">
                 <Image
                   src="/logo.svg"
                   alt="OsteoUpgrade Logo"
