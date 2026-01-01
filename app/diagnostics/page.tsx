@@ -9,6 +9,7 @@ import {
   Sparkles,
   Search,
   ChevronRight,
+  ChevronDown,
   Info,
   Activity,
   Zap,
@@ -23,7 +24,8 @@ import {
   Plus,
   Edit,
   Trash2,
-  EyeOff
+  EyeOff,
+  TestTube2
 } from 'lucide-react'
 
 type Pathology = {
@@ -80,38 +82,68 @@ const getVideoEmbedUrl = (url: string) => {
   return url
 }
 
-const REGIONS = [
-  { value: 'all', label: 'Toutes', icon: Activity, color: 'slate' },
-  { value: 'atm', label: 'ATM', icon: Activity, color: 'slate' },
-  { value: 'cervical', label: 'Cervical', icon: Brain, color: 'purple' },
-  { value: 'crane', label: 'Crâne', icon: Brain, color: 'purple' },
-  { value: 'thoracique', label: 'Thoracique', icon: Heart, color: 'rose' },
-  { value: 'epaule', label: 'Épaule', icon: Bone, color: 'blue' },
-  { value: 'coude', label: 'Coude', icon: Bone, color: 'blue' },
-  { value: 'poignet', label: 'Poignet', icon: Bone, color: 'blue' },
-  { value: 'main', label: 'Main', icon: Bone, color: 'blue' },
-  { value: 'cotes', label: 'Côtes', icon: Bone, color: 'blue' },
-  { value: 'hanche', label: 'Hanche', icon: Heart, color: 'rose' },
-  { value: 'lombaire', label: 'Lombaire', icon: Heart, color: 'rose' },
-  { value: 'sacro-iliaque', label: 'Sacro-iliaque', icon: Heart, color: 'rose' },
-  { value: 'genou', label: 'Genou', icon: Zap, color: 'emerald' },
-  { value: 'cheville', label: 'Cheville', icon: Eye, color: 'amber' },
-  { value: 'pied', label: 'Pied', icon: Eye, color: 'amber' },
-  { value: 'neurologique', label: 'Neurologique', icon: Brain, color: 'purple' },
-  { value: 'vasculaire', label: 'Vasculaire', icon: Heart, color: 'rose' },
-  { value: 'systemique', label: 'Systémique', icon: Activity, color: 'slate' }
+const REGION_CATEGORIES = [
+  {
+    name: 'Tête et Cou',
+    icon: Brain,
+    regions: [
+      { value: 'cervical', label: 'Cervical' },
+      { value: 'atm', label: 'ATM' },
+      { value: 'crane', label: 'Crâne' }
+    ]
+  },
+  {
+    name: 'Membre Supérieur',
+    icon: Bone,
+    regions: [
+      { value: 'epaule', label: 'Épaule' },
+      { value: 'coude', label: 'Coude' },
+      { value: 'poignet', label: 'Poignet' },
+      { value: 'main', label: 'Main' }
+    ]
+  },
+  {
+    name: 'Tronc',
+    icon: Heart,
+    regions: [
+      { value: 'thoracique', label: 'Thoracique' },
+      { value: 'lombaire', label: 'Lombaire' },
+      { value: 'sacro-iliaque', label: 'Sacro-iliaque' },
+      { value: 'cotes', label: 'Côtes' }
+    ]
+  },
+  {
+    name: 'Membre Inférieur',
+    icon: Zap,
+    regions: [
+      { value: 'hanche', label: 'Hanche' },
+      { value: 'genou', label: 'Genou' },
+      { value: 'cheville', label: 'Cheville' },
+      { value: 'pied', label: 'Pied' }
+    ]
+  },
+  {
+    name: 'Général',
+    icon: Activity,
+    regions: [
+      { value: 'neurologique', label: 'Neurologique' },
+      { value: 'vasculaire', label: 'Vasculaire' },
+      { value: 'systemique', label: 'Systémique' }
+    ]
+  }
 ]
 
 export default function DiagnosticsPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(true)
   const [profile, setProfile] = useState<any>(null)
-  const [selectedRegion, setSelectedRegion] = useState('all')
+  const [selectedRegion, setSelectedRegion] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [pathologies, setPathologies] = useState<Pathology[]>([])
   const [selectedItem, setSelectedItem] = useState<any>(null)
   const [selectedTest, setSelectedTest] = useState<OrthopedicTest | null>(null)
   const [selectedCluster, setSelectedCluster] = useState<OrthopedicTestCluster | null>(null)
+  const [expandedSigns, setExpandedSigns] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     loadData()
@@ -133,17 +165,21 @@ export default function DiagnosticsPage() {
 
       setProfile(profileData)
 
+      // Ne charger les pathologies que si une région est sélectionnée
+      if (!selectedRegion) {
+        setPathologies([])
+        setLoading(false)
+        return
+      }
+
       // Load pathologies
       let pathologiesQuery = supabase
         .from('pathologies')
         .select('*')
+        .eq('region', selectedRegion)
 
       if (profileData?.role !== 'admin') {
         pathologiesQuery = pathologiesQuery.eq('is_active', true)
-      }
-
-      if (selectedRegion !== 'all') {
-        pathologiesQuery = pathologiesQuery.eq('region', selectedRegion)
       }
 
       const { data: pathologiesData } = await pathologiesQuery
@@ -281,6 +317,18 @@ export default function DiagnosticsPage() {
     }
   }
 
+  const toggleSignsExpansion = (pathologyId: string) => {
+    setExpandedSigns(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(pathologyId)) {
+        newSet.delete(pathologyId)
+      } else {
+        newSet.add(pathologyId)
+      }
+      return newSet
+    })
+  }
+
   if (loading) {
     return (
       <AuthLayout>
@@ -367,127 +415,181 @@ export default function DiagnosticsPage() {
           </div>
         </div>
 
-        {/* Filters & Search */}
-        <div className="bg-white rounded-2xl shadow-sm p-6 mb-6">
-          <div className="flex flex-col md:flex-row gap-4">
-            {/* Search */}
-            <div className="flex-1 relative">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Rechercher une pathologie..."
-                className="w-full pl-12 pr-4 py-3 border-2 border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-rose-400 focus:border-transparent"
-              />
+        {/* Breadcrumb et recherche */}
+        {selectedRegion && (
+          <div className="bg-white rounded-2xl shadow-sm p-6 mb-6">
+            <div className="flex flex-col md:flex-row gap-4">
+              {/* Bouton retour */}
+              <button
+                onClick={() => {
+                  setSelectedRegion(null)
+                  setSearchQuery('')
+                }}
+                className="text-rose-600 hover:text-rose-700 flex items-center gap-2 text-sm font-medium"
+              >
+                ← Retour aux régions
+              </button>
+
+              {/* Search */}
+              <div className="flex-1 relative">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Rechercher une pathologie..."
+                  className="w-full pl-12 pr-4 py-3 border-2 border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-rose-400 focus:border-transparent"
+                />
+              </div>
             </div>
+          </div>
+        )}
 
-            {/* Region Filter */}
-            <div className="flex gap-2 overflow-x-auto pb-2">
-              {REGIONS.map((region) => {
-                const Icon = region.icon
-                const isSelected = selectedRegion === region.value
+        {/* Grille des régions (quand aucune région sélectionnée) */}
+        {!selectedRegion ? (
+          <div className="bg-white rounded-2xl shadow-sm p-8">
+            <h2 className="text-2xl font-bold text-slate-900 mb-6">Sélectionnez une zone anatomique</h2>
+            <p className="text-slate-600 mb-8">Cliquez sur une région pour afficher les diagnostics associés</p>
 
+            <div className="space-y-8">
+              {REGION_CATEGORIES.map((category) => {
+                const CategoryIcon = category.icon
                 return (
-                  <button
-                    key={region.value}
-                    onClick={() => setSelectedRegion(region.value)}
-                    className={`flex items-center gap-2 px-4 py-3 rounded-xl font-medium whitespace-nowrap transition-all ${
-                      isSelected
-                        ? `bg-${region.color}-100 text-${region.color}-700 border-2 border-${region.color}-300`
-                        : 'bg-slate-50 text-slate-600 border-2 border-transparent hover:bg-slate-100'
-                    }`}
-                  >
-                    <Icon className="h-4 w-4" />
-                    {region.label}
-                  </button>
+                  <div key={category.name}>
+                    <div className="flex items-center gap-3 mb-4">
+                      <CategoryIcon className="h-5 w-5 text-slate-600" />
+                      <h3 className="text-lg font-semibold text-slate-900">{category.name}</h3>
+                    </div>
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                      {category.regions.map((region) => (
+                        <button
+                          key={region.value}
+                          onClick={() => setSelectedRegion(region.value)}
+                          className="px-4 py-3 bg-white border-2 border-slate-200 rounded-xl hover:border-rose-400 hover:bg-rose-50 transition-all text-slate-900 font-medium text-sm text-center"
+                        >
+                          {region.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                 )
               })}
             </div>
           </div>
-        </div>
+        ) : (
+          /* Grille des pathologies (quand une région est sélectionnée) */
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredItems.map((item: any) => {
+            // Extraire les bullet points des signes cliniques
+            const clinicalSignsList = item.clinical_signs
+              ? item.clinical_signs
+                  .split('\n')
+                  .map((s: string) => s.trim())
+                  .filter((s: string) => s.length > 0)
+              : []
 
-        {/* Results Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredItems.map((item: any) => {
             return (
               <button
                 key={item.id}
                 onClick={() => setSelectedItem(item)}
-                className="group relative overflow-hidden rounded-2xl bg-white border-2 border-slate-200 hover:border-rose-300 shadow-sm hover:shadow-xl transition-all duration-300 text-left"
+                className="group relative overflow-hidden rounded-2xl bg-white border-2 border-slate-200 hover:border-rose-300 shadow-sm hover:shadow-xl transition-all duration-300 text-left flex flex-col"
               >
-                {/* Image de fond pour pathologies */}
-                {item.image_url && (
-                  <div className="relative h-48 bg-gradient-to-br from-slate-100 to-slate-200">
+                {/* En-tête fixe avec titre uniquement */}
+                <div className="p-5 pb-3 h-[80px] flex items-center flex-shrink-0">
+                  <h3 className="text-lg font-bold text-slate-900 group-hover:text-rose-700 transition-colors line-clamp-2">
+                    {item.name}
+                  </h3>
+                </div>
+
+                {/* Image - hauteur fixe pour alignement */}
+                {item.image_url ? (
+                  <div className="relative h-48 bg-slate-100 mx-5 mb-3 rounded-lg overflow-hidden flex-shrink-0">
                     <img
                       src={item.image_url}
                       alt={item.name}
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-contain"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
-                    {item.is_red_flag && (
-                      <div className="absolute top-3 right-3">
-                        <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-red-600 text-white text-xs font-bold shadow-lg">
-                          <AlertCircle className="h-3 w-3" />
-                          Drapeau rouge
-                        </span>
-                      </div>
-                    )}
                   </div>
-                )}
-
-                {/* Placeholder si pas d'image */}
-                {!item.image_url && (
-                  <div className="relative h-48 bg-gradient-to-br from-rose-100 via-pink-100 to-purple-100 flex items-center justify-center">
+                ) : (
+                  <div className="relative h-48 bg-gradient-to-br from-rose-100 via-pink-100 to-purple-100 flex items-center justify-center mx-5 mb-3 rounded-lg flex-shrink-0">
                     <Stethoscope className="h-16 w-16 text-rose-300" />
-                    {item.is_red_flag && (
-                      <div className="absolute top-3 right-3">
-                        <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-red-600 text-white text-xs font-bold shadow-lg">
-                          <AlertCircle className="h-3 w-3" />
-                          Drapeau rouge
-                        </span>
-                      </div>
-                    )}
                   </div>
                 )}
 
-                <div className="p-5">
-                  {/* Header */}
-                  <div className="mb-3">
-                    <h3 className="text-lg font-bold text-slate-900 mb-2 group-hover:text-rose-700 transition-colors">
-                      {item.name}
-                    </h3>
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="px-2 py-1 rounded-lg text-xs font-semibold bg-blue-100 text-blue-700">
-                        {item.region || 'Non classé'}
+                {/* Badges (région, gravité, drapeau rouge) */}
+                <div className="px-5 pb-3">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="px-2 py-1 rounded-lg text-xs font-semibold bg-blue-100 text-blue-700">
+                      {item.region || 'Non classé'}
+                    </span>
+                    {item.severity && (
+                      <span className={`px-2 py-1 rounded-lg text-xs font-semibold border ${getSeverityColor(item.severity)}`}>
+                        {getSeverityLabel(item.severity)}
                       </span>
-                      {item.severity && (
-                        <span className={`px-2 py-1 rounded-lg text-xs font-semibold border ${getSeverityColor(item.severity)}`}>
-                          {getSeverityLabel(item.severity)}
+                    )}
+                    {item.is_red_flag && (
+                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-red-100 text-red-700 text-xs font-bold border border-red-200">
+                        <AlertCircle className="h-3 w-3" />
+                        Drapeau rouge
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Contenu flexible (signes cliniques, indicateurs) */}
+                <div className="px-5 pb-5 flex-grow">
+                  {/* Signes cliniques sous forme de tirets - limités à 2 lignes */}
+                  {clinicalSignsList.length > 0 && (
+                    <div className="mb-3">
+                      <ul className="space-y-1">
+                        {(expandedSigns.has(item.id)
+                          ? clinicalSignsList
+                          : clinicalSignsList.slice(0, 2)
+                        ).map((sign: string, idx: number) => (
+                          <li key={idx} className="text-sm text-slate-600 flex items-start gap-2">
+                            <span className="text-rose-600 mt-1">•</span>
+                            <span className="flex-1 line-clamp-1">{sign}</span>
+                          </li>
+                        ))}
+                      </ul>
+                      {clinicalSignsList.length > 2 && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            toggleSignsExpansion(item.id)
+                          }}
+                          className="mt-2 text-xs text-rose-600 hover:text-rose-700 font-medium flex items-center gap-1 transition-colors"
+                        >
+                          <ChevronDown className={`h-3 w-3 transition-transform ${expandedSigns.has(item.id) ? 'rotate-180' : ''}`} />
+                          {expandedSigns.has(item.id)
+                            ? 'Voir moins'
+                            : `Voir ${clinicalSignsList.length - 2} signe${clinicalSignsList.length - 2 > 1 ? 's' : ''} de plus`
+                          }
+                        </button>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Indicateurs de tests */}
+                  {(item.tests?.length > 0 || item.clusters?.length > 0) && (
+                    <div className="flex items-center gap-3 text-xs text-slate-500 mb-3">
+                      {item.tests?.length > 0 && (
+                        <span className="flex items-center gap-1">
+                          <TestTube2 className="h-3 w-3" />
+                          {item.tests.length} test{item.tests.length > 1 ? 's' : ''}
+                        </span>
+                      )}
+                      {item.clusters?.length > 0 && (
+                        <span className="flex items-center gap-1 text-rose-600">
+                          <TestTube2 className="h-3 w-3" />
+                          {item.clusters.length} cluster{item.clusters.length > 1 ? 's' : ''}
                         </span>
                       )}
                     </div>
-                  </div>
-
-                  {/* Description */}
-                  {item.description && (
-                    <p className="text-sm text-slate-600 line-clamp-2 mb-3 whitespace-pre-line">
-                      {item.description}
-                    </p>
                   )}
 
-                  {/* Indicateurs pour pathologies */}
-                  <div className="flex items-center gap-3 text-xs text-slate-500">
-                    {item.clinical_signs && (
-                      <span className="flex items-center gap-1">
-                        <Info className="h-3 w-3" />
-                        Signes cliniques
-                      </span>
-                    )}
-                  </div>
-
                   {/* Bouton voir plus ou actions admin */}
-                  <div className="mt-4 pt-4 border-t border-slate-100">
+                  <div className="pt-3 border-t border-slate-100">
                     {!isAdmin ? (
                       <div className="flex items-center justify-between">
                         <span className="text-sm font-semibold text-rose-600 group-hover:text-rose-700">
@@ -542,19 +644,20 @@ export default function DiagnosticsPage() {
               </button>
             )
           })}
-        </div>
 
-        {filteredItems.length === 0 && (
-          <div className="text-center py-12 bg-white rounded-2xl shadow-sm">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-slate-100 mb-4">
-              <Search className="h-8 w-8 text-slate-400" />
-            </div>
-            <h3 className="text-lg font-semibold text-slate-900 mb-2">
-              Aucun résultat trouvé
-            </h3>
-            <p className="text-slate-600">
-              Essayez de modifier vos filtres ou votre recherche
-            </p>
+            {filteredItems.length === 0 && (
+              <div className="col-span-full text-center py-12 bg-white rounded-2xl shadow-sm">
+                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-slate-100 mb-4">
+                  <Search className="h-8 w-8 text-slate-400" />
+                </div>
+                <h3 className="text-lg font-semibold text-slate-900 mb-2">
+                  Aucun résultat trouvé
+                </h3>
+                <p className="text-slate-600">
+                  Essayez de modifier votre recherche
+                </p>
+              </div>
+            )}
           </div>
         )}
 
@@ -570,13 +673,13 @@ export default function DiagnosticsPage() {
             >
               {/* Image en haut pour pathologies */}
               {selectedItem.image_url && (
-                <div className="relative h-64 bg-gradient-to-br from-slate-100 to-slate-200">
+                <div className="relative h-96 bg-gradient-to-br from-slate-100 to-slate-200">
                   <img
                     src={selectedItem.image_url}
                     alt={selectedItem.name}
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-contain"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent pointer-events-none" />
                   <div className="absolute bottom-6 left-6 right-6">
                     {selectedItem.is_red_flag && (
                       <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-red-600 text-white text-sm font-bold mb-3 shadow-lg">
