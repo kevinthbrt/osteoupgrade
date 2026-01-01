@@ -108,10 +108,133 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+-- Create search function for chapters
+CREATE OR REPLACE FUNCTION search_elearning_chapters(search_term text)
+RETURNS TABLE (
+  id uuid,
+  title text,
+  formation_id uuid
+) AS $$
+BEGIN
+  RETURN QUERY
+  SELECT
+    ec.id,
+    ec.title,
+    ec.formation_id
+  FROM elearning_chapters ec
+  WHERE
+    f_unaccent(ec.title) ILIKE f_unaccent('%' || search_term || '%')
+  LIMIT 10;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Create search function for subparts
+CREATE OR REPLACE FUNCTION search_elearning_subparts(search_term text)
+RETURNS TABLE (
+  id uuid,
+  title text,
+  chapter_id uuid
+) AS $$
+BEGIN
+  RETURN QUERY
+  SELECT
+    es.id,
+    es.title,
+    es.chapter_id
+  FROM elearning_subparts es
+  WHERE
+    f_unaccent(es.title) ILIKE f_unaccent('%' || search_term || '%')
+  LIMIT 10;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Create search function for topographic zones
+CREATE OR REPLACE FUNCTION search_topographic_zones(search_term text)
+RETURNS TABLE (
+  id uuid,
+  name text,
+  description text,
+  region text
+) AS $$
+BEGIN
+  RETURN QUERY
+  SELECT
+    tz.id,
+    tz.name,
+    tz.description,
+    tz.region
+  FROM topographic_zones tz
+  WHERE
+    f_unaccent(tz.name) ILIKE f_unaccent('%' || search_term || '%')
+    OR f_unaccent(COALESCE(tz.description, '')) ILIKE f_unaccent('%' || search_term || '%')
+    OR f_unaccent(COALESCE(tz.region, '')) ILIKE f_unaccent('%' || search_term || '%')
+  LIMIT 10;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Create search function for quizzes
+CREATE OR REPLACE FUNCTION search_quizzes(search_term text)
+RETURNS TABLE (
+  id uuid,
+  title text,
+  description text,
+  theme text
+) AS $$
+BEGIN
+  RETURN QUERY
+  SELECT
+    q.id,
+    q.title,
+    q.description,
+    q.theme
+  FROM quizzes q
+  WHERE
+    q.is_active = true
+    AND (
+      f_unaccent(q.title) ILIKE f_unaccent('%' || search_term || '%')
+      OR f_unaccent(COALESCE(q.description, '')) ILIKE f_unaccent('%' || search_term || '%')
+      OR f_unaccent(COALESCE(q.theme, '')) ILIKE f_unaccent('%' || search_term || '%')
+    )
+  LIMIT 10;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Create search function for clinical cases
+CREATE OR REPLACE FUNCTION search_clinical_cases(search_term text)
+RETURNS TABLE (
+  id uuid,
+  title text,
+  description text,
+  region text
+) AS $$
+BEGIN
+  RETURN QUERY
+  SELECT
+    cc.id,
+    cc.title,
+    cc.description,
+    cc.region
+  FROM clinical_cases cc
+  WHERE
+    cc.is_active = true
+    AND (
+      f_unaccent(cc.title) ILIKE f_unaccent('%' || search_term || '%')
+      OR f_unaccent(COALESCE(cc.description, '')) ILIKE f_unaccent('%' || search_term || '%')
+      OR f_unaccent(COALESCE(cc.region, '')) ILIKE f_unaccent('%' || search_term || '%')
+    )
+  LIMIT 10;
+END;
+$$ LANGUAGE plpgsql;
+
 -- Comment for documentation
 COMMENT ON FUNCTION f_unaccent(text) IS 'Remove accents from text for search purposes';
 COMMENT ON FUNCTION f_unaccent_ilike(text, text) IS 'Case and accent insensitive LIKE comparison';
 COMMENT ON FUNCTION search_elearning_formations(text) IS 'Search formations with accent-insensitive matching';
+COMMENT ON FUNCTION search_elearning_chapters(text) IS 'Search chapters with accent-insensitive matching';
+COMMENT ON FUNCTION search_elearning_subparts(text) IS 'Search subparts with accent-insensitive matching';
 COMMENT ON FUNCTION search_pathologies(text) IS 'Search pathologies with accent-insensitive matching';
 COMMENT ON FUNCTION search_orthopedic_tests(text) IS 'Search orthopedic tests with accent-insensitive matching';
+COMMENT ON FUNCTION search_topographic_zones(text) IS 'Search topographic zones with accent-insensitive matching';
 COMMENT ON FUNCTION search_practice_videos(text) IS 'Search practice videos with accent-insensitive matching';
+COMMENT ON FUNCTION search_quizzes(text) IS 'Search quizzes with accent-insensitive matching';
+COMMENT ON FUNCTION search_clinical_cases(text) IS 'Search clinical cases with accent-insensitive matching';

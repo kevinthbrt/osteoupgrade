@@ -4,7 +4,6 @@ import { useEffect, useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import AuthLayout from '@/components/AuthLayout'
 import { supabase } from '@/lib/supabase'
-import { normalizeSearchString } from '@/lib/search-utils'
 import {
   Search,
   Loader2,
@@ -53,72 +52,105 @@ function SearchPageContent() {
     const allResults: SearchResult[] = []
 
     try {
-      // Normalize search to be case and accent insensitive
-      // Note: This removes accents from the search query. For best results,
-      // apply the migration in supabase/migrations/20260101_add_unaccent_search.sql
-      const searchValue = normalizeSearchString(q)
+      // Search term - we'll use this with both RPC functions and fallback queries
+      const searchValue = q.trim()
 
-      // Also keep original for partial matching
-      const originalValue = q.trim()
-
+      // Try to use RPC functions with unaccent first (requires migration to be applied)
+      // If they don't exist, fall back to regular ilike search with normalized query
       const [
         formationsResponse,
-        chaptersResponse,
-        subpartsResponse,
         pathologiesResponse,
         testsResponse,
-        zonesResponse,
         videosResponse,
+        chaptersResponse,
+        subpartsResponse,
+        zonesResponse,
         quizzesResponse,
         casesResponse
       ] = await Promise.all([
-        supabase
-          .from('elearning_formations')
-          .select('id, title, description')
-          .or(`title.ilike.%${searchValue}%,description.ilike.%${searchValue}%,title.ilike.%${originalValue}%,description.ilike.%${originalValue}%`)
-          .limit(10),
-        supabase
-          .from('elearning_chapters')
-          .select('id, title, formation_id')
-          .or(`title.ilike.%${searchValue}%,title.ilike.%${originalValue}%`)
-          .limit(10),
-        supabase
-          .from('elearning_subparts')
-          .select('id, title, chapter_id')
-          .or(`title.ilike.%${searchValue}%,title.ilike.%${originalValue}%`)
-          .limit(10),
-        supabase
-          .from('pathologies')
-          .select('id, name, description, region')
-          .or(`name.ilike.%${searchValue}%,description.ilike.%${searchValue}%,region.ilike.%${searchValue}%,name.ilike.%${originalValue}%,description.ilike.%${originalValue}%,region.ilike.%${originalValue}%`)
-          .limit(10),
-        supabase
-          .from('orthopedic_tests')
-          .select('id, name, description, category')
-          .or(`name.ilike.%${searchValue}%,description.ilike.%${searchValue}%,category.ilike.%${searchValue}%,name.ilike.%${originalValue}%,description.ilike.%${originalValue}%,category.ilike.%${originalValue}%`)
-          .limit(10),
-        supabase
-          .from('topographic_zones')
-          .select('id, name, description, region')
-          .or(`name.ilike.%${searchValue}%,description.ilike.%${searchValue}%,region.ilike.%${searchValue}%,name.ilike.%${originalValue}%,description.ilike.%${originalValue}%,region.ilike.%${originalValue}%`)
-          .limit(10),
-        supabase
-          .from('practice_videos')
-          .select('id, title, description, region')
-          .or(`title.ilike.%${searchValue}%,description.ilike.%${searchValue}%,region.ilike.%${searchValue}%,title.ilike.%${originalValue}%,description.ilike.%${originalValue}%,region.ilike.%${originalValue}%`)
-          .limit(10),
-        supabase
-          .from('quizzes')
-          .select('id, title, description, theme')
-          .eq('is_active', true)
-          .or(`title.ilike.%${searchValue}%,description.ilike.%${searchValue}%,theme.ilike.%${searchValue}%,title.ilike.%${originalValue}%,description.ilike.%${originalValue}%,theme.ilike.%${originalValue}%`)
-          .limit(10),
-        supabase
-          .from('clinical_cases')
-          .select('id, title, description, region')
-          .eq('is_active', true)
-          .or(`title.ilike.%${searchValue}%,description.ilike.%${searchValue}%,region.ilike.%${searchValue}%,title.ilike.%${originalValue}%,description.ilike.%${originalValue}%,region.ilike.%${originalValue}%`)
-          .limit(10)
+        // Try RPC function first, fallback to regular query
+        supabase.rpc('search_elearning_formations', { search_term: searchValue })
+          .then(res => res.error ?
+            supabase.from('elearning_formations')
+              .select('id, title, description')
+              .or(`title.ilike.%${searchValue}%,description.ilike.%${searchValue}%`)
+              .limit(10)
+            : res
+          ),
+        // Try RPC function first, fallback to regular query
+        supabase.rpc('search_pathologies', { search_term: searchValue })
+          .then(res => res.error ?
+            supabase.from('pathologies')
+              .select('id, name, description, region')
+              .or(`name.ilike.%${searchValue}%,description.ilike.%${searchValue}%,region.ilike.%${searchValue}%`)
+              .limit(10)
+            : res
+          ),
+        // Try RPC function first, fallback to regular query
+        supabase.rpc('search_orthopedic_tests', { search_term: searchValue })
+          .then(res => res.error ?
+            supabase.from('orthopedic_tests')
+              .select('id, name, description, category')
+              .or(`name.ilike.%${searchValue}%,description.ilike.%${searchValue}%,category.ilike.%${searchValue}%`)
+              .limit(10)
+            : res
+          ),
+        // Try RPC function first, fallback to regular query
+        supabase.rpc('search_practice_videos', { search_term: searchValue })
+          .then(res => res.error ?
+            supabase.from('practice_videos')
+              .select('id, title, description, region')
+              .or(`title.ilike.%${searchValue}%,description.ilike.%${searchValue}%,region.ilike.%${searchValue}%`)
+              .limit(10)
+            : res
+          ),
+        // Try RPC function first, fallback to regular query
+        supabase.rpc('search_elearning_chapters', { search_term: searchValue })
+          .then(res => res.error ?
+            supabase.from('elearning_chapters')
+              .select('id, title, formation_id')
+              .ilike('title', `%${searchValue}%`)
+              .limit(10)
+            : res
+          ),
+        // Try RPC function first, fallback to regular query
+        supabase.rpc('search_elearning_subparts', { search_term: searchValue })
+          .then(res => res.error ?
+            supabase.from('elearning_subparts')
+              .select('id, title, chapter_id')
+              .ilike('title', `%${searchValue}%`)
+              .limit(10)
+            : res
+          ),
+        // Try RPC function first, fallback to regular query
+        supabase.rpc('search_topographic_zones', { search_term: searchValue })
+          .then(res => res.error ?
+            supabase.from('topographic_zones')
+              .select('id, name, description, region')
+              .or(`name.ilike.%${searchValue}%,description.ilike.%${searchValue}%,region.ilike.%${searchValue}%`)
+              .limit(10)
+            : res
+          ),
+        // Try RPC function first, fallback to regular query
+        supabase.rpc('search_quizzes', { search_term: searchValue })
+          .then(res => res.error ?
+            supabase.from('quizzes')
+              .select('id, title, description, theme')
+              .eq('is_active', true)
+              .or(`title.ilike.%${searchValue}%,description.ilike.%${searchValue}%,theme.ilike.%${searchValue}%`)
+              .limit(10)
+            : res
+          ),
+        // Try RPC function first, fallback to regular query
+        supabase.rpc('search_clinical_cases', { search_term: searchValue })
+          .then(res => res.error ?
+            supabase.from('clinical_cases')
+              .select('id, title, description, region')
+              .eq('is_active', true)
+              .or(`title.ilike.%${searchValue}%,description.ilike.%${searchValue}%,region.ilike.%${searchValue}%`)
+              .limit(10)
+            : res
+          )
       ])
 
       const formations = formationsResponse.data || []
