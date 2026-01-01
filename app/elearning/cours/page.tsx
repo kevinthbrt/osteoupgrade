@@ -693,7 +693,11 @@ export default function CoursPage() {
                         </span>
                       </div>
                       <div className="w-full h-3 bg-gray-100 rounded-full border border-gray-200 overflow-hidden">
-                        <div className="h-full bg-primary-600" style={{ width: `${progress.percent}%` }} aria-label={`Progression ${progress.percent}%`} />
+                        <div
+                          className="h-full bg-primary-600"
+                          style={{ width: `${progress.percent}%` }}
+                          aria-label={`Progression ${progress.percent}%`}
+                        />
                       </div>
                       <span className="text-xs text-gray-500">{progress.percent}%</span>
                       {isAdmin && (
@@ -707,15 +711,15 @@ export default function CoursPage() {
                     </div>
                   </div>
 
-                <div className="space-y-3">
-                  {selectedFormation.chapters.map((chapter) => (
-                    <div
-                      key={chapter.id}
-                      className="border border-gray-100 rounded-xl overflow-hidden"
-                      ref={(ref) => {
-                        subpartRefs.current[chapter.id] = ref
-                      }}
-                    >
+                  <div className="space-y-3">
+                    {selectedFormation.chapters.map((chapter) => (
+                      <div
+                        key={chapter.id}
+                        className="border border-gray-100 rounded-xl overflow-hidden"
+                        ref={(ref) => {
+                          subpartRefs.current[chapter.id] = ref
+                        }}
+                      >
                         <div className="flex items-center justify-between bg-gray-50 px-4 py-3">
                           <button
                             type="button"
@@ -770,7 +774,9 @@ export default function CoursPage() {
                                               }`}
                                             />
                                           )}
-                                          <Video className={`h-4 w-4 ${isAccessible ? 'text-primary-500' : 'text-gray-400'}`} />
+                                          <Video
+                                            className={`h-4 w-4 ${isAccessible ? 'text-primary-500' : 'text-gray-400'}`}
+                                          />
                                           {subpart.title}
                                         </button>
 
@@ -842,7 +848,9 @@ export default function CoursPage() {
                                                     </div>
                                                   </div>
                                                   <button
-                                                    onClick={() => setActiveQuiz({ quiz: subpart.quiz!, subpartId: subpart.id })}
+                                                    onClick={() =>
+                                                      setActiveQuiz({ quiz: subpart.quiz!, subpartId: subpart.id })
+                                                    }
                                                     className={`px-4 py-2 rounded-lg font-semibold transition-all ${
                                                       subpart.quiz_passed
                                                         ? 'bg-white text-blue-600 border-2 border-blue-300 hover:bg-blue-50'
@@ -877,7 +885,13 @@ export default function CoursPage() {
                                         </button>
                                         {isAdmin && (
                                           <button
-                                            onClick={() => setQuizManager({ subpartId: subpart.id, subpartTitle: subpart.title, quiz: subpart.quiz })}
+                                            onClick={() =>
+                                              setQuizManager({
+                                                subpartId: subpart.id,
+                                                subpartTitle: subpart.title,
+                                                quiz: subpart.quiz
+                                              })
+                                            }
                                             className="w-full px-3 py-2 bg-blue-50 text-blue-700 border-2 border-blue-200 rounded-lg text-sm font-semibold hover:bg-blue-100 transition flex items-center justify-center gap-2"
                                           >
                                             <ClipboardCheck className="h-4 w-4" />
@@ -893,13 +907,12 @@ export default function CoursPage() {
                           </div>
                         )}
                       </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
           )}
-        </div>
       </div>
 
       {showWizard && (
