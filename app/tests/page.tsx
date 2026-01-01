@@ -503,39 +503,61 @@ export default function ImprovedTestsPage() {
         </div>
 
         {/* Grille de sélection des zones anatomiques */}
-        <div className="bg-white rounded-xl shadow-sm p-6">
-          <div className="mb-4">
-            <h2 className="text-lg font-semibold text-gray-900 mb-2">Sélectionnez une zone anatomique</h2>
-            <p className="text-sm text-gray-600">Cliquez sur une région pour afficher les tests et clusters associés</p>
-          </div>
+        {!selectedRegion ? (
+          <div className="bg-white rounded-xl shadow-sm p-6">
+            <div className="mb-4">
+              <h2 className="text-lg font-semibold text-gray-900 mb-2">Sélectionnez une zone anatomique</h2>
+              <p className="text-sm text-gray-600">Cliquez sur une région pour afficher les tests et clusters associés</p>
+            </div>
 
-          {/* Grille de régions organisées par catégorie */}
-          <div className="space-y-6">
-            {Object.entries(BODY_REGIONS).map(([category, regions]) => (
-              <div key={category}>
-                <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                  {getRegionIcon(category)}
-                  {category}
-                </h3>
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3">
-                  {regions.map((region) => (
-                    <button
-                      key={region}
-                      onClick={() => setSelectedRegion(region)}
-                      className={`px-4 py-3 rounded-lg font-medium transition-all text-sm ${
-                        selectedRegion === region
-                          ? 'bg-primary-600 text-white shadow-lg'
-                          : 'bg-gray-50 text-gray-700 hover:bg-gray-100 border border-gray-200'
-                      }`}
-                    >
-                      {region}
-                    </button>
-                  ))}
+            {/* Grille de régions organisées par catégorie */}
+            <div className="space-y-6">
+              {Object.entries(BODY_REGIONS).map(([category, regions]) => (
+                <div key={category}>
+                  <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                    {getRegionIcon(category)}
+                    {category}
+                  </h3>
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3">
+                    {regions.map((region) => (
+                      <button
+                        key={region}
+                        onClick={() => setSelectedRegion(region)}
+                        className="px-4 py-3 rounded-lg font-medium transition-all text-sm bg-gray-50 text-gray-700 hover:bg-gray-100 border border-gray-200 hover:border-primary-300 hover:shadow-md"
+                      >
+                        {region}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <div className="bg-gradient-to-r from-primary-50 to-primary-100 rounded-xl shadow-sm p-4 border-2 border-primary-200">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg shadow-md">
+                  {getRegionIcon(
+                    Object.entries(BODY_REGIONS).find(([_, regions]) =>
+                      regions.includes(selectedRegion)
+                    )?.[0] || ''
+                  )}
+                  <span className="font-semibold">{selectedRegion}</span>
+                </div>
+                <div className="text-sm text-gray-700">
+                  <span className="font-medium">{filteredTests.length}</span> test(s) • <span className="font-medium">{filteredClusters.length}</span> cluster(s)
                 </div>
               </div>
-            ))}
+              <button
+                onClick={() => setSelectedRegion('')}
+                className="px-4 py-2 bg-white border-2 border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 hover:border-gray-400 font-medium transition-all shadow-sm"
+              >
+                Changer de région
+              </button>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Search + filtres - Affiché seulement si une région est sélectionnée */}
         {selectedRegion && (
@@ -552,46 +574,37 @@ export default function ImprovedTestsPage() {
                 />
               </div>
 
-              <div className="flex gap-2">
+              <div className="flex border border-gray-300 rounded-lg overflow-hidden">
                 <button
-                  onClick={() => setSelectedRegion('')}
-                  className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 font-medium transition-colors"
+                  type="button"
+                  onClick={() => setViewMode('grid')}
+                  className={`px-3 py-2 ${
+                    viewMode === 'grid'
+                      ? 'bg-primary-100 text-primary-700'
+                      : 'bg-white text-gray-700'
+                  }`}
                 >
-                  Changer de région
+                  Grille
                 </button>
-
-                <div className="flex border border-gray-300 rounded-lg overflow-hidden">
-                  <button
-                    type="button"
-                    onClick={() => setViewMode('grid')}
-                    className={`px-3 py-2 ${
-                      viewMode === 'grid'
-                        ? 'bg-primary-100 text-primary-700'
-                        : 'bg-white text-gray-700'
-                    }`}
-                  >
-                    Grille
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setViewMode('list')}
-                    className={`px-3 py-2 ${
-                      viewMode === 'list'
-                        ? 'bg-primary-100 text-primary-700'
-                        : 'bg-white text-gray-700'
-                    }`}
-                  >
-                    Liste
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  onClick={() => setViewMode('list')}
+                  className={`px-3 py-2 ${
+                    viewMode === 'list'
+                      ? 'bg-primary-100 text-primary-700'
+                      : 'bg-white text-gray-700'
+                  }`}
+                >
+                  Liste
+                </button>
               </div>
             </div>
 
-            <div className="mt-4 text-sm text-gray-600">
-              {filteredTests.length} test(s) et {filteredClusters.length} cluster(s) trouvé(s)
-              {searchQuery && ` pour "${searchQuery}"`}
-              {selectedRegion && ` dans la région ${selectedRegion}`}
-            </div>
+            {searchQuery && (
+              <div className="mt-4 text-sm text-gray-600">
+                {filteredTests.length} test(s) et {filteredClusters.length} cluster(s) trouvé(s) pour "{searchQuery}"
+              </div>
+            )}
           </div>
         )}
 
