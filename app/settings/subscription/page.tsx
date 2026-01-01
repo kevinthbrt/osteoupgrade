@@ -254,7 +254,7 @@ export default function SubscriptionPage() {
                   <div className="flex items-start gap-3">
                     <Check className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
                     <p className="text-sm text-gray-700">
-                      <strong>Testing 3D + export PDF</strong> : visualisation dynamique, tests orthopédiques et génération automatique de rapports.
+                      <strong>Tests orthopédiques + export PDF</strong> : fiches structurées, indications cliniques et documents prêts à partager.
                     </p>
                   </div>
                   <div className="flex items-start gap-3">
@@ -370,7 +370,7 @@ export default function SubscriptionPage() {
                 <div className="space-y-3">
                   <div className="flex items-start gap-3">
                     <Check className="h-5 w-5 text-yellow-600 flex-shrink-0 mt-0.5" />
-                    <p className="text-sm text-gray-700">Testing 3D avec PDF</p>
+                    <p className="text-sm text-gray-700">Tests orthopédiques avec PDF</p>
                   </div>
                   <div className="flex items-start gap-3">
                     <Check className="h-5 w-5 text-yellow-600 flex-shrink-0 mt-0.5" />

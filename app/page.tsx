@@ -7,7 +7,6 @@ import {
   ArrowRight,
   Box,
   FileText,
-  Download,
   MapPin,
   Clock,
   Zap
@@ -77,8 +76,8 @@ export default function LandingPage() {
               </h1>
               
               <p className="text-lg sm:text-xl text-slate-600 mb-8 leading-relaxed">
-                Module 3D des tests orthopédiques par région, guide diagnostique topographique, 
-                exports de sessions de testing et accès à un écosystème de formations pensé pour les thérapeutes manuels.
+                Bibliothèque de tests orthopédiques par région, guide diagnostique topographique,
+                e-learning ciblé et outils pratiques pour les thérapeutes manuels.
                 <strong> Tout ce dont tu as besoin au cabinet.</strong>
               </p>
               
@@ -104,7 +103,7 @@ export default function LandingPage() {
                 <div className="aspect-[16/10] flex flex-col items-center justify-center bg-gradient-to-br from-slate-50 to-white border-2 border-dashed border-slate-300 p-8">
                   <Box className="h-16 w-16 text-sky-500 mb-4" />
                   <h3 className="text-lg font-semibold text-slate-900 mb-2">Capture principale interface</h3>
-                  <p className="text-sm text-slate-600 text-center">Vue d&apos;ensemble de l&apos;application avec le module 3D épaule</p>
+                  <p className="text-sm text-slate-600 text-center">Vue d&apos;ensemble de l&apos;application et des modules cliniques</p>
                 </div>
               </div>
             </div>
@@ -160,20 +159,20 @@ export default function LandingPage() {
             </h2>
           </div>
 
-          {/* Feature 1: 3D Tests */}
+          {/* Feature 1: Tests orthopédiques */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center mb-24">
             <div>
-              <h3 className="text-3xl font-bold text-slate-900 mb-6">Tests orthopédiques en 3D</h3>
+              <h3 className="text-3xl font-bold text-slate-900 mb-6">Tests orthopédiques structurés</h3>
               <p className="text-lg text-slate-600 mb-6 leading-relaxed">
-                Visualise chaque test sur un modèle 3D interactif. Rotation, zoom et angles multiples 
-                pour comprendre parfaitement le positionnement et l&apos;exécution.
+                Accède à des fiches de tests complètes, classées par région, avec les indications,
+                les descriptions et les critères d&apos;interprétation essentiels.
               </p>
               <ul className="space-y-4">
                 {[
-                  'Modèles anatomiques haute qualité par région',
-                  'Descriptions détaillées de chaque test',
-                  'Critères d\'interprétation clairs',
-                  'Rotation 360° et zoom précis'
+                  'Classement clair par région anatomique',
+                  'Descriptions détaillées et indications',
+                  'Critères d\'interprétation structurés',
+                  'Sources cliniques et données utiles'
                 ].map((item, index) => (
                   <li key={index} className="flex items-center gap-3 text-slate-700">
                     <div className="w-6 h-6 bg-sky-500 rounded flex items-center justify-center flex-shrink-0">
@@ -187,8 +186,8 @@ export default function LandingPage() {
             <div className="rounded-2xl overflow-hidden shadow-xl border border-slate-200">
               <div className="aspect-[16/10] flex flex-col items-center justify-center bg-gradient-to-br from-slate-50 to-white border-2 border-dashed border-slate-300 p-8">
                 <Box className="h-16 w-16 text-sky-500 mb-4" />
-                <h3 className="text-lg font-semibold text-slate-900 mb-2">Module 3D tests</h3>
-                <p className="text-sm text-slate-600 text-center">Capture du module 3D avec un test orthopédique affiché</p>
+                <h3 className="text-lg font-semibold text-slate-900 mb-2">Bibliothèque de tests</h3>
+                <p className="text-sm text-slate-600 text-center">Exemple d&apos;une fiche de test orthopédique détaillée</p>
               </div>
             </div>
           </div>
@@ -226,20 +225,20 @@ export default function LandingPage() {
             </div>
           </div>
 
-          {/* Feature 3: Export */}
+          {/* Feature 3: Outils */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div>
-              <h3 className="text-3xl font-bold text-slate-900 mb-6">Export de sessions de testing</h3>
+              <h3 className="text-3xl font-bold text-slate-900 mb-6">Outils pratiques pour le cabinet</h3>
               <p className="text-lg text-slate-600 mb-6 leading-relaxed">
-                Trace ton raisonnement et exporte tes sessions de testing. Intègre facilement 
-                dans ton logiciel de gestion ou tes notes de consultation.
+                Prépare et partage des supports pour tes patients : fiches d&apos;exercices,
+                documents de communication et protocoles clairs à utiliser au quotidien.
               </p>
               <ul className="space-y-4">
                 {[
-                  'Historique complet de tes consultations',
-                  'Export PDF ou texte formaté',
-                  'Intégration avec tes outils existants',
-                  'Traçabilité de ton raisonnement clinique'
+                  'Bibliothèque d\'exercices par région',
+                  'Fiches patients personnalisables',
+                  'Modèles de documents professionnels',
+                  'Exports PDF prêts à partager'
                 ].map((item, index) => (
                   <li key={index} className="flex items-center gap-3 text-slate-700">
                     <div className="w-6 h-6 bg-sky-500 rounded flex items-center justify-center flex-shrink-0">
@@ -252,9 +251,9 @@ export default function LandingPage() {
             </div>
             <div className="rounded-2xl overflow-hidden shadow-xl border border-slate-200">
               <div className="aspect-[16/10] flex flex-col items-center justify-center bg-gradient-to-br from-slate-50 to-white border-2 border-dashed border-slate-300 p-8">
-                <Download className="h-16 w-16 text-sky-500 mb-4" />
-                <h3 className="text-lg font-semibold text-slate-900 mb-2">Export de session</h3>
-                <p className="text-sm text-slate-600 text-center">Capture d&apos;une session de testing avec option d&apos;export</p>
+                <FileText className="h-16 w-16 text-sky-500 mb-4" />
+                <h3 className="text-lg font-semibold text-slate-900 mb-2">Documents patients</h3>
+                <p className="text-sm text-slate-600 text-center">Exemple de fiches d&apos;exercices et documents prêts à partager</p>
               </div>
             </div>
           </div>
@@ -286,12 +285,12 @@ export default function LandingPage() {
               {
                 number: '02',
                 title: 'Réalise les tests',
-                description: 'Visualise les tests en 3D, lis les descriptions et note les résultats au fur et à mesure de ta consultation.'
+                description: 'Accède aux tests et aux contenus associés pour structurer la consultation.'
               },
               {
                 number: '03',
-                title: 'Exporte et trace',
-                description: 'Exporte ta session de testing pour l\'intégrer dans ton logiciel de gestion ou tes notes de consultation.'
+                title: 'Télécharge les supports',
+                description: 'Récupère les fiches d\'exercices et documents utiles pour tes patients.'
               }
             ].map((step, index) => (
               <div key={index} className="bg-white/5 border border-white/10 rounded-2xl p-8 hover:bg-white/10 transition-all">
@@ -334,10 +333,10 @@ export default function LandingPage() {
               <ul className="space-y-4 mb-8">
                 {[
                   'Accès complet au module épaule',
-                  'Tests 3D interactifs',
+                  'Bibliothèque de tests orthopédiques',
                   'Arbres décisionnels épaule',
                   'Descriptions détaillées',
-                  'Exports de sessions',
+                  'Outils essentiels pour le cabinet',
                   'Toutes les fonctionnalités sur l\'épaule'
                 ].map((feature, index) => (
                   <li key={index} className="flex items-start gap-3 text-slate-700">
@@ -369,10 +368,10 @@ export default function LandingPage() {
               <ul className="space-y-4 mb-8">
                 {[
                   'Tous les modules anatomiques',
-                  'Tests 3D illimités toutes régions',
+                  'Bibliothèque complète de tests orthopédiques',
                   'Arbres décisionnels complets',
                   'Guide diagnostique topographique',
-                  'Exports illimités',
+                  'Exports d\'exercices et documents',
                   'Formations en ligne incluses',
                   'Support prioritaire'
                 ].map((feature, index) => (
