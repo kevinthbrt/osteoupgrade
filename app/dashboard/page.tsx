@@ -248,7 +248,27 @@ export default function Dashboard() {
                 Développez vos compétences en ostéopathie avec nos modules interactifs
               </p>
 
-              <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-4 mb-6">
+              {/* Search Bar */}
+              <form onSubmit={handleSearch} className="relative max-w-2xl mb-6">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Rechercher une technique, pathologie, cours, test..."
+                  className="w-full pl-11 pr-6 py-3 rounded-xl bg-white/95 backdrop-blur-sm border-2 border-white/50 text-slate-900 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-400/50 focus:border-white transition-all shadow-lg text-sm"
+                />
+                {searchQuery && (
+                  <button
+                    type="submit"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 px-4 py-1.5 bg-gradient-to-r from-sky-500 to-blue-600 text-white rounded-lg text-sm font-semibold hover:from-sky-600 hover:to-blue-700 transition-all shadow-lg"
+                  >
+                    Rechercher
+                  </button>
+                )}
+              </form>
+
+              <div className="mb-6">
                 <div className="rounded-3xl bg-gradient-to-br from-purple-600 via-fuchsia-600 to-indigo-600 p-6 shadow-2xl border border-white/10">
                   <div className="flex items-start justify-between text-white mb-4">
                     <div>
@@ -274,7 +294,65 @@ export default function Dashboard() {
                     />
                   </div>
 
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <div className="flex items-center justify-between mt-5 mb-3">
+                    <div className="flex items-center gap-2 text-sm font-semibold text-purple-100">
+                      <Award className="h-4 w-4 text-amber-200" />
+                      Badges débloqués
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => router.push('/stats')}
+                      className="text-xs font-semibold text-purple-100 hover:text-white"
+                    >
+                      Voir tout
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {badges.length > 0 ? (
+                      badges.slice(0, 4).map((badge, index) => {
+                        const BadgeIcon = badge.icon ? badgeIconMap[badge.icon] : null
+                        const colorClasses = [
+                          'bg-emerald-300/20 text-emerald-100',
+                          'bg-sky-300/20 text-sky-100',
+                          'bg-indigo-300/20 text-indigo-100',
+                          'bg-amber-300/20 text-amber-100',
+                          'bg-rose-300/20 text-rose-100'
+                        ]
+                        const colorClass = colorClasses[index % colorClasses.length]
+                        return (
+                          <div
+                            key={badge.id}
+                            className="flex items-center gap-3 rounded-2xl bg-white/10 px-3 py-2"
+                          >
+                            <div className={`flex h-9 w-9 items-center justify-center rounded-xl ${colorClass}`}>
+                              {BadgeIcon ? (
+                                <BadgeIcon className="h-4 w-4" />
+                              ) : (
+                                <span className="text-base">🏅</span>
+                              )}
+                            </div>
+                            <div className="min-w-0">
+                              <div className="text-xs font-semibold text-white truncate">{badge.name}</div>
+                              <div className="text-[11px] text-purple-100 truncate">
+                                {badge.description || 'Badge débloqué'}
+                              </div>
+                            </div>
+                          </div>
+                        )
+                      })
+                    ) : (
+                      <div className="text-xs text-purple-100">Aucun badge débloqué pour le moment.</div>
+                    )}
+                  </div>
+
+                  {stats.unlockedAchievements > badges.length && (
+                    <div className="mt-2 text-[11px] text-purple-100 text-right">
+                      +{stats.unlockedAchievements - badges.length} autres badges débloqués
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-5">
                     <div className="rounded-2xl bg-white/15 p-3 text-white">
                       <div className="flex items-center gap-2 text-xs text-purple-100">
                         <Flame className="h-4 w-4 text-orange-200" />
@@ -309,87 +387,7 @@ export default function Dashboard() {
                     </div>
                   </div>
                 </div>
-
-                <div className="rounded-3xl bg-white p-5 shadow-xl border border-slate-200">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-2 text-slate-900 font-semibold">
-                      <Award className="h-4 w-4 text-amber-500" />
-                      Badges débloqués
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => router.push('/stats')}
-                      className="text-xs font-semibold text-slate-500 hover:text-slate-700"
-                    >
-                      Voir tout
-                    </button>
-                  </div>
-
-                  <div className="space-y-3">
-                    {badges.length > 0 ? (
-                      badges.slice(0, 5).map((badge, index) => {
-                        const BadgeIcon = badge.icon ? badgeIconMap[badge.icon] : null
-                        const colorClasses = [
-                          'bg-emerald-50 text-emerald-600',
-                          'bg-sky-50 text-sky-600',
-                          'bg-indigo-50 text-indigo-600',
-                          'bg-amber-50 text-amber-600',
-                          'bg-rose-50 text-rose-600'
-                        ]
-                        const colorClass = colorClasses[index % colorClasses.length]
-                        return (
-                          <div
-                            key={badge.id}
-                            className="flex items-center gap-3 rounded-2xl bg-slate-50 px-3 py-2"
-                          >
-                            <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${colorClass}`}>
-                              {BadgeIcon ? (
-                                <BadgeIcon className="h-5 w-5" />
-                              ) : (
-                                <span className="text-lg">🏅</span>
-                              )}
-                            </div>
-                            <div className="min-w-0">
-                              <div className="text-sm font-semibold text-slate-900 truncate">{badge.name}</div>
-                              <div className="text-xs text-slate-500 truncate">
-                                {badge.description || 'Badge débloqué'}
-                              </div>
-                            </div>
-                          </div>
-                        )
-                      })
-                    ) : (
-                      <div className="text-sm text-slate-500">Aucun badge débloqué pour le moment.</div>
-                    )}
-                  </div>
-
-                  {stats.unlockedAchievements > badges.length && (
-                    <div className="mt-3 text-xs text-slate-500 text-center">
-                      +{stats.unlockedAchievements - badges.length} autres badges débloqués
-                    </div>
-                  )}
-                </div>
               </div>
-
-              {/* Search Bar */}
-              <form onSubmit={handleSearch} className="relative max-w-2xl">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Rechercher une technique, pathologie, cours, test..."
-                  className="w-full pl-11 pr-6 py-3 rounded-xl bg-white/95 backdrop-blur-sm border-2 border-white/50 text-slate-900 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-400/50 focus:border-white transition-all shadow-lg text-sm"
-                />
-                {searchQuery && (
-                  <button
-                    type="submit"
-                    className="absolute right-2 top-1/2 -translate-y-1/2 px-4 py-1.5 bg-gradient-to-r from-sky-500 to-blue-600 text-white rounded-lg text-sm font-semibold hover:from-sky-600 hover:to-blue-700 transition-all shadow-lg"
-                  >
-                    Rechercher
-                  </button>
-                )}
-              </form>
             </div>
           </div>
         </div>

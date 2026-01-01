@@ -33,6 +33,12 @@ function SearchPageContent() {
   const searchParams = useSearchParams()
   const query = searchParams.get('q') || ''
 
+  const normalizeSearchValue = (value: string) =>
+    value
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+
   const [searchQuery, setSearchQuery] = useState(query)
   const [results, setResults] = useState<SearchResult[]>([])
   const [loading, setLoading] = useState(false)
@@ -52,7 +58,13 @@ function SearchPageContent() {
     const allResults: SearchResult[] = []
 
     try {
-      const searchValue = q.trim()
+      const rawSearchValue = q.trim()
+      const normalizedSearchValue = normalizeSearchValue(rawSearchValue)
+      const searchVariants = Array.from(new Set([rawSearchValue, normalizedSearchValue].filter(Boolean)))
+      const buildSearchOr = (columns: string[]) =>
+        searchVariants
+          .flatMap((value) => columns.map((column) => `${column}.ilike.%${value}%`))
+          .join(',')
 
       const [
         formationsResponse,
@@ -68,49 +80,49 @@ function SearchPageContent() {
         supabase
           .from('elearning_formations')
           .select('id, title, description')
-          .or(`title.ilike.%${searchValue}%,description.ilike.%${searchValue}%`)
+          .or(buildSearchOr(['title', 'description']))
           .limit(10),
         supabase
           .from('elearning_chapters')
           .select('id, title, formation_id')
-          .or(`title.ilike.%${searchValue}%`)
+          .or(buildSearchOr(['title']))
           .limit(10),
         supabase
           .from('elearning_subparts')
           .select('id, title, chapter_id')
-          .or(`title.ilike.%${searchValue}%`)
+          .or(buildSearchOr(['title']))
           .limit(10),
         supabase
           .from('pathologies')
           .select('id, name, description, region')
-          .or(`name.ilike.%${searchValue}%,description.ilike.%${searchValue}%,region.ilike.%${searchValue}%`)
+          .or(buildSearchOr(['name', 'description', 'region']))
           .limit(10),
         supabase
           .from('orthopedic_tests')
           .select('id, name, description, category')
-          .or(`name.ilike.%${searchValue}%,description.ilike.%${searchValue}%,category.ilike.%${searchValue}%`)
+          .or(buildSearchOr(['name', 'description', 'category']))
           .limit(10),
         supabase
           .from('topographic_zones')
           .select('id, name, description, region')
-          .or(`name.ilike.%${searchValue}%,description.ilike.%${searchValue}%,region.ilike.%${searchValue}%`)
+          .or(buildSearchOr(['name', 'description', 'region']))
           .limit(10),
         supabase
           .from('practice_videos')
           .select('id, title, description, region')
-          .or(`title.ilike.%${searchValue}%,description.ilike.%${searchValue}%,region.ilike.%${searchValue}%`)
+          .or(buildSearchOr(['title', 'description', 'region']))
           .limit(10),
         supabase
           .from('quizzes')
           .select('id, title, description, theme')
           .eq('is_active', true)
-          .or(`title.ilike.%${searchValue}%,description.ilike.%${searchValue}%,theme.ilike.%${searchValue}%`)
+          .or(buildSearchOr(['title', 'description', 'theme']))
           .limit(10),
         supabase
           .from('clinical_cases')
           .select('id, title, description, region')
           .eq('is_active', true)
-          .or(`title.ilike.%${searchValue}%,description.ilike.%${searchValue}%,region.ilike.%${searchValue}%`)
+          .or(buildSearchOr(['title', 'description', 'region']))
           .limit(10)
       ])
 
