@@ -248,131 +248,8 @@ export default function Dashboard() {
                 Développez vos compétences en ostéopathie avec nos modules interactifs
               </p>
 
-              <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-4 mb-6">
-                <div className="rounded-3xl bg-gradient-to-br from-purple-600 via-fuchsia-600 to-indigo-600 p-6 shadow-2xl border border-white/10">
-                  <div className="flex items-start justify-between text-white mb-4">
-                    <div>
-                      <div className="flex items-center gap-2 text-sm font-semibold text-purple-100">
-                        <Trophy className="h-4 w-4 text-yellow-300" />
-                        Progression globale
-                      </div>
-                      <div className="text-3xl font-bold mt-1">Niveau {stats.level}</div>
-                      <div className="text-sm text-purple-100">
-                        {stats.totalXp % 500}/{500} XP jusqu'au niveau {stats.level + 1}
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-3xl font-bold">{stats.totalXp}</div>
-                      <div className="text-xs text-purple-100">XP total</div>
-                    </div>
-                  </div>
-
-                  <div className="h-3 w-full rounded-full bg-white/20 overflow-hidden mb-5">
-                    <div
-                      className="h-full rounded-full bg-gradient-to-r from-yellow-300 to-amber-400"
-                      style={{ width: `${Math.min((stats.totalXp % 500) / 500 * 100, 100)}%` }}
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                    <div className="rounded-2xl bg-white/15 p-3 text-white">
-                      <div className="flex items-center gap-2 text-xs text-purple-100">
-                        <Flame className="h-4 w-4 text-orange-200" />
-                        Série
-                      </div>
-                      <div className="text-2xl font-bold mt-1">{stats.currentStreak}</div>
-                      <div className="text-xs text-purple-100">jours</div>
-                    </div>
-                    <div className="rounded-2xl bg-white/15 p-3 text-white">
-                      <div className="flex items-center gap-2 text-xs text-purple-100">
-                        <LogIn className="h-4 w-4 text-emerald-200" />
-                        Connexions
-                      </div>
-                      <div className="text-2xl font-bold mt-1">{stats.totalLogins}</div>
-                      <div className="text-xs text-purple-100">total</div>
-                    </div>
-                    <div className="rounded-2xl bg-white/15 p-3 text-white">
-                      <div className="flex items-center gap-2 text-xs text-purple-100">
-                        <GraduationCap className="h-4 w-4 text-sky-200" />
-                        E-learning
-                      </div>
-                      <div className="text-2xl font-bold mt-1">{stats.totalElearningCompleted}</div>
-                      <div className="text-xs text-purple-100">leçons</div>
-                    </div>
-                    <div className="rounded-2xl bg-white/15 p-3 text-white">
-                      <div className="flex items-center gap-2 text-xs text-purple-100">
-                        <Zap className="h-4 w-4 text-yellow-200" />
-                        Activité
-                      </div>
-                      <div className="text-2xl font-bold mt-1">{stats.totalPracticeViewed + stats.totalTestingViewed}</div>
-                      <div className="text-xs text-purple-100">actions</div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="rounded-3xl bg-white p-5 shadow-xl border border-slate-200">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-2 text-slate-900 font-semibold">
-                      <Award className="h-4 w-4 text-amber-500" />
-                      Badges débloqués
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => router.push('/stats')}
-                      className="text-xs font-semibold text-slate-500 hover:text-slate-700"
-                    >
-                      Voir tout
-                    </button>
-                  </div>
-
-                  <div className="space-y-3">
-                    {badges.length > 0 ? (
-                      badges.slice(0, 5).map((badge, index) => {
-                        const BadgeIcon = badge.icon ? badgeIconMap[badge.icon] : null
-                        const colorClasses = [
-                          'bg-emerald-50 text-emerald-600',
-                          'bg-sky-50 text-sky-600',
-                          'bg-indigo-50 text-indigo-600',
-                          'bg-amber-50 text-amber-600',
-                          'bg-rose-50 text-rose-600'
-                        ]
-                        const colorClass = colorClasses[index % colorClasses.length]
-                        return (
-                          <div
-                            key={badge.id}
-                            className="flex items-center gap-3 rounded-2xl bg-slate-50 px-3 py-2"
-                          >
-                            <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${colorClass}`}>
-                              {BadgeIcon ? (
-                                <BadgeIcon className="h-5 w-5" />
-                              ) : (
-                                <span className="text-lg">🏅</span>
-                              )}
-                            </div>
-                            <div className="min-w-0">
-                              <div className="text-sm font-semibold text-slate-900 truncate">{badge.name}</div>
-                              <div className="text-xs text-slate-500 truncate">
-                                {badge.description || 'Badge débloqué'}
-                              </div>
-                            </div>
-                          </div>
-                        )
-                      })
-                    ) : (
-                      <div className="text-sm text-slate-500">Aucun badge débloqué pour le moment.</div>
-                    )}
-                  </div>
-
-                  {stats.unlockedAchievements > badges.length && (
-                    <div className="mt-3 text-xs text-slate-500 text-center">
-                      +{stats.unlockedAchievements - badges.length} autres badges débloqués
-                    </div>
-                  )}
-                </div>
-              </div>
-
               {/* Search Bar */}
-              <form onSubmit={handleSearch} className="relative max-w-2xl">
+              <form onSubmit={handleSearch} className="relative max-w-2xl mb-4">
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                 <input
                   type="text"
@@ -390,6 +267,130 @@ export default function Dashboard() {
                   </button>
                 )}
               </form>
+
+              {/* Progression & Badges Section */}
+              <div className="rounded-3xl bg-gradient-to-br from-purple-600 via-fuchsia-600 to-indigo-600 p-6 shadow-2xl border border-white/10">
+                <div className="flex items-start justify-between text-white mb-4">
+                  <div>
+                    <div className="flex items-center gap-2 text-sm font-semibold text-purple-100">
+                      <Trophy className="h-4 w-4 text-yellow-300" />
+                      Progression globale
+                    </div>
+                    <div className="text-3xl font-bold mt-1">Niveau {stats.level}</div>
+                    <div className="text-sm text-purple-100">
+                      {stats.totalXp % 500}/{500} XP jusqu'au niveau {stats.level + 1}
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-3xl font-bold">{stats.totalXp}</div>
+                    <div className="text-xs text-purple-100">XP total</div>
+                  </div>
+                </div>
+
+                <div className="h-3 w-full rounded-full bg-white/20 overflow-hidden mb-5">
+                  <div
+                    className="h-full rounded-full bg-gradient-to-r from-yellow-300 to-amber-400"
+                    style={{ width: `${Math.min((stats.totalXp % 500) / 500 * 100, 100)}%` }}
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
+                  <div className="rounded-2xl bg-white/15 p-3 text-white">
+                    <div className="flex items-center gap-2 text-xs text-purple-100">
+                      <Flame className="h-4 w-4 text-orange-200" />
+                      Série
+                    </div>
+                    <div className="text-2xl font-bold mt-1">{stats.currentStreak}</div>
+                    <div className="text-xs text-purple-100">jours</div>
+                  </div>
+                  <div className="rounded-2xl bg-white/15 p-3 text-white">
+                    <div className="flex items-center gap-2 text-xs text-purple-100">
+                      <LogIn className="h-4 w-4 text-emerald-200" />
+                      Connexions
+                    </div>
+                    <div className="text-2xl font-bold mt-1">{stats.totalLogins}</div>
+                    <div className="text-xs text-purple-100">total</div>
+                  </div>
+                  <div className="rounded-2xl bg-white/15 p-3 text-white">
+                    <div className="flex items-center gap-2 text-xs text-purple-100">
+                      <GraduationCap className="h-4 w-4 text-sky-200" />
+                      E-learning
+                    </div>
+                    <div className="text-2xl font-bold mt-1">{stats.totalElearningCompleted}</div>
+                    <div className="text-xs text-purple-100">leçons</div>
+                  </div>
+                  <div className="rounded-2xl bg-white/15 p-3 text-white">
+                    <div className="flex items-center gap-2 text-xs text-purple-100">
+                      <Zap className="h-4 w-4 text-yellow-200" />
+                      Activité
+                    </div>
+                    <div className="text-2xl font-bold mt-1">{stats.totalPracticeViewed + stats.totalTestingViewed}</div>
+                    <div className="text-xs text-purple-100">actions</div>
+                  </div>
+                </div>
+
+                {/* Badges Section Inside Purple Block */}
+                <div className="pt-4 border-t border-white/20">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2 text-white font-semibold">
+                      <Award className="h-4 w-4 text-yellow-300" />
+                      Badges débloqués
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => router.push('/stats')}
+                      className="text-xs font-semibold text-purple-100 hover:text-white"
+                    >
+                      Voir tout
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+                    {badges.length > 0 ? (
+                      badges.slice(0, 6).map((badge, index) => {
+                        const BadgeIcon = badge.icon ? badgeIconMap[badge.icon] : null
+                        const colorClasses = [
+                          'bg-emerald-50 text-emerald-600',
+                          'bg-sky-50 text-sky-600',
+                          'bg-indigo-50 text-indigo-600',
+                          'bg-amber-50 text-amber-600',
+                          'bg-rose-50 text-rose-600',
+                          'bg-purple-50 text-purple-600'
+                        ]
+                        const colorClass = colorClasses[index % colorClasses.length]
+                        return (
+                          <div
+                            key={badge.id}
+                            className="flex items-center gap-2 rounded-xl bg-white/95 px-3 py-2"
+                          >
+                            <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${colorClass} flex-shrink-0`}>
+                              {BadgeIcon ? (
+                                <BadgeIcon className="h-4 w-4" />
+                              ) : (
+                                <span className="text-sm">🏅</span>
+                              )}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <div className="text-xs font-semibold text-slate-900 truncate">{badge.name}</div>
+                              <div className="text-xs text-slate-500 truncate">
+                                {badge.description || 'Badge débloqué'}
+                              </div>
+                            </div>
+                          </div>
+                        )
+                      })
+                    ) : (
+                      <div className="col-span-full text-sm text-purple-100">Aucun badge débloqué pour le moment.</div>
+                    )}
+                  </div>
+
+                  {stats.unlockedAchievements > badges.length && (
+                    <div className="mt-3 text-xs text-purple-100 text-center">
+                      +{stats.unlockedAchievements - badges.length} autres badges débloqués
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
         </div>
