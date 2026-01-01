@@ -96,7 +96,8 @@ export default function AuthPage() {
                 alt="OsteoUpgrade Logo"
                 width={128}
                 height={128}
-                className="h-32 w-32"
+                className="h-32 w-32 object-contain"
+                style={{ objectPosition: 'center' }}
               />
             </div>
             <h1 className="text-3xl font-bold text-center">OsteoUpgrade</h1>
