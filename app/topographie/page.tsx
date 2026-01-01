@@ -378,7 +378,7 @@ export default function TopographiePage() {
                   {regions.map((region) => (
                     <button
                       key={region}
-                      onClick={() => setSelectedRegion(region)}
+                      onClick={() => setSelectedRegion(region as AnatomicalRegion)}
                       className={`px-4 py-3 rounded-lg font-medium transition-all text-sm ${
                         selectedRegion === region
                           ? 'bg-rose-600 text-white shadow-md'
