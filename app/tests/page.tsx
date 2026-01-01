@@ -35,6 +35,44 @@ const BODY_REGIONS = {
   'Général': ['Neurologique', 'Vasculaire', 'Systémique']
 }
 
+// Liste des régions pour le filtre en grille
+const REGIONS_LIST = [
+  { value: 'Cervical', label: 'Cervical', category: 'Tête et Cou' },
+  { value: 'ATM', label: 'ATM', category: 'Tête et Cou' },
+  { value: 'Crâne', label: 'Crâne', category: 'Tête et Cou' },
+  { value: 'Épaule', label: 'Épaule', category: 'Membre Supérieur' },
+  { value: 'Coude', label: 'Coude', category: 'Membre Supérieur' },
+  { value: 'Poignet', label: 'Poignet', category: 'Membre Supérieur' },
+  { value: 'Main', label: 'Main', category: 'Membre Supérieur' },
+  { value: 'Thoracique', label: 'Thoracique', category: 'Tronc' },
+  { value: 'Lombaire', label: 'Lombaire', category: 'Tronc' },
+  { value: 'Sacro-iliaque', label: 'Sacro-iliaque', category: 'Tronc' },
+  { value: 'Côtes', label: 'Côtes', category: 'Tronc' },
+  { value: 'Hanche', label: 'Hanche', category: 'Membre Inférieur' },
+  { value: 'Genou', label: 'Genou', category: 'Membre Inférieur' },
+  { value: 'Cheville', label: 'Cheville', category: 'Membre Inférieur' },
+  { value: 'Pied', label: 'Pied', category: 'Membre Inférieur' },
+  { value: 'Neurologique', label: 'Neurologique', category: 'Général' },
+  { value: 'Vasculaire', label: 'Vasculaire', category: 'Général' },
+  { value: 'Systémique', label: 'Systémique', category: 'Général' }
+]
+
+// Fonction pour obtenir l'ID YouTube et générer une vignette
+const getYouTubeThumbnail = (url: string): string | null => {
+  if (!url) return null
+
+  // Extraction de l'ID YouTube
+  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/
+  const match = url.match(regExp)
+
+  if (match && match[2].length === 11) {
+    // Retourner l'URL de la vignette HD
+    return `https://img.youtube.com/vi/${match[2]}/hqdefault.jpg`
+  }
+
+  return null
+}
+
 const CLUSTER_INITIAL_FORM = {
   name: '',
   region: '',
@@ -59,7 +97,7 @@ export default function ImprovedTestsPage() {
 
   const [profile, setProfile] = useState<any>(null)
   const [searchQuery, setSearchQuery] = useState('')
-  const [selectedRegion, setSelectedRegion] = useState<string>('all')
+  const [selectedRegion, setSelectedRegion] = useState<string>('')
   const [expandedRegions, setExpandedRegions] = useState<string[]>(
     Object.keys(BODY_REGIONS)
   )
@@ -74,7 +112,7 @@ export default function ImprovedTestsPage() {
   const [clusterForm, setClusterForm] = useState({ ...CLUSTER_INITIAL_FORM })
   const [clusterSelectedTests, setClusterSelectedTests] = useState<string[]>([])
   const [clusterSearchQuery, setClusterSearchQuery] = useState('')
-  const [clusterRegionFilter, setClusterRegionFilter] = useState('all')
+  const [clusterRegionFilter, setClusterRegionFilter] = useState('')
 
   const [loading, setLoading] = useState(true)
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
@@ -215,7 +253,7 @@ export default function ImprovedTestsPage() {
       )
     }
 
-    if (selectedRegion !== 'all') {
+    if (selectedRegion) {
       t = t.filter((test) => test.region === selectedRegion)
       c = c.filter((cluster) => cluster.region === selectedRegion)
     }
@@ -228,7 +266,7 @@ export default function ImprovedTestsPage() {
     setClusterForm({ ...CLUSTER_INITIAL_FORM })
     setClusterSelectedTests([])
     setClusterSearchQuery('')
-    setClusterRegionFilter('all')
+    setClusterRegionFilter('')
   }
 
   const toggleTestInCluster = (testId: string) => {
@@ -238,7 +276,7 @@ export default function ImprovedTestsPage() {
   }
 
   const clusterFilteredTests = tests.filter((test) => {
-    if (clusterRegionFilter !== 'all' && test.region !== clusterRegionFilter) return false
+    if (clusterRegionFilter && test.region !== clusterRegionFilter) return false
 
     if (clusterSearchQuery) {
       const q = clusterSearchQuery.toLowerCase()
@@ -425,76 +463,135 @@ export default function ImprovedTestsPage() {
 
   return (
     <AuthLayout>
-      <div className="space-y-6">
+      <div className="min-h-screen pb-12">
         {/* Header */}
-        <div className="bg-white rounded-xl shadow-sm p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">Tests orthopédiques</h1>
-              <p className="mt-1 text-gray-600">
-                Tests et clusters organisés par grandes régions anatomiques
-              </p>
-            </div>
-            {profile?.role === 'admin' && (
-              <div className="flex gap-2">
-                <button
-                  onClick={() => router.push('/diagnostics')}
-                  className="bg-purple-100 hover:bg-purple-200 text-purple-700 px-4 py-2 rounded-lg font-medium transition-colors flex items-center space-x-2"
-                  title="Gérer les diagnostics (dossiers avec tests)"
-                >
-                  <FolderOpen className="h-4 w-4" />
-                  <span>Diagnostics</span>
-                </button>
-                <button
-                  onClick={() => router.push('/admin/tests/new')}
-                  className="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center space-x-2"
-                >
-                  <Plus className="h-4 w-4" />
-                  <span>Nouveau test</span>
-                </button>
-                <button
-                  onClick={() => setClusterModalOpen(true)}
-                  className="bg-primary-100 hover:bg-primary-200 text-primary-700 px-4 py-2 rounded-lg font-medium transition-colors flex items-center space-x-2"
-                >
-                  <Layers className="h-4 w-4" />
-                  <span>Nouveau cluster</span>
-                </button>
+        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-blue-600 via-primary-600 to-purple-700 text-white mb-8 shadow-2xl">
+          <div className="absolute inset-0 bg-grid-white/[0.02] bg-[size:60px_60px]" />
+          <div className="absolute top-0 right-0 w-96 h-96 bg-purple-500/30 rounded-full blur-3xl" />
+
+          <div className="relative px-6 py-8 md:px-10 md:py-10">
+            <button
+              onClick={() => router.push('/dashboard')}
+              className="text-sm text-blue-100 hover:text-white mb-4 flex items-center gap-2"
+            >
+              ← Retour au dashboard
+            </button>
+
+            <div className="max-w-4xl">
+              <div className="flex items-start justify-between">
+                <div>
+                  <h1 className="text-3xl md:text-4xl font-bold mb-3 bg-clip-text text-transparent bg-gradient-to-r from-white to-blue-100">
+                    Tests orthopédiques
+                  </h1>
+
+                  <p className="text-base md:text-lg text-blue-100 mb-6 max-w-2xl">
+                    Tests et clusters organisés par grandes régions anatomiques pour un diagnostic précis
+                  </p>
+                </div>
+
+                {profile?.role === 'admin' && (
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => router.push('/diagnostics')}
+                      className="px-4 py-2 bg-white/10 hover:bg-white/20 backdrop-blur-sm text-white rounded-lg font-medium transition-colors flex items-center space-x-2 border border-white/20"
+                      title="Gérer les diagnostics"
+                    >
+                      <FolderOpen className="h-4 w-4" />
+                      <span>Diagnostics</span>
+                    </button>
+                    <button
+                      onClick={() => router.push('/admin/tests/new')}
+                      className="px-6 py-3 bg-white text-primary-600 rounded-xl hover:bg-blue-50 flex items-center gap-2 font-semibold shadow-lg transition-colors"
+                    >
+                      <Plus className="h-5 w-5" />
+                      Nouveau test
+                    </button>
+                    <button
+                      onClick={() => setClusterModalOpen(true)}
+                      className="px-4 py-2 bg-white/10 hover:bg-white/20 backdrop-blur-sm text-white rounded-lg font-medium transition-colors flex items-center space-x-2 border border-white/20"
+                    >
+                      <Layers className="h-4 w-4" />
+                      <span>Nouveau cluster</span>
+                    </button>
+                  </div>
+                )}
               </div>
-            )}
+            </div>
           </div>
         </div>
 
-        {/* Search + filtres */}
-        <div className="bg-white rounded-xl shadow-sm p-4">
-          <div className="flex flex-col lg:flex-row gap-4">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Rechercher un test ou un cluster (nom, description, indication...)"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-              />
+        <div className="space-y-6">
+        {/* Grille de sélection des zones anatomiques */}
+        {!selectedRegion ? (
+          <div className="bg-white rounded-xl shadow-sm p-6">
+            <div className="mb-4">
+              <h2 className="text-lg font-semibold text-gray-900 mb-2">Sélectionnez une zone anatomique</h2>
+              <p className="text-sm text-gray-600">Cliquez sur une région pour afficher les tests et clusters associés</p>
             </div>
 
-            <div className="flex gap-2">
-              <select
-                value={selectedRegion}
-                onChange={(e) => setSelectedRegion(e.target.value)}
-                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-              >
-                <option value="all">Toutes les régions</option>
-                {Object.entries(BODY_REGIONS).map(([category, regions]) => (
-                  <optgroup key={category} label={category}>
+            {/* Grille de régions organisées par catégorie */}
+            <div className="space-y-6">
+              {Object.entries(BODY_REGIONS).map(([category, regions]) => (
+                <div key={category}>
+                  <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                    {getRegionIcon(category)}
+                    {category}
+                  </h3>
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3">
                     {regions.map((region) => (
-                      <option key={region} value={region}>
+                      <button
+                        key={region}
+                        onClick={() => setSelectedRegion(region)}
+                        className="px-4 py-3 rounded-lg font-medium transition-all text-sm bg-gray-50 text-gray-700 hover:bg-gray-100 border border-gray-200 hover:border-primary-300 hover:shadow-md"
+                      >
                         {region}
-                      </option>
+                      </button>
                     ))}
-                  </optgroup>
-                ))}
-              </select>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <div className="bg-gradient-to-r from-primary-50 to-primary-100 rounded-xl shadow-sm p-4 border-2 border-primary-200">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg shadow-md">
+                  {getRegionIcon(
+                    Object.entries(BODY_REGIONS).find(([_, regions]) =>
+                      regions.includes(selectedRegion)
+                    )?.[0] || ''
+                  )}
+                  <span className="font-semibold">{selectedRegion}</span>
+                </div>
+                <div className="text-sm text-gray-700">
+                  <span className="font-medium">{filteredTests.length}</span> test(s) • <span className="font-medium">{filteredClusters.length}</span> cluster(s)
+                </div>
+              </div>
+              <button
+                onClick={() => setSelectedRegion('')}
+                className="px-4 py-2 bg-white border-2 border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 hover:border-gray-400 font-medium transition-all shadow-sm"
+              >
+                Changer de région
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Search + filtres - Affiché seulement si une région est sélectionnée */}
+        {selectedRegion && (
+          <div className="bg-white rounded-xl shadow-sm p-4">
+            <div className="flex flex-col lg:flex-row gap-4">
+              <div className="flex-1 relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Rechercher un test ou un cluster (nom, description, indication...)"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                />
+              </div>
 
               <div className="flex border border-gray-300 rounded-lg overflow-hidden">
                 <button
@@ -521,17 +618,23 @@ export default function ImprovedTestsPage() {
                 </button>
               </div>
             </div>
-          </div>
 
-          <div className="mt-4 text-sm text-gray-600">
-            {filteredTests.length} test(s) et {filteredClusters.length} cluster(s) trouvé(s)
-            {searchQuery && ` pour "${searchQuery}"`}
-            {selectedRegion !== 'all' && ` dans la région ${selectedRegion}`}
+            {searchQuery && (
+              <div className="mt-4 text-sm text-gray-600">
+                {filteredTests.length} test(s) et {filteredClusters.length} cluster(s) trouvé(s) pour "{searchQuery}"
+              </div>
+            )}
           </div>
-        </div>
+        )}
 
         {/* Liste par catégorie */}
-        {filteredTests.length === 0 && filteredClusters.length === 0 ? (
+        {!selectedRegion ? (
+          <div className="bg-white rounded-xl shadow-sm p-12 text-center">
+            <Clipboard className="h-12 w-12 text-primary-400 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">Bienvenue dans le module Tests</h3>
+            <p className="text-gray-600">Sélectionnez une zone anatomique ci-dessus pour commencer</p>
+          </div>
+        ) : filteredTests.length === 0 && filteredClusters.length === 0 ? (
           <div className="bg-white rounded-xl shadow-sm p-12 text-center">
             <Clipboard className="h-12 w-12 text-gray-400 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">Aucun élément trouvé</h3>
@@ -758,21 +861,38 @@ export default function ImprovedTestsPage() {
                           </h3>
                           {viewMode === 'grid' ? (
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                              {categoryTests.map((test) => (
-                                <div
-                                  key={test.id}
-                                  className="border border-gray-200 rounded-lg hover:shadow-md transition-all cursor-pointer"
-                                  onClick={() => handleTestClick(test)}
-                                >
-                                  <div className="p-4">
-                                    <div className="flex items-start justify-between mb-1">
-                                      <h3 className="font-semibold text-gray-900">
-                                        {test.name}
-                                      </h3>
-                                      {test.video_url && (
-                                        <PlayCircle className="h-5 w-5 text-primary-600 flex-shrink-0" />
-                                      )}
-                                    </div>
+                              {categoryTests.map((test) => {
+                                const thumbnail = getYouTubeThumbnail(test.video_url)
+
+                                return (
+                                  <div
+                                    key={test.id}
+                                    className="border border-gray-200 rounded-lg hover:shadow-md transition-all cursor-pointer overflow-hidden"
+                                    onClick={() => handleTestClick(test)}
+                                  >
+                                    {/* Vignette vidéo si disponible */}
+                                    {thumbnail && (
+                                      <div className="relative h-40 bg-gray-100">
+                                        <img
+                                          src={thumbnail}
+                                          alt={`Vignette ${test.name}`}
+                                          className="w-full h-full object-cover"
+                                        />
+                                        <div className="absolute inset-0 bg-black bg-opacity-30 flex items-center justify-center">
+                                          <PlayCircle className="h-12 w-12 text-white opacity-90" />
+                                        </div>
+                                      </div>
+                                    )}
+
+                                    <div className="p-4">
+                                      <div className="flex items-start justify-between mb-1">
+                                        <h3 className="font-semibold text-gray-900">
+                                          {test.name}
+                                        </h3>
+                                        {!thumbnail && test.video_url && (
+                                          <PlayCircle className="h-5 w-5 text-primary-600 flex-shrink-0" />
+                                        )}
+                                      </div>
 
                                     {test.indications && (
                                       <p className="text-xs text-gray-500 mb-2">
@@ -831,7 +951,8 @@ export default function ImprovedTestsPage() {
                                     )}
                                   </div>
                                 </div>
-                              ))}
+                                )
+                              })}
                             </div>
                           ) : (
                             <div className="space-y-2">
@@ -952,6 +1073,7 @@ export default function ImprovedTestsPage() {
               }
             ]}
           />
+        </div>
         </div>
       </div>
 
@@ -1118,7 +1240,7 @@ export default function ImprovedTestsPage() {
                         onChange={(e) => setClusterRegionFilter(e.target.value)}
                         className="px-3 py-2 bg-white border border-gray-200 rounded-lg"
                       >
-                        <option value="all">Toutes les régions</option>
+                        <option value="">Toutes les régions</option>
                         {Object.entries(BODY_REGIONS).map(([category, regions]) => (
                           <optgroup key={category} label={category}>
                             {regions.map((region) => (
