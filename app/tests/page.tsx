@@ -1074,6 +1074,7 @@ export default function ImprovedTestsPage() {
             ]}
           />
         </div>
+        </div>
       </div>
 
       {/* Modal création CLUSTER */}
