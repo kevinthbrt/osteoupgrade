@@ -13,8 +13,6 @@ import {
   Layers,
   Filter,
   Map,
-  Box,
-  TestTube,
   Mail
 } from 'lucide-react'
 
@@ -24,7 +22,6 @@ export default function AdminPage() {
     totalUsers: 0,
     freeUsers: 0,
     premiumUsers: 0,
-    totalAnatomicalZones: 0, // Pour Testing 3D
     totalPathologies: 0,
     totalTests: 0,
     totalClusters: 0,
@@ -74,14 +71,12 @@ export default function AdminPage() {
 
       // Get system statistics
       const [
-        anatomicalZonesResponse, // Pour Testing 3D
         pathologiesResponse, 
         testsResponse, 
         clustersResponse,
         topographicZonesResponse,
         decisionTreesResponse
       ] = await Promise.all([
-        supabase.from('anatomical_zones').select('*'),
         supabase.from('pathologies').select('*'),
         supabase.from('orthopedic_tests').select('*'),
         supabase.from('orthopedic_test_clusters').select('*'),
@@ -93,7 +88,6 @@ export default function AdminPage() {
         totalUsers: profiles?.length || 0,
         freeUsers: freeCount,
         premiumUsers: premiumCount,
-        totalAnatomicalZones: anatomicalZonesResponse.data?.length || 0,
         totalPathologies: pathologiesResponse.data?.length || 0,
         totalTests: testsResponse.data?.length || 0,
         totalClusters: clustersResponse.data?.length || 0,
@@ -169,12 +163,12 @@ export default function AdminPage() {
       stats: `${stats.totalTests} tests, ${stats.totalClusters} clusters`
     },
     {
-      title: '📁 Diagnostics (Testing 3D)',
+      title: '📁 Diagnostics cliniques',
       description: 'Créer des dossiers de diagnostics avec photos, signes cliniques et tests',
       icon: Layers,
       href: '/admin/diagnostics',
       color: 'from-violet-500 to-violet-600',
-      stats: 'Module Testing 3D amélioré'
+      stats: 'Module diagnostics'
     },
     {
       title: '🩺 Pathologies',
@@ -199,14 +193,6 @@ export default function AdminPage() {
       href: '/admin/decision-trees',
       color: 'from-indigo-500 to-indigo-600',
       stats: `${stats.totalDecisionTrees} arbres configurés`
-    },
-    {
-      title: '🧍 Anatomy Builder',
-      description: 'Positionner les zones 3D pour le module Testing 3D',
-      icon: Box,
-      href: '/admin/anatomy-builder',
-      color: 'from-green-500 to-green-600',
-      stats: `${stats.totalAnatomicalZones} zones 3D`
     },
     {
       title: '📄 Communication',
@@ -361,16 +347,8 @@ export default function AdminPage() {
               </div>
               
               <div className="border-b pb-3">
-                <p className="text-xs font-semibold text-gray-500 mb-2">MODULE TESTING 3D</p>
+                <p className="text-xs font-semibold text-gray-500 mb-2">MODULE TESTS ORTHOPÉDIQUES</p>
                 <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <Box className="h-4 w-4 text-green-600" />
-                      <span className="text-sm text-gray-600">Zones anatomiques 3D</span>
-                    </div>
-                    <span className="font-semibold text-gray-900">{stats.totalAnatomicalZones}</span>
-                  </div>
-                  
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-2">
                       <Clipboard className="h-4 w-4 text-orange-600" />
@@ -424,32 +402,6 @@ export default function AdminPage() {
                 </div>
               </div>
               
-              <div className="bg-white/10 rounded-lg p-3">
-                <p className="font-semibold mb-2">2️⃣ Configuration Testing 3D</p>
-                <div className="space-y-1 text-sm text-purple-100">
-                  <button
-                    onClick={() => router.push('/admin/anatomy-builder')}
-                    className="block w-full text-left hover:text-white transition-colors"
-                  >
-                    → Positionner zones 3D
-                  </button>
-                  <button
-                  onClick={() => router.push('/tests')}
-                    className="block w-full text-left hover:text-white transition-colors"
-                  >
-                    → Gérer tests orthopédiques
-                  </button>
-                </div>
-              </div>
-              
-              <button
-                onClick={() => router.push('/testing')}
-                className="w-full bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-lg p-3 text-left transition-colors mt-4"
-              >
-                <p className="font-medium">🧪 Tester Testing 3D</p>
-                <p className="text-sm text-purple-100">Module de testing interactif</p>
-              </button>
-              
               <button
                 onClick={() => router.push('/consultation-v3')}
                 className="w-full bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-lg p-3 text-left transition-colors"
@@ -465,7 +417,7 @@ export default function AdminPage() {
         <div className="bg-blue-50 border border-blue-200 rounded-xl p-6">
           <div className="flex items-start space-x-3">
             <div className="flex-shrink-0">
-              <TestTube className="h-6 w-6 text-blue-600" />
+              <Layers className="h-6 w-6 text-blue-600" />
             </div>
             <div>
               <h3 className="font-semibold text-blue-900 mb-2">
@@ -473,7 +425,7 @@ export default function AdminPage() {
               </h3>
               <div className="text-sm text-blue-800 space-y-1">
                 <p>• <strong>Pathologies ⊥ Tests</strong> : Pathologies et tests sont maintenant indépendants</p>
-                <p>• <strong>2 Modules distincts</strong> : Consultation V3 (zones topo + arbres) et Testing 3D (zones 3D + tests)</p>
+                <p>• <strong>2 Modules distincts</strong> : Consultation V3 (zones topo + arbres) et Tests orthopédiques</p>
                 <p>• <strong>Tables supprimées</strong> : structures, pathology_tests, pathology_clusters</p>
                 <p>• <strong>Simplicité</strong> : Configuration rapide, maintenance facile</p>
               </div>

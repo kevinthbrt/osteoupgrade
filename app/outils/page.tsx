@@ -4,7 +4,6 @@ import { useRouter } from 'next/navigation'
 import AuthLayout from '@/components/AuthLayout'
 import {
   Dumbbell,
-  TestTube,
   FileText,
   Wrench,
   ArrowRight,
@@ -16,16 +15,6 @@ export default function OutilsPage() {
   const router = useRouter()
 
   const outils = [
-    {
-      id: 'testing',
-      title: 'Testing 3D',
-      description: 'Module 3D interactif pour explorer l\'anatomie et réaliser les tests orthopédiques',
-      icon: TestTube,
-      href: '/testing',
-      gradient: 'from-purple-500 to-indigo-600',
-      count: '3D',
-      available: true
-    },
     {
       id: 'exercices',
       title: 'Exercices Thérapeutiques',
@@ -98,7 +87,7 @@ export default function OutilsPage() {
                   <div className="text-xs text-slate-300">Exercices</div>
                 </div>
                 <div className="bg-white/10 backdrop-blur-sm rounded-xl p-3 border border-white/20">
-                  <div className="text-2xl font-bold text-white">5</div>
+                  <div className="text-2xl font-bold text-white">4</div>
                   <div className="text-xs text-slate-300">Outils</div>
                 </div>
               </div>

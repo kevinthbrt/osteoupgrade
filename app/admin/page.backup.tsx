@@ -342,13 +342,6 @@ export default function AdminPage() {
                 <p className="text-sm text-purple-100">Gérer la bibliothèque</p>
               </button>
               
-              <button
-                onClick={() => router.push('/testing')}
-                className="w-full bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-lg p-3 text-left transition-colors"
-              >
-                <p className="font-medium">Prévisualiser</p>
-                <p className="text-sm text-purple-100">Tester l'interface utilisateur</p>
-              </button>
             </div>
           </div>
         </div>
