@@ -2,8 +2,9 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
 import { supabase } from '@/lib/supabase'
-import { Eye, EyeOff, Loader2, Stethoscope } from 'lucide-react'
+import { Eye, EyeOff, Loader2 } from 'lucide-react'
 
 export default function AuthPage() {
   const router = useRouter()
@@ -91,7 +92,14 @@ export default function AuthPage() {
           <div className="bg-gradient-to-r from-primary-600 to-primary-700 p-8 text-white">
             <div className="flex items-center justify-center mb-4">
               <div className="bg-white/20 p-3 rounded-full">
-                <Stethoscope className="h-8 w-8" />
+                <Image
+                  src="/osteoupgrade-logo.svg"
+                  alt="Logo OsteoUpgrade"
+                  width={32}
+                  height={32}
+                  className="h-8 w-8"
+                  priority
+                />
               </div>
             </div>
             <h1 className="text-3xl font-bold text-center">OsteoUpgrade</h1>
