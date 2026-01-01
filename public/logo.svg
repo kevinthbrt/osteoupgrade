@@ -1,0 +1,96 @@
+<svg width="800" height="1422" viewBox="0 0 800 1422" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Left side (blue spine shape) -->
+  <path d="M260 100C260 100 180 150 180 250C180 350 260 380 260 450C260 520 180 550 180 650C180 750 260 780 260 850C260 920 180 950 180 1050C180 1150 260 1180 260 1250C260 1320 220 1350 220 1400" 
+        fill="#4AB8DA" stroke="white" stroke-width="8"/>
+  
+  <!-- Additional spine curves -->
+  <path d="M240 200C240 200 300 220 340 200C380 180 400 140 440 120" 
+        fill="#4AB8DA"/>
+  <path d="M240 400C240 400 300 420 340 400C380 380 400 340 440 320" 
+        fill="#4AB8DA"/>
+  <path d="M240 600C240 600 300 620 340 600C380 580 400 540 440 520" 
+        fill="#4AB8DA"/>
+  <path d="M240 800C240 800 300 820 340 800C380 780 400 740 440 720" 
+        fill="#4AB8DA"/>
+  <path d="M240 1000C240 1000 300 1020 340 1000C380 980 400 940 440 920" 
+        fill="#4AB8DA"/>
+  
+  <!-- White curves/highlights on blue -->
+  <ellipse cx="220" cy="300" rx="40" ry="60" fill="white" opacity="0.3"/>
+  <ellipse cx="220" cy="500" rx="40" ry="60" fill="white" opacity="0.3"/>
+  <ellipse cx="220" cy="700" rx="40" ry="60" fill="white" opacity="0.3"/>
+  <ellipse cx="220" cy="900" rx="40" ry="60" fill="white" opacity="0.3"/>
+  <ellipse cx="220" cy="1100" rx="40" ry="60" fill="white" opacity="0.3"/>
+  
+  <!-- Right side (gray vertebrae) -->
+  <!-- Vertebra 1 -->
+  <ellipse cx="550" cy="180" rx="50" ry="35" fill="#8B8B8B"/>
+  <ellipse cx="570" cy="180" rx="35" ry="25" fill="#A8A8A8"/>
+  
+  <!-- Vertebra 2 -->
+  <ellipse cx="560" cy="260" rx="55" ry="38" fill="#8B8B8B"/>
+  <ellipse cx="580" cy="260" rx="38" ry="28" fill="#A8A8A8"/>
+  
+  <!-- Vertebra 3 -->
+  <ellipse cx="570" cy="340" rx="58" ry="40" fill="#8B8B8B"/>
+  <ellipse cx="590" cy="340" rx="40" ry="30" fill="#A8A8A8"/>
+  
+  <!-- Vertebra 4 -->
+  <ellipse cx="575" cy="420" rx="60" ry="42" fill="#8B8B8B"/>
+  <ellipse cx="595" cy="420" rx="42" ry="32" fill="#A8A8A8"/>
+  
+  <!-- Vertebra 5 -->
+  <ellipse cx="580" cy="500" rx="62" ry="44" fill="#8B8B8B"/>
+  <ellipse cx="600" cy="500" rx="44" ry="34" fill="#A8A8A8"/>
+  
+  <!-- Vertebra 6 -->
+  <ellipse cx="585" cy="580" rx="64" ry="45" fill="#8B8B8B"/>
+  <ellipse cx="605" cy="580" rx="45" ry="35" fill="#A8A8A8"/>
+  
+  <!-- Vertebra 7 -->
+  <ellipse cx="590" cy="660" rx="65" ry="46" fill="#8B8B8B"/>
+  <ellipse cx="610" cy="660" rx="46" ry="36" fill="#A8A8A8"/>
+  
+  <!-- Vertebra 8 -->
+  <ellipse cx="595" cy="740" rx="66" ry="47" fill="#8B8B8B"/>
+  <ellipse cx="615" cy="740" rx="47" ry="37" fill="#A8A8A8"/>
+  
+  <!-- Vertebra 9 -->
+  <ellipse cx="600" cy="820" rx="67" ry="48" fill="#8B8B8B"/>
+  <ellipse cx="620" cy="820" rx="48" ry="38" fill="#A8A8A8"/>
+  
+  <!-- Vertebra 10 -->
+  <ellipse cx="605" cy="900" rx="68" ry="49" fill="#8B8B8B"/>
+  <ellipse cx="625" cy="900" rx="49" ry="39" fill="#A8A8A8"/>
+  
+  <!-- Vertebra 11 -->
+  <ellipse cx="610" cy="980" rx="69" ry="50" fill="#8B8B8B"/>
+  <ellipse cx="630" cy="980" rx="50" ry="40" fill="#A8A8A8"/>
+  
+  <!-- Vertebra 12 -->
+  <ellipse cx="615" cy="1060" rx="70" ry="51" fill="#8B8B8B"/>
+  <ellipse cx="635" cy="1060" rx="51" ry="41" fill="#A8A8A8"/>
+  
+  <!-- Vertebra 13 -->
+  <ellipse cx="620" cy="1140" rx="68" ry="50" fill="#8B8B8B"/>
+  <ellipse cx="640" cy="1140" rx="50" ry="40" fill="#A8A8A8"/>
+  
+  <!-- Vertebra 14 -->
+  <ellipse cx="625" cy="1220" rx="66" ry="48" fill="#8B8B8B"/>
+  <ellipse cx="645" cy="1220" rx="48" ry="38" fill="#A8A8A8"/>
+  
+  <!-- Small connecting elements between vertebrae -->
+  <rect x="520" y="210" width="15" height="20" rx="3" fill="white" opacity="0.6"/>
+  <rect x="525" y="290" width="15" height="20" rx="3" fill="white" opacity="0.6"/>
+  <rect x="530" y="370" width="15" height="20" rx="3" fill="white" opacity="0.6"/>
+  <rect x="535" y="450" width="15" height="20" rx="3" fill="white" opacity="0.6"/>
+  <rect x="540" y="530" width="15" height="20" rx="3" fill="white" opacity="0.6"/>
+  <rect x="545" y="610" width="15" height="20" rx="3" fill="white" opacity="0.6"/>
+  <rect x="550" y="690" width="15" height="20" rx="3" fill="white" opacity="0.6"/>
+  <rect x="555" y="770" width="15" height="20" rx="3" fill="white" opacity="0.6"/>
+  <rect x="560" y="850" width="15" height="20" rx="3" fill="white" opacity="0.6"/>
+  <rect x="565" y="930" width="15" height="20" rx="3" fill="white" opacity="0.6"/>
+  <rect x="570" y="1010" width="15" height="20" rx="3" fill="white" opacity="0.6"/>
+  <rect x="575" y="1090" width="15" height="20" rx="3" fill="white" opacity="0.6"/>
+  <rect x="580" y="1170" width="15" height="20" rx="3" fill="white" opacity="0.6"/>
+</svg>
