@@ -463,45 +463,64 @@ export default function ImprovedTestsPage() {
 
   return (
     <AuthLayout>
-      <div className="space-y-6">
+      <div className="min-h-screen pb-12">
         {/* Header */}
-        <div className="bg-white rounded-xl shadow-sm p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">Tests orthopédiques</h1>
-              <p className="mt-1 text-gray-600">
-                Tests et clusters organisés par grandes régions anatomiques
-              </p>
-            </div>
-            {profile?.role === 'admin' && (
-              <div className="flex gap-2">
-                <button
-                  onClick={() => router.push('/diagnostics')}
-                  className="bg-purple-100 hover:bg-purple-200 text-purple-700 px-4 py-2 rounded-lg font-medium transition-colors flex items-center space-x-2"
-                  title="Gérer les diagnostics (dossiers avec tests)"
-                >
-                  <FolderOpen className="h-4 w-4" />
-                  <span>Diagnostics</span>
-                </button>
-                <button
-                  onClick={() => router.push('/admin/tests/new')}
-                  className="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center space-x-2"
-                >
-                  <Plus className="h-4 w-4" />
-                  <span>Nouveau test</span>
-                </button>
-                <button
-                  onClick={() => setClusterModalOpen(true)}
-                  className="bg-primary-100 hover:bg-primary-200 text-primary-700 px-4 py-2 rounded-lg font-medium transition-colors flex items-center space-x-2"
-                >
-                  <Layers className="h-4 w-4" />
-                  <span>Nouveau cluster</span>
-                </button>
+        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-blue-600 via-primary-600 to-purple-700 text-white mb-8 shadow-2xl">
+          <div className="absolute inset-0 bg-grid-white/[0.02] bg-[size:60px_60px]" />
+          <div className="absolute top-0 right-0 w-96 h-96 bg-purple-500/30 rounded-full blur-3xl" />
+
+          <div className="relative px-6 py-8 md:px-10 md:py-10">
+            <button
+              onClick={() => router.push('/dashboard')}
+              className="text-sm text-blue-100 hover:text-white mb-4 flex items-center gap-2"
+            >
+              ← Retour au dashboard
+            </button>
+
+            <div className="max-w-4xl">
+              <div className="flex items-start justify-between">
+                <div>
+                  <h1 className="text-3xl md:text-4xl font-bold mb-3 bg-clip-text text-transparent bg-gradient-to-r from-white to-blue-100">
+                    Tests orthopédiques
+                  </h1>
+
+                  <p className="text-base md:text-lg text-blue-100 mb-6 max-w-2xl">
+                    Tests et clusters organisés par grandes régions anatomiques pour un diagnostic précis
+                  </p>
+                </div>
+
+                {profile?.role === 'admin' && (
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => router.push('/diagnostics')}
+                      className="px-4 py-2 bg-white/10 hover:bg-white/20 backdrop-blur-sm text-white rounded-lg font-medium transition-colors flex items-center space-x-2 border border-white/20"
+                      title="Gérer les diagnostics"
+                    >
+                      <FolderOpen className="h-4 w-4" />
+                      <span>Diagnostics</span>
+                    </button>
+                    <button
+                      onClick={() => router.push('/admin/tests/new')}
+                      className="px-6 py-3 bg-white text-primary-600 rounded-xl hover:bg-blue-50 flex items-center gap-2 font-semibold shadow-lg transition-colors"
+                    >
+                      <Plus className="h-5 w-5" />
+                      Nouveau test
+                    </button>
+                    <button
+                      onClick={() => setClusterModalOpen(true)}
+                      className="px-4 py-2 bg-white/10 hover:bg-white/20 backdrop-blur-sm text-white rounded-lg font-medium transition-colors flex items-center space-x-2 border border-white/20"
+                    >
+                      <Layers className="h-4 w-4" />
+                      <span>Nouveau cluster</span>
+                    </button>
+                  </div>
+                )}
               </div>
-            )}
+            </div>
           </div>
         </div>
 
+        <div className="space-y-6">
         {/* Grille de sélection des zones anatomiques */}
         {!selectedRegion ? (
           <div className="bg-white rounded-xl shadow-sm p-6">
