@@ -8,8 +8,12 @@
 
 export type AnatomicalRegion =
   | 'cervical'
+  | 'atm'
+  | 'crane'
   | 'thoracique'
   | 'lombaire'
+  | 'sacro-iliaque'
+  | 'cotes'
   | 'epaule'
   | 'coude'
   | 'poignet'
@@ -18,6 +22,9 @@ export type AnatomicalRegion =
   | 'genou'
   | 'cheville'
   | 'pied'
+  | 'neurologique'
+  | 'vasculaire'
+  | 'systemique'
 
 export type NodeType = 'question' | 'diagnosis' | 'tests'
 export type TestResult = 'positive' | 'negative' | 'uncertain'

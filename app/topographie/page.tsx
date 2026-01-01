@@ -26,17 +26,22 @@ import RelatedContent, { RelatedItem } from '@/components/RelatedContent'
 
 // Catégories de régions anatomiques
 const BODY_REGIONS = {
-  'Tête et Cou': ['cervical'],
+  'Tête et Cou': ['cervical', 'atm', 'crane'],
   'Membre Supérieur': ['epaule', 'coude', 'poignet', 'main'],
-  'Tronc': ['thoracique', 'lombaire'],
-  'Membre Inférieur': ['hanche', 'genou', 'cheville', 'pied']
+  'Tronc': ['thoracique', 'lombaire', 'sacro-iliaque', 'cotes'],
+  'Membre Inférieur': ['hanche', 'genou', 'cheville', 'pied'],
+  'Général': ['neurologique', 'vasculaire', 'systemique']
 }
 
 // Mapping pour les labels des régions
 const REGION_LABELS: Record<AnatomicalRegion, string> = {
   cervical: 'Cervical',
+  atm: 'ATM',
+  crane: 'Crâne',
   thoracique: 'Thoracique',
   lombaire: 'Lombaire',
+  'sacro-iliaque': 'Sacro-iliaque',
+  cotes: 'Côtes',
   epaule: 'Épaule',
   coude: 'Coude',
   poignet: 'Poignet',
@@ -44,7 +49,10 @@ const REGION_LABELS: Record<AnatomicalRegion, string> = {
   hanche: 'Hanche',
   genou: 'Genou',
   cheville: 'Cheville',
-  pied: 'Pied'
+  pied: 'Pied',
+  neurologique: 'Neurologique',
+  vasculaire: 'Vasculaire',
+  systemique: 'Systémique'
 }
 
 // Fonction pour obtenir l'icône de catégorie
@@ -53,7 +61,8 @@ const getRegionIcon = (category: string) => {
     'Tête et Cou': <User className="h-5 w-5" />,
     'Membre Supérieur': <Activity className="h-5 w-5" />,
     'Tronc': <User className="h-5 w-5" />,
-    'Membre Inférieur': <Activity className="h-5 w-5" />
+    'Membre Inférieur': <Activity className="h-5 w-5" />,
+    'Général': <Map className="h-5 w-5" />
   }
   return icons[category] || <Map className="h-5 w-5" />
 }
