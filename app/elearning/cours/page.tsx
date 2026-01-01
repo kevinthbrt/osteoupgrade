@@ -565,7 +565,7 @@ export default function CoursPage() {
                     <div className="p-5 space-y-4">
                       {formation.description ? (
                         <div
-                          className="text-sm text-gray-700 prose prose-sm max-w-none line-clamp-3"
+                          className="text-sm text-gray-700 prose prose-sm max-w-none"
                           dangerouslySetInnerHTML={{ __html: formation.description }}
                         />
                       ) : (
@@ -621,18 +621,6 @@ export default function CoursPage() {
               </div>
             )}
 
-            {isAdmin && (
-              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 rounded-xl p-4 space-y-3">
-                <div className="flex items-center gap-2 text-blue-700 font-semibold">
-                  <Shield className="h-4 w-4" /> Règles d'accès
-                </div>
-                <ul className="text-sm text-gray-700 list-disc list-inside space-y-2">
-                  <li>Les formations Premium sont visibles par les membres Silver et Gold.</li>
-                  <li>Les formations privées sont réservées aux administrateurs.</li>
-                  <li>Le suivi de progression est automatiquement enregistré.</li>
-                </ul>
-              </div>
-            )}
           </div>
 
           {showFormationModal && selectedFormation && (
