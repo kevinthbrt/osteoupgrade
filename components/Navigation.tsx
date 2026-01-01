@@ -234,13 +234,14 @@ export default function Navigation() {
           {/* Logo */}
           <div className="p-6 border-b border-white/10">
             <div className="flex items-center justify-center space-x-3">
-              <div className="p-2">
+              <div className="flex items-center justify-center">
                 <Image
                   src="/logo.svg"
                   alt="OsteoUpgrade Logo"
                   width={96}
                   height={96}
-                  className="h-24 w-24"
+                  className="h-24 w-24 object-contain"
+                  style={{ objectPosition: 'center' }}
                 />
               </div>
               <div>

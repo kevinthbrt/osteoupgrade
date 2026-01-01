@@ -90,16 +90,14 @@ export default function AuthPage() {
       <div className="w-full max-w-md">
         <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
           <div className="bg-gradient-to-r from-primary-600 to-primary-700 p-8 text-white">
-            <div className="flex items-center justify-center mb-4">
-              <div className="p-3">
-                <Image
-                  src="/logo.svg"
-                  alt="OsteoUpgrade Logo"
-                  width={96}
-                  height={96}
-                  className="h-24 w-24"
-                />
-              </div>
+            <div className="flex items-center justify-center mb-2">
+              <Image
+                src="/logo.svg"
+                alt="OsteoUpgrade Logo"
+                width={128}
+                height={128}
+                className="h-32 w-32"
+              />
             </div>
             <h1 className="text-3xl font-bold text-center">OsteoUpgrade</h1>
             <p className="text-center mt-2 text-blue-100">
