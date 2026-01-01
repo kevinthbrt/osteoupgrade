@@ -7,6 +7,11 @@ const inter = Inter({ subsets: ['latin'] })
 export const metadata: Metadata = {
   title: 'OsteoUpgrade - Aide au raisonnement pour ostéopathes',
   description: 'Plateforme professionnelle d\'aide au raisonnement avec tests orthopédiques',
+  icons: {
+    icon: '/favicon.svg',
+    shortcut: '/favicon.svg',
+    apple: '/favicon.svg',
+  },
 }
 
 export default function RootLayout({

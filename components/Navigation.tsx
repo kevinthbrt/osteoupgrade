@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import {
@@ -232,9 +233,16 @@ export default function Navigation() {
         <div className="flex flex-col h-full">
           {/* Logo */}
           <div className="p-6 border-b border-white/10">
-            <div className="flex items-center space-x-3">
-              <div className="bg-gradient-to-br from-sky-500 to-sky-600 p-2 rounded-lg shadow-lg shadow-sky-500/20">
-                <Stethoscope className="h-6 w-6 text-white" />
+            <div className="flex items-center justify-center space-x-3">
+              <div className="flex items-center justify-center">
+                <Image
+                  src="/logo.svg"
+                  alt="OsteoUpgrade Logo"
+                  width={96}
+                  height={96}
+                  className="h-24 w-24 object-contain"
+                  style={{ objectPosition: 'center' }}
+                />
               </div>
               <div>
                 <h2 className="text-xl font-bold text-white">OsteoUpgrade</h2>
