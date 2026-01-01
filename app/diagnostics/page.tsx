@@ -492,14 +492,33 @@ export default function DiagnosticsPage() {
               <button
                 key={item.id}
                 onClick={() => setSelectedItem(item)}
-                className="group relative overflow-hidden rounded-2xl bg-white border-2 border-slate-200 hover:border-rose-300 shadow-sm hover:shadow-xl transition-all duration-300 text-left"
+                className="group relative overflow-hidden rounded-2xl bg-white border-2 border-slate-200 hover:border-rose-300 shadow-sm hover:shadow-xl transition-all duration-300 text-left flex flex-col"
               >
-                {/* Titre en haut - hauteur fixe pour alignement */}
-                <div className="p-5 pb-0 h-[140px] flex flex-col">
-                  <h3 className="text-lg font-bold text-slate-900 mb-3 group-hover:text-rose-700 transition-colors line-clamp-2 flex-grow-0">
+                {/* En-tête fixe avec titre uniquement */}
+                <div className="p-5 pb-3 h-[80px] flex items-center flex-shrink-0">
+                  <h3 className="text-lg font-bold text-slate-900 group-hover:text-rose-700 transition-colors line-clamp-2">
                     {item.name}
                   </h3>
-                  <div className="flex items-center gap-2 flex-wrap mt-auto flex-shrink-0">
+                </div>
+
+                {/* Image - hauteur fixe pour alignement */}
+                {item.image_url ? (
+                  <div className="relative h-48 bg-slate-100 mx-5 mb-3 rounded-lg overflow-hidden flex-shrink-0">
+                    <img
+                      src={item.image_url}
+                      alt={item.name}
+                      className="w-full h-full object-contain"
+                    />
+                  </div>
+                ) : (
+                  <div className="relative h-48 bg-gradient-to-br from-rose-100 via-pink-100 to-purple-100 flex items-center justify-center mx-5 mb-3 rounded-lg flex-shrink-0">
+                    <Stethoscope className="h-16 w-16 text-rose-300" />
+                  </div>
+                )}
+
+                {/* Badges (région, gravité, drapeau rouge) */}
+                <div className="px-5 pb-3">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <span className="px-2 py-1 rounded-lg text-xs font-semibold bg-blue-100 text-blue-700">
                       {item.region || 'Non classé'}
                     </span>
@@ -517,40 +536,23 @@ export default function DiagnosticsPage() {
                   </div>
                 </div>
 
-                {/* Image */}
-                {item.image_url && (
-                  <div className="relative h-64 bg-slate-100 mx-5 mb-3 rounded-lg overflow-hidden">
-                    <img
-                      src={item.image_url}
-                      alt={item.name}
-                      className="w-full h-full object-contain"
-                    />
-                  </div>
-                )}
-
-                {/* Placeholder si pas d'image */}
-                {!item.image_url && (
-                  <div className="relative h-48 bg-gradient-to-br from-rose-100 via-pink-100 to-purple-100 flex items-center justify-center mx-5 mb-3 rounded-lg">
-                    <Stethoscope className="h-16 w-16 text-rose-300" />
-                  </div>
-                )}
-
-                <div className="px-5 pb-5">
-                  {/* Signes cliniques sous forme de tirets */}
+                {/* Contenu flexible (signes cliniques, indicateurs) */}
+                <div className="px-5 pb-5 flex-grow">
+                  {/* Signes cliniques sous forme de tirets - limités à 2 lignes */}
                   {clinicalSignsList.length > 0 && (
                     <div className="mb-3">
                       <ul className="space-y-1">
                         {(expandedSigns.has(item.id)
                           ? clinicalSignsList
-                          : clinicalSignsList.slice(0, 3)
+                          : clinicalSignsList.slice(0, 2)
                         ).map((sign: string, idx: number) => (
                           <li key={idx} className="text-sm text-slate-600 flex items-start gap-2">
                             <span className="text-rose-600 mt-1">•</span>
-                            <span className="flex-1">{sign}</span>
+                            <span className="flex-1 line-clamp-1">{sign}</span>
                           </li>
                         ))}
                       </ul>
-                      {clinicalSignsList.length > 3 && (
+                      {clinicalSignsList.length > 2 && (
                         <button
                           onClick={(e) => {
                             e.stopPropagation()
@@ -561,7 +563,7 @@ export default function DiagnosticsPage() {
                           <ChevronDown className={`h-3 w-3 transition-transform ${expandedSigns.has(item.id) ? 'rotate-180' : ''}`} />
                           {expandedSigns.has(item.id)
                             ? 'Voir moins'
-                            : `Voir ${clinicalSignsList.length - 3} signe${clinicalSignsList.length - 3 > 1 ? 's' : ''} de plus`
+                            : `Voir ${clinicalSignsList.length - 2} signe${clinicalSignsList.length - 2 > 1 ? 's' : ''} de plus`
                           }
                         </button>
                       )}
