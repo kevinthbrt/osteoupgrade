@@ -60,6 +60,33 @@ const EMPTY_EXERCISE_FORM = {
   is_active: true
 }
 
+const EXERCISE_ILLUSTRATIONS: Record<string, string> = {
+  renforcement: '/exercices/renforcement.svg',
+  mobilisation: '/exercices/mobilisation.svg',
+  etirement: '/exercices/etirement.svg',
+  étirement: '/exercices/etirement.svg',
+  stabilisation: '/exercices/stabilisation.svg',
+  respiration: '/exercices/respiration.svg',
+  defaut: '/exercices/defaut.svg'
+}
+
+const getExerciseIllustration = (exercise: RehabExercise) => {
+  const typeKey = exercise.type?.toLowerCase() || ''
+  const matchedKey = Object.keys(EXERCISE_ILLUSTRATIONS).find((key) => key !== 'defaut' && typeKey.includes(key))
+  return EXERCISE_ILLUSTRATIONS[matchedKey || 'defaut']
+}
+
+const loadImageData = async (path: string) => {
+  const response = await fetch(path)
+  const blob = await response.blob()
+  return await new Promise<string>((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(reader.result as string)
+    reader.onerror = () => reject(reader.error)
+    reader.readAsDataURL(blob)
+  })
+}
+
 export default function ExercisesModule() {
   const [profile, setProfile] = useState<any>(null)
   const [loading, setLoading] = useState(true)
@@ -182,7 +209,7 @@ export default function ExercisesModule() {
     setSelectedExercises((prev) => prev.map((item) => (item.uid === uid ? { ...item, [field]: value } : item)))
   }
 
-  const exportToPDF = () => {
+  const exportToPDF = async () => {
     if (!selectedExercises.length) {
       alert('Ajoutez au moins un exercice avant de générer le PDF')
       return
@@ -200,19 +227,82 @@ export default function ExercisesModule() {
 
     ;(doc as any).autoTable({
       startY: 54,
-      head: [['Exercice', 'Répétitions / Temps', 'Séries', 'Repos', 'Commentaire']],
+      head: [['Exercice', 'Description', 'Répétitions / Temps', 'Séries', 'Repos', 'Commentaire']],
       body: selectedExercises.map((item) => {
         const exercise = exercises.find((ex) => ex.id === item.exerciseId)
         return [
           exercise?.name || 'Exercice',
+          exercise?.description || '',
           item.repetitions || item.holdTime || '-',
           item.sets || '-',
           item.rest || '-',
           item.comment || ''
         ]
       }),
-      styles: { fontSize: 10 }
+      styles: { fontSize: 9, cellPadding: 2 }
     })
+
+    let cursorY = (doc as any).lastAutoTable.finalY + 10
+    doc.setFontSize(13)
+    doc.text('Détails et illustrations', 14, cursorY)
+    cursorY += 8
+
+    const illustrationCache = new Map<string, string>()
+
+    for (const item of selectedExercises) {
+      const exercise = exercises.find((ex) => ex.id === item.exerciseId)
+      if (!exercise) continue
+
+      if (cursorY > 250) {
+        doc.addPage()
+        cursorY = 18
+      }
+
+      doc.setFontSize(12)
+      doc.text(exercise.name, 14, cursorY)
+      cursorY += 6
+
+      let imageData = ''
+      const illustrationPath = getExerciseIllustration(exercise)
+      try {
+        if (illustrationCache.has(illustrationPath)) {
+          imageData = illustrationCache.get(illustrationPath) || ''
+        } else {
+          imageData = await loadImageData(illustrationPath)
+          illustrationCache.set(illustrationPath, imageData)
+        }
+      } catch {
+        imageData = ''
+      }
+
+      if (imageData) {
+        doc.addImage(imageData, 'SVG', 14, cursorY, 40, 28)
+      }
+
+      const textStartX = imageData ? 60 : 14
+      const descriptionLines = doc.splitTextToSize(`Description : ${exercise.description}`, 140)
+      doc.setFontSize(10)
+      doc.text(descriptionLines, textStartX, cursorY + 6)
+
+      let detailLineY = cursorY + 6 + descriptionLines.length * 5
+      const setupLine = `Consignes : ${item.repetitions || '-'} • Séries ${item.sets || '-'} • Repos ${item.rest || '-'}`
+      doc.text(doc.splitTextToSize(setupLine, 140), textStartX, detailLineY)
+      detailLineY += 6
+
+      if (exercise.progression_regression) {
+        const progressionLines = doc.splitTextToSize(`Progression / régression : ${exercise.progression_regression}`, 140)
+        doc.text(progressionLines, textStartX, detailLineY)
+        detailLineY += progressionLines.length * 5
+      }
+
+      if (item.comment) {
+        const commentLines = doc.splitTextToSize(`Commentaire : ${item.comment}`, 140)
+        doc.text(commentLines, textStartX, detailLineY)
+        detailLineY += commentLines.length * 5
+      }
+
+      cursorY = Math.max(cursorY + 34, detailLineY + 8)
+    }
 
     doc.save('fiche-exercices.pdf')
   }
@@ -315,7 +405,7 @@ export default function ExercisesModule() {
 
               {/* Action button */}
               <button
-                onClick={exportToPDF}
+                onClick={() => void exportToPDF()}
                 className="inline-flex items-center gap-2 rounded-lg bg-emerald-500 hover:bg-emerald-400 px-5 py-2.5 text-sm font-semibold text-white shadow-lg transition-all"
               >
                 <Download className="h-4 w-4" />
@@ -404,12 +494,21 @@ export default function ExercisesModule() {
                   return (
                     <div key={item.uid} className="rounded-xl border border-gray-200 p-4 shadow-sm">
                       <div className="flex items-start justify-between gap-3">
-                        <div>
+                        <div className="flex gap-3">
+                          {exercise && (
+                            <img
+                              src={getExerciseIllustration(exercise)}
+                              alt={`Illustration ${exercise.name}`}
+                              className="h-16 w-16 rounded-lg border border-gray-100 object-cover"
+                            />
+                          )}
+                          <div>
                           <h3 className="text-base font-semibold text-gray-900">{exercise?.name}</h3>
                           <p className="text-sm text-gray-600">{exercise?.description}</p>
                           {exercise?.progression_regression && (
                             <p className="mt-1 text-xs text-gray-500">{exercise.progression_regression}</p>
                           )}
+                          </div>
                         </div>
                         <button
                           onClick={() => removeFromPlan(item.uid)}
@@ -512,6 +611,11 @@ export default function ExercisesModule() {
             {filteredExercises.map((exercise) => (
               <div key={exercise.id} className="flex flex-col justify-between rounded-xl border border-gray-200 p-4 shadow-sm">
                 <div className="space-y-2">
+                  <img
+                    src={getExerciseIllustration(exercise)}
+                    alt={`Illustration ${exercise.name}`}
+                    className="h-28 w-full rounded-lg border border-gray-100 object-cover"
+                  />
                   <div className="flex items-center justify-between">
                     <h3 className="text-base font-semibold text-gray-900">{exercise.name}</h3>
                     <span className="rounded-full bg-blue-50 px-2 py-1 text-xs text-blue-700">Niveau {exercise.level}</span>

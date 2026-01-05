@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 140" role="img" aria-label="Illustration étirement">
+  <rect width="200" height="140" rx="16" fill="#fff7ed" />
+  <circle cx="70" cy="48" r="16" fill="#fdba74" />
+  <rect x="58" y="66" width="24" height="48" rx="10" fill="#fb923c" />
+  <path d="M96 72h64" stroke="#f97316" stroke-width="6" stroke-linecap="round" />
+  <path d="M150 56l16 16-16 16" fill="none" stroke="#ea580c" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" />
+  <text x="100" y="120" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#9a3412">Étirement</text>
+</svg>
