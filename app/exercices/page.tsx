@@ -1,9 +1,9 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import AuthLayout from '@/components/AuthLayout'
-import { Dumbbell, Download, Edit, Plus, Save, Search, Trash2, X } from 'lucide-react'
+import { Dumbbell, Download, Edit, Plus, Save, Search, Settings, Trash2, Upload, X } from 'lucide-react'
 import jsPDF from 'jspdf'
 import 'jspdf-autotable'
 
@@ -16,6 +16,7 @@ interface RehabExercise {
   nerve_target?: string | null
   description: string
   progression_regression?: string | null
+  illustration_url?: string | null
   is_active: boolean
 }
 
@@ -57,6 +58,7 @@ const EMPTY_EXERCISE_FORM = {
   nerve_target: '',
   description: '',
   progression_regression: '',
+  illustration_url: '',
   is_active: true
 }
 
@@ -75,6 +77,11 @@ export default function ExercisesModule() {
   const [exerciseForm, setExerciseForm] = useState({ ...EMPTY_EXERCISE_FORM })
   const [editingExerciseId, setEditingExerciseId] = useState<string | null>(null)
   const [feedback, setFeedback] = useState<string | null>(null)
+  const [uploadingImage, setUploadingImage] = useState(false)
+  const [imagePreview, setImagePreview] = useState<string | null>(null)
+  const [adminSearchTerm, setAdminSearchTerm] = useState('')
+
+  const adminSectionRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const loadData = async () => {
@@ -130,7 +137,8 @@ export default function ExercisesModule() {
           level: 1,
           description: 'Gainage quadrupédie avec activation transverse',
           is_active: true,
-          progression_regression: 'Progression: ajouter instabilité. Régression: soutien sur un genou.'
+          progression_regression: 'Progression: ajouter instabilité. Régression: soutien sur un genou.',
+          illustration_url: null
         },
         {
           id: 'fallback-2',
@@ -141,7 +149,8 @@ export default function ExercisesModule() {
           description: 'Mobilisation active assistée en flexion avec bâton',
           is_active: true,
           progression_regression: 'Progression: ajouter charge légère.',
-          nerve_target: null
+          nerve_target: null,
+          illustration_url: null
         }
       ])
       return
@@ -170,6 +179,13 @@ export default function ExercisesModule() {
     return uniqueTypes.sort()
   }, [exercises])
 
+  const adminFilteredExercises = useMemo(() => {
+    return exercises.filter((exercise) => {
+      const haystack = `${exercise.name} ${exercise.region} ${exercise.type}`.toLowerCase()
+      return haystack.includes(adminSearchTerm.toLowerCase())
+    })
+  }, [exercises, adminSearchTerm])
+
   const addToPlan = (exerciseId: string) => {
     setSelectedExercises((prev) => [...prev, EMPTY_PLAN_ITEM(exerciseId)])
   }
@@ -182,37 +198,136 @@ export default function ExercisesModule() {
     setSelectedExercises((prev) => prev.map((item) => (item.uid === uid ? { ...item, [field]: value } : item)))
   }
 
-  const exportToPDF = () => {
+  const exportToPDF = async () => {
     if (!selectedExercises.length) {
       alert('Ajoutez au moins un exercice avant de générer le PDF')
       return
     }
 
     const doc = new jsPDF()
+    let yPosition = 18
+
+    // En-tête
     doc.setFontSize(16)
-    doc.text("Fiche d'exercices", 14, 18)
+    doc.text("Fiche d'exercices", 14, yPosition)
+    yPosition += 10
 
+    // Informations patient
     doc.setFontSize(11)
-    doc.text(`Patient : ${patientInfo.firstName} ${patientInfo.lastName}`, 14, 28)
-    if (patientInfo.age) doc.text(`Âge : ${patientInfo.age} ans`, 14, 34)
-    if (patientInfo.reason) doc.text(`Motif : ${patientInfo.reason}`, 14, 40)
-    if (patientInfo.notes) doc.text(`Informations générales : ${patientInfo.notes}`, 14, 46)
+    doc.text(`Patient : ${patientInfo.firstName} ${patientInfo.lastName}`, 14, yPosition)
+    yPosition += 6
+    if (patientInfo.age) {
+      doc.text(`Âge : ${patientInfo.age} ans`, 14, yPosition)
+      yPosition += 6
+    }
+    if (patientInfo.reason) {
+      doc.text(`Motif : ${patientInfo.reason}`, 14, yPosition)
+      yPosition += 6
+    }
+    if (patientInfo.notes) {
+      const notesLines = doc.splitTextToSize(`Informations générales : ${patientInfo.notes}`, 180)
+      doc.text(notesLines, 14, yPosition)
+      yPosition += notesLines.length * 6
+    }
 
-    ;(doc as any).autoTable({
-      startY: 54,
-      head: [['Exercice', 'Répétitions / Temps', 'Séries', 'Repos', 'Commentaire']],
-      body: selectedExercises.map((item) => {
-        const exercise = exercises.find((ex) => ex.id === item.exerciseId)
-        return [
-          exercise?.name || 'Exercice',
-          item.repetitions || item.holdTime || '-',
-          item.sets || '-',
-          item.rest || '-',
-          item.comment || ''
-        ]
-      }),
-      styles: { fontSize: 10 }
-    })
+    yPosition += 6
+
+    // Pour chaque exercice
+    for (let i = 0; i < selectedExercises.length; i++) {
+      const item = selectedExercises[i]
+      const exercise = exercises.find((ex) => ex.id === item.exerciseId)
+
+      if (!exercise) continue
+
+      // Vérifier si on a besoin d'une nouvelle page
+      if (yPosition > 240) {
+        doc.addPage()
+        yPosition = 20
+      }
+
+      // Numéro et nom de l'exercice
+      doc.setFontSize(13)
+      doc.setFont('helvetica', 'bold')
+      doc.text(`${i + 1}. ${exercise.name}`, 14, yPosition)
+      yPosition += 8
+      doc.setFont('helvetica', 'normal')
+
+      // Illustration si disponible
+      if (exercise.illustration_url) {
+        try {
+          const img = await fetch(exercise.illustration_url)
+          const blob = await img.blob()
+          const reader = new FileReader()
+          await new Promise((resolve) => {
+            reader.onloadend = () => {
+              try {
+                const imgData = reader.result as string
+                // Vérifier s'il y a assez d'espace pour l'image
+                if (yPosition + 50 > 280) {
+                  doc.addPage()
+                  yPosition = 20
+                }
+                doc.addImage(imgData, 'JPEG', 14, yPosition, 60, 40)
+                yPosition += 45
+              } catch (e) {
+                console.warn('Impossible d\'ajouter l\'image', e)
+              }
+              resolve(null)
+            }
+            reader.readAsDataURL(blob)
+          })
+        } catch (e) {
+          console.warn('Impossible de charger l\'image', e)
+        }
+      }
+
+      // Description
+      doc.setFontSize(10)
+      doc.setFont('helvetica', 'bold')
+      doc.text('Description :', 14, yPosition)
+      yPosition += 5
+      doc.setFont('helvetica', 'normal')
+      const descLines = doc.splitTextToSize(exercise.description, 180)
+      doc.text(descLines, 14, yPosition)
+      yPosition += descLines.length * 5 + 3
+
+      // Paramètres de l'exercice
+      doc.setFont('helvetica', 'bold')
+      doc.text('Paramètres :', 14, yPosition)
+      yPosition += 5
+      doc.setFont('helvetica', 'normal')
+      doc.text(`• Répétitions/Temps : ${item.repetitions || '-'}`, 14, yPosition)
+      yPosition += 5
+      doc.text(`• Séries : ${item.sets || '-'}`, 14, yPosition)
+      yPosition += 5
+      doc.text(`• Repos : ${item.rest || '-'}`, 14, yPosition)
+      yPosition += 5
+
+      if (item.comment) {
+        doc.text(`• Commentaire : ${item.comment}`, 14, yPosition)
+        yPosition += 5
+      }
+
+      // Progression/Régression
+      if (exercise.progression_regression) {
+        yPosition += 2
+        doc.setFont('helvetica', 'bold')
+        doc.text('Progression/Régression :', 14, yPosition)
+        yPosition += 5
+        doc.setFont('helvetica', 'normal')
+        const progLines = doc.splitTextToSize(exercise.progression_regression, 180)
+        doc.text(progLines, 14, yPosition)
+        yPosition += progLines.length * 5
+      }
+
+      // Séparateur entre exercices
+      yPosition += 5
+      if (i < selectedExercises.length - 1) {
+        doc.setDrawColor(200, 200, 200)
+        doc.line(14, yPosition, 196, yPosition)
+        yPosition += 10
+      }
+    }
 
     doc.save('fiche-exercices.pdf')
   }
@@ -220,6 +335,44 @@ export default function ExercisesModule() {
   const resetExerciseForm = () => {
     setExerciseForm({ ...EMPTY_EXERCISE_FORM })
     setEditingExerciseId(null)
+    setImagePreview(null)
+  }
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    setUploadingImage(true)
+    setFeedback(null)
+
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('exerciseId', editingExerciseId || 'new')
+
+      const response = await fetch('/api/exercise-illustration-upload', {
+        method: 'POST',
+        body: formData,
+      })
+
+      if (!response.ok) {
+        throw new Error('Upload failed')
+      }
+
+      const { url } = await response.json()
+      setExerciseForm({ ...exerciseForm, illustration_url: url })
+      setImagePreview(url)
+      setFeedback('Image uploadée avec succès')
+    } catch (error) {
+      setFeedback('Erreur lors de l\'upload de l\'image')
+      console.error('Upload error:', error)
+    } finally {
+      setUploadingImage(false)
+    }
+  }
+
+  const scrollToAdminSection = () => {
+    adminSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
 
   const handleSaveExercise = async () => {
@@ -230,7 +383,8 @@ export default function ExercisesModule() {
       ...exerciseForm,
       level: Number(exerciseForm.level) || 1,
       nerve_target: exerciseForm.nerve_target || null,
-      progression_regression: exerciseForm.progression_regression || null
+      progression_regression: exerciseForm.progression_regression || null,
+      illustration_url: exerciseForm.illustration_url || null
     }
 
     const { error } = editingExerciseId
@@ -313,14 +467,25 @@ export default function ExercisesModule() {
                 Sélectionnez des exercices, personnalisez les paramètres puis exportez en PDF pour le patient.
               </p>
 
-              {/* Action button */}
-              <button
-                onClick={exportToPDF}
-                className="inline-flex items-center gap-2 rounded-lg bg-emerald-500 hover:bg-emerald-400 px-5 py-2.5 text-sm font-semibold text-white shadow-lg transition-all"
-              >
-                <Download className="h-4 w-4" />
-                Exporter en PDF
-              </button>
+              {/* Action buttons */}
+              <div className="flex flex-wrap gap-3">
+                <button
+                  onClick={exportToPDF}
+                  className="inline-flex items-center gap-2 rounded-lg bg-emerald-500 hover:bg-emerald-400 px-5 py-2.5 text-sm font-semibold text-white shadow-lg transition-all"
+                >
+                  <Download className="h-4 w-4" />
+                  Exporter en PDF
+                </button>
+                {profile?.role === 'admin' && (
+                  <button
+                    onClick={scrollToAdminSection}
+                    className="inline-flex items-center gap-2 rounded-lg bg-purple-500 hover:bg-purple-400 px-5 py-2.5 text-sm font-semibold text-white shadow-lg transition-all"
+                  >
+                    <Settings className="h-4 w-4" />
+                    Gérer les exercices
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -404,7 +569,19 @@ export default function ExercisesModule() {
                   return (
                     <div key={item.uid} className="rounded-xl border border-gray-200 p-4 shadow-sm">
                       <div className="flex items-start justify-between gap-3">
-                        <div>
+                        <div className="flex-1">
+                          {exercise?.illustration_url && (
+                            <div className="mb-3 overflow-hidden rounded-lg">
+                              <img
+                                src={exercise.illustration_url}
+                                alt={exercise.name}
+                                className="h-32 w-full object-cover"
+                                onError={(e) => {
+                                  e.currentTarget.style.display = 'none'
+                                }}
+                              />
+                            </div>
+                          )}
                           <h3 className="text-base font-semibold text-gray-900">{exercise?.name}</h3>
                           <p className="text-sm text-gray-600">{exercise?.description}</p>
                           {exercise?.progression_regression && (
@@ -512,6 +689,18 @@ export default function ExercisesModule() {
             {filteredExercises.map((exercise) => (
               <div key={exercise.id} className="flex flex-col justify-between rounded-xl border border-gray-200 p-4 shadow-sm">
                 <div className="space-y-2">
+                  {exercise.illustration_url && (
+                    <div className="mb-3 overflow-hidden rounded-lg">
+                      <img
+                        src={exercise.illustration_url}
+                        alt={exercise.name}
+                        className="h-40 w-full object-cover"
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none'
+                        }}
+                      />
+                    </div>
+                  )}
                   <div className="flex items-center justify-between">
                     <h3 className="text-base font-semibold text-gray-900">{exercise.name}</h3>
                     <span className="rounded-full bg-blue-50 px-2 py-1 text-xs text-blue-700">Niveau {exercise.level}</span>
@@ -543,14 +732,14 @@ export default function ExercisesModule() {
         </div>
 
         {profile?.role === 'admin' && (
-          <div className="rounded-2xl bg-white p-6 shadow-sm">
+          <div ref={adminSectionRef} className="rounded-2xl bg-white p-6 shadow-sm">
             <div className="flex items-center gap-2 text-sm text-purple-600">
               <Dumbbell className="h-4 w-4" />
               <span>Gestion administrateur</span>
             </div>
             <div className="mt-2 flex items-center justify-between">
               <h2 className="text-lg font-semibold text-gray-900">Ajouter ou modifier un exercice</h2>
-              {feedback && <span className="text-sm text-green-600">{feedback}</span>}
+              {feedback && <span className={`text-sm ${feedback.includes('Erreur') || feedback.includes('Impossible') ? 'text-red-600' : 'text-green-600'}`}>{feedback}</span>}
             </div>
 
             <div className="mt-4 grid gap-3 md:grid-cols-2 lg:grid-cols-3">
@@ -614,6 +803,54 @@ export default function ExercisesModule() {
                   onChange={(e) => setExerciseForm({ ...exerciseForm, description: e.target.value })}
                 />
               </div>
+              <div className="md:col-span-2 lg:col-span-3">
+                <label className="text-sm text-gray-600 block mb-2">Illustration de l'exercice</label>
+                <div className="space-y-3">
+                  {(imagePreview || exerciseForm.illustration_url) && (
+                    <div className="relative w-full max-w-md">
+                      <img
+                        src={imagePreview || exerciseForm.illustration_url}
+                        alt="Aperçu"
+                        className="w-full h-48 object-cover rounded-lg border border-gray-200"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setImagePreview(null)
+                          setExerciseForm({ ...exerciseForm, illustration_url: '' })
+                        }}
+                        className="absolute top-2 right-2 p-1 rounded-full bg-red-500 text-white hover:bg-red-600"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                  )}
+                  <div className="flex items-center gap-3">
+                    <label className="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg cursor-pointer transition-colors">
+                      <Upload className="h-4 w-4" />
+                      {uploadingImage ? 'Upload en cours...' : 'Choisir une image'}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleImageUpload}
+                        disabled={uploadingImage}
+                        className="hidden"
+                      />
+                    </label>
+                    <span className="text-xs text-gray-500">ou</span>
+                    <input
+                      type="text"
+                      placeholder="Coller une URL d'image"
+                      value={exerciseForm.illustration_url}
+                      onChange={(e) => {
+                        setExerciseForm({ ...exerciseForm, illustration_url: e.target.value })
+                        setImagePreview(e.target.value)
+                      }}
+                      className="flex-1 rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+                    />
+                  </div>
+                </div>
+              </div>
               <div className="flex items-center gap-2">
                 <input
                   id="is_active"
@@ -644,55 +881,75 @@ export default function ExercisesModule() {
               )}
             </div>
 
-            <div className="mt-6 overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200 text-sm">
-                <thead>
-                  <tr className="bg-gray-50 text-left">
-                    <th className="px-3 py-2 font-medium text-gray-700">Nom</th>
-                    <th className="px-3 py-2 font-medium text-gray-700">Région</th>
-                    <th className="px-3 py-2 font-medium text-gray-700">Type</th>
-                    <th className="px-3 py-2 font-medium text-gray-700">Niveau</th>
-                    <th className="px-3 py-2 font-medium text-gray-700">Statut</th>
-                    <th className="px-3 py-2 font-medium text-gray-700">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {exercises.map((exercise) => (
-                    <tr key={exercise.id}>
-                      <td className="px-3 py-2">{exercise.name}</td>
-                      <td className="px-3 py-2 capitalize text-gray-600">{exercise.region}</td>
-                      <td className="px-3 py-2 text-gray-600">{exercise.type}</td>
-                      <td className="px-3 py-2 text-gray-600">{exercise.level}</td>
-                      <td className="px-3 py-2">
-                        <span
-                          className={`rounded-full px-2 py-1 text-xs ${exercise.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}
-                        >
-                          {exercise.is_active ? 'Actif' : 'Archivé'}
-                        </span>
-                      </td>
-                      <td className="px-3 py-2">
+            <div className="mt-6">
+              <h3 className="text-sm font-semibold text-gray-900 mb-3">Rechercher un exercice à modifier</h3>
+              <div className="relative">
+                <Search className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
+                <input
+                  placeholder="Rechercher par nom, région ou type..."
+                  className="w-full rounded-lg border border-gray-200 bg-gray-50 py-2.5 pl-10 pr-3 text-sm focus:border-purple-500 focus:bg-white focus:outline-none"
+                  value={adminSearchTerm}
+                  onChange={(e) => setAdminSearchTerm(e.target.value)}
+                />
+              </div>
+
+              <div className="mt-4 space-y-2 max-h-96 overflow-y-auto">
+                {adminFilteredExercises.length === 0 ? (
+                  <div className="rounded-lg border border-dashed border-gray-200 p-6 text-center text-gray-500 text-sm">
+                    {adminSearchTerm ? 'Aucun exercice ne correspond à votre recherche.' : 'Aucun exercice disponible.'}
+                  </div>
+                ) : (
+                  adminFilteredExercises.map((exercise) => (
+                    <div key={exercise.id} className="flex items-center justify-between rounded-lg border border-gray-200 p-3 hover:bg-gray-50 transition-colors">
+                      <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => {
-                              setEditingExerciseId(exercise.id)
-                              setExerciseForm({ ...exercise, nerve_target: exercise.nerve_target || '', progression_regression: exercise.progression_regression || '' })
-                            }}
-                            className="rounded-lg border border-gray-200 p-2 text-gray-600 hover:bg-gray-50"
+                          <h4 className="font-medium text-gray-900 text-sm truncate">{exercise.name}</h4>
+                          <span
+                            className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${exercise.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}
                           >
-                            <Edit className="h-4 w-4" />
-                          </button>
-                          <button
-                            onClick={() => handleDeleteExercise(exercise.id)}
-                            className="rounded-lg border border-gray-200 p-2 text-gray-600 hover:bg-gray-50"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
+                            {exercise.is_active ? 'Actif' : 'Archivé'}
+                          </span>
                         </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className="text-xs text-gray-500 capitalize">{exercise.region}</span>
+                          <span className="text-xs text-gray-400">•</span>
+                          <span className="text-xs text-gray-500">{exercise.type}</span>
+                          <span className="text-xs text-gray-400">•</span>
+                          <span className="text-xs text-gray-500">Niveau {exercise.level}</span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 ml-3">
+                        <button
+                          onClick={() => {
+                            setEditingExerciseId(exercise.id)
+                            setExerciseForm({ ...exercise, nerve_target: exercise.nerve_target || '', progression_regression: exercise.progression_regression || '', illustration_url: exercise.illustration_url || '' })
+                            setImagePreview(exercise.illustration_url || null)
+                            window.scrollTo({ top: adminSectionRef.current?.offsetTop ?? 0, behavior: 'smooth' })
+                          }}
+                          className="rounded-lg border border-gray-200 p-2 text-blue-600 hover:bg-blue-50 transition-colors"
+                          title="Modifier"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteExercise(exercise.id)}
+                          className="rounded-lg border border-gray-200 p-2 text-red-600 hover:bg-red-50 transition-colors"
+                          title="Supprimer"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {adminFilteredExercises.length > 0 && (
+                <p className="mt-3 text-xs text-gray-500">
+                  {adminFilteredExercises.length} exercice{adminFilteredExercises.length > 1 ? 's' : ''} trouvé{adminFilteredExercises.length > 1 ? 's' : ''}
+                  {adminSearchTerm && ` pour "${adminSearchTerm}"`}
+                </p>
+              )}
             </div>
           </div>
         )}
