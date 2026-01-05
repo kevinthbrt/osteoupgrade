@@ -108,10 +108,20 @@ export default function NewCasePage() {
 
       if (caseError) throw caseError
 
+      const { data: createdCase } = await supabase
+        .from('clinical_cases')
+        .select('id')
+        .eq('title', caseData.title)
+        .single()
+
       setSuccess(true)
       setTimeout(() => {
-        router.push('/encyclopedia/learning/cases')
-      }, 2000)
+        if (createdCase) {
+          router.push(`/admin/cases/${createdCase.id}/edit`)
+        } else {
+          router.push('/encyclopedia/learning/cases')
+        }
+      }, 1500)
     } catch (err: any) {
       console.error('Error creating case:', err)
       setError(err.message || 'Erreur lors de la création du cas')

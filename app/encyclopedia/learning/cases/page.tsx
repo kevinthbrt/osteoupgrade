@@ -147,8 +147,7 @@ export default function ClinicalCasesPage() {
   })
 
   const handleStartCase = (caseId: string) => {
-    // TODO: Navigate to case taking page
-    alert(`🚧 Module Cas Pratiques en cours de développement.\n\nLe cas clinique sera bientôt disponible avec :\n- Scénario interactif étape par étape\n- Choix de décisions cliniques\n- Feedback détaillé\n- Scoring et explication des bonnes pratiques`)
+    router.push(`/encyclopedia/learning/cases/${caseId}/take`)
   }
 
   const isAdmin = profile?.role === 'admin'
