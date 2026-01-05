@@ -16,6 +16,7 @@ interface RehabExercise {
   nerve_target?: string | null
   description: string
   progression_regression?: string | null
+  illustration_url?: string | null
   is_active: boolean
 }
 
@@ -57,6 +58,7 @@ const EMPTY_EXERCISE_FORM = {
   nerve_target: '',
   description: '',
   progression_regression: '',
+  illustration_url: '',
   is_active: true
 }
 
@@ -130,7 +132,8 @@ export default function ExercisesModule() {
           level: 1,
           description: 'Gainage quadrupédie avec activation transverse',
           is_active: true,
-          progression_regression: 'Progression: ajouter instabilité. Régression: soutien sur un genou.'
+          progression_regression: 'Progression: ajouter instabilité. Régression: soutien sur un genou.',
+          illustration_url: null
         },
         {
           id: 'fallback-2',
@@ -141,7 +144,8 @@ export default function ExercisesModule() {
           description: 'Mobilisation active assistée en flexion avec bâton',
           is_active: true,
           progression_regression: 'Progression: ajouter charge légère.',
-          nerve_target: null
+          nerve_target: null,
+          illustration_url: null
         }
       ])
       return
@@ -182,37 +186,136 @@ export default function ExercisesModule() {
     setSelectedExercises((prev) => prev.map((item) => (item.uid === uid ? { ...item, [field]: value } : item)))
   }
 
-  const exportToPDF = () => {
+  const exportToPDF = async () => {
     if (!selectedExercises.length) {
       alert('Ajoutez au moins un exercice avant de générer le PDF')
       return
     }
 
     const doc = new jsPDF()
+    let yPosition = 18
+
+    // En-tête
     doc.setFontSize(16)
-    doc.text("Fiche d'exercices", 14, 18)
+    doc.text("Fiche d'exercices", 14, yPosition)
+    yPosition += 10
 
+    // Informations patient
     doc.setFontSize(11)
-    doc.text(`Patient : ${patientInfo.firstName} ${patientInfo.lastName}`, 14, 28)
-    if (patientInfo.age) doc.text(`Âge : ${patientInfo.age} ans`, 14, 34)
-    if (patientInfo.reason) doc.text(`Motif : ${patientInfo.reason}`, 14, 40)
-    if (patientInfo.notes) doc.text(`Informations générales : ${patientInfo.notes}`, 14, 46)
+    doc.text(`Patient : ${patientInfo.firstName} ${patientInfo.lastName}`, 14, yPosition)
+    yPosition += 6
+    if (patientInfo.age) {
+      doc.text(`Âge : ${patientInfo.age} ans`, 14, yPosition)
+      yPosition += 6
+    }
+    if (patientInfo.reason) {
+      doc.text(`Motif : ${patientInfo.reason}`, 14, yPosition)
+      yPosition += 6
+    }
+    if (patientInfo.notes) {
+      const notesLines = doc.splitTextToSize(`Informations générales : ${patientInfo.notes}`, 180)
+      doc.text(notesLines, 14, yPosition)
+      yPosition += notesLines.length * 6
+    }
 
-    ;(doc as any).autoTable({
-      startY: 54,
-      head: [['Exercice', 'Répétitions / Temps', 'Séries', 'Repos', 'Commentaire']],
-      body: selectedExercises.map((item) => {
-        const exercise = exercises.find((ex) => ex.id === item.exerciseId)
-        return [
-          exercise?.name || 'Exercice',
-          item.repetitions || item.holdTime || '-',
-          item.sets || '-',
-          item.rest || '-',
-          item.comment || ''
-        ]
-      }),
-      styles: { fontSize: 10 }
-    })
+    yPosition += 6
+
+    // Pour chaque exercice
+    for (let i = 0; i < selectedExercises.length; i++) {
+      const item = selectedExercises[i]
+      const exercise = exercises.find((ex) => ex.id === item.exerciseId)
+
+      if (!exercise) continue
+
+      // Vérifier si on a besoin d'une nouvelle page
+      if (yPosition > 240) {
+        doc.addPage()
+        yPosition = 20
+      }
+
+      // Numéro et nom de l'exercice
+      doc.setFontSize(13)
+      doc.setFont('helvetica', 'bold')
+      doc.text(`${i + 1}. ${exercise.name}`, 14, yPosition)
+      yPosition += 8
+      doc.setFont('helvetica', 'normal')
+
+      // Illustration si disponible
+      if (exercise.illustration_url) {
+        try {
+          const img = await fetch(exercise.illustration_url)
+          const blob = await img.blob()
+          const reader = new FileReader()
+          await new Promise((resolve) => {
+            reader.onloadend = () => {
+              try {
+                const imgData = reader.result as string
+                // Vérifier s'il y a assez d'espace pour l'image
+                if (yPosition + 50 > 280) {
+                  doc.addPage()
+                  yPosition = 20
+                }
+                doc.addImage(imgData, 'JPEG', 14, yPosition, 60, 40)
+                yPosition += 45
+              } catch (e) {
+                console.warn('Impossible d\'ajouter l\'image', e)
+              }
+              resolve(null)
+            }
+            reader.readAsDataURL(blob)
+          })
+        } catch (e) {
+          console.warn('Impossible de charger l\'image', e)
+        }
+      }
+
+      // Description
+      doc.setFontSize(10)
+      doc.setFont('helvetica', 'bold')
+      doc.text('Description :', 14, yPosition)
+      yPosition += 5
+      doc.setFont('helvetica', 'normal')
+      const descLines = doc.splitTextToSize(exercise.description, 180)
+      doc.text(descLines, 14, yPosition)
+      yPosition += descLines.length * 5 + 3
+
+      // Paramètres de l'exercice
+      doc.setFont('helvetica', 'bold')
+      doc.text('Paramètres :', 14, yPosition)
+      yPosition += 5
+      doc.setFont('helvetica', 'normal')
+      doc.text(`• Répétitions/Temps : ${item.repetitions || '-'}`, 14, yPosition)
+      yPosition += 5
+      doc.text(`• Séries : ${item.sets || '-'}`, 14, yPosition)
+      yPosition += 5
+      doc.text(`• Repos : ${item.rest || '-'}`, 14, yPosition)
+      yPosition += 5
+
+      if (item.comment) {
+        doc.text(`• Commentaire : ${item.comment}`, 14, yPosition)
+        yPosition += 5
+      }
+
+      // Progression/Régression
+      if (exercise.progression_regression) {
+        yPosition += 2
+        doc.setFont('helvetica', 'bold')
+        doc.text('Progression/Régression :', 14, yPosition)
+        yPosition += 5
+        doc.setFont('helvetica', 'normal')
+        const progLines = doc.splitTextToSize(exercise.progression_regression, 180)
+        doc.text(progLines, 14, yPosition)
+        yPosition += progLines.length * 5
+      }
+
+      // Séparateur entre exercices
+      yPosition += 5
+      if (i < selectedExercises.length - 1) {
+        doc.setDrawColor(200, 200, 200)
+        doc.line(14, yPosition, 196, yPosition)
+        yPosition += 10
+      }
+    }
 
     doc.save('fiche-exercices.pdf')
   }
@@ -230,7 +333,8 @@ export default function ExercisesModule() {
       ...exerciseForm,
       level: Number(exerciseForm.level) || 1,
       nerve_target: exerciseForm.nerve_target || null,
-      progression_regression: exerciseForm.progression_regression || null
+      progression_regression: exerciseForm.progression_regression || null,
+      illustration_url: exerciseForm.illustration_url || null
     }
 
     const { error } = editingExerciseId
@@ -404,7 +508,19 @@ export default function ExercisesModule() {
                   return (
                     <div key={item.uid} className="rounded-xl border border-gray-200 p-4 shadow-sm">
                       <div className="flex items-start justify-between gap-3">
-                        <div>
+                        <div className="flex-1">
+                          {exercise?.illustration_url && (
+                            <div className="mb-3 overflow-hidden rounded-lg">
+                              <img
+                                src={exercise.illustration_url}
+                                alt={exercise.name}
+                                className="h-32 w-full object-cover"
+                                onError={(e) => {
+                                  e.currentTarget.style.display = 'none'
+                                }}
+                              />
+                            </div>
+                          )}
                           <h3 className="text-base font-semibold text-gray-900">{exercise?.name}</h3>
                           <p className="text-sm text-gray-600">{exercise?.description}</p>
                           {exercise?.progression_regression && (
@@ -512,6 +628,18 @@ export default function ExercisesModule() {
             {filteredExercises.map((exercise) => (
               <div key={exercise.id} className="flex flex-col justify-between rounded-xl border border-gray-200 p-4 shadow-sm">
                 <div className="space-y-2">
+                  {exercise.illustration_url && (
+                    <div className="mb-3 overflow-hidden rounded-lg">
+                      <img
+                        src={exercise.illustration_url}
+                        alt={exercise.name}
+                        className="h-40 w-full object-cover"
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none'
+                        }}
+                      />
+                    </div>
+                  )}
                   <div className="flex items-center justify-between">
                     <h3 className="text-base font-semibold text-gray-900">{exercise.name}</h3>
                     <span className="rounded-full bg-blue-50 px-2 py-1 text-xs text-blue-700">Niveau {exercise.level}</span>
@@ -614,6 +742,15 @@ export default function ExercisesModule() {
                   onChange={(e) => setExerciseForm({ ...exerciseForm, description: e.target.value })}
                 />
               </div>
+              <div className="md:col-span-2 lg:col-span-3">
+                <label className="text-sm text-gray-600">URL de l'illustration</label>
+                <input
+                  className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 focus:border-blue-500 focus:outline-none"
+                  value={exerciseForm.illustration_url}
+                  onChange={(e) => setExerciseForm({ ...exerciseForm, illustration_url: e.target.value })}
+                  placeholder="https://exemple.com/image-exercice.jpg"
+                />
+              </div>
               <div className="flex items-center gap-2">
                 <input
                   id="is_active"
@@ -675,7 +812,7 @@ export default function ExercisesModule() {
                           <button
                             onClick={() => {
                               setEditingExerciseId(exercise.id)
-                              setExerciseForm({ ...exercise, nerve_target: exercise.nerve_target || '', progression_regression: exercise.progression_regression || '' })
+                              setExerciseForm({ ...exercise, nerve_target: exercise.nerve_target || '', progression_regression: exercise.progression_regression || '', illustration_url: exercise.illustration_url || '' })
                             }}
                             className="rounded-lg border border-gray-200 p-2 text-gray-600 hover:bg-gray-50"
                           >

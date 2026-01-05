@@ -190,6 +190,7 @@ export type Database = {
         nerve_target: string | null
         description: string
         progression_regression: string | null
+        illustration_url: string | null
         is_active: boolean
         created_by: string | null
         created_at: string
