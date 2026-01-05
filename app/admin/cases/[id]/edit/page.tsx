@@ -510,7 +510,7 @@ export default function EditCasePage() {
                               value={newChoice[step.id]?.feedback_type || 'info'}
                               onChange={(e) => setNewChoice(prev => ({
                                 ...prev,
-                                [step.id]: { ...prev[step.id], feedback_type: e.target.value }
+                                [step.id]: { ...prev[step.id], feedback_type: e.target.value as 'correct' | 'partial' | 'incorrect' | 'info' }
                               }))}
                               className="px-3 py-2 border border-slate-300 rounded-lg text-sm"
                             >
