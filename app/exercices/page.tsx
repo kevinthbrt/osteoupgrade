@@ -1,9 +1,9 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import AuthLayout from '@/components/AuthLayout'
-import { Dumbbell, Download, Edit, Plus, Save, Search, Trash2, X } from 'lucide-react'
+import { Dumbbell, Download, Edit, Plus, Save, Search, Settings, Trash2, Upload, X } from 'lucide-react'
 import jsPDF from 'jspdf'
 import 'jspdf-autotable'
 
@@ -77,6 +77,10 @@ export default function ExercisesModule() {
   const [exerciseForm, setExerciseForm] = useState({ ...EMPTY_EXERCISE_FORM })
   const [editingExerciseId, setEditingExerciseId] = useState<string | null>(null)
   const [feedback, setFeedback] = useState<string | null>(null)
+  const [uploadingImage, setUploadingImage] = useState(false)
+  const [imagePreview, setImagePreview] = useState<string | null>(null)
+
+  const adminSectionRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const loadData = async () => {
@@ -323,6 +327,44 @@ export default function ExercisesModule() {
   const resetExerciseForm = () => {
     setExerciseForm({ ...EMPTY_EXERCISE_FORM })
     setEditingExerciseId(null)
+    setImagePreview(null)
+  }
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    setUploadingImage(true)
+    setFeedback(null)
+
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('exerciseId', editingExerciseId || 'new')
+
+      const response = await fetch('/api/exercise-illustration-upload', {
+        method: 'POST',
+        body: formData,
+      })
+
+      if (!response.ok) {
+        throw new Error('Upload failed')
+      }
+
+      const { url } = await response.json()
+      setExerciseForm({ ...exerciseForm, illustration_url: url })
+      setImagePreview(url)
+      setFeedback('Image uploadée avec succès')
+    } catch (error) {
+      setFeedback('Erreur lors de l\'upload de l\'image')
+      console.error('Upload error:', error)
+    } finally {
+      setUploadingImage(false)
+    }
+  }
+
+  const scrollToAdminSection = () => {
+    adminSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
 
   const handleSaveExercise = async () => {
@@ -417,14 +459,25 @@ export default function ExercisesModule() {
                 Sélectionnez des exercices, personnalisez les paramètres puis exportez en PDF pour le patient.
               </p>
 
-              {/* Action button */}
-              <button
-                onClick={exportToPDF}
-                className="inline-flex items-center gap-2 rounded-lg bg-emerald-500 hover:bg-emerald-400 px-5 py-2.5 text-sm font-semibold text-white shadow-lg transition-all"
-              >
-                <Download className="h-4 w-4" />
-                Exporter en PDF
-              </button>
+              {/* Action buttons */}
+              <div className="flex flex-wrap gap-3">
+                <button
+                  onClick={exportToPDF}
+                  className="inline-flex items-center gap-2 rounded-lg bg-emerald-500 hover:bg-emerald-400 px-5 py-2.5 text-sm font-semibold text-white shadow-lg transition-all"
+                >
+                  <Download className="h-4 w-4" />
+                  Exporter en PDF
+                </button>
+                {profile?.role === 'admin' && (
+                  <button
+                    onClick={scrollToAdminSection}
+                    className="inline-flex items-center gap-2 rounded-lg bg-purple-500 hover:bg-purple-400 px-5 py-2.5 text-sm font-semibold text-white shadow-lg transition-all"
+                  >
+                    <Settings className="h-4 w-4" />
+                    Gérer les exercices
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -671,14 +724,14 @@ export default function ExercisesModule() {
         </div>
 
         {profile?.role === 'admin' && (
-          <div className="rounded-2xl bg-white p-6 shadow-sm">
+          <div ref={adminSectionRef} className="rounded-2xl bg-white p-6 shadow-sm">
             <div className="flex items-center gap-2 text-sm text-purple-600">
               <Dumbbell className="h-4 w-4" />
               <span>Gestion administrateur</span>
             </div>
             <div className="mt-2 flex items-center justify-between">
               <h2 className="text-lg font-semibold text-gray-900">Ajouter ou modifier un exercice</h2>
-              {feedback && <span className="text-sm text-green-600">{feedback}</span>}
+              {feedback && <span className={`text-sm ${feedback.includes('Erreur') || feedback.includes('Impossible') ? 'text-red-600' : 'text-green-600'}`}>{feedback}</span>}
             </div>
 
             <div className="mt-4 grid gap-3 md:grid-cols-2 lg:grid-cols-3">
@@ -743,13 +796,52 @@ export default function ExercisesModule() {
                 />
               </div>
               <div className="md:col-span-2 lg:col-span-3">
-                <label className="text-sm text-gray-600">URL de l'illustration</label>
-                <input
-                  className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 focus:border-blue-500 focus:outline-none"
-                  value={exerciseForm.illustration_url}
-                  onChange={(e) => setExerciseForm({ ...exerciseForm, illustration_url: e.target.value })}
-                  placeholder="https://exemple.com/image-exercice.jpg"
-                />
+                <label className="text-sm text-gray-600 block mb-2">Illustration de l'exercice</label>
+                <div className="space-y-3">
+                  {(imagePreview || exerciseForm.illustration_url) && (
+                    <div className="relative w-full max-w-md">
+                      <img
+                        src={imagePreview || exerciseForm.illustration_url}
+                        alt="Aperçu"
+                        className="w-full h-48 object-cover rounded-lg border border-gray-200"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setImagePreview(null)
+                          setExerciseForm({ ...exerciseForm, illustration_url: '' })
+                        }}
+                        className="absolute top-2 right-2 p-1 rounded-full bg-red-500 text-white hover:bg-red-600"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                  )}
+                  <div className="flex items-center gap-3">
+                    <label className="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg cursor-pointer transition-colors">
+                      <Upload className="h-4 w-4" />
+                      {uploadingImage ? 'Upload en cours...' : 'Choisir une image'}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleImageUpload}
+                        disabled={uploadingImage}
+                        className="hidden"
+                      />
+                    </label>
+                    <span className="text-xs text-gray-500">ou</span>
+                    <input
+                      type="text"
+                      placeholder="Coller une URL d'image"
+                      value={exerciseForm.illustration_url}
+                      onChange={(e) => {
+                        setExerciseForm({ ...exerciseForm, illustration_url: e.target.value })
+                        setImagePreview(e.target.value)
+                      }}
+                      className="flex-1 rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+                    />
+                  </div>
+                </div>
               </div>
               <div className="flex items-center gap-2">
                 <input
@@ -813,6 +905,8 @@ export default function ExercisesModule() {
                             onClick={() => {
                               setEditingExerciseId(exercise.id)
                               setExerciseForm({ ...exercise, nerve_target: exercise.nerve_target || '', progression_regression: exercise.progression_regression || '', illustration_url: exercise.illustration_url || '' })
+                              setImagePreview(exercise.illustration_url || null)
+                              scrollToAdminSection()
                             }}
                             className="rounded-lg border border-gray-200 p-2 text-gray-600 hover:bg-gray-50"
                           >
