@@ -79,6 +79,7 @@ export default function ExercisesModule() {
   const [feedback, setFeedback] = useState<string | null>(null)
   const [uploadingImage, setUploadingImage] = useState(false)
   const [imagePreview, setImagePreview] = useState<string | null>(null)
+  const [adminSearchTerm, setAdminSearchTerm] = useState('')
 
   const adminSectionRef = useRef<HTMLDivElement>(null)
 
@@ -177,6 +178,13 @@ export default function ExercisesModule() {
     const uniqueTypes = Array.from(new Set(exercises.map((ex) => ex.type).filter(Boolean)))
     return uniqueTypes.sort()
   }, [exercises])
+
+  const adminFilteredExercises = useMemo(() => {
+    return exercises.filter((exercise) => {
+      const haystack = `${exercise.name} ${exercise.region} ${exercise.type}`.toLowerCase()
+      return haystack.includes(adminSearchTerm.toLowerCase())
+    })
+  }, [exercises, adminSearchTerm])
 
   const addToPlan = (exerciseId: string) => {
     setSelectedExercises((prev) => [...prev, EMPTY_PLAN_ITEM(exerciseId)])
@@ -873,57 +881,75 @@ export default function ExercisesModule() {
               )}
             </div>
 
-            <div className="mt-6 overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200 text-sm">
-                <thead>
-                  <tr className="bg-gray-50 text-left">
-                    <th className="px-3 py-2 font-medium text-gray-700">Nom</th>
-                    <th className="px-3 py-2 font-medium text-gray-700">Région</th>
-                    <th className="px-3 py-2 font-medium text-gray-700">Type</th>
-                    <th className="px-3 py-2 font-medium text-gray-700">Niveau</th>
-                    <th className="px-3 py-2 font-medium text-gray-700">Statut</th>
-                    <th className="px-3 py-2 font-medium text-gray-700">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {exercises.map((exercise) => (
-                    <tr key={exercise.id}>
-                      <td className="px-3 py-2">{exercise.name}</td>
-                      <td className="px-3 py-2 capitalize text-gray-600">{exercise.region}</td>
-                      <td className="px-3 py-2 text-gray-600">{exercise.type}</td>
-                      <td className="px-3 py-2 text-gray-600">{exercise.level}</td>
-                      <td className="px-3 py-2">
-                        <span
-                          className={`rounded-full px-2 py-1 text-xs ${exercise.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}
-                        >
-                          {exercise.is_active ? 'Actif' : 'Archivé'}
-                        </span>
-                      </td>
-                      <td className="px-3 py-2">
+            <div className="mt-6">
+              <h3 className="text-sm font-semibold text-gray-900 mb-3">Rechercher un exercice à modifier</h3>
+              <div className="relative">
+                <Search className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
+                <input
+                  placeholder="Rechercher par nom, région ou type..."
+                  className="w-full rounded-lg border border-gray-200 bg-gray-50 py-2.5 pl-10 pr-3 text-sm focus:border-purple-500 focus:bg-white focus:outline-none"
+                  value={adminSearchTerm}
+                  onChange={(e) => setAdminSearchTerm(e.target.value)}
+                />
+              </div>
+
+              <div className="mt-4 space-y-2 max-h-96 overflow-y-auto">
+                {adminFilteredExercises.length === 0 ? (
+                  <div className="rounded-lg border border-dashed border-gray-200 p-6 text-center text-gray-500 text-sm">
+                    {adminSearchTerm ? 'Aucun exercice ne correspond à votre recherche.' : 'Aucun exercice disponible.'}
+                  </div>
+                ) : (
+                  adminFilteredExercises.map((exercise) => (
+                    <div key={exercise.id} className="flex items-center justify-between rounded-lg border border-gray-200 p-3 hover:bg-gray-50 transition-colors">
+                      <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => {
-                              setEditingExerciseId(exercise.id)
-                              setExerciseForm({ ...exercise, nerve_target: exercise.nerve_target || '', progression_regression: exercise.progression_regression || '', illustration_url: exercise.illustration_url || '' })
-                              setImagePreview(exercise.illustration_url || null)
-                              scrollToAdminSection()
-                            }}
-                            className="rounded-lg border border-gray-200 p-2 text-gray-600 hover:bg-gray-50"
+                          <h4 className="font-medium text-gray-900 text-sm truncate">{exercise.name}</h4>
+                          <span
+                            className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${exercise.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}
                           >
-                            <Edit className="h-4 w-4" />
-                          </button>
-                          <button
-                            onClick={() => handleDeleteExercise(exercise.id)}
-                            className="rounded-lg border border-gray-200 p-2 text-gray-600 hover:bg-gray-50"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
+                            {exercise.is_active ? 'Actif' : 'Archivé'}
+                          </span>
                         </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className="text-xs text-gray-500 capitalize">{exercise.region}</span>
+                          <span className="text-xs text-gray-400">•</span>
+                          <span className="text-xs text-gray-500">{exercise.type}</span>
+                          <span className="text-xs text-gray-400">•</span>
+                          <span className="text-xs text-gray-500">Niveau {exercise.level}</span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 ml-3">
+                        <button
+                          onClick={() => {
+                            setEditingExerciseId(exercise.id)
+                            setExerciseForm({ ...exercise, nerve_target: exercise.nerve_target || '', progression_regression: exercise.progression_regression || '', illustration_url: exercise.illustration_url || '' })
+                            setImagePreview(exercise.illustration_url || null)
+                            window.scrollTo({ top: adminSectionRef.current?.offsetTop ?? 0, behavior: 'smooth' })
+                          }}
+                          className="rounded-lg border border-gray-200 p-2 text-blue-600 hover:bg-blue-50 transition-colors"
+                          title="Modifier"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteExercise(exercise.id)}
+                          className="rounded-lg border border-gray-200 p-2 text-red-600 hover:bg-red-50 transition-colors"
+                          title="Supprimer"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {adminFilteredExercises.length > 0 && (
+                <p className="mt-3 text-xs text-gray-500">
+                  {adminFilteredExercises.length} exercice{adminFilteredExercises.length > 1 ? 's' : ''} trouvé{adminFilteredExercises.length > 1 ? 's' : ''}
+                  {adminSearchTerm && ` pour "${adminSearchTerm}"`}
+                </p>
+              )}
             </div>
           </div>
         )}
