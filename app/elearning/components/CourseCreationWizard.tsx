@@ -26,6 +26,7 @@ interface FormationData {
   title: string
   description: string
   isPrivate: boolean
+  isFreeAccess: boolean
   photoUrl?: string
   chapters: Chapter[]
 }
@@ -35,6 +36,7 @@ interface ExistingFormation {
   title: string
   description?: string
   is_private?: boolean
+  is_free_access?: boolean
   photo_url?: string
   chapters: Array<{
     id: string
@@ -66,6 +68,7 @@ export default function CourseCreationWizard({ onClose, onSuccess, existingForma
     title: '',
     description: '',
     isPrivate: false,
+    isFreeAccess: false,
     photoUrl: '',
     chapters: []
   })
@@ -81,6 +84,7 @@ export default function CourseCreationWizard({ onClose, onSuccess, existingForma
         title: existingFormation.title,
         description: existingFormation.description || '',
         isPrivate: existingFormation.is_private || false,
+        isFreeAccess: existingFormation.is_free_access || false,
         photoUrl: existingFormation.photo_url || '',
         chapters: existingFormation.chapters.map(chapter => {
           allChapterIds.add(chapter.id)
@@ -316,6 +320,7 @@ export default function CourseCreationWizard({ onClose, onSuccess, existingForma
             title: formation.title,
             description: formation.description,
             is_private: formation.isPrivate,
+            is_free_access: formation.isFreeAccess,
             photo_url: formation.photoUrl || null
           })
           .eq('id', formationId)
@@ -422,6 +427,7 @@ export default function CourseCreationWizard({ onClose, onSuccess, existingForma
             title: formation.title,
             description: formation.description,
             is_private: formation.isPrivate,
+            is_free_access: formation.isFreeAccess,
             photo_url: formation.photoUrl || null
           })
           .select()
@@ -557,17 +563,31 @@ export default function CourseCreationWizard({ onClose, onSuccess, existingForma
               </div>
             </div>
 
-            <div className="flex items-center">
-              <input
-                type="checkbox"
-                id="isPrivate"
-                checked={formation.isPrivate}
-                onChange={(e) => setFormation({ ...formation, isPrivate: e.target.checked })}
-                className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-              />
-              <label htmlFor="isPrivate" className="ml-2 text-sm text-gray-700">
-                Formation privée (réservée aux administrateurs)
-              </label>
+            <div className="space-y-2">
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  id="isPrivate"
+                  checked={formation.isPrivate}
+                  onChange={(e) => setFormation({ ...formation, isPrivate: e.target.checked })}
+                  className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                />
+                <label htmlFor="isPrivate" className="ml-2 text-sm text-gray-700">
+                  Formation privée (réservée aux administrateurs)
+                </label>
+              </div>
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  id="isFreeAccess"
+                  checked={formation.isFreeAccess}
+                  onChange={(e) => setFormation({ ...formation, isFreeAccess: e.target.checked })}
+                  className="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
+                />
+                <label htmlFor="isFreeAccess" className="ml-2 text-sm text-gray-700">
+                  Accessible aux utilisateurs gratuits
+                </label>
+              </div>
             </div>
           </div>
 
