@@ -125,12 +125,18 @@ export default function CommunicationPage() {
       if (!response.ok) {
         let errorMessage = 'Erreur lors de l\'upload'
         try {
-          const error = await response.json()
-          errorMessage = error.error || errorMessage
-        } catch (parseError) {
-          // Si la réponse n'est pas du JSON, utiliser le texte brut
+          // Lire le texte brut d'abord (on ne peut lire le body qu'une seule fois)
           const text = await response.text()
-          errorMessage = text || `Erreur ${response.status}: ${response.statusText}`
+          // Essayer de le parser en JSON
+          try {
+            const error = JSON.parse(text)
+            errorMessage = error.error || errorMessage
+          } catch {
+            // Si ce n'est pas du JSON, utiliser le texte brut
+            errorMessage = text || `Erreur ${response.status}: ${response.statusText}`
+          }
+        } catch (readError) {
+          errorMessage = `Erreur ${response.status}: ${response.statusText}`
         }
         throw new Error(errorMessage)
       }
