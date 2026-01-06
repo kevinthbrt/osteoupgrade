@@ -373,7 +373,9 @@ export default function CoursPage() {
   }
 
   const isSubpartAccessible = (formation: Formation, chapter: Chapter, subpartIndex: number) => {
-    if (subpartIndex === 0) return true // First subpart is always accessible
+    // Check if this is the very first subpart of the entire formation
+    const isFirstChapter = formation.chapters[0]?.id === chapter.id
+    if (subpartIndex === 0 && isFirstChapter) return true // Only the first subpart of the first chapter is always accessible
 
     // Find previous subpart
     let previousSubpart: Subpart | null = null
