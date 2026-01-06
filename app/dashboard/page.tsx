@@ -331,18 +331,9 @@ export default function Dashboard() {
 
                 {/* Badges Section Inside Purple Block */}
                 <div className="pt-4 border-t border-white/20">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-2 text-white font-semibold">
-                      <Award className="h-4 w-4 text-yellow-300" />
-                      Badges débloqués
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => router.push('/stats')}
-                      className="text-xs font-semibold text-purple-100 hover:text-white"
-                    >
-                      Voir tout
-                    </button>
+                  <div className="flex items-center gap-2 text-white font-semibold mb-3">
+                    <Award className="h-4 w-4 text-yellow-300" />
+                    Badges débloqués
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
