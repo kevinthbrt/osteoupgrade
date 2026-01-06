@@ -123,8 +123,16 @@ export default function CommunicationPage() {
       })
 
       if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.error || 'Erreur lors de l\'upload')
+        let errorMessage = 'Erreur lors de l\'upload'
+        try {
+          const error = await response.json()
+          errorMessage = error.error || errorMessage
+        } catch (parseError) {
+          // Si la réponse n'est pas du JSON, utiliser le texte brut
+          const text = await response.text()
+          errorMessage = text || `Erreur ${response.status}: ${response.statusText}`
+        }
+        throw new Error(errorMessage)
       }
 
       const data = await response.json()
