@@ -16,7 +16,9 @@ import {
   BookOpen,
   FileQuestion,
   GraduationCap,
-  TrendingUp
+  TrendingUp,
+  Edit3,
+  Trash2
 } from 'lucide-react'
 import RelatedContent from '@/components/RelatedContent'
 
@@ -148,6 +150,31 @@ export default function ClinicalCasesPage() {
 
   const handleStartCase = (caseId: string) => {
     router.push(`/encyclopedia/learning/cases/${caseId}/take`)
+  }
+
+  const handleEditCase = (caseId: string) => {
+    router.push(`/admin/cases/${caseId}/edit`)
+  }
+
+  const handleDeleteCase = async (caseId: string) => {
+    if (!confirm('Êtes-vous sûr de vouloir supprimer ce cas ? Cette action est irréversible.')) {
+      return
+    }
+
+    try {
+      const { error } = await supabase
+        .from('clinical_cases')
+        .delete()
+        .eq('id', caseId)
+
+      if (error) throw error
+
+      alert('✅ Cas supprimé avec succès')
+      loadData() // Recharger la liste
+    } catch (error) {
+      console.error('Error deleting case:', error)
+      alert('❌ Erreur lors de la suppression du cas')
+    }
   }
 
   const isAdmin = profile?.role === 'admin'
@@ -288,13 +315,38 @@ export default function ClinicalCasesPage() {
                       <h3 className="text-xl font-bold text-slate-900 mb-2">{caseItem.title}</h3>
                     </div>
 
-                    {isCompleted && (
-                      <div className="flex-shrink-0 ml-4">
+                    <div className="flex items-center gap-2 ml-4">
+                      {isCompleted && (
                         <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-green-100">
                           <CheckCircle className="h-6 w-6 text-green-600" />
                         </div>
-                      </div>
-                    )}
+                      )}
+
+                      {isAdmin && (
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleEditCase(caseItem.id)
+                            }}
+                            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                            title="Modifier le cas"
+                          >
+                            <Edit3 className="h-5 w-5" />
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleDeleteCase(caseItem.id)
+                            }}
+                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                            title="Supprimer le cas"
+                          >
+                            <Trash2 className="h-5 w-5" />
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </div>
 
                   {/* Patient Profile */}
