@@ -4,8 +4,15 @@ import { useEffect, useMemo, useState, type ChangeEvent } from 'react'
 import { useRouter } from 'next/navigation'
 import AuthLayout from '@/components/AuthLayout'
 import { supabase } from '@/lib/supabase'
-import { Calendar, MapPin, User, Plus, CheckCircle, Users, PenSquare, AlertTriangle } from 'lucide-react'
+import { Calendar, MapPin, User, Plus, CheckCircle, Users, PenSquare, AlertTriangle, Info, X } from 'lucide-react'
 import { formatCycleWindow, getCurrentSubscriptionCycle, isDateWithinCycle } from '@/utils/subscriptionCycle'
+
+// Fonction pour extraire l'ID Vimeo de l'URL
+const extractVimeoId = (url: string): string | null => {
+  if (!url) return null
+  const match = url.match(/vimeo\.com\/(?:video\/)?(\d+)/)
+  return match ? match[1] : null
+}
 
 interface Seminar {
   id: string
@@ -19,6 +26,8 @@ interface Seminar {
   created_by?: string | null
   capacity?: number | null
   image_url?: string | null
+  program?: string | null
+  teaser_video_url?: string | null
 }
 
 interface SeminarRegistration {
@@ -47,13 +56,16 @@ export default function SeminarsPage() {
     theme: '',
     facilitator: '',
     capacity: null,
-    image_url: ''
+    image_url: '',
+    program: '',
+    teaser_video_url: ''
   })
   const [userRegistrations, setUserRegistrations] = useState<SeminarRegistration[]>([])
   const [allRegistrations, setAllRegistrations] = useState<SeminarRegistration[]>([])
   const [loadingError, setLoadingError] = useState<string | null>(null)
   const [isUploadingNewImage, setIsUploadingNewImage] = useState(false)
   const [isUploadingEditImage, setIsUploadingEditImage] = useState(false)
+  const [selectedSeminar, setSelectedSeminar] = useState<Seminar | null>(null)
 
   const fallbackSeminars: Seminar[] = [
     {
@@ -424,6 +436,8 @@ export default function SeminarsPage() {
       facilitator: newSeminar.facilitator,
       capacity,
       image_url: newSeminar.image_url || null,
+      program: newSeminar.program || null,
+      teaser_video_url: newSeminar.teaser_video_url || null,
       created_by: profile?.id
     }
 
@@ -449,7 +463,9 @@ export default function SeminarsPage() {
       theme: '',
       facilitator: '',
       capacity: null,
-      image_url: ''
+      image_url: '',
+      program: '',
+      teaser_video_url: ''
     })
   }
 
@@ -484,7 +500,9 @@ export default function SeminarsPage() {
       theme: editedSeminar.theme,
       facilitator: editedSeminar.facilitator,
       capacity,
-      image_url: editedSeminar.image_url || null
+      image_url: editedSeminar.image_url || null,
+      program: editedSeminar.program || null,
+      teaser_video_url: editedSeminar.teaser_video_url || null
     }
 
     const { data, error } = await supabase
@@ -538,8 +556,104 @@ export default function SeminarsPage() {
 
   const isFree = profile?.role === 'free'
 
+  // Composant Modal pour afficher les détails du séminaire
+  const SeminarModal = () => {
+    if (!selectedSeminar) return null
+
+    const vimeoId = extractVimeoId(selectedSeminar.teaser_video_url || '')
+
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm" onClick={() => setSelectedSeminar(null)}>
+        <div className="relative w-full max-w-4xl max-h-[90vh] bg-white rounded-2xl shadow-2xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
+          {/* Header */}
+          <div className="sticky top-0 bg-gradient-to-r from-primary-600 to-primary-700 text-white px-6 py-4 flex items-center justify-between z-10">
+            <div>
+              <h2 className="text-2xl font-bold">{selectedSeminar.title}</h2>
+              <p className="text-primary-100 text-sm">{selectedSeminar.theme}</p>
+            </div>
+            <button
+              onClick={() => setSelectedSeminar(null)}
+              className="p-2 hover:bg-white/20 rounded-lg transition"
+              aria-label="Fermer"
+            >
+              <X className="h-6 w-6" />
+            </button>
+          </div>
+
+          {/* Content */}
+          <div className="overflow-y-auto max-h-[calc(90vh-80px)]">
+            {/* Vidéo Vimeo */}
+            {vimeoId && (
+              <div className="relative w-full aspect-video bg-gray-900">
+                <iframe
+                  src={`https://player.vimeo.com/video/${vimeoId}?title=0&byline=0&portrait=0`}
+                  className="absolute inset-0 w-full h-full"
+                  frameBorder="0"
+                  allow="autoplay; fullscreen; picture-in-picture"
+                  allowFullScreen
+                  title={`Vidéo teaser - ${selectedSeminar.title}`}
+                ></iframe>
+              </div>
+            )}
+
+            <div className="p-6 space-y-6">
+              {/* Informations pratiques */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="flex items-center gap-3 text-gray-700">
+                  <Calendar className="h-5 w-5 text-primary-600 flex-shrink-0" />
+                  <div>
+                    <p className="text-xs text-gray-500 font-semibold uppercase">Dates</p>
+                    <p className="font-medium">{formatSeminarDates(selectedSeminar)}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 text-gray-700">
+                  <MapPin className="h-5 w-5 text-primary-600 flex-shrink-0" />
+                  <div>
+                    <p className="text-xs text-gray-500 font-semibold uppercase">Lieu</p>
+                    <p className="font-medium">{selectedSeminar.location}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 text-gray-700">
+                  <User className="h-5 w-5 text-primary-600 flex-shrink-0" />
+                  <div>
+                    <p className="text-xs text-gray-500 font-semibold uppercase">Encadrement</p>
+                    <p className="font-medium">{selectedSeminar.facilitator}</p>
+                  </div>
+                </div>
+                {selectedSeminar.capacity && (
+                  <div className="flex items-center gap-3 text-gray-700">
+                    <Users className="h-5 w-5 text-primary-600 flex-shrink-0" />
+                    <div>
+                      <p className="text-xs text-gray-500 font-semibold uppercase">Capacité</p>
+                      <p className="font-medium">{selectedSeminar.capacity} places</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Programme */}
+              {selectedSeminar.program && (
+                <div className="border-t border-gray-200 pt-6">
+                  <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                    <div className="h-1 w-8 bg-primary-600 rounded"></div>
+                    Programme du séminaire
+                  </h3>
+                  <div
+                    className="prose prose-sm max-w-none text-gray-700 leading-relaxed"
+                    dangerouslySetInnerHTML={{ __html: selectedSeminar.program }}
+                  />
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <AuthLayout>
+      {selectedSeminar && <SeminarModal />}
       <div className="space-y-6">
         {/* Header */}
         <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white shadow-2xl">
@@ -682,23 +796,36 @@ export default function SeminarsPage() {
                   </span>
                   {isFull && <span className="text-red-600 font-semibold">Complet</span>}
                 </div>
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-col gap-2">
+                  {/* Bouton Plus d'info */}
+                  {(seminar.program || seminar.teaser_video_url) && (
+                    <button
+                      onClick={() => setSelectedSeminar(seminar)}
+                      className="w-full px-4 py-2.5 rounded-lg text-sm font-semibold border-2 border-primary-200 text-primary-700 bg-primary-50/50 hover:bg-primary-100 hover:border-primary-300 transition-all flex items-center justify-center gap-2 shadow-sm"
+                    >
+                      <Info className="h-4 w-4" />
+                      Plus d'info
+                    </button>
+                  )}
+
+                  {/* Bouton Réserver ma place */}
                   {!isRegistered ? (
                     <button
                       onClick={() => handleRegister(seminar.id)}
                       disabled={isFree || profile?.role === 'premium_silver' || !isGoldActive || hasReachedLimit || isFull}
-                      className={`px-4 py-2 rounded-lg text-sm font-semibold border transition flex items-center justify-center gap-2 ${
+                      className={`w-full px-6 py-3 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2 shadow-md ${
                         isFree || profile?.role === 'premium_silver'
-                          ? 'border-dashed border-gray-200 text-gray-400'
+                          ? 'bg-gray-100 text-gray-400 cursor-not-allowed border-2 border-dashed border-gray-300'
                           : profile?.role === 'premium_gold' && !isGoldActive
-                            ? 'border-red-200 text-red-600 bg-red-50 cursor-not-allowed'
+                            ? 'bg-red-100 text-red-700 border-2 border-red-300 cursor-not-allowed'
                             : hasReachedLimit
-                              ? 'border-red-200 text-red-600 bg-red-50'
+                              ? 'bg-red-100 text-red-700 border-2 border-red-300 cursor-not-allowed'
                               : isFull
-                                ? 'border-red-200 text-red-600 bg-red-50'
-                                : 'border-primary-200 text-primary-700 hover:bg-primary-50'
+                                ? 'bg-red-100 text-red-700 border-2 border-red-300 cursor-not-allowed'
+                                : 'bg-gradient-to-r from-amber-500 to-orange-500 text-white hover:from-amber-600 hover:to-orange-600 hover:shadow-lg transform hover:scale-[1.02]'
                       }`}
                     >
+                      <CheckCircle className="h-5 w-5" />
                       {isFree
                         ? 'Gold requis'
                         : profile?.role === 'premium_silver'
@@ -712,20 +839,21 @@ export default function SeminarsPage() {
                                 : 'Réserver ma place'}
                     </button>
                   ) : (
-                    <>
+                    <div className="flex flex-col gap-2">
                       <button
                         disabled
-                        className="px-4 py-2 rounded-lg text-sm font-semibold border border-emerald-200 text-emerald-700 bg-emerald-50 cursor-default"
+                        className="w-full px-6 py-3 rounded-lg text-sm font-bold bg-gradient-to-r from-emerald-500 to-green-500 text-white shadow-md cursor-default flex items-center justify-center gap-2"
                       >
+                        <CheckCircle className="h-5 w-5" />
                         Déjà inscrit
                       </button>
                       <button
                         onClick={() => handleUnregister(seminar.id)}
-                        className="px-4 py-2 rounded-lg text-sm font-semibold border border-gray-200 text-gray-700 hover:bg-gray-50 transition"
+                        className="w-full px-4 py-2 rounded-lg text-sm font-semibold border border-gray-300 text-gray-700 hover:bg-gray-50 transition"
                       >
                         Se désinscrire
                       </button>
-                    </>
+                    </div>
                   )}
                 </div>
                 {profile?.role === 'admin' && (
@@ -833,6 +961,19 @@ export default function SeminarsPage() {
                           className="px-3 py-2 border rounded-lg text-sm"
                           placeholder="Nombre de places"
                         />
+                        <input
+                          type="text"
+                          value={editedSeminar.teaser_video_url || ''}
+                          onChange={(e) => setEditedSeminar({ ...editedSeminar, teaser_video_url: e.target.value })}
+                          className="px-3 py-2 border rounded-lg text-sm md:col-span-2"
+                          placeholder="URL vidéo teaser Vimeo (ex: https://vimeo.com/123456789)"
+                        />
+                        <textarea
+                          value={editedSeminar.program || ''}
+                          onChange={(e) => setEditedSeminar({ ...editedSeminar, program: e.target.value })}
+                          className="px-3 py-2 border rounded-lg text-sm md:col-span-2 min-h-[120px]"
+                          placeholder="Programme du séminaire (HTML supporté)"
+                        />
                         <div className="md:col-span-2 flex flex-wrap items-center gap-3">
                           {editedSeminar.image_url && (
                             <img
@@ -925,6 +1066,19 @@ export default function SeminarsPage() {
                   setNewSeminar({ ...newSeminar, capacity: e.target.value ? parseInt(e.target.value, 10) : null })
                 }
                 className="px-3 py-2 border rounded-lg"
+              />
+              <input
+                type="text"
+                placeholder="URL vidéo teaser Vimeo (ex: https://vimeo.com/123456789)"
+                value={newSeminar.teaser_video_url || ''}
+                onChange={(e) => setNewSeminar({ ...newSeminar, teaser_video_url: e.target.value })}
+                className="px-3 py-2 border rounded-lg md:col-span-2"
+              />
+              <textarea
+                placeholder="Programme du séminaire (HTML supporté)"
+                value={newSeminar.program || ''}
+                onChange={(e) => setNewSeminar({ ...newSeminar, program: e.target.value })}
+                className="px-3 py-2 border rounded-lg md:col-span-2 min-h-[120px]"
               />
               <div className="md:col-span-2 flex flex-wrap items-center gap-3">
                 {newSeminar.image_url && (
