@@ -23,7 +23,6 @@ import {
   Calendar,
   Mail,
   GraduationCap,
-  TrendingUp,
   FileQuestion,
   Target,
   FolderOpen
@@ -107,12 +106,6 @@ export default function Navigation() {
       icon: Calendar,
       badge: 'Gold',
       roles: ['premium_gold', 'admin']
-    },
-    {
-      href: '/stats',
-      label: 'Statistiques',
-      icon: TrendingUp,
-      isNew: true
     },
     { href: '/settings', label: 'Paramètres', icon: Settings },
   ]
