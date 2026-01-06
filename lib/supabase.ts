@@ -149,6 +149,7 @@ export type Database = {
         category: string | null
         indications: string | null
         sources: string | null
+        is_free_access: boolean | null
       }>
       pathologies: TableDefinition<{
         id: string
@@ -164,6 +165,7 @@ export type Database = {
         region: string | null
         is_red_flag: boolean | null
         red_flag_reason: string | null
+        is_free_access: boolean | null
       }>
       practice_videos: TableDefinition<{
         id: string
@@ -180,6 +182,7 @@ export type Database = {
         created_by: string | null
         created_at: string
         updated_at: string
+        is_free_access: boolean | null
       }>
       rehab_exercises: TableDefinition<{
         id: string
@@ -236,6 +239,45 @@ export type Database = {
         display_order: number | null
         is_active: boolean | null
         created_by: string | null
+        created_at: string
+        updated_at: string
+        is_free_access: boolean | null
+      }>
+      elearning_formations: TableDefinition<{
+        id: string
+        title: string
+        description: string | null
+        is_private: boolean | null
+        photo_url: string | null
+        created_by: string | null
+        created_at: string
+        updated_at: string
+        is_free_access: boolean | null
+      }>
+      elearning_chapters: TableDefinition<{
+        id: string
+        formation_id: string
+        title: string
+        order_index: number
+        created_at: string
+        updated_at: string
+      }>
+      elearning_subparts: TableDefinition<{
+        id: string
+        chapter_id: string
+        title: string
+        vimeo_url: string | null
+        description_html: string | null
+        order_index: number
+        created_at: string
+        updated_at: string
+      }>
+      elearning_subpart_progress: TableDefinition<{
+        id: string
+        subpart_id: string
+        user_id: string
+        completed: boolean
+        completed_at: string | null
         created_at: string
         updated_at: string
       }>

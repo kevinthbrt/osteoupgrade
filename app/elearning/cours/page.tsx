@@ -55,6 +55,7 @@ type Formation = {
   description?: string
   is_private?: boolean
   photo_url?: string
+  is_free_access?: boolean
   chapters: Chapter[]
 }
 
@@ -64,9 +65,11 @@ type Profile = {
   full_name?: string
 }
 
-const canAccessFormation = (role: string | undefined, isPrivate?: boolean) => {
+const canAccessFormation = (role: string | undefined, isPrivate?: boolean, isFreeAccess?: boolean) => {
   if (!role) return false
   if (isPrivate) return role === 'admin'
+  // Free users can access courses marked as free access
+  if (isFreeAccess && role === 'free') return true
   return ['premium_silver', 'premium_gold', 'admin'].includes(role)
 }
 
@@ -138,7 +141,7 @@ export default function CoursPage() {
       const { data, error } = await supabase
         .from('elearning_formations')
         .select(
-          `id, title, description, is_private, photo_url,
+          `id, title, description, is_private, photo_url, is_free_access,
           chapters:elearning_chapters(id, title, order_index,
             subparts:elearning_subparts(id, title, vimeo_url, description_html, order_index,
               progress:elearning_subpart_progress(user_id, completed_at),
@@ -170,6 +173,7 @@ export default function CoursPage() {
           description: formation.description,
           is_private: formation.is_private,
           photo_url: formation.photo_url,
+          is_free_access: formation.is_free_access,
           chapters:
             formation.chapters?.map((chapter: any) => ({
               id: chapter.id,
@@ -213,7 +217,7 @@ export default function CoursPage() {
             })) || []
         }))
 
-        const accessible = parsed.filter((formation) => canAccessFormation(roleToUse, formation.is_private))
+        const accessible = parsed.filter((formation) => canAccessFormation(roleToUse, formation.is_private, formation.is_free_access))
 
         if (accessible.length) {
           setFormations(accessible)
