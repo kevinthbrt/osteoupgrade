@@ -213,8 +213,8 @@ export default function CoursPage() {
                     quiz,
                     quiz_passed: quiz ? passedQuizIds.has(quiz.id) : true
                   }
-                }).sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0)) || []
-            })).sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0)) || []
+                }).sort((a: Subpart, b: Subpart) => (a.order_index ?? 0) - (b.order_index ?? 0)) || []
+            })).sort((a: Chapter, b: Chapter) => (a.order_index ?? 0) - (b.order_index ?? 0)) || []
         }))
 
         const accessible = parsed.filter((formation) => canAccessFormation(roleToUse, formation.is_private, formation.is_free_access))
