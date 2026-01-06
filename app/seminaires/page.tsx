@@ -1,10 +1,10 @@
 'use client'
 
-import { useEffect, useMemo, useState, type ChangeEvent } from 'react'
+import { useEffect, useMemo, useState, useRef, type ChangeEvent } from 'react'
 import { useRouter } from 'next/navigation'
 import AuthLayout from '@/components/AuthLayout'
 import { supabase } from '@/lib/supabase'
-import { Calendar, MapPin, User, Plus, CheckCircle, Users, PenSquare, AlertTriangle, Info, X } from 'lucide-react'
+import { Calendar, MapPin, User, Plus, CheckCircle, Users, PenSquare, AlertTriangle, Info, X, Bold, Italic, List, ListOrdered, Heading2, Heading3 } from 'lucide-react'
 import { formatCycleWindow, getCurrentSubscriptionCycle, isDateWithinCycle } from '@/utils/subscriptionCycle'
 
 // Fonction pour extraire l'ID Vimeo de l'URL
@@ -37,6 +37,73 @@ interface SeminarRegistration {
   user_id?: string | null
   user_name?: string | null
   user_email?: string | null
+}
+
+// Composant éditeur de texte riche pour le programme
+interface RichTextEditorProps {
+  value: string
+  onChange: (value: string) => void
+  placeholder?: string
+}
+
+const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange, placeholder }) => {
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
+
+  const insertHTML = (before: string, after: string = '') => {
+    const textarea = textareaRef.current
+    if (!textarea) return
+
+    const start = textarea.selectionStart
+    const end = textarea.selectionEnd
+    const selectedText = value.substring(start, end)
+    const newText = value.substring(0, start) + before + selectedText + after + value.substring(end)
+
+    onChange(newText)
+
+    // Repositionner le curseur
+    setTimeout(() => {
+      textarea.focus()
+      const newCursorPos = start + before.length + selectedText.length
+      textarea.setSelectionRange(newCursorPos, newCursorPos)
+    }, 0)
+  }
+
+  const formatButtons = [
+    { icon: Bold, label: 'Gras', before: '<strong>', after: '</strong>' },
+    { icon: Italic, label: 'Italique', before: '<em>', after: '</em>' },
+    { icon: Heading2, label: 'Titre H2', before: '<h2>', after: '</h2>' },
+    { icon: Heading3, label: 'Titre H3', before: '<h3>', after: '</h3>' },
+    { icon: List, label: 'Liste à puces', before: '<ul>\n  <li>', after: '</li>\n</ul>' },
+    { icon: ListOrdered, label: 'Liste numérotée', before: '<ol>\n  <li>', after: '</li>\n</ol>' },
+  ]
+
+  return (
+    <div className="space-y-2">
+      <div className="flex flex-wrap gap-1 p-2 bg-gray-50 border border-gray-200 rounded-t-lg">
+        {formatButtons.map((btn, index) => (
+          <button
+            key={index}
+            type="button"
+            onClick={() => insertHTML(btn.before, btn.after)}
+            className="p-2 hover:bg-white hover:shadow-sm rounded transition-all border border-transparent hover:border-gray-300"
+            title={btn.label}
+          >
+            <btn.icon className="h-4 w-4 text-gray-600" />
+          </button>
+        ))}
+      </div>
+      <textarea
+        ref={textareaRef}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="px-3 py-2 border border-gray-200 rounded-b-lg text-sm w-full min-h-[150px] font-mono text-xs"
+        placeholder={placeholder}
+      />
+      <p className="text-xs text-gray-500">
+        💡 Sélectionnez du texte puis cliquez sur un bouton pour le formater
+      </p>
+    </div>
+  )
 }
 
 export default function SeminarsPage() {
@@ -968,12 +1035,14 @@ export default function SeminarsPage() {
                           className="px-3 py-2 border rounded-lg text-sm md:col-span-2"
                           placeholder="URL vidéo teaser Vimeo (ex: https://vimeo.com/123456789)"
                         />
-                        <textarea
-                          value={editedSeminar.program || ''}
-                          onChange={(e) => setEditedSeminar({ ...editedSeminar, program: e.target.value })}
-                          className="px-3 py-2 border rounded-lg text-sm md:col-span-2 min-h-[120px]"
-                          placeholder="Programme du séminaire (HTML supporté)"
-                        />
+                        <div className="md:col-span-2">
+                          <label className="block text-sm font-medium text-gray-700 mb-2">Programme du séminaire</label>
+                          <RichTextEditor
+                            value={editedSeminar.program || ''}
+                            onChange={(value) => setEditedSeminar({ ...editedSeminar, program: value })}
+                            placeholder="Décrivez le programme détaillé du séminaire..."
+                          />
+                        </div>
                         <div className="md:col-span-2 flex flex-wrap items-center gap-3">
                           {editedSeminar.image_url && (
                             <img
@@ -1074,12 +1143,14 @@ export default function SeminarsPage() {
                 onChange={(e) => setNewSeminar({ ...newSeminar, teaser_video_url: e.target.value })}
                 className="px-3 py-2 border rounded-lg md:col-span-2"
               />
-              <textarea
-                placeholder="Programme du séminaire (HTML supporté)"
-                value={newSeminar.program || ''}
-                onChange={(e) => setNewSeminar({ ...newSeminar, program: e.target.value })}
-                className="px-3 py-2 border rounded-lg md:col-span-2 min-h-[120px]"
-              />
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Programme du séminaire</label>
+                <RichTextEditor
+                  value={newSeminar.program || ''}
+                  onChange={(value) => setNewSeminar({ ...newSeminar, program: value })}
+                  placeholder="Décrivez le programme détaillé du séminaire..."
+                />
+              </div>
               <div className="md:col-span-2 flex flex-wrap items-center gap-3">
                 {newSeminar.image_url && (
                   <img
