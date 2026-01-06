@@ -114,6 +114,14 @@ export default function CommunicationPage() {
   const handleFileUpload = async (file: File) => {
     setUploadingFile(true)
     try {
+      // Logger les infos du fichier pour debugging
+      console.log('Uploading file:', {
+        name: file.name,
+        type: file.type,
+        size: file.size,
+        extension: file.name.split('.').pop()?.toLowerCase()
+      })
+
       const formDataUpload = new FormData()
       formDataUpload.append('file', file)
 
@@ -643,7 +651,7 @@ export default function CommunicationPage() {
                     <label className="block w-full p-8 border-2 border-dashed border-white/20 rounded-lg cursor-pointer hover:border-blue-500/50 transition-colors">
                       <input
                         type="file"
-                        accept=".doc,.docx,.pdf"
+                        accept=".doc,.docx,.pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/pdf"
                         onChange={(e) => {
                           const file = e.target.files?.[0]
                           if (file) handleFileUpload(file)

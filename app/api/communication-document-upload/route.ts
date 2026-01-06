@@ -34,14 +34,34 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Aucun fichier fourni' }, { status: 400 })
     }
 
+    // Logger les infos du fichier pour debugging
+    console.log('File upload attempt:', {
+      name: file.name,
+      type: file.type,
+      size: file.size
+    })
+
     // Vérifier que c'est un fichier Word ou PDF
     const allowedExtensions = ['doc', 'docx', 'pdf']
+    const allowedMimeTypes = [
+      'application/pdf',
+      'application/msword', // .doc
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document' // .docx
+    ]
+
     const ext = file.name.split('.').pop()?.toLowerCase() || ''
 
     if (!allowedExtensions.includes(ext)) {
+      console.error('Invalid file extension:', ext)
       return NextResponse.json({
-        error: 'Type de fichier non autorisé. Seuls les fichiers Word (.doc, .docx) et PDF sont acceptés.'
+        error: `Type de fichier non autorisé (extension: .${ext}). Seuls les fichiers Word (.doc, .docx) et PDF sont acceptés.`
       }, { status: 400 })
+    }
+
+    // Vérifier aussi le type MIME si disponible
+    if (file.type && !allowedMimeTypes.includes(file.type)) {
+      console.warn('File has unexpected MIME type:', file.type, 'but extension is valid:', ext)
+      // On continue quand même si l'extension est valide (certains navigateurs n'envoient pas le bon MIME type)
     }
 
     // Vérifier que la variable d'environnement Vercel Blob est configurée
