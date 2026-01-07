@@ -19,7 +19,12 @@ import {
   Brain,
   Zap,
   Dumbbell,
-  LogIn
+  LogIn,
+  Crown,
+  Gift,
+  Copy,
+  Users,
+  Wallet
 } from 'lucide-react'
 
 export default function Dashboard() {
@@ -28,6 +33,8 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [badges, setBadges] = useState<{ id: string; name: string; icon: string | null; description?: string | null }[]>([])
+  const [referralData, setReferralData] = useState<{ code: string | null; referrals_count: number; available_earnings: number } | null>(null)
+  const [codeCopied, setCodeCopied] = useState(false)
   const [stats, setStats] = useState({
     level: 1,
     totalXp: 0,
@@ -143,10 +150,51 @@ export default function Dashboard() {
             .filter((achievement): achievement is { id: string; name: string; icon: string | null; description?: string | null } => Boolean(achievement))
         )
       }
+
+      // Load referral data for Gold members
+      if (profileData?.role === 'premium_gold') {
+        try {
+          const [codeResponse, earningsResponse] = await Promise.all([
+            fetch('/api/referrals/my-code'),
+            fetch('/api/referrals/earnings')
+          ])
+
+          let referralCode = null
+          let referralsCount = 0
+          let availableEarnings = 0
+
+          if (codeResponse.ok) {
+            const codeData = await codeResponse.json()
+            referralCode = codeData.referralCode
+          }
+
+          if (earningsResponse.ok) {
+            const earningsData = await earningsResponse.json()
+            referralsCount = earningsData.transactions?.length || 0
+            availableEarnings = earningsData.summary?.available_amount || 0
+          }
+
+          setReferralData({
+            code: referralCode,
+            referrals_count: referralsCount,
+            available_earnings: availableEarnings
+          })
+        } catch (error) {
+          console.error('Error loading referral data:', error)
+        }
+      }
     } catch (error) {
       console.error('Error loading dashboard:', error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const copyReferralCode = () => {
+    if (referralData?.code) {
+      navigator.clipboard.writeText(referralData.code)
+      setCodeCopied(true)
+      setTimeout(() => setCodeCopied(false), 2000)
     }
   }
 
@@ -385,6 +433,98 @@ export default function Dashboard() {
             </div>
           </div>
         </div>
+
+        {/* Ambassador Space - Only for Premium Gold */}
+        {profile?.role === 'premium_gold' && referralData && (
+          <div className="mb-8">
+            <div className="bg-gradient-to-br from-yellow-50 to-amber-50 border-2 border-yellow-300 rounded-2xl shadow-xl overflow-hidden">
+              {/* Header */}
+              <div className="bg-gradient-to-r from-yellow-500 to-amber-600 p-6 text-yellow-900">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="p-2 bg-yellow-900/20 rounded-lg">
+                    <Crown className="h-6 w-6" />
+                  </div>
+                  <h2 className="text-2xl font-bold">Espace Ambassadeur Gold</h2>
+                </div>
+                <p className="text-yellow-900/80 text-sm">
+                  Parrainez vos collègues et gagnez 10% de commission sur chaque abonnement annuel
+                </p>
+              </div>
+
+              {/* Content */}
+              <div className="p-6">
+                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 mb-6">
+                  {/* Referral Code Card */}
+                  <div className="bg-white border-2 border-yellow-200 rounded-xl p-5 shadow-sm">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Gift className="h-5 w-5 text-yellow-600" />
+                      <h3 className="font-semibold text-gray-900">Votre code</h3>
+                    </div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="flex-1 bg-yellow-100 border border-yellow-300 rounded-lg px-4 py-3 font-mono text-2xl font-bold text-yellow-900 text-center">
+                        {referralData.code || '---'}
+                      </div>
+                      <button
+                        onClick={copyReferralCode}
+                        className="p-3 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg transition-colors"
+                        title="Copier le code"
+                      >
+                        {codeCopied ? <Check className="h-5 w-5" /> : <Copy className="h-5 w-5" />}
+                      </button>
+                    </div>
+                    <p className="text-xs text-gray-600">
+                      {codeCopied ? '✅ Code copié !' : 'Partagez ce code avec vos collègues'}
+                    </p>
+                  </div>
+
+                  {/* Referrals Count Card */}
+                  <div className="bg-white border-2 border-blue-200 rounded-xl p-5 shadow-sm">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Users className="h-5 w-5 text-blue-600" />
+                      <h3 className="font-semibold text-gray-900">Filleuls</h3>
+                    </div>
+                    <div className="text-4xl font-bold text-blue-600 mb-1">
+                      {referralData.referrals_count}
+                    </div>
+                    <p className="text-sm text-gray-600">
+                      {referralData.referrals_count === 0
+                        ? 'Aucun filleul pour le moment'
+                        : referralData.referrals_count === 1
+                        ? '1 personne parrainée'
+                        : `${referralData.referrals_count} personnes parrainées`}
+                    </p>
+                  </div>
+
+                  {/* Earnings Card */}
+                  <div className="bg-white border-2 border-green-200 rounded-xl p-5 shadow-sm">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Wallet className="h-5 w-5 text-green-600" />
+                      <h3 className="font-semibold text-gray-900">Cagnotte</h3>
+                    </div>
+                    <div className="text-4xl font-bold text-green-600 mb-1">
+                      {((referralData.available_earnings || 0) / 100).toFixed(2)}€
+                    </div>
+                    <p className="text-sm text-gray-600">
+                      {referralData.available_earnings >= 1000
+                        ? 'Vous pouvez demander un versement'
+                        : `Minimum 10€ pour un versement`}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Action Button */}
+                <button
+                  onClick={() => router.push('/settings/referrals')}
+                  className="w-full bg-gradient-to-r from-yellow-500 to-amber-600 hover:from-yellow-600 hover:to-amber-700 text-yellow-900 font-bold py-4 px-6 rounded-xl transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-2"
+                >
+                  <Crown className="h-5 w-5" />
+                  Accéder à mon espace ambassadeur complet
+                  <ArrowRight className="h-5 w-5" />
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Main Modules Section */}
         <div className="mb-12">

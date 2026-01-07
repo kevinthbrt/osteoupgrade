@@ -4,7 +4,7 @@ import { useEffect, useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import AuthLayout from '@/components/AuthLayout'
-import { Crown, Check, Sparkles, Users, Loader2, ArrowLeft, ExternalLink, Gift } from 'lucide-react'
+import { Crown, Check, Sparkles, Users, Loader2, ArrowLeft, ExternalLink, Gift, Shield, Calendar } from 'lucide-react'
 
 function SubscriptionContent() {
   const router = useRouter()
@@ -162,6 +162,7 @@ function SubscriptionContent() {
   }
 
   const isPremium = profile?.role === 'premium_silver' || profile?.role === 'premium_gold'
+  const isGoldPromoActive = process.env.NEXT_PUBLIC_GOLD_PROMO_ACTIVE === 'true'
 
   return (
     <AuthLayout>
@@ -205,6 +206,47 @@ function SubscriptionContent() {
               </span>
             </div>
 
+            {/* Commitment Information - Only for legacy users with commitment_end_date */}
+            {profile.commitment_end_date && (
+              <div className="border-t border-gray-200 pt-6">
+                <div className="flex items-start gap-4">
+                  <div className="p-3 bg-blue-50 rounded-lg">
+                    <Shield className="h-6 w-6 text-blue-600" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-2">
+                      <h3 className="font-semibold text-gray-900">Période d'engagement</h3>
+                      {new Date() < new Date(profile.commitment_end_date) && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-1 text-xs font-semibold text-amber-700">
+                          <Calendar className="h-3 w-3" />
+                          En cours
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-sm text-gray-600 mb-3">
+                      {new Date() < new Date(profile.commitment_end_date) ? (
+                        <>
+                          Votre engagement se termine le{' '}
+                          <strong className="text-gray-900">
+                            {new Date(profile.commitment_end_date).toLocaleDateString('fr-FR', {
+                              day: 'numeric',
+                              month: 'long',
+                              year: 'numeric'
+                            })}
+                          </strong>
+                          . Vous pourrez annuler votre abonnement à partir de cette date.
+                        </>
+                      ) : (
+                        <>
+                          Votre période d'engagement est terminée. Vous pouvez annuler votre abonnement à tout moment.
+                        </>
+                      )}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Manage Subscription Button */}
             <div className="border-t border-gray-200 pt-6">
               <button
@@ -225,58 +267,62 @@ function SubscriptionContent() {
                 )}
               </button>
               <p className="text-xs text-gray-500 mt-3">
-                Accédez au portail de gestion pour mettre à jour vos informations de paiement, télécharger vos factures,
-                ou annuler votre abonnement à tout moment.
+                Accédez au portail de gestion pour mettre à jour vos informations de paiement, télécharger vos factures
+                ou annuler votre abonnement.
               </p>
             </div>
           </div>
         )}
 
-        {/* Referral Code Input (only for non-premium users) */}
+        {/* Referral Code Input - Only for non-premium users */}
         {!isPremium && (
-          <div className="bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-200 rounded-xl p-6">
-            <div className="flex items-center gap-2 mb-3">
-              <Gift className="h-5 w-5 text-green-600" />
-              <h3 className="font-semibold text-green-900">Vous avez un code de parrainage ?</h3>
-            </div>
-            <p className="text-sm text-green-800 mb-4">
-              Saisissez le code de parrainage d'un membre Premium Gold pour soutenir votre parrain.
-            </p>
-            <div className="flex gap-3">
-              <input
-                type="text"
-                placeholder="Ex: OSTEO1234"
-                value={referralCode}
-                onChange={(e) => {
-                  const value = e.target.value.toUpperCase()
-                  setReferralCode(value)
-                  if (value.length >= 4) {
-                    validateReferralCode(value)
-                  } else {
-                    setCodeValidation(null)
-                  }
-                }}
-                className="flex-1 px-4 py-2 border border-green-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                maxLength={20}
-              />
-              {validatingCode && <Loader2 className="h-10 w-10 animate-spin text-green-600" />}
-            </div>
-            {codeValidation && (
-              <div
-                className={`mt-3 p-3 rounded-lg ${
-                  codeValidation.valid ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                }`}
-              >
-                <p className="text-sm font-medium">{codeValidation.message}</p>
+          <div className="bg-gradient-to-br from-purple-50 to-pink-50 border-2 border-purple-200 rounded-xl p-6">
+            <div className="flex items-start gap-4">
+              <div className="p-3 bg-purple-600 rounded-lg">
+                <Gift className="h-6 w-6 text-white" />
               </div>
-            )}
+              <div className="flex-1">
+                <h3 className="font-semibold text-gray-900 mb-2">Vous avez un code de parrainage ?</h3>
+                <p className="text-sm text-gray-600 mb-4">
+                  Entrez le code de parrainage d'un membre Gold pour bénéficier d'avantages exclusifs.
+                </p>
+                <div className="flex gap-3">
+                  <input
+                    type="text"
+                    value={referralCode}
+                    onChange={(e) => {
+                      const code = e.target.value.toUpperCase()
+                      setReferralCode(code)
+                      if (code.length >= 4) {
+                        validateReferralCode(code)
+                      } else {
+                        setCodeValidation(null)
+                      }
+                    }}
+                    placeholder="CODE123"
+                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent uppercase"
+                    maxLength={10}
+                  />
+                  {validatingCode && <Loader2 className="h-10 w-10 animate-spin text-purple-600" />}
+                </div>
+                {codeValidation && (
+                  <div
+                    className={`mt-3 text-sm font-medium ${
+                      codeValidation.valid ? 'text-green-700' : 'text-red-700'
+                    }`}
+                  >
+                    {codeValidation.valid ? '✅' : '❌'} {codeValidation.message}
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         )}
 
-        {/* Plans Comparison - Side by Side */}
-        <div className="grid gap-6 lg:grid-cols-2">
+        {/* Plans Comparison */}
+        <div className="grid gap-8 lg:grid-cols-2">
           {/* Premium Silver */}
-          <div className="bg-white border-2 border-blue-200 rounded-2xl shadow-lg overflow-hidden flex flex-col">
+          <div className="relative bg-white border-2 border-blue-200 rounded-2xl shadow-lg overflow-hidden">
             <div className="bg-gradient-to-r from-blue-500 to-blue-600 p-6 text-white">
               <div className="flex items-center gap-2 mb-2">
                 <div className="p-2 bg-white/20 rounded-lg">
@@ -284,115 +330,146 @@ function SubscriptionContent() {
                 </div>
                 <h2 className="text-2xl font-bold">Premium Silver</h2>
               </div>
-              <p className="text-blue-100">L'essentiel des outils cliniques</p>
+              <p className="text-blue-100">L'essentiel des outils cliniques, réunis dans une seule plateforme</p>
+              <div className="mt-6">
+                <div className="space-y-4">
+                  {/* Monthly Option */}
+                  <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4">
+                    <div className="flex items-baseline gap-2 mb-1">
+                      <span className="text-4xl font-bold">29€</span>
+                      <span className="text-blue-100">/mois</span>
+                    </div>
+                    <p className="text-sm text-blue-200">Sans engagement • Annulable à tout moment</p>
+                  </div>
+
+                  {/* Annual Option */}
+                  <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border-2 border-white/30">
+                    <div className="flex items-center justify-between mb-1">
+                      <div className="flex items-baseline gap-2">
+                        <span className="text-4xl font-bold">240€</span>
+                        <span className="text-blue-100">/an</span>
+                      </div>
+                      <span className="bg-green-400 text-green-900 text-xs font-bold px-2 py-1 rounded-full">
+                        -17%
+                      </span>
+                    </div>
+                    <p className="text-sm text-blue-200">Soit 20€/mois • 2 mois offerts</p>
+                  </div>
+                </div>
+              </div>
             </div>
 
-            <div className="p-6 space-y-4 flex-1 flex flex-col">
-              {/* Pricing Options */}
-              <div className="grid gap-3 sm:grid-cols-2">
-                {/* Monthly */}
-                <div className="border-2 border-blue-300 rounded-lg p-3 hover:border-blue-500 transition">
-                  <div className="mb-2">
-                    <div className="flex items-baseline gap-1">
-                      <span className="text-2xl font-bold text-gray-900">29€</span>
-                      <span className="text-sm text-gray-600">/mois</span>
-                    </div>
-                    <p className="text-xs text-gray-600 mt-1">Sans engagement</p>
-                  </div>
-                  <button
-                    onClick={() => handleUpgrade('premium_silver_monthly')}
-                    disabled={
-                      processingPlan !== null || profile?.role === 'premium_silver' || profile?.role === 'premium_gold'
-                    }
-                    className="w-full bg-blue-600 text-white py-2 px-3 rounded-lg text-sm font-semibold hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                  >
-                    {processingPlan === 'premium_silver_monthly' ? (
-                      <>
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        <span className="text-xs">Redirection...</span>
-                      </>
-                    ) : profile?.role === 'premium_silver' ? (
-                      <span className="text-xs">Actuel</span>
-                    ) : profile?.role === 'premium_gold' ? (
-                      <span className="text-xs">Vous avez Gold</span>
-                    ) : (
-                      <span className="text-xs">Choisir</span>
-                    )}
-                  </button>
-                </div>
+            <div className="p-6 space-y-6">
+              <p className="text-gray-700">
+                La formule Premium Silver donne accès à l'intégralité des modules digitaux d'OsteoUpgrade, conçus pour
+                structurer ton raisonnement clinique, gagner du temps en consultation et améliorer la qualité de tes
+                prises en charge.
+              </p>
 
-                {/* Annual */}
-                <div className="border-2 border-blue-500 rounded-lg p-3 relative bg-blue-50">
-                  <div className="absolute -top-2 left-1/2 -translate-x-1/2">
-                    <span className="bg-blue-600 text-white px-2 py-0.5 rounded-full text-[10px] font-bold">
-                      -31%
-                    </span>
+              <div>
+                <h3 className="font-semibold text-gray-900 mb-3">Inclus dans l'abonnement :</h3>
+                <div className="space-y-3">
+                  <div className="flex items-start gap-3">
+                    <Check className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                    <p className="text-sm text-gray-700">
+                      <strong>Tests orthopédiques + export PDF</strong> : fiches structurées, indications cliniques et
+                      documents prêts à partager.
+                    </p>
                   </div>
-                  <div className="mb-2 mt-1">
-                    <div className="flex items-baseline gap-1">
-                      <span className="text-2xl font-bold text-gray-900">240€</span>
-                      <span className="text-sm text-gray-600">/an</span>
-                    </div>
-                    <p className="text-xs text-gray-600 mt-1">20€/mois</p>
+                  <div className="flex items-start gap-3">
+                    <Check className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                    <p className="text-sm text-gray-700">
+                      <strong>E-learning actualisé en continu</strong> : raisonnement clinique, protocoles, anatomie,
+                      cas pratiques…
+                    </p>
                   </div>
-                  <button
-                    onClick={() => handleUpgrade('premium_silver_annual')}
-                    disabled={
-                      processingPlan !== null || profile?.role === 'premium_silver' || profile?.role === 'premium_gold'
-                    }
-                    className="w-full bg-blue-600 text-white py-2 px-3 rounded-lg text-sm font-semibold hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                  >
-                    {processingPlan === 'premium_silver_annual' ? (
-                      <>
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        <span className="text-xs">Redirection...</span>
-                      </>
-                    ) : profile?.role === 'premium_silver' ? (
-                      <span className="text-xs">Actuel</span>
-                    ) : profile?.role === 'premium_gold' ? (
-                      <span className="text-xs">Vous avez Gold</span>
-                    ) : (
-                      <span className="text-xs">Choisir</span>
-                    )}
-                  </button>
+                  <div className="flex items-start gap-3">
+                    <Check className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                    <p className="text-sm text-gray-700">
+                      <strong>Module pratique</strong> : techniques articulaires, musculaires, mobilisations,
+                      palpations.
+                    </p>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <Check className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                    <p className="text-sm text-gray-700">
+                      <strong>Créateur de fiches d'exercices</strong> : personnalisation + export PDF pour tes
+                      patients.
+                    </p>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <Check className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                    <p className="text-sm text-gray-700">
+                      <strong>Topographies des pathologies</strong> : cartes symptomatiques détaillées + explications
+                      cliniques.
+                    </p>
+                  </div>
                 </div>
               </div>
 
-              {/* Features */}
-              <div className="border-t border-gray-200 pt-4 flex-1">
-                <h3 className="font-semibold text-gray-900 mb-3 text-sm">Inclus :</h3>
-                <div className="space-y-2">
-                  <div className="flex items-start gap-2">
-                    <Check className="h-4 w-4 text-blue-600 flex-shrink-0 mt-0.5" />
-                    <p className="text-xs text-gray-700">Tests orthopédiques + PDF</p>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <Check className="h-4 w-4 text-blue-600 flex-shrink-0 mt-0.5" />
-                    <p className="text-xs text-gray-700">E-learning actualisé</p>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <Check className="h-4 w-4 text-blue-600 flex-shrink-0 mt-0.5" />
-                    <p className="text-xs text-gray-700">Module pratique</p>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <Check className="h-4 w-4 text-blue-600 flex-shrink-0 mt-0.5" />
-                    <p className="text-xs text-gray-700">Fiches d'exercices + PDF</p>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <Check className="h-4 w-4 text-blue-600 flex-shrink-0 mt-0.5" />
-                    <p className="text-xs text-gray-700">Topographies pathologies</p>
-                  </div>
-                </div>
+              <div className="bg-blue-50 border border-blue-100 rounded-lg p-4">
+                <p className="text-sm font-semibold text-blue-900 mb-1">Pour qui ?</p>
+                <p className="text-sm text-blue-800">
+                  Pour les thérapeutes qui veulent un outil complet, fiable et évolutif pour améliorer leur pratique au
+                  quotidien.
+                </p>
+              </div>
+
+              <div className="space-y-3">
+                <button
+                  onClick={() => handleUpgrade('premium_silver_monthly')}
+                  disabled={
+                    processingPlan !== null ||
+                    profile?.role === 'premium_silver' ||
+                    profile?.role === 'premium_gold'
+                  }
+                  className="w-full bg-blue-600 text-white py-4 px-6 rounded-lg font-semibold hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  {processingPlan === 'premium_silver_monthly' ? (
+                    <>
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                      Redirection...
+                    </>
+                  ) : profile?.role === 'premium_silver' || profile?.role === 'premium_gold' ? (
+                    'Déjà Premium'
+                  ) : (
+                    'Choisir Silver Mensuel (29€/mois)'
+                  )}
+                </button>
+
+                <button
+                  onClick={() => handleUpgrade('premium_silver_annual')}
+                  disabled={
+                    processingPlan !== null ||
+                    profile?.role === 'premium_silver' ||
+                    profile?.role === 'premium_gold'
+                  }
+                  className="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white py-4 px-6 rounded-lg font-bold hover:from-blue-700 hover:to-blue-800 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 border-2 border-blue-400"
+                >
+                  {processingPlan === 'premium_silver_annual' ? (
+                    <>
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                      Redirection...
+                    </>
+                  ) : profile?.role === 'premium_silver' || profile?.role === 'premium_gold' ? (
+                    'Déjà Premium'
+                  ) : (
+                    <>
+                      <Check className="h-5 w-5" />
+                      Choisir Silver Annuel (240€/an)
+                    </>
+                  )}
+                </button>
               </div>
             </div>
           </div>
 
-          {/* Premium Gold */}
-          <div className="relative bg-white border-4 border-yellow-400 rounded-2xl shadow-2xl overflow-hidden flex flex-col">
+          {/* Premium Gold - HIGHLIGHTED */}
+          <div className="relative bg-white border-4 border-yellow-400 rounded-2xl shadow-2xl overflow-hidden">
             {/* Badge "Recommandé" */}
-            <div className="absolute top-4 right-4 z-10">
-              <div className="bg-gradient-to-r from-yellow-400 to-yellow-500 text-yellow-900 px-3 py-1 rounded-full text-xs font-bold shadow-lg flex items-center gap-1">
-                <Sparkles className="h-3 w-3" />
+            <div className="absolute top-6 right-6 z-10">
+              <div className="bg-gradient-to-r from-yellow-400 to-yellow-500 text-yellow-900 px-4 py-2 rounded-full text-sm font-bold shadow-lg flex items-center gap-2">
+                <Sparkles className="h-4 w-4" />
                 Recommandé
               </div>
             </div>
@@ -404,78 +481,118 @@ function SubscriptionContent() {
                 </div>
                 <h2 className="text-2xl font-bold">Premium Gold</h2>
               </div>
-              <p className="text-yellow-900/90 text-sm">L'expérience complète + présentiel</p>
-            </div>
-
-            <div className="p-6 space-y-4 flex-1 flex flex-col">
-              {/* Pricing */}
-              <div className="border-2 border-yellow-400 rounded-lg p-4 bg-gradient-to-r from-yellow-50 to-yellow-100">
-                <div className="flex items-baseline gap-2 justify-center">
-                  {process.env.NEXT_PUBLIC_GOLD_PROMO_ACTIVE === 'true' ? (
-                    <>
-                      <span className="text-xl font-bold line-through text-yellow-900/50">499€</span>
-                      <span className="text-3xl font-bold text-red-900">399€</span>
-                      <span className="text-sm text-yellow-900/80">/an</span>
-                    </>
+              <p className="text-yellow-900/90">L'expérience complète : outils avancés + formation présentielle</p>
+              <div className="mt-6">
+                <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4">
+                  <div className="flex items-baseline gap-2 mb-1">
+                    {isGoldPromoActive ? (
+                      <>
+                        <span className="text-3xl font-bold line-through opacity-60">499€</span>
+                        <span className="text-5xl font-bold text-red-900">399€</span>
+                        <span className="text-yellow-900/80">/an</span>
+                      </>
+                    ) : (
+                      <>
+                        <span className="text-5xl font-bold">499€</span>
+                        <span className="text-yellow-900/80">/an</span>
+                      </>
+                    )}
+                  </div>
+                  {isGoldPromoActive ? (
+                    <p className="text-sm text-yellow-900/70">
+                      🎉 <strong>Offre promotionnelle</strong> • Économisez 100€
+                    </p>
                   ) : (
-                    <>
-                      <span className="text-3xl font-bold text-yellow-900">499€</span>
-                      <span className="text-sm text-yellow-900/80">/an</span>
-                    </>
+                    <p className="text-sm text-yellow-900/70">Soit 41,58€/mois • Accès annuel complet</p>
                   )}
                 </div>
-                {process.env.NEXT_PUBLIC_GOLD_PROMO_ACTIVE === 'true' && (
-                  <div className="mt-2 text-center">
-                    <span className="inline-block bg-red-600 text-white px-2 py-0.5 rounded-full text-[10px] font-bold">
-                      🔥 OFFRE LIMITÉE -100€
-                    </span>
+              </div>
+            </div>
+
+            <div className="p-6 space-y-6">
+              <p className="text-gray-700">
+                La formule Premium Gold est conçue pour les praticiens qui souhaitent aller plus loin. Elle inclut tout
+                le contenu digital de la plateforme et une expérience de formation unique en présentiel.
+              </p>
+
+              <div>
+                <h3 className="font-semibold text-gray-900 mb-3">Inclus dans l'abonnement :</h3>
+                <div className="space-y-3">
+                  <div className="flex items-start gap-3">
+                    <Check className="h-5 w-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+                    <p className="text-sm text-gray-700">Tests orthopédiques avec PDF</p>
                   </div>
-                )}
-                <p className="text-xs text-yellow-900/70 mt-2 text-center">Sans engagement</p>
+                  <div className="flex items-start gap-3">
+                    <Check className="h-5 w-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+                    <p className="text-sm text-gray-700">E-learning mis à jour</p>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <Check className="h-5 w-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+                    <p className="text-sm text-gray-700">Module pratique</p>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <Check className="h-5 w-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+                    <p className="text-sm text-gray-700">Fiches d'exercices patients avec PDF</p>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <Check className="h-5 w-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+                    <p className="text-sm text-gray-700">Topographies des pathologies</p>
+                  </div>
+                </div>
               </div>
 
-              {/* Features */}
-              <div className="border-t border-gray-200 pt-4 flex-1">
-                <h3 className="font-semibold text-gray-900 mb-3 text-sm">Inclus :</h3>
-                <div className="space-y-2 mb-3">
-                  <div className="flex items-start gap-2">
-                    <Check className="h-4 w-4 text-yellow-600 flex-shrink-0 mt-0.5" />
-                    <p className="text-xs text-gray-700">Tout Silver + bonus</p>
+              <div className="bg-gradient-to-r from-yellow-50 to-yellow-100 border-2 border-yellow-300 rounded-lg p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <Sparkles className="h-5 w-5 text-yellow-700" />
+                  <p className="text-sm font-bold text-yellow-900">+ L'exclusivité Gold :</p>
+                </div>
+                <div className="space-y-2 mt-3">
+                  <div className="flex items-start gap-3">
+                    <Users className="h-5 w-5 text-yellow-700 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-bold text-yellow-900">Séminaire présentiel annuel (2 jours)</p>
+                      <p className="text-sm text-yellow-800 mt-1">
+                        Une immersion complète avec l'équipe OsteoUpgrade : échanges cliniques, techniques avancées,
+                        ateliers pratiques, mises en situation, networking entre thérapeutes motivés.
+                      </p>
+                    </div>
                   </div>
-                  <div className="flex items-start gap-2">
-                    <Check className="h-4 w-4 text-yellow-600 flex-shrink-0 mt-0.5" />
-                    <p className="text-xs text-gray-700"><strong>Code de parrainage</strong> : gagnez 10% par filleul</p>
+                  <div className="flex items-start gap-3">
+                    <Gift className="h-5 w-5 text-yellow-700 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-bold text-yellow-900">Système de parrainage</p>
+                      <p className="text-sm text-yellow-800 mt-1">
+                        Obtenez 10% de commission sur chaque abonnement annuel parrainé et constituez votre cagnotte.
+                      </p>
+                    </div>
                   </div>
                 </div>
+              </div>
 
-                <div className="bg-gradient-to-r from-yellow-50 to-yellow-100 border-2 border-yellow-300 rounded-lg p-3">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Users className="h-4 w-4 text-yellow-700" />
-                    <p className="text-xs font-bold text-yellow-900">Exclusivité Gold :</p>
-                  </div>
-                  <p className="text-xs font-bold text-yellow-900">Séminaire présentiel annuel (2j)</p>
-                  <p className="text-xs text-yellow-800 mt-1">
-                    Immersion complète avec l'équipe : échanges cliniques, techniques avancées, ateliers pratiques.
-                  </p>
-                </div>
+              <div className="bg-yellow-50 border border-yellow-100 rounded-lg p-4">
+                <p className="text-sm font-semibold text-yellow-900 mb-1">Pour qui ?</p>
+                <p className="text-sm text-yellow-800">
+                  Pour les praticiens qui veulent progresser plus vite, affiner leur expertise et rejoindre un groupe
+                  réduit engagé dans l'amélioration continue.
+                </p>
               </div>
 
               <button
                 onClick={() => handleUpgrade('premium_gold_annual')}
                 disabled={processingPlan !== null || profile?.role === 'premium_gold'}
-                className="w-full bg-gradient-to-r from-yellow-500 to-yellow-600 text-yellow-900 py-3 px-4 rounded-lg font-bold text-sm hover:from-yellow-600 hover:to-yellow-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg"
+                className="w-full bg-gradient-to-r from-yellow-500 to-yellow-600 text-yellow-900 py-4 px-6 rounded-lg font-bold hover:from-yellow-600 hover:to-yellow-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg"
               >
                 {processingPlan === 'premium_gold_annual' ? (
                   <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <Loader2 className="h-5 w-5 animate-spin" />
                     Redirection...
                   </>
                 ) : profile?.role === 'premium_gold' ? (
-                  'Votre abonnement'
+                  'Votre abonnement actuel'
                 ) : (
                   <>
-                    <Crown className="h-4 w-4" />
-                    Choisir Gold
+                    <Crown className="h-5 w-5" />
+                    {isGoldPromoActive ? 'Choisir Gold (399€/an)' : 'Choisir Gold (499€/an)'}
                   </>
                 )}
               </button>
@@ -488,10 +605,15 @@ function SubscriptionContent() {
           <h3 className="font-semibold text-gray-900 mb-3">💡 Bon à savoir</h3>
           <div className="space-y-2 text-sm text-gray-700">
             <p>✅ Paiement sécurisé via Stripe</p>
-            <p>✅ <strong>Aucun engagement</strong> : annulation possible à tout moment</p>
+            <p>✅ <strong>Sans engagement</strong> : annulation possible à tout moment</p>
+            <p>✅ Renouvellement automatique (désactivable depuis votre compte)</p>
+            <p>✅ Notification par email 7 jours avant chaque renouvellement</p>
             <p>✅ Accès immédiat à tous les contenus après validation du paiement</p>
             <p>✅ Droit de rétractation de 14 jours</p>
-            <p>✅ Factures téléchargeables depuis votre espace client</p>
+            <p className="text-xs text-gray-500 mt-3 pt-3 border-t border-gray-300">
+              ℹ️ Les abonnements Premium Gold donnent accès au système de parrainage avec commission de 10% sur les
+              abonnements annuels parrainés.
+            </p>
           </div>
         </div>
 
