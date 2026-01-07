@@ -1,8 +1,11 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase-server'
 
-// Cette route doit être appelée quotidiennement (via un cron job Vercel)
-// Elle vérifie les utilisateurs dont le cycle d'engagement se termine bientôt
+// DEPRECATED: Cette route n'est plus nécessaire car il n'y a plus d'engagement de 12 mois
+// Gardée pour compatibilité avec les anciens utilisateurs ayant encore un engagement en cours
+
+export const dynamic = 'force-dynamic'
+export const runtime = 'nodejs'
 
 export async function GET(request: Request) {
   try {
