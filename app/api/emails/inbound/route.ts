@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase-server'
+import { Webhook } from 'svix'
 
 /**
  * POST /api/emails/inbound
@@ -9,10 +10,53 @@ import { supabaseAdmin } from '@/lib/supabase-server'
  * https://resend.com/inbound
  *
  * Webhook URL: https://your-domain.com/api/emails/inbound
+ * Signing Secret: Get from Resend Dashboard and add to RESEND_WEBHOOK_SECRET env var
  */
 export async function POST(request: Request) {
   try {
-    const body = await request.json()
+    // Get the raw body for signature verification
+    const payload = await request.text()
+
+    // Get Svix headers for signature verification
+    const svixId = request.headers.get('svix-id')
+    const svixTimestamp = request.headers.get('svix-timestamp')
+    const svixSignature = request.headers.get('svix-signature')
+
+    // Verify webhook signature if RESEND_WEBHOOK_SECRET is configured
+    const webhookSecret = process.env.RESEND_WEBHOOK_SECRET
+
+    if (webhookSecret) {
+      if (!svixId || !svixTimestamp || !svixSignature) {
+        console.error('❌ Missing Svix headers for webhook verification')
+        return NextResponse.json(
+          { error: 'Missing Svix headers' },
+          { status: 400 }
+        )
+      }
+
+      const wh = new Webhook(webhookSecret)
+
+      try {
+        // Verify the webhook signature
+        wh.verify(payload, {
+          'svix-id': svixId,
+          'svix-timestamp': svixTimestamp,
+          'svix-signature': svixSignature,
+        })
+        console.log('✅ Webhook signature verified')
+      } catch (err: any) {
+        console.error('❌ Webhook signature verification failed:', err.message)
+        return NextResponse.json(
+          { error: 'Invalid webhook signature' },
+          { status: 401 }
+        )
+      }
+    } else {
+      console.warn('⚠️  RESEND_WEBHOOK_SECRET not configured - skipping signature verification')
+    }
+
+    // Parse the verified payload
+    const body = JSON.parse(payload)
 
     console.log('📧 Received inbound email webhook from Resend:', {
       from: body.from,
