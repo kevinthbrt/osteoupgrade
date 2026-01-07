@@ -58,43 +58,79 @@ export async function POST(request: Request) {
     // Parse the verified payload
     const body = JSON.parse(payload)
 
+    const emailPayload = body?.data?.email ?? body?.data ?? body
+
     console.log('📧 Received inbound email webhook from Resend:', {
-      from: body.from,
-      to: body.to,
-      subject: body.subject,
-      messageId: body.message_id
+      from: emailPayload?.from ?? emailPayload?.sender,
+      to: emailPayload?.to ?? emailPayload?.recipients,
+      subject: emailPayload?.subject,
+      messageId: emailPayload?.message_id ?? emailPayload?.messageId
     })
 
     // Extract email data from Resend webhook payload
-    const {
-      from,
-      to,
-      subject,
-      html,
-      text,
-      message_id,
-      email_id,
-      headers,
-      attachments
-    } = body
+
+    const resolveAddress = (
+      value: unknown
+    ): { name: string | null; email: string | null } => {
+      if (!value) {
+        return { name: null, email: null }
+      }
+
+      if (typeof value === 'string') {
+        const match = value.match(/(.*?)?<?([^>]+@[^>]+)>?/)
+        return {
+          name: match?.[1]?.trim() || null,
+          email: match?.[2]?.trim() || value,
+        }
+      }
+
+      if (Array.isArray(value)) {
+        const [first] = value
+        return resolveAddress(first)
+      }
+
+      if (typeof value === 'object') {
+        const record = value as { email?: string; name?: string; address?: string }
+        const email = record.email || record.address || null
+        return { name: record.name || null, email }
+      }
+
+      return { name: null, email: null }
+    }
+
+    const fromResolved = resolveAddress(
+      emailPayload?.from ?? emailPayload?.sender ?? emailPayload?.headers?.from
+    )
+    const toResolved = resolveAddress(
+      emailPayload?.to ?? emailPayload?.recipients ?? emailPayload?.headers?.to
+    )
+
+    const subject =
+      emailPayload?.subject ??
+      emailPayload?.headers?.subject ??
+      emailPayload?.headers?.Subject
+    const html = emailPayload?.html ?? emailPayload?.body?.html
+    const text = emailPayload?.text ?? emailPayload?.body?.text
+    const message_id = emailPayload?.message_id ?? emailPayload?.messageId
+    const email_id = emailPayload?.email_id ?? emailPayload?.emailId
+    const headers = emailPayload?.headers ?? {}
+    const attachments = emailPayload?.attachments ?? []
 
     // Validate required fields
-    if (!from || !to || !subject) {
+    if (!fromResolved.email || !toResolved.email || !subject) {
       console.error('❌ Missing required fields in webhook payload')
       return NextResponse.json(
-        { error: 'Missing required fields: from, to, or subject' },
+        {
+          error: 'Missing required fields: from, to, or subject',
+          availableKeys: Object.keys(emailPayload || {}),
+        },
         { status: 400 }
       )
     }
 
-    // Parse "from" field (can be "Name <email@domain.com>" or just "email@domain.com")
-    const fromMatch = from.match(/(.*?)?<?([^>]+@[^>]+)>?/)
-    const fromName = fromMatch?.[1]?.trim() || null
-    const fromEmail = fromMatch?.[2]?.trim() || from
-
-    // Parse "to" field
-    const toMatch = to.match(/(.*?)?<?([^>]+@[^>]+)>?/)
-    const toEmail = toMatch?.[2]?.trim() || to
+    const fromName = fromResolved.name
+    const fromEmail = fromResolved.email || ''
+    const toEmail = toResolved.email || ''
 
     // Auto-categorize based on sender or content
     let category = 'general'
