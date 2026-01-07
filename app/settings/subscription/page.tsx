@@ -273,10 +273,10 @@ function SubscriptionContent() {
           </div>
         )}
 
-        {/* Plans Comparison */}
-        <div className="space-y-6">
+        {/* Plans Comparison - Side by Side */}
+        <div className="grid gap-6 lg:grid-cols-2">
           {/* Premium Silver */}
-          <div className="bg-white border-2 border-blue-200 rounded-2xl shadow-lg overflow-hidden">
+          <div className="bg-white border-2 border-blue-200 rounded-2xl shadow-lg overflow-hidden flex flex-col">
             <div className="bg-gradient-to-r from-blue-500 to-blue-600 p-6 text-white">
               <div className="flex items-center gap-2 mb-2">
                 <div className="p-2 bg-white/20 rounded-lg">
@@ -284,118 +284,103 @@ function SubscriptionContent() {
                 </div>
                 <h2 className="text-2xl font-bold">Premium Silver</h2>
               </div>
-              <p className="text-blue-100">L'essentiel des outils cliniques, sans engagement</p>
+              <p className="text-blue-100">L'essentiel des outils cliniques</p>
             </div>
 
-            <div className="p-6 space-y-6">
-              <p className="text-gray-700">
-                La formule Premium Silver donne accès à l'intégralité des modules digitaux d'OsteoUpgrade, conçus pour
-                structurer votre raisonnement clinique et améliorer vos prises en charge.
-              </p>
-
+            <div className="p-6 space-y-4 flex-1 flex flex-col">
               {/* Pricing Options */}
-              <div className="grid gap-4 sm:grid-cols-2">
+              <div className="grid gap-3 sm:grid-cols-2">
                 {/* Monthly */}
-                <div className="border-2 border-blue-300 rounded-lg p-4 hover:border-blue-500 transition">
-                  <div className="mb-3">
-                    <div className="flex items-baseline gap-2">
-                      <span className="text-3xl font-bold text-gray-900">29€</span>
-                      <span className="text-gray-600">/mois</span>
+                <div className="border-2 border-blue-300 rounded-lg p-3 hover:border-blue-500 transition">
+                  <div className="mb-2">
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-2xl font-bold text-gray-900">29€</span>
+                      <span className="text-sm text-gray-600">/mois</span>
                     </div>
-                    <p className="text-sm text-gray-600 mt-1">Sans engagement</p>
+                    <p className="text-xs text-gray-600 mt-1">Sans engagement</p>
                   </div>
                   <button
                     onClick={() => handleUpgrade('premium_silver_monthly')}
                     disabled={
                       processingPlan !== null || profile?.role === 'premium_silver' || profile?.role === 'premium_gold'
                     }
-                    className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg font-semibold hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    className="w-full bg-blue-600 text-white py-2 px-3 rounded-lg text-sm font-semibold hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   >
                     {processingPlan === 'premium_silver_monthly' ? (
                       <>
-                        <Loader2 className="h-5 w-5 animate-spin" />
-                        Redirection...
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        <span className="text-xs">Redirection...</span>
                       </>
                     ) : profile?.role === 'premium_silver' ? (
-                      'Votre abonnement'
+                      <span className="text-xs">Actuel</span>
                     ) : profile?.role === 'premium_gold' ? (
-                      'Vous avez Gold'
+                      <span className="text-xs">Vous avez Gold</span>
                     ) : (
-                      'Choisir Mensuel'
+                      <span className="text-xs">Choisir</span>
                     )}
                   </button>
                 </div>
 
                 {/* Annual */}
-                <div className="border-2 border-blue-500 rounded-lg p-4 relative bg-blue-50">
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                    <span className="bg-blue-600 text-white px-3 py-1 rounded-full text-xs font-bold">
-                      ÉCONOMISEZ 108€
+                <div className="border-2 border-blue-500 rounded-lg p-3 relative bg-blue-50">
+                  <div className="absolute -top-2 left-1/2 -translate-x-1/2">
+                    <span className="bg-blue-600 text-white px-2 py-0.5 rounded-full text-[10px] font-bold">
+                      -31%
                     </span>
                   </div>
-                  <div className="mb-3 mt-2">
-                    <div className="flex items-baseline gap-2">
-                      <span className="text-3xl font-bold text-gray-900">240€</span>
-                      <span className="text-gray-600">/an</span>
+                  <div className="mb-2 mt-1">
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-2xl font-bold text-gray-900">240€</span>
+                      <span className="text-sm text-gray-600">/an</span>
                     </div>
-                    <p className="text-sm text-gray-600 mt-1">Sans engagement • 20€/mois</p>
+                    <p className="text-xs text-gray-600 mt-1">20€/mois</p>
                   </div>
                   <button
                     onClick={() => handleUpgrade('premium_silver_annual')}
                     disabled={
                       processingPlan !== null || profile?.role === 'premium_silver' || profile?.role === 'premium_gold'
                     }
-                    className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg font-semibold hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    className="w-full bg-blue-600 text-white py-2 px-3 rounded-lg text-sm font-semibold hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   >
                     {processingPlan === 'premium_silver_annual' ? (
                       <>
-                        <Loader2 className="h-5 w-5 animate-spin" />
-                        Redirection...
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        <span className="text-xs">Redirection...</span>
                       </>
                     ) : profile?.role === 'premium_silver' ? (
-                      'Votre abonnement'
+                      <span className="text-xs">Actuel</span>
                     ) : profile?.role === 'premium_gold' ? (
-                      'Vous avez Gold'
+                      <span className="text-xs">Vous avez Gold</span>
                     ) : (
-                      'Choisir Annuel'
+                      <span className="text-xs">Choisir</span>
                     )}
                   </button>
                 </div>
               </div>
 
               {/* Features */}
-              <div className="border-t border-gray-200 pt-4">
-                <h3 className="font-semibold text-gray-900 mb-3">Inclus dans l'abonnement :</h3>
+              <div className="border-t border-gray-200 pt-4 flex-1">
+                <h3 className="font-semibold text-gray-900 mb-3 text-sm">Inclus :</h3>
                 <div className="space-y-2">
                   <div className="flex items-start gap-2">
-                    <Check className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
-                    <p className="text-sm text-gray-700">
-                      <strong>Tests orthopédiques</strong> + export PDF
-                    </p>
+                    <Check className="h-4 w-4 text-blue-600 flex-shrink-0 mt-0.5" />
+                    <p className="text-xs text-gray-700">Tests orthopédiques + PDF</p>
                   </div>
                   <div className="flex items-start gap-2">
-                    <Check className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
-                    <p className="text-sm text-gray-700">
-                      <strong>E-learning</strong> actualisé en continu
-                    </p>
+                    <Check className="h-4 w-4 text-blue-600 flex-shrink-0 mt-0.5" />
+                    <p className="text-xs text-gray-700">E-learning actualisé</p>
                   </div>
                   <div className="flex items-start gap-2">
-                    <Check className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
-                    <p className="text-sm text-gray-700">
-                      <strong>Module pratique</strong> : techniques et mobilisations
-                    </p>
+                    <Check className="h-4 w-4 text-blue-600 flex-shrink-0 mt-0.5" />
+                    <p className="text-xs text-gray-700">Module pratique</p>
                   </div>
                   <div className="flex items-start gap-2">
-                    <Check className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
-                    <p className="text-sm text-gray-700">
-                      <strong>Créateur de fiches d'exercices</strong> avec export PDF
-                    </p>
+                    <Check className="h-4 w-4 text-blue-600 flex-shrink-0 mt-0.5" />
+                    <p className="text-xs text-gray-700">Fiches d'exercices + PDF</p>
                   </div>
                   <div className="flex items-start gap-2">
-                    <Check className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
-                    <p className="text-sm text-gray-700">
-                      <strong>Topographies des pathologies</strong>
-                    </p>
+                    <Check className="h-4 w-4 text-blue-600 flex-shrink-0 mt-0.5" />
+                    <p className="text-xs text-gray-700">Topographies pathologies</p>
                   </div>
                 </div>
               </div>
@@ -403,11 +388,11 @@ function SubscriptionContent() {
           </div>
 
           {/* Premium Gold */}
-          <div className="relative bg-white border-4 border-yellow-400 rounded-2xl shadow-2xl overflow-hidden">
+          <div className="relative bg-white border-4 border-yellow-400 rounded-2xl shadow-2xl overflow-hidden flex flex-col">
             {/* Badge "Recommandé" */}
-            <div className="absolute top-6 right-6 z-10">
-              <div className="bg-gradient-to-r from-yellow-400 to-yellow-500 text-yellow-900 px-4 py-2 rounded-full text-sm font-bold shadow-lg flex items-center gap-2">
-                <Sparkles className="h-4 w-4" />
+            <div className="absolute top-4 right-4 z-10">
+              <div className="bg-gradient-to-r from-yellow-400 to-yellow-500 text-yellow-900 px-3 py-1 rounded-full text-xs font-bold shadow-lg flex items-center gap-1">
+                <Sparkles className="h-3 w-3" />
                 Recommandé
               </div>
             </div>
@@ -419,83 +404,77 @@ function SubscriptionContent() {
                 </div>
                 <h2 className="text-2xl font-bold">Premium Gold</h2>
               </div>
-              <p className="text-yellow-900/90">L'expérience complète : outils avancés + formation présentielle</p>
-              <div className="mt-6">
-                <div className="flex items-baseline gap-2">
+              <p className="text-yellow-900/90 text-sm">L'expérience complète + présentiel</p>
+            </div>
+
+            <div className="p-6 space-y-4 flex-1 flex flex-col">
+              {/* Pricing */}
+              <div className="border-2 border-yellow-400 rounded-lg p-4 bg-gradient-to-r from-yellow-50 to-yellow-100">
+                <div className="flex items-baseline gap-2 justify-center">
                   {process.env.NEXT_PUBLIC_GOLD_PROMO_ACTIVE === 'true' ? (
                     <>
-                      <span className="text-3xl font-bold line-through text-yellow-900/50">499€</span>
-                      <span className="text-5xl font-bold text-red-900">399€</span>
-                      <span className="text-yellow-900/80">/an</span>
+                      <span className="text-xl font-bold line-through text-yellow-900/50">499€</span>
+                      <span className="text-3xl font-bold text-red-900">399€</span>
+                      <span className="text-sm text-yellow-900/80">/an</span>
                     </>
                   ) : (
                     <>
-                      <span className="text-5xl font-bold">499€</span>
-                      <span className="text-yellow-900/80">/an</span>
+                      <span className="text-3xl font-bold text-yellow-900">499€</span>
+                      <span className="text-sm text-yellow-900/80">/an</span>
                     </>
                   )}
                 </div>
                 {process.env.NEXT_PUBLIC_GOLD_PROMO_ACTIVE === 'true' && (
-                  <div className="mt-2 inline-block bg-red-600 text-white px-3 py-1 rounded-full text-sm font-bold">
-                    🔥 OFFRE LIMITÉE -100€
+                  <div className="mt-2 text-center">
+                    <span className="inline-block bg-red-600 text-white px-2 py-0.5 rounded-full text-[10px] font-bold">
+                      🔥 OFFRE LIMITÉE -100€
+                    </span>
                   </div>
                 )}
-                <p className="text-sm text-yellow-900/70 mt-2">Sans engagement • Inclut le séminaire annuel</p>
+                <p className="text-xs text-yellow-900/70 mt-2 text-center">Sans engagement</p>
               </div>
-            </div>
-
-            <div className="p-6 space-y-6">
-              <p className="text-gray-700">
-                La formule Premium Gold est conçue pour les praticiens qui souhaitent aller plus loin. Elle inclut tout
-                le contenu digital de la plateforme et une expérience de formation unique en présentiel.
-              </p>
 
               {/* Features */}
-              <div>
-                <h3 className="font-semibold text-gray-900 mb-3">Inclus dans l'abonnement :</h3>
-                <div className="space-y-2 mb-4">
+              <div className="border-t border-gray-200 pt-4 flex-1">
+                <h3 className="font-semibold text-gray-900 mb-3 text-sm">Inclus :</h3>
+                <div className="space-y-2 mb-3">
                   <div className="flex items-start gap-2">
-                    <Check className="h-5 w-5 text-yellow-600 flex-shrink-0 mt-0.5" />
-                    <p className="text-sm text-gray-700">Tout le contenu Premium Silver</p>
+                    <Check className="h-4 w-4 text-yellow-600 flex-shrink-0 mt-0.5" />
+                    <p className="text-xs text-gray-700">Tout Silver + bonus</p>
                   </div>
                   <div className="flex items-start gap-2">
-                    <Check className="h-5 w-5 text-yellow-600 flex-shrink-0 mt-0.5" />
-                    <p className="text-sm text-gray-700">
-                      <strong>Code de parrainage personnalisé</strong> pour gagner des commissions
-                    </p>
+                    <Check className="h-4 w-4 text-yellow-600 flex-shrink-0 mt-0.5" />
+                    <p className="text-xs text-gray-700"><strong>Code de parrainage</strong> : gagnez 10% par filleul</p>
                   </div>
                 </div>
 
-                <div className="bg-gradient-to-r from-yellow-50 to-yellow-100 border-2 border-yellow-300 rounded-lg p-4">
+                <div className="bg-gradient-to-r from-yellow-50 to-yellow-100 border-2 border-yellow-300 rounded-lg p-3">
                   <div className="flex items-center gap-2 mb-2">
-                    <Users className="h-5 w-5 text-yellow-700" />
-                    <p className="text-sm font-bold text-yellow-900">+ L'exclusivité Gold :</p>
+                    <Users className="h-4 w-4 text-yellow-700" />
+                    <p className="text-xs font-bold text-yellow-900">Exclusivité Gold :</p>
                   </div>
-                  <div className="space-y-2 mt-3">
-                    <p className="text-sm font-bold text-yellow-900">Séminaire présentiel annuel (2 jours)</p>
-                    <p className="text-sm text-yellow-800">
-                      Une immersion complète avec l'équipe OsteoUpgrade : échanges cliniques, techniques avancées,
-                      ateliers pratiques, mises en situation, networking entre thérapeutes motivés.
-                    </p>
-                  </div>
+                  <p className="text-xs font-bold text-yellow-900">Séminaire présentiel annuel (2j)</p>
+                  <p className="text-xs text-yellow-800 mt-1">
+                    Immersion complète avec l'équipe : échanges cliniques, techniques avancées, ateliers pratiques.
+                  </p>
                 </div>
               </div>
 
               <button
                 onClick={() => handleUpgrade('premium_gold_annual')}
                 disabled={processingPlan !== null || profile?.role === 'premium_gold'}
-                className="w-full bg-gradient-to-r from-yellow-500 to-yellow-600 text-yellow-900 py-4 px-6 rounded-lg font-bold hover:from-yellow-600 hover:to-yellow-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg"
+                className="w-full bg-gradient-to-r from-yellow-500 to-yellow-600 text-yellow-900 py-3 px-4 rounded-lg font-bold text-sm hover:from-yellow-600 hover:to-yellow-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg"
               >
                 {processingPlan === 'premium_gold_annual' ? (
                   <>
-                    <Loader2 className="h-5 w-5 animate-spin" />
+                    <Loader2 className="h-4 w-4 animate-spin" />
                     Redirection...
                   </>
                 ) : profile?.role === 'premium_gold' ? (
-                  'Votre abonnement actuel'
+                  'Votre abonnement'
                 ) : (
                   <>
-                    <Crown className="h-5 w-5" />
+                    <Crown className="h-4 w-4" />
                     Choisir Gold
                   </>
                 )}
