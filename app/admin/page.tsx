@@ -17,7 +17,8 @@ import {
   LayoutGrid,
   Send,
   FileText,
-  ArrowRight
+  ArrowRight,
+  Inbox
 } from 'lucide-react'
 
 export default function AdminPage() {
@@ -78,6 +79,13 @@ export default function AdminPage() {
       icon: Send,
       color: 'from-purple-500 to-purple-600',
       href: '/admin/automations'
+    },
+    {
+      title: 'Emails Reçus',
+      description: 'Consulter et gérer les emails reçus',
+      icon: Inbox,
+      color: 'from-amber-500 to-amber-600',
+      href: '/admin/emails'
     },
     {
       title: 'Tests Orthopédiques',
