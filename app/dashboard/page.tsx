@@ -23,6 +23,7 @@ import {
   Crown,
   Gift,
   Copy,
+  Check,
   Users,
   Wallet
 } from 'lucide-react'
