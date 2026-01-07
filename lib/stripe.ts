@@ -10,26 +10,58 @@ export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
 })
 
 // Prix des abonnements (configurés dans Stripe Dashboard)
-// Les prix sont maintenant mensuels avec un engagement de 12 mois via Subscription Schedules
+// Nouvelle structure: Silver sans engagement, Gold annuel uniquement
 export const STRIPE_PLANS = {
-  premium_silver: {
+  premium_silver_monthly: {
     name: 'Premium Silver',
-    priceId: process.env.STRIPE_PRICE_SILVER || '',
-    monthlyAmount: 2999, // 29.99€/mois
-    yearlyAmount: 35988, // 359.88€/an total (12 x 29.99€)
-    displayPrice: '29,99€/mois',
+    planType: 'premium_silver',
+    priceId: process.env.STRIPE_PRICE_SILVER_MONTHLY || '',
+    amount: 2900, // 29€/mois
+    displayPrice: '29€',
+    displayInterval: 'mois',
     currency: 'eur',
     interval: 'month',
-    commitment: 12 // Engagement de 12 mois
+    commitment: 0, // Sans engagement
+    isAnnual: false
   },
-  premium_gold: {
-    name: 'Premium Gold',
-    priceId: process.env.STRIPE_PRICE_GOLD || '',
-    monthlyAmount: 4999, // 49.99€/mois
-    yearlyAmount: 59988, // 599.88€/an total (12 x 49.99€)
-    displayPrice: '49,99€/mois',
+  premium_silver_annual: {
+    name: 'Premium Silver',
+    planType: 'premium_silver',
+    priceId: process.env.STRIPE_PRICE_SILVER_ANNUAL || '',
+    amount: 24000, // 240€/an
+    displayPrice: '240€',
+    displayInterval: 'an',
     currency: 'eur',
-    interval: 'month',
-    commitment: 12 // Engagement de 12 mois
+    interval: 'year',
+    commitment: 0, // Sans engagement
+    isAnnual: true
+  },
+  premium_gold_annual: {
+    name: 'Premium Gold',
+    planType: 'premium_gold',
+    priceId: process.env.STRIPE_PRICE_GOLD_ANNUAL || '',
+    amount: 49900, // 499€/an (prix normal)
+    promoAmount: 39900, // 399€/an (prix promotionnel)
+    displayPrice: '499€',
+    promoDisplayPrice: '399€',
+    displayInterval: 'an',
+    currency: 'eur',
+    interval: 'year',
+    commitment: 0, // Sans engagement
+    isAnnual: true,
+    // Toggle pour activer/désactiver la promotion
+    // À changer dans les variables d'environnement: STRIPE_GOLD_PROMO_ACTIVE=true
+    isPromoActive: process.env.STRIPE_GOLD_PROMO_ACTIVE === 'true'
   }
+}
+
+// Helper pour obtenir le prix actuel de Gold (avec ou sans promo)
+export const getGoldPrice = () => {
+  const goldPlan = STRIPE_PLANS.premium_gold_annual
+  return goldPlan.isPromoActive ? goldPlan.promoAmount : goldPlan.amount
+}
+
+export const getGoldDisplayPrice = () => {
+  const goldPlan = STRIPE_PLANS.premium_gold_annual
+  return goldPlan.isPromoActive ? goldPlan.promoDisplayPrice : goldPlan.displayPrice
 }

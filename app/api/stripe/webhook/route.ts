@@ -60,30 +60,37 @@ export async function POST(request: Request) {
 async function handleCheckoutCompleted(session: any) {
   const userId = session.client_reference_id || session.metadata?.userId
   const planType = session.metadata?.planType
-  const commitmentMonths = parseInt(session.metadata?.commitment_months || '12')
+  const isAnnual = session.metadata?.is_annual === 'true'
+  const billingInterval = session.metadata?.billing_interval || (isAnnual ? 'year' : 'month')
+  const referralCode = session.metadata?.referral_code
+  const referrerUserId = session.metadata?.referrer_user_id
 
-  console.log('📦 Checkout session data:', { userId, planType, commitmentMonths, sessionId: session.id })
+  console.log('📦 Checkout session data:', {
+    userId,
+    planType,
+    isAnnual,
+    billingInterval,
+    referralCode,
+    referrerUserId,
+    sessionId: session.id
+  })
 
   if (!userId || !planType) {
     console.error('❌ Missing userId or planType in checkout session:', { userId, planType })
     return
   }
 
-  console.log(`✅ Checkout completed for user ${userId}, plan ${planType}, commitment: ${commitmentMonths} months`)
+  console.log(`✅ Checkout completed for user ${userId}, plan ${planType}, interval: ${billingInterval}`)
 
-  // Calculer la date de fin d'engagement
-  const commitmentStartDate = new Date()
-  const commitmentEndDate = new Date(commitmentStartDate)
-  commitmentEndDate.setMonth(commitmentEndDate.getMonth() + commitmentMonths)
-
-  // Mettre à jour le profil utilisateur avec le client admin
+  // Mettre à jour le profil utilisateur (sans engagement)
+  const subscriptionStartDate = new Date()
   const updateData = {
     role: planType,
     subscription_status: 'active',
-    subscription_start_date: commitmentStartDate.toISOString(),
+    subscription_start_date: subscriptionStartDate.toISOString(),
     subscription_end_date: null,
-    commitment_end_date: commitmentEndDate.toISOString(),
-    commitment_cycle_number: 1,
+    commitment_end_date: null, // Plus d'engagement
+    commitment_cycle_number: null,
     commitment_renewal_notification_sent: false,
     stripe_customer_id: session.customer,
     stripe_subscription_id: session.subscription
@@ -116,10 +123,91 @@ async function handleCheckoutCompleted(session: any) {
     return
   }
 
+  // 💰 GÉRER LA COMMISSION DE PARRAINAGE (UNIQUEMENT POUR LES ABONNEMENTS ANNUELS)
+  if (referrerUserId && referralCode && isAnnual) {
+    console.log('💰 Processing referral commission for:', referralCode)
+
+    // Récupérer le montant de l'abonnement depuis Stripe
+    let subscriptionAmount = 0
+    try {
+      const subscription = await stripe.subscriptions.retrieve(session.subscription)
+      // Le montant est en centimes
+      subscriptionAmount = subscription.items.data[0]?.price?.unit_amount || 0
+      console.log('💵 Subscription amount:', subscriptionAmount, 'cents')
+    } catch (err) {
+      console.error('❌ Error retrieving subscription amount:', err)
+    }
+
+    if (subscriptionAmount > 0) {
+      // Calculer la commission (10%)
+      const commissionAmount = Math.floor(subscriptionAmount * 0.10)
+
+      console.log('📊 Commission calculation:', {
+        subscriptionAmount,
+        commissionAmount,
+        percentage: '10%'
+      })
+
+      // Créer la transaction de parrainage
+      const { data: transaction, error: transactionError } = await supabaseAdmin
+        .from('referral_transactions')
+        .insert({
+          referrer_id: referrerUserId,
+          referred_user_id: userId,
+          referral_code: referralCode.toUpperCase(),
+          subscription_type: planType,
+          subscription_plan: 'annual',
+          subscription_amount: subscriptionAmount,
+          commission_amount: commissionAmount,
+          commission_status: 'available', // Immédiatement disponible
+          stripe_subscription_id: session.subscription
+        })
+        .select()
+        .single()
+
+      if (transactionError) {
+        console.error('❌ Error creating referral transaction:', transactionError)
+      } else {
+        console.log('✅ Referral transaction created:', transaction)
+
+        // Notifier le parrain par email (optionnel)
+        try {
+          const { data: referrerProfile } = await supabaseAdmin
+            .from('profiles')
+            .select('email, full_name')
+            .eq('id', referrerUserId)
+            .single()
+
+          if (referrerProfile) {
+            await fetch(`${process.env.NEXT_PUBLIC_URL || 'http://localhost:3000'}/api/automations/trigger`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                event: 'Nouveau parrainage',
+                contact_email: referrerProfile.email,
+                metadata: {
+                  commission: `${(commissionAmount / 100).toFixed(2)}€`,
+                  referred_user: profile.email,
+                  plan: planType === 'premium_gold' ? 'Premium Gold' : 'Premium Silver'
+                }
+              })
+            })
+            console.log('✅ Referrer notification sent')
+          }
+        } catch (err) {
+          console.error('⚠️ Error sending referrer notification:', err)
+        }
+      }
+    }
+  }
+
   console.log('📧 Triggering automation for:', profile.email)
 
   // 🚀 DÉCLENCHER L'AUTOMATISATION selon le plan (Silver ou Gold)
   const eventName = planType === 'premium_gold' ? 'Passage à Premium Gold' : 'Passage à Premium Silver'
+  const displayPrice = planType === 'premium_gold'
+    ? (isAnnual ? '499€' : '49,99€')
+    : (isAnnual ? '240€' : '29€')
 
   try {
     await fetch(`${process.env.NEXT_PUBLIC_URL || 'http://localhost:3000'}/api/automations/trigger`, {
@@ -130,7 +218,8 @@ async function handleCheckoutCompleted(session: any) {
         contact_email: profile.email,
         metadata: {
           nom: planType === 'premium_gold' ? 'Premium Gold' : 'Premium Silver',
-          prix: planType === 'premium_gold' ? '49,99€' : '29,99€',
+          prix: displayPrice,
+          interval: isAnnual ? 'annuel' : 'mensuel',
           date_fact: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString('fr-FR')
         }
       })
@@ -189,7 +278,7 @@ async function handleSubscriptionDeleted(subscription: any) {
   // Trouver l'utilisateur par son stripe_customer_id
   const { data: profile, error: profileError } = await supabaseAdmin
     .from('profiles')
-    .select('id, email, commitment_end_date, subscription_start_date')
+    .select('id, email')
     .eq('stripe_customer_id', customerId)
     .single()
 
@@ -200,24 +289,15 @@ async function handleSubscriptionDeleted(subscription: any) {
 
   console.log(`Found user ${profile.id} for customer ${customerId}`)
 
-  // Vérifier si l'annulation se fait avant la fin de l'engagement
-  const now = new Date()
-  const commitmentEndDate = profile.commitment_end_date ? new Date(profile.commitment_end_date) : null
-  const isEarlyTermination = commitmentEndDate && now < commitmentEndDate
-
-  if (isEarlyTermination) {
-    console.warn(`⚠️ Early termination detected for user ${profile.id}. Commitment end: ${commitmentEndDate?.toISOString()}`)
-    // Note: Dans Stripe, vous pourriez configurer des frais de résiliation anticipée
-    // ou bloquer l'annulation via le portail client
-  }
-
-  // Révoquer le premium
+  // Révoquer le premium (plus d'engagement, annulation immédiate)
   const { error: updateError } = await supabaseAdmin
     .from('profiles')
     .update({
       role: 'free',
       subscription_status: 'cancelled',
-      subscription_end_date: new Date().toISOString()
+      subscription_end_date: new Date().toISOString(),
+      commitment_end_date: null,
+      commitment_cycle_number: null
     })
     .eq('id', profile.id)
 
@@ -261,7 +341,7 @@ async function handlePaymentSucceeded(invoice: any) {
   // Trouver l'utilisateur par son stripe_subscription_id
   const { data: profile, error: profileError } = await supabaseAdmin
     .from('profiles')
-    .select('id, email, commitment_end_date, commitment_cycle_number, role')
+    .select('id, email, role')
     .eq('stripe_subscription_id', subscriptionId)
     .single()
 
@@ -272,60 +352,35 @@ async function handlePaymentSucceeded(invoice: any) {
 
   console.log(`💰 Payment processed for user ${profile.id}`)
 
-  // Vérifier si le cycle d'engagement est terminé
-  const now = new Date()
-  const commitmentEndDate = profile.commitment_end_date ? new Date(profile.commitment_end_date) : null
+  // Vérifier que le statut de l'abonnement est toujours actif
+  const { error: updateError } = await supabaseAdmin
+    .from('profiles')
+    .update({
+      subscription_status: 'active'
+    })
+    .eq('id', profile.id)
 
-  if (commitmentEndDate && now >= commitmentEndDate) {
-    // Le cycle d'engagement est terminé, on démarre un nouveau cycle automatiquement
-    const currentCycle = profile.commitment_cycle_number || 1
-    const newCycleNumber = currentCycle + 1
-    const newCommitmentEndDate = new Date(now)
-    newCommitmentEndDate.setMonth(newCommitmentEndDate.getMonth() + 12)
+  if (updateError) {
+    console.error('❌ Error updating subscription status:', updateError)
+  }
 
-    console.log(`🔄 Starting new commitment cycle ${newCycleNumber} for user ${profile.id}`)
-    console.log(`📅 New commitment end date: ${newCommitmentEndDate.toISOString()}`)
-
-    // Mettre à jour le profil avec le nouveau cycle
-    const { error: updateError } = await supabaseAdmin
-      .from('profiles')
-      .update({
-        commitment_cycle_number: newCycleNumber,
-        commitment_end_date: newCommitmentEndDate.toISOString(),
-        commitment_renewal_notification_sent: false
+  // 🚀 DÉCLENCHER L'AUTOMATISATION "Renouvellement effectué" (optionnel)
+  try {
+    await fetch(`${process.env.NEXT_PUBLIC_URL || 'http://localhost:3000'}/api/automations/trigger`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        event: 'Renouvellement effectué',
+        contact_email: profile.email,
+        metadata: {
+          nom: profile.role === 'premium_gold' ? 'Premium Gold' : 'Premium Silver',
+          date_fact: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString('fr-FR')
+        }
       })
-      .eq('id', profile.id)
-
-    if (updateError) {
-      console.error('❌ Error updating commitment cycle:', updateError)
-      return
-    }
-
-    console.log(`✅ Commitment cycle ${newCycleNumber} started successfully for user ${profile.id}`)
-
-    // 🚀 DÉCLENCHER L'AUTOMATISATION "Renouvellement effectué"
-    try {
-      await fetch(`${process.env.NEXT_PUBLIC_URL || 'http://localhost:3000'}/api/automations/trigger`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          event: 'Renouvellement effectué',
-          contact_email: profile.email,
-          metadata: {
-            cycle: newCycleNumber,
-            date_renouv: newCommitmentEndDate.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }),
-            nom: profile.role === 'premium_gold' ? 'Premium Gold' : 'Premium Silver',
-            prix: profile.role === 'premium_gold' ? '49,99€' : '29,99€',
-            date_fact: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString('fr-FR')
-          }
-        })
-      })
-      console.log('✅ Automation triggered: Renouvellement effectué')
-    } catch (err) {
-      console.error('❌ Error triggering automation:', err)
-    }
-  } else {
-    console.log(`ℹ️ Recurring payment within current commitment cycle (ends ${commitmentEndDate?.toISOString()})`)
+    })
+    console.log('✅ Automation triggered: Renouvellement effectué')
+  } catch (err) {
+    console.error('❌ Error triggering automation:', err)
   }
 }
 

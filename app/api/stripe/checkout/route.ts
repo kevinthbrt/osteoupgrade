@@ -3,9 +3,9 @@ import { stripe, STRIPE_PLANS } from '@/lib/stripe'
 
 export async function POST(request: Request) {
   try {
-    const { planType, userId, email } = await request.json()
+    const { planType, userId, email, referralCode } = await request.json()
 
-    console.log('📦 Stripe checkout request:', { planType, userId, email })
+    console.log('📦 Stripe checkout request:', { planType, userId, email, referralCode })
 
     if (!planType || !userId || !email) {
       return NextResponse.json(
@@ -30,21 +30,43 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           error: `Price ID not configured for ${planType}`,
-          details: `Please set STRIPE_PRICE_${planType.toUpperCase().replace('PREMIUM_', '')} in Vercel environment variables`
+          details: `Please set the corresponding STRIPE_PRICE environment variable`
         },
         { status: 400 }
       )
+    }
+
+    // Validate referral code if provided
+    let referrerUserId = null
+    if (referralCode) {
+      const { supabaseAdmin } = await import('@/lib/supabase-server')
+      const { data: referralData, error: referralError } = await supabaseAdmin
+        .from('referral_codes')
+        .select('user_id, is_active')
+        .eq('referral_code', referralCode.toUpperCase())
+        .single()
+
+      if (referralError || !referralData) {
+        console.warn('⚠️ Invalid referral code:', referralCode)
+        // Don't fail the checkout, just ignore the invalid code
+      } else if (!referralData.is_active) {
+        console.warn('⚠️ Inactive referral code:', referralCode)
+      } else {
+        referrerUserId = referralData.user_id
+        console.log('✅ Valid referral code:', referralCode, 'Referrer:', referrerUserId)
+      }
     }
 
     console.log('🔑 Creating Stripe session with:', {
       priceId: plan.priceId,
       email,
       userId,
-      commitment: plan.commitment
+      isAnnual: plan.isAnnual,
+      referralCode,
+      referrerUserId
     })
 
-    // Créer une session de paiement Stripe avec Subscription Schedule
-    // pour un paiement mensuel avec engagement de 12 mois
+    // Créer une session de paiement Stripe sans engagement
     const session = await stripe.checkout.sessions.create({
       customer_email: email,
       client_reference_id: userId,
@@ -60,27 +82,28 @@ export async function POST(request: Request) {
       cancel_url: `${process.env.NEXT_PUBLIC_URL || 'http://localhost:3000'}/dashboard?cancelled=true`,
       metadata: {
         userId,
-        planType,
-        commitment_months: plan.commitment.toString(),
-        billing_type: 'monthly_with_commitment'
+        planType: plan.planType || planType,
+        billing_interval: plan.interval,
+        is_annual: plan.isAnnual ? 'true' : 'false',
+        referral_code: referralCode || '',
+        referrer_user_id: referrerUserId || ''
       },
-      // Configuration pour l'engagement
       subscription_data: {
         metadata: {
           userId,
-          planType,
-          commitment_months: plan.commitment.toString(),
-          commitment_start: new Date().toISOString()
-        },
-        trial_settings: {
-          end_behavior: { missing_payment_method: 'cancel' }
+          planType: plan.planType || planType,
+          billing_interval: plan.interval,
+          is_annual: plan.isAnnual ? 'true' : 'false',
+          referral_code: referralCode || '',
+          referrer_user_id: referrerUserId || ''
         }
       }
     })
 
-    console.log('✅ Stripe session created with commitment:', {
+    console.log('✅ Stripe session created:', {
       sessionId: session.id,
-      commitment: `${plan.commitment} months`
+      interval: plan.interval,
+      referralApplied: !!referrerUserId
     })
 
     return NextResponse.json({ sessionId: session.id, url: session.url })
