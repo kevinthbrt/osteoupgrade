@@ -40,6 +40,30 @@ export async function POST(request: Request) {
     let referrerUserId = null
     if (referralCode) {
       const { supabaseAdmin } = await import('@/lib/supabase-server')
+
+      // 🚫 VÉRIFIER QUE L'UTILISATEUR N'A PAS DÉJÀ ÉTÉ PARRAINÉ CETTE ANNÉE
+      const currentYear = new Date().getFullYear()
+      const startOfYear = new Date(`${currentYear}-01-01T00:00:00Z`).toISOString()
+
+      const { data: existingReferrals, error: existingError } = await supabaseAdmin
+        .from('referral_transactions')
+        .select('id, created_at')
+        .eq('referred_user_id', userId)
+        .gte('created_at', startOfYear)
+        .limit(1)
+
+      if (existingReferrals && existingReferrals.length > 0) {
+        console.warn('⚠️ User already referred this year:', userId)
+        return NextResponse.json(
+          {
+            error: 'Vous avez déjà été parrainé cette année',
+            details: 'Un utilisateur ne peut être parrainé qu\'une seule fois par année civile.'
+          },
+          { status: 400 }
+        )
+      }
+
+      // Valider le code de parrainage
       const { data: referralData, error: referralError } = await supabaseAdmin
         .from('referral_codes')
         .select('user_id, is_active')
@@ -51,6 +75,15 @@ export async function POST(request: Request) {
         // Don't fail the checkout, just ignore the invalid code
       } else if (!referralData.is_active) {
         console.warn('⚠️ Inactive referral code:', referralCode)
+      } else if (referralData.user_id === userId) {
+        console.warn('⚠️ User trying to use their own referral code:', userId)
+        return NextResponse.json(
+          {
+            error: 'Vous ne pouvez pas utiliser votre propre code de parrainage',
+            details: 'Le code de parrainage doit être celui d\'un autre membre Premium Gold.'
+          },
+          { status: 400 }
+        )
       } else {
         referrerUserId = referralData.user_id
         console.log('✅ Valid referral code:', referralCode, 'Referrer:', referrerUserId)

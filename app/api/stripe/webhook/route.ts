@@ -148,8 +148,8 @@ async function handleCheckoutCompleted(session: any) {
         percentage: '10%'
       })
 
-      // Créer la transaction de parrainage
-      const { data: transaction, error: transactionError } = await supabaseAdmin
+      // 1️⃣ Créer la transaction de parrainage pour LE PARRAIN
+      const { data: referrerTransaction, error: referrerError } = await supabaseAdmin
         .from('referral_transactions')
         .insert({
           referrer_id: referrerUserId,
@@ -165,12 +165,12 @@ async function handleCheckoutCompleted(session: any) {
         .select()
         .single()
 
-      if (transactionError) {
-        console.error('❌ Error creating referral transaction:', transactionError)
+      if (referrerError) {
+        console.error('❌ Error creating referrer transaction:', referrerError)
       } else {
-        console.log('✅ Referral transaction created:', transaction)
+        console.log('✅ Referrer transaction created:', referrerTransaction)
 
-        // Notifier le parrain par email (optionnel)
+        // Notifier le parrain par email
         try {
           const { data: referrerProfile } = await supabaseAdmin
             .from('profiles')
@@ -196,6 +196,48 @@ async function handleCheckoutCompleted(session: any) {
           }
         } catch (err) {
           console.error('⚠️ Error sending referrer notification:', err)
+        }
+      }
+
+      // 2️⃣ Créer AUSSI une transaction de parrainage pour LE FILLEUL (10% de son propre achat)
+      const { data: referredTransaction, error: referredError } = await supabaseAdmin
+        .from('referral_transactions')
+        .insert({
+          referrer_id: userId, // Le filleul reçoit la commission dans son propre compte
+          referred_user_id: userId, // C'est son propre achat
+          referral_code: referralCode.toUpperCase(),
+          subscription_type: planType,
+          subscription_plan: 'annual',
+          subscription_amount: subscriptionAmount,
+          commission_amount: commissionAmount, // Même montant : 10%
+          commission_status: 'available', // Immédiatement disponible
+          stripe_subscription_id: session.subscription
+        })
+        .select()
+        .single()
+
+      if (referredError) {
+        console.error('❌ Error creating referred user (self) transaction:', referredError)
+      } else {
+        console.log('✅ Referred user (self) transaction created:', referredTransaction)
+
+        // Notifier le filleul qu'il a gagné 10% sur son propre achat
+        try {
+          await fetch(`${process.env.NEXT_PUBLIC_URL || 'http://localhost:3000'}/api/automations/trigger`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              event: 'Bonus parrainage filleul',
+              contact_email: profile.email,
+              metadata: {
+                commission: `${(commissionAmount / 100).toFixed(2)}€`,
+                plan: planType === 'premium_gold' ? 'Premium Gold' : 'Premium Silver'
+              }
+            })
+          })
+          console.log('✅ Referred user (self) bonus notification sent')
+        } catch (err) {
+          console.error('⚠️ Error sending referred user notification:', err)
         }
       }
     }
