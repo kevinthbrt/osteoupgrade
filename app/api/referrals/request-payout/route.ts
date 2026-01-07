@@ -19,7 +19,15 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json()
-    const { payoutMethod = 'bank_transfer', payoutDetails = {} } = body
+    const { payoutMethod = 'bank_transfer', payoutDetails = {}, ribFile = null } = body
+
+    // Vérifier que le RIB est fourni
+    if (!ribFile || !ribFile.data || !ribFile.name) {
+      return NextResponse.json(
+        { error: 'Veuillez joindre votre RIB (PDF, JPG ou PNG)' },
+        { status: 400 }
+      )
+    }
 
     // Récupérer le profil de l'utilisateur
     const { data: profile, error: profileError } = await supabaseAdmin
@@ -87,7 +95,7 @@ export async function POST(request: Request) {
 
     const transactionIds = availableTransactions?.map((t) => t.id) || []
 
-    // Créer la demande de paiement
+    // Créer la demande de paiement avec le RIB
     const { data: payout, error: payoutError } = await supabaseAdmin
       .from('referral_payouts')
       .insert({
@@ -95,7 +103,15 @@ export async function POST(request: Request) {
         amount: availableAmount,
         transaction_ids: transactionIds,
         payout_method: payoutMethod,
-        payout_details: payoutDetails,
+        payout_details: {
+          ...payoutDetails,
+          rib_file: {
+            name: ribFile.name,
+            data: ribFile.data, // Base64 encoded file
+            size: ribFile.size,
+            type: ribFile.type
+          }
+        },
         payout_status: 'requested'
       })
       .select()

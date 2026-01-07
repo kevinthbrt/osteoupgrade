@@ -26,6 +26,8 @@ export default function ReferralsPage() {
   const [earnings, setEarnings] = useState<any>(null)
   const [copied, setCopied] = useState(false)
   const [requestingPayout, setRequestingPayout] = useState(false)
+  const [showPayoutModal, setShowPayoutModal] = useState(false)
+  const [ribFile, setRibFile] = useState<File | null>(null)
 
   useEffect(() => {
     loadData()
@@ -91,38 +93,84 @@ export default function ReferralsPage() {
     }
   }
 
-  const handleRequestPayout = async () => {
+  const handleRequestPayoutClick = () => {
     if (!earnings?.summary?.available_amount || earnings.summary.available_amount < 1000) {
       alert('Vous devez avoir au moins 10€ de gains disponibles pour demander un paiement.')
       return
     }
+    setShowPayoutModal(true)
+  }
 
-    if (!confirm('Êtes-vous sûr de vouloir demander le paiement de vos gains ?')) {
+  const handleRibFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      // Vérifier le type de fichier
+      const validTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png']
+      if (!validTypes.includes(file.type)) {
+        alert('Veuillez uploader un fichier PDF, JPG ou PNG')
+        return
+      }
+      // Vérifier la taille (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        alert('Le fichier ne doit pas dépasser 5MB')
+        return
+      }
+      setRibFile(file)
+    }
+  }
+
+  const handleSubmitPayout = async () => {
+    if (!ribFile) {
+      alert('Veuillez joindre votre RIB')
       return
     }
 
     setRequestingPayout(true)
 
     try {
-      const response = await fetch('/api/referrals/request-payout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          payoutMethod: 'bank_transfer'
-        })
-      })
+      // Convertir le fichier en base64
+      const reader = new FileReader()
+      reader.readAsDataURL(ribFile)
 
-      const data = await response.json()
+      reader.onload = async () => {
+        try {
+          const response = await fetch('/api/referrals/request-payout', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              payoutMethod: 'bank_transfer',
+              ribFile: {
+                name: ribFile.name,
+                data: reader.result,
+                size: ribFile.size,
+                type: ribFile.type
+              }
+            })
+          })
 
-      if (!response.ok) {
-        throw new Error(data.error || 'Erreur lors de la demande de paiement')
+          const data = await response.json()
+
+          if (!response.ok) {
+            throw new Error(data.error || 'Erreur lors de la demande de paiement')
+          }
+
+          alert('Votre demande de paiement a été enregistrée ! Vous recevrez le paiement sous 5-10 jours ouvrés.')
+          setShowPayoutModal(false)
+          setRibFile(null)
+          loadData() // Reload data
+        } catch (error: any) {
+          alert(`Erreur: ${error.message}`)
+        } finally {
+          setRequestingPayout(false)
+        }
       }
 
-      alert('Votre demande de paiement a été enregistrée ! Vous recevrez le paiement sous 5-10 jours ouvrés.')
-      loadData() // Reload data
+      reader.onerror = () => {
+        alert('Erreur lors de la lecture du fichier')
+        setRequestingPayout(false)
+      }
     } catch (error: any) {
       alert(`Erreur: ${error.message}`)
-    } finally {
       setRequestingPayout(false)
     }
   }
@@ -284,7 +332,7 @@ export default function ReferralsPage() {
               </p>
             </div>
             <button
-              onClick={handleRequestPayout}
+              onClick={handleRequestPayoutClick}
               disabled={requestingPayout || availableAmount < 1000}
               className="inline-flex items-center gap-2 bg-green-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-green-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
@@ -429,6 +477,76 @@ export default function ReferralsPage() {
                   )}
                 </div>
               ))}
+            </div>
+          </div>
+        )}
+
+        {/* Payout Request Modal */}
+        {showPayoutModal && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6">
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">Demande de paiement</h2>
+
+              <div className="space-y-4">
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <p className="text-sm text-blue-900">
+                    <strong>Montant à recevoir :</strong> {(availableAmount / 100).toFixed(2)}€
+                  </p>
+                  <p className="text-xs text-blue-700 mt-1">
+                    Le virement sera effectué sous 5-10 jours ouvrés après validation de votre demande.
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Joindre votre RIB <span className="text-red-600">*</span>
+                  </label>
+                  <input
+                    type="file"
+                    accept=".pdf,.jpg,.jpeg,.png"
+                    onChange={handleRibFileChange}
+                    className="block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 focus:outline-none focus:border-green-500"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">PDF, JPG ou PNG - Max 5MB</p>
+                  {ribFile && (
+                    <p className="text-sm text-green-600 mt-2 font-medium">✓ {ribFile.name} sélectionné</p>
+                  )}
+                </div>
+
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                  <p className="text-xs text-yellow-800">
+                    <strong>Important :</strong> Assurez-vous que votre RIB est lisible et que les informations
+                    bancaires sont bien visibles. Le nom sur le RIB doit correspondre au nom de votre compte OsteoUpgrade.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex gap-3 mt-6">
+                <button
+                  onClick={() => {
+                    setShowPayoutModal(false)
+                    setRibFile(null)
+                  }}
+                  disabled={requestingPayout}
+                  className="flex-1 bg-gray-200 text-gray-700 px-4 py-3 rounded-lg font-semibold hover:bg-gray-300 transition disabled:opacity-50"
+                >
+                  Annuler
+                </button>
+                <button
+                  onClick={handleSubmitPayout}
+                  disabled={!ribFile || requestingPayout}
+                  className="flex-1 bg-green-600 text-white px-4 py-3 rounded-lg font-semibold hover:bg-green-700 transition disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2"
+                >
+                  {requestingPayout ? (
+                    <>
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                      Envoi...
+                    </>
+                  ) : (
+                    'Envoyer la demande'
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         )}

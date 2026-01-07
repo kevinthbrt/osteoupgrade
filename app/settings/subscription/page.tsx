@@ -1,12 +1,12 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import AuthLayout from '@/components/AuthLayout'
 import { Crown, Check, Sparkles, Users, Loader2, ArrowLeft, ExternalLink, Gift } from 'lucide-react'
 
-export default function SubscriptionPage() {
+function SubscriptionContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [profile, setProfile] = useState<any>(null)
@@ -422,9 +422,24 @@ export default function SubscriptionPage() {
               <p className="text-yellow-900/90">L'expérience complète : outils avancés + formation présentielle</p>
               <div className="mt-6">
                 <div className="flex items-baseline gap-2">
-                  <span className="text-5xl font-bold">499€</span>
-                  <span className="text-yellow-900/80">/an</span>
+                  {process.env.NEXT_PUBLIC_GOLD_PROMO_ACTIVE === 'true' ? (
+                    <>
+                      <span className="text-3xl font-bold line-through text-yellow-900/50">499€</span>
+                      <span className="text-5xl font-bold text-red-900">399€</span>
+                      <span className="text-yellow-900/80">/an</span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="text-5xl font-bold">499€</span>
+                      <span className="text-yellow-900/80">/an</span>
+                    </>
+                  )}
                 </div>
+                {process.env.NEXT_PUBLIC_GOLD_PROMO_ACTIVE === 'true' && (
+                  <div className="mt-2 inline-block bg-red-600 text-white px-3 py-1 rounded-full text-sm font-bold">
+                    🔥 OFFRE LIMITÉE -100€
+                  </div>
+                )}
                 <p className="text-sm text-yellow-900/70 mt-2">Sans engagement • Inclut le séminaire annuel</p>
               </div>
             </div>
@@ -518,5 +533,21 @@ export default function SubscriptionPage() {
         </div>
       </div>
     </AuthLayout>
+  )
+}
+
+export default function SubscriptionPage() {
+  return (
+    <Suspense
+      fallback={
+        <AuthLayout>
+          <div className="flex items-center justify-center h-96">
+            <Loader2 className="h-10 w-10 animate-spin text-purple-600" />
+          </div>
+        </AuthLayout>
+      }
+    >
+      <SubscriptionContent />
+    </Suspense>
   )
 }

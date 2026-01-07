@@ -39,29 +39,31 @@ export const STRIPE_PLANS = {
   premium_gold_annual: {
     name: 'Premium Gold',
     planType: 'premium_gold',
-    priceId: process.env.STRIPE_PRICE_GOLD_ANNUAL || '',
-    amount: 49900, // 499€/an (prix normal)
-    promoAmount: 39900, // 399€/an (prix promotionnel)
-    displayPrice: '499€',
-    promoDisplayPrice: '399€',
+    // Utiliser le prix promo si activé, sinon le prix normal
+    // IMPORTANT: Vous devez créer DEUX prix dans Stripe Dashboard:
+    // 1. STRIPE_PRICE_GOLD_ANNUAL = 499€/an (prix normal)
+    // 2. STRIPE_PRICE_GOLD_ANNUAL_PROMO = 399€/an (prix promo)
+    priceId:
+      process.env.STRIPE_GOLD_PROMO_ACTIVE === 'true'
+        ? process.env.STRIPE_PRICE_GOLD_ANNUAL_PROMO || process.env.STRIPE_PRICE_GOLD_ANNUAL || ''
+        : process.env.STRIPE_PRICE_GOLD_ANNUAL || '',
+    // Montant réel basé sur la promo
+    amount: process.env.STRIPE_GOLD_PROMO_ACTIVE === 'true' ? 39900 : 49900,
+    displayPrice: process.env.STRIPE_GOLD_PROMO_ACTIVE === 'true' ? '399€' : '499€',
     displayInterval: 'an',
     currency: 'eur',
     interval: 'year',
     commitment: 0, // Sans engagement
     isAnnual: true,
-    // Toggle pour activer/désactiver la promotion
-    // À changer dans les variables d'environnement: STRIPE_GOLD_PROMO_ACTIVE=true
     isPromoActive: process.env.STRIPE_GOLD_PROMO_ACTIVE === 'true'
   }
 }
 
-// Helper pour obtenir le prix actuel de Gold (avec ou sans promo)
+// Helper pour obtenir le prix actuel de Gold
 export const getGoldPrice = () => {
-  const goldPlan = STRIPE_PLANS.premium_gold_annual
-  return goldPlan.isPromoActive ? goldPlan.promoAmount : goldPlan.amount
+  return STRIPE_PLANS.premium_gold_annual.amount
 }
 
 export const getGoldDisplayPrice = () => {
-  const goldPlan = STRIPE_PLANS.premium_gold_annual
-  return goldPlan.isPromoActive ? goldPlan.promoDisplayPrice : goldPlan.displayPrice
+  return STRIPE_PLANS.premium_gold_annual.displayPrice
 }
