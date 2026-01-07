@@ -41,23 +41,19 @@ export async function POST(request: Request) {
     if (referralCode) {
       const { supabaseAdmin } = await import('@/lib/supabase-server')
 
-      // 🚫 VÉRIFIER QUE L'UTILISATEUR N'A PAS DÉJÀ ÉTÉ PARRAINÉ CETTE ANNÉE
-      const currentYear = new Date().getFullYear()
-      const startOfYear = new Date(`${currentYear}-01-01T00:00:00Z`).toISOString()
-
+      // 🚫 VÉRIFIER QUE L'UTILISATEUR N'A JAMAIS ÉTÉ PARRAINÉ (1 fois AU TOTAL, pas par année)
       const { data: existingReferrals, error: existingError } = await supabaseAdmin
         .from('referral_transactions')
         .select('id, created_at')
         .eq('referred_user_id', userId)
-        .gte('created_at', startOfYear)
         .limit(1)
 
       if (existingReferrals && existingReferrals.length > 0) {
-        console.warn('⚠️ User already referred this year:', userId)
+        console.warn('⚠️ User already referred before:', userId)
         return NextResponse.json(
           {
-            error: 'Vous avez déjà été parrainé cette année',
-            details: 'Un utilisateur ne peut être parrainé qu\'une seule fois par année civile.'
+            error: 'Vous avez déjà été parrainé',
+            details: 'Un utilisateur ne peut être parrainé qu\'une seule fois au total.'
           },
           { status: 400 }
         )

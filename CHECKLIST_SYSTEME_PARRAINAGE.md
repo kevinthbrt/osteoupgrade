@@ -225,24 +225,24 @@ vercel --prod
 - Crée un cercle vertueux : tout le monde y gagne
 - Les filleuls deviennent Gold et peuvent à leur tour parrainer
 
-### 🚫 Contrainte de Parrainage Annuelle (IMPÉRATIF)
+### 🚫 Contrainte de Parrainage UNIQUE (IMPÉRATIF)
 
-**Règle stricte :** Un utilisateur ne peut être parrainé **qu'UNE SEULE FOIS par année civile**.
+**Règle stricte :** Un utilisateur ne peut être parrainé **qu'UNE SEULE FOIS AU TOTAL**.
 
 **Vérifications automatiques :**
 1. Avant de valider un code de parrainage au checkout
-2. Le système vérifie si l'utilisateur a déjà été parrainé depuis le 1er janvier de l'année en cours
-3. Si OUI → Message d'erreur : "Vous avez déjà été parrainé cette année"
+2. Le système vérifie si l'utilisateur a **DÉJÀ été parrainé** (peu importe la date)
+3. Si OUI → Message d'erreur : "Vous avez déjà été parrainé"
 4. Si NON → Le code est accepté et les commissions sont créées
 
 **Cas d'usage :**
-- Utilisateur parrainé en janvier 2026 → Ne peut plus être parrainé avant le 1er janvier 2027
-- Utilisateur parrainé en décembre 2026 → Peut être à nouveau parrainé dès le 1er janvier 2027
+- Utilisateur parrainé en 2026 → **Ne pourra JAMAIS être parrainé à nouveau**
+- Un seul parrainage par compte, à vie
 
 **Protection contre les abus :**
 - Empêche les utilisateurs de se créer plusieurs comptes pour accumuler les bonus
-- Limite : 1 parrainage reçu par utilisateur par an
-- Le système est basé sur l'année **civile** (1er janvier - 31 décembre)
+- Limite absolue : **1 parrainage reçu par utilisateur, pour toujours**
+- Pas de renouvellement possible
 
 ---
 
@@ -311,23 +311,26 @@ Après un paiement test réussi :
   - [ ] Vérifier qu'une transaction "self-referral" apparaît
   - [ ] Si Gold : Vérifier que son code de parrainage est généré
 
-### 18. Test Contrainte Annuelle (1 parrainage max/an) 🆕
+### 18. Test Contrainte UNIQUE (1 parrainage TOTAL, pas par an) 🆕
 
-**Scénario 1 : Premier parrainage de l'année**
-- [ ] Créer un compte test C
+**Scénario 1 : Premier parrainage (jamais parrainé avant)**
+- [ ] Créer un compte test C (nouveau, jamais parrainé)
 - [ ] Utiliser un code de parrainage valide
 - [ ] Souscrire à un abonnement annuel
 - [ ] ✅ Le paiement doit passer sans problème
+- [ ] ✅ Les 2 commissions doivent être créées (parrain + filleul)
 
-**Scénario 2 : Tentative de second parrainage la même année**
+**Scénario 2 : Tentative de second parrainage (JAMAIS possible)**
 - [ ] Avec le MÊME compte test C
-- [ ] Annuler l'abonnement dans Stripe (ou créer un nouvel abonnement)
+- [ ] Annuler l'abonnement dans Stripe
+- [ ] Attendre quelques jours/mois (peu importe)
 - [ ] Essayer d'utiliser un AUTRE code de parrainage valide
 - [ ] ❌ Le système doit BLOQUER avec le message :
   ```
-  "Vous avez déjà été parrainé cette année"
+  "Vous avez déjà été parrainé"
+  "Un utilisateur ne peut être parrainé qu'une seule fois au total."
   ```
-- [ ] Vérifier qu'on ne peut pas passer au paiement
+- [ ] Vérifier qu'on ne peut absolument PAS passer au paiement
 
 **Scénario 3 : Protection contre auto-parrainage**
 - [ ] Créer un compte Premium Gold D
@@ -359,7 +362,7 @@ Après un paiement test réussi :
 - [ ] **Commission filleul** : Le filleul reçoit AUSSI 10% dans sa cagnotte
 - [ ] **Double transaction** : 2 transactions créées (parrain + filleul) lors d'un parrainage
 - [ ] **Email bonus filleul** : Le filleul reçoit l'email "Bonus parrainage filleul"
-- [ ] **Contrainte annuelle** : Impossible d'être parrainé 2x la même année
+- [ ] **Contrainte UNIQUE** : Impossible d'être parrainé 2 fois (JAMAIS, pas juste par an)
 - [ ] **Protection auto-parrainage** : Impossible d'utiliser son propre code
 - [ ] **Message d'erreur** : Messages clairs si contraintes non respectées
 
