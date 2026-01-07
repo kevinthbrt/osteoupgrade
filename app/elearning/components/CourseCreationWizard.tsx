@@ -2,7 +2,7 @@
 
 import { useState, useEffect, type ChangeEvent } from 'react'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
-import { ChevronDown, ChevronUp, Plus, Trash2, Save, X, Image } from 'lucide-react'
+import { ArrowDown, ArrowUp, ChevronDown, ChevronUp, Image, Plus, Save, Trash2, X } from 'lucide-react'
 
 interface Subpart {
   id?: string // Real ID from database
@@ -195,6 +195,23 @@ export default function CourseCreationWizard({ onClose, onSuccess, existingForma
       chapters: formation.chapters
         .filter(c => c.tempId !== tempId)
         .map((c, idx) => ({ ...c, orderIndex: idx }))
+    })
+  }
+
+  const moveChapter = (tempId: string, direction: 'up' | 'down') => {
+    const currentIndex = formation.chapters.findIndex(chapter => chapter.tempId === tempId)
+    if (currentIndex === -1) return
+
+    const nextIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1
+    if (nextIndex < 0 || nextIndex >= formation.chapters.length) return
+
+    const reordered = [...formation.chapters]
+    const [moved] = reordered.splice(currentIndex, 1)
+    reordered.splice(nextIndex, 0, moved)
+
+    setFormation({
+      ...formation,
+      chapters: reordered.map((chapter, idx) => ({ ...chapter, orderIndex: idx }))
     })
   }
 
@@ -636,7 +653,28 @@ export default function CourseCreationWizard({ onClose, onSuccess, existingForma
                           placeholder="Titre du chapitre"
                           className="flex-1 px-3 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                         />
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => moveChapter(chapter.tempId, 'up')}
+                            disabled={chapterIdx === 0}
+                            className="text-gray-500 hover:text-gray-700 disabled:opacity-40 disabled:cursor-not-allowed"
+                            aria-label={`Monter le chapitre ${chapter.title || chapterIdx + 1}`}
+                          >
+                            <ArrowUp className="w-4 h-4" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => moveChapter(chapter.tempId, 'down')}
+                            disabled={chapterIdx === formation.chapters.length - 1}
+                            className="text-gray-500 hover:text-gray-700 disabled:opacity-40 disabled:cursor-not-allowed"
+                            aria-label={`Descendre le chapitre ${chapter.title || chapterIdx + 1}`}
+                          >
+                            <ArrowDown className="w-4 h-4" />
+                          </button>
+                        </div>
                         <button
+                          type="button"
                           onClick={() => removeChapter(chapter.tempId)}
                           className="text-red-500 hover:text-red-700"
                         >
