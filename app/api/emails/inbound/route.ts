@@ -176,10 +176,54 @@ export async function POST(request: Request) {
       bodyKeys: emailPayload?.body ? Object.keys(emailPayload.body) : []
     })
 
-    // Warn if no content was extracted
-    if (!html && !text) {
-      console.warn('⚠️  No email content found in webhook payload. Email will be stored without content.')
-      console.warn('⚠️  Payload structure:', JSON.stringify(emailPayload, null, 2))
+    // If no content in webhook, fetch it from Resend API
+    let finalHtml = html
+    let finalText = text
+
+    if ((!html && !text) && email_id) {
+      console.log('📥 No content in webhook payload. Fetching from Resend API...')
+
+      try {
+        const resendApiKey = process.env.RESEND_API_KEY
+        if (!resendApiKey) {
+          console.warn('⚠️  RESEND_API_KEY not configured. Cannot fetch email content.')
+        } else {
+          const response = await fetch(
+            `https://api.resend.com/emails/receiving/${email_id}`,
+            {
+              method: 'GET',
+              headers: {
+                'Authorization': `Bearer ${resendApiKey}`,
+                'Content-Type': 'application/json',
+              },
+            }
+          )
+
+          if (response.ok) {
+            const emailData = await response.json()
+            finalHtml = emailData.html || null
+            finalText = emailData.text || null
+            console.log('✅ Email content fetched from Resend API:', {
+              hasHtml: !!finalHtml,
+              hasText: !!finalText,
+              htmlLength: finalHtml?.length || 0,
+              textLength: finalText?.length || 0,
+            })
+          } else {
+            console.error('❌ Failed to fetch email content from Resend API:', {
+              status: response.status,
+              statusText: response.statusText,
+            })
+          }
+        }
+      } catch (error: any) {
+        console.error('❌ Error fetching email content from Resend API:', error.message)
+      }
+    }
+
+    // Warn if still no content after API call
+    if (!finalHtml && !finalText) {
+      console.warn('⚠️  No email content found after webhook and API check.')
     }
 
     // Validate required fields
@@ -229,8 +273,8 @@ export async function POST(request: Request) {
         from_name: fromName,
         to_email: toEmail,
         subject: subject,
-        html_content: html || null,
-        text_content: text || null,
+        html_content: finalHtml || null,
+        text_content: finalText || null,
         resend_message_id: message_id || null,
         resend_email_id: email_id || null,
         headers: headers || {},
