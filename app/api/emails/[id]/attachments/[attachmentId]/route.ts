@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 
 /**
- * GET /api/emails/[emailId]/attachments/[attachmentId]
+ * GET /api/emails/[id]/attachments/[attachmentId]
  * Retrieves a download URL for an email attachment from Resend
  *
  * This endpoint fetches the attachment metadata from Resend API,
@@ -9,14 +9,14 @@ import { NextResponse } from 'next/server'
  */
 export async function GET(
   request: Request,
-  { params }: { params: { emailId: string; attachmentId: string } }
+  { params }: { params: { id: string; attachmentId: string } }
 ) {
   try {
-    const { emailId, attachmentId } = params
+    const { id, attachmentId } = params
 
-    if (!emailId || !attachmentId) {
+    if (!id || !attachmentId) {
       return NextResponse.json(
-        { error: 'Missing emailId or attachmentId' },
+        { error: 'Missing email ID or attachment ID' },
         { status: 400 }
       )
     }
@@ -32,7 +32,7 @@ export async function GET(
 
     // Fetch attachment metadata from Resend API
     const response = await fetch(
-      `https://api.resend.com/emails/receiving/${emailId}/attachments/${attachmentId}`,
+      `https://api.resend.com/emails/receiving/${id}/attachments/${attachmentId}`,
       {
         method: 'GET',
         headers: {
