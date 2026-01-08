@@ -77,10 +77,37 @@ export async function POST(request: Request) {
       }
 
       if (typeof value === 'string') {
-        const match = value.match(/(.*?)?<?([^>]+@[^>]+)>?/)
+        // Handle format: "Name <email@domain.com>"
+        const bracketMatch = value.match(/^(.+?)\s*<([^>]+)>$/)
+        if (bracketMatch) {
+          return {
+            name: bracketMatch[1].trim() || null,
+            email: bracketMatch[2].trim(),
+          }
+        }
+
+        // Handle format: "<email@domain.com>" (no name)
+        const emailOnlyBracket = value.match(/^<([^>]+)>$/)
+        if (emailOnlyBracket) {
+          return {
+            name: null,
+            email: emailOnlyBracket[1].trim(),
+          }
+        }
+
+        // Handle format: "email@domain.com" (plain email)
+        // Simple email validation
+        if (value.includes('@')) {
+          return {
+            name: null,
+            email: value.trim(),
+          }
+        }
+
+        // Fallback: treat as email
         return {
-          name: match?.[1]?.trim() || null,
-          email: match?.[2]?.trim() || value,
+          name: null,
+          email: value.trim(),
         }
       }
 
@@ -109,12 +136,51 @@ export async function POST(request: Request) {
       emailPayload?.subject ??
       emailPayload?.headers?.subject ??
       emailPayload?.headers?.Subject
-    const html = emailPayload?.html ?? emailPayload?.body?.html
-    const text = emailPayload?.text ?? emailPayload?.body?.text
+
+    // Try multiple possible field names for HTML content
+    const html =
+      emailPayload?.html ??
+      emailPayload?.html_body ??
+      emailPayload?.htmlBody ??
+      emailPayload?.html_content ??
+      emailPayload?.body?.html ??
+      emailPayload?.body?.html_body ??
+      null
+
+    // Try multiple possible field names for text content
+    const text =
+      emailPayload?.text ??
+      emailPayload?.text_body ??
+      emailPayload?.textBody ??
+      emailPayload?.text_content ??
+      emailPayload?.plain_text ??
+      emailPayload?.body?.text ??
+      emailPayload?.body?.text_body ??
+      emailPayload?.body?.plain ??
+      // Fallback: if body is a string, use it as text
+      (typeof emailPayload?.body === 'string' ? emailPayload.body : null)
+
     const message_id = emailPayload?.message_id ?? emailPayload?.messageId
     const email_id = emailPayload?.email_id ?? emailPayload?.emailId
     const headers = emailPayload?.headers ?? {}
     const attachments = emailPayload?.attachments ?? []
+
+    // Enhanced logging to debug content issues
+    console.log('📧 Email content extraction:', {
+      hasHtml: !!html,
+      hasText: !!text,
+      htmlLength: html?.length || 0,
+      textLength: text?.length || 0,
+      availableFields: Object.keys(emailPayload || {}),
+      bodyType: typeof emailPayload?.body,
+      bodyKeys: emailPayload?.body ? Object.keys(emailPayload.body) : []
+    })
+
+    // Warn if no content was extracted
+    if (!html && !text) {
+      console.warn('⚠️  No email content found in webhook payload. Email will be stored without content.')
+      console.warn('⚠️  Payload structure:', JSON.stringify(emailPayload, null, 2))
+    }
 
     // Validate required fields
     if (!fromResolved.email || !toResolved.email || !subject) {
