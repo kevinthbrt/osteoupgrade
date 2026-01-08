@@ -24,6 +24,7 @@ interface Email {
   subject: string
   html_content?: string
   text_content?: string
+  resend_email_id?: string
   category: 'parrainage' | 'support' | 'general' | 'spam'
   is_read: boolean
   is_archived: boolean
@@ -470,6 +471,29 @@ export default function AdminEmailsPage() {
                               ({Math.round(attachment.size / 1024)} KB)
                             </span>
                           </div>
+                          <button
+                            onClick={async () => {
+                              try {
+                                // Fetch download URL from our API
+                                const response = await fetch(
+                                  `/api/emails/${selectedEmail.resend_email_id}/attachments/${attachment.id}`
+                                )
+                                if (response.ok) {
+                                  const data = await response.json()
+                                  // Open download URL in new tab
+                                  window.open(data.attachment.downloadUrl, '_blank')
+                                } else {
+                                  alert('Erreur lors du téléchargement de la pièce jointe')
+                                }
+                              } catch (error) {
+                                console.error('Error downloading attachment:', error)
+                                alert('Erreur lors du téléchargement de la pièce jointe')
+                              }
+                            }}
+                            className="px-3 py-1 text-xs font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-md transition-colors"
+                          >
+                            Télécharger
+                          </button>
                         </div>
                       ))}
                     </div>

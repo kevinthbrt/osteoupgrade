@@ -257,6 +257,7 @@ export async function POST(request: Request) {
 
     // Process attachments to extract relevant info
     const processedAttachments = (attachments || []).map((att: any) => ({
+      id: att.id, // Resend attachment ID - needed to fetch the file
       filename: att.filename,
       contentType: att.content_type,
       size: att.size,
