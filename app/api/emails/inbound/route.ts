@@ -77,11 +77,26 @@ export async function POST(request: Request) {
       }
 
       if (typeof value === 'string') {
-        const match = value.match(/(.*?)?<?([^>]+@[^>]+)>?/)
-        return {
-          name: match?.[1]?.trim() || null,
-          email: match?.[2]?.trim() || value,
+        const trimmed = value.trim()
+        if (trimmed.includes('<') && trimmed.includes('>')) {
+          const match = trimmed.match(/^\s*([^<]*)<\s*([^>]+)\s*>\s*$/)
+          return {
+            name: match?.[1]?.trim() || null,
+            email: match?.[2]?.trim() || null,
+          }
         }
+
+        const emailMatch = trimmed.match(/([^\s<>]+@[^\s<>]+)/)
+        if (emailMatch) {
+          const email = emailMatch[1].trim()
+          const name = trimmed.replace(emailMatch[1], '').trim()
+          return {
+            name: name || null,
+            email,
+          }
+        }
+
+        return { name: null, email: trimmed || null }
       }
 
       if (Array.isArray(value)) {
@@ -109,8 +124,29 @@ export async function POST(request: Request) {
       emailPayload?.subject ??
       emailPayload?.headers?.subject ??
       emailPayload?.headers?.Subject
-    const html = emailPayload?.html ?? emailPayload?.body?.html
-    const text = emailPayload?.text ?? emailPayload?.body?.text
+    const getContentValue = (value: unknown): string | null => {
+      if (typeof value === 'string') {
+        return value
+      }
+
+      if (value && typeof value === 'object' && 'value' in value) {
+        const record = value as { value?: string }
+        return typeof record.value === 'string' ? record.value : null
+      }
+
+      return null
+    }
+
+    const html =
+      getContentValue(emailPayload?.html) ??
+      getContentValue(emailPayload?.body?.html) ??
+      getContentValue(emailPayload?.content?.html) ??
+      getContentValue(emailPayload?.payload?.html)
+    const text =
+      getContentValue(emailPayload?.text) ??
+      getContentValue(emailPayload?.body?.text) ??
+      getContentValue(emailPayload?.content?.text) ??
+      getContentValue(emailPayload?.payload?.text)
     const message_id = emailPayload?.message_id ?? emailPayload?.messageId
     const email_id = emailPayload?.email_id ?? emailPayload?.emailId
     const headers = emailPayload?.headers ?? {}
