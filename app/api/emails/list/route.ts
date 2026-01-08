@@ -60,6 +60,7 @@ export async function GET(request: Request) {
         from_name,
         to_email,
         subject,
+        resend_email_id,
         category,
         is_read,
         is_archived,
