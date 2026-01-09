@@ -17,6 +17,11 @@ export type TriggerEvent =
   | 'Renouvellement imminent'
   | 'Renouvellement effectué'
   | 'Abonnement expiré'
+  | 'seminar_registration_created'
+  | 'seminar_registration_cancelled'
+  | 'seminar_reminder_1_month'
+  | 'seminar_reminder_1_week'
+  | 'seminar_reminder_1_day'
 
 interface TriggerData {
   contact_id?: string
@@ -206,5 +211,45 @@ export async function onSubscriptionUpgraded(
   return triggerAutomations('subscription_upgraded', {
     contact_id: contactId,
     subscription_type: subscriptionType
+  })
+}
+
+/**
+ * Helper: Déclencher lors de l'inscription à un séminaire
+ */
+export async function onSeminarRegistration(
+  email: string,
+  seminarData: Record<string, any>
+) {
+  return triggerAutomations('seminar_registration_created', {
+    contact_email: email,
+    metadata: seminarData
+  })
+}
+
+/**
+ * Helper: Déclencher lors de l'annulation d'une inscription à un séminaire
+ */
+export async function onSeminarCancellation(
+  email: string,
+  seminarData: Record<string, any>
+) {
+  return triggerAutomations('seminar_registration_cancelled', {
+    contact_email: email,
+    metadata: seminarData
+  })
+}
+
+/**
+ * Helper: Déclencher un rappel de séminaire (1 mois, 1 semaine, ou 1 jour)
+ */
+export async function onSeminarReminder(
+  reminderType: 'seminar_reminder_1_month' | 'seminar_reminder_1_week' | 'seminar_reminder_1_day',
+  email: string,
+  seminarData: Record<string, any>
+) {
+  return triggerAutomations(reminderType, {
+    contact_email: email,
+    metadata: seminarData
   })
 }
