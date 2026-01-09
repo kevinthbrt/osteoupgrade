@@ -370,7 +370,12 @@ export default function ClinicalCasePage() {
             </div>
 
             <h1 className="text-3xl font-bold mb-3">{clinicalCase.title}</h1>
-            <p className="text-amber-100 mb-6">{clinicalCase.description}</p>
+            {clinicalCase.description && (
+              <div
+                className="prose prose-invert max-w-none text-amber-100 mb-6"
+                dangerouslySetInnerHTML={{ __html: clinicalCase.description }}
+              />
+            )}
 
             <div className="grid grid-cols-4 gap-4 max-w-2xl">
               <div className="bg-white/10 backdrop-blur-sm rounded-xl p-3 border border-white/20">
