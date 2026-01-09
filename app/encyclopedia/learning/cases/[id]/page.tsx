@@ -136,7 +136,8 @@ export default function ClinicalCasePage() {
                         id: a.id,
                         answer_text: a.answer_text,
                         is_correct: a.is_correct,
-                        feedback: a.feedback
+                        feedback: a.feedback,
+                        order_index: a.order_index
                       }))
                     }
                   })
