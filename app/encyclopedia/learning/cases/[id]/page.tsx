@@ -70,6 +70,7 @@ export default function ClinicalCasePage() {
   const [expandedChapters, setExpandedChapters] = useState<Record<string, boolean>>({})
   const [expandedModules, setExpandedModules] = useState<Record<string, boolean>>({})
   const [selectedModuleId, setSelectedModuleId] = useState<string>('')
+  const [showQuiz, setShowQuiz] = useState(false)
 
   const moduleRefs = useRef<Record<string, HTMLDivElement | null>>({})
 
@@ -567,16 +568,35 @@ export default function ClinicalCasePage() {
                 </div>
 
                 {/* Quiz Section */}
-                {selectedModule.quiz && profile && (
+                {selectedModule.quiz && profile && !showQuiz && (
                   <div className="bg-white rounded-xl shadow-lg p-6">
-                    <ClinicalCaseQuizComponent
-                      quiz={selectedModule.quiz}
-                      moduleId={selectedModule.id}
-                      userId={profile.id}
-                      onQuizPassed={handleQuizPassed}
-                      onClose={() => {}}
-                    />
+                    <div className="text-center space-y-4">
+                      <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-amber-400 to-orange-600 mb-4">
+                        <Trophy className="h-8 w-8 text-white" />
+                      </div>
+                      <h3 className="text-xl font-bold text-slate-900">Quiz disponible</h3>
+                      <p className="text-slate-600">
+                        Testez vos connaissances sur ce module avec un quiz
+                      </p>
+                      <button
+                        onClick={() => setShowQuiz(true)}
+                        className="px-6 py-3 bg-gradient-to-r from-amber-500 to-orange-600 text-white rounded-xl font-semibold hover:from-amber-600 hover:to-orange-700 transition shadow-lg"
+                      >
+                        Commencer le quiz
+                      </button>
+                    </div>
                   </div>
+                )}
+
+                {/* Quiz Modal */}
+                {showQuiz && selectedModule.quiz && profile && (
+                  <ClinicalCaseQuizComponent
+                    quiz={selectedModule.quiz}
+                    moduleId={selectedModule.id}
+                    userId={profile.id}
+                    onQuizPassed={handleQuizPassed}
+                    onClose={() => setShowQuiz(false)}
+                  />
                 )}
               </div>
             ) : (
