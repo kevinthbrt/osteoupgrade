@@ -1,0 +1,50 @@
+name: Cron Jobs - Email Automations
+
+on:
+  schedule:
+    # Traitement des automatisations - toutes les 5 minutes
+    - cron: '*/5 * * * *'
+    # Vérifications quotidiennes - tous les jours à 9h UTC
+    - cron: '0 9 * * *'
+    # Rappels de séminaires - tous les jours à 8h UTC
+    - cron: '0 8 * * *'
+
+  # Permet de déclencher manuellement
+  workflow_dispatch:
+
+jobs:
+  # Job 1: Traitement des automatisations (toutes les 5 minutes)
+  process-automations:
+    runs-on: ubuntu-latest
+    # S'exécute seulement toutes les 5 minutes
+    if: github.event.schedule == '*/5 * * * *' || github.event_name == 'workflow_dispatch'
+    steps:
+      - name: Call automation processor
+        run: |
+          curl -X POST https://${{ secrets.VERCEL_DOMAIN }}/api/automations/process \
+            -H "Content-Type: application/json" \
+            -w "\nHTTP Status: %{http_code}\n"
+
+  # Job 2: Vérifications quotidiennes (9h)
+  daily-checks:
+    runs-on: ubuntu-latest
+    # S'exécute seulement à 9h UTC
+    if: github.event.schedule == '0 9 * * *' || github.event_name == 'workflow_dispatch'
+    steps:
+      - name: Call daily checks
+        run: |
+          curl -X POST https://${{ secrets.VERCEL_DOMAIN }}/api/automations/daily-checks \
+            -H "Content-Type: application/json" \
+            -w "\nHTTP Status: %{http_code}\n"
+
+  # Job 3: Rappels de séminaires (8h)
+  seminar-reminders:
+    runs-on: ubuntu-latest
+    # S'exécute seulement à 8h UTC
+    if: github.event.schedule == '0 8 * * *' || github.event_name == 'workflow_dispatch'
+    steps:
+      - name: Call seminar reminders
+        run: |
+          curl -X POST https://${{ secrets.VERCEL_DOMAIN }}/api/automations/seminar-reminders \
+            -H "Content-Type: application/json" \
+            -w "\nHTTP Status: %{http_code}\n"
