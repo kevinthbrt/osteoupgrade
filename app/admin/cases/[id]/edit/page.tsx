@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import AuthLayout from '@/components/AuthLayout'
 import { supabase } from '@/lib/supabase'
-import QuizManager from '@/app/elearning/components/QuizManager'
+import ClinicalCaseQuizManager from '../components/ClinicalCaseQuizManager'
 import {
   ArrowLeft,
   Plus,
@@ -830,9 +830,9 @@ export default function EditCasePage() {
                           {/* Quiz Manager */}
                           {managingQuiz === module.id && (
                             <div className="border-t-2 border-purple-200 bg-purple-50 p-4">
-                              <QuizManager
-                                subpartId={module.id}
-                                subpartTitle={module.title}
+                              <ClinicalCaseQuizManager
+                                moduleId={module.id}
+                                moduleTitle={module.title}
                                 onClose={() => setManagingQuiz(null)}
                                 onSave={() => {
                                   setSuccess('Quiz sauvegardé !')
