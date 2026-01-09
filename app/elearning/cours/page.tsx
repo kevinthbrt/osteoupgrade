@@ -10,6 +10,7 @@ import QuizManager from '../components/QuizManager'
 import type { Quiz } from '../types/quiz'
 import {
   AlertCircle,
+  ArrowLeft,
   BookOpen,
   CheckCircle2,
   CheckSquare,
@@ -492,28 +493,32 @@ export default function CoursPage() {
         </div>
 
         <div className="space-y-6">
-            <div className="mb-4">
-              <h2 className="text-2xl md:text-3xl font-bold text-slate-900 mb-2 flex items-center gap-3">
-                <BookOpen className="h-7 w-7 text-blue-600" />
-                Mes formations
-              </h2>
-              <p className="text-slate-600">
-                Sélectionnez une formation pour commencer votre parcours d'apprentissage
-              </p>
-            </div>
+            {!selectedFormation && (
+              <>
+                <div className="mb-4">
+                  <h2 className="text-2xl md:text-3xl font-bold text-slate-900 mb-2 flex items-center gap-3">
+                    <BookOpen className="h-7 w-7 text-blue-600" />
+                    Mes formations
+                  </h2>
+                  <p className="text-slate-600">
+                    Sélectionnez une formation pour commencer votre parcours d'apprentissage
+                  </p>
+                </div>
 
-            <div className="relative max-w-md">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-              <input
-                type="text"
-                value={searchTerm}
-                onChange={(event) => setSearchTerm(event.target.value)}
-                placeholder="Rechercher une formation"
-                className="w-full rounded-xl border border-slate-200 bg-white py-3 pl-10 pr-4 text-sm text-slate-700 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
-              />
-            </div>
+                <div className="relative max-w-md">
+                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                  <input
+                    type="text"
+                    value={searchTerm}
+                    onChange={(event) => setSearchTerm(event.target.value)}
+                    placeholder="Rechercher une formation"
+                    className="w-full rounded-xl border border-slate-200 bg-white py-3 pl-10 pr-4 text-sm text-slate-700 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                  />
+                </div>
+              </>
+            )}
 
-            <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+            <div className={selectedFormation ? "hidden" : "grid gap-5 md:grid-cols-2 lg:grid-cols-3"}>
               {filteredFormations.map((formation) => {
                 const stats = computeProgress(formation)
                 return (
@@ -593,7 +598,7 @@ export default function CoursPage() {
               })}
             </div>
 
-            {formations.length === 0 && (
+            {!selectedFormation && formations.length === 0 && (
               <div className="rounded-2xl border-2 border-dashed border-gray-200 bg-gradient-to-br from-slate-50 to-white p-12 text-center">
                 <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-blue-100 to-indigo-100 mb-4">
                   <BookOpen className="h-8 w-8 text-blue-600" />
@@ -603,7 +608,7 @@ export default function CoursPage() {
               </div>
             )}
 
-            {formations.length > 0 && filteredFormations.length === 0 && (
+            {!selectedFormation && formations.length > 0 && filteredFormations.length === 0 && (
               <div className="rounded-2xl border border-slate-200 bg-white p-6 text-center text-sm text-slate-600">
                 Aucune formation ne correspond à votre recherche.
               </div>
@@ -612,9 +617,19 @@ export default function CoursPage() {
           </div>
 
           {selectedFormation && (
-            <div className="mt-8 bg-white rounded-2xl shadow-xl p-6 space-y-6">
-              {/* Formation Header */}
-              <div className="bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 rounded-2xl p-6 border border-blue-100">
+            <div className="space-y-6">
+              {/* Back to list button */}
+              <button
+                onClick={() => setSelectedFormationId('')}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-xl text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition-colors font-medium shadow-sm"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Retour aux formations
+              </button>
+
+              <div className="bg-white rounded-2xl shadow-xl p-6 space-y-6">
+                {/* Formation Header */}
+                <div className="bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 rounded-2xl p-6 border border-blue-100">
                 <div className="flex flex-wrap items-start justify-between gap-4">
                   <div className="flex-1 space-y-2">
                     <div className="flex items-center gap-2 text-blue-700 font-semibold">
