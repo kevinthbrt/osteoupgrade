@@ -95,9 +95,8 @@ export default function CoursPage() {
   const [selectedFormationId, setSelectedFormationId] = useState<string>('')
   const subpartRefs = useRef<Record<string, HTMLDivElement | null>>({})
   const [loading, setLoading] = useState(true)
-  const [showFormationModal, setShowFormationModal] = useState(false)
   const [expandedChapters, setExpandedChapters] = useState<Record<string, boolean>>({})
-  const [expandedSubparts, setExpandedSubparts] = useState<Record<string, boolean>>({})
+  const [selectedSubpartId, setSelectedSubpartId] = useState<string>('')
   const [showWizard, setShowWizard] = useState(false)
   const [formationToEdit, setFormationToEdit] = useState<Formation | null>(null)
   const [activeQuiz, setActiveQuiz] = useState<{ quiz: Quiz; subpartId: string } | null>(null)
@@ -257,24 +256,20 @@ export default function CoursPage() {
   }, [formations, searchTerm])
 
   useEffect(() => {
-    if (!selectedFormation || !showFormationModal) return
+    if (!selectedFormation) return
 
     const flatSubparts = selectedFormation.chapters.flatMap((chapter) => chapter.subparts)
     const nextSubpart =
-      flatSubparts.find((subpart) => !subpart.completed) || flatSubparts[flatSubparts.length - 1]
+      flatSubparts.find((subpart) => !subpart.completed) || flatSubparts[0]
 
     const initialChapters: Record<string, boolean> = {}
-    const initialSubparts: Record<string, boolean> = {}
 
     selectedFormation.chapters.forEach((chapter) => {
       initialChapters[chapter.id] = false
-      chapter.subparts.forEach((subpart) => {
-        initialSubparts[subpart.id] = false
-      })
     })
 
     if (nextSubpart) {
-      initialSubparts[nextSubpart.id] = true
+      setSelectedSubpartId(nextSubpart.id)
       const parentChapter = selectedFormation.chapters.find((chapter) =>
         chapter.subparts.some((sub) => sub.id === nextSubpart.id)
       )
@@ -284,14 +279,7 @@ export default function CoursPage() {
     }
 
     setExpandedChapters(initialChapters)
-    setExpandedSubparts(initialSubparts)
-
-    if (nextSubpart?.id && subpartRefs.current[nextSubpart.id]) {
-      setTimeout(() => {
-        subpartRefs.current[nextSubpart.id]?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-      }, 150)
-    }
-  }, [selectedFormationId, showFormationModal])
+  }, [selectedFormationId])
 
   const computeProgress = (formation?: Formation) => {
     if (!formation) return { total: 0, done: 0, percent: 0 }
@@ -315,7 +303,6 @@ export default function CoursPage() {
       setFormations((prev) => prev.filter((formation) => formation.id !== id))
       if (selectedFormationId === id) {
         setSelectedFormationId('')
-        setShowFormationModal(false)
       }
     } catch (error) {
       console.error('Impossible de supprimer la formation', error)
@@ -325,10 +312,6 @@ export default function CoursPage() {
 
   const toggleChapterExpansion = (chapterId: string) => {
     setExpandedChapters((prev) => ({ ...prev, [chapterId]: !prev[chapterId] }))
-  }
-
-  const toggleSubpartExpansion = (subpartId: string) => {
-    setExpandedSubparts((prev) => ({ ...prev, [subpartId]: !prev[subpartId] }))
   }
 
   const toggleCompletion = async (subpartId: string, completed: boolean) => {
@@ -538,7 +521,6 @@ export default function CoursPage() {
                     key={formation.id}
                     onClick={() => {
                       setSelectedFormationId(formation.id)
-                      setShowFormationModal(true)
                     }}
                     className={`group text-left border-2 rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 bg-white ${
                       selectedFormationId === formation.id
@@ -629,280 +611,333 @@ export default function CoursPage() {
 
           </div>
 
-          {showFormationModal && selectedFormation && (
-            <div className="fixed inset-0 z-40 flex items-center justify-center px-4 py-8 bg-black/50">
-              <div className="bg-white rounded-2xl shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-y-auto relative">
-                <div className="bg-sky-100 px-6 py-4 rounded-t-2xl border-b border-sky-200 flex items-start justify-between gap-3">
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2 text-sky-700 font-semibold">
-                      <Sparkles className="h-4 w-4" />
+          {selectedFormation && (
+            <div className="mt-8 bg-white rounded-2xl shadow-xl p-6 space-y-6">
+              {/* Formation Header */}
+              <div className="bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 rounded-2xl p-6 border border-blue-100">
+                <div className="flex flex-wrap items-start justify-between gap-4">
+                  <div className="flex-1 space-y-2">
+                    <div className="flex items-center gap-2 text-blue-700 font-semibold">
+                      <Sparkles className="h-5 w-5" />
                       <span>Formation</span>
                     </div>
-                    <h2 className="text-2xl font-bold text-sky-900">{selectedFormation.title}</h2>
+                    <h2 className="text-3xl font-bold text-blue-900">{selectedFormation.title}</h2>
                     {selectedFormation.is_private && (
-                      <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs bg-white text-sky-800 border border-sky-200 font-semibold uppercase">
+                      <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs bg-white text-blue-800 border border-blue-200 font-semibold uppercase">
                         Privé
                       </span>
                     )}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {isAdmin && (
-                      <button
-                        onClick={() => {
-                          setFormationToEdit(selectedFormation)
-                          setShowWizard(true)
-                          setShowFormationModal(false)
-                        }}
-                        className="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium flex items-center gap-2"
-                      >
-                        <Plus className="h-4 w-4" />
-                        Modifier
-                      </button>
+                    {selectedFormation.description && (
+                      <div
+                        className="text-gray-700 text-sm prose prose-sm max-w-none mt-3"
+                        dangerouslySetInnerHTML={{ __html: selectedFormation.description }}
+                      />
                     )}
-                    <button
-                      onClick={() => setShowFormationModal(false)}
-                      className="text-gray-600 hover:text-gray-800 rounded-full p-2 bg-white/70 border border-gray-200"
-                      aria-label="Fermer"
-                    >
-                      <X className="h-5 w-5" />
-                    </button>
+                  </div>
+                  <div className="flex flex-col gap-3 items-end min-w-[220px]">
+                    <div className="flex items-center gap-2 text-sm text-gray-700">
+                      <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                      <span>
+                        {progress.done}/{progress.total} terminées
+                      </span>
+                    </div>
+                    <div className="w-full h-3 bg-white rounded-full border border-blue-200 overflow-hidden">
+                      <div
+                        className="h-full bg-gradient-to-r from-blue-500 to-indigo-600"
+                        style={{ width: `${progress.percent}%` }}
+                        aria-label={`Progression ${progress.percent}%`}
+                      />
+                    </div>
+                    <span className="text-xs text-gray-600 font-semibold">{progress.percent}%</span>
+                    <div className="flex gap-2">
+                      {isAdmin && (
+                        <>
+                          <button
+                            onClick={() => {
+                              setFormationToEdit(selectedFormation)
+                              setShowWizard(true)
+                            }}
+                            className="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium flex items-center gap-2"
+                          >
+                            <Plus className="h-4 w-4" />
+                            Modifier
+                          </button>
+                          <button
+                            onClick={() => handleDeleteFormation(selectedFormation.id)}
+                            className="px-3 py-2 text-sm font-semibold border border-red-200 text-red-700 rounded-lg hover:bg-red-50"
+                          >
+                            Supprimer
+                          </button>
+                        </>
+                      )}
+                    </div>
                   </div>
                 </div>
+              </div>
 
-                <div className="p-6 space-y-6">
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div className="space-y-2 flex-1 min-w-[260px]">
-                      {selectedFormation.description && (
-                        <div
-                          className="text-gray-700 text-sm prose prose-sm max-w-none"
-                          dangerouslySetInnerHTML={{ __html: selectedFormation.description }}
-                        />
-                      )}
+              {/* Two-column layout */}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                {/* Left column: Table of Contents */}
+                <div className="lg:col-span-1 space-y-4">
+                  <div className="bg-gradient-to-br from-slate-50 to-blue-50 rounded-xl p-4 border border-slate-200 sticky top-4">
+                    <div className="flex items-center gap-3 mb-4">
+                      <BookOpen className="h-5 w-5 text-blue-600" />
+                      <h3 className="text-lg font-bold text-slate-900">Table des matières</h3>
                     </div>
-                    <div className="flex flex-col gap-2 items-end min-w-[220px]">
-                      <div className="flex items-center gap-2 text-sm text-gray-700">
-                        <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-                        <span>
-                          {progress.done}/{progress.total} sous-parties terminées
-                        </span>
-                      </div>
-                      <div className="w-full h-3 bg-gray-100 rounded-full border border-gray-200 overflow-hidden">
-                        <div
-                          className="h-full bg-primary-600"
-                          style={{ width: `${progress.percent}%` }}
-                          aria-label={`Progression ${progress.percent}%`}
-                        />
-                      </div>
-                      <span className="text-xs text-gray-500">{progress.percent}%</span>
-                      {isAdmin && (
-                        <button
-                          onClick={() => handleDeleteFormation(selectedFormation.id)}
-                          className="px-3 py-1 text-xs font-semibold border border-red-200 text-red-700 rounded-lg hover:bg-red-50"
-                        >
-                          Supprimer
-                        </button>
-                      )}
-                    </div>
-                  </div>
 
-                  <div className="space-y-3">
-                    {selectedFormation.chapters.map((chapter) => (
-                      <div
-                        key={chapter.id}
-                        className="border border-gray-100 rounded-xl overflow-hidden"
-                        ref={(ref) => {
-                          subpartRefs.current[chapter.id] = ref
-                        }}
-                      >
-                        <div className="flex items-center justify-between bg-gray-50 px-4 py-3">
+                    <div className="space-y-2">
+                      {selectedFormation.chapters.map((chapter) => (
+                        <div key={chapter.id} className="space-y-1">
                           <button
                             type="button"
                             onClick={() => toggleChapterExpansion(chapter.id)}
-                            className="flex items-center gap-3 text-gray-800 font-semibold hover:text-primary-700 focus:outline-none"
-                            aria-label={`Basculer l'affichage du chapitre ${chapter.title}`}
+                            className="w-full flex items-center justify-between bg-white rounded-lg px-3 py-2 hover:bg-blue-50 transition-colors border border-slate-200"
                           >
-                            <ChevronRight
-                              className={`h-4 w-4 text-primary-600 transition-transform ${
-                                expandedChapters[chapter.id] ? 'rotate-90' : ''
-                              }`}
-                            />
-                            <Layers className="h-4 w-4 text-primary-600" />
-                            {chapter.title}
+                            <div className="flex items-center gap-2">
+                              <ChevronRight
+                                className={`h-4 w-4 text-blue-600 transition-transform ${
+                                  expandedChapters[chapter.id] ? 'rotate-90' : ''
+                                }`}
+                              />
+                              <Layers className="h-4 w-4 text-blue-600" />
+                              <span className="font-semibold text-gray-900 text-sm">{chapter.title}</span>
+                            </div>
+                            <span className="text-xs text-gray-500">{chapter.subparts.length}</span>
                           </button>
-                          <span className="text-xs text-gray-500">{chapter.subparts.length} sous-parties</span>
-                        </div>
-                        {expandedChapters[chapter.id] && (
-                          <div className="divide-y divide-gray-100">
-                            {chapter.subparts.map((subpart, subpartIdx) => {
-                              const subpartOpen = expandedSubparts[subpart.id]
-                              const isAccessible = isSubpartAccessible(selectedFormation, chapter, subpartIdx)
 
-                              return (
-                                <div
-                                  key={subpart.id}
-                                  ref={(ref) => {
-                                    subpartRefs.current[subpart.id] = ref
-                                  }}
-                                  className={`p-4 space-y-3 ${!isAccessible ? 'bg-gray-50/50' : ''}`}
-                                >
-                                  <div className="flex items-start justify-between gap-3">
-                                    <div className="flex-1 space-y-3">
-                                      <div className="flex items-center gap-3">
-                                        <button
-                                          type="button"
-                                          onClick={() => isAccessible && toggleSubpartExpansion(subpart.id)}
-                                          disabled={!isAccessible}
-                                          className={`flex items-center gap-2 font-semibold focus:outline-none ${
-                                            isAccessible
-                                              ? 'text-gray-900 hover:text-primary-700'
-                                              : 'text-gray-400 cursor-not-allowed'
-                                          }`}
-                                          aria-label={`Basculer l'affichage de la sous-partie ${subpart.title}`}
-                                        >
-                                          {!isAccessible ? (
-                                            <Lock className="h-4 w-4 text-gray-400" />
-                                          ) : (
-                                            <ChevronDown
-                                              className={`h-4 w-4 text-primary-500 transition-transform ${
-                                                subpartOpen ? 'rotate-180' : ''
-                                              }`}
-                                            />
-                                          )}
-                                          <Video
-                                            className={`h-4 w-4 ${isAccessible ? 'text-primary-500' : 'text-gray-400'}`}
-                                          />
-                                          {subpart.title}
-                                        </button>
+                          {expandedChapters[chapter.id] && (
+                            <div className="ml-6 space-y-1">
+                              {chapter.subparts.map((subpart, subpartIdx) => {
+                                const isAccessible = isSubpartAccessible(selectedFormation, chapter, subpartIdx)
+                                const isSelected = selectedSubpartId === subpart.id
 
-                                        {subpart.quiz && (
-                                          <div className="flex items-center gap-2">
-                                            {subpart.quiz_passed ? (
-                                              <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs bg-emerald-100 text-emerald-700 font-semibold">
-                                                <Trophy className="h-3 w-3" />
-                                                Quiz validé
-                                              </span>
-                                            ) : (
-                                              <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-700 font-semibold">
-                                                <ClipboardCheck className="h-3 w-3" />
-                                                Quiz requis
-                                              </span>
-                                            )}
-                                          </div>
-                                        )}
-                                      </div>
-
-                                      {!isAccessible && (
-                                        <div className="flex items-center gap-2 text-sm text-orange-600 bg-orange-50 rounded-lg px-3 py-2 border border-orange-200">
-                                          <AlertCircle className="h-4 w-4 shrink-0" />
-                                          <span>Terminez le quiz précédent pour débloquer cette vidéo</span>
-                                        </div>
-                                      )}
-
-                                      {subpartOpen && isAccessible && (
-                                        <>
-                                          {subpart.description_html && (
-                                            <div
-                                              className="text-sm text-gray-700 prose prose-sm max-w-none"
-                                              dangerouslySetInnerHTML={{ __html: subpart.description_html }}
-                                            />
-                                          )}
-                                          <div className="space-y-3">
-                                            {subpart.vimeo_url ? (
-                                              <div className="relative w-full overflow-hidden rounded-xl border-2 border-gray-200 bg-black aspect-video shadow-lg">
-                                                <iframe
-                                                  src={getVimeoEmbedUrl(subpart.vimeo_url)}
-                                                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                                  allowFullScreen
-                                                  className="absolute inset-0 h-full w-full"
-                                                  title={`Vimeo - ${subpart.title}`}
-                                                />
-                                              </div>
-                                            ) : (
-                                              <div className="rounded-xl border-2 border-dashed border-gray-300 p-6 text-sm text-gray-500 bg-gray-50 text-center">
-                                                <Video className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-                                                Vidéo à venir
-                                              </div>
-                                            )}
-
-                                            {subpart.quiz && (
-                                              <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-4 border-2 border-blue-200">
-                                                <div className="flex items-start justify-between gap-4">
-                                                  <div className="flex-1">
-                                                    <div className="flex items-center gap-2 mb-2">
-                                                      <ClipboardCheck className="h-5 w-5 text-blue-600" />
-                                                      <h4 className="font-bold text-blue-900">{subpart.quiz.title}</h4>
-                                                    </div>
-                                                    {subpart.quiz.description && (
-                                                      <p className="text-sm text-blue-700 mb-3">{subpart.quiz.description}</p>
-                                                    )}
-                                                    <div className="flex items-center gap-4 text-sm text-blue-600">
-                                                      <span>{subpart.quiz.questions.length} questions</span>
-                                                      <span>•</span>
-                                                      <span>Score requis : {subpart.quiz.passing_score}%</span>
-                                                    </div>
-                                                  </div>
-                                                  <button
-                                                    onClick={() =>
-                                                      setActiveQuiz({ quiz: subpart.quiz!, subpartId: subpart.id })
-                                                    }
-                                                    className={`px-4 py-2 rounded-lg font-semibold transition-all ${
-                                                      subpart.quiz_passed
-                                                        ? 'bg-white text-blue-600 border-2 border-blue-300 hover:bg-blue-50'
-                                                        : 'bg-gradient-to-r from-blue-500 to-blue-600 text-white hover:from-blue-600 hover:to-blue-700 shadow-lg'
-                                                    }`}
-                                                  >
-                                                    {subpart.quiz_passed ? 'Refaire le quiz' : 'Commencer le quiz'}
-                                                  </button>
-                                                </div>
-                                              </div>
-                                            )}
-                                          </div>
-                                        </>
-                                      )}
-                                    </div>
-                                    {isAccessible && (
-                                      <div className="flex flex-col items-end gap-2 min-w-[140px]">
-                                        <span className="text-xs text-gray-500 flex items-center gap-1">
-                                          <Clock3 className="h-4 w-4" />
-                                          Suivi
-                                        </span>
-                                        <button
-                                          onClick={() => toggleCompletion(subpart.id, !subpart.completed)}
-                                          className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold border-2 transition-all ${
-                                            subpart.completed
-                                              ? 'bg-emerald-50 text-emerald-700 border-emerald-300 hover:bg-emerald-100'
-                                              : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
-                                          }`}
-                                        >
-                                          <CheckSquare className="h-4 w-4" />
-                                          {subpart.completed ? 'Terminé' : 'Marquer terminé'}
-                                        </button>
-                                        {isAdmin && (
-                                          <button
-                                            onClick={() =>
-                                              setQuizManager({
-                                                subpartId: subpart.id,
-                                                subpartTitle: subpart.title,
-                                                quiz: subpart.quiz
-                                              })
-                                            }
-                                            className="w-full px-3 py-2 bg-blue-50 text-blue-700 border-2 border-blue-200 rounded-lg text-sm font-semibold hover:bg-blue-100 transition flex items-center justify-center gap-2"
-                                          >
-                                            <ClipboardCheck className="h-4 w-4" />
-                                            {subpart.quiz ? 'Modifier quiz' : 'Créer quiz'}
-                                          </button>
-                                        )}
-                                      </div>
+                                return (
+                                  <button
+                                    key={subpart.id}
+                                    type="button"
+                                    onClick={() => isAccessible && setSelectedSubpartId(subpart.id)}
+                                    disabled={!isAccessible}
+                                    className={`w-full flex items-start gap-2 p-2 rounded-lg text-left transition-colors ${
+                                      isSelected
+                                        ? 'bg-blue-100 border-2 border-blue-400'
+                                        : isAccessible
+                                        ? 'hover:bg-slate-100 border border-transparent'
+                                        : 'opacity-50 cursor-not-allowed border border-transparent'
+                                    }`}
+                                  >
+                                    {!isAccessible ? (
+                                      <Lock className="h-4 w-4 text-gray-400 mt-0.5 shrink-0" />
+                                    ) : (
+                                      <Video className="h-4 w-4 text-blue-600 mt-0.5 shrink-0" />
                                     )}
+                                    <div className="flex-1 min-w-0">
+                                      <div className="text-sm font-medium text-gray-900 truncate">
+                                        {subpart.title}
+                                      </div>
+                                      <div className="flex items-center gap-2 mt-1 flex-wrap">
+                                        {subpart.completed && (
+                                          <span className="inline-flex items-center gap-1 text-xs text-emerald-600">
+                                            <CheckCircle2 className="h-3 w-3" />
+                                          </span>
+                                        )}
+                                        {subpart.quiz && (
+                                          <span className="inline-flex items-center gap-1 text-xs">
+                                            {subpart.quiz_passed ? (
+                                              <>
+                                                <Trophy className="h-3 w-3 text-emerald-600" />
+                                              </>
+                                            ) : (
+                                              <>
+                                                <ClipboardCheck className="h-3 w-3 text-blue-600" />
+                                              </>
+                                            )}
+                                          </span>
+                                        )}
+                                      </div>
+                                    </div>
+                                  </button>
+                                )
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Right column: Content */}
+                <div className="lg:col-span-2">
+                  {selectedSubpartId ? (
+                    (() => {
+                      const selectedSubpart = selectedFormation.chapters
+                        .flatMap((ch) => ch.subparts)
+                        .find((s) => s.id === selectedSubpartId)
+
+                      if (!selectedSubpart) return null
+
+                      const parentChapter = selectedFormation.chapters.find((ch) =>
+                        ch.subparts.some((s) => s.id === selectedSubpartId)
+                      )
+                      const subpartIdx = parentChapter?.subparts.findIndex((s) => s.id === selectedSubpartId) ?? -1
+                      const isAccessible = parentChapter && subpartIdx !== -1
+                        ? isSubpartAccessible(selectedFormation, parentChapter, subpartIdx)
+                        : false
+
+                      return (
+                        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+                          {/* Subpart Header */}
+                          <div className="bg-gradient-to-r from-blue-500 to-indigo-600 px-6 py-4 text-white">
+                            <div className="flex items-center gap-3 mb-2">
+                              <Video className="h-5 w-5" />
+                              <span className="text-sm font-semibold opacity-90">Contenu du module</span>
+                            </div>
+                            <h3 className="text-2xl font-bold">{selectedSubpart.title}</h3>
+                          </div>
+
+                          {!isAccessible ? (
+                            <div className="p-8">
+                              <div className="flex flex-col items-center justify-center gap-4 text-center bg-orange-50 rounded-xl p-8 border-2 border-orange-200">
+                                <Lock className="h-12 w-12 text-orange-500" />
+                                <div>
+                                  <h4 className="text-lg font-bold text-orange-900 mb-2">
+                                    Contenu verrouillé
+                                  </h4>
+                                  <p className="text-orange-700">
+                                    Terminez le quiz précédent pour débloquer ce module
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="p-6 space-y-6">
+                              {/* Description */}
+                              {selectedSubpart.description_html && (
+                                <div
+                                  className="prose prose-sm max-w-none text-gray-700"
+                                  dangerouslySetInnerHTML={{ __html: selectedSubpart.description_html }}
+                                />
+                              )}
+
+                              {/* Video */}
+                              {selectedSubpart.vimeo_url ? (
+                                <div className="relative w-full overflow-hidden rounded-xl border-2 border-gray-200 bg-black aspect-video shadow-lg">
+                                  <iframe
+                                    src={getVimeoEmbedUrl(selectedSubpart.vimeo_url)}
+                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                    allowFullScreen
+                                    className="absolute inset-0 h-full w-full"
+                                    title={`Vimeo - ${selectedSubpart.title}`}
+                                  />
+                                </div>
+                              ) : (
+                                <div className="rounded-xl border-2 border-dashed border-gray-300 p-12 text-center bg-gray-50">
+                                  <Video className="h-12 w-12 text-gray-400 mx-auto mb-3" />
+                                  <p className="text-gray-500">Vidéo à venir</p>
+                                </div>
+                              )}
+
+                              {/* Mark Complete Button */}
+                              <div className="flex items-center justify-between pt-4 border-t border-gray-200">
+                                <button
+                                  onClick={() => toggleCompletion(selectedSubpart.id, !selectedSubpart.completed)}
+                                  className={`inline-flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-semibold border-2 transition-all ${
+                                    selectedSubpart.completed
+                                      ? 'bg-emerald-50 text-emerald-700 border-emerald-300 hover:bg-emerald-100'
+                                      : 'bg-blue-600 text-white border-blue-600 hover:bg-blue-700'
+                                  }`}
+                                >
+                                  <CheckSquare className="h-5 w-5" />
+                                  {selectedSubpart.completed ? 'Marqué comme terminé' : 'Marquer comme terminé'}
+                                </button>
+
+                                {isAdmin && (
+                                  <button
+                                    onClick={() =>
+                                      setQuizManager({
+                                        subpartId: selectedSubpart.id,
+                                        subpartTitle: selectedSubpart.title,
+                                        quiz: selectedSubpart.quiz
+                                      })
+                                    }
+                                    className="px-4 py-3 bg-blue-50 text-blue-700 border-2 border-blue-200 rounded-xl text-sm font-semibold hover:bg-blue-100 transition flex items-center gap-2"
+                                  >
+                                    <ClipboardCheck className="h-4 w-4" />
+                                    {selectedSubpart.quiz ? 'Modifier quiz' : 'Créer quiz'}
+                                  </button>
+                                )}
+                              </div>
+
+                              {/* Quiz Section */}
+                              {selectedSubpart.quiz && (
+                                <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-6 border-2 border-blue-200">
+                                  <div className="flex items-start gap-4">
+                                    <div className="flex-shrink-0">
+                                      <div className="w-12 h-12 rounded-full bg-blue-600 flex items-center justify-center">
+                                        <ClipboardCheck className="h-6 w-6 text-white" />
+                                      </div>
+                                    </div>
+                                    <div className="flex-1">
+                                      <h4 className="text-lg font-bold text-blue-900 mb-2">
+                                        {selectedSubpart.quiz.title}
+                                      </h4>
+                                      {selectedSubpart.quiz.description && (
+                                        <p className="text-sm text-blue-700 mb-4">
+                                          {selectedSubpart.quiz.description}
+                                        </p>
+                                      )}
+                                      <div className="flex flex-wrap items-center gap-4 text-sm text-blue-700 mb-4">
+                                        <span className="flex items-center gap-1">
+                                          <ClipboardCheck className="h-4 w-4" />
+                                          {selectedSubpart.quiz.questions.length} questions
+                                        </span>
+                                        <span>•</span>
+                                        <span>Score requis : {selectedSubpart.quiz.passing_score}%</span>
+                                        {selectedSubpart.quiz_passed && (
+                                          <>
+                                            <span>•</span>
+                                            <span className="inline-flex items-center gap-1 text-emerald-700 font-semibold">
+                                              <Trophy className="h-4 w-4" />
+                                              Validé
+                                            </span>
+                                          </>
+                                        )}
+                                      </div>
+                                      <button
+                                        onClick={() =>
+                                          setActiveQuiz({
+                                            quiz: selectedSubpart.quiz!,
+                                            subpartId: selectedSubpart.id
+                                          })
+                                        }
+                                        className={`px-6 py-3 rounded-xl font-semibold transition-all ${
+                                          selectedSubpart.quiz_passed
+                                            ? 'bg-white text-blue-600 border-2 border-blue-300 hover:bg-blue-50'
+                                            : 'bg-gradient-to-r from-blue-500 to-blue-600 text-white hover:from-blue-600 hover:to-blue-700 shadow-lg'
+                                        }`}
+                                      >
+                                        {selectedSubpart.quiz_passed ? 'Refaire le quiz' : 'Commencer le quiz'}
+                                      </button>
+                                    </div>
                                   </div>
                                 </div>
-                              )
-                            })}
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })()
+                  ) : (
+                    <div className="bg-slate-50 rounded-xl border-2 border-dashed border-slate-200 p-12 text-center">
+                      <PlayCircle className="h-16 w-16 text-slate-400 mx-auto mb-4" />
+                      <h3 className="text-lg font-semibold text-slate-900 mb-2">
+                        Sélectionnez un module
+                      </h3>
+                      <p className="text-slate-600">
+                        Choisissez un module dans la table des matières pour commencer
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
