@@ -105,9 +105,7 @@ export default function NewCasePage() {
         ...caseData,
         is_active: true,
         display_order: 0,
-        created_by: user.id,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+        created_by: user.id
       })
 
       if (!newCase) {
