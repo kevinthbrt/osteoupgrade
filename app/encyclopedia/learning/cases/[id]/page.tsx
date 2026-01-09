@@ -498,7 +498,7 @@ export default function ClinicalCasePage() {
           {/* Right: Module Content */}
           <div className="lg:col-span-2">
             {selectedModule ? (
-              <div ref={el => moduleRefs.current[selectedModule.id] = el}>
+              <div ref={el => { moduleRefs.current[selectedModule.id] = el }}>
                 <div className="bg-white rounded-xl shadow-lg overflow-hidden mb-6">
                   {/* Module Header */}
                   <div className="bg-gradient-to-r from-amber-50 to-orange-50 p-6 border-b-2 border-amber-100">
