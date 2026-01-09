@@ -203,23 +203,17 @@ export default function ClinicalCasePage() {
     }))
   }
 
-  const handleQuizComplete = async (quizId: string, score: number, passed: boolean) => {
-    // Reload data to update quiz status
+  const handleQuizPassed = async () => {
+    if (!selectedModule || !profile) return
+
+    // Mark module as completed
+    await markModuleAsCompleted(profile.id, selectedModule.id)
+
+    // Update case progress
+    await updateCaseProgressPercentage()
+
+    // Reload data
     await loadData()
-
-    // Mark module as completed if quiz passed
-    if (passed) {
-      const module = chapters
-        .flatMap(c => c.modules)
-        .find(m => m.quiz?.id === quizId)
-
-      if (module) {
-        await markModuleAsCompleted(profile.id, module.id)
-
-        // Update case progress
-        await updateCaseProgressPercentage()
-      }
-    }
   }
 
   const handleMarkModuleComplete = async (moduleId: string) => {
@@ -573,11 +567,14 @@ export default function ClinicalCasePage() {
                 </div>
 
                 {/* Quiz Section */}
-                {selectedModule.quiz && (
+                {selectedModule.quiz && profile && (
                   <div className="bg-white rounded-xl shadow-lg p-6">
                     <QuizComponent
                       quiz={selectedModule.quiz}
-                      onQuizComplete={(score, passed) => handleQuizComplete(selectedModule.quiz!.id, score, passed)}
+                      subpartId={selectedModule.id}
+                      userId={profile.id}
+                      onQuizPassed={handleQuizPassed}
+                      onClose={() => {}}
                     />
                   </div>
                 )}
