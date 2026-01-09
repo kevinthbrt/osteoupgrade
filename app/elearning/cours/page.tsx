@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import AuthLayout from '@/components/AuthLayout'
 import { supabase } from '@/lib/supabase'
+import { sanitizeHtml } from '@/lib/sanitize'
 import CourseCreationWizard from '../components/CourseCreationWizard'
 import QuizComponent from '../components/QuizComponent'
 import QuizManager from '../components/QuizManager'
@@ -824,7 +825,7 @@ export default function CoursPage() {
                               {selectedSubpart.description_html && (
                                 <div
                                   className="prose prose-sm max-w-none text-gray-700"
-                                  dangerouslySetInnerHTML={{ __html: selectedSubpart.description_html }}
+                                  dangerouslySetInnerHTML={{ __html: sanitizeHtml(selectedSubpart.description_html) }}
                                 />
                               )}
 
