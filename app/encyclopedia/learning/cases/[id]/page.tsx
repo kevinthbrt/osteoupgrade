@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import AuthLayout from '@/components/AuthLayout'
 import { supabase } from '@/lib/supabase'
-import QuizComponent from '@/app/elearning/components/QuizComponent'
+import ClinicalCaseQuizComponent from '../components/ClinicalCaseQuizComponent'
 import type { Quiz } from '@/app/elearning/types/quiz'
 import {
   ArrowLeft,
@@ -569,9 +569,9 @@ export default function ClinicalCasePage() {
                 {/* Quiz Section */}
                 {selectedModule.quiz && profile && (
                   <div className="bg-white rounded-xl shadow-lg p-6">
-                    <QuizComponent
+                    <ClinicalCaseQuizComponent
                       quiz={selectedModule.quiz}
-                      subpartId={selectedModule.id}
+                      moduleId={selectedModule.id}
                       userId={profile.id}
                       onQuizPassed={handleQuizPassed}
                       onClose={() => {}}

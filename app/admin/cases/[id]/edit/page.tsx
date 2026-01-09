@@ -35,13 +35,21 @@ import {
   createModule,
   updateModule,
   deleteModule,
+  getModuleQuiz,
+  getQuizQuestions,
+  getQuestionAnswers,
   type ClinicalCase,
   type ClinicalCaseChapter,
   type ClinicalCaseModule
 } from '@/lib/clinical-cases-api'
+import type { Quiz } from '@/app/elearning/types/quiz'
+
+type ModuleWithQuiz = ClinicalCaseModule & {
+  quiz?: Quiz
+}
 
 type ChapterWithModules = ClinicalCaseChapter & {
-  modules: ClinicalCaseModule[]
+  modules: ModuleWithQuiz[]
 }
 
 export default function EditCasePage() {
@@ -98,7 +106,48 @@ export default function EditCasePage() {
       const chaptersWithModules = await Promise.all(
         chaptersData.map(async (chapter) => {
           const modules = await getChapterModules(chapter.id)
-          return { ...chapter, modules }
+
+          // Load quiz for each module
+          const modulesWithQuizzes = await Promise.all(
+            modules.map(async (module) => {
+              const quiz = await getModuleQuiz(module.id)
+
+              if (quiz) {
+                // Load questions and answers
+                const questions = await getQuizQuestions(quiz.id)
+                const questionsWithAnswers = await Promise.all(
+                  questions.map(async (question) => {
+                    const answers = await getQuestionAnswers(question.id)
+                    return {
+                      ...question,
+                      answers: answers.map(a => ({
+                        id: a.id,
+                        answer_text: a.answer_text,
+                        is_correct: a.is_correct,
+                        order_index: a.order_index
+                      }))
+                    }
+                  })
+                )
+
+                return {
+                  ...module,
+                  quiz: {
+                    id: quiz.id,
+                    subpart_id: module.id,
+                    title: quiz.title,
+                    description: quiz.description || '',
+                    passing_score: quiz.passing_score,
+                    questions: questionsWithAnswers
+                  }
+                }
+              }
+
+              return module
+            })
+          )
+
+          return { ...chapter, modules: modulesWithQuizzes }
         })
       )
 
@@ -833,6 +882,7 @@ export default function EditCasePage() {
                               <ClinicalCaseQuizManager
                                 moduleId={module.id}
                                 moduleTitle={module.title}
+                                existingQuiz={module.quiz}
                                 onClose={() => setManagingQuiz(null)}
                                 onSave={() => {
                                   setSuccess('Quiz sauvegardé !')
