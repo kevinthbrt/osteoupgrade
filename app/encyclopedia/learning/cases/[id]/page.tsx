@@ -198,6 +198,7 @@ export default function ClinicalCasePage() {
 
   const handleModuleClick = (moduleId: string) => {
     setSelectedModuleId(moduleId)
+    setShowQuiz(false) // Reset quiz state when changing modules
     setExpandedModules(prev => ({
       ...prev,
       [moduleId]: !prev[moduleId]
