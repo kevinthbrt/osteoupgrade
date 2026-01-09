@@ -249,6 +249,7 @@ export type Database = {
         description: string | null
         is_private: boolean | null
         photo_url: string | null
+        content_type: string
         created_by: string | null
         created_at: string
         updated_at: string
@@ -267,6 +268,7 @@ export type Database = {
         chapter_id: string
         title: string
         vimeo_url: string | null
+        image_url: string | null
         description_html: string | null
         order_index: number
         created_at: string

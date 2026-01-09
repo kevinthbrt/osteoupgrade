@@ -72,7 +72,7 @@ function SearchPageContent() {
         supabase.rpc('search_elearning_formations', { search_term: searchValue })
           .then(res => res.error ?
             supabase.from('elearning_formations')
-              .select('id, title, description')
+              .select('id, title, description, content_type')
               .or(`title.ilike.%${searchValue}%,description.ilike.%${searchValue}%`)
               .limit(10)
             : res
@@ -108,7 +108,7 @@ function SearchPageContent() {
         supabase.rpc('search_elearning_chapters', { search_term: searchValue })
           .then(res => res.error ?
             supabase.from('elearning_chapters')
-              .select('id, title, formation_id')
+              .select('id, title, formation_id, formation:elearning_formations(content_type)')
               .ilike('title', `%${searchValue}%`)
               .limit(10)
             : res
@@ -117,7 +117,7 @@ function SearchPageContent() {
         supabase.rpc('search_elearning_subparts', { search_term: searchValue })
           .then(res => res.error ?
             supabase.from('elearning_subparts')
-              .select('id, title, chapter_id')
+              .select('id, title, chapter_id, chapter:elearning_chapters(formation_id, formation:elearning_formations(content_type))')
               .ilike('title', `%${searchValue}%`)
               .limit(10)
             : res
@@ -163,8 +163,11 @@ function SearchPageContent() {
       const quizzes = quizzesResponse.data || []
       const cases = casesResponse.data || []
 
-      if (formations.length > 0) {
-        formations.forEach((f: { id: string; title: string; description: string | null }) => {
+      const courseFormations = formations.filter((f: { content_type?: string | null }) => (f.content_type ?? 'course') === 'course')
+      const caseFormations = formations.filter((f: { content_type?: string | null }) => (f.content_type ?? 'course') === 'case')
+
+      if (courseFormations.length > 0) {
+        courseFormations.forEach((f: { id: string; title: string; description: string | null }) => {
           allResults.push({
             id: f.id,
             title: f.title,
@@ -178,8 +181,25 @@ function SearchPageContent() {
         })
       }
 
+      if (caseFormations.length > 0) {
+        caseFormations.forEach((f: { id: string; title: string; description: string | null }) => {
+          allResults.push({
+            id: f.id,
+            title: f.title,
+            description: f.description || '',
+            type: 'case',
+            href: '/encyclopedia/learning/cases',
+            module: 'Cas cliniques',
+            gradient: 'from-amber-500 to-orange-600',
+            icon: Target
+          })
+        })
+      }
+
       if (chapters.length > 0) {
-        chapters.forEach((chapter: { id: string; title: string; formation_id: string }) => {
+        chapters
+          .filter((chapter: any) => (chapter.formation?.content_type ?? 'course') === 'course')
+          .forEach((chapter: { id: string; title: string; formation_id: string }) => {
           allResults.push({
             id: chapter.id,
             title: chapter.title,
@@ -190,11 +210,13 @@ function SearchPageContent() {
             gradient: 'from-blue-500 to-cyan-600',
             icon: BookOpen
           })
-        })
+          })
       }
 
       if (subparts.length > 0) {
-        subparts.forEach((subpart: { id: string; title: string; chapter_id: string }) => {
+        subparts
+          .filter((subpart: any) => (subpart.chapter?.formation?.content_type ?? 'course') === 'course')
+          .forEach((subpart: { id: string; title: string; chapter_id: string }) => {
           allResults.push({
             id: subpart.id,
             title: subpart.title,
@@ -205,7 +227,7 @@ function SearchPageContent() {
             gradient: 'from-blue-500 to-cyan-600',
             icon: BookOpen
           })
-        })
+          })
       }
 
       // Search pathologies
