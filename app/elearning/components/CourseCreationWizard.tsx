@@ -9,6 +9,7 @@ interface Subpart {
   tempId: string
   title: string
   vimeoUrl: string
+  imageUrl: string
   descriptionHtml: string
   orderIndex: number
 }
@@ -38,6 +39,7 @@ interface ExistingFormation {
   is_private?: boolean
   is_free_access?: boolean
   photo_url?: string
+  content_type?: string
   chapters: Array<{
     id: string
     title: string
@@ -46,6 +48,7 @@ interface ExistingFormation {
       id: string
       title: string
       vimeo_url?: string
+      image_url?: string
       description_html?: string
       order_index?: number
     }>
@@ -56,13 +59,37 @@ interface Props {
   onClose: () => void
   onSuccess: () => void
   existingFormation?: ExistingFormation
+  contentType?: 'course' | 'case'
+  entityLabel?: string
 }
 
-export default function CourseCreationWizard({ onClose, onSuccess, existingFormation }: Props) {
+export default function CourseCreationWizard({
+  onClose,
+  onSuccess,
+  existingFormation,
+  contentType = 'course',
+  entityLabel
+}: Props) {
   const supabase = createClientComponentClient()
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false)
+  const [uploadingSubpartId, setUploadingSubpartId] = useState<string | null>(null)
+
+  const resolvedEntityLabel = entityLabel ?? (contentType === 'case' ? 'cas clinique' : 'formation')
+  const entityArticle = resolvedEntityLabel === 'formation' ? 'la' : 'le'
+  const entityCreateArticle = resolvedEntityLabel === 'formation' ? 'une' : 'un'
+  const entityTitlePrefix = resolvedEntityLabel === 'formation' ? 'Titre de la' : 'Titre du'
+  const entityTitlePlaceholder =
+    resolvedEntityLabel === 'formation' ? 'Ex: Formation complète en ostéopathie' : 'Ex: Cas clinique - lombalgie aiguë'
+  const entityDescriptionPlaceholder =
+    resolvedEntityLabel === 'formation'
+      ? 'Décrivez le contenu de la formation...'
+      : 'Décrivez le scénario clinique, les objectifs et le contexte...'
+  const entityPrivateLabel =
+    resolvedEntityLabel === 'formation'
+      ? 'Formation privée (réservée aux administrateurs)'
+      : 'Cas clinique privé (réservé aux administrateurs)'
 
   const [formation, setFormation] = useState<FormationData>({
     title: '',
@@ -100,6 +127,7 @@ export default function CourseCreationWizard({ onClose, onSuccess, existingForma
                 tempId: subpart.id,
                 title: subpart.title,
                 vimeoUrl: subpart.vimeo_url || '',
+                imageUrl: subpart.image_url || '',
                 descriptionHtml: subpart.description_html || '',
                 orderIndex: subpart.order_index || 0
               }
@@ -150,8 +178,29 @@ export default function CourseCreationWizard({ onClose, onSuccess, existingForma
       throw new Error('Le téléchargement a échoué')
     }
 
-    const data = await response.json()
-    return data.url as string
+  const data = await response.json()
+  return data.url as string
+  }
+
+  const handleSubpartImageChange = async (
+    event: ChangeEvent<HTMLInputElement>,
+    chapterTempId: string,
+    subpartTempId: string
+  ) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    setUploadingSubpartId(subpartTempId)
+    try {
+      const imageUrl = await uploadCourseImage(file)
+      updateSubpart(chapterTempId, subpartTempId, 'imageUrl', imageUrl)
+    } catch (err) {
+      console.error("Erreur lors de l'upload de la photo:", err)
+      alert("Impossible de téléverser la photo pour le moment. Merci de réessayer plus tard.")
+    } finally {
+      setUploadingSubpartId(null)
+      event.target.value = ''
+    }
   }
 
   const handlePhotoChange = async (event: ChangeEvent<HTMLInputElement>) => {
@@ -163,7 +212,7 @@ export default function CourseCreationWizard({ onClose, onSuccess, existingForma
       const imageUrl = await uploadCourseImage(file)
       setFormation((prev) => ({ ...prev, photoUrl: imageUrl }))
     } catch (err) {
-      console.error("Erreur lors de l'upload de la photo de formation:", err)
+      console.error("Erreur lors de l'upload de la photo:", err)
       alert("Impossible de téléverser la photo pour le moment. Merci de réessayer plus tard.")
     } finally {
       setIsUploadingPhoto(false)
@@ -238,6 +287,7 @@ export default function CourseCreationWizard({ onClose, onSuccess, existingForma
                 tempId,
                 title: '',
                 vimeoUrl: '',
+                imageUrl: '',
                 descriptionHtml: '',
                 orderIndex: c.subparts.length
               }
@@ -287,7 +337,7 @@ export default function CourseCreationWizard({ onClose, onSuccess, existingForma
 
   const validate = (): string | null => {
     if (!formation.title.trim()) {
-      return 'Le titre de la formation est obligatoire'
+      return `Le titre du ${resolvedEntityLabel} est obligatoire`
     }
 
     if (formation.chapters.length === 0) {
@@ -338,7 +388,8 @@ export default function CourseCreationWizard({ onClose, onSuccess, existingForma
             description: formation.description,
             is_private: formation.isPrivate,
             is_free_access: formation.isFreeAccess,
-            photo_url: formation.photoUrl || null
+            photo_url: formation.photoUrl || null,
+            content_type: contentType
           })
           .eq('id', formationId)
 
@@ -413,6 +464,7 @@ export default function CourseCreationWizard({ onClose, onSuccess, existingForma
                 .update({
                   title: subpart.title,
                   vimeo_url: subpart.vimeoUrl || null,
+                  image_url: subpart.imageUrl || null,
                   description_html: subpart.descriptionHtml || null,
                   order_index: subpart.orderIndex
                 })
@@ -427,6 +479,7 @@ export default function CourseCreationWizard({ onClose, onSuccess, existingForma
                   chapter_id: chapterId,
                   title: subpart.title,
                   vimeo_url: subpart.vimeoUrl || null,
+                  image_url: subpart.imageUrl || null,
                   description_html: subpart.descriptionHtml || null,
                   order_index: subpart.orderIndex
                 })
@@ -445,7 +498,8 @@ export default function CourseCreationWizard({ onClose, onSuccess, existingForma
             description: formation.description,
             is_private: formation.isPrivate,
             is_free_access: formation.isFreeAccess,
-            photo_url: formation.photoUrl || null
+            photo_url: formation.photoUrl || null,
+            content_type: contentType
           })
           .select()
           .single()
@@ -473,6 +527,7 @@ export default function CourseCreationWizard({ onClose, onSuccess, existingForma
               chapter_id: chapterData.id,
               title: s.title,
               vimeo_url: s.vimeoUrl || null,
+              image_url: s.imageUrl || null,
               description_html: s.descriptionHtml || null,
               order_index: s.orderIndex
             }))
@@ -501,7 +556,9 @@ export default function CourseCreationWizard({ onClose, onSuccess, existingForma
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b">
           <h2 className="text-2xl font-bold text-gray-900">
-            {formation.id ? 'Modifier la formation' : 'Créer une formation'}
+            {formation.id
+              ? `Modifier ${entityArticle} ${resolvedEntityLabel}`
+              : `Créer ${entityCreateArticle} ${resolvedEntityLabel}`}
           </h2>
           <button
             onClick={onClose}
@@ -519,14 +576,14 @@ export default function CourseCreationWizard({ onClose, onSuccess, existingForma
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Titre de la formation *
+                {entityTitlePrefix} {resolvedEntityLabel} *
               </label>
               <input
                 type="text"
                 value={formation.title}
                 onChange={(e) => setFormation({ ...formation, title: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Ex: Formation complète en ostéopathie"
+                placeholder={entityTitlePlaceholder}
               />
             </div>
 
@@ -539,7 +596,7 @@ export default function CourseCreationWizard({ onClose, onSuccess, existingForma
                 onChange={(e) => setFormation({ ...formation, description: e.target.value })}
                 rows={3}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Décrivez le contenu de la formation..."
+                placeholder={entityDescriptionPlaceholder}
               />
             </div>
 
@@ -552,7 +609,7 @@ export default function CourseCreationWizard({ onClose, onSuccess, existingForma
                   <div className="relative w-32 h-32 rounded-lg overflow-hidden border-2 border-gray-200">
                     <img
                       src={formation.photoUrl}
-                      alt="Photo de la formation"
+                      alt={`Photo du ${resolvedEntityLabel}`}
                       className="w-full h-full object-cover"
                     />
                   </div>
@@ -590,7 +647,7 @@ export default function CourseCreationWizard({ onClose, onSuccess, existingForma
                   className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                 />
                 <label htmlFor="isPrivate" className="ml-2 text-sm text-gray-700">
-                  Formation privée (réservée aux administrateurs)
+                  {entityPrivateLabel}
                 </label>
               </div>
               <div className="flex items-center">
@@ -756,6 +813,32 @@ export default function CourseCreationWizard({ onClose, onSuccess, existingForma
 
                             <div>
                               <label className="block text-xs font-medium text-gray-700 mb-1">
+                                Photo (optionnel)
+                              </label>
+                              <div className="flex items-center gap-2">
+                                <input
+                                  type="text"
+                                  value={subpart.imageUrl}
+                                  onChange={(e) => updateSubpart(chapter.tempId, subpart.tempId, 'imageUrl', e.target.value)}
+                                  placeholder="https://... ou téléverser"
+                                  className="flex-1 px-2 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                />
+                                <label className="inline-flex items-center gap-2 px-3 py-1.5 text-xs font-semibold text-blue-700 bg-blue-50 border border-blue-200 rounded-md cursor-pointer hover:bg-blue-100">
+                                  <Image className="h-3.5 w-3.5" />
+                                  {uploadingSubpartId === subpart.tempId ? 'Upload...' : 'Téléverser'}
+                                  <input
+                                    type="file"
+                                    accept="image/*"
+                                    className="hidden"
+                                    onChange={(event) => handleSubpartImageChange(event, chapter.tempId, subpart.tempId)}
+                                    disabled={uploadingSubpartId === subpart.tempId}
+                                  />
+                                </label>
+                              </div>
+                            </div>
+
+                            <div>
+                              <label className="block text-xs font-medium text-gray-700 mb-1">
                                 Description
                               </label>
                               <textarea
@@ -813,7 +896,9 @@ export default function CourseCreationWizard({ onClose, onSuccess, existingForma
               ) : (
                 <>
                   <Save className="w-4 h-4" />
-                  {formation.id ? 'Enregistrer les modifications' : 'Créer la formation'}
+                  {formation.id
+                    ? 'Enregistrer les modifications'
+                    : `Créer ${entityArticle} ${resolvedEntityLabel}`}
                 </>
               )}
             </button>
