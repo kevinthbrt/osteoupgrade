@@ -579,7 +579,12 @@ export default function EditCasePage() {
           ) : (
             <div>
               <h3 className="text-lg font-semibold text-slate-900 mb-1">{clinicalCase.title}</h3>
-              <p className="text-slate-600 mb-2">{clinicalCase.description}</p>
+              {clinicalCase.description && (
+                <div
+                  className="prose prose-sm max-w-none text-slate-600 mb-2"
+                  dangerouslySetInnerHTML={{ __html: clinicalCase.description }}
+                />
+              )}
               <div className="flex gap-2 text-sm">
                 <span className="px-2 py-1 bg-amber-100 text-amber-700 rounded">
                   {clinicalCase.region}

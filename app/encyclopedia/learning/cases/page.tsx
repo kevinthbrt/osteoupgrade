@@ -332,9 +332,6 @@ export default function ClinicalCasesPage() {
                     </div>
                   </div>
 
-                  {/* Description */}
-                  <p className="text-sm text-slate-600 mb-4 line-clamp-2">{caseItem.description}</p>
-
                   {/* Meta info */}
                   <div className="flex items-center gap-4 mb-4 text-sm text-slate-600">
                     <div className="flex items-center gap-1">
