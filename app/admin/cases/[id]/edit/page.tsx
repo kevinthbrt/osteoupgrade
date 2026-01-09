@@ -830,7 +830,17 @@ export default function EditCasePage() {
                           {/* Quiz Manager */}
                           {managingQuiz === module.id && (
                             <div className="border-t-2 border-purple-200 bg-purple-50 p-4">
-                              <QuizManager subpartId={module.id} />
+                              <QuizManager
+                                subpartId={module.id}
+                                subpartTitle={module.title}
+                                onClose={() => setManagingQuiz(null)}
+                                onSave={() => {
+                                  setSuccess('Quiz sauvegardé !')
+                                  setManagingQuiz(null)
+                                  loadData()
+                                  setTimeout(() => setSuccess(''), 3000)
+                                }}
+                              />
                             </div>
                           )}
 
