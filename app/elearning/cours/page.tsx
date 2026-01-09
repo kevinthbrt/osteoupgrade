@@ -219,18 +219,12 @@ export default function CoursPage() {
 
         const accessible = parsed.filter((formation) => canAccessFormation(roleToUse, formation.is_private, formation.is_free_access))
 
-        if (accessible.length) {
-          setFormations(accessible)
-          // Preserve the selected formation if it's provided and still exists
-          if (preserveFormationId && accessible.some((f) => f.id === preserveFormationId)) {
-            setSelectedFormationId(preserveFormationId)
-          } else {
-            setSelectedFormationId(accessible[0].id)
-          }
-        } else {
-          setFormations([])
-          setSelectedFormationId('')
+        setFormations(accessible)
+        // Only preserve the selected formation if explicitly provided (e.g., after a refresh)
+        if (preserveFormationId && accessible.some((f) => f.id === preserveFormationId)) {
+          setSelectedFormationId(preserveFormationId)
         }
+        // Don't auto-select a formation - let the user choose
       }
     } catch (error) {
       console.error('Erreur de chargement des formations', error)
