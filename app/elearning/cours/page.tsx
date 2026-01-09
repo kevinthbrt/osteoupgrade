@@ -237,7 +237,7 @@ export default function CoursPage() {
   const isAdmin = profile?.role === 'admin'
 
   const selectedFormation = useMemo(
-    () => formations.find((f) => f.id === selectedFormationId) ?? formations[0],
+    () => formations.find((f) => f.id === selectedFormationId),
     [formations, selectedFormationId]
   )
 
