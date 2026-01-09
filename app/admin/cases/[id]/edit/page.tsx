@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import AuthLayout from '@/components/AuthLayout'
 import { supabase } from '@/lib/supabase'
-import ClinicalCaseQuizManager from '../components/ClinicalCaseQuizManager'
+import ClinicalCaseQuizManager from '../../components/ClinicalCaseQuizManager'
 import {
   ArrowLeft,
   Plus,
