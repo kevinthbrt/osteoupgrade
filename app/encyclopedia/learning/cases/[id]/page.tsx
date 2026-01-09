@@ -153,10 +153,7 @@ export default function ClinicalCasePage() {
                   title: quiz.title,
                   description: quiz.description || '',
                   passing_score: quiz.passing_score,
-                  is_active: quiz.is_active,
-                  questions: questionsWithAnswers,
-                  created_at: quiz.created_at,
-                  updated_at: quiz.updated_at
+                  questions: questionsWithAnswers
                 }
 
                 return {
