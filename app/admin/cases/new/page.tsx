@@ -6,16 +6,21 @@ import AuthLayout from '@/components/AuthLayout'
 import { supabase } from '@/lib/supabase'
 import {
   Target,
-  Plus,
-  Trash2,
-  Save,
   ArrowLeft,
+  Save,
+  Loader2,
   CheckCircle,
   AlertCircle,
-  Loader2
+  Upload
 } from 'lucide-react'
+import { createCase } from '@/lib/clinical-cases-api'
 
-const REGIONS = ['Cervical', 'Thoracique', 'Lombaire', 'Épaule', 'Genou', 'Hanche', 'Multi-régions']
+const REGIONS = [
+  'cervical', 'atm', 'crane', 'thoracique', 'lombaire', 'sacro-iliaque',
+  'cotes', 'epaule', 'coude', 'poignet', 'main', 'hanche', 'genou',
+  'cheville', 'pied', 'neurologique', 'vasculaire', 'systemique'
+]
+
 const DIFFICULTIES = [
   { value: 'débutant', label: '🌱 Débutant' },
   { value: 'intermédiaire', label: '🔥 Intermédiaire' },
@@ -27,46 +32,54 @@ export default function NewCasePage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
+  const [uploading, setUploading] = useState(false)
 
   const [caseData, setCaseData] = useState({
     title: '',
     description: '',
-    region: 'Cervical',
-    difficulty: 'débutant',
-    duration_minutes: 15,
-    patient_profile: ''
+    region: 'cervical',
+    difficulty: 'débutant' as 'débutant' | 'intermédiaire' | 'avancé',
+    duration_minutes: 30,
+    photo_url: '',
+    is_free_access: false
   })
 
-  const [objectives, setObjectives] = useState<string[]>([''])
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
 
-  const addObjective = () => {
-    setObjectives([...objectives, ''])
-  }
+    setUploading(true)
+    setError('')
 
-  const removeObjective = (index: number) => {
-    if (objectives.length > 1) {
-      setObjectives(objectives.filter((_, i) => i !== index))
+    try {
+      const fileExt = file.name.split('.').pop()
+      const fileName = `${Math.random()}.${fileExt}`
+      const filePath = `cases/${fileName}`
+
+      const { error: uploadError } = await supabase.storage
+        .from('public')
+        .upload(filePath, file)
+
+      if (uploadError) throw uploadError
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('public')
+        .getPublicUrl(filePath)
+
+      setCaseData(prev => ({ ...prev, photo_url: publicUrl }))
+    } catch (err: any) {
+      console.error('Error uploading image:', err)
+      setError('Erreur lors de l\'upload de l\'image')
+    } finally {
+      setUploading(false)
     }
-  }
-
-  const updateObjective = (index: number, value: string) => {
-    const updated = [...objectives]
-    updated[index] = value
-    setObjectives(updated)
   }
 
   const validateForm = (): boolean => {
-    if (!caseData.title || !caseData.description || !caseData.patient_profile) {
-      setError('Le titre, la description et le profil patient sont obligatoires')
+    if (!caseData.title || !caseData.description) {
+      setError('Le titre et la description sont obligatoires')
       return false
     }
-
-    const filledObjectives = objectives.filter(obj => obj.trim() !== '')
-    if (filledObjectives.length === 0) {
-      setError('Au moins un objectif d\'apprentissage est requis')
-      return false
-    }
-
     return true
   }
 
@@ -88,39 +101,20 @@ export default function NewCasePage() {
         return
       }
 
-      // Filter out empty objectives
-      const filledObjectives = objectives.filter(obj => obj.trim() !== '')
+      const newCase = await createCase({
+        ...caseData,
+        is_active: true,
+        display_order: 0,
+        created_by: user.id
+      })
 
-      // Insert case
-      const { error: caseError } = await supabase
-        .from('clinical_cases')
-        .insert({
-          title: caseData.title,
-          description: caseData.description,
-          region: caseData.region,
-          difficulty: caseData.difficulty,
-          duration_minutes: caseData.duration_minutes,
-          patient_profile: caseData.patient_profile,
-          objectives: filledObjectives,
-          created_by: user.id,
-          is_active: true
-        })
-
-      if (caseError) throw caseError
-
-      const { data: createdCase } = await supabase
-        .from('clinical_cases')
-        .select('id')
-        .eq('title', caseData.title)
-        .single()
+      if (!newCase) {
+        throw new Error('Erreur lors de la création du cas')
+      }
 
       setSuccess(true)
       setTimeout(() => {
-        if (createdCase) {
-          router.push(`/admin/cases/${createdCase.id}/edit`)
-        } else {
-          router.push('/encyclopedia/learning/cases')
-        }
+        router.push(`/admin/cases/${newCase.id}/edit`)
       }, 1500)
     } catch (err: any) {
       console.error('Error creating case:', err)
@@ -148,8 +142,8 @@ export default function NewCasePage() {
               <Target className="h-8 w-8" />
             </div>
             <div>
-              <h1 className="text-3xl font-bold mb-2">Créer un nouveau cas pratique</h1>
-              <p className="text-amber-100">Créez un scénario clinique interactif pour l'apprentissage</p>
+              <h1 className="text-3xl font-bold mb-2">Créer un nouveau cas clinique</h1>
+              <p className="text-amber-100">Créez un cas, puis ajoutez des chapitres et modules</p>
             </div>
           </div>
         </div>
@@ -158,18 +152,16 @@ export default function NewCasePage() {
         {error && (
           <div className="bg-red-50 border-2 border-red-200 rounded-xl p-4 mb-6 flex items-start gap-3">
             <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
-            <div className="flex-1">
-              <p className="text-sm font-medium text-red-900">{error}</p>
-            </div>
+            <p className="text-sm font-medium text-red-900">{error}</p>
           </div>
         )}
 
         {success && (
           <div className="bg-green-50 border-2 border-green-200 rounded-xl p-4 mb-6 flex items-start gap-3">
             <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
-            <div className="flex-1">
-              <p className="text-sm font-medium text-green-900">Cas pratique créé avec succès ! Redirection...</p>
-            </div>
+            <p className="text-sm font-medium text-green-900">
+              Cas créé avec succès ! Redirection vers l'éditeur...
+            </p>
           </div>
         )}
 
@@ -195,33 +187,16 @@ export default function NewCasePage() {
 
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Description / Motif de consultation *
+                  Description *
                 </label>
                 <textarea
                   value={caseData.description}
                   onChange={(e) => setCaseData({ ...caseData, description: e.target.value })}
                   className="w-full px-4 py-3 border-2 border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent"
-                  rows={3}
-                  placeholder="Décrivez le cas clinique et le motif de consultation du patient..."
+                  rows={4}
+                  placeholder="Description du cas clinique..."
                   required
                 />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Profil patient *
-                </label>
-                <input
-                  type="text"
-                  value={caseData.patient_profile}
-                  onChange={(e) => setCaseData({ ...caseData, patient_profile: e.target.value })}
-                  className="w-full px-4 py-3 border-2 border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent"
-                  placeholder="Ex: Homme, 35 ans, actif"
-                  required
-                />
-                <p className="text-xs text-slate-500 mt-1">
-                  Âge, sexe, profession, activités pertinentes
-                </p>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -236,7 +211,9 @@ export default function NewCasePage() {
                     required
                   >
                     {REGIONS.map(region => (
-                      <option key={region} value={region}>{region}</option>
+                      <option key={region} value={region}>
+                        {region.charAt(0).toUpperCase() + region.slice(1)}
+                      </option>
                     ))}
                   </select>
                 </div>
@@ -247,7 +224,7 @@ export default function NewCasePage() {
                   </label>
                   <select
                     value={caseData.difficulty}
-                    onChange={(e) => setCaseData({ ...caseData, difficulty: e.target.value })}
+                    onChange={(e) => setCaseData({ ...caseData, difficulty: e.target.value as any })}
                     className="w-full px-4 py-3 border-2 border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent"
                     required
                   >
@@ -264,7 +241,7 @@ export default function NewCasePage() {
                   <input
                     type="number"
                     min="5"
-                    max="60"
+                    max="180"
                     value={caseData.duration_minutes}
                     onChange={(e) => setCaseData({ ...caseData, duration_minutes: parseInt(e.target.value) })}
                     className="w-full px-4 py-3 border-2 border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent"
@@ -272,57 +249,66 @@ export default function NewCasePage() {
                   />
                 </div>
               </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Image de couverture
+                </label>
+                <div className="flex items-center gap-4">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageUpload}
+                    className="hidden"
+                    id="photo-upload"
+                    disabled={uploading}
+                  />
+                  <label
+                    htmlFor="photo-upload"
+                    className={`px-4 py-2 border-2 border-slate-200 rounded-lg cursor-pointer hover:bg-slate-50 transition-colors flex items-center gap-2 ${
+                      uploading ? 'opacity-50 cursor-not-allowed' : ''
+                    }`}
+                  >
+                    {uploading ? (
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                    ) : (
+                      <Upload className="h-5 w-5" />
+                    )}
+                    <span className="text-sm font-medium">
+                      {uploading ? 'Upload en cours...' : 'Choisir une image'}
+                    </span>
+                  </label>
+                  {caseData.photo_url && (
+                    <img
+                      src={caseData.photo_url}
+                      alt="Preview"
+                      className="h-20 w-20 object-cover rounded-lg"
+                    />
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={caseData.is_free_access}
+                    onChange={(e) => setCaseData({ ...caseData, is_free_access: e.target.checked })}
+                    className="w-5 h-5 text-amber-600 rounded focus:ring-amber-400"
+                  />
+                  <span className="text-sm font-medium text-slate-700">
+                    Accès gratuit (accessible aux utilisateurs free)
+                  </span>
+                </label>
+              </div>
             </div>
           </div>
 
-          {/* Learning Objectives */}
-          <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
-            <div className="flex items-center justify-between mb-6">
-              <div>
-                <h2 className="text-xl font-bold text-slate-900">Objectifs d'apprentissage</h2>
-                <p className="text-sm text-slate-600 mt-1">
-                  Définissez les compétences et connaissances que les étudiants développeront
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={addObjective}
-                className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-semibold transition-colors flex items-center gap-2"
-              >
-                <Plus className="h-5 w-5" />
-                Ajouter
-              </button>
-            </div>
-
-            <div className="space-y-3">
-              {objectives.map((objective, index) => (
-                <div key={index} className="flex items-center gap-3">
-                  <span className="text-sm font-semibold text-slate-500 w-6">{index + 1}.</span>
-                  <input
-                    type="text"
-                    value={objective}
-                    onChange={(e) => updateObjective(index, e.target.value)}
-                    className="flex-1 px-4 py-2 border-2 border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent"
-                    placeholder="Ex: Identifier les drapeaux rouges"
-                  />
-                  {objectives.length > 1 && (
-                    <button
-                      type="button"
-                      onClick={() => removeObjective(index)}
-                      className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                    >
-                      <Trash2 className="h-5 w-5" />
-                    </button>
-                  )}
-                </div>
-              ))}
-            </div>
-
-            <div className="mt-4 bg-amber-50 border border-amber-200 rounded-lg p-4">
-              <p className="text-sm text-amber-900">
-                <strong>💡 Conseil :</strong> Formulez des objectifs clairs et mesurables. Par exemple : "Réaliser un examen physique ciblé", "Établir un diagnostic différentiel", "Proposer un plan de traitement adapté".
-              </p>
-            </div>
+          {/* Info Box */}
+          <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-6 mb-6">
+            <p className="text-sm text-blue-900">
+              <strong>📝 Prochaine étape :</strong> Après création du cas, vous serez redirigé vers l'éditeur où vous pourrez ajouter des chapitres, des modules (vidéo/image/texte) et des quiz.
+            </p>
           </div>
 
           {/* Submit Button */}
@@ -347,7 +333,7 @@ export default function NewCasePage() {
               ) : (
                 <>
                   <Save className="h-5 w-5" />
-                  Créer le cas pratique
+                  Créer le cas
                 </>
               )}
             </button>
