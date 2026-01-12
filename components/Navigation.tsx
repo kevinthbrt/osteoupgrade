@@ -292,114 +292,138 @@ export default function Navigation() {
 
           {/* Navigation */}
           <nav className="flex-1 px-4 py-4 space-y-1 overflow-y-auto">
-            {menuItems.map((item) => {
-              const Icon = item.icon
-              const isActive = pathname === item.href
-              const isRestricted = item.roles && profile && !item.roles.includes(profile.role)
-              const shouldHide = isRestricted && item.hideWhenRestricted
+            {/* Helper function to render a menu item */}
+            {(() => {
+              const renderMenuItem = (item: MenuItem) => {
+                const Icon = item.icon
+                const isActive = pathname === item.href
+                const isRestricted = item.roles && profile && !item.roles.includes(profile.role)
+                const shouldHide = isRestricted && item.hideWhenRestricted
 
-              if (shouldHide) return null
-              if (item.roles && !profile?.role) return null
+                if (shouldHide) return null
+                if (item.roles && !profile?.role) return null
 
-              return (
-                <Link
-                  key={item.href}
-                  href={isRestricted ? '#' : item.href}
-                  className={`flex items-center px-3 py-2.5 rounded-lg transition-all group relative ${
-                    isActive
-                      ? 'bg-sky-500/20 text-white font-medium shadow-sm'
-                      : 'text-slate-300 hover:bg-white/5 hover:text-white'
-                  } ${isRestricted ? 'opacity-50 cursor-not-allowed hover:bg-transparent hover:text-slate-300' : ''}`}
-                  onClick={() => {
-                    if (!isRestricted) {
-                      setIsOpen(false)
-                    } else if (profile?.role === 'free') {
-                      alert('Cette section est réservée aux membres Premium')
-                    } else {
-                      alert('Accès réservé aux administrateurs')
-                    }
-                  }}
-                >
-                  <Icon className={`h-5 w-5 mr-3 ${isActive ? 'text-sky-300' : 'text-slate-400 group-hover:text-slate-200'}`} />
-                  <span className="flex-1">{item.label}</span>
-                  {isActive && <ChevronRight className="h-4 w-4 text-sky-300" />}
-                  {item.badge && (
-                    <span className="ml-2 px-1.5 py-0.5 bg-white/10 text-slate-200 text-[10px] font-semibold rounded">
-                      {item.badge}
-                    </span>
-                  )}
-                  {item.isNew && (
-                    <span className="ml-2 px-1.5 py-0.5 bg-emerald-500/20 text-emerald-300 text-[10px] font-semibold rounded">
-                      NEW
-                    </span>
-                  )}
-                </Link>
-              )
-            })}
-
-            {/* User Groups (E-Learning & Outils) */}
-            {userGroups.map((group) => {
-              const isRestricted = group.roles && profile && !group.roles.includes(profile.role)
-              if (group.roles && !profile?.role) return null
-
-              const GroupIcon = group.icon
-              const isGroupActive = group.items.some(item => pathname === item.href)
-              const isExpanded = expandedGroups[group.id] ?? isGroupActive
-
-              return (
-                <div key={group.id} className="px-1">
-                  <button
-                    type="button"
+                return (
+                  <Link
+                    key={item.href}
+                    href={isRestricted ? '#' : item.href}
+                    className={`flex items-center px-3 py-2.5 rounded-lg transition-all group relative ${
+                      isActive
+                        ? 'bg-sky-500/20 text-white font-medium shadow-sm'
+                        : 'text-slate-300 hover:bg-white/5 hover:text-white'
+                    } ${isRestricted ? 'opacity-50 cursor-not-allowed hover:bg-transparent hover:text-slate-300' : ''}`}
                     onClick={() => {
-                      if (isRestricted) {
+                      if (!isRestricted) {
+                        setIsOpen(false)
+                      } else if (profile?.role === 'free') {
                         alert('Cette section est réservée aux membres Premium')
                       } else {
-                        toggleGroup(group.id)
+                        alert('Accès réservé aux administrateurs')
                       }
                     }}
-                    className={`flex items-center w-full px-2 py-2 rounded-lg transition-all ${
-                      isGroupActive
-                        ? 'bg-sky-500/20 text-white'
-                        : 'text-slate-300 hover:bg-white/5 hover:text-white'
-                    } ${isRestricted ? 'opacity-50 cursor-not-allowed' : ''}`}
                   >
-                    <GroupIcon className={`h-5 w-5 mr-3 ${isGroupActive ? 'text-sky-300' : 'text-slate-400'}`} />
-                    <span className="flex-1 text-left text-sm font-medium">{group.label}</span>
-                    <ChevronRight className={`h-4 w-4 transition-transform ${isExpanded && !isRestricted ? 'rotate-90 text-sky-300' : 'text-slate-400'}`} />
-                  </button>
+                    <Icon className={`h-5 w-5 mr-3 ${isActive ? 'text-sky-300' : 'text-slate-400 group-hover:text-slate-200'}`} />
+                    <span className="flex-1">{item.label}</span>
+                    {isActive && <ChevronRight className="h-4 w-4 text-sky-300" />}
+                    {item.badge && (
+                      <span className="ml-2 px-1.5 py-0.5 bg-white/10 text-slate-200 text-[10px] font-semibold rounded">
+                        {item.badge}
+                      </span>
+                    )}
+                    {item.isNew && (
+                      <span className="ml-2 px-1.5 py-0.5 bg-emerald-500/20 text-emerald-300 text-[10px] font-semibold rounded">
+                        NEW
+                      </span>
+                    )}
+                  </Link>
+                )
+              }
 
-                  {isExpanded && !isRestricted && (
-                    <div className="mt-1 space-y-1 ml-2">
-                      {group.items.map((item) => {
-                        const Icon = item.icon
-                        const isActive = pathname === item.href
-                        return (
-                          <Link
-                            key={item.href}
-                            href={item.href}
-                            className={`flex items-center px-4 py-2 rounded-lg transition-all group ${
-                              isActive
-                                ? 'bg-sky-500/20 text-white font-medium shadow-sm'
-                                : 'text-slate-300 hover:bg-white/5 hover:text-white'
-                            }`}
-                            onClick={() => setIsOpen(false)}
-                          >
-                            <Icon className={`h-4 w-4 mr-3 ${isActive ? 'text-sky-300' : 'text-slate-400 group-hover:text-slate-200'}`} />
-                            <span className="flex-1 text-sm">{item.label}</span>
-                            {item.badge && (
-                              <span className="ml-2 px-1.5 py-0.5 bg-emerald-500/20 text-emerald-300 text-[10px] font-semibold rounded">
-                                {item.badge}
-                              </span>
-                            )}
-                            {isActive && <ChevronRight className="h-3 w-3 text-sky-300" />}
-                          </Link>
-                        )
-                      })}
-                    </div>
-                  )}
-                </div>
+              const renderUserGroup = (group: typeof userGroups[0]) => {
+                const isRestricted = group.roles && profile && !group.roles.includes(profile.role)
+                if (group.roles && !profile?.role) return null
+
+                const GroupIcon = group.icon
+                const isGroupActive = group.items.some(item => pathname === item.href)
+                const isExpanded = expandedGroups[group.id] ?? isGroupActive
+
+                return (
+                  <div key={group.id} className="px-1">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (isRestricted) {
+                          alert('Cette section est réservée aux membres Premium')
+                        } else {
+                          toggleGroup(group.id)
+                        }
+                      }}
+                      className={`flex items-center w-full px-2 py-2 rounded-lg transition-all ${
+                        isGroupActive
+                          ? 'bg-sky-500/20 text-white'
+                          : 'text-slate-300 hover:bg-white/5 hover:text-white'
+                      } ${isRestricted ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    >
+                      <GroupIcon className={`h-5 w-5 mr-3 ${isGroupActive ? 'text-sky-300' : 'text-slate-400'}`} />
+                      <span className="flex-1 text-left text-sm font-medium">{group.label}</span>
+                      <ChevronRight className={`h-4 w-4 transition-transform ${isExpanded && !isRestricted ? 'rotate-90 text-sky-300' : 'text-slate-400'}`} />
+                    </button>
+
+                    {isExpanded && !isRestricted && (
+                      <div className="mt-1 space-y-1 ml-2">
+                        {group.items.map((item) => {
+                          const Icon = item.icon
+                          const isActive = pathname === item.href
+                          return (
+                            <Link
+                              key={item.href}
+                              href={item.href}
+                              className={`flex items-center px-4 py-2 rounded-lg transition-all group ${
+                                isActive
+                                  ? 'bg-sky-500/20 text-white font-medium shadow-sm'
+                                  : 'text-slate-300 hover:bg-white/5 hover:text-white'
+                              }`}
+                              onClick={() => setIsOpen(false)}
+                            >
+                              <Icon className={`h-4 w-4 mr-3 ${isActive ? 'text-sky-300' : 'text-slate-400 group-hover:text-slate-200'}`} />
+                              <span className="flex-1 text-sm">{item.label}</span>
+                              {item.badge && (
+                                <span className="ml-2 px-1.5 py-0.5 bg-emerald-500/20 text-emerald-300 text-[10px] font-semibold rounded">
+                                  {item.badge}
+                                </span>
+                              )}
+                              {isActive && <ChevronRight className="h-3 w-3 text-sky-300" />}
+                            </Link>
+                          )
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )
+              }
+
+              return (
+                <>
+                  {/* Dashboard */}
+                  {renderMenuItem(menuItems[0])}
+
+                  {/* E-Learning Group */}
+                  {renderUserGroup(userGroups[0])}
+
+                  {/* Pratique */}
+                  {renderMenuItem(menuItems[1])}
+
+                  {/* Outils Group */}
+                  {renderUserGroup(userGroups[1])}
+
+                  {/* Séminaires */}
+                  {renderMenuItem(menuItems[2])}
+
+                  {/* Paramètres */}
+                  {renderMenuItem(menuItems[3])}
+                </>
               )
-            })}
+            })()}
 
             {profile?.role === 'admin' && (
               <>
