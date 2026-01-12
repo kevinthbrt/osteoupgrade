@@ -80,34 +80,49 @@ export default function Navigation() {
   const menuItems: MenuItem[] = [
     { href: '/dashboard', label: 'Dashboard', icon: Home },
     {
-      href: '/elearning',
-      label: 'E-Learning',
-      icon: GraduationCap,
-      badge: 'Hub',
-      roles: ['premium_silver', 'premium_gold', 'admin']
-    },
-    {
-      href: '/pratique',
-      label: 'Pratique',
-      icon: Stethoscope,
-      badge: 'Premium',
-      roles: ['premium_silver', 'premium_gold', 'admin']
-    },
-    {
-      href: '/outils',
-      label: 'Outils',
-      icon: Wrench,
-      badge: 'Premium',
-      roles: ['premium_silver', 'premium_gold', 'admin']
-    },
-    {
       href: '/seminaires',
       label: 'Séminaires',
       icon: Calendar,
-      badge: 'Gold',
       roles: ['premium_gold', 'admin']
     },
-    { href: '/settings', label: 'Paramètres', icon: Settings },
+    { href: '/settings', label: 'Paramètres', icon: Settings }
+  ]
+
+  const hubGroups: { id: string; label: string; icon: React.ComponentType<React.SVGProps<SVGSVGElement>>; roles?: string[]; items: MenuItem[] }[] = [
+    {
+      id: 'elearning',
+      label: 'E-Learning',
+      icon: GraduationCap,
+      roles: ['premium_silver', 'premium_gold', 'admin'],
+      items: [
+        { href: '/elearning', label: 'Accueil', icon: GraduationCap },
+        { href: '/elearning/cours', label: 'Cours', icon: BookOpen },
+        { href: '/encyclopedia/learning/quizzes', label: 'Quiz', icon: FileQuestion },
+        { href: '/encyclopedia/learning/cases', label: 'Cas pratiques', icon: Target }
+      ]
+    },
+    {
+      id: 'pratique',
+      label: 'Pratique',
+      icon: Stethoscope,
+      roles: ['premium_silver', 'premium_gold', 'admin'],
+      items: [
+        { href: '/pratique', label: 'Accueil', icon: Stethoscope },
+        { href: '/consultation-v3', label: 'Consultation', icon: TestTube },
+        { href: '/diagnostics', label: 'Diagnostics', icon: Clipboard },
+        { href: '/topographie', label: 'Topographie', icon: BookOpen }
+      ]
+    },
+    {
+      id: 'outils',
+      label: 'Outils',
+      icon: Wrench,
+      roles: ['premium_silver', 'premium_gold', 'admin'],
+      items: [
+        { href: '/outils', label: 'Accueil', icon: Wrench },
+        { href: '/outils/communication', label: 'Communication', icon: Mail }
+      ]
+    }
   ]
 
   const adminOverviewItem: MenuItem = { href: '/admin', label: "Administration", icon: Shield }
@@ -176,10 +191,25 @@ export default function Navigation() {
     return initialState
   })
 
+  const [expandedHubs, setExpandedHubs] = useState<Record<string, boolean>>(() => {
+    const initialState: Record<string, boolean> = {}
+    hubGroups.forEach(group => {
+      initialState[group.id] = group.items.some(item => item.href === pathname)
+    })
+    return initialState
+  })
+
   const toggleGroup = (groupId: string) => {
     setExpandedGroups(prev => ({
       ...prev,
       [groupId]: !prev[groupId]
+    }))
+  }
+
+  const toggleHub = (hubId: string) => {
+    setExpandedHubs(prev => ({
+      ...prev,
+      [hubId]: !prev[hubId]
     }))
   }
 
@@ -239,7 +269,7 @@ export default function Navigation() {
               </div>
               <div>
                 <h2 className="text-xl font-bold text-white">OsteoUpgrade</h2>
-                <p className="text-xs text-slate-300">Plateforme V2</p>
+                <p className="text-xs text-slate-300">L'enseignement hybride</p>
               </div>
             </div>
           </div>
@@ -301,6 +331,83 @@ export default function Navigation() {
                     </span>
                   )}
                 </Link>
+              )
+            })}
+
+            {hubGroups.map((group) => {
+              const GroupIcon = group.icon
+              const isGroupActive = group.items.some(item => pathname === item.href)
+              const isExpanded = expandedHubs[group.id] ?? isGroupActive
+              const isRestricted = group.roles && profile && !group.roles.includes(profile.role)
+
+              return (
+                <div key={group.id} className="px-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!isRestricted) {
+                        toggleHub(group.id)
+                      } else if (profile?.role === 'free') {
+                        alert('Cette section est réservée aux membres Premium')
+                      } else {
+                        alert('Accès réservé aux administrateurs')
+                      }
+                    }}
+                    className={`flex items-center w-full px-2 py-2 rounded-lg transition-all ${
+                      isGroupActive
+                        ? 'bg-sky-500/20 text-white'
+                        : 'text-slate-300 hover:bg-white/5 hover:text-white'
+                    } ${isRestricted ? 'opacity-50 cursor-not-allowed hover:bg-transparent hover:text-slate-300' : ''}`}
+                  >
+                    <GroupIcon className={`h-5 w-5 mr-3 ${isGroupActive ? 'text-sky-300' : 'text-slate-400'}`} />
+                    <span className="flex-1 text-left text-sm font-medium">{group.label}</span>
+                    <ChevronRight className={`h-4 w-4 transition-transform ${isExpanded ? 'rotate-90 text-sky-300' : 'text-slate-400'}`} />
+                  </button>
+
+                  {isExpanded && (
+                    <div className="mt-1 space-y-1 ml-2">
+                      {group.items.map((item) => {
+                        const Icon = item.icon
+                        const isActive = pathname === item.href
+                        const itemRestricted = isRestricted || (item.roles && profile && !item.roles.includes(profile.role))
+                        const shouldHide = itemRestricted && item.hideWhenRestricted
+
+                        if (shouldHide) return null
+                        if (item.roles && !profile?.role) return null
+
+                        return (
+                          <Link
+                            key={item.href}
+                            href={itemRestricted ? '#' : item.href}
+                            className={`flex items-center px-4 py-2 rounded-lg transition-all group ${
+                              isActive
+                                ? 'bg-sky-500/20 text-white font-medium shadow-sm'
+                                : 'text-slate-300 hover:bg-white/5 hover:text-white'
+                            } ${itemRestricted ? 'opacity-50 cursor-not-allowed hover:bg-transparent hover:text-slate-300' : ''}`}
+                            onClick={() => {
+                              if (!itemRestricted) {
+                                setIsOpen(false)
+                              } else if (profile?.role === 'free') {
+                                alert('Cette section est réservée aux membres Premium')
+                              } else {
+                                alert('Accès réservé aux administrateurs')
+                              }
+                            }}
+                          >
+                            <Icon className={`h-4 w-4 mr-3 ${isActive ? 'text-sky-300' : 'text-slate-400 group-hover:text-slate-200'}`} />
+                            <span className="flex-1 text-sm">{item.label}</span>
+                            {item.badge && (
+                              <span className="ml-2 px-1.5 py-0.5 bg-emerald-500/20 text-emerald-300 text-[10px] font-semibold rounded">
+                                {item.badge}
+                              </span>
+                            )}
+                            {isActive && <ChevronRight className="h-3 w-3 text-sky-300" />}
+                          </Link>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
               )
             })}
 
