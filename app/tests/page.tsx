@@ -219,7 +219,7 @@ export default function ImprovedTestsPage() {
     if (lowerName.includes('coude') || lowerName.includes('elbow')) return 'Coude'
     if (lowerName.includes('thoracique')) return 'Thoracique'
     if (lowerName.includes('pied') || lowerName.includes('foot')) return 'Pied'
-    if (lowerName.includes('main') || lowerName.includes('hand')) return 'Main'
+    if (lowerName.includes('main') || lowerName.includes('hand')) return 'Poignet + main'
 
     return 'Général'
   }
