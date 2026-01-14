@@ -27,7 +27,7 @@ import RelatedContent, { RelatedItem } from '@/components/RelatedContent'
 // Catégories de régions anatomiques
 const BODY_REGIONS = {
   'Tête et Cou': ['cervical', 'atm', 'crane'],
-  'Membre Supérieur': ['epaule', 'coude', 'poignet', 'main'],
+  'Membre Supérieur': ['epaule', 'coude', 'poignet'],
   'Tronc': ['thoracique', 'lombaire', 'sacro-iliaque', 'cotes'],
   'Membre Inférieur': ['hanche', 'genou', 'cheville', 'pied'],
   'Général': ['neurologique', 'vasculaire', 'systemique']
@@ -44,8 +44,7 @@ const REGION_LABELS: Record<AnatomicalRegion, string> = {
   cotes: 'Côtes',
   epaule: 'Épaule',
   coude: 'Coude',
-  poignet: 'Poignet',
-  main: 'Main',
+  poignet: 'Poignet + main',
   hanche: 'Hanche',
   genou: 'Genou',
   cheville: 'Cheville',

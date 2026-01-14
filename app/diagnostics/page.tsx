@@ -98,8 +98,7 @@ const REGION_CATEGORIES = [
     regions: [
       { value: 'epaule', label: 'Épaule' },
       { value: 'coude', label: 'Coude' },
-      { value: 'poignet', label: 'Poignet' },
-      { value: 'main', label: 'Main' }
+      { value: 'poignet', label: 'Poignet + main' }
     ]
   },
   {

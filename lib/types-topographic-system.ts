@@ -17,7 +17,6 @@ export type AnatomicalRegion =
   | 'epaule'
   | 'coude'
   | 'poignet'
-  | 'main'
   | 'hanche'
   | 'genou'
   | 'cheville'
