@@ -11,7 +11,8 @@ import {
   HeartPulse,
   GraduationCap,
   ArrowRight,
-  Sparkles
+  Sparkles,
+  FileText
 } from 'lucide-react'
 
 export default function ElearningHubPage() {
@@ -36,6 +37,16 @@ export default function ElearningHubPage() {
       href: '/encyclopedia/learning/cases',
       gradient: 'from-amber-500 to-orange-600',
       count: 'Nouveauté',
+      category: 'Apprentissage'
+    },
+    {
+      id: 'revue-litterature',
+      title: 'La Revue Mensuelle',
+      description: 'Découvrez chaque mois les dernières études scientifiques en ostéopathie et thérapie manuelle',
+      icon: FileText,
+      href: '/elearning/revue-litterature',
+      gradient: 'from-emerald-500 to-teal-600',
+      count: 'Mensuel',
       category: 'Apprentissage'
     },
     {
@@ -114,7 +125,7 @@ export default function ElearningHubPage() {
                   <div className="text-xs text-slate-300">Contenus</div>
                 </div>
                 <div className="bg-white/10 backdrop-blur-sm rounded-xl p-3 border border-white/20">
-                  <div className="text-2xl font-bold text-white">6</div>
+                  <div className="text-2xl font-bold text-white">7</div>
                   <div className="text-xs text-slate-300">Modules</div>
                 </div>
                 <div className="bg-white/10 backdrop-blur-sm rounded-xl p-3 border border-white/20">
@@ -138,7 +149,7 @@ export default function ElearningHubPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {apprentissage.map((module) => {
               const Icon = module.icon
 
