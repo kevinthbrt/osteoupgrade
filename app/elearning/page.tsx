@@ -133,16 +133,6 @@ export default function ElearningHubPage() {
                   <div className="text-xs text-slate-300">Possibilités</div>
                 </div>
               </div>
-
-              {/* Shortcut to Literature Review */}
-              <button
-                onClick={() => router.push('/elearning/revue-litterature')}
-                className="mt-6 inline-flex items-center gap-3 px-6 py-3.5 bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-bold rounded-xl hover:from-emerald-600 hover:to-teal-700 transition-all shadow-lg hover:shadow-xl hover:scale-105"
-              >
-                <FileText className="h-5 w-5" />
-                <span>La Revue Mensuelle</span>
-                <ArrowRight className="h-4 w-4" />
-              </button>
             </div>
           </div>
         </div>

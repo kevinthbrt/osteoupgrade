@@ -25,7 +25,8 @@ import {
   GraduationCap,
   FileQuestion,
   Target,
-  FolderOpen
+  FolderOpen,
+  FileText
 } from 'lucide-react'
 
 type MenuItem = {
@@ -112,6 +113,11 @@ export default function Navigation() {
           icon: Target
         },
         {
+          href: '/elearning/revue-litterature',
+          label: 'Revue Mensuelle',
+          icon: FileText
+        },
+        {
           href: '/diagnostics',
           label: 'Diagnostics',
           icon: FolderOpen
@@ -166,6 +172,12 @@ export default function Navigation() {
           href: '/encyclopedia/learning/cases',
           label: 'Cas Pratiques',
           icon: Target,
+          badge: 'Nouveau'
+        },
+        {
+          href: '/elearning/revue-litterature',
+          label: 'Revue Mensuelle',
+          icon: FileText,
           badge: 'Nouveau'
         }
       ]
