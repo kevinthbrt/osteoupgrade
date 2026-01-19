@@ -207,36 +207,20 @@ export default function LiteratureReviewDetailPage() {
         <article className="bg-white rounded-2xl shadow-2xl overflow-hidden">
           {/* Magazine Header - Brand Identity */}
           <div className="bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-600 px-8 py-6 border-b-4 border-emerald-700">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <img
-                  src="/favicon.ico"
-                  alt="Ostéo-Upgrade"
-                  className="h-12 w-12 rounded-lg bg-white p-1.5"
-                />
-                <div>
-                  <h1 className="text-2xl font-bold text-white tracking-tight">
-                    LA REVUE MENSUELLE
-                  </h1>
-                  <p className="text-emerald-100 text-sm font-medium">
-                    Ostéo-Upgrade • Recherche & Evidence-Based Practice
-                  </p>
-                </div>
+            <div className="flex items-center gap-4">
+              <img
+                src="/favicon.ico"
+                alt="Ostéo-Upgrade"
+                className="h-12 w-12 rounded-lg bg-white p-1.5"
+              />
+              <div>
+                <h1 className="text-2xl font-bold text-white tracking-tight">
+                  LA REVUE MENSUELLE
+                </h1>
+                <p className="text-emerald-100 text-sm font-medium">
+                  Ostéo-Upgrade • Recherche & Evidence-Based Practice
+                </p>
               </div>
-              <button
-                onClick={() => {
-                  if (navigator.share) {
-                    navigator.share({
-                      title: review.title,
-                      text: review.summary,
-                      url: window.location.href
-                    })
-                  }
-                }}
-                className="p-2 bg-white/20 hover:bg-white/30 rounded-lg transition"
-              >
-                <Share2 className="h-5 w-5 text-white" />
-              </button>
             </div>
           </div>
 
