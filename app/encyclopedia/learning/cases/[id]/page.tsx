@@ -23,6 +23,7 @@ import {
   Target,
   BookOpen
 } from 'lucide-react'
+import { sanitizeHtml } from '@/lib/sanitize'
 import {
   getCaseById,
   getCaseChapters,
@@ -556,7 +557,7 @@ export default function ClinicalCasePage() {
                     {selectedModule.description_html && (
                       <div
                         className="prose prose-slate max-w-none mb-6"
-                        dangerouslySetInnerHTML={{ __html: selectedModule.description_html }}
+                        dangerouslySetInnerHTML={{ __html: sanitizeHtml(selectedModule.description_html) }}
                       />
                     )}
 

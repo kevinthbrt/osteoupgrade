@@ -27,6 +27,7 @@
     "@vercel/blob": "^2.0.0",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.0",
+    "isomorphic-dompurify": "^2.35.0",
     "jspdf": "^2.5.2",
     "jspdf-autotable": "^3.8.4",
     "lucide-react": "^0.312.0",
