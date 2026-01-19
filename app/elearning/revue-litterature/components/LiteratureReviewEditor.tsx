@@ -1,14 +1,20 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { supabase } from '@/lib/supabase'
-import { X, Upload, Loader2, Save, AlertCircle, Star, Plus, Trash2 } from 'lucide-react'
+import { X, Upload, Loader2, Save, AlertCircle, Star, Plus, Trash2, Image as ImageIcon } from 'lucide-react'
 
 type ReviewTag = {
   id: string
   name: string
   slug: string
   color: string
+}
+
+type ReviewImage = {
+  url: string
+  position: 'hero' | 'introduction' | 'contexte' | 'methodologie' | 'resultats' | 'conclusion'
+  caption?: string
 }
 
 type StructuredContent = {
@@ -28,6 +34,7 @@ type LiteratureReview = {
   content_html: string
   content_structured?: StructuredContent
   image_url?: string
+  images?: ReviewImage[]
   study_url?: string
   published_date: string
   is_featured: boolean
@@ -39,6 +46,15 @@ type Props = {
   allTags: ReviewTag[]
   onClose: () => void
   onSuccess: () => void
+}
+
+const POSITION_LABELS: Record<ReviewImage['position'], string> = {
+  hero: 'Image principale (en-tête)',
+  introduction: 'Après l\'introduction',
+  contexte: 'Après le contexte',
+  methodologie: 'Après la méthodologie',
+  resultats: 'Après les résultats',
+  conclusion: 'À la fin'
 }
 
 // Fonction pour générer le HTML depuis le contenu structuré
@@ -100,6 +116,11 @@ export default function LiteratureReviewEditor({ existingReview, allTags, onClos
     existingReview?.tags.map((t) => t.id) || []
   )
 
+  // Images multiples
+  const [images, setImages] = useState<ReviewImage[]>(
+    existingReview?.images || []
+  )
+
   // Contenu structuré
   const [introduction, setIntroduction] = useState(
     existingReview?.content_structured?.introduction || ''
@@ -123,22 +144,47 @@ export default function LiteratureReviewEditor({ existingReview, allTags, onClos
     existingReview?.content_structured?.points_cles || ['']
   )
 
-  const [imageFile, setImageFile] = useState<File | null>(null)
-  const [imagePreview, setImagePreview] = useState<string | undefined>(existingReview?.image_url)
   const [saving, setSaving] = useState(false)
   const [uploadingImage, setUploadingImage] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, position: ReviewImage['position']) => {
     const file = e.target.files?.[0]
-    if (file) {
-      setImageFile(file)
-      const reader = new FileReader()
-      reader.onloadend = () => {
-        setImagePreview(reader.result as string)
+    if (!file) return
+
+    try {
+      setUploadingImage(true)
+      const formData = new FormData()
+      formData.append('file', file)
+
+      const response = await fetch('/api/literature-review-image-upload', {
+        method: 'POST',
+        body: formData
+      })
+
+      if (!response.ok) {
+        throw new Error('Échec du téléchargement de l\'image')
       }
-      reader.readAsDataURL(file)
+
+      const { url } = await response.json()
+
+      setImages([...images, { url, position, caption: '' }])
+    } catch (err) {
+      console.error('Erreur upload image:', err)
+      setError('Erreur lors du téléchargement de l\'image')
+    } finally {
+      setUploadingImage(false)
     }
+  }
+
+  const removeImage = (index: number) => {
+    setImages(images.filter((_, i) => i !== index))
+  }
+
+  const updateImageCaption = (index: number, caption: string) => {
+    const newImages = [...images]
+    newImages[index] = { ...newImages[index], caption }
+    setImages(newImages)
   }
 
   const toggleTag = (tagId: string) => {
@@ -185,28 +231,6 @@ export default function LiteratureReviewEditor({ existingReview, allTags, onClos
     setSaving(true)
 
     try {
-      let imageUrl = existingReview?.image_url
-
-      // Upload image if a new one is selected
-      if (imageFile) {
-        setUploadingImage(true)
-        const formData = new FormData()
-        formData.append('file', imageFile)
-
-        const response = await fetch('/api/literature-review-image-upload', {
-          method: 'POST',
-          body: formData
-        })
-
-        if (!response.ok) {
-          throw new Error('Échec du téléchargement de l\'image')
-        }
-
-        const { url } = await response.json()
-        imageUrl = url
-        setUploadingImage(false)
-      }
-
       const {
         data: { user }
       } = await supabase.auth.getUser()
@@ -229,13 +253,17 @@ export default function LiteratureReviewEditor({ existingReview, allTags, onClos
       // Générer le HTML
       const contentHtml = generateHTMLFromStructured(structuredContent)
 
+      // Image hero (pour compatibilité backward)
+      const heroImage = images.find(img => img.position === 'hero')
+
       // Upsert the review
       const reviewData = {
         title: title.trim(),
         summary: summary.trim(),
         content_html: contentHtml,
         content_structured: structuredContent,
-        image_url: imageUrl,
+        image_url: heroImage?.url || null,
+        images: images,
         study_url: studyUrl.trim() || null,
         published_date: publishedDate,
         is_featured: isFeatured,
@@ -309,9 +337,13 @@ export default function LiteratureReviewEditor({ existingReview, allTags, onClos
     }
   }
 
+  const getImagesByPosition = (position: ReviewImage['position']) => {
+    return images.filter(img => img.position === position)
+  }
+
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-5xl w-full my-8">
+      <div className="bg-white rounded-2xl shadow-2xl max-w-6xl w-full my-8">
         {/* Header */}
         <div className="bg-gradient-to-r from-emerald-600 to-teal-600 text-white px-6 py-5 rounded-t-2xl flex items-center justify-between">
           <div>
@@ -345,7 +377,7 @@ export default function LiteratureReviewEditor({ existingReview, allTags, onClos
           {/* Info banner */}
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
             <p className="text-sm text-blue-900">
-              <strong>Remplissez simplement les champs ci-dessous.</strong> Le format magazine sera automatiquement généré avec une mise en page professionnelle.
+              <strong>Remplissez simplement les champs ci-dessous.</strong> Le format magazine sera automatiquement généré avec une mise en page professionnelle. Vous pouvez ajouter plusieurs images à différentes positions dans l'article.
             </p>
           </div>
 
@@ -384,33 +416,68 @@ export default function LiteratureReviewEditor({ existingReview, allTags, onClos
                 <p className="text-xs text-slate-500 mt-1">{summary.length} caractères</p>
               </div>
 
-              {/* Image Upload */}
+              {/* Images Management */}
               <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-2">
-                  Image d'illustration
+                <label className="block text-sm font-semibold text-slate-700 mb-3">
+                  Images de l'article
+                  <span className="text-xs text-slate-500 font-normal ml-2">
+                    (Ajoutez des images à différentes positions)
+                  </span>
                 </label>
+
                 <div className="space-y-3">
-                  {imagePreview && (
-                    <div className="relative w-full h-48 rounded-lg overflow-hidden border border-slate-200">
-                      <img
-                        src={imagePreview}
-                        alt="Preview"
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                  )}
-                  <label className="flex items-center justify-center gap-2 px-4 py-3 bg-slate-100 border-2 border-dashed border-slate-300 rounded-lg hover:bg-slate-200 transition cursor-pointer">
-                    <Upload className="h-5 w-5 text-slate-600" />
-                    <span className="text-sm font-semibold text-slate-700">
-                      {imagePreview ? 'Changer l\'image' : 'Télécharger une image'}
-                    </span>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleImageChange}
-                      className="hidden"
-                    />
-                  </label>
+                  {Object.entries(POSITION_LABELS).map(([position, label]) => {
+                    const positionImages = getImagesByPosition(position as ReviewImage['position'])
+
+                    return (
+                      <div key={position} className="border border-slate-200 rounded-lg p-3">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-sm font-medium text-slate-700">{label}</span>
+                          <label className="cursor-pointer">
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={(e) => handleImageUpload(e, position as ReviewImage['position'])}
+                              className="hidden"
+                              disabled={uploadingImage}
+                            />
+                            <div className="flex items-center gap-1 px-2 py-1 bg-emerald-50 text-emerald-700 rounded text-xs font-semibold hover:bg-emerald-100 transition">
+                              <Plus className="h-3 w-3" />
+                              Ajouter
+                            </div>
+                          </label>
+                        </div>
+
+                        {positionImages.length > 0 && (
+                          <div className="space-y-2">
+                            {positionImages.map((img, idx) => {
+                              const globalIdx = images.findIndex(i => i === img)
+                              return (
+                                <div key={globalIdx} className="flex gap-2 items-start bg-slate-50 p-2 rounded">
+                                  <img src={img.url} alt="" className="w-16 h-16 object-cover rounded" />
+                                  <div className="flex-1">
+                                    <input
+                                      type="text"
+                                      value={img.caption || ''}
+                                      onChange={(e) => updateImageCaption(globalIdx, e.target.value)}
+                                      placeholder="Légende (optionnel)"
+                                      className="w-full px-2 py-1 text-xs border border-slate-200 rounded"
+                                    />
+                                  </div>
+                                  <button
+                                    onClick={() => removeImage(globalIdx)}
+                                    className="p-1 text-red-600 hover:bg-red-50 rounded"
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </button>
+                                </div>
+                              )
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
                 </div>
               </div>
 
@@ -495,7 +562,7 @@ export default function LiteratureReviewEditor({ existingReview, allTags, onClos
                   Contenu de l'article
                 </h3>
                 <p className="text-sm text-emerald-700">
-                  Remplissez les sections ci-dessous. Le format sera automatiquement mis en page.
+                  Remplissez les sections ci-dessous. Le format sera automatiquement mis en page style magazine.
                 </p>
               </div>
 
