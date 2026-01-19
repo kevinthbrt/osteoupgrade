@@ -20,12 +20,30 @@ import {
   X
 } from 'lucide-react'
 
+type ReviewImage = {
+  url: string
+  position: 'hero' | 'introduction' | 'contexte' | 'methodologie' | 'resultats' | 'conclusion'
+  caption?: string
+}
+
+type StructuredContent = {
+  introduction: string
+  contexte: string
+  methodologie: string
+  resultats: string
+  implications: string
+  conclusion: string
+  points_cles: string[]
+}
+
 type LiteratureReview = {
   id: string
   title: string
   summary: string
   content_html: string
+  content_structured?: StructuredContent
   image_url?: string
+  images?: ReviewImage[]
   study_url?: string
   published_date: string
   is_featured: boolean
@@ -112,7 +130,9 @@ export default function RevueLitteraturePage() {
           title: review.title,
           summary: review.summary,
           content_html: review.content_html,
+          content_structured: review.content_structured,
           image_url: review.image_url,
+          images: review.images,
           study_url: review.study_url,
           published_date: review.published_date,
           is_featured: review.is_featured,
