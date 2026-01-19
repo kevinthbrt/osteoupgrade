@@ -476,7 +476,7 @@ export default function LiteratureReviewEditor({ existingReview, allTags, onClos
                         }`}
                         style={
                           isSelected
-                            ? { backgroundColor: tag.color, ringColor: tag.color }
+                            ? { backgroundColor: tag.color }
                             : {}
                         }
                       >
