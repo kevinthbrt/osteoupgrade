@@ -224,12 +224,12 @@ export default function RevueLitteraturePage() {
                   </span>
                 </div>
 
-                <h1 className="text-3xl md:text-4xl font-bold mb-3 bg-clip-text text-transparent bg-gradient-to-r from-white to-emerald-100">
-                  Revue de Littérature Mensuelle
+                <h1 className="text-3xl md:text-4xl font-bold mb-2 bg-clip-text text-transparent bg-gradient-to-r from-white to-emerald-100">
+                  La revue mensuelle ostéo-upgrade
                 </h1>
 
                 <p className="text-base md:text-lg text-slate-200 mb-6 max-w-2xl">
-                  Découvrez chaque mois les dernières études scientifiques en ostéopathie et thérapie manuelle. Analyses détaillées et applications pratiques.
+                  Découvrez chaque mois les dernières études scientifiques en ostéopathie et thérapie manuelle. Analyses détaillées, méthodologie expliquée et applications pratiques pour votre cabinet.
                 </p>
 
                 <div className="flex flex-wrap items-center gap-4">

@@ -41,7 +41,7 @@ export default function ElearningHubPage() {
     },
     {
       id: 'revue-litterature',
-      title: 'Revue de Littérature',
+      title: 'La Revue Mensuelle',
       description: 'Découvrez chaque mois les dernières études scientifiques en ostéopathie et thérapie manuelle',
       icon: FileText,
       href: '/elearning/revue-litterature',
