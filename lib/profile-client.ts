@@ -8,18 +8,40 @@ type ProfilePayload = {
 
 export const fetchProfilePayload = async (): Promise<ProfilePayload | null> => {
   const response = await fetch('/api/profile', { cache: 'no-store' })
-  if (!response.ok) {
+  if (response.ok) {
+    const payload = await response.json()
+
+    if (payload?.session?.access_token && payload?.session?.refresh_token) {
+      await supabase.auth.setSession({
+        access_token: payload.session.access_token,
+        refresh_token: payload.session.refresh_token,
+      })
+    }
+
+    return payload
+  }
+
+  const { data: userData } = await supabase.auth.getUser()
+  if (!userData.user) {
     return null
   }
 
-  const payload = await response.json()
+  const { data: sessionData } = await supabase.auth.getSession()
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('id, email, full_name, role')
+    .eq('id', userData.user.id)
+    .maybeSingle()
 
-  if (payload?.session?.access_token && payload?.session?.refresh_token) {
-    await supabase.auth.setSession({
-      access_token: payload.session.access_token,
-      refresh_token: payload.session.refresh_token,
-    })
+  return {
+    user: { id: userData.user.id, email: userData.user.email ?? null },
+    profile,
+    session: sessionData.session
+      ? {
+          access_token: sessionData.session.access_token,
+          refresh_token: sessionData.session.refresh_token,
+          expires_at: sessionData.session.expires_at,
+        }
+      : null,
   }
-
-  return payload
 }
