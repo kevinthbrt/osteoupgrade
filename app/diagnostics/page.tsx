@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import AuthLayout from '@/components/AuthLayout'
 import { supabase } from '@/lib/supabase'
+import { fetchProfilePayload } from '@/lib/profile-client'
 import {
   Stethoscope,
   Sparkles,
@@ -150,17 +151,13 @@ export default function DiagnosticsPage() {
 
   const loadData = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) {
+      const payload = await fetchProfilePayload()
+      if (!payload?.user) {
         router.push('/')
         return
       }
 
-      const { data: profileData } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single()
+      const profileData = payload.profile
 
       setProfile(profileData)
 

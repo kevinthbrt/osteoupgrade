@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
+import { fetchProfilePayload } from '@/lib/profile-client'
 import AuthLayout from '@/components/AuthLayout'
 import {
   Clipboard,
@@ -127,21 +128,15 @@ export default function ImprovedTestsPage() {
 
   const loadData = async () => {
     try {
-      const {
-        data: { user }
-      } = await supabase.auth.getUser()
+      const payload = await fetchProfilePayload()
 
-      if (!user) {
+      if (!payload?.user) {
         router.push('/')
         return
       }
 
       // Profil utilisateur
-      const { data: profileData } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single()
+      const profileData = payload.profile
 
       setProfile(profileData)
 
