@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase'
+import { cookies } from 'next/headers'
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
+import { supabaseAdmin } from '@/lib/supabase-server'
 
 /**
  * POST /api/automations/enroll
@@ -8,6 +10,26 @@ import { supabase } from '@/lib/supabase'
  */
 export async function POST(request: Request) {
   try {
+    const authHeader = request.headers.get('authorization')
+    const cronSecret = process.env.CRON_SECRET
+    const supabase = createRouteHandlerClient({ cookies })
+    const { data: { user } } = await supabase.auth.getUser()
+
+    let isAdmin = false
+    if (user) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single()
+      isAdmin = profile?.role === 'admin'
+    }
+
+    const hasCronToken = cronSecret && authHeader === `Bearer ${cronSecret}`
+    if (!isAdmin && !hasCronToken) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const body = await request.json()
     const { userId, triggerEvent, metadata = {} } = body
 
@@ -19,7 +41,7 @@ export async function POST(request: Request) {
     }
 
     // Trouver toutes les automatisations actives avec ce trigger_event
-    const { data: automations, error: automationsError } = await supabase
+    const { data: automations, error: automationsError } = await supabaseAdmin
       .from('mail_automations')
       .select('id, name, trigger_event')
       .eq('trigger_event', triggerEvent)
@@ -40,7 +62,7 @@ export async function POST(request: Request) {
     }
 
     // Récupérer le profil utilisateur pour obtenir l'email
-    const { data: profile, error: profileError } = await supabase
+    const { data: profile, error: profileError } = await supabaseAdmin
       .from('profiles')
       .select('id, email, full_name')
       .eq('id', userId)
@@ -55,7 +77,7 @@ export async function POST(request: Request) {
     }
 
     // Trouver ou créer le contact dans mail_contacts
-    let { data: contact } = await supabase
+    let { data: contact } = await supabaseAdmin
       .from('mail_contacts')
       .select('id')
       .eq('email', profile.email)
@@ -63,7 +85,7 @@ export async function POST(request: Request) {
 
     // Si le contact n'existe pas, le créer
     if (!contact) {
-      const { data: newContact, error: createError } = await supabase
+      const { data: newContact, error: createError } = await supabaseAdmin
         .from('mail_contacts')
         .insert({
           email: profile.email,
@@ -100,7 +122,7 @@ export async function POST(request: Request) {
       }
     }))
 
-    const { data: enrolledData, error: enrollError } = await supabase
+    const { data: enrolledData, error: enrollError } = await supabaseAdmin
       .from('mail_automation_enrollments')
       .insert(enrollments)
       .select()

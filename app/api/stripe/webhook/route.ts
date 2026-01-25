@@ -181,7 +181,10 @@ async function handleCheckoutCompleted(session: any) {
           if (referrerProfile) {
             await fetch(`${process.env.NEXT_PUBLIC_URL || 'http://localhost:3000'}/api/automations/trigger`, {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${process.env.CRON_SECRET}`
+              },
               body: JSON.stringify({
                 event: 'Nouveau parrainage',
                 contact_email: referrerProfile.email,
@@ -225,7 +228,10 @@ async function handleCheckoutCompleted(session: any) {
         try {
           await fetch(`${process.env.NEXT_PUBLIC_URL || 'http://localhost:3000'}/api/automations/trigger`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${process.env.CRON_SECRET}`
+            },
             body: JSON.stringify({
               event: 'Bonus parrainage filleul',
               contact_email: profile.email,
@@ -254,7 +260,10 @@ async function handleCheckoutCompleted(session: any) {
   try {
     await fetch(`${process.env.NEXT_PUBLIC_URL || 'http://localhost:3000'}/api/automations/trigger`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.CRON_SECRET}`
+      },
       body: JSON.stringify({
         event: eventName,
         contact_email: profile.email,
@@ -354,7 +363,10 @@ async function handleSubscriptionDeleted(subscription: any) {
   try {
     await fetch(`${process.env.NEXT_PUBLIC_URL || 'http://localhost:3000'}/api/automations/trigger`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.CRON_SECRET}`
+      },
       body: JSON.stringify({
         event: 'Abonnement expiré',
         contact_email: profile.email,
@@ -410,7 +422,10 @@ async function handlePaymentSucceeded(invoice: any) {
   try {
     await fetch(`${process.env.NEXT_PUBLIC_URL || 'http://localhost:3000'}/api/automations/trigger`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.CRON_SECRET}`
+      },
       body: JSON.stringify({
         event: 'Renouvellement effectué',
         contact_email: profile.email,

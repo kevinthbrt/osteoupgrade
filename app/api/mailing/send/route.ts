@@ -1,9 +1,28 @@
 import { NextResponse } from 'next/server'
+import { cookies } from 'next/headers'
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
 import { sendTransactionalEmail } from '@/lib/mailing'
-import { supabase } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase-server'
 
 export async function POST(request: Request) {
   try {
+    const supabase = createRouteHandlerClient({ cookies })
+    const { data: { user } } = await supabase.auth.getUser()
+
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single()
+
+    if (!profile || profile.role !== 'admin') {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+
     const body = await request.json()
     const { to, subject, html, text, from, tags, attachments, audienceMode, subscriptionFilter } = body
 
@@ -12,7 +31,7 @@ export async function POST(request: Request) {
     // Handle different audience modes
     if (audienceMode === 'all') {
       // Fetch all users' emails
-      const { data: profiles, error } = await supabase
+      const { data: profiles, error } = await supabaseAdmin
         .from('profiles')
         .select('email')
         .not('email', 'is', null)
@@ -21,7 +40,7 @@ export async function POST(request: Request) {
       recipients = profiles.map(p => p.email).filter(Boolean)
     } else if (audienceMode === 'subscription') {
       // Fetch users by subscription type
-      const { data: profiles, error } = await supabase
+      const { data: profiles, error } = await supabaseAdmin
         .from('profiles')
         .select('email')
         .eq('role', subscriptionFilter)

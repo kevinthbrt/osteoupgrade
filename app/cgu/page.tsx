@@ -239,7 +239,7 @@ export default function CGUPage() {
               </p>
               <p className="text-gray-700 leading-relaxed mt-4">
                 Vous disposez d'un droit d'accès, de rectification, de suppression et d'opposition concernant
-                vos données personnelles, que vous pouvez exercer en contactant : privacy@[votre-domaine].com
+                vos données personnelles, que vous pouvez exercer en contactant : privacy@osteo-upgrade.fr
               </p>
             </section>
 
