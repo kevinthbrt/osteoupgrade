@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase'
+import { cookies } from 'next/headers'
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
 import { supabaseAdmin } from '@/lib/supabase-server'
 
 /**
@@ -9,6 +10,7 @@ import { supabaseAdmin } from '@/lib/supabase-server'
 export async function POST(request: Request) {
   try {
     // Vérifier l'authentification
+    const supabase = createRouteHandlerClient({ cookies })
     const {
       data: { user },
       error: authError
@@ -137,7 +139,10 @@ export async function POST(request: Request) {
     try {
       await fetch(`${process.env.NEXT_PUBLIC_URL || 'http://localhost:3000'}/api/automations/trigger`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${process.env.CRON_SECRET}`
+        },
         body: JSON.stringify({
           event: 'Demande de paiement parrainage',
           contact_email: process.env.ADMIN_EMAIL || 'admin@osteoupgrade.com',

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase'
+import { cookies } from 'next/headers'
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
 import { supabaseAdmin } from '@/lib/supabase-server'
 
 /**
@@ -9,6 +10,7 @@ import { supabaseAdmin } from '@/lib/supabase-server'
 export async function GET(request: Request) {
   try {
     // Vérifier l'authentification
+    const supabase = createRouteHandlerClient({ cookies })
     const {
       data: { user },
       error: authError

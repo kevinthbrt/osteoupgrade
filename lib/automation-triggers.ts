@@ -1,4 +1,4 @@
-import { supabase } from './supabase'
+import { supabaseAdmin } from './supabase-server'
 
 export type TriggerEvent =
   | 'contact_created'
@@ -43,7 +43,7 @@ export async function triggerAutomations(
 
   try {
     // Récupérer toutes les automatisations actives pour cet événement
-    const { data: automations, error: automationsError } = await supabase
+    const { data: automations, error: automationsError } = await supabaseAdmin
       .from('mail_automations')
       .select('id, name, trigger_event')
       .eq('active', true)
@@ -64,14 +64,14 @@ export async function triggerAutomations(
 
     if (!contactId && data.contact_email) {
       // Chercher ou créer le contact par email
-      let { data: contact } = await supabase
+      let { data: contact } = await supabaseAdmin
         .from('mail_contacts')
         .select('id')
         .eq('email', data.contact_email)
         .single()
 
       if (!contact) {
-        const { data: newContact, error: createError } = await supabase
+        const { data: newContact, error: createError } = await supabaseAdmin
           .from('mail_contacts')
           .insert({
             email: data.contact_email,
@@ -101,7 +101,7 @@ export async function triggerAutomations(
     for (const automation of automations) {
       try {
         // Vérifier si le contact n'est pas déjà inscrit
-        const { data: existingEnrollment } = await supabase
+        const { data: existingEnrollment } = await supabaseAdmin
           .from('mail_automation_enrollments')
           .select('id, status')
           .eq('automation_id', automation.id)
@@ -111,7 +111,7 @@ export async function triggerAutomations(
         if (existingEnrollment) {
           // Si l'inscription existe déjà et est complétée ou annulée, on peut la réinscrire
           if (existingEnrollment.status === 'completed' || existingEnrollment.status === 'cancelled') {
-            await supabase
+            await supabaseAdmin
               .from('mail_automation_enrollments')
               .update({
                 status: 'pending',
@@ -130,7 +130,7 @@ export async function triggerAutomations(
         }
 
         // Créer une nouvelle inscription
-        const { error: enrollError } = await supabase
+        const { error: enrollError } = await supabaseAdmin
           .from('mail_automation_enrollments')
           .insert({
             automation_id: automation.id,

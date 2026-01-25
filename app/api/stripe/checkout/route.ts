@@ -1,9 +1,21 @@
 import { NextResponse } from 'next/server'
+import { cookies } from 'next/headers'
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
 import { stripe, STRIPE_PLANS } from '@/lib/stripe'
 
 export async function POST(request: Request) {
   try {
-    const { planType, userId, email, referralCode } = await request.json()
+    const { planType, referralCode } = await request.json()
+
+    const supabase = createRouteHandlerClient({ cookies })
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const userId = user.id
+    const email = user.email
 
     console.log('📦 Stripe checkout request:', { planType, userId, email, referralCode })
 
