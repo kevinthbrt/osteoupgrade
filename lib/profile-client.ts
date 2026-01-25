@@ -34,7 +34,7 @@ export const fetchProfilePayload = async (): Promise<ProfilePayload | null> => {
     .maybeSingle()
 
   return {
-    user: { id: userData.user.id, email: userData.user.email },
+    user: { id: userData.user.id, email: userData.user.email ?? null },
     profile,
     session: sessionData.session
       ? {
