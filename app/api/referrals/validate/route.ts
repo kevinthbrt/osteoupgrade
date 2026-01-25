@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
-import { supabaseAdmin } from '@/lib/supabase-server'
+import { cookies } from 'next/headers'
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
 
 /**
  * POST /api/referrals/validate
@@ -7,6 +8,7 @@ import { supabaseAdmin } from '@/lib/supabase-server'
  */
 export async function POST(request: Request) {
   try {
+    const supabase = createRouteHandlerClient({ cookies })
     const body = await request.json()
     const { referralCode } = body
 
@@ -14,60 +16,29 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Referral code is required' }, { status: 400 })
     }
 
-    // Vérifier que le code existe et est actif
-    const { data: codeData, error: codeError } = await supabaseAdmin
-      .from('referral_codes')
-      .select(
-        `
-        referral_code,
-        is_active,
-        user_id,
-        profiles:user_id (
-          role,
-          full_name
-        )
-      `
-      )
-      .eq('referral_code', referralCode.toUpperCase())
-      .single()
+    const { data, error } = await supabase.rpc('validate_referral_code', {
+      p_code: referralCode
+    })
 
-    if (codeError || !codeData) {
+    if (error || !data || !data[0]) {
       return NextResponse.json(
-        {
-          valid: false,
-          error: 'Invalid referral code'
-        },
+        { valid: false, error: 'Invalid referral code' },
         { status: 200 }
       )
     }
 
-    // Vérifier que le code est actif
-    if (!codeData.is_active) {
+    const result = data[0]
+    if (!result.valid) {
       return NextResponse.json(
-        {
-          valid: false,
-          error: 'This referral code is no longer active'
-        },
-        { status: 200 }
-      )
-    }
-
-    // Vérifier que l'utilisateur est toujours Premium Gold
-    const profile = Array.isArray(codeData.profiles) ? codeData.profiles[0] : codeData.profiles
-    if (!profile || profile.role !== 'premium_gold') {
-      return NextResponse.json(
-        {
-          valid: false,
-          error: 'This referral code is no longer valid'
-        },
+        { valid: false, error: result.error || 'Invalid referral code' },
         { status: 200 }
       )
     }
 
     return NextResponse.json({
       valid: true,
-      referralCode: codeData.referral_code,
-      referrerName: profile.full_name || 'A Premium Gold member'
+      referralCode: result.referral_code,
+      referrerName: result.referrer_name || 'A Premium Gold member'
     })
   } catch (error: any) {
     console.error('Error validating referral code:', error)
