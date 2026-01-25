@@ -90,6 +90,7 @@ export default function ClinicalCasePage() {
 
       // Load profile
       const profileData = payload.profile
+      const userId = payload.user.id
 
       setProfile(profileData)
 
@@ -142,7 +143,7 @@ export default function ClinicalCasePage() {
                 )
 
                 // Get user attempts
-                const attempts = await getUserQuizAttempts(user.id, quiz.id)
+                const attempts = await getUserQuizAttempts(userId, quiz.id)
                 const bestAttempt = attempts.find(a => a.passed) || attempts[0]
 
                 const quizData: Quiz = {
@@ -175,11 +176,11 @@ export default function ClinicalCasePage() {
       setChapters(chaptersWithModules)
 
       // Load case progress
-      const progress = await getOrCreateCaseProgress(user.id, caseId)
+      const progress = await getOrCreateCaseProgress(userId, caseId)
       setCaseProgress(progress)
 
       // Load module progress
-      const modProgress = await getUserModuleProgress(user.id, caseId)
+      const modProgress = await getUserModuleProgress(userId, caseId)
       setModuleProgress(modProgress)
 
       // Expand first chapter by default
