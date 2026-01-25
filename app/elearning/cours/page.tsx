@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import AuthLayout from '@/components/AuthLayout'
 import { supabase } from '@/lib/supabase'
+import { fetchProfilePayload } from '@/lib/profile-client'
 import CourseCreationWizard from '../components/CourseCreationWizard'
 import QuizComponent from '../components/QuizComponent'
 import QuizManager from '../components/QuizManager'
@@ -109,24 +110,18 @@ export default function CoursPage() {
 
   const loadData = async () => {
     try {
-      const {
-        data: { user }
-      } = await supabase.auth.getUser()
+      const payload = await fetchProfilePayload()
 
-      if (!user) {
+      if (!payload?.user) {
         router.push('/')
         return
       }
 
-      const { data: profileData } = await supabase
-        .from('profiles')
-        .select('id, role, full_name')
-        .eq('id', user.id)
-        .single()
+      const profileData = payload.profile
 
       setProfile(profileData as Profile)
 
-      await loadFormationsFromSupabase(user.id, (profileData as Profile | null)?.role)
+      await loadFormationsFromSupabase(payload.user.id, (profileData as Profile | null)?.role)
     } catch (error) {
       console.error('Error loading data:', error)
     } finally {

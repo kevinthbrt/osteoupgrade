@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
+import { fetchProfilePayload } from '@/lib/profile-client'
 import AuthLayout from '@/components/AuthLayout'
 import {
   FileText,
@@ -63,17 +64,13 @@ export default function CommunicationPage() {
   }, [])
 
   const checkAccess = async () => {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
+    const payload = await fetchProfilePayload()
+    if (!payload?.user) {
       router.push('/')
       return
     }
 
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single()
+    const profile = payload.profile
 
     if (!profile || !ALLOWED_ROLES.includes(profile.role)) {
       setAccessDenied(true)

@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import AuthLayout from '@/components/AuthLayout'
 import { supabase } from '@/lib/supabase'
+import { fetchProfilePayload } from '@/lib/profile-client'
 import ClinicalCaseQuizComponent from '../components/ClinicalCaseQuizComponent'
 import type { Quiz } from '@/app/elearning/types/quiz'
 import {
@@ -80,19 +81,15 @@ export default function ClinicalCasePage() {
 
   const loadData = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser()
+      const payload = await fetchProfilePayload()
 
-      if (!user) {
+      if (!payload?.user) {
         router.push('/')
         return
       }
 
       // Load profile
-      const { data: profileData } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single()
+      const profileData = payload.profile
 
       setProfile(profileData)
 

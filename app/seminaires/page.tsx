@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState, useRef, type ChangeEvent } from 'react'
 import { useRouter } from 'next/navigation'
 import AuthLayout from '@/components/AuthLayout'
 import { supabase } from '@/lib/supabase'
+import { fetchProfilePayload } from '@/lib/profile-client'
 import { Calendar, MapPin, User, Plus, CheckCircle, Users, PenSquare, AlertTriangle, Info, X, Bold, Italic, List, ListOrdered, Heading2, Heading3 } from 'lucide-react'
 import { formatCycleWindow, getCurrentSubscriptionCycle, isDateWithinCycle } from '@/utils/subscriptionCycle'
 
@@ -252,18 +253,14 @@ export default function SeminarsPage() {
 
   useEffect(() => {
     const loadData = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
+      const payload = await fetchProfilePayload()
 
-      if (!user) {
+      if (!payload?.user) {
         router.push('/')
         return
       }
 
-      const { data: profileData } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single()
+      const profileData = payload.profile
 
       setProfile(profileData)
 
@@ -290,7 +287,7 @@ export default function SeminarsPage() {
       const { data: registrationsData, error: regError } = await supabase
         .from('seminar_registrations')
         .select('*')
-        .eq('user_id', user.id)
+        .eq('user_id', payload.user.id)
 
       if (!regError && registrationsData) {
         setUserRegistrations(
