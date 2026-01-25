@@ -502,10 +502,10 @@ export default function LandingPage() {
             <div>
               <h4 className="font-bold text-slate-900 mb-4">Légal</h4>
               <ul className="space-y-2">
-                <li><a href="#" className="text-slate-600 hover:text-sky-500 transition-colors">Mentions légales</a></li>
-                <li><a href="#" className="text-slate-600 hover:text-sky-500 transition-colors">Confidentialité</a></li>
-                <li><a href="#" className="text-slate-600 hover:text-sky-500 transition-colors">CGU</a></li>
-                <li><a href="#" className="text-slate-600 hover:text-sky-500 transition-colors">Contact</a></li>
+                <li><a href="/mentions-legales" className="text-slate-600 hover:text-sky-500 transition-colors">Mentions légales</a></li>
+                <li><a href="/politique-confidentialite" className="text-slate-600 hover:text-sky-500 transition-colors">Confidentialité</a></li>
+                <li><a href="/cgu" className="text-slate-600 hover:text-sky-500 transition-colors">CGU</a></li>
+                <li><a href="mailto:privacy@osteo-upgrade.fr" className="text-slate-600 hover:text-sky-500 transition-colors">Contact</a></li>
               </ul>
             </div>
           </div>
