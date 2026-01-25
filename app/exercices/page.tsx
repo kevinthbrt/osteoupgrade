@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
+import { fetchProfilePayload } from '@/lib/profile-client'
 import AuthLayout from '@/components/AuthLayout'
 import { Dumbbell, Download, Edit, Plus, Save, Search, Settings, Trash2, Upload, X } from 'lucide-react'
 import jsPDF from 'jspdf'
@@ -86,19 +87,13 @@ export default function ExercisesModule() {
   useEffect(() => {
     const loadData = async () => {
       try {
-        const { data: userResponse } = await supabase.auth.getUser()
-        const user = userResponse?.user
-
-        if (!user) {
+        const payload = await fetchProfilePayload()
+        if (!payload?.user) {
           setAccessDenied(true)
           return
         }
 
-        const { data: profileData } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', user.id)
-          .single()
+        const profileData = payload.profile
 
         setProfile(profileData)
 

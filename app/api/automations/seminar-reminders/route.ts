@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase-server'
 
 // Cette route sera appelée par un cron job QUOTIDIEN
 // Détecte les séminaires à venir et envoie les rappels appropriés
@@ -9,6 +9,11 @@ import { supabase } from '@/lib/supabase'
 
 export async function POST(request: Request) {
   try {
+    const authHeader = request.headers.get('authorization')
+    if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     console.log('🔍 Starting seminar reminders check...')
 
     let oneMonthCount = 0
@@ -23,7 +28,7 @@ export async function POST(request: Request) {
       const thirtyDaysFromNow = new Date(today)
       thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30)
 
-      const { data: seminarsOneMonth, error: error1 } = await supabase
+      const { data: seminarsOneMonth, error: error1 } = await supabaseAdmin
         .from('seminars')
         .select('id, title, location, start_date, end_date, facilitator, theme')
         .gte('start_date', thirtyDaysFromNow.toISOString().split('T')[0])
@@ -36,7 +41,7 @@ export async function POST(request: Request) {
 
         for (const seminar of seminarsOneMonth) {
           // Récupérer tous les utilisateurs inscrits
-          const { data: registrations } = await supabase
+          const { data: registrations } = await supabaseAdmin
             .from('seminar_registrations')
             .select('user_id, profiles:user_id(email, full_name)')
             .eq('seminar_id', seminar.id)
@@ -51,7 +56,10 @@ export async function POST(request: Request) {
 
                 await fetch(`${process.env.NEXT_PUBLIC_URL || 'http://localhost:3000'}/api/automations/trigger`, {
                   method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${process.env.CRON_SECRET}`
+                  },
                   body: JSON.stringify({
                     event: 'seminar_reminder_1_month',
                     contact_email: profile.email,
@@ -96,7 +104,7 @@ export async function POST(request: Request) {
       const sevenDaysFromNow = new Date(today)
       sevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 7)
 
-      const { data: seminarsOneWeek, error: error2 } = await supabase
+      const { data: seminarsOneWeek, error: error2 } = await supabaseAdmin
         .from('seminars')
         .select('id, title, location, start_date, end_date, facilitator, theme')
         .gte('start_date', sevenDaysFromNow.toISOString().split('T')[0])
@@ -108,7 +116,7 @@ export async function POST(request: Request) {
         console.log(`Found ${seminarsOneWeek.length} seminars in 7 days`)
 
         for (const seminar of seminarsOneWeek) {
-          const { data: registrations } = await supabase
+          const { data: registrations } = await supabaseAdmin
             .from('seminar_registrations')
             .select('user_id, profiles:user_id(email, full_name)')
             .eq('seminar_id', seminar.id)
@@ -123,7 +131,10 @@ export async function POST(request: Request) {
 
                 await fetch(`${process.env.NEXT_PUBLIC_URL || 'http://localhost:3000'}/api/automations/trigger`, {
                   method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${process.env.CRON_SECRET}`
+                  },
                   body: JSON.stringify({
                     event: 'seminar_reminder_1_week',
                     contact_email: profile.email,
@@ -168,7 +179,7 @@ export async function POST(request: Request) {
       const tomorrow = new Date(today)
       tomorrow.setDate(tomorrow.getDate() + 1)
 
-      const { data: seminarsOneDay, error: error3 } = await supabase
+      const { data: seminarsOneDay, error: error3 } = await supabaseAdmin
         .from('seminars')
         .select('id, title, location, start_date, end_date, facilitator, theme')
         .gte('start_date', tomorrow.toISOString().split('T')[0])
@@ -180,7 +191,7 @@ export async function POST(request: Request) {
         console.log(`Found ${seminarsOneDay.length} seminars tomorrow`)
 
         for (const seminar of seminarsOneDay) {
-          const { data: registrations } = await supabase
+          const { data: registrations } = await supabaseAdmin
             .from('seminar_registrations')
             .select('user_id, profiles:user_id(email, full_name)')
             .eq('seminar_id', seminar.id)
@@ -195,7 +206,10 @@ export async function POST(request: Request) {
 
                 await fetch(`${process.env.NEXT_PUBLIC_URL || 'http://localhost:3000'}/api/automations/trigger`, {
                   method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${process.env.CRON_SECRET}`
+                  },
                   body: JSON.stringify({
                     event: 'seminar_reminder_1_day',
                     contact_email: profile.email,

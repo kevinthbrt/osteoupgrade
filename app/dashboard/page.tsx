@@ -81,19 +81,15 @@ export default function Dashboard() {
 
   const loadDashboardData = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser()
+      const response = await fetch('/api/profile', { cache: 'no-store' })
 
-      if (!user) {
+      if (!response.ok) {
         setProfile({ role: 'free', full_name: 'Invité' })
         setLoading(false)
         return
       }
 
-      const { data: profileData } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single()
+      const { user, profile: profileData } = await response.json()
 
       if (profileData) {
         setProfile(profileData)

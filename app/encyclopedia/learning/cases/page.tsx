@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import AuthLayout from '@/components/AuthLayout'
 import { supabase } from '@/lib/supabase'
+import { fetchProfilePayload } from '@/lib/profile-client'
 import {
   Target,
   Plus,
@@ -41,19 +42,15 @@ export default function ClinicalCasesPage() {
 
   const loadData = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser()
+      const payload = await fetchProfilePayload()
 
-      if (!user) {
+      if (!payload?.user) {
         router.push('/')
         return
       }
 
       // Load profile
-      const { data: profileData } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single()
+      const profileData = payload.profile
 
       setProfile(profileData)
 
@@ -62,7 +59,7 @@ export default function ClinicalCasesPage() {
       setCases(casesData)
 
       // Load user progress
-      const progressData = await getUserCasesProgress(user.id)
+      const progressData = await getUserCasesProgress(payload.user.id)
       setUserProgress(progressData)
     } catch (error) {
       console.error('Error loading cases:', error)

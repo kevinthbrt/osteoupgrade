@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import AuthLayout from '@/components/AuthLayout'
 import { supabase } from '@/lib/supabase'
+import { fetchProfilePayload } from '@/lib/profile-client'
 import { createTopographieView, getAllTopographieViews, updateTopographieView } from '@/lib/topographie-topographic-api'
 import type { AnatomicalRegion, TopographieView } from '@/lib/types-topographic-system'
 import {
@@ -115,22 +116,14 @@ export default function TopographiePage() {
   useEffect(() => {
     const ensureAuthenticated = async () => {
       setLoading(true)
-      const {
-        data: { user }
-      } = await supabase.auth.getUser()
+      const payload = await fetchProfilePayload()
 
-      if (!user) {
+      if (!payload?.user) {
         router.push('/')
         return
       }
 
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', user.id)
-        .single()
-
-      setRole(profile?.role || null)
+      setRole(payload.profile?.role || null)
       setLoading(false)
     }
 

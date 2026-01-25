@@ -1,13 +1,32 @@
 import { NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase'
+import { cookies } from 'next/headers'
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
+import { supabaseAdmin } from '@/lib/supabase-server'
 
 // GET - Récupérer toutes les automatisations
 export async function GET(request: Request) {
   try {
+    const supabase = createRouteHandlerClient({ cookies })
+    const { data: { user } } = await supabase.auth.getUser()
+
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single()
+
+    if (!profile || profile.role !== 'admin') {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+
     const { searchParams } = new URL(request.url)
     const activeOnly = searchParams.get('active') === 'true'
 
-    let query = supabase
+    let query = supabaseAdmin
       .from('mail_automations')
       .select(`
         id,
@@ -48,6 +67,23 @@ export async function GET(request: Request) {
 // POST - Créer une nouvelle automatisation
 export async function POST(request: Request) {
   try {
+    const supabase = createRouteHandlerClient({ cookies })
+    const { data: { user } } = await supabase.auth.getUser()
+
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single()
+
+    if (!profile || profile.role !== 'admin') {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+
     const body = await request.json()
     const { name, description, trigger_event, steps } = body
 
@@ -59,7 +95,7 @@ export async function POST(request: Request) {
     }
 
     // Créer l'automatisation
-    const { data: automation, error: automationError } = await supabase
+    const { data: automation, error: automationError } = await supabaseAdmin
       .from('mail_automations')
       .insert({
         name,
@@ -86,20 +122,20 @@ export async function POST(request: Request) {
         payload: step.payload ?? {}
       }))
 
-      const { error: stepsError } = await supabase
+      const { error: stepsError } = await supabaseAdmin
         .from('mail_automation_steps')
         .insert(stepsToInsert)
 
       if (stepsError) {
         console.error('Error creating automation steps:', stepsError)
         // Rollback: supprimer l'automatisation créée
-        await supabase.from('mail_automations').delete().eq('id', automation.id)
+        await supabaseAdmin.from('mail_automations').delete().eq('id', automation.id)
         return NextResponse.json({ error: stepsError.message }, { status: 500 })
       }
     }
 
     // Récupérer l'automatisation complète avec les étapes
-    const { data: completeAutomation, error: fetchError } = await supabase
+    const { data: completeAutomation, error: fetchError } = await supabaseAdmin
       .from('mail_automations')
       .select(`
         id,
