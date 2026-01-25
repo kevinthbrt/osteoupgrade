@@ -45,27 +45,27 @@ export default function Navigation() {
   const [isOpen, setIsOpen] = useState(false)
   const [user, setUser] = useState<any>(null)
   const [profile, setProfile] = useState<any>(null)
+  const [profileError, setProfileError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     const getUser = async () => {
       try {
-        const { data: { user } } = await supabase.auth.getUser()
-        setUser(user)
-
-        if (user) {
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', user.id)
-            .single()
-          setProfile(profile)
-        } else {
+        const response = await fetch('/api/profile', { cache: 'no-store' })
+        if (!response.ok) {
           setProfile({ role: 'free', full_name: 'Invité' })
+          setUser(null)
+          setProfileError('Profil introuvable')
+          return
         }
+
+        const payload = await response.json()
+        setUser(payload.user)
+        setProfile(payload.profile ?? { role: 'free', full_name: 'Invité' })
       } catch (error) {
         console.error('Erreur de récupération du profil:', error)
         setProfile({ role: 'free', full_name: 'Invité' })
+        setProfileError('Erreur de récupération du profil')
       } finally {
         setLoading(false)
       }
@@ -300,6 +300,11 @@ export default function Navigation() {
               </div>
               {getRoleBadge()}
             </div>
+            {profileError && (
+              <p className="mt-2 text-[11px] text-amber-200">
+                {profileError}
+              </p>
+            )}
           </div>
 
           {/* Navigation */}
