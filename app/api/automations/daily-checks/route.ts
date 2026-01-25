@@ -1,11 +1,20 @@
 import { NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase-server'
 
 // Cette route sera appelée par un cron job QUOTIDIEN
 // Détecte les utilisateurs inactifs depuis 30 jours et les comptes free depuis 14 jours
 
 export async function POST(request: Request) {
   try {
+    // Vérifier l'authentification par CRON_SECRET
+    const authHeader = request.headers.get('authorization')
+    if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+      return NextResponse.json(
+        { error: 'Non autorisé. CRON_SECRET requis.' },
+        { status: 401 }
+      )
+    }
+
     console.log('🔍 Starting daily checks...')
 
     let inactiveCount = 0
@@ -16,7 +25,7 @@ export async function POST(request: Request) {
       const thirtyDaysAgo = new Date()
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
 
-      const { data: profiles } = await supabase
+      const { data: profiles } = await supabaseAdmin
         .from('profiles')
         .select('id, email, created_at')
         .lt('created_at', thirtyDaysAgo.toISOString())
@@ -29,7 +38,10 @@ export async function POST(request: Request) {
           try {
             await fetch(`${process.env.NEXT_PUBLIC_URL || 'http://localhost:3000'}/api/automations/trigger`, {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${process.env.CRON_SECRET}`
+              },
               body: JSON.stringify({
                 event: 'Inactif depuis 30 jours',
                 contact_email: profile.email,
@@ -57,7 +69,7 @@ export async function POST(request: Request) {
       const fifteenDaysAgo = new Date()
       fifteenDaysAgo.setDate(fifteenDaysAgo.getDate() - 15)
 
-      const { data: freeProfiles } = await supabase
+      const { data: freeProfiles } = await supabaseAdmin
         .from('profiles')
         .select('id, email, created_at')
         .eq('role', 'free')
@@ -72,7 +84,10 @@ export async function POST(request: Request) {
           try {
             await fetch(`${process.env.NEXT_PUBLIC_URL || 'http://localhost:3000'}/api/automations/trigger`, {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${process.env.CRON_SECRET}`
+              },
               body: JSON.stringify({
                 event: 'Sur free depuis 14 jours',
                 contact_email: profile.email,
@@ -114,7 +129,7 @@ export async function POST(request: Request) {
   }
 }
 
-// Pour tester manuellement
+// GET aussi protégé par CRON_SECRET
 export async function GET(request: Request) {
   return POST(request)
 }

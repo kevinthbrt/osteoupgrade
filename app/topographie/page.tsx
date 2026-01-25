@@ -23,6 +23,7 @@ import {
   Activity
 } from 'lucide-react'
 import RelatedContent, { RelatedItem } from '@/components/RelatedContent'
+import { sanitizeHtml } from '@/lib/sanitize'
 
 // Catégories de régions anatomiques
 const BODY_REGIONS = {
@@ -95,8 +96,6 @@ export default function TopographiePage() {
   })
 
   const descriptionRef = useRef<HTMLDivElement>(null)
-
-  const sanitizeHtml = (html: string) => html.replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, '')
 
   const handleDescriptionInput = () => {
     const html = descriptionRef.current?.innerHTML || ''

@@ -1,18 +1,42 @@
 import { NextResponse } from 'next/server'
 import { sendTransactionalEmail } from '@/lib/mailing'
-import { supabase } from '@/lib/supabase'
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
+import { cookies } from 'next/headers'
+import { supabaseAdmin } from '@/lib/supabase-server'
 
 export async function POST(request: Request) {
   try {
+    const supabase = createRouteHandlerClient({ cookies })
+
+    // Vérifier l'authentification
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
+    }
+
+    // Vérifier que l'utilisateur est admin
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single()
+
+    if (profileError || !profile || profile.role !== 'admin') {
+      return NextResponse.json({
+        error: 'Accès refusé. Seuls les administrateurs peuvent envoyer des emails.'
+      }, { status: 403 })
+    }
+
     const body = await request.json()
     const { to, subject, html, text, from, tags, attachments, audienceMode, subscriptionFilter } = body
 
     let recipients: string[] = []
 
-    // Handle different audience modes
+    // Handle different audience modes - utilise supabaseAdmin pour bypass RLS
     if (audienceMode === 'all') {
       // Fetch all users' emails
-      const { data: profiles, error } = await supabase
+      const { data: profiles, error } = await supabaseAdmin
         .from('profiles')
         .select('email')
         .not('email', 'is', null)
@@ -21,7 +45,7 @@ export async function POST(request: Request) {
       recipients = profiles.map(p => p.email).filter(Boolean)
     } else if (audienceMode === 'subscription') {
       // Fetch users by subscription type
-      const { data: profiles, error } = await supabase
+      const { data: profiles, error } = await supabaseAdmin
         .from('profiles')
         .select('email')
         .eq('role', subscriptionFilter)
