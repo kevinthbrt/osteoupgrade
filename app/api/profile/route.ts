@@ -7,6 +7,9 @@ export async function GET() {
     data: { user },
     error: userError,
   } = await supabase.auth.getUser()
+  const {
+    data: { session },
+  } = await supabase.auth.getSession()
 
   if (userError || !user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -51,5 +54,12 @@ export async function GET() {
       email: user.email,
     },
     profile,
+    session: session
+      ? {
+          access_token: session.access_token,
+          refresh_token: session.refresh_token,
+          expires_at: session.expires_at,
+        }
+      : null,
   })
 }
