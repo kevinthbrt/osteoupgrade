@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase'
+import { cookies } from 'next/headers'
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
+import { supabaseAdmin } from '@/lib/supabase-server'
 
 // POST - Inscrire un ou plusieurs contacts à une automatisation
 export async function POST(
@@ -7,12 +9,32 @@ export async function POST(
   { params }: { params: { id: string } }
 ) {
   try {
+    const authHeader = request.headers.get('authorization')
+    const cronSecret = process.env.CRON_SECRET
+    const supabase = createRouteHandlerClient({ cookies })
+    const { data: { user } } = await supabase.auth.getUser()
+
+    let isAdmin = false
+    if (user) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single()
+      isAdmin = profile?.role === 'admin'
+    }
+
+    const hasCronToken = cronSecret && authHeader === `Bearer ${cronSecret}`
+    if (!isAdmin && !hasCronToken) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const { id: automationId } = params
     const body = await request.json()
     const { contact_ids, contact_emails } = body
 
     // Vérifier que l'automatisation existe et est active
-    const { data: automation, error: automationError } = await supabase
+    const { data: automation, error: automationError } = await supabaseAdmin
       .from('mail_automations')
       .select('id, active')
       .eq('id', automationId)
@@ -38,7 +60,7 @@ export async function POST(
     if (contact_emails && Array.isArray(contact_emails)) {
       for (const email of contact_emails) {
         // Chercher le contact existant
-        let { data: contact } = await supabase
+        let { data: contact } = await supabaseAdmin
           .from('mail_contacts')
           .select('id')
           .eq('email', email)
@@ -46,7 +68,7 @@ export async function POST(
 
         // Si le contact n'existe pas, le créer
         if (!contact) {
-          const { data: newContact, error: createError } = await supabase
+          const { data: newContact, error: createError } = await supabaseAdmin
             .from('mail_contacts')
             .insert({
               email,
@@ -88,7 +110,7 @@ export async function POST(
       next_step_order: 0
     }))
 
-    const { data: enrolledContacts, error: enrollError } = await supabase
+    const { data: enrolledContacts, error: enrollError } = await supabaseAdmin
       .from('mail_automation_enrollments')
       .insert(enrollments)
       .select()
@@ -115,11 +137,31 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
+    const authHeader = request.headers.get('authorization')
+    const cronSecret = process.env.CRON_SECRET
+    const supabase = createRouteHandlerClient({ cookies })
+    const { data: { user } } = await supabase.auth.getUser()
+
+    let isAdmin = false
+    if (user) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single()
+      isAdmin = profile?.role === 'admin'
+    }
+
+    const hasCronToken = cronSecret && authHeader === `Bearer ${cronSecret}`
+    if (!isAdmin && !hasCronToken) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const { id: automationId } = params
     const { searchParams } = new URL(request.url)
     const status = searchParams.get('status')
 
-    let query = supabase
+    let query = supabaseAdmin
       .from('mail_automation_enrollments')
       .select(`
         id,

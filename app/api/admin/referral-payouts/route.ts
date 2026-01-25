@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase'
+import { cookies } from 'next/headers'
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
 import { supabaseAdmin } from '@/lib/supabase-server'
 
 /**
@@ -9,6 +10,7 @@ import { supabaseAdmin } from '@/lib/supabase-server'
 export async function GET(request: Request) {
   try {
     // Vérifier l'authentification et le rôle admin
+    const supabase = createRouteHandlerClient({ cookies })
     const {
       data: { user },
       error: authError
@@ -62,6 +64,7 @@ export async function GET(request: Request) {
 export async function PUT(request: Request) {
   try {
     // Vérifier l'authentification et le rôle admin
+    const supabase = createRouteHandlerClient({ cookies })
     const {
       data: { user },
       error: authError
@@ -134,7 +137,10 @@ export async function PUT(request: Request) {
       try {
         await fetch(`${process.env.NEXT_PUBLIC_URL || 'http://localhost:3000'}/api/automations/trigger`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${process.env.CRON_SECRET}`
+          },
           body: JSON.stringify({
             event: 'Paiement parrainage effectué',
             contact_email: userInfo.email,

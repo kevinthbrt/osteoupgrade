@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase'
+import { cookies } from 'next/headers'
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
+import { supabaseAdmin } from '@/lib/supabase-server'
 
 // GET - Récupérer une automatisation spécifique
 export async function GET(
@@ -7,9 +9,26 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
+    const supabase = createRouteHandlerClient({ cookies })
+    const { data: { user } } = await supabase.auth.getUser()
+
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single()
+
+    if (!profile || profile.role !== 'admin') {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+
     const { id } = params
 
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from('mail_automations')
       .select(`
         id,
@@ -52,6 +71,23 @@ export async function PATCH(
   { params }: { params: { id: string } }
 ) {
   try {
+    const supabase = createRouteHandlerClient({ cookies })
+    const { data: { user } } = await supabase.auth.getUser()
+
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single()
+
+    if (!profile || profile.role !== 'admin') {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+
     const { id } = params
     const body = await request.json()
     const { name, description, trigger_event, active, steps } = body
@@ -64,7 +100,7 @@ export async function PATCH(
     if (active !== undefined) updateData.active = active
 
     if (Object.keys(updateData).length > 0) {
-      const { error: updateError } = await supabase
+      const { error: updateError } = await supabaseAdmin
         .from('mail_automations')
         .update(updateData)
         .eq('id', id)
@@ -78,7 +114,7 @@ export async function PATCH(
     // Mettre à jour les étapes si fournies
     if (steps) {
       // Supprimer les anciennes étapes
-      await supabase.from('mail_automation_steps').delete().eq('automation_id', id)
+      await supabaseAdmin.from('mail_automation_steps').delete().eq('automation_id', id)
 
       // Créer les nouvelles étapes
       if (steps.length > 0) {
@@ -91,7 +127,7 @@ export async function PATCH(
           payload: step.payload ?? {}
         }))
 
-        const { error: stepsError } = await supabase
+        const { error: stepsError } = await supabaseAdmin
           .from('mail_automation_steps')
           .insert(stepsToInsert)
 
@@ -103,7 +139,7 @@ export async function PATCH(
     }
 
     // Récupérer l'automatisation mise à jour
-    const { data: updatedAutomation, error: fetchError } = await supabase
+    const { data: updatedAutomation, error: fetchError } = await supabaseAdmin
       .from('mail_automations')
       .select(`
         id,
@@ -142,16 +178,33 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
+    const supabase = createRouteHandlerClient({ cookies })
+    const { data: { user } } = await supabase.auth.getUser()
+
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single()
+
+    if (!profile || profile.role !== 'admin') {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+
     const { id } = params
 
     // Supprimer les étapes
-    await supabase.from('mail_automation_steps').delete().eq('automation_id', id)
+    await supabaseAdmin.from('mail_automation_steps').delete().eq('automation_id', id)
 
     // Supprimer les inscriptions
-    await supabase.from('mail_automation_enrollments').delete().eq('automation_id', id)
+    await supabaseAdmin.from('mail_automation_enrollments').delete().eq('automation_id', id)
 
     // Supprimer l'automatisation
-    const { error } = await supabase.from('mail_automations').delete().eq('id', id)
+    const { error } = await supabaseAdmin.from('mail_automations').delete().eq('id', id)
 
     if (error) {
       console.error('Error deleting automation:', error)

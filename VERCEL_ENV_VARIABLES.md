@@ -33,12 +33,14 @@ CRON_SECRET=votre_secret_aleatoire_ici
 # ========================================
 RESEND_API_KEY=votre_resend_api_key
 RESEND_FROM=OsteoUpgrade <no-reply@osteo-upgrade.fr>
+RESEND_WEBHOOK_SECRET=votre_resend_webhook_secret
 
 # ========================================
 # SUPABASE (Déjà configuré normalement)
 # ========================================
 NEXT_PUBLIC_SUPABASE_URL=votre_supabase_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=votre_supabase_anon_key
+SUPABASE_SERVICE_ROLE_KEY=votre_supabase_service_role_key
 ```
 
 ## ⚠️ IMPORTANT
