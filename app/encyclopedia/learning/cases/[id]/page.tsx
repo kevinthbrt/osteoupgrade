@@ -47,6 +47,7 @@ import {
 } from '@/lib/clinical-cases-api'
 
 type ModuleWithQuiz = ClinicalCaseModule & {
+  images?: string[]
   quiz?: Quiz
   quiz_passed?: boolean
   completed?: boolean
@@ -410,8 +411,8 @@ export default function ClinicalCasePage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Left: Chapters & Modules Navigation */}
-          <div className="lg:col-span-1 space-y-4">
-            <div className="bg-white rounded-xl shadow-sm p-4">
+          <div className="lg:col-span-1 min-w-0 space-y-4">
+            <div className="lg:sticky lg:top-8 bg-white rounded-xl shadow-sm p-4 max-h-[calc(100vh-6rem)] overflow-y-auto">
               <h3 className="font-bold text-slate-900 mb-4 flex items-center gap-2">
                 <BookOpen className="h-5 w-5 text-amber-600" />
                 Table des matières
@@ -423,21 +424,23 @@ export default function ClinicalCasePage() {
                     {/* Chapter Header */}
                     <button
                       onClick={() => toggleChapter(chapter.id)}
-                      className="w-full px-4 py-3 bg-slate-50 hover:bg-slate-100 transition-colors flex items-center justify-between"
+                      className="w-full px-4 py-3 bg-slate-50 hover:bg-slate-100 transition-colors flex items-center justify-between gap-2"
                     >
-                      <div className="flex items-center gap-3">
-                        <span className="text-sm font-bold text-amber-600">
-                          Chapitre {chapterIdx + 1}
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="text-sm font-bold text-amber-600 flex-shrink-0">
+                          Ch. {chapterIdx + 1}
                         </span>
-                        <span className="text-sm font-semibold text-slate-900">
+                        <span className="text-sm font-semibold text-slate-900 truncate">
                           {chapter.title}
                         </span>
                       </div>
-                      {expandedChapters[chapter.id] ? (
-                        <ChevronDown className="h-5 w-5 text-slate-600" />
-                      ) : (
-                        <ChevronRight className="h-5 w-5 text-slate-600" />
-                      )}
+                      <div className="flex-shrink-0">
+                        {expandedChapters[chapter.id] ? (
+                          <ChevronDown className="h-5 w-5 text-slate-600" />
+                        ) : (
+                          <ChevronRight className="h-5 w-5 text-slate-600" />
+                        )}
+                      </div>
                     </button>
 
                     {/* Modules List */}
@@ -459,20 +462,20 @@ export default function ClinicalCasePage() {
                                   : 'hover:bg-slate-50 border-2 border-transparent'
                               }`}
                             >
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-2 flex-1">
+                              <div className="flex items-center justify-between gap-2">
+                                <div className="flex items-center gap-2 min-w-0 flex-1">
                                   <div className={`flex-shrink-0 ${
                                     isCompleted ? 'text-green-600' : 'text-slate-400'
                                   }`}>
                                     {getContentTypeIcon(module.content_type)}
                                   </div>
-                                  <span className={`text-sm font-medium ${
+                                  <span className={`text-sm font-medium truncate ${
                                     isSelected ? 'text-amber-900' : 'text-slate-700'
                                   }`}>
                                     {module.title}
                                   </span>
                                 </div>
-                                <div className="flex items-center gap-1">
+                                <div className="flex items-center gap-1 flex-shrink-0">
                                   {hasQuiz && (
                                     <div className={`w-2 h-2 rounded-full ${
                                       quizPassed ? 'bg-green-500' : 'bg-amber-400'
@@ -495,14 +498,14 @@ export default function ClinicalCasePage() {
           </div>
 
           {/* Right: Module Content */}
-          <div className="lg:col-span-2">
+          <div className="lg:col-span-2 min-w-0">
             {selectedModule ? (
               <div ref={el => { moduleRefs.current[selectedModule.id] = el }}>
                 <div className="bg-white rounded-xl shadow-lg overflow-hidden mb-6">
                   {/* Module Header */}
                   <div className="bg-gradient-to-r from-amber-50 to-orange-50 p-6 border-b-2 border-amber-100">
                     <div className="flex items-start justify-between">
-                      <div>
+                      <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2 mb-2">
                           {getContentTypeIcon(selectedModule.content_type)}
                           <span className="text-xs font-semibold text-amber-700 uppercase">
@@ -514,7 +517,7 @@ export default function ClinicalCasePage() {
                         </h2>
                       </div>
                       {moduleProgress[selectedModule.id]?.completed && (
-                        <div className="flex items-center gap-2 px-3 py-1 bg-green-100 rounded-full">
+                        <div className="flex items-center gap-2 px-3 py-1 bg-green-100 rounded-full flex-shrink-0">
                           <CheckCircle className="h-4 w-4 text-green-600" />
                           <span className="text-sm font-semibold text-green-700">Complété</span>
                         </div>
@@ -523,7 +526,7 @@ export default function ClinicalCasePage() {
                   </div>
 
                   {/* Module Content */}
-                  <div className="p-6">
+                  <div className="p-6 overflow-hidden">
                     {/* Video */}
                     {selectedModule.vimeo_url && (
                       <div className="mb-6">
@@ -539,21 +542,32 @@ export default function ClinicalCasePage() {
                       </div>
                     )}
 
-                    {/* Image */}
-                    {selectedModule.image_url && (
+                    {/* Images */}
+                    {selectedModule.images && selectedModule.images.length > 0 ? (
+                      <div className="mb-6 space-y-4">
+                        {selectedModule.images.map((imageUrl: string, idx: number) => (
+                          <img
+                            key={idx}
+                            src={imageUrl}
+                            alt={`${selectedModule.title} - Image ${idx + 1}`}
+                            className="max-w-full h-auto rounded-xl shadow-lg"
+                          />
+                        ))}
+                      </div>
+                    ) : selectedModule.image_url ? (
                       <div className="mb-6">
                         <img
                           src={selectedModule.image_url}
                           alt={selectedModule.title}
-                          className="w-full rounded-xl shadow-lg"
+                          className="max-w-full h-auto rounded-xl shadow-lg"
                         />
                       </div>
-                    )}
+                    ) : null}
 
                     {/* Description HTML */}
                     {selectedModule.description_html && (
                       <div
-                        className="prose prose-slate max-w-none mb-6"
+                        className="prose prose-slate max-w-none mb-6 overflow-x-auto"
                         dangerouslySetInnerHTML={{ __html: selectedModule.description_html }}
                       />
                     )}

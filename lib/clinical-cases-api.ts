@@ -37,6 +37,7 @@ export type ClinicalCaseModule = {
   content_type: 'video' | 'image' | 'text' | 'mixed'
   vimeo_url?: string
   image_url?: string
+  images?: string[]
   description_html?: string
   order_index: number
   duration_minutes: number
