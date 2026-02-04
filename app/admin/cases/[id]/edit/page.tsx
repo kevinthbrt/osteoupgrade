@@ -22,7 +22,8 @@ import {
   Upload,
   Edit3,
   Layers,
-  GripVertical
+  GripVertical,
+  X
 } from 'lucide-react'
 import {
   getCaseById,
@@ -83,9 +84,61 @@ export default function EditCasePage() {
     description_html: '',
     duration_minutes: 10
   })
+  const [newModuleImageUrls, setNewModuleImageUrls] = useState<string[]>([])
+  const [newModuleImageInput, setNewModuleImageInput] = useState('')
 
   const [editChapterData, setEditChapterData] = useState<Partial<ClinicalCaseChapter>>({})
   const [editModuleData, setEditModuleData] = useState<Partial<ClinicalCaseModule>>({})
+  const [editModuleImageUrls, setEditModuleImageUrls] = useState<string[]>([])
+  const [editModuleImageInput, setEditModuleImageInput] = useState('')
+
+  const parseImageUrls = (value?: string | null) => {
+    if (!value) return []
+    try {
+      const parsed = JSON.parse(value)
+      if (Array.isArray(parsed)) {
+        return parsed.map(String).filter(url => url.trim().length > 0)
+      }
+    } catch (error) {
+      console.warn('Impossible de parser les URLs images, utilisation brute.', error)
+    }
+
+    return value
+      .split('\n')
+      .map(url => url.trim())
+      .filter(Boolean)
+  }
+
+  const serializeImageUrls = (urls: string[]) => {
+    const cleaned = urls.map(url => url.trim()).filter(Boolean)
+    if (cleaned.length === 0) return ''
+    if (cleaned.length === 1) return cleaned[0]
+    return JSON.stringify(cleaned)
+  }
+
+  const uploadImages = async (files: File[]) => {
+    const uploadedUrls = await Promise.all(
+      files.map(async (file) => {
+        const fileExt = file.name.split('.').pop() || 'png'
+        const fileName = `${crypto.randomUUID()}.${fileExt}`
+        const filePath = `cases/${fileName}`
+
+        const { error: uploadError } = await supabase.storage
+          .from('public')
+          .upload(filePath, file)
+
+        if (uploadError) throw uploadError
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('public')
+          .getPublicUrl(filePath)
+
+        return publicUrl
+      })
+    )
+
+    return uploadedUrls
+  }
 
   useEffect(() => {
     loadData()
@@ -273,13 +326,14 @@ export default function EditCasePage() {
     try {
       const chapter = chapters.find(c => c.id === chapterId)
       if (!chapter) return
+      const serializedImages = serializeImageUrls(newModuleImageUrls)
 
       const created = await createModule({
         chapter_id: chapterId,
         title: newModule.title,
         content_type: newModule.content_type,
         vimeo_url: newModule.vimeo_url || undefined,
-        image_url: newModule.image_url || undefined,
+        image_url: serializedImages || undefined,
         description_html: newModule.description_html || undefined,
         order_index: chapter.modules.length,
         duration_minutes: newModule.duration_minutes
@@ -295,6 +349,8 @@ export default function EditCasePage() {
           description_html: '',
           duration_minutes: 10
         })
+        setNewModuleImageUrls([])
+        setNewModuleImageInput('')
         setShowAddModule(null)
         await loadData()
         setTimeout(() => setSuccess(''), 3000)
@@ -317,10 +373,16 @@ export default function EditCasePage() {
     setError('')
 
     try {
-      const success = await updateModule(moduleId, editModuleData)
+      const serializedImages = serializeImageUrls(editModuleImageUrls)
+      const success = await updateModule(moduleId, {
+        ...editModuleData,
+        image_url: serializedImages || undefined
+      })
       if (success) {
         setSuccess('Module mis à jour !')
         setEditingModule(null)
+        setEditModuleImageUrls([])
+        setEditModuleImageInput('')
         await loadData()
         setTimeout(() => setSuccess(''), 3000)
       }
@@ -348,35 +410,45 @@ export default function EditCasePage() {
     }
   }
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'case' | 'module') => {
-    const file = e.target.files?.[0]
-    if (!file) return
+  const handleImageUpload = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+    type: 'case' | 'module' | 'edit-module'
+  ) => {
+    const files = Array.from(e.target.files ?? [])
+    if (files.length === 0) return
+    e.target.value = ''
 
     setSaving(true)
     setError('')
 
     try {
-      const fileExt = file.name.split('.').pop()
-      const fileName = `${Date.now()}.${fileExt}`
-      const filePath = `cases/${fileName}`
-
-      const { error: uploadError } = await supabase.storage
-        .from('public')
-        .upload(filePath, file)
-
-      if (uploadError) throw uploadError
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('public')
-        .getPublicUrl(filePath)
-
       if (type === 'case') {
+        const [file] = files
+        if (!file) return
+        const [publicUrl] = await uploadImages([file])
         setClinicalCase(prev => prev ? { ...prev, photo_url: publicUrl } : null)
-      } else {
-        setNewModule(prev => ({ ...prev, image_url: publicUrl }))
+        setSuccess('Image uploadée !')
+        setTimeout(() => setSuccess(''), 3000)
+        return
       }
 
-      setSuccess('Image uploadée !')
+      const uploadedUrls = await uploadImages(files)
+
+      if (type === 'module') {
+        setNewModuleImageUrls(prev => {
+          const updated = [...prev, ...uploadedUrls]
+          setNewModule(module => ({ ...module, image_url: serializeImageUrls(updated) }))
+          return updated
+        })
+      } else {
+        setEditModuleImageUrls(prev => {
+          const updated = [...prev, ...uploadedUrls]
+          setEditModuleData(module => ({ ...module, image_url: serializeImageUrls(updated) }))
+          return updated
+        })
+      }
+
+      setSuccess('Images uploadées !')
       setTimeout(() => setSuccess(''), 3000)
     } catch (err: any) {
       console.error('Error uploading image:', err)
@@ -780,19 +852,74 @@ export default function EditCasePage() {
                           )}
                           {(newModule.content_type === 'image' || newModule.content_type === 'mixed') && (
                             <div>
-                              <input
-                                type="text"
-                                value={newModule.image_url}
-                                onChange={(e) => setNewModule({ ...newModule, image_url: e.target.value })}
-                                className="w-full px-4 py-2 border-2 border-slate-200 rounded-lg mb-2"
-                                placeholder="URL Image"
-                              />
-                              <input
-                                type="file"
-                                accept="image/*"
-                                onChange={(e) => handleImageUpload(e, 'module')}
-                                className="text-sm"
-                              />
+                              <div className="space-y-3">
+                                <div className="flex flex-wrap items-center gap-3">
+                                  <input
+                                    id="new-module-images"
+                                    type="file"
+                                    accept="image/*"
+                                    multiple
+                                    onChange={(e) => handleImageUpload(e, 'module')}
+                                    className="hidden"
+                                  />
+                                  <label
+                                    htmlFor="new-module-images"
+                                    className="inline-flex items-center gap-2 px-4 py-2 bg-white border-2 border-blue-200 rounded-lg text-blue-700 font-semibold hover:bg-blue-50 cursor-pointer"
+                                  >
+                                    <Upload className="h-4 w-4" />
+                                    Parcourir
+                                  </label>
+                                  <span className="text-sm text-slate-500">
+                                    Ajoutez une ou plusieurs images
+                                  </span>
+                                </div>
+                                <div className="flex flex-wrap gap-2">
+                                  <input
+                                    type="text"
+                                    value={newModuleImageInput}
+                                    onChange={(e) => setNewModuleImageInput(e.target.value)}
+                                    className="flex-1 min-w-[220px] px-4 py-2 border-2 border-slate-200 rounded-lg"
+                                    placeholder="URL d'image (optionnel)"
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      if (!newModuleImageInput.trim()) return
+                                      setNewModuleImageUrls(prev => {
+                                        const updated = [...prev, newModuleImageInput.trim()]
+                                        setNewModule(module => ({ ...module, image_url: serializeImageUrls(updated) }))
+                                        return updated
+                                      })
+                                      setNewModuleImageInput('')
+                                    }}
+                                    className="px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700"
+                                  >
+                                    Ajouter
+                                  </button>
+                                </div>
+                                {newModuleImageUrls.length > 0 && (
+                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    {newModuleImageUrls.map((url, index) => (
+                                      <div key={`${url}-${index}`} className="relative border border-slate-200 rounded-lg overflow-hidden">
+                                        <img src={url} alt={`Image ${index + 1}`} className="h-32 w-full object-cover" />
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            setNewModuleImageUrls(prev => {
+                                              const updated = prev.filter((_, idx) => idx !== index)
+                                              setNewModule(module => ({ ...module, image_url: serializeImageUrls(updated) }))
+                                              return updated
+                                            })
+                                          }}
+                                          className="absolute top-2 right-2 p-1.5 rounded-full bg-white/90 text-slate-600 hover:text-red-600"
+                                        >
+                                          <X className="h-4 w-4" />
+                                        </button>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
                             </div>
                           )}
                           <textarea
@@ -811,7 +938,11 @@ export default function EditCasePage() {
                           />
                           <div className="flex gap-2">
                             <button
-                              onClick={() => setShowAddModule(null)}
+                              onClick={() => {
+                                setShowAddModule(null)
+                                setNewModuleImageUrls([])
+                                setNewModuleImageInput('')
+                              }}
                               className="px-4 py-2 border-2 border-slate-300 rounded-lg font-semibold hover:bg-slate-50"
                             >
                               Annuler
@@ -859,14 +990,16 @@ export default function EditCasePage() {
                               >
                                 Quiz
                               </button>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  setEditingModule(module.id)
-                                  setEditModuleData(module)
-                                }}
-                                className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg"
-                              >
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    setEditingModule(module.id)
+                                    setEditModuleData(module)
+                                    setEditModuleImageUrls(parseImageUrls(module.image_url))
+                                    setEditModuleImageInput('')
+                                  }}
+                                  className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg"
+                                >
                                 <Edit3 className="h-4 w-4" />
                               </button>
                               <button
@@ -930,13 +1063,74 @@ export default function EditCasePage() {
                                   />
                                 )}
                                 {(editModuleData.content_type === 'image' || editModuleData.content_type === 'mixed') && (
-                                  <input
-                                    type="text"
-                                    value={editModuleData.image_url || ''}
-                                    onChange={(e) => setEditModuleData({ ...editModuleData, image_url: e.target.value })}
-                                    className="w-full px-4 py-2 border-2 border-slate-200 rounded-lg"
-                                    placeholder="URL Image"
-                                  />
+                                  <div className="space-y-3">
+                                    <div className="flex flex-wrap items-center gap-3">
+                                      <input
+                                        id={`edit-module-images-${module.id}`}
+                                        type="file"
+                                        accept="image/*"
+                                        multiple
+                                        onChange={(e) => handleImageUpload(e, 'edit-module')}
+                                        className="hidden"
+                                      />
+                                      <label
+                                        htmlFor={`edit-module-images-${module.id}`}
+                                        className="inline-flex items-center gap-2 px-4 py-2 bg-white border-2 border-blue-200 rounded-lg text-blue-700 font-semibold hover:bg-blue-50 cursor-pointer"
+                                      >
+                                        <Upload className="h-4 w-4" />
+                                        Parcourir
+                                      </label>
+                                      <span className="text-sm text-slate-500">
+                                        Ajoutez une ou plusieurs images
+                                      </span>
+                                    </div>
+                                    <div className="flex flex-wrap gap-2">
+                                      <input
+                                        type="text"
+                                        value={editModuleImageInput}
+                                        onChange={(e) => setEditModuleImageInput(e.target.value)}
+                                        className="flex-1 min-w-[220px] px-4 py-2 border-2 border-slate-200 rounded-lg"
+                                        placeholder="URL d'image (optionnel)"
+                                      />
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          if (!editModuleImageInput.trim()) return
+                                          setEditModuleImageUrls(prev => {
+                                            const updated = [...prev, editModuleImageInput.trim()]
+                                            setEditModuleData(data => ({ ...data, image_url: serializeImageUrls(updated) }))
+                                            return updated
+                                          })
+                                          setEditModuleImageInput('')
+                                        }}
+                                        className="px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700"
+                                      >
+                                        Ajouter
+                                      </button>
+                                    </div>
+                                    {editModuleImageUrls.length > 0 && (
+                                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                        {editModuleImageUrls.map((url, index) => (
+                                          <div key={`${url}-${index}`} className="relative border border-slate-200 rounded-lg overflow-hidden">
+                                            <img src={url} alt={`Image ${index + 1}`} className="h-32 w-full object-cover" />
+                                            <button
+                                              type="button"
+                                              onClick={() => {
+                                                setEditModuleImageUrls(prev => {
+                                                  const updated = prev.filter((_, idx) => idx !== index)
+                                                  setEditModuleData(data => ({ ...data, image_url: serializeImageUrls(updated) }))
+                                                  return updated
+                                                })
+                                              }}
+                                              className="absolute top-2 right-2 p-1.5 rounded-full bg-white/90 text-slate-600 hover:text-red-600"
+                                            >
+                                              <X className="h-4 w-4" />
+                                            </button>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    )}
+                                  </div>
                                 )}
                                 <textarea
                                   value={editModuleData.description_html || ''}
@@ -954,7 +1148,11 @@ export default function EditCasePage() {
                                 />
                                 <div className="flex gap-2">
                                   <button
-                                    onClick={() => setEditingModule(null)}
+                                    onClick={() => {
+                                      setEditingModule(null)
+                                      setEditModuleImageUrls([])
+                                      setEditModuleImageInput('')
+                                    }}
                                     className="px-4 py-2 border-2 border-slate-300 rounded-lg font-semibold hover:bg-slate-50"
                                   >
                                     Annuler
