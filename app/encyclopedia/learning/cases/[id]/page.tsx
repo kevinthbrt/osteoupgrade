@@ -409,10 +409,10 @@ export default function ClinicalCasePage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="flex flex-col xl:flex-row gap-8">
           {/* Left: Chapters & Modules Navigation */}
-          <div className="lg:col-span-1 min-w-0 space-y-4">
-            <div className="lg:sticky lg:top-8 bg-white rounded-xl shadow-sm p-4 max-h-[calc(100vh-6rem)] overflow-y-auto">
+          <div className="w-full xl:w-80 xl:flex-shrink-0">
+            <div className="xl:sticky xl:top-8 bg-white rounded-xl shadow-sm p-4 xl:max-h-[calc(100vh-6rem)] xl:overflow-y-auto">
               <h3 className="font-bold text-slate-900 mb-4 flex items-center gap-2">
                 <BookOpen className="h-5 w-5 text-amber-600" />
                 Table des matières
@@ -498,7 +498,7 @@ export default function ClinicalCasePage() {
           </div>
 
           {/* Right: Module Content */}
-          <div className="lg:col-span-2 min-w-0">
+          <div className="flex-1 min-w-0">
             {selectedModule ? (
               <div ref={el => { moduleRefs.current[selectedModule.id] = el }}>
                 <div className="bg-white rounded-xl shadow-lg overflow-hidden mb-6">
