@@ -79,6 +79,14 @@ export default function ClinicalCasePage() {
     loadData()
   }, [caseId])
 
+  useEffect(() => {
+    if (!selectedModuleId) return
+    const target = moduleRefs.current[selectedModuleId]
+    if (target) {
+      target.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+  }, [selectedModuleId])
+
   const loadData = async () => {
     try {
       const payload = await fetchProfilePayload()
@@ -296,6 +304,23 @@ export default function ClinicalCasePage() {
     }
   }
 
+  const getImageUrls = (imageUrl?: string | null) => {
+    if (!imageUrl) return []
+    try {
+      const parsed = JSON.parse(imageUrl)
+      if (Array.isArray(parsed)) {
+        return parsed.map(String).filter(Boolean)
+      }
+    } catch (error) {
+      console.warn('Impossible de parser les images du module, utilisation brute.', error)
+    }
+
+    return imageUrl
+      .split('\n')
+      .map(url => url.trim())
+      .filter(Boolean)
+  }
+
   if (loading) {
     return (
       <AuthLayout>
@@ -344,6 +369,7 @@ export default function ClinicalCasePage() {
   const selectedModule = chapters
     .flatMap(c => c.modules)
     .find(m => m.id === selectedModuleId)
+  const selectedModuleImageUrls = selectedModule ? getImageUrls(selectedModule.image_url) : []
 
   const totalModules = chapters.flatMap(c => c.modules).length
   const completedModulesCount = Object.values(moduleProgress).filter(p => p.completed).length
@@ -539,14 +565,18 @@ export default function ClinicalCasePage() {
                       </div>
                     )}
 
-                    {/* Image */}
-                    {selectedModule.image_url && (
-                      <div className="mb-6">
-                        <img
-                          src={selectedModule.image_url}
-                          alt={selectedModule.title}
-                          className="w-full rounded-xl shadow-lg"
-                        />
+                    {/* Images */}
+                    {selectedModuleImageUrls.length > 0 && (
+                      <div className="mb-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        {selectedModuleImageUrls.map((url, index) => (
+                          <div key={`${url}-${index}`} className="overflow-hidden rounded-xl shadow-lg bg-white">
+                            <img
+                              src={url}
+                              alt={`${selectedModule.title} - ${index + 1}`}
+                              className="h-64 w-full object-contain bg-white"
+                            />
+                          </div>
+                        ))}
                       </div>
                     )}
 
