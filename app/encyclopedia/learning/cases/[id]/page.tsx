@@ -409,43 +409,36 @@ export default function ClinicalCasePage() {
           </div>
         </div>
 
-        <div className="flex flex-col xl:flex-row gap-6" style={{ maxWidth: '100%' }}>
-          {/* Left: Chapters & Modules Navigation - fixed width sidebar */}
-          <aside className="w-full xl:w-[300px] xl:min-w-[300px] xl:max-w-[300px] flex-shrink-0">
-            <div className="xl:sticky xl:top-4 bg-white rounded-xl shadow-sm p-4 xl:max-h-[calc(100vh-2rem)] xl:overflow-y-auto">
-              <h3 className="font-bold text-slate-900 mb-4 flex items-center gap-2">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Left: Chapters & Modules Navigation */}
+          <div className="lg:col-span-1 space-y-4">
+            <div className="bg-gradient-to-br from-slate-50 to-amber-50 rounded-xl p-4 border border-slate-200 sticky top-4">
+              <div className="flex items-center gap-3 mb-4">
                 <BookOpen className="h-5 w-5 text-amber-600" />
-                Table des matières
-              </h3>
+                <h3 className="text-lg font-bold text-slate-900">Table des matières</h3>
+              </div>
 
               <div className="space-y-2">
                 {chapters.map((chapter, chapterIdx) => (
-                  <div key={chapter.id} className="border-2 border-slate-200 rounded-xl overflow-hidden">
-                    {/* Chapter Header */}
+                  <div key={chapter.id} className="space-y-1">
                     <button
                       onClick={() => toggleChapter(chapter.id)}
-                      className="w-full px-3 py-2.5 bg-slate-50 hover:bg-slate-100 transition-colors flex items-center justify-between gap-1"
+                      className="w-full flex items-center justify-between bg-white rounded-lg px-3 py-2 hover:bg-amber-50 transition-colors border border-slate-200"
                     >
-                      <div className="flex items-center gap-1.5 min-w-0">
-                        <span className="text-xs font-bold text-amber-600 flex-shrink-0 whitespace-nowrap">
-                          Ch.{chapterIdx + 1}
-                        </span>
-                        <span className="text-sm font-semibold text-slate-900 truncate">
-                          {chapter.title}
-                        </span>
+                      <div className="flex items-center gap-2">
+                        <ChevronRight
+                          className={`h-4 w-4 text-amber-600 transition-transform ${
+                            expandedChapters[chapter.id] ? 'rotate-90' : ''
+                          }`}
+                        />
+                        <Layers className="h-4 w-4 text-amber-600" />
+                        <span className="font-semibold text-gray-900 text-sm">{chapter.title}</span>
                       </div>
-                      <div className="flex-shrink-0 ml-1">
-                        {expandedChapters[chapter.id] ? (
-                          <ChevronDown className="h-4 w-4 text-slate-600" />
-                        ) : (
-                          <ChevronRight className="h-4 w-4 text-slate-600" />
-                        )}
-                      </div>
+                      <span className="text-xs text-gray-500">{chapter.modules.length}</span>
                     </button>
 
-                    {/* Modules List */}
                     {expandedChapters[chapter.id] && (
-                      <div className="p-1.5 space-y-0.5">
+                      <div className="ml-6 space-y-1">
                         {chapter.modules.map((module) => {
                           const isCompleted = moduleProgress[module.id]?.completed
                           const isSelected = selectedModuleId === module.id
@@ -456,31 +449,35 @@ export default function ClinicalCasePage() {
                             <button
                               key={module.id}
                               onClick={() => handleModuleClick(module.id)}
-                              className={`w-full px-2 py-1.5 rounded-lg text-left transition-all ${
+                              className={`w-full flex items-start gap-2 p-2 rounded-lg text-left transition-colors ${
                                 isSelected
-                                  ? 'bg-amber-100 border-2 border-amber-300'
-                                  : 'hover:bg-slate-50 border-2 border-transparent'
+                                  ? 'bg-amber-100 border-2 border-amber-400'
+                                  : 'hover:bg-slate-100 border border-transparent'
                               }`}
                             >
-                              <div className="flex items-center gap-1.5">
-                                <div className={`flex-shrink-0 ${
-                                  isCompleted ? 'text-green-600' : 'text-slate-400'
-                                }`}>
-                                  {getContentTypeIcon(module.content_type)}
-                                </div>
-                                <span className={`text-xs font-medium truncate flex-1 ${
-                                  isSelected ? 'text-amber-900' : 'text-slate-700'
-                                }`}>
+                              <div className={`mt-0.5 shrink-0 ${
+                                isCompleted ? 'text-green-600' : 'text-slate-400'
+                              }`}>
+                                {getContentTypeIcon(module.content_type)}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="text-sm font-medium text-gray-900 truncate">
                                   {module.title}
-                                </span>
-                                <div className="flex items-center gap-0.5 flex-shrink-0">
-                                  {hasQuiz && (
-                                    <div className={`w-1.5 h-1.5 rounded-full ${
-                                      quizPassed ? 'bg-green-500' : 'bg-amber-400'
-                                    }`} title={quizPassed ? 'Quiz réussi' : 'Quiz disponible'} />
-                                  )}
+                                </div>
+                                <div className="flex items-center gap-2 mt-1">
                                   {isCompleted && (
-                                    <CheckCircle className="h-3.5 w-3.5 text-green-600" />
+                                    <span className="inline-flex items-center gap-1 text-xs text-emerald-600">
+                                      <CheckCircle className="h-3 w-3" />
+                                    </span>
+                                  )}
+                                  {hasQuiz && (
+                                    <span className="inline-flex items-center gap-1 text-xs">
+                                      {quizPassed ? (
+                                        <Trophy className="h-3 w-3 text-emerald-600" />
+                                      ) : (
+                                        <Target className="h-3 w-3 text-amber-600" />
+                                      )}
+                                    </span>
                                   )}
                                 </div>
                               </div>
@@ -493,56 +490,50 @@ export default function ClinicalCasePage() {
                 ))}
               </div>
             </div>
-          </aside>
+          </div>
 
           {/* Right: Module Content */}
-          <div className="flex-1 min-w-0 overflow-hidden">
+          <div className="lg:col-span-2">
             {selectedModule ? (
               <div ref={el => { moduleRefs.current[selectedModule.id] = el }}>
-                <div className="bg-white rounded-xl shadow-lg overflow-hidden mb-6">
+                <div className="bg-white rounded-xl border border-slate-200 overflow-hidden mb-6">
                   {/* Module Header */}
-                  <div className="bg-gradient-to-r from-amber-50 to-orange-50 p-6 border-b-2 border-amber-100">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2 mb-2">
-                          {getContentTypeIcon(selectedModule.content_type)}
-                          <span className="text-xs font-semibold text-amber-700 uppercase">
-                            {selectedModule.content_type}
-                          </span>
-                        </div>
-                        <h2 className="text-2xl font-bold text-slate-900">
-                          {selectedModule.title}
-                        </h2>
-                      </div>
+                  <div className="bg-gradient-to-r from-amber-500 to-orange-600 px-6 py-4 text-white">
+                    <div className="flex items-center gap-3 mb-2">
+                      {getContentTypeIcon(selectedModule.content_type)}
+                      <span className="text-sm font-semibold opacity-90">
+                        {selectedModule.content_type === 'video' ? 'Vidéo' :
+                         selectedModule.content_type === 'image' ? 'Image' :
+                         selectedModule.content_type === 'text' ? 'Texte' : 'Mixte'}
+                      </span>
                       {moduleProgress[selectedModule.id]?.completed && (
-                        <div className="flex items-center gap-2 px-3 py-1 bg-green-100 rounded-full flex-shrink-0">
-                          <CheckCircle className="h-4 w-4 text-green-600" />
-                          <span className="text-sm font-semibold text-green-700">Complété</span>
-                        </div>
+                        <span className="inline-flex items-center gap-1 ml-auto text-xs bg-white/20 px-2 py-1 rounded-full">
+                          <CheckCircle className="h-3 w-3" />
+                          Complété
+                        </span>
                       )}
                     </div>
+                    <h2 className="text-2xl font-bold">{selectedModule.title}</h2>
                   </div>
 
                   {/* Module Content */}
-                  <div className="p-6">
+                  <div className="p-6 space-y-6">
                     {/* Video */}
                     {selectedModule.vimeo_url && (
-                      <div className="mb-6">
-                        <div className="relative rounded-xl overflow-hidden shadow-lg" style={{ paddingBottom: '56.25%' }}>
-                          <iframe
-                            src={getVimeoEmbedUrl(selectedModule.vimeo_url)}
-                            className="absolute inset-0 w-full h-full"
-                            frameBorder="0"
-                            allow="autoplay; fullscreen; picture-in-picture"
-                            allowFullScreen
-                          />
-                        </div>
+                      <div className="relative w-full overflow-hidden rounded-xl border-2 border-gray-200 bg-black aspect-video shadow-lg">
+                        <iframe
+                          src={getVimeoEmbedUrl(selectedModule.vimeo_url)}
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                          allowFullScreen
+                          className="absolute inset-0 h-full w-full"
+                          title={`Vimeo - ${selectedModule.title}`}
+                        />
                       </div>
                     )}
 
                     {/* Images */}
                     {selectedModule.images && selectedModule.images.length > 0 ? (
-                      <div className="mb-6 space-y-4">
+                      <div className="space-y-4">
                         {selectedModule.images.map((imageUrl: string, idx: number) => (
                           <img
                             key={idx}
@@ -553,7 +544,7 @@ export default function ClinicalCasePage() {
                         ))}
                       </div>
                     ) : selectedModule.image_url ? (
-                      <div className="mb-6">
+                      <div>
                         <img
                           src={selectedModule.image_url}
                           alt={selectedModule.title}
@@ -565,28 +556,29 @@ export default function ClinicalCasePage() {
                     {/* Description HTML */}
                     {selectedModule.description_html && (
                       <div
-                        className="prose prose-slate max-w-none mb-6 overflow-x-auto break-words"
-                        style={{ wordBreak: 'break-word' }}
+                        className="prose prose-sm max-w-none text-gray-700"
                         dangerouslySetInnerHTML={{ __html: selectedModule.description_html }}
                       />
                     )}
 
                     {/* Mark Complete Button */}
                     {!moduleProgress[selectedModule.id]?.completed && !selectedModule.quiz && (
-                      <button
-                        onClick={() => handleMarkModuleComplete(selectedModule.id)}
-                        className="w-full px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-xl font-semibold transition-all flex items-center justify-center gap-2"
-                      >
-                        <CheckCircle className="h-5 w-5" />
-                        Marquer comme terminé
-                      </button>
+                      <div className="pt-4 border-t border-gray-200">
+                        <button
+                          onClick={() => handleMarkModuleComplete(selectedModule.id)}
+                          className="inline-flex items-center gap-2 px-6 py-3 bg-amber-600 text-white rounded-xl text-sm font-semibold border-2 border-amber-600 hover:bg-amber-700 transition-all"
+                        >
+                          <CheckCircle className="h-5 w-5" />
+                          Marquer comme terminé
+                        </button>
+                      </div>
                     )}
                   </div>
                 </div>
 
                 {/* Quiz Section */}
                 {selectedModule.quiz && profile && !showQuiz && (
-                  <div className="bg-white rounded-xl shadow-lg p-6">
+                  <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl p-6 border-2 border-amber-200">
                     <div className="text-center space-y-4">
                       <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-amber-400 to-orange-600 mb-4">
                         <Trophy className="h-8 w-8 text-white" />
@@ -617,9 +609,9 @@ export default function ClinicalCasePage() {
                 )}
               </div>
             ) : (
-              <div className="bg-white rounded-xl shadow-sm p-12 text-center">
-                <Target className="h-16 w-16 text-slate-300 mx-auto mb-4" />
-                <h3 className="text-xl font-semibold text-slate-900 mb-2">
+              <div className="bg-slate-50 rounded-xl border-2 border-dashed border-slate-200 p-12 text-center">
+                <Target className="h-16 w-16 text-slate-400 mx-auto mb-4" />
+                <h3 className="text-lg font-semibold text-slate-900 mb-2">
                   Sélectionnez un module
                 </h3>
                 <p className="text-slate-600">
