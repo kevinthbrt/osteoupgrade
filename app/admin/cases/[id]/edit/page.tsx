@@ -376,7 +376,7 @@ export default function EditCasePage() {
       const serializedImages = serializeImageUrls(editModuleImageUrls)
       const success = await updateModule(moduleId, {
         ...editModuleData,
-        image_url: serializedImages || null
+        image_url: serializedImages || undefined
       })
       if (success) {
         setSuccess('Module mis à jour !')
