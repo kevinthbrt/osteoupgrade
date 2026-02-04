@@ -82,7 +82,10 @@ export default function ClinicalCasePage() {
   useEffect(() => {
     if (!selectedModuleId) return
     const target = moduleRefs.current[selectedModuleId]
-    if (target) {
+    if (!target) return
+    const rect = target.getBoundingClientRect()
+    const isFullyVisible = rect.top >= 0 && rect.bottom <= window.innerHeight
+    if (!isFullyVisible) {
       target.scrollIntoView({ behavior: 'smooth', block: 'start' })
     }
   }, [selectedModuleId])
@@ -523,7 +526,10 @@ export default function ClinicalCasePage() {
           {/* Right: Module Content */}
           <div className="lg:col-span-2">
             {selectedModule ? (
-              <div ref={el => { moduleRefs.current[selectedModule.id] = el }}>
+              <div
+                ref={el => { moduleRefs.current[selectedModule.id] = el }}
+                className="scroll-mt-24"
+              >
                 <div className="bg-white rounded-xl shadow-lg overflow-hidden mb-6">
                   {/* Module Header */}
                   <div className="bg-gradient-to-r from-amber-50 to-orange-50 p-6 border-b-2 border-amber-100">
