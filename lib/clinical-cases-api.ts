@@ -404,7 +404,7 @@ export async function getModuleQuiz(moduleId: string): Promise<ClinicalCaseQuiz 
     .select('*')
     .eq('module_id', moduleId)
     .eq('is_active', true)
-    .single()
+    .maybeSingle()
 
   if (error) {
     console.error('Error fetching quiz:', error)

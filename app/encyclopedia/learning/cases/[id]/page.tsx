@@ -351,7 +351,7 @@ export default function ClinicalCasePage() {
 
   return (
     <AuthLayout>
-      <div className="min-h-screen pb-12">
+      <div className="min-h-screen pb-12 overflow-x-hidden">
         {/* Header */}
         <div className="bg-gradient-to-br from-amber-600 via-orange-600 to-red-700 text-white rounded-3xl p-8 mb-8 shadow-2xl">
           <button
@@ -376,7 +376,7 @@ export default function ClinicalCasePage() {
               />
             )}
 
-            <div className="grid grid-cols-4 gap-4 max-w-2xl">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 max-w-2xl">
               <div className="bg-white/10 backdrop-blur-sm rounded-xl p-3 border border-white/20">
                 <div className="text-2xl font-bold">{chapters.length}</div>
                 <div className="text-xs text-amber-200">Chapitres</div>
@@ -409,10 +409,10 @@ export default function ClinicalCasePage() {
           </div>
         </div>
 
-        <div className="flex flex-col xl:flex-row gap-8">
-          {/* Left: Chapters & Modules Navigation */}
-          <div className="w-full xl:w-80 xl:flex-shrink-0">
-            <div className="xl:sticky xl:top-8 bg-white rounded-xl shadow-sm p-4 xl:max-h-[calc(100vh-6rem)] xl:overflow-y-auto">
+        <div className="flex flex-col xl:flex-row gap-6" style={{ maxWidth: '100%' }}>
+          {/* Left: Chapters & Modules Navigation - fixed width sidebar */}
+          <aside className="w-full xl:w-[300px] xl:min-w-[300px] xl:max-w-[300px] flex-shrink-0">
+            <div className="xl:sticky xl:top-4 bg-white rounded-xl shadow-sm p-4 xl:max-h-[calc(100vh-2rem)] xl:overflow-y-auto">
               <h3 className="font-bold text-slate-900 mb-4 flex items-center gap-2">
                 <BookOpen className="h-5 w-5 text-amber-600" />
                 Table des matières
@@ -424,29 +424,29 @@ export default function ClinicalCasePage() {
                     {/* Chapter Header */}
                     <button
                       onClick={() => toggleChapter(chapter.id)}
-                      className="w-full px-4 py-3 bg-slate-50 hover:bg-slate-100 transition-colors flex items-center justify-between gap-2"
+                      className="w-full px-3 py-2.5 bg-slate-50 hover:bg-slate-100 transition-colors flex items-center justify-between gap-1"
                     >
-                      <div className="flex items-center gap-2 min-w-0">
-                        <span className="text-sm font-bold text-amber-600 flex-shrink-0">
-                          Ch. {chapterIdx + 1}
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <span className="text-xs font-bold text-amber-600 flex-shrink-0 whitespace-nowrap">
+                          Ch.{chapterIdx + 1}
                         </span>
                         <span className="text-sm font-semibold text-slate-900 truncate">
                           {chapter.title}
                         </span>
                       </div>
-                      <div className="flex-shrink-0">
+                      <div className="flex-shrink-0 ml-1">
                         {expandedChapters[chapter.id] ? (
-                          <ChevronDown className="h-5 w-5 text-slate-600" />
+                          <ChevronDown className="h-4 w-4 text-slate-600" />
                         ) : (
-                          <ChevronRight className="h-5 w-5 text-slate-600" />
+                          <ChevronRight className="h-4 w-4 text-slate-600" />
                         )}
                       </div>
                     </button>
 
                     {/* Modules List */}
                     {expandedChapters[chapter.id] && (
-                      <div className="p-2 space-y-1">
-                        {chapter.modules.map((module, moduleIdx) => {
+                      <div className="p-1.5 space-y-0.5">
+                        {chapter.modules.map((module) => {
                           const isCompleted = moduleProgress[module.id]?.completed
                           const isSelected = selectedModuleId === module.id
                           const hasQuiz = !!module.quiz
@@ -456,33 +456,31 @@ export default function ClinicalCasePage() {
                             <button
                               key={module.id}
                               onClick={() => handleModuleClick(module.id)}
-                              className={`w-full px-3 py-2 rounded-lg text-left transition-all ${
+                              className={`w-full px-2 py-1.5 rounded-lg text-left transition-all ${
                                 isSelected
                                   ? 'bg-amber-100 border-2 border-amber-300'
                                   : 'hover:bg-slate-50 border-2 border-transparent'
                               }`}
                             >
-                              <div className="flex items-center justify-between gap-2">
-                                <div className="flex items-center gap-2 min-w-0 flex-1">
-                                  <div className={`flex-shrink-0 ${
-                                    isCompleted ? 'text-green-600' : 'text-slate-400'
-                                  }`}>
-                                    {getContentTypeIcon(module.content_type)}
-                                  </div>
-                                  <span className={`text-sm font-medium truncate ${
-                                    isSelected ? 'text-amber-900' : 'text-slate-700'
-                                  }`}>
-                                    {module.title}
-                                  </span>
+                              <div className="flex items-center gap-1.5">
+                                <div className={`flex-shrink-0 ${
+                                  isCompleted ? 'text-green-600' : 'text-slate-400'
+                                }`}>
+                                  {getContentTypeIcon(module.content_type)}
                                 </div>
-                                <div className="flex items-center gap-1 flex-shrink-0">
+                                <span className={`text-xs font-medium truncate flex-1 ${
+                                  isSelected ? 'text-amber-900' : 'text-slate-700'
+                                }`}>
+                                  {module.title}
+                                </span>
+                                <div className="flex items-center gap-0.5 flex-shrink-0">
                                   {hasQuiz && (
-                                    <div className={`w-2 h-2 rounded-full ${
+                                    <div className={`w-1.5 h-1.5 rounded-full ${
                                       quizPassed ? 'bg-green-500' : 'bg-amber-400'
                                     }`} title={quizPassed ? 'Quiz réussi' : 'Quiz disponible'} />
                                   )}
                                   {isCompleted && (
-                                    <CheckCircle className="h-4 w-4 text-green-600" />
+                                    <CheckCircle className="h-3.5 w-3.5 text-green-600" />
                                   )}
                                 </div>
                               </div>
@@ -495,16 +493,16 @@ export default function ClinicalCasePage() {
                 ))}
               </div>
             </div>
-          </div>
+          </aside>
 
           {/* Right: Module Content */}
-          <div className="flex-1 min-w-0">
+          <div className="flex-1 min-w-0 overflow-hidden">
             {selectedModule ? (
               <div ref={el => { moduleRefs.current[selectedModule.id] = el }}>
                 <div className="bg-white rounded-xl shadow-lg overflow-hidden mb-6">
                   {/* Module Header */}
                   <div className="bg-gradient-to-r from-amber-50 to-orange-50 p-6 border-b-2 border-amber-100">
-                    <div className="flex items-start justify-between">
+                    <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2 mb-2">
                           {getContentTypeIcon(selectedModule.content_type)}
@@ -512,7 +510,7 @@ export default function ClinicalCasePage() {
                             {selectedModule.content_type}
                           </span>
                         </div>
-                        <h2 className="text-2xl font-bold text-slate-900 mb-2">
+                        <h2 className="text-2xl font-bold text-slate-900">
                           {selectedModule.title}
                         </h2>
                       </div>
@@ -526,7 +524,7 @@ export default function ClinicalCasePage() {
                   </div>
 
                   {/* Module Content */}
-                  <div className="p-6 overflow-hidden">
+                  <div className="p-6">
                     {/* Video */}
                     {selectedModule.vimeo_url && (
                       <div className="mb-6">
@@ -567,7 +565,8 @@ export default function ClinicalCasePage() {
                     {/* Description HTML */}
                     {selectedModule.description_html && (
                       <div
-                        className="prose prose-slate max-w-none mb-6 overflow-x-auto"
+                        className="prose prose-slate max-w-none mb-6 overflow-x-auto break-words"
+                        style={{ wordBreak: 'break-word' }}
                         dangerouslySetInnerHTML={{ __html: selectedModule.description_html }}
                       />
                     )}
