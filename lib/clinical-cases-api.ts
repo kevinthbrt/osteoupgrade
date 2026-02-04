@@ -37,6 +37,7 @@ export type ClinicalCaseModule = {
   content_type: 'video' | 'image' | 'text' | 'mixed'
   vimeo_url?: string
   image_url?: string
+  images?: string[]
   description_html?: string
   order_index: number
   duration_minutes: number
@@ -403,7 +404,7 @@ export async function getModuleQuiz(moduleId: string): Promise<ClinicalCaseQuiz 
     .select('*')
     .eq('module_id', moduleId)
     .eq('is_active', true)
-    .single()
+    .maybeSingle()
 
   if (error) {
     console.error('Error fetching quiz:', error)

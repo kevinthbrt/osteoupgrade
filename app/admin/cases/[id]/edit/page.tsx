@@ -80,9 +80,11 @@ export default function EditCasePage() {
     content_type: 'text' as 'video' | 'image' | 'text' | 'mixed',
     vimeo_url: '',
     image_url: '',
+    images: [] as string[],
     description_html: '',
     duration_minutes: 10
   })
+  const [uploadingImages, setUploadingImages] = useState(false)
 
   const [editChapterData, setEditChapterData] = useState<Partial<ClinicalCaseChapter>>({})
   const [editModuleData, setEditModuleData] = useState<Partial<ClinicalCaseModule>>({})
@@ -279,7 +281,8 @@ export default function EditCasePage() {
         title: newModule.title,
         content_type: newModule.content_type,
         vimeo_url: newModule.vimeo_url || undefined,
-        image_url: newModule.image_url || undefined,
+        image_url: newModule.images.length > 0 ? newModule.images[0] : (newModule.image_url || undefined),
+        images: newModule.images.length > 0 ? newModule.images : undefined,
         description_html: newModule.description_html || undefined,
         order_index: chapter.modules.length,
         duration_minutes: newModule.duration_minutes
@@ -292,6 +295,7 @@ export default function EditCasePage() {
           content_type: 'text',
           vimeo_url: '',
           image_url: '',
+          images: [],
           description_html: '',
           duration_minutes: 10
         })
@@ -383,6 +387,74 @@ export default function EditCasePage() {
       setError('Erreur lors de l\'upload')
     } finally {
       setSaving(false)
+    }
+  }
+
+  const handleMultiImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, target: 'new' | 'edit') => {
+    const files = e.target.files
+    if (!files || files.length === 0) return
+
+    setUploadingImages(true)
+    setError('')
+
+    try {
+      const uploadedUrls: string[] = []
+
+      for (const file of Array.from(files) as File[]) {
+        const fileExt = file.name.split('.').pop()
+        const fileName = `${Date.now()}_${Math.random().toString(36).substring(2, 8)}.${fileExt}`
+        const filePath = `cases/${fileName}`
+
+        const { error: uploadError } = await supabase.storage
+          .from('public')
+          .upload(filePath, file)
+
+        if (uploadError) throw uploadError
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('public')
+          .getPublicUrl(filePath)
+
+        uploadedUrls.push(publicUrl)
+      }
+
+      if (target === 'new') {
+        setNewModule(prev => ({
+          ...prev,
+          images: [...prev.images, ...uploadedUrls],
+          image_url: prev.images.length === 0 ? uploadedUrls[0] : prev.image_url
+        }))
+      } else {
+        setEditModuleData(prev => ({
+          ...prev,
+          images: [...(prev.images || []), ...uploadedUrls],
+          image_url: (!prev.images || prev.images.length === 0) ? uploadedUrls[0] : prev.image_url
+        }))
+      }
+
+      setSuccess(`${uploadedUrls.length} image${uploadedUrls.length > 1 ? 's' : ''} uploadée${uploadedUrls.length > 1 ? 's' : ''} !`)
+      setTimeout(() => setSuccess(''), 3000)
+    } catch (err: any) {
+      console.error('Error uploading images:', err)
+      setError('Erreur lors de l\'upload des images')
+    } finally {
+      setUploadingImages(false)
+      // Reset the input so the same files can be selected again
+      e.target.value = ''
+    }
+  }
+
+  const removeImage = (index: number, target: 'new' | 'edit') => {
+    if (target === 'new') {
+      setNewModule(prev => {
+        const updated = prev.images.filter((_url: string, i: number) => i !== index)
+        return { ...prev, images: updated, image_url: updated[0] || '' }
+      })
+    } else {
+      setEditModuleData(prev => {
+        const updated = (prev.images || []).filter((_url: string, i: number) => i !== index)
+        return { ...prev, images: updated, image_url: updated[0] || '' }
+      })
     }
   }
 
@@ -779,20 +851,53 @@ export default function EditCasePage() {
                             />
                           )}
                           {(newModule.content_type === 'image' || newModule.content_type === 'mixed') && (
-                            <div>
-                              <input
-                                type="text"
-                                value={newModule.image_url}
-                                onChange={(e) => setNewModule({ ...newModule, image_url: e.target.value })}
-                                className="w-full px-4 py-2 border-2 border-slate-200 rounded-lg mb-2"
-                                placeholder="URL Image"
-                              />
-                              <input
-                                type="file"
-                                accept="image/*"
-                                onChange={(e) => handleImageUpload(e, 'module')}
-                                className="text-sm"
-                              />
+                            <div className="space-y-3">
+                              <label className="block text-sm font-medium text-slate-700">Images</label>
+
+                              {/* Uploaded images preview */}
+                              {newModule.images.length > 0 && (
+                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                                  {newModule.images.map((url, idx) => (
+                                    <div key={idx} className="relative group rounded-lg overflow-hidden border-2 border-slate-200">
+                                      <img src={url} alt={`Image ${idx + 1}`} className="w-full h-32 object-cover" />
+                                      <button
+                                        type="button"
+                                        onClick={() => removeImage(idx, 'new')}
+                                        className="absolute top-1 right-1 p-1 bg-red-600 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                                      >
+                                        <Trash2 className="h-3 w-3" />
+                                      </button>
+                                      <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-xs px-2 py-1">
+                                        Image {idx + 1}
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+
+                              {/* Browse button */}
+                              <label className={`flex items-center justify-center gap-2 w-full px-4 py-3 border-2 border-dashed border-blue-300 text-blue-700 rounded-lg font-semibold cursor-pointer hover:bg-blue-50 transition-colors ${uploadingImages ? 'opacity-50 pointer-events-none' : ''}`}>
+                                {uploadingImages ? (
+                                  <Loader2 className="h-5 w-5 animate-spin" />
+                                ) : (
+                                  <Upload className="h-5 w-5" />
+                                )}
+                                {uploadingImages ? 'Upload en cours...' : 'Parcourir et ajouter des images'}
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  multiple
+                                  onChange={(e) => handleMultiImageUpload(e, 'new')}
+                                  className="hidden"
+                                  disabled={uploadingImages}
+                                />
+                              </label>
+
+                              {newModule.images.length > 0 && (
+                                <p className="text-sm text-slate-500">
+                                  {newModule.images.length} image{newModule.images.length > 1 ? 's' : ''} ajoutée{newModule.images.length > 1 ? 's' : ''}
+                                </p>
+                              )}
                             </div>
                           )}
                           <textarea
@@ -930,13 +1035,54 @@ export default function EditCasePage() {
                                   />
                                 )}
                                 {(editModuleData.content_type === 'image' || editModuleData.content_type === 'mixed') && (
-                                  <input
-                                    type="text"
-                                    value={editModuleData.image_url || ''}
-                                    onChange={(e) => setEditModuleData({ ...editModuleData, image_url: e.target.value })}
-                                    className="w-full px-4 py-2 border-2 border-slate-200 rounded-lg"
-                                    placeholder="URL Image"
-                                  />
+                                  <div className="space-y-3">
+                                    <label className="block text-sm font-medium text-slate-700">Images</label>
+
+                                    {/* Existing images preview */}
+                                    {editModuleData.images && editModuleData.images.length > 0 && (
+                                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                                        {editModuleData.images.map((url, idx) => (
+                                          <div key={idx} className="relative group rounded-lg overflow-hidden border-2 border-slate-200">
+                                            <img src={url} alt={`Image ${idx + 1}`} className="w-full h-32 object-cover" />
+                                            <button
+                                              type="button"
+                                              onClick={() => removeImage(idx, 'edit')}
+                                              className="absolute top-1 right-1 p-1 bg-red-600 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                                            >
+                                              <Trash2 className="h-3 w-3" />
+                                            </button>
+                                            <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-xs px-2 py-1">
+                                              Image {idx + 1}
+                                            </div>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    )}
+
+                                    {/* Browse button */}
+                                    <label className={`flex items-center justify-center gap-2 w-full px-4 py-3 border-2 border-dashed border-blue-300 text-blue-700 rounded-lg font-semibold cursor-pointer hover:bg-blue-50 transition-colors ${uploadingImages ? 'opacity-50 pointer-events-none' : ''}`}>
+                                      {uploadingImages ? (
+                                        <Loader2 className="h-5 w-5 animate-spin" />
+                                      ) : (
+                                        <Upload className="h-5 w-5" />
+                                      )}
+                                      {uploadingImages ? 'Upload en cours...' : 'Parcourir et ajouter des images'}
+                                      <input
+                                        type="file"
+                                        accept="image/*"
+                                        multiple
+                                        onChange={(e) => handleMultiImageUpload(e, 'edit')}
+                                        className="hidden"
+                                        disabled={uploadingImages}
+                                      />
+                                    </label>
+
+                                    {editModuleData.images && editModuleData.images.length > 0 && (
+                                      <p className="text-sm text-slate-500">
+                                        {editModuleData.images.length} image{editModuleData.images.length > 1 ? 's' : ''}
+                                      </p>
+                                    )}
+                                  </div>
                                 )}
                                 <textarea
                                   value={editModuleData.description_html || ''}
