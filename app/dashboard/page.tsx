@@ -218,14 +218,14 @@ export default function Dashboard() {
     {
       id: 'elearning',
       title: 'E-Learning',
-      description: 'Tout le contenu théorique : cours, tests ortho, diagnostics, topographie, quiz et cas pratiques',
+      description: 'Tout le contenu théorique : cours, tests ortho, diagnostics, topographie et quiz',
       icon: GraduationCap,
       href: '/elearning',
       gradient: 'from-blue-500 via-blue-600 to-cyan-600',
       bgPattern: 'bg-blue-50',
       count: '500+ contenus',
       emoji: '📚',
-      features: ['Cours', 'Tests ortho', 'Diagnostics', 'Quiz', 'Cas pratiques']
+      features: ['Cours', 'Tests ortho', 'Diagnostics', 'Quiz']
     },
     {
       id: 'outils',

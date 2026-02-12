@@ -16,6 +16,7 @@ import {
   Lock,
   PlayCircle,
   Save,
+  Trash2,
   Video,
   X,
   Maximize2,
@@ -347,6 +348,22 @@ export default function PracticePage() {
       console.error('Erreur lors de la sauvegarde de la vidéo', error)
     } finally {
       setSaving(false)
+    }
+  }
+
+  const handleDelete = async (videoId: string) => {
+    if (!confirm('Supprimer cette vidéo ? Cette action est irréversible.')) return
+
+    try {
+      const { error } = await supabase
+        .from('practice_videos')
+        .delete()
+        .eq('id', videoId)
+
+      if (error) throw error
+      await fetchVideos()
+    } catch (error) {
+      console.error('Erreur lors de la suppression de la vidéo', error)
     }
   }
 
@@ -867,17 +884,30 @@ export default function PracticePage() {
               </div>
               {isAdmin(profile?.role) && (
                 <div className="border-t border-gray-100 px-5 py-3 bg-gradient-to-br from-gray-50 to-slate-50 flex justify-between items-center">
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      handleEdit(video)
-                    }}
-                    className="inline-flex items-center gap-2 text-sm text-pink-600 hover:text-pink-700 font-semibold"
-                  >
-                    <Edit className="h-4 w-4" />
-                    Modifier
-                  </button>
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleEdit(video)
+                      }}
+                      className="inline-flex items-center gap-2 text-sm text-pink-600 hover:text-pink-700 font-semibold"
+                    >
+                      <Edit className="h-4 w-4" />
+                      Modifier
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleDelete(video.id)
+                      }}
+                      className="inline-flex items-center gap-2 text-sm text-red-500 hover:text-red-700 font-semibold"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      Supprimer
+                    </button>
+                  </div>
                   <span className="text-xs text-gray-500">Ordre : {video.order_index ?? 0}</span>
                 </div>
               )}

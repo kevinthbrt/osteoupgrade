@@ -24,7 +24,6 @@ import {
   Mail,
   GraduationCap,
   FileQuestion,
-  Target,
   FolderOpen,
   FileText
 } from 'lucide-react'
@@ -108,11 +107,6 @@ export default function Navigation() {
           icon: BookOpen
         },
         {
-          href: '/encyclopedia/learning/cases',
-          label: 'Cas Cliniques',
-          icon: Target
-        },
-        {
           href: '/elearning/revue-litterature',
           label: 'Revue Mensuelle',
           icon: FileText
@@ -166,12 +160,6 @@ export default function Navigation() {
           href: '/encyclopedia/learning/quizzes',
           label: 'Quiz',
           icon: FileQuestion,
-          badge: 'Nouveau'
-        },
-        {
-          href: '/encyclopedia/learning/cases',
-          label: 'Cas Pratiques',
-          icon: Target,
           badge: 'Nouveau'
         },
         {
