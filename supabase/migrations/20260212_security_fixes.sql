@@ -1,15 +1,28 @@
 -- ============================================================================
--- MIGRATION: Security Fixes - 2026-02-12
+-- MIGRATION: Security Fixes + Cleanup Unused Tables - 2026-02-12
 -- ============================================================================
--- Fixes:
+--
+-- PART A - SECURITY FIXES:
 --   1. user_gamification_stats: FOR ALL USING (true) -> restrict to own user_id
 --   2. user_achievements: INSERT WITH CHECK (true) -> restrict to own user_id
 --   3. practice_categories: auth.jwt() ->> 'role' -> public.profiles lookup
 --   4. literature_reviews + tags: public.users -> public.profiles
 --   5. profiles: prevent users from changing their own role
+--
+-- PART B - DROP UNUSED TABLES:
+--   6. clinical_cases_v2 system (8 tables - never integrated in app)
+--   7. mail_campaigns + mail_campaign_messages (never implemented)
+--   8. mail_segments + mail_segment_members (never implemented)
+--   9. Standalone quizzes RPC + related (never created, but RPC exists)
+--  10. Decision trees + topographic zones + consultation sessions
+--
 -- ============================================================================
 
 BEGIN;
+
+-- ============================================================================
+-- PART A: SECURITY FIXES
+-- ============================================================================
 
 -- ============================================================================
 -- 1. FIX: user_gamification_stats - anyone could modify anyone's stats
@@ -232,5 +245,66 @@ CREATE POLICY "Enable update for users based on id"
       SELECT p.role FROM public.profiles p WHERE p.id = auth.uid()
     )
   );
+
+
+-- ============================================================================
+-- PART B: DROP UNUSED TABLES
+-- ============================================================================
+
+-- ============================================================================
+-- 6. DROP: clinical_cases_v2 system (8 tables - never integrated in app code)
+--    Order matters: drop child tables first (foreign key constraints)
+-- ============================================================================
+
+DROP TABLE IF EXISTS public.clinical_case_quiz_attempts CASCADE;
+DROP TABLE IF EXISTS public.clinical_case_quiz_answers CASCADE;
+DROP TABLE IF EXISTS public.clinical_case_quiz_questions CASCADE;
+DROP TABLE IF EXISTS public.clinical_case_quizzes CASCADE;
+DROP TABLE IF EXISTS public.clinical_case_module_progress CASCADE;
+DROP TABLE IF EXISTS public.clinical_case_modules CASCADE;
+DROP TABLE IF EXISTS public.clinical_case_chapters CASCADE;
+DROP TABLE IF EXISTS public.clinical_case_progress_v2 CASCADE;
+DROP TABLE IF EXISTS public.clinical_cases_v2 CASCADE;
+
+-- ============================================================================
+-- 7. DROP: mail_campaigns system (never implemented in app code)
+-- ============================================================================
+
+DROP TABLE IF EXISTS public.mail_campaign_messages CASCADE;
+DROP TABLE IF EXISTS public.mail_campaigns CASCADE;
+
+-- ============================================================================
+-- 8. DROP: mail_segments system (never implemented in app code)
+-- ============================================================================
+
+DROP TABLE IF EXISTS public.mail_segment_members CASCADE;
+DROP TABLE IF EXISTS public.mail_segments CASCADE;
+
+-- ============================================================================
+-- 9. DROP: standalone quizzes RPC (the quizzes table was never created,
+--    but the search RPC may exist)
+-- ============================================================================
+
+DROP FUNCTION IF EXISTS public.search_quizzes(text);
+
+-- ============================================================================
+-- 10. DROP: Decision trees + topographic zones + consultation sessions
+--     These features are no longer used in the application.
+--     Order: child tables first.
+-- ============================================================================
+
+-- Drop consultation sessions (depends on decision_trees)
+DROP TABLE IF EXISTS public.consultation_sessions_v2 CASCADE;
+
+-- Drop decision tree system
+DROP TABLE IF EXISTS public.decision_answers CASCADE;
+DROP TABLE IF EXISTS public.decision_nodes CASCADE;
+DROP TABLE IF EXISTS public.decision_trees CASCADE;
+
+-- Drop topographic zones (parent of decision_trees)
+DROP TABLE IF EXISTS public.topographic_zones CASCADE;
+
+-- Drop the RPC search function for topographic zones
+DROP FUNCTION IF EXISTS public.search_topographic_zones(text);
 
 COMMIT;
