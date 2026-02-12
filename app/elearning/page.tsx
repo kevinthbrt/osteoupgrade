@@ -4,7 +4,6 @@ import { useRouter } from 'next/navigation'
 import AuthLayout from '@/components/AuthLayout'
 import {
   BookOpen,
-  Target,
   TestTube as TestTubeIcon,
   Stethoscope,
   Map,
@@ -27,16 +26,6 @@ export default function ElearningHubPage() {
       href: '/elearning/cours',
       gradient: 'from-blue-500 to-cyan-600',
       count: '50+ cours',
-      category: 'Apprentissage'
-    },
-    {
-      id: 'cases',
-      title: 'Cas Pratiques',
-      description: 'Scénarios cliniques interactifs pour mettre en pratique vos compétences de raisonnement',
-      icon: Target,
-      href: '/encyclopedia/learning/cases',
-      gradient: 'from-amber-500 to-orange-600',
-      count: 'Nouveauté',
       category: 'Apprentissage'
     },
     {
@@ -116,7 +105,7 @@ export default function ElearningHubPage() {
               </h1>
 
               <p className="text-base md:text-lg text-slate-300 mb-6 max-w-2xl">
-                Accédez à tout le contenu théorique et clinique : cours, cas pratiques, tests orthopédiques, diagnostics et guides topographiques.
+                Accédez à tout le contenu théorique et clinique : cours, tests orthopédiques, diagnostics et guides topographiques.
               </p>
 
               <div className="grid grid-cols-3 gap-4 max-w-lg">
@@ -125,7 +114,7 @@ export default function ElearningHubPage() {
                   <div className="text-xs text-slate-300">Contenus</div>
                 </div>
                 <div className="bg-white/10 backdrop-blur-sm rounded-xl p-3 border border-white/20">
-                  <div className="text-2xl font-bold text-white">7</div>
+                  <div className="text-2xl font-bold text-white">6</div>
                   <div className="text-xs text-slate-300">Modules</div>
                 </div>
                 <div className="bg-white/10 backdrop-blur-sm rounded-xl p-3 border border-white/20">

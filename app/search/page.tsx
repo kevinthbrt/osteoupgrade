@@ -12,7 +12,6 @@ import {
   TestTube,
   Map,
   FileQuestion,
-  Target,
   ArrowRight,
   X
 } from 'lucide-react'
@@ -21,7 +20,7 @@ type SearchResult = {
   id: string
   title: string
   description: string
-  type: 'cours' | 'pathologie' | 'test' | 'topographie' | 'video' | 'quiz' | 'case'
+  type: 'cours' | 'pathologie' | 'test' | 'topographie' | 'video' | 'quiz'
   href: string
   module: string
   gradient: string
@@ -65,8 +64,7 @@ function SearchPageContent() {
         chaptersResponse,
         subpartsResponse,
         zonesResponse,
-        quizzesResponse,
-        casesResponse
+        quizzesResponse
       ] = await Promise.all([
         // Try RPC function first, fallback to regular query
         supabase.rpc('search_elearning_formations', { search_term: searchValue })
@@ -140,16 +138,6 @@ function SearchPageContent() {
               .or(`title.ilike.%${searchValue}%,description.ilike.%${searchValue}%,theme.ilike.%${searchValue}%`)
               .limit(10)
             : res
-          ),
-        // Try RPC function first, fallback to regular query
-        supabase.rpc('search_clinical_cases', { search_term: searchValue })
-          .then(res => res.error ?
-            supabase.from('clinical_cases')
-              .select('id, title, description, region')
-              .eq('is_active', true)
-              .or(`title.ilike.%${searchValue}%,description.ilike.%${searchValue}%,region.ilike.%${searchValue}%`)
-              .limit(10)
-            : res
           )
       ])
 
@@ -161,7 +149,6 @@ function SearchPageContent() {
       const zones = zonesResponse.data || []
       const videos = videosResponse.data || []
       const quizzes = quizzesResponse.data || []
-      const cases = casesResponse.data || []
 
       if (formations.length > 0) {
         formations.forEach((f: { id: string; title: string; description: string | null }) => {
@@ -284,22 +271,6 @@ function SearchPageContent() {
             module: 'Quiz',
             gradient: 'from-purple-500 to-indigo-600',
             icon: FileQuestion
-          })
-        })
-      }
-
-      // Search clinical cases
-      if (cases.length > 0) {
-        cases.forEach((caseItem: { id: string; title: string; description: string | null; region: string | null }) => {
-          allResults.push({
-            id: caseItem.id,
-            title: caseItem.title,
-            description: caseItem.description || `Région: ${caseItem.region}`,
-            type: 'case',
-            href: `/encyclopedia/learning/cases`,
-            module: 'Cas Pratiques',
-            gradient: 'from-amber-500 to-orange-600',
-            icon: Target
           })
         })
       }

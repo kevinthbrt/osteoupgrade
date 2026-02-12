@@ -15,7 +15,6 @@ import {
   Loader2,
   ArrowRight,
   BookOpen,
-  Target,
   GraduationCap
 } from 'lucide-react'
 import RelatedContent from '@/components/RelatedContent'
@@ -351,15 +350,6 @@ export default function QuizzesPage() {
           <RelatedContent
             title="📚 Explorer aussi"
             items={[
-              {
-                id: 'cases',
-                title: 'Cas Pratiques',
-                description: 'Scénarios cliniques interactifs pour mettre en pratique vos compétences',
-                module: 'Apprentissage',
-                href: '/encyclopedia/learning/cases',
-                gradient: 'from-amber-500 to-orange-600',
-                icon: Target
-              },
               {
                 id: 'cours',
                 title: 'Cours',

@@ -379,8 +379,7 @@ function SubscriptionContent() {
                   <div className="flex items-start gap-3">
                     <Check className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
                     <p className="text-sm text-gray-700">
-                      <strong>E-learning actualisé en continu</strong> : raisonnement clinique, protocoles, anatomie,
-                      cas pratiques…
+                      <strong>E-learning actualisé en continu</strong> : raisonnement clinique, protocoles, anatomie…
                     </p>
                   </div>
                   <div className="flex items-start gap-3">
