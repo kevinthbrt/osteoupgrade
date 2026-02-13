@@ -6,10 +6,6 @@ import type {
   UpdateTopographieViewInput
 } from './types-topographic-system'
 
-/**
- * API dédiée aux vues topographiques du module Topographie (distinctes de consultation-v3)
- */
-
 export async function getTopographieViewsByRegion(region: AnatomicalRegion) {
   const { data, error } = await supabase
     .from('elearning_topographic_views')

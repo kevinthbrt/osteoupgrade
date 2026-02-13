@@ -10,8 +10,6 @@ import {
   BookOpen,
   Stethoscope,
   TestTube,
-  Map,
-  FileQuestion,
   ArrowRight,
   X
 } from 'lucide-react'
@@ -20,7 +18,7 @@ type SearchResult = {
   id: string
   title: string
   description: string
-  type: 'cours' | 'pathologie' | 'test' | 'topographie' | 'video' | 'quiz'
+  type: 'cours' | 'pathologie' | 'test' | 'video'
   href: string
   module: string
   gradient: string
@@ -62,9 +60,7 @@ function SearchPageContent() {
         testsResponse,
         videosResponse,
         chaptersResponse,
-        subpartsResponse,
-        zonesResponse,
-        quizzesResponse
+        subpartsResponse
       ] = await Promise.all([
         // Try RPC function first, fallback to regular query
         supabase.rpc('search_elearning_formations', { search_term: searchValue })
@@ -120,25 +116,6 @@ function SearchPageContent() {
               .limit(10)
             : res
           ),
-        // Try RPC function first, fallback to regular query
-        supabase.rpc('search_topographic_zones', { search_term: searchValue })
-          .then(res => res.error ?
-            supabase.from('topographic_zones')
-              .select('id, name, description, region')
-              .or(`name.ilike.%${searchValue}%,description.ilike.%${searchValue}%,region.ilike.%${searchValue}%`)
-              .limit(10)
-            : res
-          ),
-        // Try RPC function first, fallback to regular query
-        supabase.rpc('search_quizzes', { search_term: searchValue })
-          .then(res => res.error ?
-            supabase.from('quizzes')
-              .select('id, title, description, theme')
-              .eq('is_active', true)
-              .or(`title.ilike.%${searchValue}%,description.ilike.%${searchValue}%,theme.ilike.%${searchValue}%`)
-              .limit(10)
-            : res
-          )
       ])
 
       const formations = formationsResponse.data || []
@@ -146,9 +123,7 @@ function SearchPageContent() {
       const subparts = subpartsResponse.data || []
       const pathologies = pathologiesResponse.data || []
       const tests = testsResponse.data || []
-      const zones = zonesResponse.data || []
       const videos = videosResponse.data || []
-      const quizzes = quizzesResponse.data || []
 
       if (formations.length > 0) {
         formations.forEach((f: { id: string; title: string; description: string | null }) => {
@@ -227,22 +202,6 @@ function SearchPageContent() {
         })
       }
 
-      // Search topographic zones
-      if (zones.length > 0) {
-        zones.forEach((z: { id: string; name: string; description: string | null; region: string | null }) => {
-          allResults.push({
-            id: z.id,
-            title: z.name,
-            description: z.description || `Région: ${z.region}`,
-            type: 'topographie',
-            href: '/topographie',
-            module: 'Topographie',
-            gradient: 'from-sky-500 to-blue-600',
-            icon: Map
-          })
-        })
-      }
-
       // Search practice videos
       if (videos.length > 0) {
         videos.forEach((v: { id: string; title: string; description: string | null; region: string | null }) => {
@@ -255,22 +214,6 @@ function SearchPageContent() {
             module: 'Pratique',
             gradient: 'from-pink-500 to-rose-600',
             icon: Stethoscope
-          })
-        })
-      }
-
-      // Search quizzes
-      if (quizzes.length > 0) {
-        quizzes.forEach((quiz: { id: string; title: string; description: string | null; theme: string | null }) => {
-          allResults.push({
-            id: quiz.id,
-            title: quiz.title,
-            description: quiz.description || `Thème: ${quiz.theme}`,
-            type: 'quiz',
-            href: `/encyclopedia/learning/quizzes/${quiz.id}/take`,
-            module: 'Quiz',
-            gradient: 'from-purple-500 to-indigo-600',
-            icon: FileQuestion
           })
         })
       }

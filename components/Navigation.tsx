@@ -23,7 +23,6 @@ import {
   Calendar,
   Mail,
   GraduationCap,
-  FileQuestion,
   FolderOpen,
   FileText
 } from 'lucide-react'
@@ -155,12 +154,6 @@ export default function Navigation() {
           href: '/elearning/cours',
           label: 'Cours',
           icon: BookOpen
-        },
-        {
-          href: '/encyclopedia/learning/quizzes',
-          label: 'Quiz',
-          icon: FileQuestion,
-          badge: 'Nouveau'
         },
         {
           href: '/elearning/revue-litterature',

@@ -10,11 +10,8 @@ import {
   Activity,
   Shield,
   Layers,
-  Filter,
-  Map,
   Mail,
   DollarSign,
-  LayoutGrid,
   Send,
   FileText,
   ArrowRight,
@@ -109,27 +106,6 @@ export default function AdminPage() {
       href: '/admin/pathologies'
     },
     {
-      title: 'Zones Topographiques',
-      description: 'Créer des zones avec images cliquables',
-      icon: Map,
-      color: 'from-indigo-500 to-indigo-600',
-      href: '/admin/topographic-zones'
-    },
-    {
-      title: 'Arbres Décisionnels',
-      description: 'Configurer les arbres de questions/réponses',
-      icon: Filter,
-      color: 'from-teal-500 to-teal-600',
-      href: '/admin/decision-trees'
-    },
-    {
-      title: 'Anatomy Builder',
-      description: 'Constructeur anatomique pour les formations',
-      icon: LayoutGrid,
-      color: 'from-cyan-500 to-cyan-600',
-      href: '/admin/anatomy-builder'
-    },
-    {
       title: 'Communication',
       description: 'Modèles de courriers et documents premium',
       icon: FileText,
@@ -184,13 +160,6 @@ export default function AdminPage() {
             Liens rapides
           </h2>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            <button
-              onClick={() => router.push('/consultation-v3')}
-              className="bg-white border border-blue-300 rounded-lg p-3 text-left hover:bg-blue-100 transition-colors"
-            >
-              <p className="font-medium text-blue-900 text-sm">Tester Consultation V3</p>
-              <p className="text-xs text-blue-600">Consultation guidée par zones</p>
-            </button>
             <button
               onClick={() => router.push('/dashboard')}
               className="bg-white border border-blue-300 rounded-lg p-3 text-left hover:bg-blue-100 transition-colors"
