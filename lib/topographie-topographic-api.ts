@@ -4,9 +4,10 @@ import { supabase } from './supabase'
 
 export type AnatomicalRegion =
   | 'cervical' | 'atm' | 'crane'
-  | 'thoracique' | 'epaule' | 'coude' | 'poignet-main'
-  | 'lombo-sacre' | 'hanche' | 'genou' | 'cheville-pied'
-  | 'visceral' | 'cranien'
+  | 'thoracique' | 'lombaire' | 'sacro-iliaque' | 'cotes'
+  | 'epaule' | 'coude' | 'poignet'
+  | 'hanche' | 'genou' | 'cheville' | 'pied'
+  | 'neurologique' | 'vasculaire' | 'systemique'
 
 export type TopographieView = {
   id: string
