@@ -12,7 +12,6 @@ import {
   Layers,
   Mail,
   DollarSign,
-  LayoutGrid,
   Send,
   FileText,
   ArrowRight,
@@ -105,13 +104,6 @@ export default function AdminPage() {
       icon: Activity,
       color: 'from-red-500 to-red-600',
       href: '/admin/pathologies'
-    },
-    {
-      title: 'Anatomy Builder',
-      description: 'Constructeur anatomique pour les formations',
-      icon: LayoutGrid,
-      color: 'from-cyan-500 to-cyan-600',
-      href: '/admin/anatomy-builder'
     },
     {
       title: 'Communication',

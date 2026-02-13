@@ -13,93 +13,6 @@ type TableDefinition<Row> = {
 export type Database = {
   public: {
     Tables: {
-      anatomical_zones: TableDefinition<{
-        id: string
-        name: string
-        display_name: string
-        description: string | null
-        color: string
-        position_x: number
-        position_y: number
-        position_z: number
-        size_x: number
-        size_y: number
-        size_z: number
-        is_symmetric: boolean | null
-        model_path: string | null
-        is_active: boolean | null
-        display_order: number | null
-        created_by: string | null
-        created_at: string
-        updated_at: string
-      }>
-      consultation_sessions_legacy: TableDefinition<{
-        id: string
-        patient_name: string
-        patient_age: string | null
-        consultation_date: string
-        anatomical_region: string
-        triage_answers: any
-        evaluated_pathologies: any
-        test_results: any
-        final_diagnosis: string | null
-        notes: string | null
-        created_by: string | null
-        created_at: string
-        updated_at: string
-      }>
-      consultation_sessions_v2: TableDefinition<{
-        id: string
-        patient_name: string
-        patient_age: string | null
-        consultation_date: string
-        region: string
-        topographic_zone_id: string | null
-        decision_tree_id: string | null
-        decision_path: any
-        identified_pathologies: string[] | null
-        test_results: any
-        cluster_results: any
-        notes: string | null
-        final_diagnosis: string | null
-        created_by: string | null
-        created_at: string
-        updated_at: string
-      }>
-      decision_answers: TableDefinition<{
-        id: string
-        node_id: string
-        answer_text: string
-        next_node_id: string | null
-        display_order: number | null
-        created_at: string
-        updated_at: string
-      }>
-      decision_nodes: TableDefinition<{
-        id: string
-        tree_id: string
-        parent_node_id: string | null
-        node_type: string
-        question_text: string | null
-        pathology_ids: string[] | null
-        test_ids: string[] | null
-        cluster_ids: string[] | null
-        notes: string | null
-        display_order: number | null
-        created_by: string | null
-        created_at: string
-        updated_at: string
-      }>
-      decision_trees: TableDefinition<{
-        id: string
-        topographic_zone_id: string | null
-        name: string
-        description: string | null
-        is_active: boolean | null
-        created_by: string | null
-        created_at: string
-        updated_at: string
-      }>
       mail_templates: TableDefinition<{
         id: string
         name: string
@@ -207,26 +120,6 @@ export type Database = {
         subscription_status: string | null
         subscription_end_date: string | null
         subscription_start_date: string | null
-        created_at: string
-        updated_at: string
-      }>
-      test_categories: TableDefinition<{
-        id: string
-        name: string
-        parent_category: string | null
-        icon: string | null
-        created_at: string
-        updated_at: string
-      }>
-      topographic_zones: TableDefinition<{
-        id: string
-        region: string
-        name: string
-        description: string | null
-        image_url: string | null
-        display_order: number | null
-        is_active: boolean | null
-        created_by: string | null
         created_at: string
         updated_at: string
       }>

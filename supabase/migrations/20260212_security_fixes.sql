@@ -293,8 +293,9 @@ DROP FUNCTION IF EXISTS public.search_quizzes(text);
 --     Order: child tables first.
 -- ============================================================================
 
--- Drop consultation sessions (depends on decision_trees)
+-- Drop consultation sessions
 DROP TABLE IF EXISTS public.consultation_sessions_v2 CASCADE;
+DROP TABLE IF EXISTS public.consultation_sessions_legacy CASCADE;
 
 -- Drop decision tree system
 DROP TABLE IF EXISTS public.decision_answers CASCADE;
@@ -303,6 +304,12 @@ DROP TABLE IF EXISTS public.decision_trees CASCADE;
 
 -- Drop topographic zones (parent of decision_trees)
 DROP TABLE IF EXISTS public.topographic_zones CASCADE;
+
+-- Drop anatomical zones (3D anatomy builder - no longer used)
+DROP TABLE IF EXISTS public.anatomical_zones CASCADE;
+
+-- Drop test_categories (unused, no app references)
+DROP TABLE IF EXISTS public.test_categories CASCADE;
 
 -- Drop the RPC search function for topographic zones
 DROP FUNCTION IF EXISTS public.search_topographic_zones(text);
