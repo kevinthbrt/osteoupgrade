@@ -1,39 +1,10 @@
 import { supabase } from './supabase'
-
-// Types for the topographie module (elearning_topographic_views table)
-
-export type AnatomicalRegion =
-  | 'cervical' | 'atm' | 'crane'
-  | 'thoracique' | 'lombaire' | 'sacro-iliaque' | 'cotes'
-  | 'epaule' | 'coude' | 'poignet'
-  | 'hanche' | 'genou' | 'cheville' | 'pied'
-  | 'neurologique' | 'vasculaire' | 'systemique'
-
-export type TopographieView = {
-  id: string
-  region: string
-  name: string
-  description: string | null
-  image_url: string | null
-  display_order: number | null
-  is_active: boolean | null
-  created_by: string | null
-  created_at: string
-  updated_at: string
-  is_free_access: boolean | null
-}
-
-export type CreateTopographieViewInput = {
-  region: AnatomicalRegion
-  name: string
-  description?: string
-  image_url?: string
-  display_order?: number
-}
-
-export type UpdateTopographieViewInput = Partial<CreateTopographieViewInput> & {
-  is_active?: boolean
-}
+import type {
+  AnatomicalRegion,
+  CreateTopographieViewInput,
+  TopographieView,
+  UpdateTopographieViewInput
+} from './types-topographic-system'
 
 export async function getTopographieViewsByRegion(region: AnatomicalRegion) {
   const { data, error } = await supabase

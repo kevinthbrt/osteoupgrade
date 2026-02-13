@@ -6,7 +6,7 @@ import AuthLayout from '@/components/AuthLayout'
 import { supabase } from '@/lib/supabase'
 import { fetchProfilePayload } from '@/lib/profile-client'
 import { createTopographieView, getAllTopographieViews, updateTopographieView } from '@/lib/topographie-topographic-api'
-import type { AnatomicalRegion, TopographieView } from '@/lib/topographie-topographic-api'
+import type { AnatomicalRegion, TopographieView } from '@/lib/types-topographic-system'
 import {
   BookOpen,
   CheckCircle,
