@@ -1038,7 +1038,7 @@ export default function LandingPage() {
           }`}>
             <div className="inline-flex flex-col sm:flex-row items-center gap-4 bg-white/[0.04] border border-amber-500/20 rounded-2xl p-6 sm:p-8 backdrop-blur-sm">
               <div className="text-center sm:text-left">
-                <div className="text-lg font-bold text-white mb-1">Tout ca des 49,99&euro;/an</div>
+                <div className="text-lg font-bold text-white mb-1">Tout ca des 499&euro;/an</div>
                 <div className="text-sm text-slate-400">
                   Plateforme complete + 1 seminaire + programme ambassadeur
                 </div>
@@ -1092,7 +1092,7 @@ export default function LandingPage() {
               Investis dans ta pratique.
             </h2>
             <p className="text-lg text-slate-500 max-w-xl mx-auto">
-              Moins de 2,50&euro;/mois pour une plateforme complete. Abonnements annuels.
+              Des formules adaptees a chaque profil. Mensuel ou annuel, a toi de choisir.
             </p>
           </div>
 
@@ -1137,11 +1137,29 @@ export default function LandingPage() {
             <div className="rounded-2xl bg-white border border-slate-200 p-8 hover:shadow-lg transition-all">
               <div className="mb-8">
                 <div className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-2">Silver</div>
-                <div className="flex items-baseline gap-1">
-                  <span className="text-5xl font-bold text-slate-900">29,99&euro;</span>
-                  <span className="text-slate-400 text-sm">/an</span>
+
+                {/* Monthly price */}
+                <div className="flex items-baseline gap-1 mb-1">
+                  <span className="text-5xl font-bold text-slate-900">29&euro;</span>
+                  <span className="text-slate-400 text-sm">/mois</span>
                 </div>
-                <p className="text-sm text-slate-500 mt-3">Acces complet a toute la plateforme en ligne.</p>
+                <p className="text-xs text-slate-400 mb-4">Sans engagement &middot; Annulable a tout moment</p>
+
+                {/* Annual option */}
+                <div className="rounded-xl bg-slate-50 border border-slate-200 p-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="text-lg font-bold text-slate-900">240&euro;</span>
+                      <span className="text-slate-400 text-xs">/an</span>
+                    </div>
+                    <span className="bg-emerald-100 text-emerald-700 text-[10px] font-bold px-2 py-0.5 rounded-full">
+                      -17%
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 mt-0.5">Soit 20&euro;/mois &middot; 2 mois offerts</p>
+                </div>
+
+                <p className="text-sm text-slate-500 mt-4">Acces complet a toute la plateforme en ligne.</p>
               </div>
 
               <ul className="space-y-3 mb-8">
@@ -1161,12 +1179,20 @@ export default function LandingPage() {
                 ))}
               </ul>
 
-              <button
-                onClick={() => router.push('/auth')}
-                className="w-full py-3.5 rounded-xl bg-slate-900 text-white font-semibold text-sm hover:bg-slate-800 transition-all shadow-sm"
-              >
-                Choisir Silver
-              </button>
+              <div className="space-y-2.5">
+                <button
+                  onClick={() => router.push('/auth')}
+                  className="w-full py-3.5 rounded-xl bg-slate-900 text-white font-semibold text-sm hover:bg-slate-800 transition-all shadow-sm"
+                >
+                  Silver mensuel &middot; 29&euro;/mois
+                </button>
+                <button
+                  onClick={() => router.push('/auth')}
+                  className="w-full py-3.5 rounded-xl border-2 border-slate-900 text-slate-900 font-semibold text-sm hover:bg-slate-900 hover:text-white transition-all"
+                >
+                  Silver annuel &middot; 240&euro;/an
+                </button>
+              </div>
             </div>
 
             {/* Gold */}
@@ -1187,9 +1213,10 @@ export default function LandingPage() {
                 <div className="mb-8">
                   <div className="text-sm font-semibold text-amber-600 uppercase tracking-wider mb-2">Gold</div>
                   <div className="flex items-baseline gap-1">
-                    <span className="text-5xl font-bold text-slate-900">49,99&euro;</span>
+                    <span className="text-5xl font-bold text-slate-900">499&euro;</span>
                     <span className="text-slate-400 text-sm">/an</span>
                   </div>
+                  <p className="text-xs text-slate-400 mt-1">Soit 41,58&euro;/mois &middot; Acces annuel complet</p>
                   <p className="text-sm text-slate-500 mt-3">L&apos;experience complete : en ligne + presentiel.</p>
                 </div>
 
@@ -1213,14 +1240,14 @@ export default function LandingPage() {
                   onClick={() => router.push('/auth')}
                   className="w-full py-3.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-400 text-slate-900 font-bold text-sm hover:from-amber-400 hover:to-amber-300 transition-all shadow-lg shadow-amber-500/20"
                 >
-                  Choisir Gold
+                  Choisir Gold &middot; 499&euro;/an
                 </button>
               </div>
             </div>
           </div>
 
           <div className="mt-10 text-center text-sm text-slate-400">
-            Tous les abonnements sont annuels. Pas d&apos;engagement au-dela.
+            Silver disponible en mensuel ou annuel. Gold en abonnement annuel. Sans engagement au-dela.
           </div>
         </div>
       </section>
