@@ -23,7 +23,15 @@ import {
   Crown,
   BookOpen,
   Activity,
-  HeartPulse
+  HeartPulse,
+  Trophy,
+  Flame,
+  Gift,
+  Users,
+  Wallet,
+  Award,
+  Zap,
+  Target
 } from 'lucide-react'
 
 // Hook for scroll-triggered animations
@@ -208,6 +216,8 @@ export default function LandingPage() {
   const stats = useScrollReveal()
   const features = useScrollReveal()
   const modules = useScrollReveal()
+  const gamification = useScrollReveal()
+  const goldExperience = useScrollReveal()
   const pricing = useScrollReveal()
   const cta = useScrollReveal()
 
@@ -666,6 +676,381 @@ export default function LandingPage() {
                 </div>
               )
             })}
+          </div>
+        </div>
+      </section>
+
+      {/* ─── GAMIFICATION / REWARDS ─── */}
+      <section ref={gamification.ref} className="py-20 lg:py-28 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-slate-50 to-white relative overflow-hidden">
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] rounded-full bg-purple-500/[0.04] blur-[150px]" />
+
+        <div className="max-w-7xl mx-auto relative">
+          <div className={`text-center mb-16 transition-all duration-700 ${
+            gamification.isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
+          }`}>
+            <div className="inline-flex items-center gap-2 bg-purple-100 text-purple-700 px-4 py-2 rounded-full text-xs font-semibold mb-6 uppercase tracking-wider">
+              <Trophy className="h-3.5 w-3.5" />
+              Systeme de recompenses
+            </div>
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-slate-900 mb-4 tracking-tight">
+              Progresse. Debloque.
+              <br />
+              <span className="bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
+                Reste motive.
+              </span>
+            </h2>
+            <p className="text-lg text-slate-500 max-w-2xl mx-auto">
+              Chaque action sur la plateforme te fait gagner de l&apos;XP.
+              Monte en niveau, debloque des badges et maintiens ta serie quotidienne.
+            </p>
+          </div>
+
+          <div className={`grid grid-cols-1 lg:grid-cols-2 gap-12 items-center transition-all duration-700 delay-200 ${
+            gamification.isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
+          }`}>
+            {/* Left: Visual mock of the gamification system */}
+            <div className="relative">
+              <div className="rounded-2xl bg-gradient-to-br from-[#1a103d] via-[#1e1145] to-[#15103a] p-6 sm:p-8 shadow-2xl border border-purple-500/10">
+                {/* Header */}
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center">
+                      <Trophy className="h-5 w-5 text-white" />
+                    </div>
+                    <div>
+                      <div className="text-xs text-purple-300 font-medium">Progression globale</div>
+                      <div className="text-white font-bold text-lg">Niveau 7</div>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-2xl font-bold text-white">3&thinsp;450</div>
+                    <div className="text-[10px] text-purple-300">XP total</div>
+                  </div>
+                </div>
+
+                {/* XP Progress bar */}
+                <div className="mb-6">
+                  <div className="flex justify-between text-[10px] text-purple-300 mb-1.5">
+                    <span>Niveau 7</span>
+                    <span>450/500 XP</span>
+                  </div>
+                  <div className="h-3 w-full rounded-full bg-white/10 overflow-hidden">
+                    <div className="h-full rounded-full bg-gradient-to-r from-amber-400 to-yellow-300 w-[90%] transition-all" />
+                  </div>
+                  <div className="text-[10px] text-purple-400 mt-1">Plus que 50 XP pour le niveau 8</div>
+                </div>
+
+                {/* Stats row */}
+                <div className="grid grid-cols-3 gap-3 mb-6">
+                  {[
+                    { icon: Flame, label: 'Serie', value: '12 jours', color: 'text-orange-300', bg: 'bg-orange-500/15' },
+                    { icon: Zap, label: 'Semaine', value: '24 actions', color: 'text-cyan-300', bg: 'bg-cyan-500/15' },
+                    { icon: Award, label: 'Badges', value: '8 / 20', color: 'text-emerald-300', bg: 'bg-emerald-500/15' },
+                  ].map((stat) => {
+                    const Icon = stat.icon
+                    return (
+                      <div key={stat.label} className={`rounded-xl ${stat.bg} p-3`}>
+                        <Icon className={`h-4 w-4 ${stat.color} mb-1.5`} />
+                        <div className={`text-sm font-bold ${stat.color}`}>{stat.value}</div>
+                        <div className="text-[10px] text-purple-300">{stat.label}</div>
+                      </div>
+                    )
+                  })}
+                </div>
+
+                {/* Badges row */}
+                <div className="border-t border-white/10 pt-5">
+                  <div className="text-xs font-semibold text-purple-200 mb-3 flex items-center gap-2">
+                    <Award className="h-3.5 w-3.5 text-amber-400" />
+                    Derniers badges debloques
+                  </div>
+                  <div className="grid grid-cols-3 gap-2">
+                    {[
+                      { name: 'Premier pas', icon: '🎯', color: 'bg-emerald-500/15 border-emerald-500/20' },
+                      { name: 'Assidu', icon: '🔥', color: 'bg-orange-500/15 border-orange-500/20' },
+                      { name: 'Savant', icon: '🧠', color: 'bg-blue-500/15 border-blue-500/20' },
+                    ].map((badge) => (
+                      <div key={badge.name} className={`rounded-lg ${badge.color} border p-2.5 text-center`}>
+                        <div className="text-lg mb-0.5">{badge.icon}</div>
+                        <div className="text-[9px] text-white/70 font-medium">{badge.name}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Floating notification */}
+              <div className="absolute -top-3 -right-3 sm:-top-4 sm:-right-4 bg-emerald-500 text-white px-3 py-2 rounded-xl shadow-lg shadow-emerald-500/30 animate-float">
+                <div className="flex items-center gap-1.5">
+                  <Zap className="h-3.5 w-3.5" />
+                  <span className="text-xs font-bold">+25 XP</span>
+                </div>
+                <div className="text-[9px] text-emerald-100">Cours termine !</div>
+              </div>
+            </div>
+
+            {/* Right: Description */}
+            <div className="space-y-8">
+              <div>
+                <h3 className="text-2xl font-bold text-slate-900 mb-3">
+                  Chaque effort compte
+                </h3>
+                <p className="text-slate-500 leading-relaxed">
+                  Completer un cours, visionner une technique, consulter un diagnostic...
+                  Chaque action sur la plateforme te rapporte de l&apos;XP et te fait progresser.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {[
+                  {
+                    icon: Trophy,
+                    title: 'Niveaux & XP',
+                    desc: 'Gagne de l\'XP a chaque action. Monte en niveau et suis ta progression globale.',
+                    color: 'from-amber-500 to-orange-500'
+                  },
+                  {
+                    icon: Flame,
+                    title: 'Series quotidiennes',
+                    desc: 'Connecte-toi chaque jour pour maintenir ta serie et debloquer des bonus.',
+                    color: 'from-orange-500 to-red-500'
+                  },
+                  {
+                    icon: Award,
+                    title: 'Badges exclusifs',
+                    desc: 'Debloque des badges en atteignant des objectifs : premier cours, 10 tests, 30 jours...',
+                    color: 'from-purple-500 to-indigo-500'
+                  },
+                  {
+                    icon: Target,
+                    title: 'Objectifs hebdo',
+                    desc: 'Des objectifs chaque semaine pour rester engage et progresser regulierement.',
+                    color: 'from-emerald-500 to-teal-500'
+                  },
+                ].map((item) => {
+                  const Icon = item.icon
+                  return (
+                    <div key={item.title} className="rounded-xl bg-white border border-slate-200 p-4 hover:shadow-md transition-all">
+                      <div className={`inline-flex items-center justify-center w-9 h-9 rounded-lg bg-gradient-to-br ${item.color} mb-3`}>
+                        <Icon className="h-4.5 w-4.5 text-white" />
+                      </div>
+                      <h4 className="text-sm font-bold text-slate-900 mb-1">{item.title}</h4>
+                      <p className="text-xs text-slate-500 leading-relaxed">{item.desc}</p>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ─── GOLD EXPERIENCE: SEMINAIRES + AMBASSADEUR ─── */}
+      <section ref={goldExperience.ref} className="py-20 lg:py-28 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
+        {/* Background */}
+        <div className="absolute inset-0 bg-gradient-to-br from-[#0f0c24] via-[#1a1035] to-[#0f172a]" />
+        <div className="absolute top-1/3 right-0 w-[500px] h-[500px] rounded-full bg-amber-500/[0.06] blur-[150px]" />
+        <div className="absolute bottom-0 left-0 w-[400px] h-[400px] rounded-full bg-purple-500/[0.05] blur-[120px]" />
+
+        <div className="relative max-w-7xl mx-auto">
+          <div className={`text-center mb-16 transition-all duration-700 ${
+            goldExperience.isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
+          }`}>
+            <div className="inline-flex items-center gap-2 bg-amber-500/15 border border-amber-500/25 text-amber-400 px-4 py-2 rounded-full text-xs font-semibold mb-6 uppercase tracking-wider">
+              <Crown className="h-3.5 w-3.5" />
+              Experience Gold
+            </div>
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-4 tracking-tight">
+              Bien plus qu&apos;une app.
+              <br />
+              <span className="bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-400 bg-clip-text text-transparent">
+                Un ecosysteme complet.
+              </span>
+            </h2>
+            <p className="text-lg text-slate-400 max-w-2xl mx-auto">
+              L&apos;abonnement Gold te donne acces aux formations presentielles
+              et au programme ambassadeur avec commissions.
+            </p>
+          </div>
+
+          <div className={`grid grid-cols-1 lg:grid-cols-2 gap-8 transition-all duration-700 delay-200 ${
+            goldExperience.isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
+          }`}>
+
+            {/* SEMINAIRES CARD */}
+            <div className="rounded-2xl bg-white/[0.04] border border-white/[0.08] backdrop-blur-sm overflow-hidden hover:bg-white/[0.06] transition-all group">
+              {/* Header image area */}
+              <div className="relative h-48 sm:h-56 bg-gradient-to-br from-amber-600/20 via-orange-600/15 to-rose-600/10 overflow-hidden">
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="relative">
+                    {/* Seminar visual mock */}
+                    <div className="w-64 h-36 rounded-xl bg-white/10 border border-white/10 p-4 backdrop-blur-sm">
+                      <div className="flex items-center gap-2 mb-3">
+                        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center">
+                          <Calendar className="h-4 w-4 text-white" />
+                        </div>
+                        <div>
+                          <div className="text-[10px] text-white/60">Prochain seminaire</div>
+                          <div className="text-xs text-white font-bold">Rachis & Bassin</div>
+                        </div>
+                      </div>
+                      <div className="space-y-1.5">
+                        <div className="flex items-center gap-2 text-[10px] text-white/50">
+                          <Calendar className="h-3 w-3" />
+                          <span>15-16 Mars 2025</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-[10px] text-white/50">
+                          <Users className="h-3 w-3" />
+                          <span>12 / 20 places</span>
+                        </div>
+                      </div>
+                      <div className="mt-2 flex gap-1.5">
+                        <div className="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 text-[8px] font-medium">Pratique</div>
+                        <div className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 text-[8px] font-medium">Inclus Gold</div>
+                      </div>
+                    </div>
+                    {/* Floating elements */}
+                    <div className="absolute -top-2 -right-6 px-2 py-1 rounded-lg bg-emerald-500 text-white text-[9px] font-bold shadow-lg animate-float">
+                      2 jours intensifs
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Content */}
+              <div className="p-6 sm:p-8">
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center">
+                    <Calendar className="h-5 w-5 text-white" />
+                  </div>
+                  <h3 className="text-xl font-bold text-white">Seminaires presentiels</h3>
+                </div>
+                <p className="text-slate-400 text-sm leading-relaxed mb-6">
+                  Des formations de 2 jours en petit groupe, encadrees par des praticiens experimentes.
+                  Pratique manuelle intensive, cas cliniques et echanges entre confreres.
+                </p>
+
+                <div className="grid grid-cols-2 gap-3">
+                  {[
+                    { icon: Users, label: 'Petits groupes', desc: '20 participants max' },
+                    { icon: Stethoscope, label: 'Pratique intensive', desc: '80% de pratique manuelle' },
+                    { icon: GraduationCap, label: 'Experts', desc: 'Intervenants specialises' },
+                    { icon: Gift, label: 'Inclus Gold', desc: '1 seminaire/an compris' },
+                  ].map((item) => {
+                    const Icon = item.icon
+                    return (
+                      <div key={item.label} className="rounded-lg bg-white/5 border border-white/5 p-3">
+                        <Icon className="h-4 w-4 text-amber-400 mb-1.5" />
+                        <div className="text-xs font-semibold text-white">{item.label}</div>
+                        <div className="text-[10px] text-slate-400">{item.desc}</div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            </div>
+
+            {/* PROGRAMME AMBASSADEUR CARD */}
+            <div className="rounded-2xl bg-white/[0.04] border border-white/[0.08] backdrop-blur-sm overflow-hidden hover:bg-white/[0.06] transition-all group">
+              {/* Header visual area */}
+              <div className="relative h-48 sm:h-56 bg-gradient-to-br from-emerald-600/15 via-teal-600/10 to-cyan-600/10 overflow-hidden">
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="relative">
+                    {/* Ambassador visual mock */}
+                    <div className="w-64 h-36 rounded-xl bg-white/10 border border-white/10 p-4 backdrop-blur-sm">
+                      <div className="flex items-center gap-2 mb-3">
+                        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center">
+                          <Crown className="h-4 w-4 text-white" />
+                        </div>
+                        <div>
+                          <div className="text-[10px] text-white/60">Espace Ambassadeur</div>
+                          <div className="text-xs text-white font-bold">Ton tableau de bord</div>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-3 gap-2 mb-2">
+                        <div className="rounded bg-white/10 p-1.5 text-center">
+                          <div className="text-sm font-bold text-emerald-300">5</div>
+                          <div className="text-[8px] text-white/40">Filleuls</div>
+                        </div>
+                        <div className="rounded bg-white/10 p-1.5 text-center">
+                          <div className="text-sm font-bold text-amber-300">25&euro;</div>
+                          <div className="text-[8px] text-white/40">Cagnotte</div>
+                        </div>
+                        <div className="rounded bg-white/10 p-1.5 text-center">
+                          <div className="text-sm font-bold text-cyan-300">10%</div>
+                          <div className="text-[8px] text-white/40">Commission</div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="flex-1 bg-white/5 border border-white/10 rounded px-2 py-1 font-mono text-[10px] text-amber-300 text-center">
+                          OSTEO-KTHB
+                        </div>
+                        <div className="px-2 py-1 rounded bg-emerald-500/30 text-emerald-300 text-[8px] font-bold">
+                          Copier
+                        </div>
+                      </div>
+                    </div>
+                    {/* Floating element */}
+                    <div className="absolute -bottom-2 -left-6 px-2 py-1 rounded-lg bg-amber-500 text-white text-[9px] font-bold shadow-lg animate-float-delayed">
+                      +5&euro; commission
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Content */}
+              <div className="p-6 sm:p-8">
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center">
+                    <Gift className="h-5 w-5 text-white" />
+                  </div>
+                  <h3 className="text-xl font-bold text-white">Programme Ambassadeur</h3>
+                </div>
+                <p className="text-slate-400 text-sm leading-relaxed mb-6">
+                  Parraine tes collegues et gagne 10% de commission sur chaque abonnement annuel.
+                  Un code unique, un suivi en temps reel, et une cagnotte que tu peux retirer.
+                </p>
+
+                <div className="grid grid-cols-2 gap-3">
+                  {[
+                    { icon: Gift, label: 'Code unique', desc: 'Ton code de parrainage perso' },
+                    { icon: Wallet, label: '10% commission', desc: 'Sur chaque abonnement annuel' },
+                    { icon: Users, label: 'Suivi en direct', desc: 'Filleuls et gains en temps reel' },
+                    { icon: Crown, label: 'Exclusif Gold', desc: 'Reserve aux membres Gold' },
+                  ].map((item) => {
+                    const Icon = item.icon
+                    return (
+                      <div key={item.label} className="rounded-lg bg-white/5 border border-white/5 p-3">
+                        <Icon className="h-4 w-4 text-emerald-400 mb-1.5" />
+                        <div className="text-xs font-semibold text-white">{item.label}</div>
+                        <div className="text-[10px] text-slate-400">{item.desc}</div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Gold CTA */}
+          <div className={`mt-12 text-center transition-all duration-700 delay-400 ${
+            goldExperience.isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
+          }`}>
+            <div className="inline-flex flex-col sm:flex-row items-center gap-4 bg-white/[0.04] border border-amber-500/20 rounded-2xl p-6 sm:p-8 backdrop-blur-sm">
+              <div className="text-center sm:text-left">
+                <div className="text-lg font-bold text-white mb-1">Tout ca des 49,99&euro;/an</div>
+                <div className="text-sm text-slate-400">
+                  Plateforme complete + 1 seminaire + programme ambassadeur
+                </div>
+              </div>
+              <button
+                onClick={() => scrollTo('pricing')}
+                className="group bg-gradient-to-r from-amber-500 to-amber-400 text-slate-900 px-6 py-3 rounded-xl font-bold text-sm hover:from-amber-400 hover:to-amber-300 transition-all shadow-lg shadow-amber-500/20 flex items-center gap-2 whitespace-nowrap"
+              >
+                Voir les tarifs
+                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+              </button>
+            </div>
           </div>
         </div>
       </section>
