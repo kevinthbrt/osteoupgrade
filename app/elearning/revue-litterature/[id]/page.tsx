@@ -209,13 +209,13 @@ export default function LiteratureReviewDetailPage() {
           <div className="bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-600 px-8 py-6 border-b-4 border-emerald-700">
             <div className="flex items-center gap-4">
               <img
-                src="/favicon.ico"
+                src="/favicon.svg"
                 alt="Ostéo-Upgrade"
                 className="h-12 w-12 rounded-lg bg-white p-1.5"
               />
               <div>
                 <h1 className="text-2xl font-bold text-white tracking-tight">
-                  LA REVUE MENSUELLE
+                  LA REVUE OSTEOUPGRADE
                 </h1>
                 <p className="text-emerald-100 text-sm font-medium">
                   Ostéo-Upgrade • Recherche & Evidence-Based Practice
@@ -443,13 +443,13 @@ export default function LiteratureReviewDetailPage() {
             <div className="max-w-4xl flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <img
-                  src="/favicon.ico"
+                  src="/favicon.svg"
                   alt="Ostéo-Upgrade"
                   className="h-10 w-10 rounded-lg bg-white p-1.5"
                 />
                 <div>
                   <p className="text-white font-bold">
-                    La revue mensuelle ostéo-upgrade
+                    La revue OsteoUpgrade
                   </p>
                   <p className="text-slate-400 text-sm">
                     Recherche scientifique pour praticiens
