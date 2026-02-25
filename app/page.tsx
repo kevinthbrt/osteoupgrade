@@ -260,7 +260,7 @@ export default function LandingPage() {
     {
       icon: GraduationCap,
       title: 'E-Learning complet',
-      desc: 'Cours structures, revue de litterature mensuelle et quiz pour valider tes connaissances.',
+      desc: 'Cours structures, revue de litterature et quiz pour valider tes connaissances.',
       gradient: 'from-violet-500 to-purple-500'
     },
     {
@@ -1169,7 +1169,7 @@ export default function LandingPage() {
                   'Tous les diagnostics & pathologies',
                   'E-learning complet + quiz',
                   'Exercices + exports PDF',
-                  'Revue de litterature mensuelle',
+                  'Revue de litterature',
                   'Topographie clinique',
                 ].map((f, i) => (
                   <li key={i} className="flex items-start gap-3 text-sm text-slate-600">
@@ -1320,7 +1320,7 @@ export default function LandingPage() {
                 {[
                   { label: 'E-Learning', href: '/auth' },
                   { label: 'Seminaires', href: '/auth' },
-                  { label: 'Revue mensuelle', href: '/auth' },
+                  { label: 'Revue de littérature', href: '/auth' },
                 ].map((link) => (
                   <li key={link.label}>
                     <a href={link.href} className="text-sm text-slate-500 hover:text-slate-900 transition-colors">

@@ -30,12 +30,12 @@ export default function ElearningHubPage() {
     },
     {
       id: 'revue-litterature',
-      title: 'La Revue Mensuelle',
-      description: 'Découvrez chaque mois les dernières études scientifiques en ostéopathie et thérapie manuelle',
+      title: 'La Revue OsteoUpgrade',
+      description: 'Découvrez les dernières études scientifiques en ostéopathie et thérapie manuelle',
       icon: FileText,
       href: '/elearning/revue-litterature',
       gradient: 'from-emerald-500 to-teal-600',
-      count: 'Mensuel',
+      count: 'Articles',
       category: 'Apprentissage'
     },
     {

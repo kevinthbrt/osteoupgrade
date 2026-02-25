@@ -107,7 +107,7 @@ export default function Navigation() {
         },
         {
           href: '/elearning/revue-litterature',
-          label: 'Revue Mensuelle',
+          label: 'Revue de littérature',
           icon: FileText
         },
         {
@@ -157,7 +157,7 @@ export default function Navigation() {
         },
         {
           href: '/elearning/revue-litterature',
-          label: 'Revue Mensuelle',
+          label: 'Revue de littérature',
           icon: FileText,
           badge: 'Nouveau'
         }

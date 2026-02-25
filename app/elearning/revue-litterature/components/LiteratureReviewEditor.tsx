@@ -351,7 +351,7 @@ export default function LiteratureReviewEditor({ existingReview, allTags, onClos
               {existingReview ? 'Modifier l\'article' : 'Nouvel article'}
             </h2>
             <p className="text-sm text-emerald-100 mt-1">
-              La revue mensuelle ostéo-upgrade
+              La revue OsteoUpgrade
             </p>
           </div>
           <button
