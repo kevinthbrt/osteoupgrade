@@ -32,55 +32,68 @@ interface Contact {
   metadata: any
 }
 
-// Générer le HTML de l'email à partir du template
+// Construit la table de remplacement des variables {{...}}
+// Priorité (du plus bas au plus haut) : contact < payload du step < metadata de l'enrollment
+function buildReplacements(
+  payload: any,
+  contact: Contact,
+  enrollmentMetadata?: any
+): Record<string, string> {
+  const replacements: Record<string, string> = {
+    '{{first_name}}': contact.first_name || '',
+    '{{last_name}}': contact.last_name || '',
+    '{{email}}': contact.email || '',
+    '{{full_name}}': `${contact.first_name || ''} ${contact.last_name || ''}`.trim() || contact.email
+  }
+
+  if (payload && typeof payload === 'object') {
+    Object.keys(payload).forEach(key => {
+      replacements[`{{${key}}}`] = String(payload[key] ?? '')
+    })
+  }
+
+  if (enrollmentMetadata && typeof enrollmentMetadata === 'object') {
+    Object.keys(enrollmentMetadata).forEach(key => {
+      replacements[`{{${key}}}`] = String(enrollmentMetadata[key] ?? '')
+    })
+  }
+
+  return replacements
+}
+
+// Applique une table de remplacement sur une chaîne
+function applyReplacements(str: string, replacements: Record<string, string>): string {
+  return Object.keys(replacements).reduce(
+    (s, placeholder) =>
+      s.replace(new RegExp(placeholder.replace(/[{}]/g, '\\$&'), 'g'), replacements[placeholder]),
+    str
+  )
+}
+
+// Génère le HTML/texte de l'email ET résout le subject du step
 async function generateEmailContent(
   templateSlug: string | null,
   payload: any,
   contact: Contact,
-  enrollmentMetadata?: any
-): Promise<{ html: string; text: string }> {
+  enrollmentMetadata: any,
+  stepSubject: string
+): Promise<{ html: string; text: string; subject: string }> {
+  const replacements = buildReplacements(payload, contact, enrollmentMetadata)
+  // Bug 1 fix : le subject du step est résolu avec les mêmes variables que le corps
+  const subject = applyReplacements(stepSubject, replacements)
+
   // Si un template_slug est fourni, charger le template depuis la base de données
   if (templateSlug) {
     const { data: template } = await supabase
       .from('mail_templates')
-      .select('html, text, subject')
+      .select('html, text')
       .eq('id', templateSlug)
       .single()
 
     if (template) {
-      // Remplacer les variables dans le template
-      let html = template.html || ''
-      let text = template.text || ''
-
-      // Variables disponibles : {{first_name}}, {{last_name}}, {{email}}
-      const replacements: Record<string, string> = {
-        '{{first_name}}': contact.first_name || '',
-        '{{last_name}}': contact.last_name || '',
-        '{{email}}': contact.email || '',
-        '{{full_name}}': `${contact.first_name || ''} ${contact.last_name || ''}`.trim() || contact.email
-      }
-
-      // Ajouter les variables custom du payload
-      if (payload && typeof payload === 'object') {
-        Object.keys(payload).forEach(key => {
-          replacements[`{{${key}}}`] = String(payload[key] || '')
-        })
-      }
-
-      // Ajouter les variables custom des métadonnées de l'enrollment (priorité la plus haute)
-      if (enrollmentMetadata && typeof enrollmentMetadata === 'object') {
-        Object.keys(enrollmentMetadata).forEach(key => {
-          replacements[`{{${key}}}`] = String(enrollmentMetadata[key] || '')
-        })
-      }
-
-      // Remplacer dans le HTML et le texte
-      Object.keys(replacements).forEach(placeholder => {
-        html = html.replace(new RegExp(placeholder, 'g'), replacements[placeholder])
-        text = text.replace(new RegExp(placeholder, 'g'), replacements[placeholder])
-      })
-
-      return { html, text }
+      const html = applyReplacements(template.html || '', replacements)
+      const text = applyReplacements(template.text || '', replacements)
+      return { html, text, subject }
     }
   }
 
@@ -92,10 +105,9 @@ async function generateEmailContent(
       <p>Cordialement,<br/>L'équipe OsteoUpgrade</p>
     </div>
   `
-
   const text = payload?.text || `Bonjour ${contact.first_name || contact.email},\n\n${payload?.message || 'Ceci est un message automatique.'}\n\nCordialement,\nL'équipe OsteoUpgrade`
 
-  return { html, text }
+  return { html, text, subject }
 }
 
 // Résultat du traitement d'une inscription
@@ -143,18 +155,19 @@ async function processEnrollment(
       return 'waiting'
     }
 
-    // Générer le contenu de l'email
-    const { html, text } = await generateEmailContent(
+    // Générer le contenu de l'email (subject résolu inclus — Bug 1 fix)
+    const { html, text, subject } = await generateEmailContent(
       nextStep.template_slug,
       nextStep.payload,
       contact,
-      enrollment.metadata
+      enrollment.metadata,
+      nextStep.subject
     )
 
     // Envoyer l'email
     await sendTransactionalEmail({
       to: contact.email,
-      subject: nextStep.subject,
+      subject,
       html,
       text,
       tags: ['automation', `automation-${enrollment.automation_id}`]
@@ -175,13 +188,15 @@ async function processEnrollment(
     // Mettre à jour l'inscription pour la prochaine étape
     // On incrémente depuis le step_order réel de l'étape exécutée (pas depuis nextStepOrder)
     // pour garantir la cohérence même si les step_orders ne sont pas contigus.
+    // Bug 2 fix : le statut reste 'pending' entre les steps (pas 'processing') —
+    // l'enrollment attend simplement le prochain step, il n'est pas "en cours de traitement".
     const hasMoreSteps = steps.some(step => step.step_order > nextStep.step_order)
     await supabase
       .from('mail_automation_enrollments')
       .update({
         next_step_order: nextStep.step_order + 1,
         last_run_at: now.toISOString(),
-        status: hasMoreSteps ? 'processing' : 'completed'
+        status: hasMoreSteps ? 'pending' : 'completed'
       })
       .eq('id', enrollment.id)
 
