@@ -151,7 +151,13 @@ async function processEnrollment(
     const minutesSinceReference = (now.getTime() - referenceTime.getTime()) / (1000 * 60)
 
     if (minutesSinceReference < nextStep.wait_minutes) {
-      // Pas encore le moment d'envoyer cet email
+      // Pas encore le moment d'envoyer cet email.
+      // L'enrollment a été verrouillé (status='processing') par le claim atomique :
+      // on le restitue à 'pending' pour qu'il soit re-claimé lors du prochain passage.
+      await supabase
+        .from('mail_automation_enrollments')
+        .update({ status: 'pending' })
+        .eq('id', enrollment.id)
       return 'waiting'
     }
 
@@ -200,10 +206,20 @@ async function processEnrollment(
       })
       .eq('id', enrollment.id)
 
-    console.log(`✅ Email sent to ${contact.email} for step ${nextStepOrder}`)
+    console.log(`✅ Email sent to ${contact.email} for step ${nextStep.step_order} — subject: "${subject}"`)
     return 'sent'
   } catch (error) {
     console.error(`❌ Error processing enrollment ${enrollment.id}:`, error)
+    // Restituer l'enrollment à 'pending' pour permettre une nouvelle tentative.
+    // Sans ce reset, l'enrollment reste bloqué en 'processing' après une erreur.
+    try {
+      await supabase
+        .from('mail_automation_enrollments')
+        .update({ status: 'pending' })
+        .eq('id', enrollment.id)
+    } catch (resetError) {
+      console.error(`❌ Failed to reset enrollment ${enrollment.id} to pending:`, resetError)
+    }
     return 'error'
   }
 }
@@ -252,9 +268,18 @@ export async function processAutomations(): Promise<{
 
     // Pour chaque automatisation
     for (const automation of automations) {
-      // Récupérer les inscriptions en attente ou en traitement
+      // ── Claim atomique ──────────────────────────────────────────────────────
+      // On fait un UPDATE status='processing' WHERE status='pending' en une seule
+      // opération SQL. Postgres verrouille chaque ligne pendant l'UPDATE, garantissant
+      // qu'une instance concurrente ne peut pas récupérer la même ligne : elle verra
+      // déjà status='processing' et n'obtiendra rien.
+      // Les enrollments retournés par cet UPDATE sont ceux que CETTE instance possède
+      // exclusivement — aucune autre instance ne les traitera en parallèle.
       const { data: enrollments, error: enrollmentsError } = await supabase
         .from('mail_automation_enrollments')
+        .update({ status: 'processing' })
+        .eq('automation_id', automation.id)
+        .eq('status', 'pending')
         .select(`
           id,
           automation_id,
@@ -273,11 +298,9 @@ export async function processAutomations(): Promise<{
             metadata
           )
         `)
-        .eq('automation_id', automation.id)
-        .in('status', ['pending', 'processing'])
 
       if (enrollmentsError) {
-        console.error(`Error fetching enrollments for automation ${automation.id}:`, enrollmentsError)
+        console.error(`Error claiming enrollments for automation ${automation.id}:`, enrollmentsError)
         errors++
         continue
       }
@@ -286,7 +309,7 @@ export async function processAutomations(): Promise<{
         continue
       }
 
-      console.log(`Processing ${enrollments.length} enrollment(s) for automation "${automation.name}"`)
+      console.log(`Claimed ${enrollments.length} enrollment(s) for automation "${automation.name}"`)
 
       // Trier les étapes par ordre
       const steps = (automation.steps || []).sort((a, b) => a.step_order - b.step_order)
@@ -302,6 +325,11 @@ export async function processAutomations(): Promise<{
 
         if (!contact || contact.status !== 'subscribed') {
           console.log(`Skipping enrollment ${enrollment.id}: contact not subscribed`)
+          // Libérer le claim : contact désabonné → on annule l'enrollment proprement
+          await supabase
+            .from('mail_automation_enrollments')
+            .update({ status: 'cancelled' })
+            .eq('id', enrollment.id)
           continue
         }
 

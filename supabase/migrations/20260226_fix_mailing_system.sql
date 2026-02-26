@@ -130,3 +130,11 @@ BEGIN
     RAISE WARNING 'Template e4444444-4444-4444-4444-444444444444 introuvable. Vérifiez l''UUID du template Rappel.';
   END IF;
 END $$;
+
+-- -----------------------------------------------------------------------------
+-- Reset des enrollments bloqués en status='processing'
+-- (laissés par les versions précédentes du worker avant le claim atomique)
+-- -----------------------------------------------------------------------------
+UPDATE mail_automation_enrollments
+SET status = 'pending'
+WHERE status = 'processing';
