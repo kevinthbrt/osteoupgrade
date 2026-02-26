@@ -95,12 +95,15 @@ async function generateEmailContent(
   return { html, text }
 }
 
+// Résultat du traitement d'une inscription
+type ProcessResult = 'sent' | 'waiting' | 'completed' | 'error'
+
 // Traiter une inscription individuelle
 async function processEnrollment(
   enrollment: Enrollment,
   steps: AutomationStep[],
   contact: Contact
-): Promise<boolean> {
+): Promise<ProcessResult> {
   try {
     // Trouver l'étape suivante à exécuter
     const nextStepOrder = enrollment.next_step_order ?? 0
@@ -113,7 +116,7 @@ async function processEnrollment(
         .update({ status: 'completed' })
         .eq('id', enrollment.id)
 
-      return true
+      return 'completed'
     }
 
     // Vérifier si assez de temps s'est écoulé depuis la dernière exécution
@@ -130,7 +133,7 @@ async function processEnrollment(
 
     if (minutesSinceReference < nextStep.wait_minutes) {
       // Pas encore le moment d'envoyer cet email
-      return false
+      return 'waiting'
     }
 
     // Générer le contenu de l'email
@@ -174,17 +177,10 @@ async function processEnrollment(
       .eq('id', enrollment.id)
 
     console.log(`✅ Email sent to ${contact.email} for step ${nextStepOrder}`)
-    return true
+    return 'sent'
   } catch (error) {
     console.error(`❌ Error processing enrollment ${enrollment.id}:`, error)
-
-    // Marquer l'inscription comme en erreur (optionnel)
-    // await supabase
-    //   .from('mail_automation_enrollments')
-    //   .update({ status: 'error' })
-    //   .eq('id', enrollment.id)
-
-    return false
+    return 'error'
   }
 }
 
@@ -285,17 +281,18 @@ export async function processAutomations(): Promise<{
           continue
         }
 
-        const success = await processEnrollment(
+        const result = await processEnrollment(
           enrollment as Enrollment,
           steps,
           contact
         )
 
-        if (success) {
+        if (result === 'sent') {
           sent++
-        } else {
+        } else if (result === 'error') {
           errors++
         }
+        // 'waiting' et 'completed' ne sont pas des erreurs
 
         // Ajouter un petit délai pour éviter de surcharger l'API d'envoi
         await new Promise(resolve => setTimeout(resolve, 100))

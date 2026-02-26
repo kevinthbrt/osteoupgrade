@@ -33,7 +33,7 @@ export async function POST(request: Request) {
       )
     }
 
-    const allowedUserEvents: TriggerEvent[] = ['Inscription']
+    const allowedUserEvents: TriggerEvent[] = ['Inscription', 'user_registered']
 
     if (!isAdmin && !hasCronToken) {
       const isAllowedUserEvent = user && allowedUserEvents.includes(event as TriggerEvent)
