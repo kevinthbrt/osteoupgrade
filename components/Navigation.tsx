@@ -111,6 +111,11 @@ export default function Navigation() {
           icon: FileText
         },
         {
+          href: '/tests',
+          label: 'Tests orthopédiques',
+          icon: Clipboard
+        },
+        {
           href: '/diagnostics',
           label: 'Diagnostics',
           icon: FolderOpen
