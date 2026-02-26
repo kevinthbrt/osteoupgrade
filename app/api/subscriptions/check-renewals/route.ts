@@ -56,9 +56,11 @@ export async function GET(request: Request) {
         }
 
         // Interroger Stripe pour obtenir la date de fin de période
-        const subscription = await stripe.subscriptions.retrieve(user.stripe_subscription_id)
+        // Note : dans l'API Stripe >= 2025-11-17.clover, current_period_end n'est pas
+        // exposé dans les types TypeScript mais existe bien à l'exécution.
+        const subscription = await stripe.subscriptions.retrieve(user.stripe_subscription_id) as any
 
-        const periodEndTimestamp = subscription.current_period_end
+        const periodEndTimestamp: number = subscription.current_period_end
         const periodEndDate = new Date(periodEndTimestamp * 1000)
 
         // Déclencher le rappel uniquement si le renouvellement est dans les 7 prochains jours
