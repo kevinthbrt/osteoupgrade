@@ -249,6 +249,33 @@ async function handleCheckoutCompleted(session: any) {
     }
   }
 
+  // 🛑 ANNULER la séquence de relance Premium (l'utilisateur vient de souscrire)
+  try {
+    // Trouver le contact dans mail_contacts par email
+    const { data: mailContact } = await supabaseAdmin
+      .from('mail_contacts')
+      .select('id')
+      .eq('email', profile.email)
+      .single()
+
+    if (mailContact) {
+      const { error: cancelError } = await supabaseAdmin
+        .from('mail_automation_enrollments')
+        .update({ status: 'cancelled' })
+        .eq('contact_id', mailContact.id)
+        .eq('automation_id', 'b2222222-2222-2222-2222-222222222222')
+        .in('status', ['pending', 'processing'])
+
+      if (cancelError) {
+        console.error('⚠️ Error cancelling relance enrollment:', cancelError)
+      } else {
+        console.log('✅ Relance Premium enrollment cancelled for:', profile.email)
+      }
+    }
+  } catch (err) {
+    console.error('⚠️ Error cancelling relance enrollment:', err)
+  }
+
   console.log('📧 Triggering automation for:', profile.email)
 
   // 🚀 DÉCLENCHER L'AUTOMATISATION selon le plan (Silver ou Gold)

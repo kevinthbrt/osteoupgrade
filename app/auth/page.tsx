@@ -66,17 +66,28 @@ export default function AuthPage() {
             cgu_accepted_at: new Date().toISOString(),
           }).eq('id', data.user.id)
 
-          // Trigger welcome email automation
+          // Trigger welcome email automations (Inscription + user_registered)
           try {
-            await fetch('/api/automations/trigger', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                event: 'Inscription',
-                contact_email: email,
-                metadata: {}
+            await Promise.all([
+              fetch('/api/automations/trigger', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  event: 'Inscription',
+                  contact_email: email,
+                  metadata: { full_name: fullName }
+                })
+              }),
+              fetch('/api/automations/trigger', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  event: 'user_registered',
+                  contact_email: email,
+                  metadata: { full_name: fullName }
+                })
               })
-            })
+            ])
           } catch (err) {
             console.error('Erreur lors du déclenchement des automatisations:', err)
           }

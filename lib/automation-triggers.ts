@@ -11,6 +11,7 @@ export type TriggerEvent =
   | 'email_clicked'
   | 'inactive_30_days'
   | 'free_14_days'
+  | 'user_registered'
   | 'Inscription'
   | 'Passage à Premium Silver'
   | 'Passage à Premium Gold'
@@ -164,6 +165,16 @@ export async function triggerAutomations(
  */
 export async function onContactCreated(email: string, metadata?: Record<string, any>) {
   return triggerAutomations('contact_created', {
+    contact_email: email,
+    metadata
+  })
+}
+
+/**
+ * Helper: Déclencher lors de l'inscription d'un utilisateur (user_registered)
+ */
+export async function onUserRegistered(email: string, metadata?: Record<string, any>) {
+  return triggerAutomations('user_registered', {
     contact_email: email,
     metadata
   })
