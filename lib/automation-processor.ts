@@ -1,4 +1,7 @@
-import { supabase } from './supabase'
+// IMPORTANT : utiliser le client admin (service role) pour bypasser la RLS
+// car le worker s'exécute sans contexte utilisateur (auth.uid() = null en cron).
+// Le client anon retournait systématiquement 0 ligne sur les tables mail_*.
+import { supabaseAdmin as supabase } from './supabase-server'
 import { sendTransactionalEmail } from './mailing'
 
 interface AutomationStep {
