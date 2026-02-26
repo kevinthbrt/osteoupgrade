@@ -106,8 +106,12 @@ async function processEnrollment(
 ): Promise<ProcessResult> {
   try {
     // Trouver l'étape suivante à exécuter
+    // On cherche la première étape dont step_order >= next_step_order (et non une correspondance exacte)
+    // car les steps en base commencent généralement à 1 alors que next_step_order démarre à 0.
     const nextStepOrder = enrollment.next_step_order ?? 0
-    const nextStep = steps.find(step => step.step_order === nextStepOrder)
+    const nextStep = steps
+      .filter(step => step.step_order >= nextStepOrder)
+      .sort((a, b) => a.step_order - b.step_order)[0]
 
     if (!nextStep) {
       // Toutes les étapes sont terminées
@@ -166,11 +170,13 @@ async function processEnrollment(
     })
 
     // Mettre à jour l'inscription pour la prochaine étape
-    const hasMoreSteps = steps.some(step => step.step_order > nextStepOrder)
+    // On incrémente depuis le step_order réel de l'étape exécutée (pas depuis nextStepOrder)
+    // pour garantir la cohérence même si les step_orders ne sont pas contigus.
+    const hasMoreSteps = steps.some(step => step.step_order > nextStep.step_order)
     await supabase
       .from('mail_automation_enrollments')
       .update({
-        next_step_order: nextStepOrder + 1,
+        next_step_order: nextStep.step_order + 1,
         last_run_at: now.toISOString(),
         status: hasMoreSteps ? 'processing' : 'completed'
       })

@@ -417,7 +417,16 @@ async function handlePaymentSucceeded(invoice: any) {
     return
   }
 
-  console.log(`✅ Payment succeeded for subscription ${subscriptionId}`)
+  // Ignorer le premier paiement lors de la création de l'abonnement :
+  // il est déjà traité par checkout.session.completed (confirmation initiale envoyée là-bas).
+  // billing_reason = 'subscription_create' → premier paiement
+  // billing_reason = 'subscription_cycle'  → renouvellement périodique → on envoie e5555555
+  if (invoice.billing_reason === 'subscription_create') {
+    console.log('ℹ️ Skipping invoice.payment_succeeded for initial subscription (handled by checkout.session.completed)')
+    return
+  }
+
+  console.log(`✅ Renewal payment succeeded for subscription ${subscriptionId} (billing_reason: ${invoice.billing_reason})`)
 
   // Trouver l'utilisateur par son stripe_subscription_id
   const { data: profile, error: profileError } = await supabaseAdmin
@@ -431,9 +440,9 @@ async function handlePaymentSucceeded(invoice: any) {
     return
   }
 
-  console.log(`💰 Payment processed for user ${profile.id}`)
+  console.log(`💰 Renewal payment processed for user ${profile.id}`)
 
-  // Vérifier que le statut de l'abonnement est toujours actif
+  // S'assurer que le statut de l'abonnement est actif
   const { error: updateError } = await supabaseAdmin
     .from('profiles')
     .update({
@@ -445,7 +454,7 @@ async function handlePaymentSucceeded(invoice: any) {
     console.error('❌ Error updating subscription status:', updateError)
   }
 
-  // 🚀 DÉCLENCHER L'AUTOMATISATION "Renouvellement effectué" (optionnel)
+  // 🚀 DÉCLENCHER L'AUTOMATISATION "Renouvellement effectué" → template e5555555
   try {
     await fetch(`${process.env.NEXT_PUBLIC_URL || 'http://localhost:3000'}/api/automations/trigger`, {
       method: 'POST',
@@ -458,7 +467,7 @@ async function handlePaymentSucceeded(invoice: any) {
         contact_email: profile.email,
         metadata: {
           nom: profile.role === 'premium_gold' ? 'Premium Gold' : 'Premium Silver',
-          date_fact: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString('fr-FR')
+          date_fact: new Date().toLocaleDateString('fr-FR')
         }
       })
     })

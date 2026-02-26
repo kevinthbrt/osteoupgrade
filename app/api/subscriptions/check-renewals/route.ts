@@ -1,11 +1,17 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase-server'
+import { stripe } from '@/lib/stripe'
 
-// DEPRECATED: Cette route n'est plus nécessaire car il n'y a plus d'engagement de 12 mois
-// Gardée pour compatibilité avec les anciens utilisateurs ayant encore un engagement en cours
+// Cron quotidien : détecte les abonnements Stripe dont le prochain renouvellement
+// tombe dans les 7 prochains jours et déclenche l'email "Renouvellement imminent" (template e4444444).
+// Remplace l'ancienne logique basée sur commitment_end_date (désormais dépréciée).
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
+
+// Délai entre deux envois pour le même abonnement (6 jours) — évite les doublons
+// si le cron tourne plusieurs jours de suite avec une fenêtre de 7 jours.
+const REMINDER_COOLDOWN_DAYS = 6
 
 export async function GET(request: Request) {
   try {
@@ -18,88 +24,109 @@ export async function GET(request: Request) {
     const now = new Date()
     const sevenDaysFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)
 
-    console.log('🔍 Checking for upcoming commitment renewals...')
+    console.log('🔍 Checking Stripe subscriptions for upcoming renewals (within 7 days)...')
 
-    // Récupérer les utilisateurs dont l'engagement se termine dans 7 jours
-    const { data: usersNeedingNotification, error: notificationError } = await supabaseAdmin
+    // Récupérer tous les utilisateurs Premium actifs avec un stripe_subscription_id
+    const { data: premiumUsers, error: usersError } = await supabaseAdmin
       .from('profiles')
-      .select('id, email, full_name, role, commitment_end_date, commitment_cycle_number, commitment_renewal_notification_sent')
+      .select('id, email, role, stripe_subscription_id, stripe_customer_id, renewal_reminder_sent_at')
       .eq('subscription_status', 'active')
       .in('role', ['premium_silver', 'premium_gold'])
-      .not('commitment_end_date', 'is', null)
-      .eq('commitment_renewal_notification_sent', false)
-      .lte('commitment_end_date', sevenDaysFromNow.toISOString())
-      .gte('commitment_end_date', now.toISOString())
+      .not('stripe_subscription_id', 'is', null)
 
-    if (notificationError) {
-      console.error('❌ Error fetching users:', notificationError)
-      return NextResponse.json({ error: notificationError.message }, { status: 500 })
+    if (usersError) {
+      console.error('❌ Error fetching premium users:', usersError)
+      return NextResponse.json({ error: usersError.message }, { status: 500 })
     }
 
-    console.log(`📧 Found ${usersNeedingNotification?.length || 0} users needing renewal notification`)
+    console.log(`Found ${premiumUsers?.length || 0} active premium users to check`)
 
-    const notifications = []
+    const notifications: any[] = []
+    const cooldownMs = REMINDER_COOLDOWN_DAYS * 24 * 60 * 60 * 1000
 
-    for (const user of usersNeedingNotification || []) {
-      const commitmentEndDate = new Date(user.commitment_end_date!)
-      const daysUntilRenewal = Math.ceil((commitmentEndDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
-
-      console.log(`📨 Sending renewal notification to ${user.email} (${daysUntilRenewal} days until renewal)`)
-
+    for (const user of premiumUsers || []) {
       try {
-        // Préparer les métadonnées avec variables courtes
-        const renewalDate = new Date(user.commitment_end_date)
+        // Vérifier le cooldown anti-doublon
+        if (user.renewal_reminder_sent_at) {
+          const lastSent = new Date(user.renewal_reminder_sent_at).getTime()
+          if (now.getTime() - lastSent < cooldownMs) {
+            console.log(`⏭️ Skipping ${user.email}: reminder already sent recently`)
+            continue
+          }
+        }
 
-        // Déclencher l'automatisation email "Renouvellement imminent"
-        await fetch(`${process.env.NEXT_PUBLIC_URL || 'http://localhost:3000'}/api/automations/trigger`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${process.env.CRON_SECRET}`
-          },
-          body: JSON.stringify({
-            event: 'Renouvellement imminent',
-            contact_email: user.email,
-            metadata: {
-              cycle: user.commitment_cycle_number || 1,
-              date_renouv: renewalDate.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }),
-              jours: daysUntilRenewal,
-              nom: user.role === 'premium_gold' ? 'Premium Gold' : 'Premium Silver',
-              prix: user.role === 'premium_gold' ? '49,99€' : '29,99€'
-            }
+        // Interroger Stripe pour obtenir la date de fin de période
+        // Note : dans l'API Stripe >= 2025-11-17.clover, current_period_end n'est pas
+        // exposé dans les types TypeScript mais existe bien à l'exécution.
+        const subscription = await stripe.subscriptions.retrieve(user.stripe_subscription_id) as any
+
+        const periodEndTimestamp: number = subscription.current_period_end
+        const periodEndDate = new Date(periodEndTimestamp * 1000)
+
+        // Déclencher le rappel uniquement si le renouvellement est dans les 7 prochains jours
+        if (periodEndDate > now && periodEndDate <= sevenDaysFromNow) {
+          const daysUntilRenewal = Math.ceil(
+            (periodEndDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
+          )
+
+          console.log(`📨 Sending renewal reminder to ${user.email} (renouvellement dans ${daysUntilRenewal} j)`)
+
+          // Déclencher l'automatisation "Renouvellement imminent" → template e4444444
+          await fetch(`${process.env.NEXT_PUBLIC_URL || 'http://localhost:3000'}/api/automations/trigger`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${process.env.CRON_SECRET}`
+            },
+            body: JSON.stringify({
+              event: 'Renouvellement imminent',
+              contact_email: user.email,
+              metadata: {
+                date_renouv: periodEndDate.toLocaleDateString('fr-FR', {
+                  day: 'numeric',
+                  month: 'long',
+                  year: 'numeric'
+                }),
+                jours: daysUntilRenewal,
+                nom: user.role === 'premium_gold' ? 'Premium Gold' : 'Premium Silver'
+              }
+            })
           })
-        })
 
-        // Marquer la notification comme envoyée
-        await supabaseAdmin
-          .from('profiles')
-          .update({ commitment_renewal_notification_sent: true })
-          .eq('id', user.id)
+          // Mémoriser la date d'envoi pour éviter les doublons
+          await supabaseAdmin
+            .from('profiles')
+            .update({ renewal_reminder_sent_at: now.toISOString() })
+            .eq('id', user.id)
 
+          notifications.push({
+            user_id: user.id,
+            email: user.email,
+            days_until_renewal: daysUntilRenewal,
+            renewal_date: periodEndDate.toISOString(),
+            status: 'sent'
+          })
+
+          console.log(`✅ Renewal reminder sent to ${user.email}`)
+        }
+      } catch (err) {
+        console.error(`❌ Error processing renewal check for ${user.email}:`, err)
         notifications.push({
           user_id: user.id,
           email: user.email,
-          days_until_renewal: daysUntilRenewal,
-          status: 'sent'
-        })
-
-        console.log(`✅ Notification sent to ${user.email}`)
-      } catch (error) {
-        console.error(`❌ Error sending notification to ${user.email}:`, error)
-        notifications.push({
-          user_id: user.id,
-          email: user.email,
-          days_until_renewal: daysUntilRenewal,
           status: 'failed',
-          error: error instanceof Error ? error.message : 'Unknown error'
+          error: err instanceof Error ? err.message : 'Unknown error'
         })
       }
     }
 
+    console.log(`✅ Renewal check complete: ${notifications.filter(n => n.status === 'sent').length} reminders sent`)
+
     return NextResponse.json({
       success: true,
       checked_at: now.toISOString(),
-      notifications_sent: notifications.length,
+      checked_users: premiumUsers?.length || 0,
+      notifications_sent: notifications.filter(n => n.status === 'sent').length,
       details: notifications
     })
   } catch (error: any) {
