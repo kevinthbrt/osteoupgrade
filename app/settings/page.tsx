@@ -42,6 +42,7 @@ export default function SettingsPage() {
     push: false,
     newsletter: true
   })
+  const [savingNotifications, setSavingNotifications] = useState(false)
 
   useEffect(() => {
     loadUserData()
@@ -67,6 +68,10 @@ export default function SettingsPage() {
       
       setProfile(profileData)
       setFullName(profileData?.full_name || '')
+      setNotifications(prev => ({
+        ...prev,
+        newsletter: profileData?.newsletter_opt_in ?? true
+      }))
     } catch (error) {
       console.error('Error loading user data:', error)
     } finally {
@@ -197,6 +202,26 @@ export default function SettingsPage() {
       alert('Erreur lors de l\'annulation: ' + error.message)
     } finally {
       setSaving(false)
+    }
+  }
+
+  const handleUpdateNotifications = async () => {
+    setSavingNotifications(true)
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          newsletter_opt_in: notifications.newsletter,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', user.id)
+
+      if (error) throw error
+      alert('Préférences de notification mises à jour !')
+    } catch (error: any) {
+      alert('Erreur lors de la mise à jour: ' + error.message)
+    } finally {
+      setSavingNotifications(false)
     }
   }
 
@@ -582,6 +607,17 @@ export default function SettingsPage() {
                       className="rounded text-primary-600 focus:ring-primary-500"
                     />
                   </label>
+
+                  <div className="pt-4">
+                    <button
+                      onClick={handleUpdateNotifications}
+                      disabled={savingNotifications}
+                      className="bg-primary-600 hover:bg-primary-700 disabled:opacity-50 text-white px-6 py-2 rounded-lg font-medium transition-colors flex items-center space-x-2"
+                    >
+                      {savingNotifications && <Loader2 className="animate-spin h-4 w-4" />}
+                      <span>{savingNotifications ? 'Sauvegarde...' : 'Sauvegarder les préférences'}</span>
+                    </button>
+                  </div>
                 </div>
               </div>
             )}

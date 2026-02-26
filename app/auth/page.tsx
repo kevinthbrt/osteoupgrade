@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import Image from 'next/image'
 import { supabase } from '@/lib/supabase'
 import { Eye, EyeOff, Loader2 } from 'lucide-react'
@@ -16,6 +17,8 @@ export default function AuthPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
+  const [acceptCgu, setAcceptCgu] = useState(false)
+  const [newsletterOptIn, setNewsletterOptIn] = useState(false)
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -29,13 +32,20 @@ export default function AuthPage() {
           email,
           password,
         })
-        
+
         if (error) throw error
-        
+
         if (data.user) {
           router.push('/dashboard')
         }
       } else {
+        // Validate CGU acceptance
+        if (!acceptCgu) {
+          setError('Vous devez accepter les Conditions Générales d\'Utilisation et de Vente pour créer un compte.')
+          setLoading(false)
+          return
+        }
+
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
@@ -45,16 +55,18 @@ export default function AuthPage() {
             },
           },
         })
-        
+
         if (error) throw error
-        
+
         if (data.user) {
-          // Update profile with full name
+          // Update profile with full name, newsletter preference, and CGU acceptance
           await supabase.from('profiles').update({
             full_name: fullName,
+            newsletter_opt_in: newsletterOptIn,
+            cgu_accepted_at: new Date().toISOString(),
           }).eq('id', data.user.id)
 
-          // Déclencher l'automatisation d'email de bienvenue
+          // Trigger welcome email automation
           try {
             await fetch('/api/automations/trigger', {
               method: 'POST',
@@ -67,12 +79,10 @@ export default function AuthPage() {
             })
           } catch (err) {
             console.error('Erreur lors du déclenchement des automatisations:', err)
-            // Ne pas bloquer l'inscription si l'automatisation échoue
           }
 
           setSuccess('Compte créé avec succès ! Vous allez être redirigé...')
 
-          // Redirect to dashboard - synchro System.io will happen there
           setTimeout(() => {
             router.push('/dashboard')
           }, 2000)
@@ -102,7 +112,7 @@ export default function AuthPage() {
             </div>
             <h1 className="text-3xl font-bold text-center">OsteoUpgrade</h1>
             <p className="text-center mt-2 text-blue-100">
-              Plateforme d'aide au diagnostic
+              Plateforme d&apos;aide au diagnostic
             </p>
           </div>
 
@@ -201,9 +211,47 @@ export default function AuthPage() {
               </div>
             </div>
 
+            {/* CGU/CGV and Newsletter checkboxes - only shown on registration */}
+            {!isLogin && (
+              <div className="space-y-3">
+                <label className="flex items-start gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={acceptCgu}
+                    onChange={(e) => setAcceptCgu(e.target.checked)}
+                    className="mt-1 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                    required
+                  />
+                  <span className="text-sm text-gray-600">
+                    J&apos;accepte les{' '}
+                    <Link href="/cgu" target="_blank" className="text-primary-600 hover:underline font-medium">
+                      Conditions Générales d&apos;Utilisation et de Vente
+                    </Link>{' '}
+                    et la{' '}
+                    <Link href="/politique-confidentialite" target="_blank" className="text-primary-600 hover:underline font-medium">
+                      Politique de Confidentialité
+                    </Link>
+                    {' '}<span className="text-red-500">*</span>
+                  </span>
+                </label>
+
+                <label className="flex items-start gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={newsletterOptIn}
+                    onChange={(e) => setNewsletterOptIn(e.target.checked)}
+                    className="mt-1 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                  />
+                  <span className="text-sm text-gray-600">
+                    J&apos;accepte de recevoir la newsletter et les communications marketing d&apos;OsteoUpgrade (facultatif, modifiable à tout moment)
+                  </span>
+                </label>
+              </div>
+            )}
+
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || (!isLogin && !acceptCgu)}
               className="w-full bg-gradient-to-r from-primary-600 to-primary-700 text-white py-3 px-4 rounded-lg font-medium hover:from-primary-700 hover:to-primary-800 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center"
             >
               {loading ? (

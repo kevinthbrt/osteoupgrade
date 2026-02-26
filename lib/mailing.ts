@@ -1,3 +1,5 @@
+import { getEmailFooterHtml, getUnsubscribeHeaders } from './email-footer'
+
 interface EmailPayload {
   to: string | string[]
   subject: string
@@ -13,6 +15,8 @@ interface EmailPayload {
     content_id?: string
     disposition?: 'inline' | 'attachment'
   }[]
+  /** Set to true to skip appending the unsubscribe footer (e.g. for transactional-only emails) */
+  skipUnsubscribeFooter?: boolean
 }
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY
@@ -30,23 +34,46 @@ function resolveFromAddress(customFrom?: string) {
   return from
 }
 
+/**
+ * Inject the unsubscribe footer before </body> or at the end of the HTML.
+ */
+function injectUnsubscribeFooter(html: string, recipientEmail: string): string {
+  const footer = getEmailFooterHtml(recipientEmail)
+  // Try to insert before closing </body> tag
+  if (html.includes('</body>')) {
+    return html.replace('</body>', `${footer}</body>`)
+  }
+  // Otherwise append at the end
+  return html + footer
+}
+
 async function sendWithResend(payload: EmailPayload) {
   if (!RESEND_API_KEY) {
     throw new Error('RESEND_API_KEY is not configured')
   }
 
   const from = resolveFromAddress(payload.from)
+  const recipients = normalizeRecipients(payload.to)
 
   // Convertir les tags en format Resend avec des noms uniques
-  // Exemple: ['automation', 'automation-abc'] devient:
-  // [{ name: 'type', value: 'automation' }, { name: 'automation_id', value: 'abc' }]
-  const tags = payload.tags?.map((tagValue, index) => {
+  const tags = payload.tags?.map((tagValue) => {
     if (tagValue.includes('-')) {
       const parts = tagValue.split('-')
       return { name: `${parts[0]}_id`, value: parts.slice(1).join('-') }
     }
     return { name: 'type', value: tagValue }
   })
+
+  // For marketing/newsletter emails, inject unsubscribe footer and headers
+  let finalHtml = payload.html
+  let headers: Record<string, string> = {}
+
+  if (!payload.skipUnsubscribeFooter && recipients.length > 0) {
+    // Use the first recipient for single sends; for bulk, each email should ideally be sent individually
+    const primaryRecipient = recipients[0]
+    finalHtml = injectUnsubscribeFooter(payload.html, primaryRecipient)
+    headers = getUnsubscribeHeaders(primaryRecipient)
+  }
 
   const response = await fetch('https://api.resend.com/emails', {
     method: 'POST',
@@ -56,11 +83,12 @@ async function sendWithResend(payload: EmailPayload) {
     },
     body: JSON.stringify({
       from,
-      to: normalizeRecipients(payload.to),
+      to: recipients,
       subject: payload.subject,
-      html: payload.html,
+      html: finalHtml,
       text: payload.text,
       tags,
+      headers: Object.keys(headers).length > 0 ? headers : undefined,
       attachments: payload.attachments?.map((file) => ({
         filename: file.filename,
         content: file.content,

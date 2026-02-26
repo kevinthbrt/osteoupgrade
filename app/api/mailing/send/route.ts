@@ -29,27 +29,28 @@ export async function POST(request: Request) {
     let recipients: string[] = []
 
     // Handle different audience modes
+    // RGPD: Only send to users who have newsletter_opt_in = true for bulk sends
     if (audienceMode === 'all') {
-      // Fetch all users' emails
       const { data: profiles, error } = await supabaseAdmin
         .from('profiles')
         .select('email')
         .not('email', 'is', null)
+        .eq('newsletter_opt_in', true)
 
       if (error) throw new Error('Erreur lors de la récupération des emails')
       recipients = profiles.map(p => p.email).filter(Boolean)
     } else if (audienceMode === 'subscription') {
-      // Fetch users by subscription type
       const { data: profiles, error } = await supabaseAdmin
         .from('profiles')
         .select('email')
         .eq('role', subscriptionFilter)
         .not('email', 'is', null)
+        .eq('newsletter_opt_in', true)
 
       if (error) throw new Error('Erreur lors de la récupération des emails')
       recipients = profiles.map(p => p.email).filter(Boolean)
     } else {
-      // Manual mode
+      // Manual mode - admin explicitly chose recipients
       recipients = (Array.isArray(to) ? to : String(to || '')
         .split(',')
         .map((email) => email.trim())
@@ -57,24 +58,44 @@ export async function POST(request: Request) {
     }
 
     if (!recipients.length) {
-      return NextResponse.json({ error: 'Aucun destinataire trouvé.' }, { status: 400 })
+      return NextResponse.json({ error: 'Aucun destinataire trouvé (vérifiez que des utilisateurs ont accepté la newsletter).' }, { status: 400 })
     }
 
     if (!subject || !html) {
       return NextResponse.json({ error: 'Sujet et contenu HTML sont requis.' }, { status: 400 })
     }
 
-    const result = await sendTransactionalEmail({
-      to: recipients,
-      subject,
-      html,
-      text,
-      from,
-      tags,
-      attachments
-    })
+    // Send individually so each recipient gets their own unsubscribe link
+    let sent = 0
+    const errors: string[] = []
 
-    return NextResponse.json({ success: true, result, sent: recipients.length })
+    for (const recipientEmail of recipients) {
+      try {
+        await sendTransactionalEmail({
+          to: recipientEmail,
+          subject,
+          html,
+          text,
+          from,
+          tags: tags || ['newsletter'],
+          attachments
+        })
+        sent++
+      } catch (err: any) {
+        errors.push(`${recipientEmail}: ${err.message}`)
+      }
+      // Small delay to avoid rate limits
+      if (recipients.length > 1) {
+        await new Promise(resolve => setTimeout(resolve, 100))
+      }
+    }
+
+    return NextResponse.json({
+      success: true,
+      sent,
+      total: recipients.length,
+      errors: errors.length > 0 ? errors : undefined
+    })
   } catch (error: any) {
     console.error('Mailing send error:', error)
     return NextResponse.json({ error: error?.message || 'Erreur interne' }, { status: 500 })
