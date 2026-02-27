@@ -15,10 +15,19 @@ type ChangelogEntry = {
 
 // ─────────────────────────────────────────────
 // 🔖 INCRÉMENTER cette valeur à chaque mise à jour
-const CHANGELOG_VERSION = 1
+const CHANGELOG_VERSION = 2
 // ─────────────────────────────────────────────
 
 const CHANGELOG: ChangelogEntry[] = [
+  {
+    date: '27 février 2026',
+    changes: [
+      {
+        type: 'feature',
+        text: 'Mot de passe oublié — nouveau lien sur l\'écran de connexion permettant de recevoir un email de réinitialisation, et nouvelle page dédiée pour définir un nouveau mot de passe'
+      }
+    ]
+  },
   {
     date: '27 février 2026',
     changes: [
