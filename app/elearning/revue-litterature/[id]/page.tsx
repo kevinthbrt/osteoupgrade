@@ -251,7 +251,7 @@ export default function LiteratureReviewDetailPage() {
                   <h2 className="text-4xl md:text-5xl font-bold text-white mb-4 leading-tight drop-shadow-lg">
                     {review.title}
                   </h2>
-                  <p className="text-xl text-white/90 leading-relaxed drop-shadow-md">
+                  <p className="text-xl text-white/90 leading-relaxed drop-shadow-md whitespace-pre-line">
                     {review.summary}
                   </p>
                 </div>
@@ -277,7 +277,7 @@ export default function LiteratureReviewDetailPage() {
                 <h2 className="text-4xl md:text-5xl font-bold text-slate-900 mb-6 leading-tight">
                   {review.title}
                 </h2>
-                <p className="text-xl text-slate-700 leading-relaxed border-l-4 border-emerald-500 pl-6 py-2 bg-emerald-50/50">
+                <p className="text-xl text-slate-700 leading-relaxed border-l-4 border-emerald-500 pl-6 py-2 bg-emerald-50/50 whitespace-pre-line">
                   {review.summary}
                 </p>
               </div>
@@ -314,7 +314,7 @@ export default function LiteratureReviewDetailPage() {
               {/* Introduction */}
               {content?.introduction && (
                 <section>
-                  <p className="text-xl leading-relaxed text-slate-800 font-serif first-letter:text-6xl first-letter:font-bold first-letter:text-emerald-600 first-letter:float-left first-letter:mr-3 first-letter:leading-none first-letter:mt-1">
+                  <p className="text-xl leading-relaxed text-slate-800 font-serif whitespace-pre-line first-letter:text-6xl first-letter:font-bold first-letter:text-emerald-600 first-letter:float-left first-letter:mr-3 first-letter:leading-none first-letter:mt-1">
                     {content.introduction}
                   </p>
                   <ImageBlock images={getImagesByPosition('introduction')} />
@@ -327,7 +327,7 @@ export default function LiteratureReviewDetailPage() {
                   <h3 className="text-2xl font-bold text-slate-900 mb-4 pb-2 border-b-2 border-emerald-500">
                     Contexte
                   </h3>
-                  <p className="text-lg leading-relaxed text-slate-700">
+                  <p className="text-lg leading-relaxed text-slate-700 whitespace-pre-line">
                     {content.contexte}
                   </p>
                   <ImageBlock images={getImagesByPosition('contexte')} />
@@ -343,7 +343,7 @@ export default function LiteratureReviewDetailPage() {
                       Méthodologie
                     </h3>
                   </div>
-                  <p className="text-lg leading-relaxed text-slate-700">
+                  <p className="text-lg leading-relaxed text-slate-700 whitespace-pre-line">
                     {content.methodologie}
                   </p>
                   <ImageBlock images={getImagesByPosition('methodologie')} />
@@ -356,7 +356,7 @@ export default function LiteratureReviewDetailPage() {
                   <h3 className="text-2xl font-bold text-slate-900 mb-4 pb-2 border-b-2 border-emerald-500">
                     Résultats
                   </h3>
-                  <p className="text-lg leading-relaxed text-slate-700">
+                  <p className="text-lg leading-relaxed text-slate-700 whitespace-pre-line">
                     {content.resultats}
                   </p>
                   <ImageBlock images={getImagesByPosition('resultats')} />
@@ -372,7 +372,7 @@ export default function LiteratureReviewDetailPage() {
                       💡 Implications Cliniques
                     </h3>
                   </div>
-                  <p className="text-lg leading-relaxed text-slate-800 font-medium">
+                  <p className="text-lg leading-relaxed text-slate-800 font-medium whitespace-pre-line">
                     {content.implications}
                   </p>
                 </section>
@@ -408,7 +408,7 @@ export default function LiteratureReviewDetailPage() {
                   <h3 className="text-2xl font-bold text-slate-900 mb-4 pb-2 border-b-2 border-emerald-500">
                     Conclusion
                   </h3>
-                  <p className="text-lg leading-relaxed text-slate-700">
+                  <p className="text-lg leading-relaxed text-slate-700 whitespace-pre-line">
                     {content.conclusion}
                   </p>
                   <ImageBlock images={getImagesByPosition('conclusion')} />
