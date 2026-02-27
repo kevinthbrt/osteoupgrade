@@ -24,11 +24,15 @@ const CHANGELOG: ChangelogEntry[] = [
     changes: [
       {
         type: 'feature',
-        text: 'Tests orthopédiques ajouté dans la navigation E-Learning'
+        text: 'Tests orthopédiques ajouté dans la navigation E-Learning (section E-Learning)'
       },
       {
         type: 'fix',
-        text: 'Les retours à la ligne sont désormais respectés dans les revues de littérature'
+        text: 'Retours à la ligne désormais respectés dans les revues de littérature (introduction, contexte, méthodologie, résultats, implications, conclusion, résumé)'
+      },
+      {
+        type: 'feature',
+        text: 'Fenêtre changelog pour les admins — apparaît automatiquement à chaque mise à jour de la plateforme'
       }
     ]
   }
