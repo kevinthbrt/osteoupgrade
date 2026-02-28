@@ -88,15 +88,15 @@ export async function GET() {
     })
 
     // Filtre sur les coupons créés pour la promo Gold
-    const goldCodes = promoCodes.data.filter(
-      (pc) => (pc.coupon as any).metadata?.purpose === 'gold_promo'
+    const goldCodes = (promoCodes.data as any[]).filter(
+      (pc) => pc.coupon?.metadata?.purpose === 'gold_promo'
     )
 
-    const result = goldCodes.map((pc) => ({
+    const result = goldCodes.map((pc: any) => ({
       id: pc.id,
       code: pc.code,
-      couponId: typeof pc.coupon === 'string' ? pc.coupon : pc.coupon.id,
-      amountOff: typeof pc.coupon === 'string' ? null : (pc.coupon as any).amount_off,
+      couponId: pc.coupon?.id ?? pc.coupon,
+      amountOff: pc.coupon?.amount_off ?? null,
       maxRedemptions: pc.max_redemptions,
       timesRedeemed: pc.times_redeemed,
       active: pc.active,
