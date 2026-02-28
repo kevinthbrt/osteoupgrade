@@ -528,6 +528,13 @@ export default function Navigation() {
             )}
           </nav>
 
+          {/* Legal links */}
+          <div className="px-4 pb-2 flex gap-3 flex-wrap">
+            <Link href="/mentions-legales" className="text-[11px] text-slate-500 hover:text-slate-300 transition-colors">Mentions légales</Link>
+            <Link href="/cgu" className="text-[11px] text-slate-500 hover:text-slate-300 transition-colors">CGU</Link>
+            <Link href="/politique-confidentialite" className="text-[11px] text-slate-500 hover:text-slate-300 transition-colors">Confidentialité</Link>
+          </div>
+
           {/* Logout button */}
           <div className="p-4 border-t border-white/10">
             <button
