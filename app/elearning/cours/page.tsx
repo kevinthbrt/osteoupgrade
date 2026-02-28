@@ -214,7 +214,10 @@ export default function CoursPage() {
             })).sort((a: Chapter, b: Chapter) => (a.order_index ?? 0) - (b.order_index ?? 0)) || []
         }))
 
-        const accessible = parsed.filter((formation) => canAccessFormation(roleToUse, formation.is_private, formation.is_free_access))
+        // Show all non-private formations (private = admin only); access control is handled in UI via blur
+        const accessible = parsed.filter((formation) =>
+          !formation.is_private || roleToUse === 'admin'
+        )
 
         setFormations(accessible)
         // Only preserve the selected formation if explicitly provided (e.g., after a refresh)

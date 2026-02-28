@@ -759,25 +759,23 @@ export default function PracticePage() {
           {regions.map(region => {
             const count = regionCount(region.value)
             const active = selectedRegion === region.value
-            const isRegionLocked = isFreeUser && region.value !== 'epaule'
             return (
-              <FreeContentGate key={region.value} isLocked={isRegionLocked} compact>
-                <button
-                  onClick={() => !isRegionLocked && setSelectedRegion(region.value)}
-                  className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition whitespace-nowrap ${
-                    active
-                      ? 'bg-pink-600 text-white shadow-md shadow-pink-200'
-                      : 'bg-white border border-gray-200 text-gray-600 hover:border-pink-300 hover:text-pink-600'
-                  }`}
-                >
-                  {region.label}
-                  <span className={`text-xs rounded-full px-1.5 py-0.5 min-w-[20px] text-center ${
-                    active ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-500'
-                  }`}>
-                    {count}
-                  </span>
-                </button>
-              </FreeContentGate>
+              <button
+                key={region.value}
+                onClick={() => setSelectedRegion(region.value)}
+                className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition whitespace-nowrap ${
+                  active
+                    ? 'bg-pink-600 text-white shadow-md shadow-pink-200'
+                    : 'bg-white border border-gray-200 text-gray-600 hover:border-pink-300 hover:text-pink-600'
+                }`}
+              >
+                {region.label}
+                <span className={`text-xs rounded-full px-1.5 py-0.5 min-w-[20px] text-center ${
+                  active ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-500'
+                }`}>
+                  {count}
+                </span>
+              </button>
             )
           })}
         </div>
@@ -842,7 +840,7 @@ export default function PracticePage() {
 
           {paginatedVideos.map((video) => {
             const thumb = getVimeoThumbnail(video)
-            const isVideoLocked = isFreeUser && !video.is_free_access
+            const isVideoLocked = isFreeUser && video.region !== 'epaule' && !video.is_free_access
             return (
               <FreeContentGate key={video.id} isLocked={isVideoLocked}>
               <div

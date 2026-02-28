@@ -823,8 +823,9 @@ export default function SeminarsPage() {
             const isRegistered = userRegistrations.some((r) => r.seminar_id === seminar.id || r.id === seminar.id)
             const seminarRegistrations = allRegistrations.filter((registration) => registration.seminar_id === seminar.id)
             const isFull = seminar.capacity ? seminarRegistrations.length >= seminar.capacity : false
+            const isSeminarFree = (seminar.theme || '').toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu, '').includes('epaule')
             return (
-              <FreeContentGate key={seminar.id} isLocked={isFree}>
+              <FreeContentGate key={seminar.id} isLocked={isFree && !isSeminarFree}>
               <div className="bg-white rounded-xl shadow-sm p-5 border border-gray-100 flex flex-col gap-3">
                 <div className="flex items-center justify-between">
                   <div>

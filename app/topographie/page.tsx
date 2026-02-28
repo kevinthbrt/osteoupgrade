@@ -334,16 +334,14 @@ export default function TopographiePage() {
                   </h3>
                   <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
                     {regions.map((region) => {
-                      const isRegionLocked = isFree && !FREE_ACCESSIBLE_REGIONS_TOPO.includes(region)
                       return (
-                        <FreeContentGate key={region} isLocked={isRegionLocked} compact>
-                          <button
-                            onClick={() => !isRegionLocked && setSelectedRegion(region as AnatomicalRegion)}
-                            className="w-full px-4 py-3 rounded-lg font-medium transition-all text-sm bg-white text-gray-700 border-2 border-slate-200 hover:border-rose-400 hover:bg-rose-50"
-                          >
-                            {REGION_LABELS[region as AnatomicalRegion]}
-                          </button>
-                        </FreeContentGate>
+                        <button
+                          key={region}
+                          onClick={() => setSelectedRegion(region as AnatomicalRegion)}
+                          className="w-full px-4 py-3 rounded-lg font-medium transition-all text-sm bg-white text-gray-700 border-2 border-slate-200 hover:border-rose-400 hover:bg-rose-50"
+                        >
+                          {REGION_LABELS[region as AnatomicalRegion]}
+                        </button>
                       )
                     })}
                   </div>
@@ -410,7 +408,7 @@ export default function TopographiePage() {
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {filteredZones.map(zone => (
-                <FreeContentGate key={zone.id} isLocked={isFree && !zone.is_free_access}>
+                <FreeContentGate key={zone.id} isLocked={isFree && !FREE_ACCESSIBLE_REGIONS_TOPO.includes(zone.region)}>
                 <div
                   className="group relative rounded-xl border border-gray-200 overflow-hidden bg-gradient-to-br from-gray-50 to-white shadow-sm"
                 >

@@ -340,7 +340,6 @@ export default function DiagnosticsPage() {
   }
 
   const isFree = profile?.role === 'free'
-  const isSelectedRegionLocked = isFree && selectedRegion !== null && !FREE_ACCESSIBLE_REGION_VALUES.includes(selectedRegion || '')
 
   return (
     <AuthLayout>
@@ -438,16 +437,14 @@ export default function DiagnosticsPage() {
                     </div>
                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
                       {category.regions.map((region) => {
-                        const isRegionLocked = isFree && !FREE_ACCESSIBLE_REGION_VALUES.includes(region.value)
                         return (
-                          <FreeContentGate key={region.value} isLocked={isRegionLocked} compact>
-                            <button
-                              onClick={() => !isRegionLocked && setSelectedRegion(region.value)}
-                              className="w-full px-4 py-3 bg-white border-2 border-slate-200 rounded-xl hover:border-rose-400 hover:bg-rose-50 transition-all text-slate-900 font-medium text-sm text-center"
-                            >
-                              {region.label}
-                            </button>
-                          </FreeContentGate>
+                          <button
+                            key={region.value}
+                            onClick={() => setSelectedRegion(region.value)}
+                            className="w-full px-4 py-3 bg-white border-2 border-slate-200 rounded-xl hover:border-rose-400 hover:bg-rose-50 transition-all text-slate-900 font-medium text-sm text-center"
+                          >
+                            {region.label}
+                          </button>
                         )
                       })}
                     </div>
@@ -467,7 +464,7 @@ export default function DiagnosticsPage() {
                   .map((s: string) => s.trim())
                   .filter((s: string) => s.length > 0)
               : []
-            const isItemLocked = isFree && !item.is_free_access
+            const isItemLocked = isFree && !FREE_ACCESSIBLE_REGION_VALUES.includes(selectedRegion || '')
 
             return (
               <FreeContentGate key={item.id} isLocked={isItemLocked}>
