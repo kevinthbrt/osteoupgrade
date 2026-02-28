@@ -23,6 +23,8 @@ import {
   X,
 } from 'lucide-react'
 import CategoryManager, { PracticeCategory } from './CategoryManager'
+import FreeContentGate from '@/components/FreeContentGate'
+import FreeUserBanner from '@/components/FreeUserBanner'
 
 const regions = [
   { value: 'cervical', label: 'Cervicales' },
@@ -199,9 +201,7 @@ export default function PracticePage() {
         if (!payload?.user) { router.push('/'); return }
         const profileData = payload.profile
         setProfile(profileData as Profile)
-        if (isPremium(profileData?.role) || isAdmin(profileData?.role)) {
-          await Promise.all([fetchVideos(), fetchCategories()])
-        }
+        await Promise.all([fetchVideos(), fetchCategories()])
       } catch (error) {
         console.error('Impossible de charger les données Pratique', error)
       } finally {
@@ -412,22 +412,7 @@ export default function PracticePage() {
     )
   }
 
-  if (!premiumAccess) {
-    return (
-      <AuthLayout>
-        <div className="max-w-3xl mx-auto bg-white border border-gray-200 rounded-2xl p-10 text-center shadow-sm">
-          <div className="flex items-center justify-center w-12 h-12 rounded-full bg-amber-100 text-amber-600 mx-auto">
-            <Lock className="h-6 w-6" />
-          </div>
-          <h1 className="text-2xl font-semibold mt-4">Accès réservé</h1>
-          <p className="text-gray-600 mt-2">
-            Le module Pratique est disponible pour les membres premium. Passe au niveau supérieur pour accéder aux
-            vidéos et aux ressources cliniques.
-          </p>
-        </div>
-      </AuthLayout>
-    )
-  }
+  const isFreeUser = profile?.role === 'free'
 
   /* ─────────────────────────────────────────────────────────────── */
   /*  RENDER                                                         */
@@ -722,6 +707,7 @@ export default function PracticePage() {
 
       {/* ══════════════ MAIN CONTENT ══════════════ */}
       <div className="space-y-6">
+        {isFreeUser && <FreeUserBanner />}
 
         {/* Hero */}
         <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white shadow-2xl">
@@ -772,23 +758,25 @@ export default function PracticePage() {
           {regions.map(region => {
             const count = regionCount(region.value)
             const active = selectedRegion === region.value
+            const isRegionLocked = isFreeUser && region.value !== 'epaule'
             return (
-              <button
-                key={region.value}
-                onClick={() => setSelectedRegion(region.value)}
-                className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition whitespace-nowrap ${
-                  active
-                    ? 'bg-pink-600 text-white shadow-md shadow-pink-200'
-                    : 'bg-white border border-gray-200 text-gray-600 hover:border-pink-300 hover:text-pink-600'
-                }`}
-              >
-                {region.label}
-                <span className={`text-xs rounded-full px-1.5 py-0.5 min-w-[20px] text-center ${
-                  active ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-500'
-                }`}>
-                  {count}
-                </span>
-              </button>
+              <FreeContentGate key={region.value} isLocked={isRegionLocked} compact>
+                <button
+                  onClick={() => !isRegionLocked && setSelectedRegion(region.value)}
+                  className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition whitespace-nowrap ${
+                    active
+                      ? 'bg-pink-600 text-white shadow-md shadow-pink-200'
+                      : 'bg-white border border-gray-200 text-gray-600 hover:border-pink-300 hover:text-pink-600'
+                  }`}
+                >
+                  {region.label}
+                  <span className={`text-xs rounded-full px-1.5 py-0.5 min-w-[20px] text-center ${
+                    active ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-500'
+                  }`}>
+                    {count}
+                  </span>
+                </button>
+              </FreeContentGate>
             )
           })}
         </div>
@@ -853,9 +841,10 @@ export default function PracticePage() {
 
           {paginatedVideos.map((video) => {
             const thumb = getVimeoThumbnail(video)
+            const isVideoLocked = isFreeUser && !video.is_free_access
             return (
+              <FreeContentGate key={video.id} isLocked={isVideoLocked}>
               <div
-                key={video.id}
                 className="group bg-white border border-gray-100 hover:border-pink-200 rounded-2xl shadow-sm hover:shadow-xl overflow-hidden flex flex-col transition-all duration-300 hover:-translate-y-0.5"
               >
                 {/* Thumbnail */}
@@ -925,6 +914,7 @@ export default function PracticePage() {
                   </div>
                 )}
               </div>
+              </FreeContentGate>
             )
           })}
         </div>

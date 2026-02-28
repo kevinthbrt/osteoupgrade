@@ -7,6 +7,8 @@ import AuthLayout from '@/components/AuthLayout'
 import { Dumbbell, Download, Edit, Plus, Save, Search, Settings, Trash2, Upload, X } from 'lucide-react'
 import jsPDF from 'jspdf'
 import 'jspdf-autotable'
+import FreeContentGate from '@/components/FreeContentGate'
+import FreeUserBanner from '@/components/FreeUserBanner'
 
 interface RehabExercise {
   id: string
@@ -32,6 +34,7 @@ interface PlanItem {
 }
 
 const ALLOWED_ROLES = ['premium_silver', 'premium_gold', 'admin']
+const FREE_ACCESSIBLE_REGIONS = ['epaule', 'épaule']
 
 const EMPTY_PLAN_ITEM = (exerciseId: string): PlanItem => ({
   uid: `${exerciseId}-${Date.now()}`,
@@ -96,11 +99,6 @@ export default function ExercisesModule() {
         const profileData = payload.profile
 
         setProfile(profileData)
-
-        if (!profileData || !ALLOWED_ROLES.includes(profileData.role)) {
-          setAccessDenied(true)
-          return
-        }
 
         await fetchExercises()
       } catch (error) {
@@ -417,25 +415,16 @@ export default function ExercisesModule() {
     )
   }
 
-  if (accessDenied) {
-    return (
-      <AuthLayout>
-        <div className="mx-auto max-w-3xl rounded-xl bg-white p-8 shadow-sm">
-          <div className="flex items-center gap-3 text-red-600">
-            <X className="h-5 w-5" />
-            <h2 className="text-xl font-semibold">Accès réservé</h2>
-          </div>
-          <p className="mt-2 text-gray-600">
-            Le module exercices est réservé aux membres Premium Silver/Gold et aux administrateurs.
-          </p>
-        </div>
-      </AuthLayout>
-    )
-  }
+  const isFree = profile?.role === 'free'
+  const isExerciseLocked = (exercise: RehabExercise) =>
+    isFree && !FREE_ACCESSIBLE_REGIONS.includes(exercise.region?.toLowerCase() || '')
 
   return (
     <AuthLayout>
       <div className="space-y-8">
+        {/* Free user banner */}
+        {isFree && <FreeUserBanner />}
+
         {/* Header */}
         <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white shadow-2xl">
           {/* Decorative elements */}
@@ -466,7 +455,8 @@ export default function ExercisesModule() {
               <div className="flex flex-wrap gap-3">
                 <button
                   onClick={exportToPDF}
-                  className="inline-flex items-center gap-2 rounded-lg bg-emerald-500 hover:bg-emerald-400 px-5 py-2.5 text-sm font-semibold text-white shadow-lg transition-all"
+                  disabled={isFree}
+                  className="inline-flex items-center gap-2 rounded-lg bg-emerald-500 hover:bg-emerald-400 px-5 py-2.5 text-sm font-semibold text-white shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Download className="h-4 w-4" />
                   Exporter en PDF
@@ -682,7 +672,8 @@ export default function ExercisesModule() {
 
           <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {filteredExercises.map((exercise) => (
-              <div key={exercise.id} className="flex flex-col justify-between rounded-xl border border-gray-200 p-4 shadow-sm">
+              <FreeContentGate key={exercise.id} isLocked={isExerciseLocked(exercise)}>
+              <div className="flex flex-col justify-between rounded-xl border border-gray-200 p-4 shadow-sm">
                 <div className="space-y-2">
                   {exercise.illustration_url && (
                     <div className="mb-3 overflow-hidden rounded-lg">
@@ -711,11 +702,13 @@ export default function ExercisesModule() {
                 </div>
                 <button
                   onClick={() => addToPlan(exercise.id)}
-                  className="mt-4 inline-flex items-center justify-center gap-2 rounded-lg bg-gray-900 px-3 py-2 text-sm text-white hover:bg-black"
+                  disabled={isExerciseLocked(exercise)}
+                  className="mt-4 inline-flex items-center justify-center gap-2 rounded-lg bg-gray-900 px-3 py-2 text-sm text-white hover:bg-black disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Plus className="h-4 w-4" /> Ajouter à la fiche
                 </button>
               </div>
+              </FreeContentGate>
             ))}
           </div>
 

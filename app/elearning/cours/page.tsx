@@ -32,6 +32,8 @@ import {
   Lock,
   Trophy
 } from 'lucide-react'
+import FreeContentGate from '@/components/FreeContentGate'
+import FreeUserBanner from '@/components/FreeUserBanner'
 
 type Subpart = {
   id: string
@@ -388,47 +390,12 @@ export default function CoursPage() {
     )
   }
 
-  if (!isPremium) {
-    return (
-      <AuthLayout>
-        <div className="space-y-6">
-          <div className="bg-white rounded-xl shadow-sm p-6">
-            <div className="flex items-center gap-2 text-primary-600 text-sm font-semibold mb-3">
-              <GraduationCap className="h-5 w-5" />
-              Cours
-            </div>
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">Formations en ligne</h1>
-            <p className="text-gray-600">
-              Accès réservé aux membres Premium. Parcours complets avec vidéos et suivi de progression.
-            </p>
-          </div>
-
-          <div className="bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-xl p-8 shadow-lg">
-            <div className="max-w-2xl">
-              <div className="inline-flex items-center gap-2 bg-white/20 rounded-full px-4 py-2 text-sm font-semibold mb-4">
-                <AlertCircle className="h-4 w-4" />
-                Accès Premium requis
-              </div>
-              <h2 className="text-3xl font-bold mb-4">Passez Premium pour débloquer les cours</h2>
-              <p className="text-white/90 text-lg mb-6">
-                Accédez à des formations complètes avec vidéos Vimeo, descriptions enrichies et suivi de progression.
-              </p>
-              <button
-                onClick={() => router.push('/settings')}
-                className="bg-white text-amber-600 px-6 py-3 rounded-lg font-semibold hover:bg-white/90 transition"
-              >
-                Activer Premium
-              </button>
-            </div>
-          </div>
-        </div>
-      </AuthLayout>
-    )
-  }
+  const isFree = profile?.role === 'free'
 
   return (
     <AuthLayout>
       <div className="space-y-6">
+        {isFree && <FreeUserBanner />}
         {/* Hero Section */}
         <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white shadow-2xl mb-8">
           <div className="absolute inset-0 bg-grid-white/[0.02] bg-[size:60px_60px]" />
@@ -510,13 +477,14 @@ export default function CoursPage() {
             <div className={selectedFormation ? "hidden" : "grid gap-5 md:grid-cols-2 lg:grid-cols-3"}>
               {filteredFormations.map((formation) => {
                 const stats = computeProgress(formation)
+                const isFormationLocked = isFree && !formation.is_free_access
                 return (
+                  <FreeContentGate key={formation.id} isLocked={isFormationLocked}>
                   <button
-                    key={formation.id}
                     onClick={() => {
-                      setSelectedFormationId(formation.id)
+                      if (!isFormationLocked) setSelectedFormationId(formation.id)
                     }}
-                    className={`group text-left border-2 rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 bg-white ${
+                    className={`group text-left border-2 rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 bg-white w-full ${
                       selectedFormationId === formation.id
                         ? 'border-blue-500 ring-4 ring-blue-100 transform scale-[1.02]'
                         : 'border-transparent hover:border-blue-200 hover:-translate-y-1'
@@ -583,6 +551,7 @@ export default function CoursPage() {
                       </div>
                     </div>
                   </button>
+                  </FreeContentGate>
                 )
               })}
             </div>

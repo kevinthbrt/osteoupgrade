@@ -23,6 +23,8 @@ import {
   Shield
 } from 'lucide-react'
 import type { CommunicationDocument, CommunicationDocumentInsert } from '@/lib/types-communication'
+import FreeContentGate from '@/components/FreeContentGate'
+import FreeUserBanner from '@/components/FreeUserBanner'
 
 const CATEGORIES = [
   { value: 'courrier', label: 'Courrier', icon: '📧' },
@@ -72,19 +74,16 @@ export default function CommunicationPage() {
 
     const profile = payload.profile
 
-    if (!profile || !ALLOWED_ROLES.includes(profile.role)) {
-      setAccessDenied(true)
-      setLoading(false)
-      return
-    }
-
     // Check if user is admin
-    setIsAdmin(profile.role === 'admin')
+    setIsAdmin(profile?.role === 'admin')
 
-    loadDocuments(profile.role === 'admin')
+    loadDocuments(profile?.role === 'admin', profile?.role)
   }
 
-  const loadDocuments = async (isAdminUser: boolean = false) => {
+  const [userRole, setUserRole] = useState<string | null>(null)
+
+  const loadDocuments = async (isAdminUser: boolean = false, role?: string) => {
+    if (role) setUserRole(role)
     try {
       let query = supabase
         .from('communication_documents')
@@ -314,37 +313,19 @@ export default function CommunicationPage() {
     documents: filteredDocuments.filter(doc => doc.category === category.value)
   })).filter(cat => cat.documents.length > 0)
 
-  if (accessDenied) {
-    return (
-      <AuthLayout>
-        <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 flex items-center justify-center p-4">
-          <div className="max-w-md w-full bg-white/10 backdrop-blur-sm rounded-2xl p-8 text-center">
-            <div className="w-20 h-20 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full flex items-center justify-center mx-auto mb-6">
-              <Lock className="w-10 h-10 text-white" />
-            </div>
-            <h2 className="text-2xl font-bold text-white mb-4">
-              Accès Premium Requis
-            </h2>
-            <p className="text-blue-200 mb-6">
-              Ce module est réservé aux membres Premium. Passez à un abonnement Premium pour accéder aux modèles de communication.
-            </p>
-            <button
-              onClick={() => router.push('/dashboard')}
-              className="w-full px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg hover:shadow-lg transition-all flex items-center justify-center gap-2"
-            >
-              <Crown className="w-5 h-5" />
-              Voir les Abonnements
-            </button>
-          </div>
-        </div>
-      </AuthLayout>
-    )
-  }
+  const isFree = userRole === 'free'
 
   return (
     <AuthLayout>
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900">
         <div className="max-w-7xl mx-auto px-4 py-8">
+          {/* Free user banner */}
+          {isFree && (
+            <div className="mb-6">
+              <FreeUserBanner />
+            </div>
+          )}
+
           {/* Header */}
           <div className="mb-8">
             <div className="flex items-center justify-between gap-4 mb-4">
@@ -457,8 +438,8 @@ export default function CommunicationPage() {
                       {/* Liste des documents */}
                       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
                         {category.documents.map((doc) => (
+                          <FreeContentGate key={doc.id} isLocked={isFree}>
                           <div
-                            key={doc.id}
                             className={`bg-white/10 backdrop-blur-sm rounded-xl p-6 hover:bg-white/15 transition-all group relative ${
                               !doc.is_active && isAdmin ? 'opacity-60 border-2 border-red-500/30' : ''
                             }`}
@@ -534,6 +515,7 @@ export default function CommunicationPage() {
                               Télécharger
                             </button>
                           </div>
+                          </FreeContentGate>
                         ))}
                       </div>
                     </div>
