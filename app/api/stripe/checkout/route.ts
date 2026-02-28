@@ -112,6 +112,7 @@ export async function POST(request: Request) {
       customer_email: email,
       client_reference_id: userId,
       payment_method_types: ['card'],
+      allow_promotion_codes: true,
       line_items: [
         {
           price: plan.priceId,

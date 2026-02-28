@@ -24,7 +24,9 @@ import {
   Mail,
   GraduationCap,
   FolderOpen,
-  FileText
+  FileText,
+  Gift,
+  TicketPercent
 } from 'lucide-react'
 
 type MenuItem = {
@@ -90,6 +92,7 @@ export default function Navigation() {
       icon: Calendar,
       roles: ['premium_gold', 'admin']
     },
+    { href: '/parrainage', label: 'Parrainage & Cagnotte', icon: Gift },
     { href: '/settings', label: 'Paramètres', icon: Settings },
   ]
 
@@ -422,8 +425,11 @@ export default function Navigation() {
                   {/* Séminaires */}
                   {renderMenuItem(menuItems[2])}
 
-                  {/* Paramètres */}
+                  {/* Parrainage & Cagnotte */}
                   {renderMenuItem(menuItems[3])}
+
+                  {/* Paramètres */}
+                  {renderMenuItem(menuItems[4])}
                 </>
               )
             })()}
@@ -523,6 +529,20 @@ export default function Navigation() {
                   <Users className={`h-5 w-5 mr-3 ${pathname === '/admin/users' ? 'text-purple-300' : 'text-slate-400 group-hover:text-slate-200'}`} />
                   <span className="flex-1">Utilisateurs</span>
                   {pathname === '/admin/users' && <ChevronRight className="h-4 w-4 text-purple-300" />}
+                </Link>
+
+                <Link
+                  href="/admin/promo"
+                  className={`flex items-center px-3 py-2.5 rounded-lg transition-all group ${
+                    pathname === '/admin/promo'
+                      ? 'bg-purple-500/20 text-white font-medium shadow-sm'
+                      : 'text-slate-300 hover:bg-white/5 hover:text-white'
+                  }`}
+                  onClick={() => setIsOpen(false)}
+                >
+                  <TicketPercent className={`h-5 w-5 mr-3 ${pathname === '/admin/promo' ? 'text-purple-300' : 'text-slate-400 group-hover:text-slate-200'}`} />
+                  <span className="flex-1">Codes Promo</span>
+                  {pathname === '/admin/promo' && <ChevronRight className="h-4 w-4 text-purple-300" />}
                 </Link>
               </>
             )}
