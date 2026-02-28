@@ -12,8 +12,7 @@ import {
   Loader2,
   ArrowLeft,
   Trash2,
-  AlertCircle,
-  Tag
+  AlertCircle
 } from 'lucide-react'
 
 interface PromoCode {
