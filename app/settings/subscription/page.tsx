@@ -14,6 +14,7 @@ function SubscriptionContent() {
   const [loading, setLoading] = useState(true)
   const [processingPlan, setProcessingPlan] = useState<string | null>(null)
   const [openingPortal, setOpeningPortal] = useState(false)
+  const [pendingPlanType, setPendingPlanType] = useState<string | null>(null)
   const [referralCode, setReferralCode] = useState('')
   const [validatingCode, setValidatingCode] = useState(false)
   const [codeValidation, setCodeValidation] = useState<{
@@ -93,7 +94,7 @@ function SubscriptionContent() {
     }
   }
 
-  const handleUpgrade = async (planType: string) => {
+  const startCheckout = async (planType: string) => {
     if (!profile) return
 
     setProcessingPlan(planType)
@@ -106,7 +107,7 @@ function SubscriptionContent() {
           planType,
           userId: profile.id,
           email: profile.email,
-          referralCode: codeValidation?.valid ? referralCode : undefined
+          referralCode: isReferralEligiblePlan(planType) && codeValidation?.valid ? referralCode : undefined
         })
       })
 
@@ -127,6 +128,34 @@ function SubscriptionContent() {
       alert(`Erreur: ${error.message}`)
       setProcessingPlan(null)
     }
+  }
+
+  const isReferralEligiblePlan = (planType: string) => planType !== 'premium_silver_monthly'
+
+  const handleUpgrade = (planType: string) => {
+    if (profile?.role === 'premium_silver' || profile?.role === 'premium_gold') {
+      return
+    }
+
+    setPendingPlanType(planType)
+  }
+
+  const handleSkipReferral = async () => {
+    if (!pendingPlanType) return
+
+    const selectedPlan = pendingPlanType
+    setPendingPlanType(null)
+    setCodeValidation(null)
+    setReferralCode('')
+    await startCheckout(selectedPlan)
+  }
+
+  const handleContinueWithReferral = async () => {
+    if (!pendingPlanType) return
+
+    const selectedPlan = pendingPlanType
+    setPendingPlanType(null)
+    await startCheckout(selectedPlan)
   }
 
   const handleManageSubscription = async () => {
@@ -165,6 +194,7 @@ function SubscriptionContent() {
   const isPremium = profile?.role === 'premium_silver' || profile?.role === 'premium_gold'
   const isGold = profile?.role === 'premium_gold'
   const isGoldPromoActive = process.env.NEXT_PUBLIC_GOLD_PROMO_ACTIVE === 'true'
+  const pendingPlanSupportsReferral = pendingPlanType ? isReferralEligiblePlan(pendingPlanType) : false
 
   return (
     <AuthLayout>
@@ -726,6 +756,94 @@ function SubscriptionContent() {
             </a>
           </p>
         </div>
+
+        {pendingPlanType && (
+          <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+            <div className="w-full max-w-lg bg-white rounded-2xl shadow-2xl border border-gray-200 p-6 space-y-5">
+              <div className="flex items-start gap-3">
+                <div className="p-2.5 bg-yellow-100 rounded-lg">
+                  <Gift className="h-5 w-5 text-yellow-700" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900">
+                    {pendingPlanSupportsReferral
+                      ? 'Avez-vous un code de parrainage ?'
+                      : 'Information avant paiement'}
+                  </h3>
+                  <p className="text-sm text-gray-600 mt-1">
+                    {pendingPlanSupportsReferral
+                      ? "Avant de passer sur Stripe, renseignez votre code si vous en possédez un pour profiter des avantages du parrainage. Vous pouvez aussi continuer sans code."
+                      : "Le parrainage s'applique uniquement sur les abonnements annuels. Cette offre mensuelle ne permet pas d'appliquer un code parrainage."}
+                  </p>
+                </div>
+              </div>
+
+              {pendingPlanSupportsReferral && (
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-700">Code de parrainage (optionnel)</label>
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="text"
+                      value={referralCode}
+                      onChange={(e) => {
+                        const code = e.target.value.toUpperCase()
+                        setReferralCode(code)
+                        if (code.length >= 4) {
+                          validateReferralCode(code)
+                        } else {
+                          setCodeValidation(null)
+                        }
+                      }}
+                      placeholder="ex. KEVIN123"
+                      className="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent uppercase font-mono tracking-wider text-gray-900 placeholder:font-sans placeholder:tracking-normal"
+                      maxLength={10}
+                    />
+                    {validatingCode && <Loader2 className="h-5 w-5 animate-spin text-yellow-600" />}
+                  </div>
+
+                  {codeValidation && (
+                    <div
+                      className={`text-sm font-medium px-4 py-2 rounded-lg ${
+                        codeValidation.valid
+                          ? 'bg-green-50 border border-green-200 text-green-800'
+                          : 'bg-red-50 border border-red-200 text-red-800'
+                      }`}
+                    >
+                      {codeValidation.valid ? '✅' : '❌'} {codeValidation.message}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <div className="flex flex-col-reverse sm:flex-row gap-3 sm:justify-end">
+                <button
+                  type="button"
+                  onClick={() => setPendingPlanType(null)}
+                  className="px-4 py-2.5 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition"
+                >
+                  Annuler
+                </button>
+                {pendingPlanSupportsReferral && (
+                  <button
+                    type="button"
+                    onClick={handleSkipReferral}
+                    className="px-4 py-2.5 rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50 transition"
+                  >
+                    Je n'ai pas de code
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={handleContinueWithReferral}
+                  disabled={pendingPlanSupportsReferral && (validatingCode || (!!referralCode && !codeValidation?.valid))}
+                  className="px-4 py-2.5 rounded-lg bg-purple-600 text-white font-semibold hover:bg-purple-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Continuer vers Stripe
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </AuthLayout>
   )
