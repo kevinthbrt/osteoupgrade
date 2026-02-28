@@ -89,6 +89,7 @@ export default function PolitiqueConfidentialitePage() {
           </p>
         </section>
       </div>
+      </div>
       <PublicFooter />
     </div>
   )

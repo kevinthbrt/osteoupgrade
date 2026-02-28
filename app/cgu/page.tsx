@@ -337,6 +337,7 @@ export default function CGUPage() {
           </div>
         </div>
       </div>
+      </div>
       <PublicFooter />
     </div>
   )

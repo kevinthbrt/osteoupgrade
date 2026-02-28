@@ -51,6 +51,7 @@ export default function MentionsLegalesPage() {
           </p>
         </section>
       </div>
+      </div>
       <PublicFooter />
     </div>
   )
