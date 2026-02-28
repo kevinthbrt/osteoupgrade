@@ -45,6 +45,35 @@ const CHANGELOG: ChangelogEntry[] = [
     ]
   },
   {
+    date: '28 février 2026',
+    changes: [
+      {
+        type: 'feature',
+        text: 'Footer partagé — présent sur toutes les pages (authentifiées et publiques) avec les liens vers les pages légales : Mentions légales, CGU/CGV, Politique de confidentialité'
+      },
+      {
+        type: 'feature',
+        text: 'Bandeau cookies (RGPD) — consentement demandé à la première visite, mémorisé en localStorage, avec lien vers la politique de confidentialité'
+      },
+      {
+        type: 'feature',
+        text: 'Liens légaux dans la navigation authentifiée — accessibles depuis la sidebar sous le bouton de déconnexion'
+      },
+      {
+        type: 'improvement',
+        text: 'CGU mises à jour — tarifs corrects (Silver 29€/mois ou 240€/an, Gold 499€/an), suppression de la mention d\'engagement 12 mois, ajout de la section Programme Ambassadeur Gold avec détail des commissions'
+      },
+      {
+        type: 'improvement',
+        text: 'Emails de la plateforme mis à jour — tarifs et conditions alignés avec les CGU (suppression de l\'engagement, tarifs corrects)'
+      },
+      {
+        type: 'fix',
+        text: 'Programme ambassadeur — clarification : les commissions sont versées par virement bancaire (pas un crédit plateforme), retrait possible dès 50€ cumulés'
+      }
+    ]
+  },
+  {
     date: '27 février 2026',
     changes: [
       {
