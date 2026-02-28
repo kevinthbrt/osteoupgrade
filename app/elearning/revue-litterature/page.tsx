@@ -19,6 +19,7 @@ import {
   Tag,
   X
 } from 'lucide-react'
+import FreeContentGate from '@/components/FreeContentGate'
 
 type ReviewImage = {
   url: string
@@ -165,6 +166,16 @@ export default function RevueLitteraturePage() {
   }
 
   const isAdmin = profile?.role === 'admin'
+  const isFree = profile?.role === 'free'
+
+  const isEpauleReview = (review: LiteratureReview) => {
+    const tagNames = review.tags.map((t) => t.name.toLowerCase())
+    const tagSlugs = review.tags.map((t) => t.slug.toLowerCase())
+    return [...tagNames, ...tagSlugs].some((s) => {
+      const normalized = s.includes('epaule') || s.includes('épaule') || s.includes('epaul')
+      return normalized
+    })
+  }
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString)
@@ -386,6 +397,7 @@ export default function RevueLitteraturePage() {
 
         {/* Featured Article (Magazine style) */}
         {featuredReview && (
+          <FreeContentGate isLocked={isFree && !isEpauleReview(featuredReview)}>
           <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-slate-200">
             <div className="grid md:grid-cols-2 gap-0">
               {/* Image */}
@@ -465,6 +477,7 @@ export default function RevueLitteraturePage() {
               </div>
             </div>
           </div>
+          </FreeContentGate>
         )}
 
         {/* Other Articles (List) */}
@@ -477,8 +490,8 @@ export default function RevueLitteraturePage() {
 
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
               {otherReviews.map((review) => (
+                <FreeContentGate key={review.id} isLocked={isFree && !isEpauleReview(review)}>
                 <div
-                  key={review.id}
                   className="bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden border border-slate-200 group hover:-translate-y-1"
                 >
                   {/* Image */}
@@ -553,6 +566,7 @@ export default function RevueLitteraturePage() {
                     </div>
                   </div>
                 </div>
+                </FreeContentGate>
               ))}
             </div>
           </div>

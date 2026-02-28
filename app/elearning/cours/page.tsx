@@ -350,37 +350,31 @@ export default function CoursPage() {
     }
   }
 
-  const isSubpartAccessible = (formation: Formation, chapter: Chapter, subpartIndex: number) => {
-    // Check if this is the very first subpart of the entire formation
-    const isFirstChapter = formation.chapters[0]?.id === chapter.id
-    if (subpartIndex === 0 && isFirstChapter) return true // Only the first subpart of the first chapter is always accessible
-
-    // Find previous subpart
-    let previousSubpart: Subpart | null = null
-    for (const ch of formation.chapters) {
-      const idx = ch.subparts.findIndex((s) => s.id === chapter.subparts[subpartIndex].id)
-      if (idx > 0) {
-        previousSubpart = ch.subparts[idx - 1]
-        break
-      } else if (idx === 0) {
-        // Check previous chapter's last subpart
-        const chapterIdx = formation.chapters.findIndex((c) => c.id === ch.id)
-        if (chapterIdx > 0) {
-          const prevChapter = formation.chapters[chapterIdx - 1]
-          if (prevChapter.subparts.length > 0) {
-            previousSubpart = prevChapter.subparts[prevChapter.subparts.length - 1]
-          }
+  // Compute a Set of accessible subpart IDs for the entire formation, propagating locks correctly:
+  // a subpart is accessible only if its previous subpart is also accessible AND has no unpassed quiz.
+  const computeAccessibleSubparts = (formation: Formation): Set<string> => {
+    const accessible = new Set<string>()
+    const allSubparts: Subpart[] = formation.chapters.flatMap((ch) => ch.subparts)
+    for (let i = 0; i < allSubparts.length; i++) {
+      if (i === 0) {
+        accessible.add(allSubparts[i].id)
+      } else {
+        const prev = allSubparts[i - 1]
+        const prevAccessible = accessible.has(prev.id)
+        const prevQuizPassed = !prev.quiz || prev.quiz_passed === true
+        if (prevAccessible && prevQuizPassed) {
+          accessible.add(allSubparts[i].id)
         }
-        break
       }
     }
+    return accessible
+  }
 
-    // If there's a previous subpart with a quiz, it must be passed
-    if (previousSubpart && previousSubpart.quiz) {
-      return previousSubpart.quiz_passed === true
-    }
-
-    return true
+  const isSubpartAccessible = (formation: Formation, chapter: Chapter, subpartIndex: number) => {
+    const accessible = computeAccessibleSubparts(formation)
+    const subpart = chapter.subparts[subpartIndex]
+    if (!subpart) return false
+    return accessible.has(subpart.id)
   }
 
   if (loading) {
