@@ -266,22 +266,25 @@ export default function CGUPage() {
               <p className="text-gray-700 leading-relaxed">
                 Chaque Abonné Gold dispose d'un lien de parrainage personnel. Lorsqu'un nouveau client souscrit
                 un abonnement annuel OsteoUpgrade (Silver annuel ou Gold) en utilisant ce lien, l'Abonné parrain
-                reçoit un crédit équivalent à <strong>10 % du montant de la première année</strong> d'abonnement
+                accumule une commission équivalente à <strong>10 % du montant de la première année</strong> d'abonnement
                 du filleul.
               </p>
               <ul className="list-disc list-inside space-y-2 text-gray-700 mt-3 ml-4">
-                <li>Le crédit est valable uniquement sur la plateforme OsteoUpgrade (déduction sur le prochain renouvellement d'abonnement du parrain)</li>
-                <li>Le crédit est attribué une seule fois par filleul, sur la première année d'abonnement uniquement</li>
-                <li>Le crédit n'est pas remboursable en espèces ou par virement bancaire</li>
-                <li>Le crédit est accordé dès lors que le paiement du filleul est confirmé et non contesté</li>
+                <li>La commission est cumulée dans le solde ambassadeur du parrain, visible depuis son espace client</li>
+                <li>Dès que le solde cumulé atteint <strong>50 € minimum</strong>, le parrain peut demander un virement bancaire</li>
+                <li>Le virement est effectué sur le compte bancaire renseigné par le parrain dans son espace client</li>
+                <li>La commission est attribuée une seule fois par filleul, sur la première année d'abonnement uniquement</li>
+                <li>La commission est accordée dès lors que le paiement du filleul est confirmé et non contesté</li>
               </ul>
 
               <h3 className="text-xl font-semibold text-gray-900 mt-6 mb-3">9.3 - Conditions et restrictions</h3>
               <ul className="list-disc list-inside space-y-2 text-gray-700 mt-3 ml-4">
                 <li>L'Abonné ne peut pas se parrainer lui-même</li>
+                <li>Le virement n'est possible qu'à partir de <strong>50 € cumulés</strong> dans le solde ambassadeur</li>
+                <li>Le solde ambassadeur non réclamé à la résiliation du compte Gold est définitivement perdu</li>
                 <li>Le Programme Ambassadeur ne peut pas être utilisé à des fins de revente ou de commercialisation</li>
                 <li>OsteoUpgrade se réserve le droit de modifier ou de suspendre le Programme Ambassadeur à tout moment, avec un préavis de 30 jours aux abonnés concernés</li>
-                <li>Tout abus, fraude ou tentative de contournement des règles entraîne la perte définitive des crédits accumulés et peut conduire à la résiliation du compte</li>
+                <li>Tout abus, fraude ou tentative de contournement des règles entraîne la perte définitive des commissions accumulées et peut conduire à la résiliation du compte</li>
               </ul>
             </section>
 
