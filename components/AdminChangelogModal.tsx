@@ -15,10 +15,35 @@ type ChangelogEntry = {
 
 // ─────────────────────────────────────────────
 // 🔖 INCRÉMENTER cette valeur à chaque mise à jour
-const CHANGELOG_VERSION = 2
+const CHANGELOG_VERSION = 3
 // ─────────────────────────────────────────────
 
 const CHANGELOG: ChangelogEntry[] = [
+  {
+    date: '28 février 2026',
+    changes: [
+      {
+        type: 'feature',
+        text: 'Page /parrainage — nouvelle page dédiée accessible à tous, avec contenu adapté au rôle : les membres Gold voient leur code, leurs gains et leur cagnotte ; les Silver reçoivent un teasing pour passer Gold ; les membres Free ont un CTA vers les offres'
+      },
+      {
+        type: 'feature',
+        text: 'Navigation — lien "Parrainage & Cagnotte" ajouté pour tous les utilisateurs connectés'
+      },
+      {
+        type: 'feature',
+        text: 'Admin — page /admin/promo : génération de codes promo Stripe -100€ sur l\'abonnement Gold (code personnalisable, nb d\'utilisations, barre de progression, désactivation). Accessible depuis le dashboard admin et la navigation'
+      },
+      {
+        type: 'feature',
+        text: 'Checkout Stripe — champ "code promo" désormais visible lors du paiement (allow_promotion_codes activé). Les codes générés depuis /admin/promo sont saisis directement par l\'utilisateur sur la page de paiement Stripe'
+      },
+      {
+        type: 'improvement',
+        text: 'Page abonnement — section parrainage enrichie : champ de code mieux expliqué pour les non-premium, section dédiée pour les Gold avec gains indicatifs et lien vers la cagnotte, section incitative pour les Silver leur expliquant l\'intérêt de passer Gold'
+      }
+    ]
+  },
   {
     date: '27 février 2026',
     changes: [
