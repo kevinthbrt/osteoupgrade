@@ -1,4 +1,5 @@
 import { Metadata } from 'next'
+import PublicFooter from '@/components/PublicFooter'
 
 export const metadata: Metadata = {
   title: 'Conditions Générales d\'Utilisation | OsteoUpgrade',
@@ -7,7 +8,8 @@ export const metadata: Metadata = {
 
 export default function CGUPage() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 py-12">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
+      <div className="py-12">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="bg-white rounded-2xl shadow-xl p-8 md:p-12">
           <h1 className="text-4xl font-bold text-gray-900 mb-4">
@@ -15,7 +17,7 @@ export default function CGUPage() {
           </h1>
 
           <p className="text-gray-600 mb-8">
-            Dernière mise à jour : {new Date().toLocaleDateString('fr-FR', { year: 'numeric', month: 'long', day: 'numeric' })}
+            Dernière mise à jour : 28 février 2026
           </p>
 
           <div className="prose prose-blue max-w-none space-y-8">
@@ -25,7 +27,7 @@ export default function CGUPage() {
               <p className="text-gray-700 leading-relaxed">
                 Les présentes Conditions Générales d'Utilisation et de Vente (ci-après « CGU/CGV ») régissent
                 l'accès et l'utilisation de la plateforme OsteoUpgrade (ci-après « la Plateforme ») accessible
-                à l'adresse [votre-domaine.com], ainsi que la souscription aux offres d'abonnement Premium proposées.
+                à l'adresse osteo-upgrade.fr, ainsi que la souscription aux offres d'abonnement Premium proposées.
               </p>
               <p className="text-gray-700 leading-relaxed mt-4">
                 L'utilisation de la Plateforme implique l'acceptation pleine et entière des présentes CGU/CGV.
@@ -44,7 +46,7 @@ export default function CGUPage() {
                   RCS : [ville] [numéro]<br />
                   SIRET : [numéro]<br />
                   TVA intracommunautaire : [numéro]<br />
-                  Email : contact@[votre-domaine].com<br />
+                  Email : contact@osteo-upgrade.fr<br />
                   Directeur de publication : [Nom Prénom]<br />
                   Hébergeur : Vercel Inc., 440 N Barranca Ave #4133, Covina, CA 91723, USA
                 </p>
@@ -184,7 +186,7 @@ export default function CGUPage() {
                 à justifier de motifs ni à payer de pénalités.
               </p>
               <p className="text-gray-700 leading-relaxed mt-4">
-                Pour exercer ce droit, l'Abonné doit notifier sa décision par email à contact@[votre-domaine].com
+                Pour exercer ce droit, l'Abonné doit notifier sa décision par email à contact@osteo-upgrade.fr
                 ou via son espace client. Le remboursement sera effectué dans un délai de 14 jours suivant la
                 notification de rétractation.
               </p>
@@ -298,9 +300,12 @@ export default function CGUPage() {
               <div className="bg-blue-50 border-l-4 border-blue-500 p-6 rounded-r-lg mt-4">
                 <p className="text-gray-700">
                   <strong>Médiateur de la consommation :</strong><br />
-                  [Nom du médiateur]<br />
-                  [Adresse]<br />
-                  Site web : [URL]
+                  CM2C – Centre de Médiation de la Consommation de Conciliateurs de Justice<br />
+                  14 rue Saint-Jean, 75017 Paris<br />
+                  Site web :{' '}
+                  <a href="https://www.cm2c.net" target="_blank" rel="noreferrer" className="text-blue-600 underline">
+                    www.cm2c.net
+                  </a>
                 </p>
               </div>
               <p className="text-gray-700 leading-relaxed mt-4">
@@ -324,14 +329,15 @@ export default function CGUPage() {
                 Pour toute question concernant les présentes CGU/CGV, vous pouvez nous contacter :
               </p>
               <ul className="mt-4 space-y-2 text-gray-700">
-                <li>📧 Email : contact@[votre-domaine].com</li>
-                <li>📞 Téléphone : [numéro]</li>
-                <li>📍 Adresse : [adresse complète]</li>
+                <li>📧 Email : contact@osteo-upgrade.fr</li>
+                <li>📞 Téléphone : [À compléter après création de la SAS]</li>
+                <li>📍 Adresse : [À compléter après création de la SAS]</li>
               </ul>
             </section>
           </div>
         </div>
       </div>
+      <PublicFooter />
     </div>
   )
 }
