@@ -59,9 +59,11 @@ export default function CGUPage() {
               <ul className="space-y-2 text-gray-700">
                 <li><strong>Utilisateur :</strong> Toute personne accédant à la Plateforme</li>
                 <li><strong>Abonné :</strong> Utilisateur ayant souscrit à une offre Premium</li>
-                <li><strong>Compte Gratuit :</strong> Accès limité aux fonctionnalités de base</li>
-                <li><strong>Abonnement Premium :</strong> Accès complet aux fonctionnalités (Silver ou Gold)</li>
-                <li><strong>Période d'Engagement :</strong> Durée minimale de 12 mois consécutifs</li>
+                <li><strong>Compte Gratuit :</strong> Accès limité au module épaule uniquement</li>
+                <li><strong>Abonnement Premium Silver :</strong> Accès complet à la plateforme numérique, disponible en formule mensuelle (29 €/mois) ou annuelle (240 €/an)</li>
+                <li><strong>Abonnement Premium Gold :</strong> Accès complet à la plateforme numérique avec avantages exclusifs (499 €/an)</li>
+                <li><strong>Période de facturation :</strong> Durée correspondant à l'intervalle entre deux prélèvements automatiques (mensuel ou annuel selon l'offre choisie)</li>
+                <li><strong>Programme Ambassadeur :</strong> Dispositif de parrainage réservé aux abonnés Gold permettant d'obtenir un crédit sur la plateforme</li>
               </ul>
             </section>
 
@@ -83,63 +85,94 @@ export default function CGUPage() {
               <h2 className="text-2xl font-bold text-gray-900 mb-4">Article 5 - Offres d'Abonnement</h2>
 
               <h3 className="text-xl font-semibold text-gray-900 mt-6 mb-3">5.1 - Offres disponibles</h3>
-              <div className="grid md:grid-cols-2 gap-4 mb-6">
-                <div className="border border-gray-200 rounded-lg p-6">
-                  <h4 className="font-bold text-lg text-blue-600 mb-2">Premium Silver</h4>
-                  <p className="text-3xl font-bold text-gray-900 mb-2">29,99€<span className="text-base text-gray-600">/mois</span></p>
-                  <p className="text-sm text-gray-600">Soit 359,88€ sur 12 mois</p>
-                  <ul className="mt-4 space-y-2 text-sm text-gray-700">
-                    <li>✓ Accès à tous les modules</li>
-                    <li>✓ Tests et exercices avancés</li>
-                    <li>✓ Suivi de progression</li>
+              <div className="space-y-4 mb-6">
+
+                {/* Free */}
+                <div className="border border-gray-200 rounded-lg p-5">
+                  <h4 className="font-bold text-lg text-gray-700 mb-1">Compte Gratuit</h4>
+                  <p className="text-2xl font-bold text-gray-900 mb-2">0 €</p>
+                  <ul className="mt-3 space-y-1 text-sm text-gray-700">
+                    <li>✓ Module épaule complet</li>
                   </ul>
                 </div>
-                <div className="border border-amber-200 rounded-lg p-6 bg-amber-50">
-                  <h4 className="font-bold text-lg text-amber-600 mb-2">Premium Gold</h4>
-                  <p className="text-3xl font-bold text-gray-900 mb-2">49,99€<span className="text-base text-gray-600">/mois</span></p>
-                  <p className="text-sm text-gray-600">Soit 599,88€ sur 12 mois</p>
-                  <ul className="mt-4 space-y-2 text-sm text-gray-700">
-                    <li>✓ Tous les avantages Silver</li>
-                    <li>✓ Contenu exclusif avancé</li>
-                    <li>✓ Support prioritaire</li>
+
+                {/* Silver */}
+                <div className="border border-gray-200 rounded-lg p-5">
+                  <h4 className="font-bold text-lg text-blue-600 mb-1">Premium Silver</h4>
+                  <div className="flex flex-wrap gap-4 mb-2">
+                    <div>
+                      <p className="text-2xl font-bold text-gray-900">29 €<span className="text-base text-gray-600 font-normal">/mois</span></p>
+                      <p className="text-sm text-gray-500">Formule mensuelle</p>
+                    </div>
+                    <div>
+                      <p className="text-2xl font-bold text-gray-900">240 €<span className="text-base text-gray-600 font-normal">/an</span></p>
+                      <p className="text-sm text-gray-500">Formule annuelle — soit 20 €/mois (2 mois offerts, −17 %)</p>
+                    </div>
+                  </div>
+                  <ul className="mt-3 space-y-1 text-sm text-gray-700">
+                    <li>✓ Tests orthopédiques complets + export PDF</li>
+                    <li>✓ E-learning actualisé en continu</li>
+                    <li>✓ Module pratique (techniques articulaires & mobilisations)</li>
+                    <li>✓ Créateur de fiches d'exercices (export PDF)</li>
+                    <li>✓ Topographies des pathologies</li>
+                    <li>✓ Toutes les régions anatomiques</li>
+                    <li>✓ Bibliothèque complète de tests diagnostiques</li>
+                    <li>✓ Quiz complet</li>
+                    <li>✓ Revue de littérature</li>
+                  </ul>
+                </div>
+
+                {/* Gold */}
+                <div className="border border-amber-200 rounded-lg p-5 bg-amber-50">
+                  <h4 className="font-bold text-lg text-amber-600 mb-1">Premium Gold <span className="text-sm font-normal text-amber-700 ml-1">— Populaire</span></h4>
+                  <p className="text-2xl font-bold text-gray-900 mb-1">499 €<span className="text-base text-gray-600 font-normal">/an</span></p>
+                  <p className="text-sm text-gray-500 mb-2">soit 41,58 €/mois — Formule annuelle uniquement</p>
+                  <ul className="mt-3 space-y-1 text-sm text-gray-700">
+                    <li>✓ Tout le contenu Silver</li>
+                    <li>✓ Séminaire présentiel annuel (2 jours)</li>
+                    <li>✓ Masterclasses exclusives</li>
+                    <li>✓ Programme Ambassadeur (10 % de commission en crédit plateforme)</li>
+                    <li>✓ Accès prioritaire aux nouveautés</li>
+                    <li>✓ Support premium dédié</li>
                   </ul>
                 </div>
               </div>
 
-              <h3 className="text-xl font-semibold text-gray-900 mt-6 mb-3">5.2 - Engagement et Facturation</h3>
-              <div className="bg-amber-50 border-l-4 border-amber-500 p-6 rounded-r-lg mb-4">
-                <p className="font-bold text-amber-900 mb-2">⚠️ Engagement de 12 mois</p>
+              <p className="text-sm text-gray-600 italic">
+                Les prix s'entendent en euros toutes taxes comprises (TTC). Aucune TVA n'est actuellement applicable
+                (régime de franchise en base de TVA, sous réserve de modification).
+              </p>
+
+              <h3 className="text-xl font-semibold text-gray-900 mt-6 mb-3">5.2 - Renouvellement automatique</h3>
+              <div className="bg-blue-50 border-l-4 border-blue-500 p-6 rounded-r-lg mb-4">
+                <p className="font-bold text-blue-900 mb-2">✅ Sans engagement — résiliable à tout moment</p>
                 <p className="text-gray-700 leading-relaxed">
-                  Tous les abonnements Premium sont soumis à un <strong>engagement minimum de 12 mois consécutifs</strong>.
-                  La facturation s'effectue mensuellement par prélèvement automatique.
+                  Les abonnements OsteoUpgrade ne comportent <strong>aucun engagement de durée minimale</strong>.
+                  Ils se renouvellent automatiquement à l'issue de chaque période de facturation (mensuelle ou annuelle)
+                  et peuvent être résiliés à tout moment avant la prochaine date de renouvellement.
                 </p>
               </div>
 
               <p className="text-gray-700 leading-relaxed">
-                Le premier paiement est effectué lors de la souscription, puis automatiquement chaque mois
-                à la même date. Les tarifs incluent la TVA applicable au taux en vigueur.
-              </p>
-
-              <h3 className="text-xl font-semibold text-gray-900 mt-6 mb-3">5.3 - Durée de l'Engagement</h3>
-              <p className="text-gray-700 leading-relaxed">
-                L'abonnement débute à la date de validation du paiement initial et s'étend sur une période
-                minimale de 12 mois. Durant cette période :
+                Le premier prélèvement intervient à la date de souscription. Les prélèvements suivants ont lieu :
               </p>
               <ul className="list-disc list-inside space-y-2 text-gray-700 mt-3 ml-4">
-                <li>L'Abonné ne peut pas résilier son abonnement avant la fin de la période d'engagement</li>
-                <li>En cas de résiliation anticipée demandée, l'accès Premium sera maintenu jusqu'à la fin de la période d'engagement</li>
-                <li>Aucun remboursement ne sera effectué pour les mois déjà facturés</li>
+                <li><strong>Silver mensuel :</strong> chaque mois, à la même date que la souscription initiale</li>
+                <li><strong>Silver annuel :</strong> chaque année, à la même date que la souscription initiale</li>
+                <li><strong>Gold annuel :</strong> chaque année, à la même date que la souscription initiale</li>
               </ul>
 
-              <h3 className="text-xl font-semibold text-gray-900 mt-6 mb-3">5.4 - Renouvellement</h3>
-              <p className="text-gray-700 leading-relaxed">
-                À l'issue de la période d'engagement initiale de 12 mois, l'abonnement se renouvelle
-                automatiquement pour une nouvelle période de 12 mois, aux mêmes conditions tarifaires
-                (sous réserve d'une éventuelle révision des tarifs notifiée au moins 30 jours à l'avance).
-              </p>
               <p className="text-gray-700 leading-relaxed mt-4">
-                <strong>L'Abonné est informé par email 7 jours avant la fin de chaque période d'engagement</strong>,
-                lui permettant de résilier son abonnement s'il ne souhaite pas le renouveler.
+                <strong>L'Abonné est notifié par email 7 jours avant chaque renouvellement</strong>, lui permettant
+                de résilier son abonnement s'il ne souhaite pas être débité pour la période suivante.
+              </p>
+
+              <h3 className="text-xl font-semibold text-gray-900 mt-6 mb-3">5.3 - Modification des tarifs</h3>
+              <p className="text-gray-700 leading-relaxed">
+                OsteoUpgrade se réserve le droit de modifier ses tarifs à tout moment. Toute modification tarifaire
+                sera notifiée à l'Abonné par email <strong>au moins 30 jours avant son entrée en vigueur</strong>.
+                L'Abonné pourra résilier son abonnement sans frais avant l'application du nouveau tarif.
+                À défaut de résiliation, la poursuite de l'abonnement vaut acceptation du nouveau tarif.
               </p>
             </section>
 
@@ -149,14 +182,17 @@ export default function CGUPage() {
 
               <h3 className="text-xl font-semibold text-gray-900 mt-6 mb-3">6.1 - Résiliation à l'initiative de l'Abonné</h3>
               <p className="text-gray-700 leading-relaxed">
-                L'Abonné peut résilier son abonnement uniquement <strong>après la période d'engagement de 12 mois</strong>,
-                via son espace client, en cliquant sur « Gérer mon abonnement » puis « Annuler l'abonnement ».
+                L'Abonné peut résilier son abonnement <strong>à tout moment</strong> sans frais ni pénalité,
+                directement depuis son espace client en cliquant sur « Gérer mon abonnement » puis « Annuler l'abonnement ».
+                La résiliation peut également être demandée par email à contact@osteo-upgrade.fr.
               </p>
               <p className="text-gray-700 leading-relaxed mt-4">
-                La résiliation prend effet à la date de fin du cycle d'engagement en cours. L'Abonné conserve
-                son accès Premium jusqu'à cette date et continue d'être facturé mensuellement jusqu'à la fin de
-                la période.
+                La résiliation prend effet à la date de fin de la période de facturation en cours :
               </p>
+              <ul className="list-disc list-inside space-y-2 text-gray-700 mt-3 ml-4">
+                <li><strong>Silver mensuel :</strong> l'accès Premium reste actif jusqu'à la fin du mois payé en cours ; aucun nouveau prélèvement n'est effectué</li>
+                <li><strong>Silver ou Gold annuel :</strong> l'accès Premium reste actif jusqu'à la fin de l'année payée en cours ; aucun renouvellement n'est effectué ; <strong>aucun remboursement au prorata</strong> n'est réalisé pour les mois non consommés de la période annuelle en cours</li>
+              </ul>
 
               <h3 className="text-xl font-semibold text-gray-900 mt-6 mb-3">6.2 - Résiliation à l'initiative d'OsteoUpgrade</h3>
               <p className="text-gray-700 leading-relaxed">
@@ -164,16 +200,16 @@ export default function CGUPage() {
               </p>
               <ul className="list-disc list-inside space-y-2 text-gray-700 mt-3 ml-4">
                 <li>Violation des présentes CGU/CGV</li>
-                <li>Défaut de paiement</li>
+                <li>Défaut de paiement non régularisé</li>
                 <li>Utilisation frauduleuse ou abusive de la Plateforme</li>
                 <li>Comportement nuisible envers d'autres utilisateurs</li>
               </ul>
 
-              <h3 className="text-xl font-semibold text-gray-900 mt-6 mb-3">6.3 - Échec de Paiement</h3>
+              <h3 className="text-xl font-semibold text-gray-900 mt-6 mb-3">6.3 - Échec de paiement</h3>
               <p className="text-gray-700 leading-relaxed">
-                En cas d'échec de paiement mensuel, l'Abonné dispose d'un délai de 7 jours pour régulariser
-                sa situation. Passé ce délai, l'accès Premium sera suspendu. L'engagement de 12 mois reste
-                cependant en vigueur et les sommes dues restent exigibles.
+                En cas d'échec de prélèvement automatique, l'Abonné est informé par email et dispose d'un délai
+                de 7 jours pour régulariser sa situation. Passé ce délai, l'accès Premium sera suspendu jusqu'au
+                paiement effectif ou jusqu'à la résiliation du compte.
               </p>
             </section>
 
@@ -181,8 +217,8 @@ export default function CGUPage() {
             <section>
               <h2 className="text-2xl font-bold text-gray-900 mb-4">Article 7 - Droit de Rétractation</h2>
               <p className="text-gray-700 leading-relaxed">
-                Conformément à l'article L221-18 du Code de la consommation, l'Abonné dispose d'un délai de
-                rétractation de 14 jours à compter de la souscription pour annuler son abonnement sans avoir
+                Conformément à l'article L.221-18 du Code de la consommation, l'Abonné dispose d'un délai de
+                rétractation de <strong>14 jours</strong> à compter de la souscription pour annuler son abonnement sans avoir
                 à justifier de motifs ni à payer de pénalités.
               </p>
               <p className="text-gray-700 leading-relaxed mt-4">
@@ -194,7 +230,9 @@ export default function CGUPage() {
                 <p className="text-gray-700">
                   <strong>Important :</strong> En acceptant de bénéficier immédiatement de l'accès Premium dès
                   la souscription, l'Abonné reconnaît et accepte expressément que l'exécution du service commence
-                  avant la fin du délai de rétractation de 14 jours.
+                  avant la fin du délai de rétractation de 14 jours. En cas de rétractation après le début d'utilisation
+                  du service, un remboursement partiel calculé au prorata des jours effectivement consommés pourra
+                  être appliqué conformément à l'article L.221-25 du Code de la consommation.
                 </p>
               </div>
             </section>
@@ -203,19 +241,72 @@ export default function CGUPage() {
             <section>
               <h2 className="text-2xl font-bold text-gray-900 mb-4">Article 8 - Prix et Paiement</h2>
               <p className="text-gray-700 leading-relaxed">
-                Les prix sont indiqués en euros (€) toutes taxes comprises (TTC). OsteoUpgrade se réserve le
-                droit de modifier ses tarifs à tout moment, sous réserve d'en informer l'Abonné au moins 30 jours
-                avant l'entrée en vigueur des nouveaux tarifs.
+                Les prix sont indiqués en euros (€). Les paiements s'effectuent par carte bancaire via la
+                plateforme sécurisée Stripe. Les données de paiement sont gérées directement par Stripe et
+                ne sont pas conservées par OsteoUpgrade.
               </p>
               <p className="text-gray-700 leading-relaxed mt-4">
-                Les paiements s'effectuent par carte bancaire via la plateforme sécurisée Stripe. Les données
-                de paiement ne sont pas conservées par OsteoUpgrade.
+                En cas de litige lié à un paiement, l'Abonné peut contacter OsteoUpgrade à contact@osteo-upgrade.fr
+                ou ouvrir un ticket d'assistance depuis son espace client.
               </p>
             </section>
 
-            {/* Article 9 - Propriété intellectuelle */}
+            {/* Article 9 - Programme Ambassadeur */}
             <section>
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">Article 9 - Propriété Intellectuelle</h2>
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">Article 9 - Programme Ambassadeur</h2>
+
+              <h3 className="text-xl font-semibold text-gray-900 mt-6 mb-3">9.1 - Accès et éligibilité</h3>
+              <p className="text-gray-700 leading-relaxed">
+                Le Programme Ambassadeur est réservé exclusivement aux abonnés ayant souscrit à l'offre
+                <strong> Premium Gold</strong> en cours de validité. Il permet à l'Abonné Gold de parrainer
+                de nouveaux utilisateurs et d'obtenir en contrepartie un crédit sur la plateforme OsteoUpgrade.
+              </p>
+
+              <h3 className="text-xl font-semibold text-gray-900 mt-6 mb-3">9.2 - Fonctionnement</h3>
+              <p className="text-gray-700 leading-relaxed">
+                Chaque Abonné Gold dispose d'un lien de parrainage personnel. Lorsqu'un nouveau client souscrit
+                un abonnement annuel OsteoUpgrade (Silver annuel ou Gold) en utilisant ce lien, l'Abonné parrain
+                reçoit un crédit équivalent à <strong>10 % du montant de la première année</strong> d'abonnement
+                du filleul.
+              </p>
+              <ul className="list-disc list-inside space-y-2 text-gray-700 mt-3 ml-4">
+                <li>Le crédit est valable uniquement sur la plateforme OsteoUpgrade (déduction sur le prochain renouvellement d'abonnement du parrain)</li>
+                <li>Le crédit est attribué une seule fois par filleul, sur la première année d'abonnement uniquement</li>
+                <li>Le crédit n'est pas remboursable en espèces ou par virement bancaire</li>
+                <li>Le crédit est accordé dès lors que le paiement du filleul est confirmé et non contesté</li>
+              </ul>
+
+              <h3 className="text-xl font-semibold text-gray-900 mt-6 mb-3">9.3 - Conditions et restrictions</h3>
+              <ul className="list-disc list-inside space-y-2 text-gray-700 mt-3 ml-4">
+                <li>L'Abonné ne peut pas se parrainer lui-même</li>
+                <li>Le Programme Ambassadeur ne peut pas être utilisé à des fins de revente ou de commercialisation</li>
+                <li>OsteoUpgrade se réserve le droit de modifier ou de suspendre le Programme Ambassadeur à tout moment, avec un préavis de 30 jours aux abonnés concernés</li>
+                <li>Tout abus, fraude ou tentative de contournement des règles entraîne la perte définitive des crédits accumulés et peut conduire à la résiliation du compte</li>
+              </ul>
+            </section>
+
+            {/* Article 10 - Séminaires */}
+            <section>
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">Article 10 - Séminaires Présentiels (Gold)</h2>
+              <p className="text-gray-700 leading-relaxed">
+                L'abonnement Premium Gold inclut l'accès à <strong>un séminaire présentiel de 2 jours par période
+                d'abonnement annuel</strong>. Cet accès est personnel et non transmissible.
+              </p>
+              <p className="text-gray-700 leading-relaxed mt-4">
+                Les dates, lieux et modalités d'inscription aux séminaires sont communiqués sur la Plateforme et
+                par email. OsteoUpgrade se réserve le droit de modifier, reporter ou annuler un séminaire en cas
+                de force majeure ou de circonstances exceptionnelles ; dans ce cas, une nouvelle date sera proposée
+                à l'Abonné.
+              </p>
+              <p className="text-gray-700 leading-relaxed mt-4">
+                Le droit au séminaire est valable pour la période d'abonnement annuel en cours et ne peut pas être
+                reporté à la période suivante en cas de non-utilisation.
+              </p>
+            </section>
+
+            {/* Article 11 - Propriété intellectuelle */}
+            <section>
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">Article 11 - Propriété Intellectuelle</h2>
               <p className="text-gray-700 leading-relaxed">
                 L'ensemble des contenus présents sur la Plateforme (textes, images, vidéos, graphismes, logos,
                 etc.) sont protégés par le droit d'auteur et appartiennent exclusivement à OsteoUpgrade ou à
@@ -228,9 +319,9 @@ export default function CGUPage() {
               </p>
             </section>
 
-            {/* Article 10 - Données personnelles */}
+            {/* Article 12 - Données personnelles */}
             <section>
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">Article 10 - Protection des Données Personnelles</h2>
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">Article 12 - Protection des Données Personnelles</h2>
               <p className="text-gray-700 leading-relaxed">
                 OsteoUpgrade s'engage à protéger les données personnelles de ses utilisateurs conformément au
                 Règlement Général sur la Protection des Données (RGPD) et à la loi Informatique et Libertés.
@@ -245,9 +336,9 @@ export default function CGUPage() {
               </p>
             </section>
 
-            {/* Article 11 - Responsabilité */}
+            {/* Article 13 - Responsabilité */}
             <section>
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">Article 11 - Limitation de Responsabilité</h2>
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">Article 13 - Limitation de Responsabilité</h2>
               <p className="text-gray-700 leading-relaxed">
                 OsteoUpgrade met tout en œuvre pour assurer l'accès à la Plateforme 24h/24 et 7j/7, sous réserve
                 des opérations de maintenance et des cas de force majeure.
@@ -266,9 +357,9 @@ export default function CGUPage() {
               </div>
             </section>
 
-            {/* Article 12 - Force majeure */}
+            {/* Article 14 - Force majeure */}
             <section>
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">Article 12 - Force Majeure</h2>
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">Article 14 - Force Majeure</h2>
               <p className="text-gray-700 leading-relaxed">
                 OsteoUpgrade ne pourra être tenu responsable de l'inexécution de ses obligations en cas de
                 survenance d'un événement de force majeure tel que défini par la jurisprudence française
@@ -276,13 +367,13 @@ export default function CGUPage() {
               </p>
             </section>
 
-            {/* Article 13 - Modifications des CGU */}
+            {/* Article 15 - Modifications des CGU */}
             <section>
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">Article 13 - Modifications des CGU/CGV</h2>
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">Article 15 - Modifications des CGU/CGV</h2>
               <p className="text-gray-700 leading-relaxed">
                 OsteoUpgrade se réserve le droit de modifier les présentes CGU/CGV à tout moment. Les
-                modifications entreront en vigueur dès leur mise en ligne. Les Utilisateurs seront informés
-                par email des modifications substantielles au moins 15 jours avant leur entrée en vigueur.
+                Utilisateurs seront informés par email des modifications substantielles au moins 15 jours
+                avant leur entrée en vigueur.
               </p>
               <p className="text-gray-700 leading-relaxed mt-4">
                 La poursuite de l'utilisation de la Plateforme après modification des CGU/CGV vaut acceptation
@@ -290,9 +381,9 @@ export default function CGUPage() {
               </p>
             </section>
 
-            {/* Article 14 - Médiation */}
+            {/* Article 16 - Médiation */}
             <section>
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">Article 14 - Médiation et Règlement des Litiges</h2>
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">Article 16 - Médiation et Règlement des Litiges</h2>
               <p className="text-gray-700 leading-relaxed">
                 Conformément à l'article L.612-1 du Code de la consommation, en cas de litige, l'Abonné peut
                 recourir gratuitement à un médiateur de la consommation :
@@ -313,9 +404,9 @@ export default function CGUPage() {
               </p>
             </section>
 
-            {/* Article 15 - Loi applicable */}
+            {/* Article 17 - Loi applicable */}
             <section>
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">Article 15 - Loi Applicable et Juridiction</h2>
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">Article 17 - Loi Applicable et Juridiction</h2>
               <p className="text-gray-700 leading-relaxed">
                 Les présentes CGU/CGV sont régies par le droit français. En cas de litige et à défaut de
                 règlement amiable ou de médiation, les tribunaux français seront seuls compétents.
