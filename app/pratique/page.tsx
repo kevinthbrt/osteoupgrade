@@ -929,6 +929,7 @@ export default function PracticePage() {
           )}
 
           {paginatedVideos.map((video) => {
+            const isVideoLocked = isFreeUser && video.region !== 'epaule' && !video.is_free_access
             return (
               <FreeContentGate key={video.id} isLocked={isVideoLocked}>
               <div
