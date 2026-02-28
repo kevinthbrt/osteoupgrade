@@ -15,10 +15,35 @@ type ChangelogEntry = {
 
 // ─────────────────────────────────────────────
 // 🔖 INCRÉMENTER cette valeur à chaque mise à jour
-const CHANGELOG_VERSION = 6
+const CHANGELOG_VERSION = 7
 // ─────────────────────────────────────────────
 
 const CHANGELOG: ChangelogEntry[] = [
+  {
+    date: '28 février 2026',
+    changes: [
+      {
+        type: 'feature',
+        text: 'Comptes free — navigation débloquée : les membres gratuits peuvent désormais accéder aux sections E-Learning, Pratique et Outils depuis la sidebar (le contenu premium reste flouté page par page).'
+      },
+      {
+        type: 'feature',
+        text: 'Comptes free — bouton "Passer Premium" doré affiché dans la sidebar et bandeau d\'upgrade sur le dashboard pour encourager l\'abonnement.'
+      },
+      {
+        type: 'feature',
+        text: 'Revue de littérature — les articles dont le tag n\'est pas "Épaule" sont floutés pour les comptes free (même logique que Pratique et Tests).'
+      },
+      {
+        type: 'fix',
+        text: 'Quiz (cours) — le verrouillage inter-chapitres fonctionnait mal : si un sous-partie A2 n\'avait pas de quiz, le sous-partie B1 du chapitre suivant était accessible même si A1 (avec quiz) n\'était pas validé. Corrigé avec un calcul en Set propagé.'
+      },
+      {
+        type: 'fix',
+        text: 'Quiz (cours) — les données quiz n\'étaient pas chargées pour les comptes free (politiques RLS trop restrictives). Correction : les membres free peuvent désormais lire les quizzes des formations marquées "accès libre".'
+      }
+    ]
+  },
   {
     date: '28 février 2026',
     changes: [

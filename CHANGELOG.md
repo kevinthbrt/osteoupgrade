@@ -7,40 +7,50 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/).
 
 ## [1.2.0] — 2026-02-28
 
+### Ajouté
+
+- **Comptes free — navigation débloquée** : E-Learning, Pratique et Outils accessibles depuis la sidebar ; le contenu premium reste flouté page par page via `FreeContentGate`.
+- **Comptes free — "Passer Premium"** : bouton doré animé dans la sidebar et bandeau d'upgrade sur le dashboard.
+- **Revue de littérature** : articles non-épaule floutés pour les comptes free (cohérence avec Pratique et Tests).
+
 ### Corrigé
 
-- **Quiz — Verrouillage inter-chapitres** (`app/elearning/cours/page.tsx`)
-  La fonction `isSubpartAccessible` ne propageait pas le verrou d'un chapitre à l'autre :
-  si le sous-partie B1 du chapitre 2 était précédée par A2 (sans quiz), elle restait accessible
-  même si A1 (avec quiz) n'était pas validé. Remplacée par `computeAccessibleSubparts` qui
-  calcule un `Set<string>` d'IDs accessibles en chaîne : chaque sous-partie n'est accessible
-  que si la précédente l'est ET que son quiz éventuel est passé.
+- **Quiz — verrouillage inter-chapitres** : `isSubpartAccessible` ne propageait pas le verrou entre chapitres. Remplacé par `computeAccessibleSubparts` (Set propagé). (`app/elearning/cours/page.tsx`)
+- **Quiz — données vides pour les free** : politiques RLS trop restrictives empêchaient les comptes free de lire les quizzes. Nouvelle migration `20260228_free_user_quiz_access.sql` : les free peuvent lire les quizzes des formations `is_free_access = true`.
+- **Pratique — `isVideoLocked` manquant** : variable perdue lors du merge avec conflit, corrigée dans la foulée.
 
-- **Quiz — Données vides pour les comptes free** (`supabase/migrations/20260228_free_user_quiz_access.sql`)
-  Les politiques RLS sur `elearning_quizzes`, `elearning_quiz_questions` et
-  `elearning_quiz_answers` n'autorisaient que les rôles `premium_silver`, `premium_gold` et
-  `admin` à lire les données. Pour les comptes `free`, Supabase retournait des tableaux vides,
-  `quiz_passed` était toujours `true` et aucun chapitre n'était verrouillé.
-  Nouvelles politiques : tout utilisateur authentifié peut lire les données de quiz si la
-  formation parente a `is_free_access = true` (join `quiz → subpart → chapter → formation`).
+---
+
+## [1.1.0] — 2026-02-28
 
 ### Ajouté
 
-- **Navigation — Accès free aux sections E-Learning / Pratique / Outils** (`components/Navigation.tsx`)
-  Suppression des restrictions de rôle (`roles`) sur les groupes E-Learning et Outils ainsi que
-  sur l'item Pratique. Les utilisateurs free peuvent désormais naviguer vers ces pages ; le
-  contenu est géré individuellement via `FreeContentGate` dans chaque page. Les Séminaires
-  restent réservés aux membres Gold et Admin.
+- **Parrainage** : page `/parrainage` dédiée accessible à tous, contenu adapté au rôle (Gold : code + gains + cagnotte ; Silver : teasing Gold ; Free : CTA offres). Lien dans la navigation pour tous.
+- **Admin — Codes promo** : page `/admin/promo` pour générer des codes Stripe -100€ sur Gold (personnalisable, nb d'utilisations, barre de progression, désactivation).
+- **Checkout Stripe** : champ code promo visible lors du paiement (`allow_promotion_codes`).
+- **Parrainage avant paiement** : rappel de code affiché avant redirection Stripe, passage sans code possible.
+- **Miniatures Vimeo** : récupération serveur via oEmbed (`vimeo_id`, `thumbnail_url`, `duration_seconds`) pour éviter les cartes noires.
+- **Module Pratique** : lecteur vidéo en modal, formulaire admin en modal, gestion catégories en modal, onglets régions avec retour à la ligne, pagination (12/page), région "Bassin", fusion "Pied & Cheville".
+- **Footer** : présent sur toutes les pages avec liens légaux (Mentions légales, CGU/CGV, Confidentialité).
+- **Bandeau cookies RGPD** : consentement à la première visite, mémorisé en localStorage.
+- **Liens légaux** dans la sidebar sous le bouton déconnexion.
+- **Mot de passe oublié** : lien sur l'écran de connexion + page dédiée.
+- **Fenêtre changelog admin** : popup automatique à chaque mise à jour pour les administrateurs.
+- **Tests orthopédiques** ajouté dans la navigation E-Learning.
 
-- **Navigation — Bouton "Passer Premium" doré pour les free** (`components/Navigation.tsx`)
-  Un bouton animé doré s'affiche en bas de la sidebar uniquement pour les comptes `free`,
-  avec un lien direct vers `/settings/subscription`.
+### Amélioré
 
-- **Dashboard — Bandeau d'upgrade Premium pour les free** (`app/dashboard/page.tsx`)
-  Un bandeau doré s'affiche entre le bloc gamification et les modules d'apprentissage pour
-  les comptes `free`, avec un CTA vers la page d'abonnement.
+- **CGU** : tarifs corrects (Silver 29€/mois ou 240€/an, Gold 499€/an), suppression engagement 12 mois, section Programme Ambassadeur Gold.
+- **Emails** : tarifs et conditions alignés avec les CGU.
+- **Module Pratique** : ordre d'affichage automatique si champ laissé vide.
+- **Page abonnement** : section parrainage enrichie selon le rôle.
+- **Parrainage Silver mensuel** : codes non proposés sur l'offre mensuelle.
 
-- **Revue de littérature — Floutage des articles non-épaule pour les free** (`app/elearning/revue-litterature/page.tsx`)
-  Les articles dont les tags ne contiennent pas "épaule" sont maintenant floutés via
-  `FreeContentGate` pour les utilisateurs `free`. S'applique à l'article vedette et à
-  toutes les cartes de la grille.
+### Corrigé
+
+- Sécurité — trigger gamification passé en `SECURITY DEFINER` (erreur 403 progression vidéo).
+- CSP — autorisation du widget Vercel Live.
+- Programme ambassadeur — virement bancaire dès 50€ cumulés (pas un crédit plateforme).
+- Revue de littérature — retours à la ligne respectés dans l'affichage des articles.
+- Module Pratique — bug qui chargeait toujours la première vidéo au lieu de celle cliquée.
+- Module Pratique — fallback visuel si miniature échoue au chargement.
