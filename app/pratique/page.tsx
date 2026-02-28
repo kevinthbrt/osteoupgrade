@@ -768,7 +768,7 @@ export default function PracticePage() {
         )}
 
         {/* Region tabs */}
-        <div className="flex gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' }}>
+        <div className="flex flex-wrap gap-2">
           {regions.map(region => {
             const count = regionCount(region.value)
             const active = selectedRegion === region.value
@@ -776,7 +776,7 @@ export default function PracticePage() {
               <button
                 key={region.value}
                 onClick={() => setSelectedRegion(region.value)}
-                className={`flex-shrink-0 inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition whitespace-nowrap ${
+                className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition whitespace-nowrap ${
                   active
                     ? 'bg-pink-600 text-white shadow-md shadow-pink-200'
                     : 'bg-white border border-gray-200 text-gray-600 hover:border-pink-300 hover:text-pink-600'
