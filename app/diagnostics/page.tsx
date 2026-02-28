@@ -28,6 +28,10 @@ import {
   EyeOff,
   TestTube2
 } from 'lucide-react'
+import FreeContentGate from '@/components/FreeContentGate'
+import FreeUserBanner from '@/components/FreeUserBanner'
+
+const FREE_ACCESSIBLE_REGION_VALUES = ['epaule']
 
 type Pathology = {
   id: string
@@ -335,37 +339,12 @@ export default function DiagnosticsPage() {
     )
   }
 
-  if (!isPremium) {
-    return (
-      <AuthLayout>
-        <div className="min-h-screen flex items-center justify-center">
-          <div className="max-w-2xl mx-auto text-center p-8">
-            <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-br from-amber-500 to-orange-600 mb-6">
-              <Crown className="h-10 w-10 text-white" />
-            </div>
-            <h1 className="text-3xl font-bold text-slate-900 mb-4">
-              Fonctionnalité Premium
-            </h1>
-            <p className="text-lg text-slate-600 mb-8">
-              Les diagnostics et pathologies sont réservés aux membres Premium.
-              Découvrez plus de 200 pathologies de manière ludique et interactive.
-            </p>
-            <button
-              onClick={() => router.push('/settings')}
-              className="px-8 py-4 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white rounded-xl font-semibold transition-all shadow-lg flex items-center gap-2 mx-auto"
-            >
-              <Crown className="h-5 w-5" />
-              Passer à Premium
-            </button>
-          </div>
-        </div>
-      </AuthLayout>
-    )
-  }
+  const isFree = profile?.role === 'free'
 
   return (
     <AuthLayout>
       <div className="min-h-screen pb-12">
+        {isFree && <div className="mb-6"><FreeUserBanner /></div>}
         {/* Header */}
         <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-rose-600 via-pink-600 to-purple-700 text-white mb-8 shadow-2xl">
           <div className="absolute inset-0 bg-grid-white/[0.02] bg-[size:60px_60px]" />
@@ -457,15 +436,17 @@ export default function DiagnosticsPage() {
                       <h3 className="text-lg font-semibold text-slate-900">{category.name}</h3>
                     </div>
                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                      {category.regions.map((region) => (
-                        <button
-                          key={region.value}
-                          onClick={() => setSelectedRegion(region.value)}
-                          className="px-4 py-3 bg-white border-2 border-slate-200 rounded-xl hover:border-rose-400 hover:bg-rose-50 transition-all text-slate-900 font-medium text-sm text-center"
-                        >
-                          {region.label}
-                        </button>
-                      ))}
+                      {category.regions.map((region) => {
+                        return (
+                          <button
+                            key={region.value}
+                            onClick={() => setSelectedRegion(region.value)}
+                            className="w-full px-4 py-3 bg-white border-2 border-slate-200 rounded-xl hover:border-rose-400 hover:bg-rose-50 transition-all text-slate-900 font-medium text-sm text-center"
+                          >
+                            {region.label}
+                          </button>
+                        )
+                      })}
                     </div>
                   </div>
                 )
@@ -483,12 +464,13 @@ export default function DiagnosticsPage() {
                   .map((s: string) => s.trim())
                   .filter((s: string) => s.length > 0)
               : []
+            const isItemLocked = isFree && !FREE_ACCESSIBLE_REGION_VALUES.includes(selectedRegion || '')
 
             return (
+              <FreeContentGate key={item.id} isLocked={isItemLocked}>
               <button
-                key={item.id}
-                onClick={() => setSelectedItem(item)}
-                className="group relative overflow-hidden rounded-2xl bg-white border-2 border-slate-200 hover:border-rose-300 shadow-sm hover:shadow-xl transition-all duration-300 text-left flex flex-col"
+                onClick={() => !isItemLocked && setSelectedItem(item)}
+                className="group relative overflow-hidden rounded-2xl bg-white border-2 border-slate-200 hover:border-rose-300 shadow-sm hover:shadow-xl transition-all duration-300 text-left flex flex-col w-full"
               >
                 {/* En-tête fixe avec titre uniquement */}
                 <div className="p-5 pb-3 h-[80px] flex items-center flex-shrink-0">
@@ -638,6 +620,7 @@ export default function DiagnosticsPage() {
                   </div>
                 </div>
               </button>
+              </FreeContentGate>
             )
           })}
 

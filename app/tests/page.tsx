@@ -26,6 +26,10 @@ import {
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import RelatedContent, { RelatedItem } from '@/components/RelatedContent'
+import FreeContentGate from '@/components/FreeContentGate'
+import FreeUserBanner from '@/components/FreeUserBanner'
+
+const FREE_ACCESSIBLE_REGIONS = ['Épaule']
 
 // Catégories de régions anatomiques
 const BODY_REGIONS = {
@@ -459,6 +463,7 @@ export default function ImprovedTestsPage() {
   return (
     <AuthLayout>
       <div className="min-h-screen pb-12">
+        {profile?.role === 'free' && <div className="mb-6"><FreeUserBanner /></div>}
         {/* Header */}
         <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-blue-600 via-primary-600 to-purple-700 text-white mb-8 shadow-2xl">
           <div className="absolute inset-0 bg-grid-white/[0.02] bg-[size:60px_60px]" />
@@ -533,15 +538,19 @@ export default function ImprovedTestsPage() {
                     {category}
                   </h3>
                   <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3">
-                    {regions.map((region) => (
-                      <button
-                        key={region}
-                        onClick={() => setSelectedRegion(region)}
-                        className="px-4 py-3 rounded-lg font-medium transition-all text-sm bg-gray-50 text-gray-700 hover:bg-gray-100 border border-gray-200 hover:border-primary-300 hover:shadow-md"
-                      >
-                        {region}
-                      </button>
-                    ))}
+                    {regions.map((region) => {
+                      const isRegionLocked = profile?.role === 'free' && !FREE_ACCESSIBLE_REGIONS.includes(region)
+                      return (
+                        <FreeContentGate key={region} isLocked={isRegionLocked} compact>
+                          <button
+                            onClick={() => !isRegionLocked && setSelectedRegion(region)}
+                            className="w-full px-4 py-3 rounded-lg font-medium transition-all text-sm bg-gray-50 text-gray-700 hover:bg-gray-100 border border-gray-200 hover:border-primary-300 hover:shadow-md"
+                          >
+                            {region}
+                          </button>
+                        </FreeContentGate>
+                      )
+                    })}
                   </div>
                 </div>
               ))}
@@ -677,8 +686,8 @@ export default function ImprovedTestsPage() {
                           {viewMode === 'grid' ? (
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                               {categoryClusters.map((cluster) => (
+                                <FreeContentGate key={cluster.id} isLocked={profile?.role === 'free' && !cluster.is_free_access}>
                                 <div
-                                  key={cluster.id}
                                   className="border border-indigo-100 rounded-lg hover:shadow-md transition-all cursor-pointer bg-indigo-50/40"
                                   onClick={() => handleClusterClick(cluster)}
                                 >
@@ -760,13 +769,14 @@ export default function ImprovedTestsPage() {
 
                                   </div>
                                 </div>
+                                </FreeContentGate>
                               ))}
                             </div>
                           ) : (
                             <div className="space-y-2">
                               {categoryClusters.map((cluster) => (
+                                <FreeContentGate key={cluster.id} isLocked={profile?.role === 'free' && !cluster.is_free_access}>
                                 <div
-                                  key={cluster.id}
                                   className="border border-indigo-100 rounded-lg p-4 hover:shadow-md transition-all cursor-pointer bg-indigo-50/40"
                                   onClick={() => handleClusterClick(cluster)}
                                 >
@@ -842,6 +852,7 @@ export default function ImprovedTestsPage() {
 
                                   </div>
                                 </div>
+                                </FreeContentGate>
                               ))}
                             </div>
                           )}
@@ -860,8 +871,8 @@ export default function ImprovedTestsPage() {
                                 const thumbnail = getYouTubeThumbnail(test.video_url)
 
                                 return (
+                                  <FreeContentGate key={test.id} isLocked={profile?.role === 'free' && !test.is_free_access}>
                                   <div
-                                    key={test.id}
                                     className="border border-gray-200 rounded-lg hover:shadow-md transition-all cursor-pointer overflow-hidden"
                                     onClick={() => handleTestClick(test)}
                                   >
@@ -946,14 +957,15 @@ export default function ImprovedTestsPage() {
                                     )}
                                   </div>
                                 </div>
+                                </FreeContentGate>
                                 )
                               })}
                             </div>
                           ) : (
                             <div className="space-y-2">
                               {categoryTests.map((test) => (
+                                <FreeContentGate key={test.id} isLocked={profile?.role === 'free' && !test.is_free_access}>
                                 <div
-                                  key={test.id}
                                   className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-all cursor-pointer"
                                   onClick={() => handleTestClick(test)}
                                 >
@@ -1021,6 +1033,7 @@ export default function ImprovedTestsPage() {
                                     </div>
                                   </div>
                                 </div>
+                                </FreeContentGate>
                               ))}
                             </div>
                           )}

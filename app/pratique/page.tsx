@@ -23,6 +23,8 @@ import {
   X,
 } from 'lucide-react'
 import CategoryManager, { PracticeCategory } from './CategoryManager'
+import FreeContentGate from '@/components/FreeContentGate'
+import FreeUserBanner from '@/components/FreeUserBanner'
 
 type VimeoApiMetadata = {
   vimeo_id: string
@@ -60,6 +62,7 @@ type PracticeVideo = {
   duration_seconds?: number | null
   order_index?: number | null
   is_active: boolean
+  is_free_access?: boolean | null
 }
 
 const isPremium = (role?: string) => ['premium_silver', 'premium_gold', 'admin'].includes(role || '')
@@ -276,9 +279,7 @@ export default function PracticePage() {
         if (!payload?.user) { router.push('/'); return }
         const profileData = payload.profile
         setProfile(profileData as Profile)
-        if (isPremium(profileData?.role) || isAdmin(profileData?.role)) {
-          await Promise.all([fetchVideos(), fetchCategories()])
-        }
+        await Promise.all([fetchVideos(), fetchCategories()])
       } catch (error) {
         console.error('Impossible de charger les données Pratique', error)
       } finally {
@@ -492,22 +493,7 @@ export default function PracticePage() {
     )
   }
 
-  if (!premiumAccess) {
-    return (
-      <AuthLayout>
-        <div className="max-w-3xl mx-auto bg-white border border-gray-200 rounded-2xl p-10 text-center shadow-sm">
-          <div className="flex items-center justify-center w-12 h-12 rounded-full bg-amber-100 text-amber-600 mx-auto">
-            <Lock className="h-6 w-6" />
-          </div>
-          <h1 className="text-2xl font-semibold mt-4">Accès réservé</h1>
-          <p className="text-gray-600 mt-2">
-            Le module Pratique est disponible pour les membres premium. Passe au niveau supérieur pour accéder aux
-            vidéos et aux ressources cliniques.
-          </p>
-        </div>
-      </AuthLayout>
-    )
-  }
+  const isFreeUser = profile?.role === 'free'
 
   /* ─────────────────────────────────────────────────────────────── */
   /*  RENDER                                                         */
@@ -812,6 +798,7 @@ export default function PracticePage() {
 
       {/* ══════════════ MAIN CONTENT ══════════════ */}
       <div className="space-y-6">
+        {isFreeUser && <FreeUserBanner />}
 
         {/* Hero */}
         <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white shadow-2xl">
@@ -943,8 +930,8 @@ export default function PracticePage() {
 
           {paginatedVideos.map((video) => {
             return (
+              <FreeContentGate key={video.id} isLocked={isVideoLocked}>
               <div
-                key={video.id}
                 className="group bg-white border border-gray-100 hover:border-pink-200 rounded-2xl shadow-sm hover:shadow-xl overflow-hidden flex flex-col transition-all duration-300 hover:-translate-y-0.5"
               >
                 {/* Thumbnail */}
@@ -1002,6 +989,7 @@ export default function PracticePage() {
                   </div>
                 )}
               </div>
+              </FreeContentGate>
             )
           })}
         </div>

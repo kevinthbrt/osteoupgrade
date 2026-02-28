@@ -7,6 +7,8 @@ import { supabase } from '@/lib/supabase'
 import { fetchProfilePayload } from '@/lib/profile-client'
 import { Calendar, MapPin, User, Plus, CheckCircle, Users, PenSquare, AlertTriangle, Info, X, Bold, Italic, List, ListOrdered, Heading2, Heading3 } from 'lucide-react'
 import { formatCycleWindow, getCurrentSubscriptionCycle, isDateWithinCycle } from '@/utils/subscriptionCycle'
+import FreeContentGate from '@/components/FreeContentGate'
+import FreeUserBanner from '@/components/FreeUserBanner'
 
 // Fonction pour extraire l'ID Vimeo de l'URL
 const extractVimeoId = (url: string): string | null => {
@@ -719,6 +721,7 @@ export default function SeminarsPage() {
     <AuthLayout>
       {selectedSeminar && <SeminarModal />}
       <div className="space-y-6">
+        {isFree && <FreeUserBanner />}
         {/* Header */}
         <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white shadow-2xl">
           {/* Decorative elements */}
@@ -820,8 +823,11 @@ export default function SeminarsPage() {
             const isRegistered = userRegistrations.some((r) => r.seminar_id === seminar.id || r.id === seminar.id)
             const seminarRegistrations = allRegistrations.filter((registration) => registration.seminar_id === seminar.id)
             const isFull = seminar.capacity ? seminarRegistrations.length >= seminar.capacity : false
+            const theme = (seminar.theme || '').toLowerCase()
+            const isSeminarFree = theme.includes('épaule') || theme.includes('epaule')
             return (
-              <div key={seminar.id} className="bg-white rounded-xl shadow-sm p-5 border border-gray-100 flex flex-col gap-3">
+              <FreeContentGate key={seminar.id} isLocked={isFree && !isSeminarFree}>
+              <div className="bg-white rounded-xl shadow-sm p-5 border border-gray-100 flex flex-col gap-3">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-xs text-gray-500">{seminar.theme}</p>
@@ -1072,6 +1078,7 @@ export default function SeminarsPage() {
                   </div>
                 )}
               </div>
+              </FreeContentGate>
             )
           })}
         </div>

@@ -24,6 +24,10 @@ import {
   Activity
 } from 'lucide-react'
 import RelatedContent, { RelatedItem } from '@/components/RelatedContent'
+import FreeContentGate from '@/components/FreeContentGate'
+import FreeUserBanner from '@/components/FreeUserBanner'
+
+const FREE_ACCESSIBLE_REGIONS_TOPO = ['epaule']
 
 // Catégories de régions anatomiques
 const BODY_REGIONS = {
@@ -131,7 +135,7 @@ export default function TopographiePage() {
   }, [router])
 
   useEffect(() => {
-    if (role && ['premium_silver', 'premium_gold', 'admin'].includes(role)) {
+    if (role) {
       loadViews()
     }
   }, [role])
@@ -259,47 +263,12 @@ export default function TopographiePage() {
     )
   }
 
-  if (!isPremium) {
-    return (
-      <AuthLayout>
-        <div className="max-w-4xl mx-auto space-y-6">
-          <div className="bg-white rounded-xl shadow-sm p-6 flex items-center gap-3">
-            <div className="p-3 rounded-lg bg-primary-50 text-primary-700">
-              <BookOpen className="h-6 w-6" />
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-primary-700">Topographie</p>
-              <h1 className="text-2xl font-bold text-gray-900">Bibliothèque topographique</h1>
-              <p className="text-gray-600 mt-1">
-                Accédez à des vues topographiques par zone anatomique pour guider votre raisonnement clinique.
-              </p>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-xl shadow-sm p-8 text-center space-y-4">
-            <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-amber-100 text-amber-700">
-              <Lock className="h-7 w-7" />
-            </div>
-            <h2 className="text-xl font-semibold text-gray-900">Accès Premium requis</h2>
-            <p className="text-gray-600 max-w-2xl mx-auto">
-              Les vues topographiques par zone sont réservées aux membres Premium. Passez à l'abonnement pour débloquer les
-              contenus et visualiser chaque zone en détail.
-            </p>
-            <button
-              onClick={() => router.push('/settings')}
-              className="bg-primary-600 hover:bg-primary-700 text-white px-5 py-3 rounded-lg font-semibold transition"
-            >
-              Activer le Premium
-            </button>
-          </div>
-        </div>
-      </AuthLayout>
-    )
-  }
+  const isFree = role === 'free'
 
   return (
     <AuthLayout>
       <div className="max-w-6xl mx-auto space-y-6">
+        {isFree && <FreeUserBanner />}
         <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white shadow-2xl">
           {/* Decorative elements */}
           <div className="absolute inset-0 bg-grid-white/[0.02] bg-[size:60px_60px]" />
@@ -364,15 +333,17 @@ export default function TopographiePage() {
                     {category}
                   </h3>
                   <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                    {regions.map((region) => (
-                      <button
-                        key={region}
-                        onClick={() => setSelectedRegion(region as AnatomicalRegion)}
-                        className="px-4 py-3 rounded-lg font-medium transition-all text-sm bg-white text-gray-700 border-2 border-slate-200 hover:border-rose-400 hover:bg-rose-50"
-                      >
-                        {REGION_LABELS[region as AnatomicalRegion]}
-                      </button>
-                    ))}
+                    {regions.map((region) => {
+                      return (
+                        <button
+                          key={region}
+                          onClick={() => setSelectedRegion(region as AnatomicalRegion)}
+                          className="w-full px-4 py-3 rounded-lg font-medium transition-all text-sm bg-white text-gray-700 border-2 border-slate-200 hover:border-rose-400 hover:bg-rose-50"
+                        >
+                          {REGION_LABELS[region as AnatomicalRegion]}
+                        </button>
+                      )
+                    })}
                   </div>
                 </div>
               ))}
@@ -437,8 +408,8 @@ export default function TopographiePage() {
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {filteredZones.map(zone => (
+                <FreeContentGate key={zone.id} isLocked={isFree && !FREE_ACCESSIBLE_REGIONS_TOPO.includes(zone.region)}>
                 <div
-                  key={zone.id}
                   className="group relative rounded-xl border border-gray-200 overflow-hidden bg-gradient-to-br from-gray-50 to-white shadow-sm"
                 >
                   <div className="relative h-48 bg-white border-b border-gray-200 flex items-center justify-center overflow-hidden">
@@ -495,6 +466,7 @@ export default function TopographiePage() {
                     </div>
                   </div>
                 </div>
+                </FreeContentGate>
               ))}
             </div>
           )}

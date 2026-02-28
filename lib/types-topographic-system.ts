@@ -73,6 +73,7 @@ export interface TopographieView {
   image_url?: string
   display_order: number
   is_active: boolean
+  is_free_access?: boolean | null
   created_by?: string
   created_at: string
   updated_at: string

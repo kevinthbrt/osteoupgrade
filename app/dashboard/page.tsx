@@ -25,7 +25,8 @@ import {
   Copy,
   Check,
   Users,
-  Wallet
+  Wallet,
+  Lock
 } from 'lucide-react'
 
 export default function Dashboard() {
@@ -430,6 +431,37 @@ export default function Dashboard() {
             </div>
           </div>
         </div>
+
+        {/* Premium upgrade banner - free users only */}
+        {profile?.role === 'free' && (
+          <div className="mb-6">
+            <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-yellow-400 via-amber-400 to-yellow-500 p-6 shadow-xl border border-yellow-300">
+              <div className="absolute top-0 right-0 w-48 h-48 bg-white/10 rounded-full blur-2xl -translate-y-12 translate-x-12" />
+              <div className="relative flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                <div className="flex-shrink-0 w-14 h-14 rounded-2xl bg-yellow-900/20 flex items-center justify-center shadow-inner">
+                  <Crown className="h-8 w-8 text-yellow-900" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-xl font-extrabold text-yellow-900 mb-1 flex items-center gap-2">
+                    <Lock className="h-5 w-5" />
+                    Débloquez tout OsteoUpgrade
+                  </h3>
+                  <p className="text-sm text-yellow-900/80 max-w-lg">
+                    Accès illimité aux 150+ vidéos Pratique, 500+ contenus E-Learning, exercices patients et bien plus. Rejoignez les membres Premium dès maintenant.
+                  </p>
+                </div>
+                <button
+                  onClick={() => router.push('/settings/subscription')}
+                  className="flex-shrink-0 inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-yellow-900 text-yellow-100 font-bold hover:bg-yellow-800 transition-all shadow-lg whitespace-nowrap"
+                >
+                  <Crown className="h-5 w-5" />
+                  Passer Premium
+                  <ArrowRight className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Ambassador Space - Only for Premium Gold */}
         {profile?.role === 'premium_gold' && referralData && (

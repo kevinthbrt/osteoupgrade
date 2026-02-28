@@ -32,6 +32,8 @@ import {
   Lock,
   Trophy
 } from 'lucide-react'
+import FreeContentGate from '@/components/FreeContentGate'
+import FreeUserBanner from '@/components/FreeUserBanner'
 
 type Subpart = {
   id: string
@@ -212,7 +214,10 @@ export default function CoursPage() {
             })).sort((a: Chapter, b: Chapter) => (a.order_index ?? 0) - (b.order_index ?? 0)) || []
         }))
 
-        const accessible = parsed.filter((formation) => canAccessFormation(roleToUse, formation.is_private, formation.is_free_access))
+        // Show all non-private formations (private = admin only); access control is handled in UI via blur
+        const accessible = parsed.filter((formation) =>
+          !formation.is_private || roleToUse === 'admin'
+        )
 
         setFormations(accessible)
         // Only preserve the selected formation if explicitly provided (e.g., after a refresh)
@@ -345,37 +350,31 @@ export default function CoursPage() {
     }
   }
 
-  const isSubpartAccessible = (formation: Formation, chapter: Chapter, subpartIndex: number) => {
-    // Check if this is the very first subpart of the entire formation
-    const isFirstChapter = formation.chapters[0]?.id === chapter.id
-    if (subpartIndex === 0 && isFirstChapter) return true // Only the first subpart of the first chapter is always accessible
-
-    // Find previous subpart
-    let previousSubpart: Subpart | null = null
-    for (const ch of formation.chapters) {
-      const idx = ch.subparts.findIndex((s) => s.id === chapter.subparts[subpartIndex].id)
-      if (idx > 0) {
-        previousSubpart = ch.subparts[idx - 1]
-        break
-      } else if (idx === 0) {
-        // Check previous chapter's last subpart
-        const chapterIdx = formation.chapters.findIndex((c) => c.id === ch.id)
-        if (chapterIdx > 0) {
-          const prevChapter = formation.chapters[chapterIdx - 1]
-          if (prevChapter.subparts.length > 0) {
-            previousSubpart = prevChapter.subparts[prevChapter.subparts.length - 1]
-          }
+  // Compute a Set of accessible subpart IDs for the entire formation, propagating locks correctly:
+  // a subpart is accessible only if its previous subpart is also accessible AND has no unpassed quiz.
+  const computeAccessibleSubparts = (formation: Formation): Set<string> => {
+    const accessible = new Set<string>()
+    const allSubparts: Subpart[] = formation.chapters.flatMap((ch) => ch.subparts)
+    for (let i = 0; i < allSubparts.length; i++) {
+      if (i === 0) {
+        accessible.add(allSubparts[i].id)
+      } else {
+        const prev = allSubparts[i - 1]
+        const prevAccessible = accessible.has(prev.id)
+        const prevQuizPassed = !prev.quiz || prev.quiz_passed === true
+        if (prevAccessible && prevQuizPassed) {
+          accessible.add(allSubparts[i].id)
         }
-        break
       }
     }
+    return accessible
+  }
 
-    // If there's a previous subpart with a quiz, it must be passed
-    if (previousSubpart && previousSubpart.quiz) {
-      return previousSubpart.quiz_passed === true
-    }
-
-    return true
+  const isSubpartAccessible = (formation: Formation, chapter: Chapter, subpartIndex: number) => {
+    const accessible = computeAccessibleSubparts(formation)
+    const subpart = chapter.subparts[subpartIndex]
+    if (!subpart) return false
+    return accessible.has(subpart.id)
   }
 
   if (loading) {
@@ -388,47 +387,12 @@ export default function CoursPage() {
     )
   }
 
-  if (!isPremium) {
-    return (
-      <AuthLayout>
-        <div className="space-y-6">
-          <div className="bg-white rounded-xl shadow-sm p-6">
-            <div className="flex items-center gap-2 text-primary-600 text-sm font-semibold mb-3">
-              <GraduationCap className="h-5 w-5" />
-              Cours
-            </div>
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">Formations en ligne</h1>
-            <p className="text-gray-600">
-              Accès réservé aux membres Premium. Parcours complets avec vidéos et suivi de progression.
-            </p>
-          </div>
-
-          <div className="bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-xl p-8 shadow-lg">
-            <div className="max-w-2xl">
-              <div className="inline-flex items-center gap-2 bg-white/20 rounded-full px-4 py-2 text-sm font-semibold mb-4">
-                <AlertCircle className="h-4 w-4" />
-                Accès Premium requis
-              </div>
-              <h2 className="text-3xl font-bold mb-4">Passez Premium pour débloquer les cours</h2>
-              <p className="text-white/90 text-lg mb-6">
-                Accédez à des formations complètes avec vidéos Vimeo, descriptions enrichies et suivi de progression.
-              </p>
-              <button
-                onClick={() => router.push('/settings')}
-                className="bg-white text-amber-600 px-6 py-3 rounded-lg font-semibold hover:bg-white/90 transition"
-              >
-                Activer Premium
-              </button>
-            </div>
-          </div>
-        </div>
-      </AuthLayout>
-    )
-  }
+  const isFree = profile?.role === 'free'
 
   return (
     <AuthLayout>
       <div className="space-y-6">
+        {isFree && <FreeUserBanner />}
         {/* Hero Section */}
         <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white shadow-2xl mb-8">
           <div className="absolute inset-0 bg-grid-white/[0.02] bg-[size:60px_60px]" />
@@ -510,13 +474,14 @@ export default function CoursPage() {
             <div className={selectedFormation ? "hidden" : "grid gap-5 md:grid-cols-2 lg:grid-cols-3"}>
               {filteredFormations.map((formation) => {
                 const stats = computeProgress(formation)
+                const isFormationLocked = isFree && !formation.is_free_access
                 return (
+                  <FreeContentGate key={formation.id} isLocked={isFormationLocked}>
                   <button
-                    key={formation.id}
                     onClick={() => {
-                      setSelectedFormationId(formation.id)
+                      if (!isFormationLocked) setSelectedFormationId(formation.id)
                     }}
-                    className={`group text-left border-2 rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 bg-white ${
+                    className={`group text-left border-2 rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 bg-white w-full ${
                       selectedFormationId === formation.id
                         ? 'border-blue-500 ring-4 ring-blue-100 transform scale-[1.02]'
                         : 'border-transparent hover:border-blue-200 hover:-translate-y-1'
@@ -583,6 +548,7 @@ export default function CoursPage() {
                       </div>
                     </div>
                   </button>
+                  </FreeContentGate>
                 )
               })}
             </div>

@@ -84,7 +84,6 @@ export default function Navigation() {
       href: '/pratique',
       label: 'Pratique',
       icon: Stethoscope,
-      roles: ['premium_silver', 'premium_gold', 'admin']
     },
     {
       href: '/seminaires',
@@ -101,7 +100,6 @@ export default function Navigation() {
       id: 'elearning',
       label: 'E-Learning',
       icon: GraduationCap,
-      roles: ['premium_silver', 'premium_gold', 'admin'],
       items: [
         {
           href: '/elearning/cours',
@@ -134,7 +132,6 @@ export default function Navigation() {
       id: 'outils',
       label: 'Outils',
       icon: Wrench,
-      roles: ['premium_silver', 'premium_gold', 'admin'],
       items: [
         {
           href: '/exercices',
@@ -547,6 +544,21 @@ export default function Navigation() {
               </>
             )}
           </nav>
+
+          {/* Premium CTA for free users */}
+          {profile?.role === 'free' && (
+            <div className="px-4 pb-2">
+              <Link
+                href="/settings/subscription"
+                onClick={() => setIsOpen(false)}
+                className="flex items-center gap-2 w-full px-4 py-3 rounded-xl font-bold text-sm text-yellow-900 bg-gradient-to-r from-yellow-400 via-amber-400 to-yellow-500 hover:from-yellow-500 hover:to-amber-500 shadow-lg border border-yellow-300 transition-all animate-pulse"
+              >
+                <Crown className="h-5 w-5 shrink-0" />
+                <span className="flex-1">Passer Premium</span>
+                <ChevronRight className="h-4 w-4 shrink-0" />
+              </Link>
+            </div>
+          )}
 
           {/* Logout button + Legal links */}
           <div className="p-4 border-t border-white/10 space-y-3">
