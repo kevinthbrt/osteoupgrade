@@ -16,7 +16,7 @@ import {
   FileText,
   ArrowRight,
   Inbox,
-  TicketPercent
+  Tag
 } from 'lucide-react'
 
 export default function AdminPage() {
@@ -116,7 +116,7 @@ export default function AdminPage() {
     {
       title: 'Codes Promo Gold',
       description: 'Générer et gérer les codes de réduction -100€ sur le Gold annuel',
-      icon: TicketPercent,
+      icon: Tag,
       color: 'from-emerald-500 to-emerald-600',
       href: '/admin/promo'
     }

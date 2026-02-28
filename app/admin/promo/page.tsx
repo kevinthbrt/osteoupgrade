@@ -13,7 +13,7 @@ import {
   ArrowLeft,
   Trash2,
   AlertCircle,
-  TicketPercent
+  Tag
 } from 'lucide-react'
 
 interface PromoCode {
@@ -153,7 +153,7 @@ export default function AdminPromoPage() {
 
         <div className="bg-gradient-to-r from-purple-600 to-purple-700 rounded-xl shadow-lg p-8 text-white">
           <div className="flex items-center gap-3 mb-2">
-            <TicketPercent className="h-8 w-8" />
+            <Tag className="h-8 w-8" />
             <h1 className="text-3xl font-bold">Codes Promo Gold</h1>
           </div>
           <p className="text-purple-100">
@@ -246,7 +246,7 @@ export default function AdminPromoPage() {
         {/* Liste des codes actifs */}
         <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-6">
           <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-            <TicketPercent className="h-5 w-5 text-purple-600" />
+            <Tag className="h-5 w-5 text-purple-600" />
             Codes actifs ({promoCodes.length})
           </h2>
 

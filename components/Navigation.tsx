@@ -26,7 +26,7 @@ import {
   FolderOpen,
   FileText,
   Gift,
-  TicketPercent
+  Tag
 } from 'lucide-react'
 
 type MenuItem = {
@@ -540,7 +540,7 @@ export default function Navigation() {
                   }`}
                   onClick={() => setIsOpen(false)}
                 >
-                  <TicketPercent className={`h-5 w-5 mr-3 ${pathname === '/admin/promo' ? 'text-purple-300' : 'text-slate-400 group-hover:text-slate-200'}`} />
+                  <Tag className={`h-5 w-5 mr-3 ${pathname === '/admin/promo' ? 'text-purple-300' : 'text-slate-400 group-hover:text-slate-200'}`} />
                   <span className="flex-1">Codes Promo</span>
                   {pathname === '/admin/promo' && <ChevronRight className="h-4 w-4 text-purple-300" />}
                 </Link>
