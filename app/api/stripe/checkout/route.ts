@@ -48,9 +48,15 @@ export async function POST(request: Request) {
       )
     }
 
-    // Validate referral code if provided
+    // Validate referral code only for annual plans
     let referrerUserId = null
-    if (referralCode) {
+    const shouldProcessReferral = Boolean(referralCode && plan.isAnnual)
+
+    if (referralCode && !plan.isAnnual) {
+      console.warn('⚠️ Referral code ignored for non-annual plan:', planType)
+    }
+
+    if (shouldProcessReferral) {
       const { supabaseAdmin } = await import('@/lib/supabase-server')
 
       // 🚫 VÉRIFIER QUE L'UTILISATEUR N'A JAMAIS ÉTÉ PARRAINÉ (1 fois AU TOTAL, pas par année)
@@ -127,8 +133,8 @@ export async function POST(request: Request) {
         planType: plan.planType || planType,
         billing_interval: plan.interval,
         is_annual: plan.isAnnual ? 'true' : 'false',
-        referral_code: referralCode || '',
-        referrer_user_id: referrerUserId || ''
+        referral_code: shouldProcessReferral ? referralCode || '' : '',
+        referrer_user_id: shouldProcessReferral ? referrerUserId || '' : ''
       },
       subscription_data: {
         metadata: {
@@ -136,8 +142,8 @@ export async function POST(request: Request) {
           planType: plan.planType || planType,
           billing_interval: plan.interval,
           is_annual: plan.isAnnual ? 'true' : 'false',
-          referral_code: referralCode || '',
-          referrer_user_id: referrerUserId || ''
+          referral_code: shouldProcessReferral ? referralCode || '' : '',
+          referrer_user_id: shouldProcessReferral ? referrerUserId || '' : ''
         }
       }
     })

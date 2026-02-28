@@ -15,10 +15,44 @@ type ChangelogEntry = {
 
 // ─────────────────────────────────────────────
 // 🔖 INCRÉMENTER cette valeur à chaque mise à jour
-const CHANGELOG_VERSION = 4
+const CHANGELOG_VERSION = 6
 // ─────────────────────────────────────────────
 
 const CHANGELOG: ChangelogEntry[] = [
+  {
+    date: '28 février 2026',
+    changes: [
+      {
+        type: 'fix',
+        text: 'Abonnements — correction du parcours parrainage avant Stripe : le rappel de code est affiché avant paiement, avec possibilité explicite de passer sans code.'
+      },
+      {
+        type: 'fix',
+        text: 'Parrainage — clarification Silver mensuel : les codes de parrainage ne sont plus proposés/appliqués sur l’offre mensuelle (réservés aux formules annuelles).'
+      }
+    ]
+  },
+  {
+    date: '28 février 2026',
+    changes: [
+      {
+        type: 'fix',
+        text: 'Module Pratique — fiabilisation des miniatures Vimeo : récupération serveur via oEmbed de `vimeo_id`, `thumbnail_url` et `duration_seconds`, pour éviter les cartes noires/aléatoires.'
+      },
+      {
+        type: 'improvement',
+        text: 'Module Pratique (admin) — à la création/édition d’une vidéo, les métadonnées Vimeo sont désormais pré-remplies et enregistrées automatiquement à partir de l’URL Vimeo.'
+      },
+      {
+        type: 'fix',
+        text: 'Module Pratique — fallback visuel renforcé : si une miniature échoue au chargement, affichage automatique d’un placeholder local.'
+      },
+      {
+        type: 'improvement',
+        text: 'Maintenance — ajout d’un script de backfill pour compléter les anciennes vidéos sans miniature/ID/durée Vimeo directement en base.'
+      }
+    ]
+  },
   {
     date: '28 février 2026',
     changes: [
