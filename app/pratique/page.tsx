@@ -24,6 +24,12 @@ import {
 } from 'lucide-react'
 import CategoryManager, { PracticeCategory } from './CategoryManager'
 
+type VimeoApiMetadata = {
+  vimeo_id: string
+  thumbnail_url: string | null
+  duration_seconds: number | null
+}
+
 const regions = [
   { value: 'cervical', label: 'Cervicales' },
   { value: 'thoracique', label: 'Thoracique' },
@@ -90,6 +96,62 @@ const getVimeoThumbnail = (video: PracticeVideo): string => {
     }
   }
   return ''
+}
+
+const fetchVimeoMetadataFromApi = async (vimeoUrl?: string | null): Promise<VimeoApiMetadata | null> => {
+  if (!vimeoUrl?.trim()) return null
+
+  try {
+    const response = await fetch(`/api/vimeo/oembed?url=${encodeURIComponent(vimeoUrl)}`)
+    if (!response.ok) return null
+    const metadata = await response.json() as VimeoApiMetadata
+    return metadata
+  } catch {
+    return null
+  }
+}
+
+const VideoCardThumbnail = ({
+  video,
+  onMetaResolved,
+}: {
+  video: PracticeVideo
+  onMetaResolved: (videoId: string, metadata: VimeoApiMetadata) => void
+}) => {
+  const [src, setSrc] = useState<string>(getVimeoThumbnail(video) || '/placeholder-video.svg')
+
+  useEffect(() => {
+    setSrc(getVimeoThumbnail(video) || '/placeholder-video.svg')
+  }, [video.id, video.thumbnail_url, video.vimeo_id, video.vimeo_url])
+
+  useEffect(() => {
+    const shouldResolveMeta = !video.thumbnail_url && !!video.vimeo_url
+    if (!shouldResolveMeta) return
+
+    let mounted = true
+    fetchVimeoMetadataFromApi(video.vimeo_url).then((metadata) => {
+      if (!mounted || !metadata) return
+      if (metadata.thumbnail_url) setSrc(metadata.thumbnail_url)
+      onMetaResolved(video.id, metadata)
+    })
+
+    return () => {
+      mounted = false
+    }
+  }, [video.id, video.thumbnail_url, video.vimeo_url, onMetaResolved])
+
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={src}
+      alt={video.title}
+      className="w-full h-full object-cover"
+      loading="lazy"
+      onError={() => {
+        if (src !== '/placeholder-video.svg') setSrc('/placeholder-video.svg')
+      }}
+    />
+  )
 }
 
 /* ─── Rich Text Editor ──────────────────────────────────────────── */
@@ -190,6 +252,21 @@ export default function PracticePage() {
 
   const [form, setForm] = useState(emptyForm())
 
+  const upsertVideoMetadata = useMemo(
+    () => (videoId: string, metadata: VimeoApiMetadata) => {
+      setVideos((prev) => prev.map((video) => {
+        if (video.id !== videoId) return video
+        return {
+          ...video,
+          vimeo_id: video.vimeo_id || metadata.vimeo_id,
+          thumbnail_url: video.thumbnail_url || metadata.thumbnail_url,
+          duration_seconds: video.duration_seconds ?? metadata.duration_seconds,
+        }
+      }))
+    },
+    []
+  )
+
   /* ── Data loading ── */
 
   useEffect(() => {
@@ -278,6 +355,8 @@ export default function PracticePage() {
     if (!form.title.trim()) return
     setSaving(true)
     try {
+      const vimeoMetadata = await fetchVimeoMetadataFromApi(form.vimeo_url)
+
       // Auto order_index: if empty or 0, assign max + 1 for that region
       let orderIndex: number
       const parsed = form.order_index !== '' ? Number(form.order_index) : 0
@@ -294,8 +373,9 @@ export default function PracticePage() {
         region: form.region,
         category_id: form.category_id || null,
         vimeo_url: form.vimeo_url || null,
-        vimeo_id: form.vimeo_id || null,
-        thumbnail_url: form.thumbnail_url || null,
+        vimeo_id: form.vimeo_id || vimeoMetadata?.vimeo_id || null,
+        thumbnail_url: form.thumbnail_url || vimeoMetadata?.thumbnail_url || null,
+        duration_seconds: vimeoMetadata?.duration_seconds ?? editingVideo?.duration_seconds ?? null,
         order_index: orderIndex,
         description: form.description,
         is_active: form.is_active,
@@ -602,6 +682,16 @@ export default function PracticePage() {
                   <input
                     value={form.vimeo_url}
                     onChange={(e) => setForm(prev => ({ ...prev, vimeo_url: e.target.value }))}
+                    onBlur={async () => {
+                      if (!form.vimeo_url.trim()) return
+                      const vimeoMetadata = await fetchVimeoMetadataFromApi(form.vimeo_url)
+                      if (!vimeoMetadata) return
+                      setForm((prev) => ({
+                        ...prev,
+                        vimeo_id: prev.vimeo_id || vimeoMetadata.vimeo_id,
+                        thumbnail_url: prev.thumbnail_url || vimeoMetadata.thumbnail_url || '',
+                      }))
+                    }}
                     className="w-full rounded-lg border border-gray-200 px-4 py-2 focus:ring-2 focus:ring-pink-200 focus:border-pink-400 outline-none"
                     placeholder="https://vimeo.com/..."
                   />
@@ -852,7 +942,6 @@ export default function PracticePage() {
           )}
 
           {paginatedVideos.map((video) => {
-            const thumb = getVimeoThumbnail(video)
             return (
               <div
                 key={video.id}
@@ -863,19 +952,7 @@ export default function PracticePage() {
                   className="relative h-44 bg-gradient-to-br from-slate-100 to-gray-100 cursor-pointer overflow-hidden"
                   onClick={() => openVideo(video)}
                 >
-                  {thumb ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={thumb}
-                      alt={video.title}
-                      className="w-full h-full object-cover"
-                      loading="lazy"
-                    />
-                  ) : (
-                    <div className="flex items-center justify-center h-full text-gray-300">
-                      <Video className="h-12 w-12" />
-                    </div>
-                  )}
+                  <VideoCardThumbnail video={video} onMetaResolved={upsertVideoMetadata} />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                     <PlayCircle className="h-14 w-14 text-white drop-shadow-lg transform scale-90 group-hover:scale-100 transition-transform" />
                   </div>
