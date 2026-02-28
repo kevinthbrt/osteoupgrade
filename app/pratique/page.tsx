@@ -8,21 +8,19 @@ import { fetchProfilePayload } from '@/lib/profile-client'
 import {
   AlertCircle,
   Check,
-  ChevronDown,
-  ChevronUp,
+  ChevronLeft,
+  ChevronRight,
   Edit,
-  Grid3x3,
+  Filter,
   Loader2,
   Lock,
   PlayCircle,
+  Plus,
   Save,
+  Tag,
   Trash2,
   Video,
   X,
-  Maximize2,
-  LayoutGrid,
-  Filter,
-  Tag
 } from 'lucide-react'
 import CategoryManager, { PracticeCategory } from './CategoryManager'
 
@@ -33,11 +31,13 @@ const regions = [
   { value: 'epaule', label: 'Épaule' },
   { value: 'coude', label: 'Coude' },
   { value: 'poignet', label: 'Poignet + main' },
+  { value: 'bassin', label: 'Bassin' },
   { value: 'hanche', label: 'Hanche' },
   { value: 'genou', label: 'Genou' },
-  { value: 'cheville', label: 'Cheville' },
-  { value: 'pied', label: 'Pied' }
+  { value: 'pied_cheville', label: 'Pied & Cheville' },
 ]
+
+const VIDEOS_PER_PAGE = 12
 
 type Profile = { id: string; role: string; full_name?: string }
 
@@ -59,43 +59,40 @@ type PracticeVideo = {
 const isPremium = (role?: string) => ['premium_silver', 'premium_gold', 'admin'].includes(role || '')
 const isAdmin = (role?: string) => role === 'admin'
 
-const getVimeoEmbedUrl = (video: PracticeVideo) => {
-  if (video.vimeo_id) return `https://player.vimeo.com/video/${video.vimeo_id}`
+const getVimeoEmbedUrl = (video: PracticeVideo): string => {
+  if (video.vimeo_id) return `https://player.vimeo.com/video/${video.vimeo_id}?autoplay=1`
   if (!video.vimeo_url) return ''
-
   try {
     const parsed = new URL(video.vimeo_url)
-    if (parsed.hostname.includes('player.vimeo.com')) return video.vimeo_url
+    if (parsed.hostname.includes('player.vimeo.com')) {
+      const sep = video.vimeo_url.includes('?') ? '&' : '?'
+      return `${video.vimeo_url}${sep}autoplay=1`
+    }
     const segments = parsed.pathname.split('/').filter(Boolean)
     const id = segments.pop()
-    return id ? `https://player.vimeo.com/video/${id}` : video.vimeo_url
-  } catch (error) {
-    console.error('URL Vimeo invalide', error)
-    return video.vimeo_url
+    return id ? `https://player.vimeo.com/video/${id}?autoplay=1` : ''
+  } catch {
+    return ''
   }
 }
 
-const getVimeoThumbnail = (video: PracticeVideo) => {
-  // Si on a déjà un vimeo_id, on l'utilise directement
-  if (video.vimeo_id) {
-    return `https://vumbnail.com/${video.vimeo_id}.jpg`
-  }
-
-  // Sinon, on extrait l'ID depuis l'URL Vimeo
+const getVimeoThumbnail = (video: PracticeVideo): string => {
+  if (video.thumbnail_url) return video.thumbnail_url
+  if (video.vimeo_id) return `https://vumbnail.com/${video.vimeo_id}.jpg`
   if (video.vimeo_url) {
     try {
       const parsed = new URL(video.vimeo_url)
       const segments = parsed.pathname.split('/').filter(Boolean)
       const id = segments.pop()
       return id ? `https://vumbnail.com/${id}.jpg` : ''
-    } catch (error) {
-      console.error('Impossible d\'extraire l\'ID Vimeo pour la miniature', error)
+    } catch {
       return ''
     }
   }
-
   return ''
 }
+
+/* ─── Rich Text Editor ──────────────────────────────────────────── */
 
 const ToolbarButton = ({ label, onClick }: { label: string; onClick: () => void }) => (
   <button
@@ -116,15 +113,10 @@ const RichTextEditor = ({ value, onChange }: { value: string; onChange: (html: s
     }
   }, [value])
 
-  const applyFormat = (command: string, value?: string) => {
+  const applyFormat = (command: string, val?: string) => {
     if (!editorRef.current) return
     editorRef.current.focus()
-    document.execCommand(command, false, value)
-    onChange(editorRef.current.innerHTML)
-  }
-
-  const handleInput = () => {
-    if (!editorRef.current) return
+    document.execCommand(command, false, val)
     onChange(editorRef.current.innerHTML)
   }
 
@@ -141,9 +133,7 @@ const RichTextEditor = ({ value, onChange }: { value: string; onChange: (html: s
           defaultValue="16"
         >
           {[12, 14, 16, 20, 24].map((size) => (
-            <option key={size} value={size}>
-              {size}px
-            </option>
+            <option key={size} value={size}>{size}px</option>
           ))}
         </select>
         <input
@@ -157,12 +147,28 @@ const RichTextEditor = ({ value, onChange }: { value: string; onChange: (html: s
         ref={editorRef}
         className="min-h-[140px] p-4 focus:outline-none"
         contentEditable
-        onInput={handleInput}
+        onInput={() => { if (editorRef.current) onChange(editorRef.current.innerHTML) }}
         suppressContentEditableWarning
       />
     </div>
   )
 }
+
+/* ─── Empty form factory ────────────────────────────────────────── */
+
+const emptyForm = (region = 'cervical') => ({
+  title: '',
+  region,
+  category_id: '',
+  vimeo_url: '',
+  vimeo_id: '',
+  thumbnail_url: '',
+  order_index: '',
+  description: '',
+  is_active: true,
+})
+
+/* ─── Page ──────────────────────────────────────────────────────── */
 
 export default function PracticePage() {
   const router = useRouter()
@@ -173,37 +179,26 @@ export default function PracticePage() {
   const [selectedCategory, setSelectedCategory] = useState<string>('all')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [viewMode, setViewMode] = useState<'grid' | 'scroll'>('grid')
-  const [currentVideoIndex, setCurrentVideoIndex] = useState(0)
+  const [page, setPage] = useState(1)
+
+  // Modals
+  const [playingVideo, setPlayingVideo] = useState<PracticeVideo | null>(null)
+  const [playingIndex, setPlayingIndex] = useState<number>(0)
+  const [showVideoForm, setShowVideoForm] = useState(false)
   const [editingVideo, setEditingVideo] = useState<PracticeVideo | null>(null)
   const [showCategoryManager, setShowCategoryManager] = useState(false)
-  const [form, setForm] = useState({
-    title: '',
-    region: 'cervical',
-    category_id: '',
-    vimeo_url: '',
-    vimeo_id: '',
-    thumbnail_url: '',
-    order_index: 0,
-    description: '',
-    is_active: true
-  })
 
-  const scrollContainerRef = useRef<HTMLDivElement>(null)
+  const [form, setForm] = useState(emptyForm())
+
+  /* ── Data loading ── */
 
   useEffect(() => {
     const loadData = async () => {
       try {
         const payload = await fetchProfilePayload()
-        if (!payload?.user) {
-          router.push('/')
-          return
-        }
-
+        if (!payload?.user) { router.push('/'); return }
         const profileData = payload.profile
-
         setProfile(profileData as Profile)
-
         if (isPremium(profileData?.role) || isAdmin(profileData?.role)) {
           await Promise.all([fetchVideos(), fetchCategories()])
         }
@@ -213,8 +208,8 @@ export default function PracticePage() {
         setLoading(false)
       }
     }
-
     loadData()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const fetchVideos = async () => {
@@ -223,37 +218,19 @@ export default function PracticePage() {
       .select('*')
       .order('order_index', { ascending: true })
       .order('created_at', { ascending: true })
-
-    if (error) {
-      console.error('Erreur de chargement des vidéos', error)
-      setVideos([])
-      return
-    }
-
+    if (error) { console.error('Erreur de chargement des vidéos', error); setVideos([]); return }
     setVideos((data || []) as PracticeVideo[])
   }
 
   const fetchCategories = async () => {
-    const query = supabase
-      .from('practice_categories')
-      .select('*')
-      .order('order_index', { ascending: true })
-
-    // Admins can see all categories, users only active ones
-    if (!isAdmin(profile?.role)) {
-      query.eq('is_active', true)
-    }
-
+    const query = supabase.from('practice_categories').select('*').order('order_index', { ascending: true })
+    if (!isAdmin(profile?.role)) query.eq('is_active', true)
     const { data, error } = await query
-
-    if (error) {
-      console.error('Erreur de chargement des catégories', error)
-      setCategories([])
-      return
-    }
-
+    if (error) { console.error('Erreur de chargement des catégories', error); setCategories([]); return }
     setCategories((data || []) as PracticeCategory[])
   }
+
+  /* ── Video tracking ── */
 
   const trackVideoView = async (videoId: string) => {
     try {
@@ -263,30 +240,22 @@ export default function PracticePage() {
           user_id: user.id,
           practice_video_id: videoId,
           viewed_at: new Date().toISOString(),
-          completed: true
+          completed: true,
         })
-        console.log('✅ Vue de vidéo pratique enregistrée (+30 XP)')
       }
     } catch (error: any) {
       if (!error?.message?.includes('duplicate key')) {
-        console.error('❌ Erreur tracking vidéo pratique:', error)
+        console.error('Erreur tracking vidéo pratique:', error)
       }
     }
   }
 
+  /* ── Admin CRUD ── */
+
   const resetForm = () => {
     setEditingVideo(null)
-    setForm({
-      title: '',
-      region: selectedRegion,
-      category_id: '',
-      vimeo_url: '',
-      vimeo_id: '',
-      thumbnail_url: '',
-      order_index: 0,
-      description: '',
-      is_active: true
-    })
+    setShowVideoForm(false)
+    setForm(emptyForm(selectedRegion))
   }
 
   const handleEdit = (video: PracticeVideo) => {
@@ -298,47 +267,45 @@ export default function PracticePage() {
       vimeo_url: video.vimeo_url || '',
       vimeo_id: video.vimeo_id || '',
       thumbnail_url: video.thumbnail_url || '',
-      order_index: video.order_index || 0,
+      order_index: video.order_index != null ? String(video.order_index) : '',
       description: video.description || '',
-      is_active: video.is_active
+      is_active: video.is_active,
     })
+    setShowVideoForm(true)
   }
 
   const handleSave = async () => {
     if (!form.title.trim()) return
     setSaving(true)
-
     try {
-      if (editingVideo) {
-        const { error } = await supabase
-          .from('practice_videos')
-          .update({
-            title: form.title,
-            region: form.region,
-            category_id: form.category_id || null,
-            vimeo_url: form.vimeo_url || null,
-            vimeo_id: form.vimeo_id || null,
-            thumbnail_url: form.thumbnail_url || null,
-            order_index: form.order_index,
-            description: form.description,
-            is_active: form.is_active
-          })
-          .eq('id', editingVideo.id)
+      // Auto order_index: if empty or 0, assign max + 1 for that region
+      let orderIndex: number
+      const parsed = form.order_index !== '' ? Number(form.order_index) : 0
+      if (!parsed || parsed <= 0) {
+        const regionVideos = videos.filter(v => v.region === form.region && v.id !== editingVideo?.id)
+        const maxOrder = regionVideos.reduce((max: number, v: PracticeVideo) => Math.max(max, v.order_index ?? 0), 0)
+        orderIndex = maxOrder + 1
+      } else {
+        orderIndex = parsed
+      }
 
+      const payload = {
+        title: form.title.trim(),
+        region: form.region,
+        category_id: form.category_id || null,
+        vimeo_url: form.vimeo_url || null,
+        vimeo_id: form.vimeo_id || null,
+        thumbnail_url: form.thumbnail_url || null,
+        order_index: orderIndex,
+        description: form.description,
+        is_active: form.is_active,
+      }
+
+      if (editingVideo) {
+        const { error } = await supabase.from('practice_videos').update(payload).eq('id', editingVideo.id)
         if (error) throw error
       } else {
-        const { error } = await supabase.from('practice_videos').insert({
-          title: form.title,
-          region: form.region,
-          category_id: form.category_id || null,
-          vimeo_url: form.vimeo_url || null,
-          vimeo_id: form.vimeo_id || null,
-          thumbnail_url: form.thumbnail_url || null,
-          order_index: form.order_index,
-          description: form.description,
-          is_active: form.is_active
-        })
-
+        const { error } = await supabase.from('practice_videos').insert(payload)
         if (error) throw error
       }
 
@@ -353,102 +320,84 @@ export default function PracticePage() {
 
   const handleDelete = async (videoId: string) => {
     if (!confirm('Supprimer cette vidéo ? Cette action est irréversible.')) return
-
     try {
-      const { error } = await supabase
-        .from('practice_videos')
-        .delete()
-        .eq('id', videoId)
-
+      const { error } = await supabase.from('practice_videos').delete().eq('id', videoId)
       if (error) throw error
+      if (playingVideo?.id === videoId) setPlayingVideo(null)
       await fetchVideos()
     } catch (error) {
       console.error('Erreur lors de la suppression de la vidéo', error)
     }
   }
 
+  /* ── Derived state ── */
+
   const visibleVideos = useMemo(() => {
-    let filtered = videos.filter((video) => video.region === selectedRegion)
-
-    // Filter by category if one is selected
-    if (selectedCategory !== 'all') {
-      filtered = filtered.filter((video) => video.category_id === selectedCategory)
-    }
-
-    if (isAdmin(profile?.role)) return filtered
-    return filtered.filter((video) => video.is_active)
+    let filtered = videos.filter((v) => v.region === selectedRegion)
+    if (selectedCategory !== 'all') filtered = filtered.filter((v) => v.category_id === selectedCategory)
+    if (!isAdmin(profile?.role)) filtered = filtered.filter((v) => v.is_active)
+    return filtered
   }, [videos, selectedRegion, selectedCategory, profile?.role])
 
-  const scrollToVideo = (index: number) => {
-    if (scrollContainerRef.current) {
-      const container = scrollContainerRef.current
-      const videoHeight = container.clientHeight
-      container.scrollTo({
-        top: index * videoHeight,
-        behavior: 'smooth'
-      })
+  const totalPages = Math.ceil(visibleVideos.length / VIDEOS_PER_PAGE)
+  const paginatedVideos = visibleVideos.slice((page - 1) * VIDEOS_PER_PAGE, page * VIDEOS_PER_PAGE)
+
+  // Count of visible videos per region for the tab badge
+  const regionCount = (regionValue: string) =>
+    videos.filter(v => v.region === regionValue && (isAdmin(profile?.role) || v.is_active)).length
+
+  /* ── Video modal controls ── */
+
+  const openVideo = (video: PracticeVideo) => {
+    const index = visibleVideos.findIndex(v => v.id === video.id)
+    setPlayingVideo(video)
+    setPlayingIndex(index >= 0 ? index : 0)
+    trackVideoView(video.id)
+  }
+
+  const closeVideo = () => setPlayingVideo(null)
+
+  const goToPrev = () => {
+    if (playingIndex > 0) {
+      const prev = visibleVideos[playingIndex - 1]
+      setPlayingVideo(prev)
+      setPlayingIndex(playingIndex - 1)
+      trackVideoView(prev.id)
     }
   }
 
-  const handleNextVideo = () => {
-    if (currentVideoIndex < visibleVideos.length - 1) {
-      const nextIndex = currentVideoIndex + 1
-      setCurrentVideoIndex(nextIndex)
-      scrollToVideo(nextIndex)
-      trackVideoView(visibleVideos[nextIndex].id)
+  const goToNext = () => {
+    if (playingIndex < visibleVideos.length - 1) {
+      const next = visibleVideos[playingIndex + 1]
+      setPlayingVideo(next)
+      setPlayingIndex(playingIndex + 1)
+      trackVideoView(next.id)
     }
   }
 
-  const handlePrevVideo = () => {
-    if (currentVideoIndex > 0) {
-      const prevIndex = currentVideoIndex - 1
-      setCurrentVideoIndex(prevIndex)
-      scrollToVideo(prevIndex)
-    }
-  }
+  /* ── Keyboard shortcuts ── */
 
-  const handleVideoClick = (video: PracticeVideo) => {
-    const index = visibleVideos.findIndex((v) => v.id === video.id)
-    if (index !== -1) {
-      setCurrentVideoIndex(index)
-      setViewMode('scroll')
-      trackVideoView(video.id)
-    }
-  }
-
-  // Track current video on scroll in scroll mode
-  useEffect(() => {
-    if (viewMode !== 'scroll' || !scrollContainerRef.current) return
-
-    const handleScroll = () => {
-      if (!scrollContainerRef.current) return
-      const container = scrollContainerRef.current
-      const scrollTop = container.scrollTop
-      const videoHeight = container.clientHeight
-      const index = Math.round(scrollTop / videoHeight)
-
-      if (index !== currentVideoIndex && index >= 0 && index < visibleVideos.length) {
-        setCurrentVideoIndex(index)
-        trackVideoView(visibleVideos[index].id)
-      }
-    }
-
-    const container = scrollContainerRef.current
-    container.addEventListener('scroll', handleScroll)
-    return () => container.removeEventListener('scroll', handleScroll)
-  }, [viewMode, currentVideoIndex, visibleVideos])
-
-  // Exit scroll mode with Escape key
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && viewMode === 'scroll') {
-        setViewMode('grid')
+      if (e.key === 'Escape') {
+        if (playingVideo) { closeVideo(); return }
+        if (showVideoForm) { resetForm(); return }
+        if (showCategoryManager) { setShowCategoryManager(false); return }
+      }
+      if (playingVideo) {
+        if (e.key === 'ArrowLeft') goToPrev()
+        if (e.key === 'ArrowRight') goToNext()
       }
     }
-
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [viewMode])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [playingVideo, playingIndex, showVideoForm, showCategoryManager])
+
+  /* ── Reset page on filter change ── */
+  useEffect(() => { setPage(1) }, [selectedRegion, selectedCategory])
+
+  /* ── Guards ── */
 
   const premiumAccess = isPremium(profile?.role) || isAdmin(profile?.role)
 
@@ -480,62 +429,71 @@ export default function PracticePage() {
     )
   }
 
-  // Scroll Mode - TikTok Style
-  if (viewMode === 'scroll') {
-    return (
-      <div className="fixed inset-0 bg-black z-50">
-        {/* Header overlay */}
-        <div className="absolute top-0 left-0 right-0 z-10 bg-gradient-to-b from-black/80 via-black/40 to-transparent p-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => setViewMode('grid')}
-                className="p-2 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 hover:bg-white/20 transition"
-              >
-                <X className="h-5 w-5 text-white" />
-              </button>
-              <div className="text-white">
-                <p className="text-sm font-semibold">{regions.find(r => r.value === selectedRegion)?.label}</p>
-                <p className="text-xs text-white/70">{currentVideoIndex + 1} / {visibleVideos.length}</p>
-              </div>
-            </div>
-            <select
-              value={selectedRegion}
-              onChange={(e) => {
-                setSelectedRegion(e.target.value)
-                setCurrentVideoIndex(0)
-              }}
-              className="rounded-lg border border-white/20 bg-white/10 backdrop-blur-sm px-4 py-2 text-white text-sm"
-            >
-              {regions.map((region) => (
-                <option key={region.value} value={region.value} className="text-gray-900">
-                  {region.label}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
+  /* ─────────────────────────────────────────────────────────────── */
+  /*  RENDER                                                         */
+  /* ─────────────────────────────────────────────────────────────── */
 
-        {/* Video scroll container */}
+  return (
+    <AuthLayout>
+
+      {/* ══════════════ VIDEO PLAYER MODAL ══════════════ */}
+      {playingVideo && (
         <div
-          ref={scrollContainerRef}
-          className="h-full overflow-y-scroll snap-y snap-mandatory scrollbar-hide"
-          style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+          className="fixed inset-0 z-[70] bg-black/90 flex items-center justify-center p-4"
+          onClick={closeVideo}
         >
-          {visibleVideos.map((video, index) => (
-            <div
-              key={video.id}
-              className="h-screen w-full snap-start snap-always flex items-center justify-center relative"
-            >
-              {/* Video iframe */}
-              <div className="w-full h-full flex items-center justify-center bg-black">
-                {getVimeoEmbedUrl(video) ? (
+          <div
+            className="relative w-full max-w-5xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Top bar */}
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-white/60 text-sm">
+                {playingIndex + 1} / {visibleVideos.length}
+              </p>
+              <button
+                onClick={closeVideo}
+                className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 hover:bg-white/20 text-white text-sm transition"
+                title="Fermer (Échap)"
+              >
+                <X className="h-4 w-4" />
+                Fermer
+              </button>
+            </div>
+
+            {/* Player area */}
+            <div className="relative">
+              {/* Prev */}
+              {playingIndex > 0 && (
+                <button
+                  onClick={goToPrev}
+                  className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-14 p-3 rounded-full bg-white/10 hover:bg-white/20 text-white transition hidden md:flex"
+                  title="Vidéo précédente (←)"
+                >
+                  <ChevronLeft className="h-6 w-6" />
+                </button>
+              )}
+              {/* Next */}
+              {playingIndex < visibleVideos.length - 1 && (
+                <button
+                  onClick={goToNext}
+                  className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-14 p-3 rounded-full bg-white/10 hover:bg-white/20 text-white transition hidden md:flex"
+                  title="Vidéo suivante (→)"
+                >
+                  <ChevronRight className="h-6 w-6" />
+                </button>
+              )}
+
+              {/* Iframe */}
+              <div className="aspect-video rounded-2xl overflow-hidden bg-black shadow-2xl">
+                {getVimeoEmbedUrl(playingVideo) ? (
                   <iframe
-                    src={`${getVimeoEmbedUrl(video)}?autoplay=${index === currentVideoIndex ? '1' : '0'}`}
+                    key={playingVideo.id}
+                    src={getVimeoEmbedUrl(playingVideo)}
                     className="w-full h-full"
                     allow="autoplay; fullscreen; picture-in-picture"
                     allowFullScreen
-                    title={video.title}
+                    title={playingVideo.title}
                   />
                 ) : (
                   <div className="flex items-center justify-center h-full text-white gap-2">
@@ -544,376 +502,466 @@ export default function PracticePage() {
                   </div>
                 )}
               </div>
-
-              {/* Navigation arrows */}
-              {index > 0 && (
-                <button
-                  onClick={handlePrevVideo}
-                  className="absolute top-1/2 left-4 -translate-y-1/2 p-3 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 hover:bg-white/20 transition text-white"
-                >
-                  <ChevronUp className="h-6 w-6" />
-                </button>
-              )}
-              {index < visibleVideos.length - 1 && (
-                <button
-                  onClick={handleNextVideo}
-                  className="absolute top-1/2 right-4 -translate-y-1/2 p-3 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 hover:bg-white/20 transition text-white"
-                >
-                  <ChevronDown className="h-6 w-6" />
-                </button>
-              )}
             </div>
-          ))}
-        </div>
 
-        {/* Empty state */}
-        {visibleVideos.length === 0 && (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="text-center text-white">
-              <AlertCircle className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p className="text-lg">Aucune vidéo disponible pour cette région</p>
-            </div>
-          </div>
-        )}
-      </div>
-    )
-  }
-
-  // Grid Mode - Default
-  return (
-    <AuthLayout>
-      <div className="space-y-8">
-        {/* Hero Section */}
-        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white shadow-2xl">
-          {/* Decorative elements */}
-          <div className="absolute inset-0 bg-grid-white/[0.02] bg-[size:60px_60px]" />
-          <div className="absolute top-0 right-0 w-96 h-96 bg-pink-500/30 rounded-full blur-3xl" />
-          <div className="absolute bottom-0 left-0 w-96 h-96 bg-rose-500/20 rounded-full blur-3xl" />
-
-          <div className="relative px-6 py-8 md:px-10 md:py-10">
-            <div className="max-w-4xl">
-              {/* Badge */}
-              <div className="inline-flex items-center gap-2 rounded-full bg-white/10 backdrop-blur-sm px-3 py-1.5 mb-4 border border-white/20">
-                <Video className="h-3.5 w-3.5 text-pink-300" />
-                <span className="text-xs font-semibold text-pink-100">
-                  Module Pratique Premium
-                </span>
-              </div>
-
-              {/* Main heading */}
-              <h1 className="text-3xl md:text-4xl font-bold mb-3 bg-clip-text text-transparent bg-gradient-to-r from-white to-pink-100">
-                Techniques par région
-              </h1>
-
-              <p className="text-base md:text-lg text-slate-300 mb-6 max-w-2xl">
-                Explorez nos vidéos de techniques cliniques organisées par région anatomique. Mode défilement immersif disponible.
-              </p>
-
-              {/* Controls */}
-              <div className="flex flex-wrap items-center gap-4">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-slate-300">Région :</span>
-                  <select
-                    value={selectedRegion}
-                    onChange={(e) => {
-                      setSelectedRegion(e.target.value)
-                      setForm((prev) => ({ ...prev, region: e.target.value }))
-                      setCurrentVideoIndex(0)
-                    }}
-                    className="rounded-lg border border-white/20 bg-white/10 backdrop-blur-sm px-4 py-2 text-white shadow-sm"
-                  >
-                    {regions.map((region) => (
-                      <option key={region.value} value={region.value} className="text-gray-900">
-                        {region.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {categories.length > 0 && (
-                  <div className="flex items-center gap-2">
-                    <Filter className="h-4 w-4 text-slate-300" />
-                    <span className="text-sm text-slate-300">Catégorie :</span>
-                    <select
-                      value={selectedCategory}
-                      onChange={(e) => {
-                        setSelectedCategory(e.target.value)
-                        setCurrentVideoIndex(0)
-                      }}
-                      className="rounded-lg border border-white/20 bg-white/10 backdrop-blur-sm px-4 py-2 text-white shadow-sm"
-                    >
-                      <option value="all" className="text-gray-900">Toutes les catégories</option>
-                      {categories.map((category) => (
-                        <option key={category.id} value={category.id} className="text-gray-900">
-                          {category.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-slate-300">Affichage :</span>
-                  <div className="flex gap-2 bg-white/10 backdrop-blur-sm rounded-lg p-1 border border-white/20">
-                    <button
-                      onClick={() => setViewMode('grid')}
-                      className="px-3 py-1.5 rounded-md text-sm font-semibold transition flex items-center gap-2 bg-white text-slate-900"
-                    >
-                      <LayoutGrid className="h-4 w-4" />
-                      Grille
-                    </button>
-                    <button
-                      onClick={() => {
-                        setViewMode('scroll')
-                        setCurrentVideoIndex(0)
-                        if (visibleVideos.length > 0) {
-                          trackVideoView(visibleVideos[0].id)
-                        }
-                      }}
-                      className="px-3 py-1.5 rounded-md text-sm font-semibold transition flex items-center gap-2 text-white hover:bg-white/10"
-                    >
-                      <Maximize2 className="h-4 w-4" />
-                      Défilement
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {isAdmin(profile?.role) && (
-          <>
-            {/* Category Manager */}
-            <div className="mb-6">
-              <div className="flex items-center justify-between mb-4">
-                <button
-                  onClick={() => setShowCategoryManager(!showCategoryManager)}
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-pink-600 to-rose-600 text-white hover:from-pink-700 hover:to-rose-700 transition shadow-lg"
-                >
-                  <Tag className="h-5 w-5" />
-                  {showCategoryManager ? 'Masquer' : 'Gérer'} les catégories
-                </button>
-              </div>
-              {showCategoryManager && (
-                <CategoryManager onCategoryChange={fetchCategories} />
+            {/* Title + description */}
+            <div className="mt-4">
+              <h2 className="text-white text-xl font-bold">{playingVideo.title}</h2>
+              {playingVideo.description && (
+                <div
+                  className="mt-2 text-white/60 text-sm leading-relaxed"
+                  dangerouslySetInnerHTML={{ __html: playingVideo.description }}
+                />
               )}
             </div>
 
-            {/* Video Form */}
-            <div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-6 space-y-4">
-              <div className="flex items-center gap-2">
-                <Edit className="h-5 w-5 text-pink-600" />
-                <h2 className="text-xl font-semibold text-gray-900">
-                  {editingVideo ? 'Modifier une vidéo' : 'Ajouter une vidéo'}
-                </h2>
-              </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-700">Titre</label>
-                <input
-                  value={form.title}
-                  onChange={(e) => setForm((prev) => ({ ...prev, title: e.target.value }))}
-                  className="w-full rounded-lg border border-gray-200 px-4 py-2 focus:ring-2 focus:ring-pink-200"
-                  placeholder="Titre de la vidéo"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-700">Région</label>
-                <select
-                  value={form.region}
-                  onChange={(e) => setForm((prev) => ({ ...prev, region: e.target.value }))}
-                  className="w-full rounded-lg border border-gray-200 px-4 py-2 bg-white"
-                >
-                  {regions.map((region) => (
-                    <option key={region.value} value={region.value}>
-                      {region.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-700">Catégorie (optionnelle)</label>
-                <select
-                  value={form.category_id}
-                  onChange={(e) => setForm((prev) => ({ ...prev, category_id: e.target.value }))}
-                  className="w-full rounded-lg border border-gray-200 px-4 py-2 bg-white"
-                >
-                  <option value="">Aucune catégorie</option>
-                  {categories.map((category) => (
-                    <option key={category.id} value={category.id}>
-                      {category.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-700">URL Vimeo</label>
-                <input
-                  value={form.vimeo_url}
-                  onChange={(e) => setForm((prev) => ({ ...prev, vimeo_url: e.target.value }))}
-                  className="w-full rounded-lg border border-gray-200 px-4 py-2 focus:ring-2 focus:ring-pink-200"
-                  placeholder="https://vimeo.com/..."
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-700">ID Vimeo (optionnel)</label>
-                <input
-                  value={form.vimeo_id}
-                  onChange={(e) => setForm((prev) => ({ ...prev, vimeo_id: e.target.value }))}
-                  className="w-full rounded-lg border border-gray-200 px-4 py-2 focus:ring-2 focus:ring-pink-200"
-                  placeholder="123456789"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-700">Miniature (URL)</label>
-                <input
-                  value={form.thumbnail_url}
-                  onChange={(e) => setForm((prev) => ({ ...prev, thumbnail_url: e.target.value }))}
-                  className="w-full rounded-lg border border-gray-200 px-4 py-2 focus:ring-2 focus:ring-pink-200"
-                  placeholder="https://...jpg"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-700">Ordre d&apos;affichage</label>
-                <input
-                  type="number"
-                  value={form.order_index}
-                  onChange={(e) => setForm((prev) => ({ ...prev, order_index: Number(e.target.value) }))}
-                  className="w-full rounded-lg border border-gray-200 px-4 py-2 focus:ring-2 focus:ring-pink-200"
-                />
-              </div>
-              <div className="flex items-center gap-3">
-                <input
-                  id="is_active"
-                  type="checkbox"
-                  checked={form.is_active}
-                  onChange={(e) => setForm((prev) => ({ ...prev, is_active: e.target.checked }))}
-                  className="h-4 w-4 rounded border-gray-300 text-pink-600 focus:ring-pink-500"
-                />
-                <label htmlFor="is_active" className="text-sm font-medium text-gray-700">
-                  Vidéo active
-                </label>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-700">Description</label>
-              <RichTextEditor
-                value={form.description}
-                onChange={(html) => setForm((prev) => ({ ...prev, description: html }))}
-              />
-            </div>
-
-            <div className="flex gap-3 justify-end">
-              {editingVideo && (
-                <button
-                  type="button"
-                  onClick={resetForm}
-                  className="px-4 py-2 rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50"
-                >
-                  Annuler
-                </button>
-              )}
+            {/* Mobile navigation */}
+            <div className="flex items-center justify-between mt-4 md:hidden">
               <button
-                type="button"
-                onClick={handleSave}
-                disabled={saving}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-pink-600 text-white hover:bg-pink-700 disabled:opacity-50"
+                onClick={goToPrev}
+                disabled={playingIndex === 0}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/10 text-white disabled:opacity-30 text-sm"
               >
-                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : editingVideo ? <Save className="h-4 w-4" /> : <Check className="h-4 w-4" />}
-                {editingVideo ? 'Mettre à jour' : 'Ajouter'}
+                <ChevronLeft className="h-4 w-4" /> Précédente
+              </button>
+              <button
+                onClick={goToNext}
+                disabled={playingIndex === visibleVideos.length - 1}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/10 text-white disabled:opacity-30 text-sm"
+              >
+                Suivante <ChevronRight className="h-4 w-4" />
               </button>
             </div>
           </div>
-          </>
+        </div>
+      )}
+
+      {/* ══════════════ VIDEO FORM MODAL ══════════════ */}
+      {showVideoForm && isAdmin(profile?.role) && (
+        <div
+          className="fixed inset-0 z-50 bg-black/50 flex items-start justify-center p-4 overflow-y-auto"
+          onClick={resetForm}
+        >
+          <div
+            className="relative bg-white rounded-2xl shadow-2xl w-full max-w-3xl my-8"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between p-6 border-b">
+              <h2 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
+                <Edit className="h-5 w-5 text-pink-600" />
+                {editingVideo ? 'Modifier la vidéo' : 'Ajouter une vidéo'}
+              </h2>
+              <button onClick={resetForm} className="p-2 rounded-full hover:bg-gray-100 text-gray-500 transition">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="p-6 space-y-5">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Title */}
+                <div className="space-y-1.5 md:col-span-2">
+                  <label className="text-sm font-medium text-gray-700">Titre *</label>
+                  <input
+                    value={form.title}
+                    onChange={(e) => setForm(prev => ({ ...prev, title: e.target.value }))}
+                    className="w-full rounded-lg border border-gray-200 px-4 py-2 focus:ring-2 focus:ring-pink-200 focus:border-pink-400 outline-none"
+                    placeholder="Titre de la vidéo"
+                  />
+                </div>
+
+                {/* Region */}
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium text-gray-700">Région</label>
+                  <select
+                    value={form.region}
+                    onChange={(e) => setForm(prev => ({ ...prev, region: e.target.value }))}
+                    className="w-full rounded-lg border border-gray-200 px-4 py-2 bg-white focus:ring-2 focus:ring-pink-200 outline-none"
+                  >
+                    {regions.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
+                  </select>
+                </div>
+
+                {/* Category */}
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium text-gray-700">Catégorie (optionnelle)</label>
+                  <select
+                    value={form.category_id}
+                    onChange={(e) => setForm(prev => ({ ...prev, category_id: e.target.value }))}
+                    className="w-full rounded-lg border border-gray-200 px-4 py-2 bg-white focus:ring-2 focus:ring-pink-200 outline-none"
+                  >
+                    <option value="">Aucune catégorie</option>
+                    {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  </select>
+                </div>
+
+                {/* Vimeo URL */}
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium text-gray-700">URL Vimeo</label>
+                  <input
+                    value={form.vimeo_url}
+                    onChange={(e) => setForm(prev => ({ ...prev, vimeo_url: e.target.value }))}
+                    className="w-full rounded-lg border border-gray-200 px-4 py-2 focus:ring-2 focus:ring-pink-200 focus:border-pink-400 outline-none"
+                    placeholder="https://vimeo.com/..."
+                  />
+                </div>
+
+                {/* Vimeo ID */}
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium text-gray-700">ID Vimeo (optionnel)</label>
+                  <input
+                    value={form.vimeo_id}
+                    onChange={(e) => setForm(prev => ({ ...prev, vimeo_id: e.target.value }))}
+                    className="w-full rounded-lg border border-gray-200 px-4 py-2 focus:ring-2 focus:ring-pink-200 focus:border-pink-400 outline-none"
+                    placeholder="123456789"
+                  />
+                </div>
+
+                {/* Thumbnail */}
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium text-gray-700">Miniature (URL personnalisée)</label>
+                  <input
+                    value={form.thumbnail_url}
+                    onChange={(e) => setForm(prev => ({ ...prev, thumbnail_url: e.target.value }))}
+                    className="w-full rounded-lg border border-gray-200 px-4 py-2 focus:ring-2 focus:ring-pink-200 focus:border-pink-400 outline-none"
+                    placeholder="https://...jpg (optionnel, sinon Vimeo auto)"
+                  />
+                </div>
+
+                {/* Order */}
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium text-gray-700">Ordre d&apos;affichage</label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={form.order_index}
+                    onChange={(e) => setForm(prev => ({ ...prev, order_index: e.target.value }))}
+                    className="w-full rounded-lg border border-gray-200 px-4 py-2 focus:ring-2 focus:ring-pink-200 focus:border-pink-400 outline-none"
+                    placeholder="Auto (laissez vide)"
+                  />
+                  <p className="text-xs text-gray-400">Laissez vide pour ajouter à la fin automatiquement.</p>
+                </div>
+
+                {/* Active */}
+                <div className="flex items-center gap-3 pt-4">
+                  <input
+                    id="is_active"
+                    type="checkbox"
+                    checked={form.is_active}
+                    onChange={(e) => setForm(prev => ({ ...prev, is_active: e.target.checked }))}
+                    className="h-4 w-4 rounded border-gray-300 text-pink-600 focus:ring-pink-500"
+                  />
+                  <label htmlFor="is_active" className="text-sm font-medium text-gray-700">
+                    Vidéo active (visible par les utilisateurs)
+                  </label>
+                </div>
+              </div>
+
+              {/* Description */}
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-gray-700">Description</label>
+                <RichTextEditor
+                  value={form.description}
+                  onChange={(html) => setForm(prev => ({ ...prev, description: html }))}
+                />
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="flex gap-3 justify-end p-6 border-t bg-gray-50 rounded-b-2xl">
+              <button
+                type="button"
+                onClick={resetForm}
+                className="px-4 py-2 rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-100 transition"
+              >
+                Annuler
+              </button>
+              <button
+                type="button"
+                onClick={handleSave}
+                disabled={saving || !form.title.trim()}
+                className="inline-flex items-center gap-2 px-6 py-2 rounded-lg bg-pink-600 text-white hover:bg-pink-700 disabled:opacity-50 transition"
+              >
+                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : editingVideo ? <Save className="h-4 w-4" /> : <Check className="h-4 w-4" />}
+                {editingVideo ? 'Mettre à jour' : 'Ajouter la vidéo'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ══════════════ CATEGORY MANAGER MODAL ══════════════ */}
+      {showCategoryManager && isAdmin(profile?.role) && (
+        <div
+          className="fixed inset-0 z-50 bg-black/50 flex items-start justify-center p-4 overflow-y-auto"
+          onClick={() => setShowCategoryManager(false)}
+        >
+          <div
+            className="relative bg-white rounded-2xl shadow-2xl w-full max-w-4xl my-8"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between p-6 border-b">
+              <h2 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
+                <Tag className="h-5 w-5 text-pink-600" />
+                Gérer les catégories
+              </h2>
+              <button
+                onClick={() => setShowCategoryManager(false)}
+                className="p-2 rounded-full hover:bg-gray-100 text-gray-500 transition"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="p-6">
+              <CategoryManager onCategoryChange={fetchCategories} />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ══════════════ MAIN CONTENT ══════════════ */}
+      <div className="space-y-6">
+
+        {/* Hero */}
+        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white shadow-2xl">
+          <div className="absolute inset-0 bg-grid-white/[0.02] bg-[size:60px_60px]" />
+          <div className="absolute top-0 right-0 w-96 h-96 bg-pink-500/30 rounded-full blur-3xl" />
+          <div className="absolute bottom-0 left-0 w-96 h-96 bg-rose-500/20 rounded-full blur-3xl" />
+          <div className="relative px-6 py-8 md:px-10 md:py-10">
+            <div className="inline-flex items-center gap-2 rounded-full bg-white/10 backdrop-blur-sm px-3 py-1.5 mb-4 border border-white/20">
+              <Video className="h-3.5 w-3.5 text-pink-300" />
+              <span className="text-xs font-semibold text-pink-100">Module Pratique Premium</span>
+            </div>
+            <h1 className="text-3xl md:text-4xl font-bold mb-3 bg-clip-text text-transparent bg-gradient-to-r from-white to-pink-100">
+              Techniques par région
+            </h1>
+            <p className="text-base md:text-lg text-slate-300 max-w-2xl">
+              Explorez nos vidéos de techniques cliniques organisées par région anatomique.
+              Cliquez sur une vidéo pour la lancer.
+            </p>
+          </div>
+        </div>
+
+        {/* Admin toolbar */}
+        {isAdmin(profile?.role) && (
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              onClick={() => {
+                setEditingVideo(null)
+                setForm(emptyForm(selectedRegion))
+                setShowVideoForm(true)
+              }}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-pink-600 text-white hover:bg-pink-700 transition shadow"
+            >
+              <Plus className="h-4 w-4" />
+              Ajouter une vidéo
+            </button>
+            <button
+              onClick={() => setShowCategoryManager(true)}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-pink-200 bg-white text-pink-600 hover:bg-pink-50 transition shadow-sm"
+            >
+              <Tag className="h-4 w-4" />
+              Gérer les catégories
+            </button>
+          </div>
         )}
 
-        <div className="grid gap-5 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-          {visibleVideos.length === 0 && (
+        {/* Region tabs */}
+        <div className="flex flex-wrap gap-2">
+          {regions.map(region => {
+            const count = regionCount(region.value)
+            const active = selectedRegion === region.value
+            return (
+              <button
+                key={region.value}
+                onClick={() => setSelectedRegion(region.value)}
+                className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition whitespace-nowrap ${
+                  active
+                    ? 'bg-pink-600 text-white shadow-md shadow-pink-200'
+                    : 'bg-white border border-gray-200 text-gray-600 hover:border-pink-300 hover:text-pink-600'
+                }`}
+              >
+                {region.label}
+                <span className={`text-xs rounded-full px-1.5 py-0.5 min-w-[20px] text-center ${
+                  active ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-500'
+                }`}>
+                  {count}
+                </span>
+              </button>
+            )
+          })}
+        </div>
+
+        {/* Category filter */}
+        {categories.length > 0 && (
+          <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex items-center gap-1.5 text-sm text-gray-500">
+              <Filter className="h-4 w-4" />
+              <span>Filtrer :</span>
+            </div>
+            <button
+              onClick={() => setSelectedCategory('all')}
+              className={`px-3 py-1.5 rounded-full text-sm font-medium transition ${
+                selectedCategory === 'all'
+                  ? 'bg-gray-900 text-white'
+                  : 'bg-white border border-gray-200 text-gray-600 hover:border-gray-400'
+              }`}
+            >
+              Toutes
+            </button>
+            {categories.map(cat => (
+              <button
+                key={cat.id}
+                onClick={() => setSelectedCategory(cat.id)}
+                className={`px-3 py-1.5 rounded-full text-sm font-medium transition border ${
+                  selectedCategory === cat.id
+                    ? 'text-white border-transparent'
+                    : 'bg-white border-gray-200 text-gray-600 hover:border-gray-400'
+                }`}
+                style={selectedCategory === cat.id ? { backgroundColor: cat.color, borderColor: cat.color } : undefined}
+              >
+                {cat.name}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Video grid */}
+        <div className="grid gap-5 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {paginatedVideos.length === 0 && (
             <div className="col-span-full rounded-2xl border-2 border-dashed border-gray-200 bg-gradient-to-br from-slate-50 to-white p-12 text-center">
               <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-pink-100 to-rose-100 mb-4">
                 <Video className="h-8 w-8 text-pink-600" />
               </div>
               <h3 className="text-lg font-semibold text-gray-900 mb-2">Aucune vidéo disponible</h3>
               <p className="text-gray-600 text-sm">Les vidéos pour cette région apparaîtront ici.</p>
+              {isAdmin(profile?.role) && (
+                <button
+                  onClick={() => {
+                    setEditingVideo(null)
+                    setForm(emptyForm(selectedRegion))
+                    setShowVideoForm(true)
+                  }}
+                  className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-pink-600 text-white hover:bg-pink-700 text-sm"
+                >
+                  <Plus className="h-4 w-4" /> Ajouter une vidéo
+                </button>
+              )}
             </div>
           )}
 
-          {visibleVideos.map((video) => (
-            <div
-              key={video.id}
-              className="group bg-white border-2 border-transparent hover:border-pink-200 rounded-2xl shadow-lg hover:shadow-2xl overflow-hidden flex flex-col transition-all duration-300 hover:-translate-y-1"
-            >
+          {paginatedVideos.map((video) => {
+            const thumb = getVimeoThumbnail(video)
+            return (
               <div
-                className="relative h-48 bg-gradient-to-br from-slate-100 to-gray-100 cursor-pointer"
-                onClick={() => handleVideoClick(video)}
+                key={video.id}
+                className="group bg-white border border-gray-100 hover:border-pink-200 rounded-2xl shadow-sm hover:shadow-xl overflow-hidden flex flex-col transition-all duration-300 hover:-translate-y-0.5"
               >
-                {video.thumbnail_url ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={video.thumbnail_url} alt={video.title} className="w-full h-full object-cover" />
-                ) : getVimeoThumbnail(video) ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={getVimeoThumbnail(video)} alt={video.title} className="w-full h-full object-cover" />
-                ) : (
-                  <div className="flex items-center justify-center h-full text-gray-400">
-                    <Video className="h-12 w-12" />
+                {/* Thumbnail */}
+                <div
+                  className="relative h-44 bg-gradient-to-br from-slate-100 to-gray-100 cursor-pointer overflow-hidden"
+                  onClick={() => openVideo(video)}
+                >
+                  {thumb ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={thumb}
+                      alt={video.title}
+                      className="w-full h-full object-cover"
+                      loading="lazy"
+                    />
+                  ) : (
+                    <div className="flex items-center justify-center h-full text-gray-300">
+                      <Video className="h-12 w-12" />
+                    </div>
+                  )}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                    <PlayCircle className="h-14 w-14 text-white drop-shadow-lg transform scale-90 group-hover:scale-100 transition-transform" />
                   </div>
-                )}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                  <div className="transform scale-75 group-hover:scale-100 transition-transform">
-                    <PlayCircle className="h-16 w-16 text-white drop-shadow-lg" />
-                  </div>
-                </div>
-              </div>
-              <div
-                className="p-5 flex-1 flex flex-col gap-3 cursor-pointer"
-                onClick={() => handleVideoClick(video)}
-              >
-                <div className="flex items-center justify-between gap-2">
-                  <h3 className="text-lg font-bold text-gray-900 group-hover:text-pink-600 transition-colors">{video.title}</h3>
                   {!video.is_active && (
-                    <span className="text-xs px-2 py-1 rounded-full bg-amber-100 text-amber-700 font-semibold">Brouillon</span>
+                    <span className="absolute top-2 left-2 text-xs px-2 py-1 rounded-full bg-amber-500/90 text-white font-semibold">
+                      Brouillon
+                    </span>
                   )}
                 </div>
-                {video.description ? (
-                  <div className="text-gray-700 text-sm leading-relaxed line-clamp-3" dangerouslySetInnerHTML={{ __html: video.description }} />
-                ) : (
-                  <p className="text-gray-500 text-sm">Aucune description fournie.</p>
+
+                {/* Info */}
+                <div
+                  className="p-4 flex-1 flex flex-col gap-2 cursor-pointer"
+                  onClick={() => openVideo(video)}
+                >
+                  <h3 className="text-sm font-bold text-gray-900 group-hover:text-pink-600 transition-colors line-clamp-2 leading-snug">
+                    {video.title}
+                  </h3>
+                  {video.description && (
+                    <div
+                      className="text-gray-400 text-xs leading-relaxed line-clamp-2"
+                      dangerouslySetInnerHTML={{ __html: video.description }}
+                    />
+                  )}
+                </div>
+
+                {/* Admin bar */}
+                {isAdmin(profile?.role) && (
+                  <div className="border-t border-gray-100 px-4 py-2.5 bg-gray-50 flex justify-between items-center">
+                    <div className="flex items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); handleEdit(video) }}
+                        className="text-xs text-pink-600 hover:text-pink-700 font-semibold flex items-center gap-1 transition"
+                      >
+                        <Edit className="h-3 w-3" /> Modifier
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); handleDelete(video.id) }}
+                        className="text-xs text-red-500 hover:text-red-700 font-semibold flex items-center gap-1 transition"
+                      >
+                        <Trash2 className="h-3 w-3" /> Supprimer
+                      </button>
+                    </div>
+                    <span className="text-xs text-gray-400">#{video.order_index}</span>
+                  </div>
                 )}
               </div>
-              {isAdmin(profile?.role) && (
-                <div className="border-t border-gray-100 px-5 py-3 bg-gradient-to-br from-gray-50 to-slate-50 flex justify-between items-center">
-                  <div className="flex items-center gap-3">
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        handleEdit(video)
-                      }}
-                      className="inline-flex items-center gap-2 text-sm text-pink-600 hover:text-pink-700 font-semibold"
-                    >
-                      <Edit className="h-4 w-4" />
-                      Modifier
-                    </button>
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        handleDelete(video.id)
-                      }}
-                      className="inline-flex items-center gap-2 text-sm text-red-500 hover:text-red-700 font-semibold"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                      Supprimer
-                    </button>
-                  </div>
-                  <span className="text-xs text-gray-500">Ordre : {video.order_index ?? 0}</span>
-                </div>
-              )}
-            </div>
-          ))}
+            )
+          })}
         </div>
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-center gap-2 pt-2">
+            <button
+              onClick={() => setPage(p => Math.max(1, p - 1))}
+              disabled={page === 1}
+              className="p-2 rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition"
+            >
+              <ChevronLeft className="h-5 w-5" />
+            </button>
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
+              <button
+                key={p}
+                onClick={() => setPage(p)}
+                className={`w-9 h-9 rounded-lg text-sm font-semibold transition ${
+                  p === page
+                    ? 'bg-pink-600 text-white shadow-md shadow-pink-200'
+                    : 'border border-gray-200 hover:bg-gray-50 text-gray-700'
+                }`}
+              >
+                {p}
+              </button>
+            ))}
+            <button
+              onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+              disabled={page === totalPages}
+              className="p-2 rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition"
+            >
+              <ChevronRight className="h-5 w-5" />
+            </button>
+          </div>
+        )}
+
       </div>
     </AuthLayout>
   )
