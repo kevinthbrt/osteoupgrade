@@ -59,37 +59,65 @@ type PracticeVideo = {
 const isPremium = (role?: string) => ['premium_silver', 'premium_gold', 'admin'].includes(role || '')
 const isAdmin = (role?: string) => role === 'admin'
 
+const extractVimeoMeta = (rawUrl?: string | null): { id: string; hash?: string } | null => {
+  if (!rawUrl) return null
+
+  try {
+    const parsed = new URL(rawUrl)
+    const segments = parsed.pathname.split('/').filter(Boolean)
+
+    const id = segments.find((segment) => /^\d+$/.test(segment))
+    if (!id) return null
+
+    const pathHashIndex = segments.findIndex((segment) => segment === id) + 1
+    const pathHash = segments[pathHashIndex]
+    const queryHash = parsed.searchParams.get('h') || undefined
+    const hash = (queryHash || pathHash || '').trim()
+
+    if (hash && /^[a-zA-Z0-9]+$/.test(hash)) {
+      return { id, hash }
+    }
+
+    return { id }
+  } catch {
+    return null
+  }
+}
+
 const getVimeoEmbedUrl = (video: PracticeVideo): string => {
   if (video.vimeo_id) return `https://player.vimeo.com/video/${video.vimeo_id}?autoplay=1`
   if (!video.vimeo_url) return ''
+  const extracted = extractVimeoMeta(video.vimeo_url)
+
   try {
     const parsed = new URL(video.vimeo_url)
     if (parsed.hostname.includes('player.vimeo.com')) {
       const sep = video.vimeo_url.includes('?') ? '&' : '?'
       return `${video.vimeo_url}${sep}autoplay=1`
     }
-    const segments = parsed.pathname.split('/').filter(Boolean)
-    const id = segments.pop()
-    return id ? `https://player.vimeo.com/video/${id}?autoplay=1` : ''
+    if (!extracted?.id) return ''
+    const hashParam = extracted.hash ? `&h=${extracted.hash}` : ''
+    return `https://player.vimeo.com/video/${extracted.id}?autoplay=1${hashParam}`
   } catch {
-    return ''
+    if (!extracted?.id) return ''
+    const hashParam = extracted.hash ? `&h=${extracted.hash}` : ''
+    return `https://player.vimeo.com/video/${extracted.id}?autoplay=1${hashParam}`
   }
 }
 
 const getVimeoThumbnail = (video: PracticeVideo): string => {
   if (video.thumbnail_url) return video.thumbnail_url
   if (video.vimeo_id) return `https://vumbnail.com/${video.vimeo_id}.jpg`
-  if (video.vimeo_url) {
-    try {
-      const parsed = new URL(video.vimeo_url)
-      const segments = parsed.pathname.split('/').filter(Boolean)
-      const id = segments.pop()
-      return id ? `https://vumbnail.com/${id}.jpg` : ''
-    } catch {
-      return ''
-    }
+  if (!video.vimeo_url) return ''
+
+  const extracted = extractVimeoMeta(video.vimeo_url)
+  if (!extracted?.id) return ''
+
+  if (extracted.hash) {
+    return `https://vumbnail.com/${extracted.id}_${extracted.hash}.jpg`
   }
-  return ''
+
+  return `https://vumbnail.com/${extracted.id}.jpg`
 }
 
 /* ─── Rich Text Editor ──────────────────────────────────────────── */
