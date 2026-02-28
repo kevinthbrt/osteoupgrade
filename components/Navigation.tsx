@@ -24,7 +24,9 @@ import {
   Mail,
   GraduationCap,
   FolderOpen,
-  FileText
+  FileText,
+  Gift,
+  Tag
 } from 'lucide-react'
 
 type MenuItem = {
@@ -90,6 +92,7 @@ export default function Navigation() {
       icon: Calendar,
       roles: ['premium_gold', 'admin']
     },
+    { href: '/parrainage', label: 'Parrainage & Cagnotte', icon: Gift },
     { href: '/settings', label: 'Paramètres', icon: Settings },
   ]
 
@@ -422,8 +425,11 @@ export default function Navigation() {
                   {/* Séminaires */}
                   {renderMenuItem(menuItems[2])}
 
-                  {/* Paramètres */}
+                  {/* Parrainage & Cagnotte */}
                   {renderMenuItem(menuItems[3])}
+
+                  {/* Paramètres */}
+                  {renderMenuItem(menuItems[4])}
                 </>
               )
             })()}
@@ -524,12 +530,26 @@ export default function Navigation() {
                   <span className="flex-1">Utilisateurs</span>
                   {pathname === '/admin/users' && <ChevronRight className="h-4 w-4 text-purple-300" />}
                 </Link>
+
+                <Link
+                  href="/admin/promo"
+                  className={`flex items-center px-3 py-2.5 rounded-lg transition-all group ${
+                    pathname === '/admin/promo'
+                      ? 'bg-purple-500/20 text-white font-medium shadow-sm'
+                      : 'text-slate-300 hover:bg-white/5 hover:text-white'
+                  }`}
+                  onClick={() => setIsOpen(false)}
+                >
+                  <Tag className={`h-5 w-5 mr-3 ${pathname === '/admin/promo' ? 'text-purple-300' : 'text-slate-400 group-hover:text-slate-200'}`} />
+                  <span className="flex-1">Codes Promo</span>
+                  {pathname === '/admin/promo' && <ChevronRight className="h-4 w-4 text-purple-300" />}
+                </Link>
               </>
             )}
           </nav>
 
-          {/* Logout button */}
-          <div className="p-4 border-t border-white/10">
+          {/* Logout button + Legal links */}
+          <div className="p-4 border-t border-white/10 space-y-3">
             <button
               onClick={handleLogout}
               className="flex items-center w-full px-3 py-2.5 text-slate-300 rounded-lg hover:bg-red-500/20 hover:text-red-300 transition-all group"
@@ -537,6 +557,11 @@ export default function Navigation() {
               <LogOut className="h-5 w-5 mr-3 text-slate-400 group-hover:text-red-400" />
               <span>Déconnexion</span>
             </button>
+            <div className="flex gap-3 flex-wrap px-1">
+              <Link href="/mentions-legales" className="text-[11px] text-slate-500 hover:text-slate-300 transition-colors">Mentions légales</Link>
+              <Link href="/cgu" className="text-[11px] text-slate-500 hover:text-slate-300 transition-colors">CGU</Link>
+              <Link href="/politique-confidentialite" className="text-[11px] text-slate-500 hover:text-slate-300 transition-colors">Confidentialité</Link>
+            </div>
           </div>
         </div>
       </aside>

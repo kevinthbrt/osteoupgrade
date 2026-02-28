@@ -1,11 +1,14 @@
+import PublicFooter from '@/components/PublicFooter'
+
 export default function PolitiqueConfidentialitePage() {
   return (
-    <div className="min-h-screen bg-slate-50 py-16 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-slate-50">
+      <div className="py-16 px-4 sm:px-6 lg:px-8">
       <div className="max-w-4xl mx-auto bg-white rounded-2xl shadow-sm p-8 space-y-10">
         <header className="space-y-3">
           <h1 className="text-3xl font-bold text-slate-900">Politique de confidentialité</h1>
           <p className="text-slate-600">
-            Dernière mise à jour : <strong>[À compléter]</strong>
+            Dernière mise à jour : <strong>28 février 2026</strong>
           </p>
         </header>
 
@@ -45,7 +48,7 @@ export default function PolitiqueConfidentialitePage() {
           <p className="text-slate-700">
             Les données sont conservées pendant la durée de la relation contractuelle,
             puis archivées conformément aux obligations légales (facturation, comptabilité).
-            Les logs techniques sont conservés pour une durée maximale de <strong>[À compléter]</strong>.
+            Les logs techniques sont conservés pour une durée maximale de <strong>12 mois</strong>.
           </p>
         </section>
 
@@ -86,6 +89,8 @@ export default function PolitiqueConfidentialitePage() {
           </p>
         </section>
       </div>
+      </div>
+      <PublicFooter />
     </div>
   )
 }

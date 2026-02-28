@@ -4,7 +4,8 @@ import { useEffect, useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import AuthLayout from '@/components/AuthLayout'
-import { Crown, Check, Sparkles, Users, Loader2, ArrowLeft, ExternalLink, Gift, Shield, Calendar } from 'lucide-react'
+import { Crown, Check, Sparkles, Users, Loader2, ArrowLeft, ExternalLink, Gift, Shield, Calendar, TrendingUp, Wallet, ChevronRight, Copy } from 'lucide-react'
+import Link from 'next/link'
 
 function SubscriptionContent() {
   const router = useRouter()
@@ -162,6 +163,7 @@ function SubscriptionContent() {
   }
 
   const isPremium = profile?.role === 'premium_silver' || profile?.role === 'premium_gold'
+  const isGold = profile?.role === 'premium_gold'
   const isGoldPromoActive = process.env.NEXT_PUBLIC_GOLD_PROMO_ACTIVE === 'true'
 
   return (
@@ -276,17 +278,30 @@ function SubscriptionContent() {
 
         {/* Referral Code Input - Only for non-premium users */}
         {!isPremium && (
-          <div className="bg-gradient-to-br from-purple-50 to-pink-50 border-2 border-purple-200 rounded-xl p-6">
+          <div className="bg-gradient-to-br from-yellow-50 to-amber-50 border-2 border-yellow-300 rounded-xl p-6">
             <div className="flex items-start gap-4">
-              <div className="p-3 bg-purple-600 rounded-lg">
-                <Gift className="h-6 w-6 text-white" />
+              <div className="p-3 bg-yellow-500 rounded-lg flex-shrink-0">
+                <Gift className="h-6 w-6 text-yellow-900" />
               </div>
               <div className="flex-1">
-                <h3 className="font-semibold text-gray-900 mb-2">Vous avez un code de parrainage ?</h3>
+                <h3 className="font-semibold text-gray-900 mb-1">
+                  Vous avez un code de parrainage ?
+                </h3>
                 <p className="text-sm text-gray-600 mb-4">
-                  Entrez le code de parrainage d'un membre Gold pour bénéficier d'avantages exclusifs.
+                  Un collègue membre <strong>Gold</strong> vous a partagé son code ? Entrez-le ici — il sera
+                  automatiquement appliqué à votre commande et votre parrain recevra une commission de 10%.
                 </p>
-                <div className="flex gap-3">
+
+                {/* Bénéfice programme */}
+                <div className="bg-white border border-yellow-200 rounded-lg p-3 mb-4 flex items-center gap-3">
+                  <TrendingUp className="h-5 w-5 text-yellow-600 flex-shrink-0" />
+                  <p className="text-sm text-yellow-900">
+                    En utilisant un code, vous soutenez directement un confrère tout en rejoignant une communauté
+                    d'entraide entre praticiens.
+                  </p>
+                </div>
+
+                <div className="flex gap-3 items-center">
                   <input
                     type="text"
                     value={referralCode}
@@ -299,21 +314,70 @@ function SubscriptionContent() {
                         setCodeValidation(null)
                       }
                     }}
-                    placeholder="CODE123"
-                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent uppercase"
+                    placeholder="ex. KEVIN123"
+                    className="flex-1 px-4 py-2.5 border border-yellow-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent uppercase font-mono tracking-wider text-gray-900 placeholder:font-sans placeholder:tracking-normal"
                     maxLength={10}
                   />
-                  {validatingCode && <Loader2 className="h-10 w-10 animate-spin text-purple-600" />}
+                  {validatingCode && <Loader2 className="h-6 w-6 animate-spin text-yellow-600" />}
                 </div>
+
                 {codeValidation && (
                   <div
-                    className={`mt-3 text-sm font-medium ${
-                      codeValidation.valid ? 'text-green-700' : 'text-red-700'
+                    className={`mt-3 text-sm font-medium px-4 py-2 rounded-lg ${
+                      codeValidation.valid
+                        ? 'bg-green-50 border border-green-200 text-green-800'
+                        : 'bg-red-50 border border-red-200 text-red-800'
                     }`}
                   >
                     {codeValidation.valid ? '✅' : '❌'} {codeValidation.message}
                   </div>
                 )}
+
+                <p className="text-xs text-gray-500 mt-3">
+                  Pas de code ? <Link href="/parrainage" className="text-yellow-700 underline hover:text-yellow-900">En savoir plus sur le programme de parrainage</Link>
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Section parrainage pour les membres Gold */}
+        {isGold && (
+          <div className="bg-gradient-to-br from-yellow-50 to-amber-50 border-2 border-yellow-300 rounded-xl p-6">
+            <div className="flex items-start gap-4">
+              <div className="p-3 bg-yellow-500 rounded-lg flex-shrink-0">
+                <Crown className="h-6 w-6 text-yellow-900" />
+              </div>
+              <div className="flex-1">
+                <h3 className="font-semibold text-gray-900 mb-1">Votre programme de parrainage Gold</h3>
+                <p className="text-sm text-gray-600 mb-4">
+                  En tant que membre Gold, vous disposez d'un code de parrainage unique. Chaque abonnement annuel
+                  souscrit avec votre code vous rapporte <strong>10% de commission</strong> directement dans votre cagnotte.
+                </p>
+                <div className="grid gap-3 sm:grid-cols-2 mb-4">
+                  <div className="bg-white border border-yellow-200 rounded-lg p-3 flex items-center gap-3">
+                    <TrendingUp className="h-5 w-5 text-yellow-600 flex-shrink-0" />
+                    <div>
+                      <p className="text-sm font-semibold text-yellow-900">Silver parrainé → +24€</p>
+                      <p className="text-xs text-gray-500">10% de 240€/an</p>
+                    </div>
+                  </div>
+                  <div className="bg-white border border-yellow-200 rounded-lg p-3 flex items-center gap-3">
+                    <Wallet className="h-5 w-5 text-yellow-600 flex-shrink-0" />
+                    <div>
+                      <p className="text-sm font-semibold text-yellow-900">Gold parrainé → +49,90€</p>
+                      <p className="text-xs text-gray-500">10% de 499€/an</p>
+                    </div>
+                  </div>
+                </div>
+                <Link
+                  href="/parrainage"
+                  className="inline-flex items-center gap-2 bg-yellow-600 text-white px-5 py-2.5 rounded-lg font-semibold hover:bg-yellow-700 transition text-sm"
+                >
+                  <Gift className="h-4 w-4" />
+                  Accéder à mon espace parrainage
+                  <ChevronRight className="h-4 w-4" />
+                </Link>
               </div>
             </div>
           </div>
@@ -599,6 +663,35 @@ function SubscriptionContent() {
           </div>
         </div>
 
+        {/* Section parrainage pour les Silver - incitation à passer Gold */}
+        {profile?.role === 'premium_silver' && (
+          <div className="bg-gradient-to-r from-yellow-50 to-amber-50 border-2 border-yellow-200 rounded-xl p-6">
+            <div className="flex items-start gap-4">
+              <div className="p-3 bg-yellow-400 rounded-lg flex-shrink-0">
+                <Gift className="h-6 w-6 text-yellow-900" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-gray-900 mb-1">
+                  Débloquez le parrainage avec Gold
+                </h3>
+                <p className="text-sm text-gray-700 mb-3">
+                  Votre abonnement Silver vous donne accès à tous les outils cliniques. Avec Gold, vous obtenez en plus :
+                  un <strong>code de parrainage unique</strong> qui vous permet de gagner <strong>10% de commission</strong>{' '}
+                  sur chaque abonnement annuel souscrit grâce à vous. Parrainer 3 collègues Silver couvre déjà 15% du
+                  coût annuel de votre Gold.
+                </p>
+                <Link
+                  href="/parrainage"
+                  className="inline-flex items-center gap-2 text-yellow-800 font-medium text-sm hover:underline"
+                >
+                  En savoir plus sur le programme de parrainage
+                  <ChevronRight className="h-4 w-4" />
+                </Link>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* FAQ ou Notes */}
         <div className="bg-gray-50 border border-gray-200 rounded-xl p-6">
           <h3 className="font-semibold text-gray-900 mb-3">💡 Bon à savoir</h3>
@@ -609,10 +702,12 @@ function SubscriptionContent() {
             <p>✅ Notification par email 7 jours avant chaque renouvellement</p>
             <p>✅ Accès immédiat à tous les contenus après validation du paiement</p>
             <p>✅ Droit de rétractation de 14 jours</p>
-            <p className="text-xs text-gray-500 mt-3 pt-3 border-t border-gray-300">
-              ℹ️ Les abonnements Premium Gold donnent accès au système de parrainage avec commission de 10% sur les
-              abonnements annuels parrainés.
-            </p>
+            <p>✅ <strong>Gold uniquement :</strong> code de parrainage avec 10% de commission sur les abonnements annuels parrainés</p>
+            {!isPremium && (
+              <p className="text-xs text-blue-700 mt-3 pt-3 border-t border-gray-300 flex items-center gap-1">
+                💡 <span>Vous avez reçu un code d'un collègue Gold ? Saisissez-le ci-dessus pour que votre parrain soit crédité.</span>
+              </p>
+            )}
           </div>
         </div>
 

@@ -15,7 +15,8 @@ import {
   Send,
   FileText,
   ArrowRight,
-  Inbox
+  Inbox,
+  Tag
 } from 'lucide-react'
 
 export default function AdminPage() {
@@ -111,6 +112,13 @@ export default function AdminPage() {
       icon: FileText,
       color: 'from-gray-500 to-gray-600',
       href: '/outils/communication'
+    },
+    {
+      title: 'Codes Promo Gold',
+      description: 'Générer et gérer les codes de réduction -100€ sur le Gold annuel',
+      icon: Tag,
+      color: 'from-emerald-500 to-emerald-600',
+      href: '/admin/promo'
     }
   ]
 

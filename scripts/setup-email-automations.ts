@@ -4,10 +4,10 @@ import { supabase } from '../lib/supabase'
  * Script pour créer les 6 automatisations d'emails avec leurs templates
  * Variables courtes utilisées :
  * - {{nom}} : nom du plan (Premium Silver / Premium Gold)
- * - {{prix}} : prix mensuel (29,99€ / 49,99€)
+ * - {{prix}} : prix de l'abonnement (29€/mois, 240€/an, 499€/an)
  * - {{date_fact}} : date de prochaine facturation
- * - {{date_renouv}} : date de renouvellement/fin d'engagement
- * - {{cycle}} : numéro du cycle d'engagement
+ * - {{date_renouv}} : date de prochain renouvellement automatique
+ * - {{cycle}} : numéro de renouvellement
  * - {{jours}} : jours avant le renouvellement
  */
 
@@ -140,22 +140,22 @@ const automations: AutomationData[] = [
                 <p style="margin: 0 0 15px; font-size: 16px; font-weight: 600; color: #1e40af;">📋 Récapitulatif de votre abonnement</p>
                 <ul style="margin: 0; padding-left: 20px; color: #1e3a8a;">
                   <li style="margin-bottom: 8px;">Formule : <strong>{{nom}}</strong></li>
-                  <li style="margin-bottom: 8px;">Prix : <strong>{{prix}}/mois</strong></li>
+                  <li style="margin-bottom: 8px;">Prix : <strong>{{prix}}</strong></li>
                   <li style="margin-bottom: 8px;">Prochaine facturation : <strong>{{date_fact}}</strong></li>
-                  <li>Engagement : <strong>12 mois minimum</strong></li>
+                  <li>Renouvellement automatique — résiliable à tout moment avant cette date</li>
                 </ul>
               </div>
 
-              <div style="background-color: #fef3c7; border-left: 4px solid #f59e0b; padding: 20px; margin: 30px 0; border-radius: 4px;">
-                <p style="margin: 0 0 10px; font-size: 14px; font-weight: 600; color: #92400e;">⚠️ Important - Engagement de 12 mois</p>
-                <p style="margin: 0; font-size: 14px; line-height: 1.5; color: #78350f;">
-                  Votre abonnement inclut un engagement de <strong>12 mois</strong>. Vous recevrez une notification 7 jours avant chaque renouvellement. Après les 12 premiers mois, vous pourrez annuler à tout moment.
+              <div style="background-color: #ecfdf5; border-left: 4px solid #10b981; padding: 20px; margin: 30px 0; border-radius: 4px;">
+                <p style="margin: 0 0 10px; font-size: 14px; font-weight: 600; color: #065f46;">✅ Sans engagement</p>
+                <p style="margin: 0; font-size: 14px; line-height: 1.5; color: #064e3b;">
+                  Votre abonnement se renouvelle automatiquement. Vous recevrez un rappel 7 jours avant chaque renouvellement. Vous pouvez annuler à tout moment depuis votre espace client.
                 </p>
               </div>
 
               <p style="margin: 0 0 15px; font-size: 16px; font-weight: 600; color: #1f2937;">Ce qui est maintenant accessible :</p>
               <ul style="margin: 0 0 20px; padding-left: 20px; color: #374151;">
-                <li style="margin-bottom: 8px;">✅ <strong>Testing 3D + export PDF</strong> : visualisation dynamique et rapports automatiques</li>
+                <li style="margin-bottom: 8px;">✅ <strong>Tests orthopédiques + export PDF</strong> : rapports automatiques</li>
                 <li style="margin-bottom: 8px;">✅ <strong>E-learning actualisé</strong> : raisonnement clinique et protocoles</li>
                 <li style="margin-bottom: 8px;">✅ <strong>Module pratique</strong> : techniques articulaires et mobilisations</li>
                 <li style="margin-bottom: 8px;">✅ <strong>Créateur de fiches d'exercices</strong> pour vos patients</li>
@@ -234,16 +234,16 @@ const automations: AutomationData[] = [
                 <p style="margin: 0 0 15px; font-size: 16px; font-weight: 600; color: #92400e;">📋 Récapitulatif de votre abonnement</p>
                 <ul style="margin: 0; padding-left: 20px; color: #78350f;">
                   <li style="margin-bottom: 8px;">Formule : <strong>{{nom}}</strong></li>
-                  <li style="margin-bottom: 8px;">Prix : <strong>{{prix}}/mois</strong></li>
+                  <li style="margin-bottom: 8px;">Prix : <strong>{{prix}}</strong></li>
                   <li style="margin-bottom: 8px;">Prochaine facturation : <strong>{{date_fact}}</strong></li>
-                  <li>Engagement : <strong>12 mois minimum</strong></li>
+                  <li>Renouvellement automatique annuel — résiliable avant cette date</li>
                 </ul>
               </div>
 
-              <div style="background-color: #fef3c7; border-left: 4px solid #f59e0b; padding: 20px; margin: 30px 0; border-radius: 4px;">
-                <p style="margin: 0 0 10px; font-size: 14px; font-weight: 600; color: #92400e;">⚠️ Important - Engagement de 12 mois</p>
-                <p style="margin: 0; font-size: 14px; line-height: 1.5; color: #78350f;">
-                  Votre abonnement inclut un engagement de <strong>12 mois</strong>. Vous recevrez une notification 7 jours avant chaque renouvellement. Après les 12 premiers mois, vous pourrez annuler à tout moment.
+              <div style="background-color: #ecfdf5; border-left: 4px solid #10b981; padding: 20px; margin: 30px 0; border-radius: 4px;">
+                <p style="margin: 0 0 10px; font-size: 14px; font-weight: 600; color: #065f46;">✅ Sans engagement</p>
+                <p style="margin: 0; font-size: 14px; line-height: 1.5; color: #064e3b;">
+                  Votre abonnement se renouvelle automatiquement chaque année. Vous recevrez un rappel 7 jours avant chaque renouvellement. Vous pouvez annuler à tout moment depuis votre espace client.
                 </p>
               </div>
 
@@ -303,9 +303,9 @@ const automations: AutomationData[] = [
   // 4. Rappel de renouvellement (7 jours avant)
   {
     name: 'Rappel - Renouvellement imminent',
-    description: 'Notification 7 jours avant la fin de l\'engagement',
+    description: 'Notification 7 jours avant le renouvellement automatique',
     trigger_event: 'Renouvellement imminent',
-    subject: 'Votre engagement arrive à échéance dans {{jours}} jours',
+    subject: 'Votre abonnement se renouvelle dans {{jours}} jours',
     html: `
 <!DOCTYPE html>
 <html>
@@ -322,7 +322,7 @@ const automations: AutomationData[] = [
           <tr>
             <td style="background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); padding: 40px 40px 30px; border-radius: 12px 12px 0 0; text-align: center;">
               <div style="font-size: 48px; margin-bottom: 10px;">📅</div>
-              <h1 style="margin: 0; color: #ffffff; font-size: 26px; font-weight: 700;">Votre engagement arrive à échéance</h1>
+              <h1 style="margin: 0; color: #ffffff; font-size: 26px; font-weight: 700;">Votre renouvellement approche</h1>
             </td>
           </tr>
 
@@ -332,11 +332,11 @@ const automations: AutomationData[] = [
               <p style="margin: 0 0 20px; font-size: 16px; line-height: 1.6; color: #374151;">Bonjour <strong>{{full_name}}</strong>,</p>
 
               <p style="margin: 0 0 20px; font-size: 16px; line-height: 1.6; color: #374151;">
-                Nous vous informons que votre <strong>cycle d'engagement n°{{cycle}}</strong> arrive bientôt à son terme.
+                Votre abonnement <strong>{{nom}}</strong> se renouvelle automatiquement dans <strong>{{jours}} jours</strong>.
               </p>
 
               <div style="background-color: #eff6ff; border: 2px solid #3b82f6; padding: 25px; margin: 30px 0; border-radius: 8px; text-align: center;">
-                <p style="margin: 0 0 10px; font-size: 14px; color: #1e40af;">Date de fin d'engagement :</p>
+                <p style="margin: 0 0 10px; font-size: 14px; color: #1e40af;">Date de renouvellement :</p>
                 <p style="margin: 0; font-size: 24px; font-weight: 700; color: #1e3a8a;">{{date_renouv}}</p>
                 <p style="margin: 15px 0 0; font-size: 14px; color: #3b82f6;">Dans <strong>{{jours}} jours</strong></p>
               </div>
@@ -344,9 +344,9 @@ const automations: AutomationData[] = [
               <div style="background-color: #f9fafb; border-left: 4px solid #6366f1; padding: 20px; margin: 30px 0; border-radius: 4px;">
                 <p style="margin: 0 0 15px; font-size: 16px; font-weight: 600; color: #1f2937;">Que va-t-il se passer ?</p>
                 <ul style="margin: 0; padding-left: 20px; color: #4b5563; font-size: 14px; line-height: 1.8;">
-                  <li style="margin-bottom: 8px;">Votre abonnement <strong>{{nom}}</strong> ({{prix}}/mois) se renouvellera automatiquement pour un nouveau cycle de 12 mois</li>
+                  <li style="margin-bottom: 8px;">Votre abonnement <strong>{{nom}}</strong> ({{prix}}) se renouvellera automatiquement</li>
                   <li style="margin-bottom: 8px;">Votre prochain paiement aura lieu le <strong>{{date_renouv}}</strong></li>
-                  <li>Vous pouvez annuler avant cette date si vous le souhaitez</li>
+                  <li>Vous pouvez annuler avant cette date si vous le souhaitez — aucun frais</li>
                 </ul>
               </div>
 
@@ -394,7 +394,7 @@ const automations: AutomationData[] = [
   // 5. Confirmation de renouvellement
   {
     name: 'Confirmation - Renouvellement effectué',
-    description: 'Confirmation après le renouvellement de l\'engagement',
+    description: 'Confirmation après le renouvellement de l\'abonnement',
     trigger_event: 'Renouvellement effectué',
     subject: 'Votre abonnement a été renouvelé ✅',
     html: `
@@ -423,24 +423,23 @@ const automations: AutomationData[] = [
               <p style="margin: 0 0 20px; font-size: 16px; line-height: 1.6; color: #374151;">Bonjour <strong>{{full_name}}</strong>,</p>
 
               <p style="margin: 0 0 20px; font-size: 16px; line-height: 1.6; color: #374151;">
-                Votre abonnement <strong>{{nom}}</strong> a été renouvelé avec succès ! Vous entamez maintenant le <strong>cycle n°{{cycle}}</strong>.
+                Votre abonnement <strong>{{nom}}</strong> a été renouvelé avec succès !
               </p>
 
               <div style="background-color: #d1fae5; border: 2px solid #10b981; padding: 20px; margin: 30px 0; border-radius: 8px;">
                 <p style="margin: 0 0 15px; font-size: 16px; font-weight: 600; color: #065f46;">📋 Détails du renouvellement</p>
                 <ul style="margin: 0; padding-left: 20px; color: #047857;">
                   <li style="margin-bottom: 8px;">Formule : <strong>{{nom}}</strong></li>
-                  <li style="margin-bottom: 8px;">Prix : <strong>{{prix}}/mois</strong></li>
-                  <li style="margin-bottom: 8px;">Cycle : <strong>n°{{cycle}}</strong></li>
+                  <li style="margin-bottom: 8px;">Prix : <strong>{{prix}}</strong></li>
                   <li style="margin-bottom: 8px;">Prochaine facturation : <strong>{{date_fact}}</strong></li>
-                  <li>Fin du nouvel engagement : <strong>{{date_renouv}}</strong></li>
+                  <li>Prochain renouvellement : <strong>{{date_renouv}}</strong></li>
                 </ul>
               </div>
 
               <div style="background-color: #f9fafb; border-left: 4px solid #6366f1; padding: 20px; margin: 30px 0; border-radius: 4px;">
-                <p style="margin: 0 0 10px; font-size: 14px; font-weight: 600; color: #1f2937;">💡 Rappel</p>
+                <p style="margin: 0 0 10px; font-size: 14px; font-weight: 600; color: #1f2937;">💡 À savoir</p>
                 <p style="margin: 0; font-size: 14px; line-height: 1.5; color: #4b5563;">
-                  Vous bénéficiez d'un <strong>engagement de 12 mois</strong> à partir d'aujourd'hui. Vous pourrez annuler votre abonnement à partir du <strong>{{date_renouv}}</strong>. Nous vous notifierons 7 jours avant la prochaine échéance.
+                  Votre abonnement se renouvellera automatiquement le <strong>{{date_renouv}}</strong>. Vous pouvez l'annuler à tout moment avant cette date depuis votre espace client, sans frais ni pénalité. Nous vous enverrons un rappel 7 jours avant.
                 </p>
               </div>
 
@@ -642,10 +641,10 @@ async function createAutomations() {
   console.log('\n✅ Toutes les automatisations ont été créées !')
   console.log('\n📋 Variables courtes disponibles dans les templates :')
   console.log('   - {{nom}} : nom du plan (Premium Silver / Premium Gold)')
-  console.log('   - {{prix}} : prix mensuel (29,99€ / 49,99€)')
+  console.log('   - {{prix}} : prix de l\'abonnement (29€/mois, 240€/an, 499€/an)')
   console.log('   - {{date_fact}} : date de prochaine facturation')
-  console.log('   - {{date_renouv}} : date de renouvellement/fin d\'engagement')
-  console.log('   - {{cycle}} : numéro du cycle d\'engagement')
+  console.log('   - {{date_renouv}} : date de prochain renouvellement automatique')
+  console.log('   - {{cycle}} : numéro de renouvellement')
   console.log('   - {{jours}} : jours avant le renouvellement')
   console.log('   - {{full_name}} : nom complet de l\'utilisateur')
   console.log('   - {{email}} : email de l\'utilisateur')
