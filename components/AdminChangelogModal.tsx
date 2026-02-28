@@ -15,10 +15,55 @@ type ChangelogEntry = {
 
 // ─────────────────────────────────────────────
 // 🔖 INCRÉMENTER cette valeur à chaque mise à jour
-const CHANGELOG_VERSION = 3
+const CHANGELOG_VERSION = 4
 // ─────────────────────────────────────────────
 
 const CHANGELOG: ChangelogEntry[] = [
+  {
+    date: '28 février 2026',
+    changes: [
+      {
+        type: 'feature',
+        text: 'Module Pratique — lecteur vidéo en modal : cliquer sur une miniature ouvre la vidéo dans une fenêtre superposée, fermable avec la croix ou la touche Échap. Navigation entre vidéos avec les flèches clavier ou les boutons.'
+      },
+      {
+        type: 'feature',
+        text: 'Module Pratique — formulaire admin en modal : "Ajouter une vidéo" et "Modifier" ouvrent désormais un formulaire dans une fenêtre propre, sans quitter la page.'
+      },
+      {
+        type: 'feature',
+        text: 'Module Pratique — gestion des catégories dans un modal séparé, accessible via le bouton "Gérer les catégories".'
+      },
+      {
+        type: 'feature',
+        text: 'Module Pratique — onglets de régions cliquables avec retour à la ligne automatique et compteur de vidéos par région. Suppression du mode défilement TikTok.'
+      },
+      {
+        type: 'feature',
+        text: 'Module Pratique — pagination (12 vidéos par page) pour les régions avec beaucoup de contenu.'
+      },
+      {
+        type: 'feature',
+        text: 'Module Pratique — nouvelle région "Bassin" ajoutée. Les régions "Pied" et "Cheville" fusionnées en "Pied & Cheville".'
+      },
+      {
+        type: 'improvement',
+        text: 'Module Pratique — ordre d\'affichage automatique : si le champ ordre est laissé vide, la vidéo est placée à la fin de sa région.'
+      },
+      {
+        type: 'fix',
+        text: 'Module Pratique — correction du bug qui chargeait toujours la première vidéo de la catégorie au lieu de celle cliquée.'
+      },
+      {
+        type: 'fix',
+        text: 'Sécurité — correction d\'une erreur 403 lors de l\'enregistrement de la progression vidéo (trigger gamification passé en SECURITY DEFINER).'
+      },
+      {
+        type: 'fix',
+        text: 'Sécurité — Content Security Policy mise à jour pour autoriser le widget de feedback Vercel Live.'
+      }
+    ]
+  },
   {
     date: '28 février 2026',
     changes: [
