@@ -15,10 +15,23 @@ type ChangelogEntry = {
 
 // ─────────────────────────────────────────────
 // 🔖 INCRÉMENTER cette valeur à chaque mise à jour
-const CHANGELOG_VERSION = 5
+const CHANGELOG_VERSION = 6
 // ─────────────────────────────────────────────
 
 const CHANGELOG: ChangelogEntry[] = [
+  {
+    date: '28 février 2026',
+    changes: [
+      {
+        type: 'fix',
+        text: 'Abonnements — correction du parcours parrainage avant Stripe : le rappel de code est affiché avant paiement, avec possibilité explicite de passer sans code.'
+      },
+      {
+        type: 'fix',
+        text: 'Parrainage — clarification Silver mensuel : les codes de parrainage ne sont plus proposés/appliqués sur l’offre mensuelle (réservés aux formules annuelles).'
+      }
+    ]
+  },
   {
     date: '28 février 2026',
     changes: [
