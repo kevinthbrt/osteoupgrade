@@ -56,6 +56,7 @@ type PracticeVideo = {
   duration_seconds?: number | null
   order_index?: number | null
   is_active: boolean
+  is_free_access?: boolean | null
 }
 
 const isPremium = (role?: string) => ['premium_silver', 'premium_gold', 'admin'].includes(role || '')
