@@ -21,11 +21,19 @@ const nextConfig = {
     ]
   },
   images: {
-    domains: ['chttutptqainrnrbrljf.supabase.co'],
+    domains: ['chttutptqainrnrbrljf.supabase.co', 'i.vimeocdn.com', 'f.vimeocdn.com'],
     remotePatterns: [
       {
         protocol: 'https',
         hostname: '**.public.blob.vercel-storage.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'i.vimeocdn.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'f.vimeocdn.com',
       },
     ],
   },
