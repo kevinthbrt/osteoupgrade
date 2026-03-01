@@ -15,10 +15,23 @@ type ChangelogEntry = {
 
 // ─────────────────────────────────────────────
 // 🔖 INCRÉMENTER cette valeur à chaque mise à jour
-const CHANGELOG_VERSION = 7
+const CHANGELOG_VERSION = 8
 // ─────────────────────────────────────────────
 
 const CHANGELOG: ChangelogEntry[] = [
+  {
+    date: '1 mars 2026',
+    changes: [
+      {
+        type: 'fix',
+        text: 'Générateur de codes promo — correction de la compatibilité avec Stripe SDK v20 (API 2025-11-17.clover) : la création de codes promo utilise désormais la nouvelle structure promotion.{type, coupon} requise par la nouvelle API.'
+      },
+      {
+        type: 'fix',
+        text: 'Générateur de codes promo — l\'affichage de la liste des codes actifs est corrigé : le coupon est désormais récupéré via pc.promotion.coupon (ancienne structure pc.coupon supprimée par Stripe).'
+      }
+    ]
+  },
   {
     date: '28 février 2026',
     changes: [
