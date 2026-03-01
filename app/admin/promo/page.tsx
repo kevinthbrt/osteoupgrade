@@ -39,6 +39,7 @@ export default function AdminPromoPage() {
   // Formulaire
   const [formCode, setFormCode] = useState('')
   const [formMaxUses, setFormMaxUses] = useState('1')
+  const [formAmountOff, setFormAmountOff] = useState('100')
 
   useEffect(() => {
     checkAdminAndLoad()
@@ -74,6 +75,13 @@ export default function AdminPromoPage() {
       return
     }
 
+    const amountOffEuros = parseFloat(formAmountOff)
+    if (isNaN(amountOffEuros) || amountOffEuros < 1 || amountOffEuros > 1000) {
+      setError('Le montant de la réduction doit être entre 1€ et 1000€.')
+      setGenerating(false)
+      return
+    }
+
     try {
       const res = await fetch('/api/admin/generate-promo', {
         method: 'POST',
@@ -81,16 +89,17 @@ export default function AdminPromoPage() {
         body: JSON.stringify({
           code: formCode.trim() || undefined,
           maxRedemptions: maxUses,
-          amountOff: 10000 // 100€ fixe
+          amountOff: Math.round(amountOffEuros * 100) // en centimes
         })
       })
 
       const data = await res.json()
       if (!res.ok) throw new Error(data.error)
 
-      setSuccess(`Code "${data.promoCode.code}" créé avec succès !`)
+      setSuccess(`Code "${data.promoCode.code}" créé avec succès ! (-${(data.promoCode.amountOff / 100).toFixed(0)}€)`)
       setFormCode('')
       setFormMaxUses('1')
+      setFormAmountOff('100')
       await loadPromoCodes()
     } catch (err: any) {
       setError(err.message || 'Erreur lors de la création du code')
@@ -153,10 +162,10 @@ export default function AdminPromoPage() {
         <div className="bg-gradient-to-r from-purple-600 to-purple-700 rounded-xl shadow-lg p-8 text-white">
           <div className="flex items-center gap-3 mb-2">
             <Tag className="h-8 w-8" />
-            <h1 className="text-3xl font-bold">Codes Promo Gold</h1>
+            <h1 className="text-3xl font-bold">Codes Promo</h1>
           </div>
           <p className="text-purple-100">
-            Générez des codes de réduction de <strong>-100€</strong> applicables sur l'abonnement Gold (499€ → 399€).
+            Générez des codes de réduction avec un montant personnalisable.
             Les codes sont saisis par les utilisateurs directement dans la page de paiement Stripe.
           </p>
         </div>
@@ -169,7 +178,7 @@ export default function AdminPromoPage() {
           </h2>
 
           <form onSubmit={handleGenerate} className="space-y-4">
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-4 sm:grid-cols-3">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Code personnalisé <span className="text-gray-400 font-normal">(optionnel)</span>
@@ -182,6 +191,26 @@ export default function AdminPromoPage() {
                   maxLength={20}
                   className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent font-mono text-sm"
                 />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Réduction (€) <span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    value={formAmountOff}
+                    onChange={(e) => setFormAmountOff(e.target.value)}
+                    min="1"
+                    max="1000"
+                    step="1"
+                    required
+                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent pr-8"
+                  />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">€</span>
+                </div>
+                <p className="text-xs text-gray-500 mt-1">ex. 100 → -100€ sur le prix</p>
               </div>
 
               <div>
@@ -205,7 +234,7 @@ export default function AdminPromoPage() {
               <div className="flex items-start gap-2">
                 <AlertCircle className="h-4 w-4 text-yellow-700 mt-0.5 flex-shrink-0" />
                 <p className="text-sm text-yellow-800">
-                  Le code généré sera une réduction de <strong>-100€</strong> sur l'abonnement Gold annuel (499€ → 399€).
+                  Le code généré sera une réduction de <strong>-{formAmountOff || '?'}€</strong> applicable sur un abonnement.
                   L'utilisateur saisit ce code dans le champ "Code promo" lors du paiement sur Stripe.
                 </p>
               </div>

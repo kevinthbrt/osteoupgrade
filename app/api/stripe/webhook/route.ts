@@ -127,15 +127,20 @@ async function handleCheckoutCompleted(session: any) {
   if (referrerUserId && referralCode && isAnnual) {
     console.log('💰 Processing referral commission for:', referralCode)
 
-    // Récupérer le montant de l'abonnement depuis Stripe
-    let subscriptionAmount = 0
-    try {
-      const subscription = await stripe.subscriptions.retrieve(session.subscription)
-      // Le montant est en centimes
-      subscriptionAmount = subscription.items.data[0]?.price?.unit_amount || 0
-      console.log('💵 Subscription amount:', subscriptionAmount, 'cents')
-    } catch (err) {
-      console.error('❌ Error retrieving subscription amount:', err)
+    // Utiliser le montant réellement payé (après code promo éventuel)
+    // session.amount_total est le montant total facturé en centimes (après réductions)
+    let subscriptionAmount = session.amount_total || 0
+    if (subscriptionAmount === 0) {
+      // Fallback : récupérer le prix de base depuis la souscription
+      try {
+        const subscription = await stripe.subscriptions.retrieve(session.subscription)
+        subscriptionAmount = subscription.items.data[0]?.price?.unit_amount || 0
+        console.log('💵 Fallback subscription amount (base price):', subscriptionAmount, 'cents')
+      } catch (err) {
+        console.error('❌ Error retrieving subscription amount:', err)
+      }
+    } else {
+      console.log('💵 Actual paid amount (after discounts):', subscriptionAmount, 'cents')
     }
 
     if (subscriptionAmount > 0) {
@@ -284,6 +289,21 @@ async function handleCheckoutCompleted(session: any) {
     ? (isAnnual ? '499€' : '49,99€')
     : (isAnnual ? '240€' : '29€')
 
+  // Récupérer le code de parrainage de l'utilisateur (pour l'email de bienvenue Gold)
+  let userReferralCode = ''
+  if (planType === 'premium_gold') {
+    try {
+      const { data: referralCodeData } = await supabaseAdmin
+        .from('referral_codes')
+        .select('referral_code')
+        .eq('user_id', userId)
+        .single()
+      userReferralCode = referralCodeData?.referral_code || ''
+    } catch (err) {
+      console.error('⚠️ Could not fetch referral code for user:', userId)
+    }
+  }
+
   try {
     await fetch(`${process.env.NEXT_PUBLIC_URL || 'http://localhost:3000'}/api/automations/trigger`, {
       method: 'POST',
@@ -298,7 +318,8 @@ async function handleCheckoutCompleted(session: any) {
           nom: planType === 'premium_gold' ? 'Premium Gold' : 'Premium Silver',
           prix: displayPrice,
           interval: isAnnual ? 'annuel' : 'mensuel',
-          date_fact: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString('fr-FR')
+          date_fact: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString('fr-FR'),
+          code_parrainage: userReferralCode
         }
       })
     })
