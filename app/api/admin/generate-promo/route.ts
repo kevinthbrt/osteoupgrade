@@ -39,11 +39,16 @@ export async function POST(request: Request) {
     })
 
     // Crée le code promo lisible, ou laisse Stripe en générer un
+    // Note: API 2025-11-17.clover requiert promotion.{type, coupon} au lieu de coupon directement
     const promoCodeParams: any = {
-      coupon: coupon.id,
+      promotion: {
+        type: 'coupon',
+        coupon: coupon.id
+      },
       max_redemptions: maxRedemptions,
       metadata: {
-        created_by: admin.id
+        created_by: admin.id,
+        purpose: 'gold_promo'
       }
     }
     if (code && code.trim().length > 0) {
@@ -81,27 +86,36 @@ export async function GET() {
     const admin = await checkAdmin(supabase)
     if (!admin) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-    // Récupère tous les codes promo actifs
+    // Récupère tous les codes promo actifs (avec le coupon expandé pour avoir amount_off et metadata)
+    // API 2025-11-17.clover: coupon est dans pc.promotion.coupon
     const promoCodes = await stripe.promotionCodes.list({
       active: true,
-      limit: 50
+      limit: 50,
+      expand: ['data.promotion.coupon']
+    } as any)
+
+    // Filtre sur les codes dont le metadata purpose === 'gold_promo'
+    // On vérifie d'abord le metadata du promo code (nouveaux codes),
+    // puis celui du coupon (anciens codes migrés)
+    const goldCodes = (promoCodes.data as any[]).filter((pc) => {
+      if (pc.metadata?.purpose === 'gold_promo') return true
+      const coupon = pc.promotion?.coupon
+      return typeof coupon === 'object' && coupon?.metadata?.purpose === 'gold_promo'
     })
 
-    // Filtre sur les coupons créés pour la promo Gold
-    const goldCodes = (promoCodes.data as any[]).filter(
-      (pc) => pc.coupon?.metadata?.purpose === 'gold_promo'
-    )
-
-    const result = goldCodes.map((pc: any) => ({
-      id: pc.id,
-      code: pc.code,
-      couponId: pc.coupon?.id ?? pc.coupon,
-      amountOff: pc.coupon?.amount_off ?? null,
-      maxRedemptions: pc.max_redemptions,
-      timesRedeemed: pc.times_redeemed,
-      active: pc.active,
-      created: pc.created
-    }))
+    const result = goldCodes.map((pc: any) => {
+      const coupon = pc.promotion?.coupon
+      return {
+        id: pc.id,
+        code: pc.code,
+        couponId: typeof coupon === 'object' ? coupon?.id : coupon,
+        amountOff: typeof coupon === 'object' ? (coupon?.amount_off ?? null) : null,
+        maxRedemptions: pc.max_redemptions,
+        timesRedeemed: pc.times_redeemed,
+        active: pc.active,
+        created: pc.created
+      }
+    })
 
     return NextResponse.json({ promoCodes: result })
   } catch (error: any) {
