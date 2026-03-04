@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback } from 'react'
+import Image from 'next/image'
 import PublicFooter from '@/components/PublicFooter'
 import { useRouter } from 'next/navigation'
 import {
@@ -23,7 +24,6 @@ import {
   X,
   Crown,
   BookOpen,
-  Activity,
   HeartPulse,
   Trophy,
   Flame,
@@ -90,12 +90,23 @@ function AnimatedCounter({ target, suffix = '', duration = 2000 }: { target: num
   return <span ref={ref}>{count}{suffix}</span>
 }
 
-// Mini mock UI for hero section
-function MockAppUI() {
+// Screenshot paths for features
+const SCREENSHOT_PATHS: Record<string, string> = {
+  hero: '/landing/screenshots/hero.png',
+  tests: '/landing/screenshots/tests.png',
+  diagnostics: '/landing/screenshots/diagnostics.png',
+  topographie: '/landing/screenshots/topographie.png',
+  elearning: '/landing/screenshots/elearning.png',
+  videos: '/landing/screenshots/videos.png',
+  exercices: '/landing/screenshots/exercices.png',
+}
+
+// Hero screenshot in a browser chrome frame
+function HeroScreenshot() {
   return (
-    <div className="relative w-full max-w-lg mx-auto">
+    <div className="relative w-full max-w-xl mx-auto">
       {/* Browser chrome */}
-      <div className="rounded-2xl overflow-hidden shadow-2xl border border-white/10 bg-[#0c1222]">
+      <div className="rounded-2xl overflow-hidden shadow-2xl shadow-black/40 border border-white/10 bg-[#0c1222]">
         {/* Title bar */}
         <div className="flex items-center gap-2 px-4 py-3 bg-[#0a0e1a] border-b border-white/5">
           <div className="flex gap-1.5">
@@ -105,94 +116,21 @@ function MockAppUI() {
           </div>
           <div className="flex-1 flex justify-center">
             <div className="px-4 py-1 rounded-md bg-white/5 text-[10px] text-white/40 font-mono">
-              app.osteoupgrade.fr
+              osteo-upgrade.fr
             </div>
           </div>
         </div>
 
-        {/* App content mock */}
-        <div className="p-4 space-y-3">
-          {/* Nav mock */}
-          <div className="flex items-center justify-between mb-2">
-            <div className="text-xs font-bold text-white/90">
-              Osteo<span className="text-amber-400">Upgrade</span>
-            </div>
-            <div className="flex gap-2">
-              <div className="w-16 h-2 rounded bg-white/10" />
-              <div className="w-16 h-2 rounded bg-white/10" />
-              <div className="w-16 h-2 rounded bg-white/10" />
-            </div>
-          </div>
-
-          {/* Region cards mock */}
-          <div className="grid grid-cols-3 gap-2">
-            {[
-              { label: 'Epaule', color: 'from-blue-500/30 to-cyan-500/20', active: true },
-              { label: 'Genou', color: 'from-emerald-500/30 to-teal-500/20', active: false },
-              { label: 'Rachis', color: 'from-purple-500/30 to-pink-500/20', active: false },
-            ].map((item) => (
-              <div
-                key={item.label}
-                className={`rounded-lg p-2 text-center border ${
-                  item.active
-                    ? 'bg-gradient-to-br from-amber-500/20 to-amber-600/10 border-amber-500/30'
-                    : 'bg-white/5 border-white/5'
-                }`}
-              >
-                <div className={`w-6 h-6 rounded-md mx-auto mb-1 bg-gradient-to-br ${item.color}`} />
-                <div className={`text-[9px] font-medium ${item.active ? 'text-amber-300' : 'text-white/50'}`}>
-                  {item.label}
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Test list mock */}
-          <div className="space-y-1.5">
-            {['Test de Neer', 'Test de Jobe', 'Test de Speed'].map((test, i) => (
-              <div
-                key={test}
-                className={`flex items-center justify-between rounded-lg px-3 py-2 ${
-                  i === 0 ? 'bg-amber-500/10 border border-amber-500/20' : 'bg-white/5 border border-white/5'
-                }`}
-              >
-                <div className="flex items-center gap-2">
-                  <div className={`w-1.5 h-1.5 rounded-full ${i === 0 ? 'bg-amber-400' : 'bg-white/20'}`} />
-                  <span className={`text-[10px] font-medium ${i === 0 ? 'text-amber-200' : 'text-white/50'}`}>
-                    {test}
-                  </span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <div className={`text-[8px] px-1.5 py-0.5 rounded ${
-                    i === 0 ? 'bg-emerald-500/20 text-emerald-300' : 'bg-white/5 text-white/30'
-                  }`}>
-                    Se: {85 + i * 3}%
-                  </div>
-                  <div className={`text-[8px] px-1.5 py-0.5 rounded ${
-                    i === 0 ? 'bg-blue-500/20 text-blue-300' : 'bg-white/5 text-white/30'
-                  }`}>
-                    Sp: {78 + i * 5}%
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Pathology card mock */}
-          <div className="rounded-lg bg-gradient-to-r from-rose-500/10 to-rose-500/5 border border-rose-500/15 p-2.5">
-            <div className="flex items-center gap-2 mb-1.5">
-              <div className="w-4 h-4 rounded bg-rose-500/20 flex items-center justify-center">
-                <Activity className="w-2.5 h-2.5 text-rose-400" />
-              </div>
-              <span className="text-[10px] font-semibold text-rose-300">Conflit sous-acromial</span>
-              <span className="text-[7px] px-1.5 py-0.5 rounded-full bg-rose-500/20 text-rose-300 ml-auto">Pathologie</span>
-            </div>
-            <div className="flex gap-1">
-              <div className="h-1 flex-1 rounded-full bg-rose-500/30" />
-              <div className="h-1 flex-[0.7] rounded-full bg-rose-500/15" />
-              <div className="h-1 flex-[0.4] rounded-full bg-rose-500/10" />
-            </div>
-          </div>
+        {/* Screenshot */}
+        <div className="relative aspect-[14/9]">
+          <Image
+            src={SCREENSHOT_PATHS.hero}
+            alt="Interface OsteoUpgrade - Tests orthopediques, diagnostics et e-learning"
+            fill
+            className="object-cover object-top"
+            priority
+            sizes="(max-width: 768px) 100vw, 560px"
+          />
         </div>
       </div>
 
@@ -200,7 +138,7 @@ function MockAppUI() {
       <div className="absolute -top-4 -right-4 px-3 py-1.5 rounded-xl bg-emerald-500 text-white text-[10px] font-bold shadow-lg shadow-emerald-500/30 animate-float">
         +15 XP
       </div>
-      <div className="absolute -bottom-3 -left-4 px-3 py-1.5 rounded-xl bg-amber-500 text-white text-[10px] font-bold shadow-lg shadow-amber-500/30 animate-float-delayed">
+      <div className="absolute -bottom-3 -left-4 px-3 py-1.5 rounded-xl bg-sky-500 text-white text-[10px] font-bold shadow-lg shadow-sky-500/30 animate-float-delayed">
         Niveau 5
       </div>
     </div>
@@ -244,37 +182,43 @@ export default function LandingPage() {
       icon: TestTube2,
       title: 'Tests orthopediques',
       desc: 'Base de 200+ tests classes par region avec sensibilite, specificite et videos demonstratives.',
-      gradient: 'from-blue-500 to-cyan-500'
+      gradient: 'from-blue-500 to-cyan-500',
+      screenshot: SCREENSHOT_PATHS.tests,
     },
     {
       icon: Stethoscope,
       title: 'Diagnostics & Pathologies',
       desc: '150+ pathologies detaillees avec signes cliniques, red flags et tests associes.',
-      gradient: 'from-rose-500 to-pink-500'
+      gradient: 'from-rose-500 to-pink-500',
+      screenshot: SCREENSHOT_PATHS.diagnostics,
     },
     {
       icon: Map,
       title: 'Topographie clinique',
       desc: 'Guides topographiques pour structurer ton raisonnement region par region.',
-      gradient: 'from-sky-500 to-indigo-500'
+      gradient: 'from-sky-500 to-indigo-500',
+      screenshot: SCREENSHOT_PATHS.topographie,
     },
     {
       icon: GraduationCap,
       title: 'E-Learning complet',
       desc: 'Cours structures, revue de litterature et quiz pour valider tes connaissances.',
-      gradient: 'from-violet-500 to-purple-500'
+      gradient: 'from-violet-500 to-purple-500',
+      screenshot: SCREENSHOT_PATHS.elearning,
     },
     {
       icon: Play,
       title: 'Techniques en video',
       desc: '150+ videos de techniques (HVLA, mobilisation, tissulaire) organisees par region.',
-      gradient: 'from-orange-500 to-red-500'
+      gradient: 'from-orange-500 to-red-500',
+      screenshot: SCREENSHOT_PATHS.videos,
     },
     {
       icon: Dumbbell,
       title: 'Exercices & Outils',
       desc: 'Bibliotheque d\'exercices, exports PDF, fiches patients et modeles de documents.',
-      gradient: 'from-emerald-500 to-teal-500'
+      gradient: 'from-emerald-500 to-teal-500',
+      screenshot: SCREENSHOT_PATHS.exercices,
     },
   ]
 
@@ -286,7 +230,7 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16 lg:h-18">
             <div className="text-xl font-bold tracking-tight">
-              Osteo<span className="text-amber-500">Upgrade</span>
+              Osteo<span className="text-sky-500">Upgrade</span>
             </div>
 
             {/* Desktop nav */}
@@ -315,7 +259,7 @@ export default function LandingPage() {
               </button>
               <button
                 onClick={() => router.push('/auth')}
-                className="bg-slate-900 text-white px-5 py-2.5 rounded-xl font-semibold text-sm hover:bg-slate-800 transition-all shadow-sm hover:shadow-md"
+                className="bg-gradient-to-r from-sky-500 to-blue-500 text-white px-5 py-2.5 rounded-xl font-semibold text-sm hover:from-sky-400 hover:to-blue-400 transition-all shadow-sm hover:shadow-md"
               >
                 Essai gratuit
               </button>
@@ -369,14 +313,14 @@ export default function LandingPage() {
         }} />
 
         {/* Ambient glow */}
-        <div className="absolute top-20 left-1/4 w-[500px] h-[500px] rounded-full bg-amber-500/[0.07] blur-[120px]" />
+        <div className="absolute top-20 left-1/4 w-[500px] h-[500px] rounded-full bg-sky-500/[0.07] blur-[120px]" />
         <div className="absolute bottom-0 right-1/4 w-[400px] h-[400px] rounded-full bg-blue-500/[0.05] blur-[100px]" />
 
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
             {/* Left content */}
             <div className={`transition-all duration-1000 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
-              <div className="inline-flex items-center gap-2 bg-amber-500/10 border border-amber-500/20 text-amber-400 px-4 py-2 rounded-full text-xs font-semibold mb-8 backdrop-blur-sm">
+              <div className="inline-flex items-center gap-2 bg-sky-500/10 border border-sky-500/20 text-sky-400 px-4 py-2 rounded-full text-xs font-semibold mb-8 backdrop-blur-sm">
                 <Sparkles className="h-3.5 w-3.5" />
                 Plateforme de reference pour osteopathes
               </div>
@@ -386,7 +330,7 @@ export default function LandingPage() {
                 <br />
                 raisonnement
                 <br />
-                <span className="bg-gradient-to-r from-amber-400 via-amber-300 to-yellow-400 bg-clip-text text-transparent">
+                <span className="bg-gradient-to-r from-sky-400 via-blue-400 to-cyan-400 bg-clip-text text-transparent">
                   clinique.
                 </span>
               </h1>
@@ -399,7 +343,7 @@ export default function LandingPage() {
               <div className="flex flex-col sm:flex-row gap-4 mb-10">
                 <button
                   onClick={() => router.push('/auth')}
-                  className="group bg-gradient-to-r from-amber-500 to-amber-400 text-slate-900 px-7 py-4 rounded-xl font-bold text-base hover:from-amber-400 hover:to-amber-300 transition-all shadow-lg shadow-amber-500/20 hover:shadow-amber-500/30 flex items-center justify-center gap-2"
+                  className="group bg-gradient-to-r from-sky-500 to-blue-500 text-white px-7 py-4 rounded-xl font-bold text-base hover:from-sky-400 hover:to-blue-400 transition-all shadow-lg shadow-sky-500/20 hover:shadow-sky-500/30 flex items-center justify-center gap-2"
                 >
                   Commencer gratuitement
                   <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
@@ -424,9 +368,9 @@ export default function LandingPage() {
               </div>
             </div>
 
-            {/* Right: Mock UI */}
+            {/* Right: App Screenshot */}
             <div className={`transition-all duration-1000 delay-300 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'}`}>
-              <MockAppUI />
+              <HeroScreenshot />
             </div>
           </div>
         </div>
@@ -513,7 +457,7 @@ export default function LandingPage() {
                   </p>
 
                   <div className={`mt-4 flex items-center gap-1 text-xs font-semibold transition-colors ${
-                    isActive ? 'text-amber-400' : 'text-slate-400 group-hover:text-slate-600'
+                    isActive ? 'text-sky-400' : 'text-slate-400 group-hover:text-slate-600'
                   }`}>
                     Explorer
                     <ChevronRight className="h-3.5 w-3.5" />
@@ -522,13 +466,70 @@ export default function LandingPage() {
               )
             })}
           </div>
+
+          {/* Feature screenshot preview */}
+          <div className={`mt-12 transition-all duration-700 delay-300 ${
+            features.isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
+          }`}>
+            <div className="relative rounded-2xl overflow-hidden shadow-2xl shadow-slate-900/10 border border-slate-200 bg-[#0c1222]">
+              {/* Browser chrome */}
+              <div className="flex items-center gap-2 px-4 py-3 bg-[#0a0e1a] border-b border-white/5">
+                <div className="flex gap-1.5">
+                  <div className="w-3 h-3 rounded-full bg-red-500/80" />
+                  <div className="w-3 h-3 rounded-full bg-yellow-500/80" />
+                  <div className="w-3 h-3 rounded-full bg-green-500/80" />
+                </div>
+                <div className="flex-1 flex justify-center">
+                  <div className="px-4 py-1 rounded-md bg-white/5 text-[10px] text-white/40 font-mono">
+                    osteo-upgrade.fr
+                  </div>
+                </div>
+              </div>
+
+              {/* Screenshot container with crossfade */}
+              <div className="relative aspect-[3/2] sm:aspect-[16/9] lg:aspect-[2.2/1]">
+                {featuresList.map((feature, i) => (
+                  <div
+                    key={i}
+                    className={`absolute inset-0 transition-opacity duration-500 ${
+                      activeFeature === i ? 'opacity-100' : 'opacity-0'
+                    }`}
+                  >
+                    <Image
+                      src={feature.screenshot}
+                      alt={`Capture d'ecran - ${feature.title}`}
+                      fill
+                      className="object-cover object-top"
+                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 90vw, 1200px"
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Active feature label */}
+            <div className="flex items-center justify-center gap-3 mt-6">
+              {featuresList.map((_, i) => (
+                <button
+                  key={i}
+                  onClick={() => setActiveFeature(i)}
+                  className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                    activeFeature === i
+                      ? 'bg-sky-500 w-8'
+                      : 'bg-slate-300 hover:bg-slate-400'
+                  }`}
+                  aria-label={`Voir ${featuresList[i].title}`}
+                />
+              ))}
+            </div>
+          </div>
         </div>
       </section>
 
       {/* ─── WORKFLOW / HOW IT WORKS ─── */}
       <section id="how-it-works" className="py-20 lg:py-28 px-4 sm:px-6 lg:px-8 bg-slate-900 relative overflow-hidden">
         {/* Subtle gradient orbs */}
-        <div className="absolute top-0 right-0 w-[600px] h-[600px] rounded-full bg-amber-500/[0.04] blur-[150px]" />
+        <div className="absolute top-0 right-0 w-[600px] h-[600px] rounded-full bg-sky-500/[0.04] blur-[150px]" />
 
         <div className="max-w-6xl mx-auto relative">
           <div className="text-center mb-16">
@@ -557,7 +558,7 @@ export default function LandingPage() {
                 title: 'Explore le contenu',
                 desc: 'Accede aux tests, pathologies, cours et videos. Structure ton raisonnement avec des donnees fiables et a jour.',
                 icon: Brain,
-                color: 'from-amber-500 to-orange-500'
+                color: 'from-sky-500 to-blue-500'
               },
               {
                 step: '03',
@@ -736,7 +737,7 @@ export default function LandingPage() {
                     <span>450/500 XP</span>
                   </div>
                   <div className="h-3 w-full rounded-full bg-white/10 overflow-hidden">
-                    <div className="h-full rounded-full bg-gradient-to-r from-amber-400 to-yellow-300 w-[90%] transition-all" />
+                    <div className="h-full rounded-full bg-gradient-to-r from-sky-400 to-blue-400 w-[90%] transition-all" />
                   </div>
                   <div className="text-[10px] text-purple-400 mt-1">Plus que 50 XP pour le niveau 8</div>
                 </div>
@@ -1069,7 +1070,7 @@ export default function LandingPage() {
             Les tests orthopediques avec les donnees de sensibilite et specificite, c&apos;est exactement ce qui manquait.&rdquo;
           </blockquote>
           <div className="flex items-center justify-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-amber-400 to-amber-500 flex items-center justify-center text-white font-bold text-sm">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-sky-400 to-blue-500 flex items-center justify-center text-white font-bold text-sm">
               O
             </div>
             <div className="text-left">
@@ -1257,7 +1258,7 @@ export default function LandingPage() {
       <section ref={cta.ref} className="relative py-24 lg:py-32 px-4 sm:px-6 lg:px-8 overflow-hidden">
         {/* Background */}
         <div className="absolute inset-0 bg-gradient-to-br from-[#070b19] via-[#0c1528] to-[#0f172a]" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[400px] rounded-full bg-amber-500/[0.06] blur-[150px]" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[400px] rounded-full bg-sky-500/[0.06] blur-[150px]" />
 
         <div className={`relative max-w-3xl mx-auto text-center transition-all duration-700 ${
           cta.isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
@@ -1265,7 +1266,7 @@ export default function LandingPage() {
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-6 tracking-tight leading-tight">
             Pret a passer au
             <br />
-            <span className="bg-gradient-to-r from-amber-400 to-yellow-400 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-sky-400 to-cyan-400 bg-clip-text text-transparent">
               niveau superieur ?
             </span>
           </h2>
@@ -1275,7 +1276,7 @@ export default function LandingPage() {
           </p>
           <button
             onClick={() => router.push('/auth')}
-            className="group bg-gradient-to-r from-amber-500 to-amber-400 text-slate-900 px-10 py-4 rounded-xl font-bold text-lg hover:from-amber-400 hover:to-amber-300 transition-all shadow-xl shadow-amber-500/20 hover:shadow-amber-500/30 inline-flex items-center gap-3"
+            className="group bg-gradient-to-r from-sky-500 to-blue-500 text-white px-10 py-4 rounded-xl font-bold text-lg hover:from-sky-400 hover:to-blue-400 transition-all shadow-xl shadow-sky-500/20 hover:shadow-sky-500/30 inline-flex items-center gap-3"
           >
             Commencer maintenant
             <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
