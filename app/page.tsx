@@ -90,15 +90,15 @@ function AnimatedCounter({ target, suffix = '', duration = 2000 }: { target: num
   return <span ref={ref}>{count}{suffix}</span>
 }
 
-// Screenshot paths for features - replace SVGs with real screenshots (png/webp)
+// Screenshot paths for features
 const SCREENSHOT_PATHS: Record<string, string> = {
-  hero: '/landing/screenshots/hero.svg',
-  tests: '/landing/screenshots/tests.svg',
-  diagnostics: '/landing/screenshots/diagnostics.svg',
-  topographie: '/landing/screenshots/topographie.svg',
-  elearning: '/landing/screenshots/elearning.svg',
-  videos: '/landing/screenshots/videos.svg',
-  exercices: '/landing/screenshots/exercices.svg',
+  hero: '/landing/screenshots/hero.png',
+  tests: '/landing/screenshots/tests.png',
+  diagnostics: '/landing/screenshots/diagnostics.png',
+  topographie: '/landing/screenshots/topographie.png',
+  elearning: '/landing/screenshots/elearning.png',
+  videos: '/landing/screenshots/videos.png',
+  exercices: '/landing/screenshots/exercices.png',
 }
 
 // Hero screenshot in a browser chrome frame
