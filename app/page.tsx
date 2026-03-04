@@ -116,7 +116,7 @@ function HeroScreenshot() {
           </div>
           <div className="flex-1 flex justify-center">
             <div className="px-4 py-1 rounded-md bg-white/5 text-[10px] text-white/40 font-mono">
-              app.osteoupgrade.fr
+              osteo-upgrade.fr
             </div>
           </div>
         </div>
@@ -138,7 +138,7 @@ function HeroScreenshot() {
       <div className="absolute -top-4 -right-4 px-3 py-1.5 rounded-xl bg-emerald-500 text-white text-[10px] font-bold shadow-lg shadow-emerald-500/30 animate-float">
         +15 XP
       </div>
-      <div className="absolute -bottom-3 -left-4 px-3 py-1.5 rounded-xl bg-amber-500 text-white text-[10px] font-bold shadow-lg shadow-amber-500/30 animate-float-delayed">
+      <div className="absolute -bottom-3 -left-4 px-3 py-1.5 rounded-xl bg-sky-500 text-white text-[10px] font-bold shadow-lg shadow-sky-500/30 animate-float-delayed">
         Niveau 5
       </div>
     </div>
@@ -230,7 +230,7 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16 lg:h-18">
             <div className="text-xl font-bold tracking-tight">
-              Osteo<span className="text-amber-500">Upgrade</span>
+              Osteo<span className="text-sky-500">Upgrade</span>
             </div>
 
             {/* Desktop nav */}
@@ -259,7 +259,7 @@ export default function LandingPage() {
               </button>
               <button
                 onClick={() => router.push('/auth')}
-                className="bg-slate-900 text-white px-5 py-2.5 rounded-xl font-semibold text-sm hover:bg-slate-800 transition-all shadow-sm hover:shadow-md"
+                className="bg-gradient-to-r from-sky-500 to-blue-500 text-white px-5 py-2.5 rounded-xl font-semibold text-sm hover:from-sky-400 hover:to-blue-400 transition-all shadow-sm hover:shadow-md"
               >
                 Essai gratuit
               </button>
@@ -313,14 +313,14 @@ export default function LandingPage() {
         }} />
 
         {/* Ambient glow */}
-        <div className="absolute top-20 left-1/4 w-[500px] h-[500px] rounded-full bg-amber-500/[0.07] blur-[120px]" />
+        <div className="absolute top-20 left-1/4 w-[500px] h-[500px] rounded-full bg-sky-500/[0.07] blur-[120px]" />
         <div className="absolute bottom-0 right-1/4 w-[400px] h-[400px] rounded-full bg-blue-500/[0.05] blur-[100px]" />
 
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
             {/* Left content */}
             <div className={`transition-all duration-1000 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
-              <div className="inline-flex items-center gap-2 bg-amber-500/10 border border-amber-500/20 text-amber-400 px-4 py-2 rounded-full text-xs font-semibold mb-8 backdrop-blur-sm">
+              <div className="inline-flex items-center gap-2 bg-sky-500/10 border border-sky-500/20 text-sky-400 px-4 py-2 rounded-full text-xs font-semibold mb-8 backdrop-blur-sm">
                 <Sparkles className="h-3.5 w-3.5" />
                 Plateforme de reference pour osteopathes
               </div>
@@ -330,7 +330,7 @@ export default function LandingPage() {
                 <br />
                 raisonnement
                 <br />
-                <span className="bg-gradient-to-r from-amber-400 via-amber-300 to-yellow-400 bg-clip-text text-transparent">
+                <span className="bg-gradient-to-r from-sky-400 via-blue-400 to-cyan-400 bg-clip-text text-transparent">
                   clinique.
                 </span>
               </h1>
@@ -343,7 +343,7 @@ export default function LandingPage() {
               <div className="flex flex-col sm:flex-row gap-4 mb-10">
                 <button
                   onClick={() => router.push('/auth')}
-                  className="group bg-gradient-to-r from-amber-500 to-amber-400 text-slate-900 px-7 py-4 rounded-xl font-bold text-base hover:from-amber-400 hover:to-amber-300 transition-all shadow-lg shadow-amber-500/20 hover:shadow-amber-500/30 flex items-center justify-center gap-2"
+                  className="group bg-gradient-to-r from-sky-500 to-blue-500 text-white px-7 py-4 rounded-xl font-bold text-base hover:from-sky-400 hover:to-blue-400 transition-all shadow-lg shadow-sky-500/20 hover:shadow-sky-500/30 flex items-center justify-center gap-2"
                 >
                   Commencer gratuitement
                   <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
@@ -457,7 +457,7 @@ export default function LandingPage() {
                   </p>
 
                   <div className={`mt-4 flex items-center gap-1 text-xs font-semibold transition-colors ${
-                    isActive ? 'text-amber-400' : 'text-slate-400 group-hover:text-slate-600'
+                    isActive ? 'text-sky-400' : 'text-slate-400 group-hover:text-slate-600'
                   }`}>
                     Explorer
                     <ChevronRight className="h-3.5 w-3.5" />
@@ -481,7 +481,7 @@ export default function LandingPage() {
                 </div>
                 <div className="flex-1 flex justify-center">
                   <div className="px-4 py-1 rounded-md bg-white/5 text-[10px] text-white/40 font-mono">
-                    app.osteoupgrade.fr
+                    osteo-upgrade.fr
                   </div>
                 </div>
               </div>
@@ -515,7 +515,7 @@ export default function LandingPage() {
                   onClick={() => setActiveFeature(i)}
                   className={`w-2 h-2 rounded-full transition-all duration-300 ${
                     activeFeature === i
-                      ? 'bg-amber-500 w-8'
+                      ? 'bg-sky-500 w-8'
                       : 'bg-slate-300 hover:bg-slate-400'
                   }`}
                   aria-label={`Voir ${featuresList[i].title}`}
@@ -529,7 +529,7 @@ export default function LandingPage() {
       {/* ─── WORKFLOW / HOW IT WORKS ─── */}
       <section id="how-it-works" className="py-20 lg:py-28 px-4 sm:px-6 lg:px-8 bg-slate-900 relative overflow-hidden">
         {/* Subtle gradient orbs */}
-        <div className="absolute top-0 right-0 w-[600px] h-[600px] rounded-full bg-amber-500/[0.04] blur-[150px]" />
+        <div className="absolute top-0 right-0 w-[600px] h-[600px] rounded-full bg-sky-500/[0.04] blur-[150px]" />
 
         <div className="max-w-6xl mx-auto relative">
           <div className="text-center mb-16">
@@ -558,7 +558,7 @@ export default function LandingPage() {
                 title: 'Explore le contenu',
                 desc: 'Accede aux tests, pathologies, cours et videos. Structure ton raisonnement avec des donnees fiables et a jour.',
                 icon: Brain,
-                color: 'from-amber-500 to-orange-500'
+                color: 'from-sky-500 to-blue-500'
               },
               {
                 step: '03',
@@ -737,7 +737,7 @@ export default function LandingPage() {
                     <span>450/500 XP</span>
                   </div>
                   <div className="h-3 w-full rounded-full bg-white/10 overflow-hidden">
-                    <div className="h-full rounded-full bg-gradient-to-r from-amber-400 to-yellow-300 w-[90%] transition-all" />
+                    <div className="h-full rounded-full bg-gradient-to-r from-sky-400 to-blue-400 w-[90%] transition-all" />
                   </div>
                   <div className="text-[10px] text-purple-400 mt-1">Plus que 50 XP pour le niveau 8</div>
                 </div>
@@ -1070,7 +1070,7 @@ export default function LandingPage() {
             Les tests orthopediques avec les donnees de sensibilite et specificite, c&apos;est exactement ce qui manquait.&rdquo;
           </blockquote>
           <div className="flex items-center justify-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-amber-400 to-amber-500 flex items-center justify-center text-white font-bold text-sm">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-sky-400 to-blue-500 flex items-center justify-center text-white font-bold text-sm">
               O
             </div>
             <div className="text-left">
@@ -1258,7 +1258,7 @@ export default function LandingPage() {
       <section ref={cta.ref} className="relative py-24 lg:py-32 px-4 sm:px-6 lg:px-8 overflow-hidden">
         {/* Background */}
         <div className="absolute inset-0 bg-gradient-to-br from-[#070b19] via-[#0c1528] to-[#0f172a]" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[400px] rounded-full bg-amber-500/[0.06] blur-[150px]" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[400px] rounded-full bg-sky-500/[0.06] blur-[150px]" />
 
         <div className={`relative max-w-3xl mx-auto text-center transition-all duration-700 ${
           cta.isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
@@ -1266,7 +1266,7 @@ export default function LandingPage() {
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-6 tracking-tight leading-tight">
             Pret a passer au
             <br />
-            <span className="bg-gradient-to-r from-amber-400 to-yellow-400 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-sky-400 to-cyan-400 bg-clip-text text-transparent">
               niveau superieur ?
             </span>
           </h2>
@@ -1276,7 +1276,7 @@ export default function LandingPage() {
           </p>
           <button
             onClick={() => router.push('/auth')}
-            className="group bg-gradient-to-r from-amber-500 to-amber-400 text-slate-900 px-10 py-4 rounded-xl font-bold text-lg hover:from-amber-400 hover:to-amber-300 transition-all shadow-xl shadow-amber-500/20 hover:shadow-amber-500/30 inline-flex items-center gap-3"
+            className="group bg-gradient-to-r from-sky-500 to-blue-500 text-white px-10 py-4 rounded-xl font-bold text-lg hover:from-sky-400 hover:to-blue-400 transition-all shadow-xl shadow-sky-500/20 hover:shadow-sky-500/30 inline-flex items-center gap-3"
           >
             Commencer maintenant
             <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
