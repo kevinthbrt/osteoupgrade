@@ -336,8 +336,8 @@ export default function LandingPage() {
               </h1>
 
               <p className="text-lg text-slate-400 mb-10 max-w-lg leading-relaxed">
-                Tests orthopediques, diagnostics, e-learning et outils pratiques.
-                Tout ce dont tu as besoin pour exercer avec rigueur et confiance.
+                Tests orthopediques, diagnostics, e-learning, videos et seminaires presentiels.
+                <span className="text-slate-300 font-medium"> Tout le contenu + un seminaire de 2 jours pour moins cher qu&apos;un seul seminaire classique.</span>
               </p>
 
               <div className="flex flex-col sm:flex-row gap-4 mb-10">
@@ -1040,9 +1040,12 @@ export default function LandingPage() {
           }`}>
             <div className="inline-flex flex-col sm:flex-row items-center gap-4 bg-white/[0.04] border border-amber-500/20 rounded-2xl p-6 sm:p-8 backdrop-blur-sm">
               <div className="text-center sm:text-left">
-                <div className="text-lg font-bold text-white mb-1">Tout ca des 499&euro;/an</div>
-                <div className="text-sm text-slate-400">
-                  Plateforme complete + 1 seminaire + programme ambassadeur
+                <div className="text-lg font-bold text-white mb-1">Tout ca pour seulement 499&euro;/an</div>
+                <div className="text-sm text-slate-400 mb-2">
+                  Plateforme complete + seminaire presentiel + programme ambassadeur
+                </div>
+                <div className="text-xs text-amber-400/90 font-medium">
+                  Un seul seminaire classique coute entre 500&euro; et 1500&euro;. Ici tu as tout inclus.
                 </div>
               </div>
               <button
@@ -1091,10 +1094,10 @@ export default function LandingPage() {
               Tarifs
             </div>
             <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-slate-900 mb-4 tracking-tight">
-              Investis dans ta pratique.
+              Moins cher qu&apos;un seul seminaire.
             </h2>
             <p className="text-lg text-slate-500 max-w-xl mx-auto">
-              Des formules adaptees a chaque profil. Mensuel ou annuel, a toi de choisir.
+              Un seminaire classique coute entre 500&euro; et 1500&euro;. Pour 499&euro;/an, accede a <span className="text-slate-700 font-semibold">tout le contenu en ligne + un seminaire presentiel</span>.
             </p>
           </div>
 
@@ -1219,6 +1222,18 @@ export default function LandingPage() {
                     <span className="text-slate-400 text-sm">/an</span>
                   </div>
                   <p className="text-xs text-slate-400 mt-1">Soit 41,58&euro;/mois &middot; Acces annuel complet</p>
+
+                  {/* Value comparison */}
+                  <div className="mt-4 rounded-xl bg-amber-50 border border-amber-200 p-3">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Flame className="h-3.5 w-3.5 text-amber-600" />
+                      <span className="text-xs font-bold text-amber-700">Offre imbattable</span>
+                    </div>
+                    <p className="text-[11px] text-amber-600/80">
+                      1 seminaire classique = 500-1500&euro;. Ici : toute la plateforme + seminaire pour 499&euro;.
+                    </p>
+                  </div>
+
                   <p className="text-sm text-slate-500 mt-3">L&apos;experience complete : en ligne + presentiel.</p>
                 </div>
 
@@ -1248,8 +1263,13 @@ export default function LandingPage() {
             </div>
           </div>
 
-          <div className="mt-10 text-center text-sm text-slate-400">
-            Silver disponible en mensuel ou annuel. Gold en abonnement annuel. Sans engagement au-dela.
+          <div className="mt-10 text-center">
+            <p className="text-sm font-medium text-slate-600 mb-1">
+              Un seminaire classique coute 500 a 1500&euro;. Gold te donne tout pour 499&euro;/an.
+            </p>
+            <p className="text-xs text-slate-400">
+              Silver disponible en mensuel ou annuel. Gold en abonnement annuel. Sans engagement au-dela.
+            </p>
           </div>
         </div>
       </section>
@@ -1264,15 +1284,18 @@ export default function LandingPage() {
           cta.isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
         }`}>
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-6 tracking-tight leading-tight">
-            Pret a passer au
+            Tout le contenu + un seminaire
             <br />
-            <span className="bg-gradient-to-r from-sky-400 to-cyan-400 bg-clip-text text-transparent">
-              niveau superieur ?
+            <span className="bg-gradient-to-r from-amber-400 to-amber-300 bg-clip-text text-transparent">
+              pour le prix d&apos;un seul seminaire.
             </span>
           </h2>
-          <p className="text-lg text-slate-400 mb-10 max-w-lg mx-auto">
-            Teste gratuitement avec le module epaule complet.
-            Pas de carte bancaire. Pas d&apos;engagement.
+          <p className="text-lg text-slate-400 mb-4 max-w-lg mx-auto">
+            200+ tests, 150+ pathologies, e-learning complet, videos et un seminaire presentiel de 2 jours.
+            Le tout pour 499&euro;/an.
+          </p>
+          <p className="text-sm text-slate-500 mb-10 max-w-md mx-auto">
+            Commence gratuitement avec le module epaule. Pas de carte bancaire.
           </p>
           <button
             onClick={() => router.push('/auth')}
