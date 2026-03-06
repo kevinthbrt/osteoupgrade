@@ -117,6 +117,12 @@ export default function Navigation() {
           icon: Clipboard
         },
         {
+          href: '/body-regions',
+          label: 'Topographie & Diagnostics',
+          icon: Stethoscope,
+          isNew: true
+        },
+        {
           href: '/diagnostics',
           label: 'Diagnostics',
           icon: FolderOpen
@@ -173,6 +179,12 @@ export default function Navigation() {
       label: 'Tests & Diagnostics',
       icon: Clipboard,
       items: [
+        {
+          href: '/body-regions',
+          label: 'Topographie & Diagnostics',
+          icon: Stethoscope,
+          isNew: true
+        },
         {
           href: '/admin/diagnostics',
           label: 'Diagnostics',
