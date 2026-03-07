@@ -30,6 +30,8 @@ import {
 } from 'lucide-react'
 import FreeContentGate from '@/components/FreeContentGate'
 import FreeUserBanner from '@/components/FreeUserBanner'
+import BodyModel2D from '@/components/BodyModel2D'
+import type { AnatomicalRegion } from '@/lib/types-topographic-system'
 
 const FREE_ACCESSIBLE_REGION_VALUES = ['epaule']
 
@@ -137,6 +139,26 @@ const REGION_CATEGORIES = [
   }
 ]
 
+const REGION_VALUES = new Set<AnatomicalRegion>([
+  'cervical',
+  'atm',
+  'crane',
+  'thoracique',
+  'lombaire',
+  'sacro-iliaque',
+  'cotes',
+  'epaule',
+  'coude',
+  'poignet',
+  'hanche',
+  'genou',
+  'cheville',
+  'pied',
+  'neurologique',
+  'vasculaire',
+  'systemique'
+])
+
 export default function DiagnosticsPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(true)
@@ -148,6 +170,10 @@ export default function DiagnosticsPage() {
   const [selectedTest, setSelectedTest] = useState<OrthopedicTest | null>(null)
   const [selectedCluster, setSelectedCluster] = useState<OrthopedicTestCluster | null>(null)
   const [expandedSigns, setExpandedSigns] = useState<Set<string>>(new Set())
+
+  const selectedAnatomicalRegion = selectedRegion && REGION_VALUES.has(selectedRegion as AnatomicalRegion)
+    ? selectedRegion as AnatomicalRegion
+    : null
 
   useEffect(() => {
     loadData()
@@ -425,6 +451,14 @@ export default function DiagnosticsPage() {
           <div className="bg-white rounded-2xl shadow-sm p-8">
             <h2 className="text-2xl font-bold text-slate-900 mb-6">Sélectionnez une zone anatomique</h2>
             <p className="text-slate-600 mb-8">Cliquez sur une région pour afficher les diagnostics associés</p>
+
+            <div className="mb-8 rounded-2xl border border-slate-200 bg-gradient-to-b from-slate-50 to-white p-5">
+              <BodyModel2D
+                selectedRegion={selectedAnatomicalRegion}
+                onRegionSelect={(region) => setSelectedRegion(region)}
+                className="mx-auto"
+              />
+            </div>
 
             <div className="space-y-8">
               {REGION_CATEGORIES.map((category) => {

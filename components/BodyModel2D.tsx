@@ -6,6 +6,7 @@ import type { AnatomicalRegion } from '@/lib/types-topographic-system'
 interface BodyModel2DProps {
   selectedRegion: AnatomicalRegion | null
   onRegionSelect: (region: AnatomicalRegion) => void
+  className?: string
 }
 
 const REGION_LABELS: Record<AnatomicalRegion, string> = {
@@ -188,24 +189,52 @@ const GENERAL_REGIONS: { region: AnatomicalRegion; label: string }[] = [
   { region: 'systemique', label: 'Systemique' }
 ]
 
-export default function BodyModel2D({ selectedRegion, onRegionSelect }: BodyModel2DProps) {
+export default function BodyModel2D({ selectedRegion, onRegionSelect, className = '' }: BodyModel2DProps) {
   const [hoveredRegion, setHoveredRegion] = useState<AnatomicalRegion | null>(null)
 
   return (
-    <div className="flex flex-col items-center gap-4">
+    <div className={`flex flex-col items-center gap-4 ${className}`}>
       <svg
         viewBox="60 0 280 560"
         className="w-full max-w-[320px] h-auto select-none"
         role="img"
         aria-label="Modele anatomique 2D - cliquez sur une region"
       >
+        <defs>
+          <linearGradient id="bodyFill" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stopColor="#f8fafc" />
+            <stop offset="55%" stopColor="#e2e8f0" />
+            <stop offset="100%" stopColor="#cbd5e1" />
+          </linearGradient>
+          <linearGradient id="bodyHighlight" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="rgba(255,255,255,0.95)" />
+            <stop offset="100%" stopColor="rgba(255,255,255,0)" />
+          </linearGradient>
+          <radialGradient id="selectionGlow" cx="50%" cy="50%" r="55%">
+            <stop offset="0%" stopColor="rgba(244,63,94,0.55)" />
+            <stop offset="100%" stopColor="rgba(244,63,94,0)" />
+          </radialGradient>
+        </defs>
+
+        <ellipse cx="200" cy="545" rx="78" ry="12" fill="rgba(15, 23, 42, 0.1)" />
+
         {/* Body silhouette background */}
         <path
           d={BODY_SILHOUETTE}
-          fill="#f1f5f9"
-          stroke="#cbd5e1"
-          strokeWidth="1.5"
+          fill="url(#bodyFill)"
+          stroke="#94a3b8"
+          strokeWidth="1.4"
         />
+        <path
+          d="M200,25 Q220,45 214,105 Q208,160 200,215 Q192,160 186,105 Q180,45 200,25Z"
+          fill="url(#bodyHighlight)"
+          opacity="0.75"
+        />
+
+        <circle cx="200" cy="108" r="3.2" fill="#94a3b8" opacity="0.6" />
+        <circle cx="200" cy="225" r="3.2" fill="#94a3b8" opacity="0.6" />
+        <circle cx="165" cy="368" r="3.2" fill="#94a3b8" opacity="0.6" />
+        <circle cx="235" cy="368" r="3.2" fill="#94a3b8" opacity="0.6" />
 
         {/* Clickable regions */}
         {BODY_REGIONS_MAP.map(({ region, path }) => {
@@ -218,17 +247,17 @@ export default function BodyModel2D({ selectedRegion, onRegionSelect }: BodyMode
               d={path}
               fill={
                 isSelected
-                  ? 'rgba(225, 29, 72, 0.5)'
+                  ? 'rgba(244, 63, 94, 0.52)'
                   : isHovered
-                  ? 'rgba(225, 29, 72, 0.25)'
-                  : 'rgba(99, 102, 241, 0.15)'
+                  ? 'rgba(244, 63, 94, 0.28)'
+                  : 'rgba(99, 102, 241, 0.2)'
               }
               stroke={
                 isSelected
                   ? '#e11d48'
                   : isHovered
                   ? '#f43f5e'
-                  : '#818cf8'
+                  : '#6366f1'
               }
               strokeWidth={isSelected || isHovered ? 2 : 1}
               className="cursor-pointer transition-all duration-200"
@@ -240,6 +269,14 @@ export default function BodyModel2D({ selectedRegion, onRegionSelect }: BodyMode
             </path>
           )
         })}
+
+        <circle
+          cx="200"
+          cy="280"
+          r={hoveredRegion ? 112 : 0}
+          fill="url(#selectionGlow)"
+          className="transition-all duration-300 pointer-events-none"
+        />
       </svg>
 
       {/* Tooltip for hovered region */}
