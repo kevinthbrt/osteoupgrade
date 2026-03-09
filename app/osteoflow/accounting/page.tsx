@@ -273,72 +273,29 @@ export default function AccountingPage() {
     URL.revokeObjectURL(url)
   }
 
-  // Export to XLSX - Anonymized daily recap
+  // Export to spreadsheet-friendly CSV (Excel compatible)
   const handleExportXLSX = async () => {
     setIsExporting(true)
 
     try {
-      const XLSX = await import('xlsx')
-      const dailyRecaps = getDailyRecaps()
-
-      // Daily recap sheet
-      const recapData = dailyRecaps.map((recap) => ({
-        'Date': recap.date,
-        'Consultations': recap.count,
-        'Chiffre d\'affaires': recap.total,
-        'CB': recap.byMethod['card']?.amount || 0,
-        'Espèces': recap.byMethod['cash']?.amount || 0,
-        'Chèque': recap.byMethod['check']?.amount || 0,
-        'Virement': recap.byMethod['transfer']?.amount || 0,
-        'Autre': recap.byMethod['other']?.amount || 0,
-      }))
-
-      // Add total row
-      recapData.push({
-        'Date': 'TOTAL',
-        'Consultations': summary?.totalConsultations || 0,
-        'Chiffre d\'affaires': summary?.totalRevenue || 0,
-        'CB': summary?.revenueByMethod['card'] || 0,
-        'Espèces': summary?.revenueByMethod['cash'] || 0,
-        'Chèque': summary?.revenueByMethod['check'] || 0,
-        'Virement': summary?.revenueByMethod['transfer'] || 0,
-        'Autre': summary?.revenueByMethod['other'] || 0,
-      })
-
-      const ws = XLSX.utils.json_to_sheet(recapData)
-
-      // Format currency columns
-      const range = XLSX.utils.decode_range(ws['!ref'] || 'A1')
-      for (let R = range.s.r + 1; R <= range.e.r; ++R) {
-        for (let C = 2; C <= 7; ++C) {
-          const cell = ws[XLSX.utils.encode_cell({ r: R, c: C })]
-          if (cell) {
-            cell.z = '#,##0.00 €'
-          }
-        }
-      }
-
-      const wb = XLSX.utils.book_new()
-      XLSX.utils.book_append_sheet(wb, ws, 'Récapitulatif quotidien')
-
-      XLSX.writeFile(wb, `recap_comptable_${startDate}_${endDate}.xlsx`)
-
+      handleExportCSV()
       toast({
         variant: 'success',
         title: 'Export réussi',
-        description: 'Le récapitulatif comptable a été téléchargé',
+        description: 'Le récapitulatif comptable a été téléchargé au format CSV (compatible Excel)',
       })
     } catch (error) {
-      console.error('Error exporting XLSX:', error)
+      console.error('Error exporting spreadsheet file:', error)
       toast({
         variant: 'destructive',
         title: 'Erreur',
-        description: "Impossible d'exporter le fichier Excel",
+        description: "Impossible d'exporter le fichier",
       })
     } finally {
       setIsExporting(false)
     }
   }
+
 
   const handleOpenSendDialog = () => {
     setSendStartDate(startDate)
@@ -415,7 +372,7 @@ export default function AccountingPage() {
             ) : (
               <Download className="mr-2 h-4 w-4" />
             )}
-            Excel
+            Tableur (.csv)
           </Button>
         </div>
       </div>
