@@ -270,7 +270,7 @@ export function Header({ user, practitioner }: HeaderProps) {
                   <div className="flex flex-col">
                     <p className="text-sm font-medium leading-none">{displayName}</p>
                     <p className="text-xs leading-none text-muted-foreground mt-1">
-                      {user.email}
+                      {user?.email ?? practitioner?.email ?? 'utilisateur@osteoflow.app'}
                     </p>
                   </div>
                 </div>

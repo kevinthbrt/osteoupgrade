@@ -13,7 +13,7 @@ export function PatientSearch() {
   const searchParams = useSearchParams()
 
   const handleSearch = useDebouncedCallback((term: string) => {
-    const params = new URLSearchParams(searchParams)
+    const params = new URLSearchParams(searchParams.toString())
     if (term) {
       params.set('q', term)
     } else {
@@ -24,7 +24,7 @@ export function PatientSearch() {
   }, 300)
 
   const handleArchivedChange = (checked: boolean) => {
-    const params = new URLSearchParams(searchParams)
+    const params = new URLSearchParams(searchParams.toString())
     if (checked) {
       params.set('archived', 'true')
     } else {

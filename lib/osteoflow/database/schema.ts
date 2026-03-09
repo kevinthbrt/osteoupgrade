@@ -349,3 +349,11 @@ export const JSON_FIELDS: Record<string, string[]> = {
   audit_logs: ['old_data', 'new_data'],
   saved_reports: ['filters'],
 }
+
+/**
+ * Desktop migrations hook.
+ * The current schema is created idempotently, so legacy migrations are no-ops for now.
+ */
+export function runMigrations(_db: { exec: (sql: string) => unknown }): void {
+  // No-op.
+}

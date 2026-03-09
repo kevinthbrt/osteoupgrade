@@ -64,6 +64,25 @@ interface RevenueStats {
   by_payment_method: { method: string; total: number }[]
 }
 
+interface ConsultationInvoicePayment {
+  method: string
+  amount: number
+}
+
+interface ConsultationInvoice {
+  amount: number
+  status: string
+  paid_at: string
+  payments: ConsultationInvoicePayment[]
+}
+
+interface ConsultationRow {
+  date_time: string
+  reason: string | null
+  patient_id: string
+  invoices: ConsultationInvoice[] | null
+}
+
 const ageGroups = [
   { value: '0-17', label: '0-17 ans' },
   { value: '18-29', label: '18-29 ans' },
@@ -259,7 +278,7 @@ export default function StatisticsPage() {
         const monthlyRevenue: Record<string, { year: number; month: number; total: number; count: number }> = {}
         const paymentMethods: Record<string, number> = {}
 
-        consultations.forEach(c => {
+        consultations.forEach((c: ConsultationRow) => {
           const date = new Date(c.date_time)
           const year = date.getFullYear()
           const month = date.getMonth() + 1
@@ -286,7 +305,7 @@ export default function StatisticsPage() {
           reasonsMap[reason] = (reasonsMap[reason] || 0) + 1
 
           // Revenue
-          const invoices = c.invoices as Array<{ amount: number; status: string; paid_at: string; payments: Array<{ method: string; amount: number }> }> | null
+          const invoices = c.invoices
           if (invoices) {
             invoices.forEach(inv => {
               if (inv.status === 'paid' && inv.paid_at) {
