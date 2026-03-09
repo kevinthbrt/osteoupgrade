@@ -78,13 +78,13 @@ export async function POST(request: Request) {
         const envelope = message.envelope
         emails.push({
           uid: message.uid,
-          from: envelope.from?.[0]?.address || '',
-          to: envelope.to?.[0]?.address || '',
-          subject: envelope.subject || '',
-          date: envelope.date?.toISOString() || new Date().toISOString(),
+          from: envelope?.from?.[0]?.address || '',
+          to: envelope?.to?.[0]?.address || '',
+          subject: envelope?.subject || '',
+          date: envelope?.date?.toISOString() || new Date().toISOString(),
           text: '',
           html: '',
-          messageId: envelope.messageId || '',
+          messageId: envelope?.messageId || '',
         })
 
         // Limit to 50 emails per sync
