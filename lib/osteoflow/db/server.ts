@@ -1,0 +1,22 @@
+/**
+ * Server-side database client for Osteoflow desktop.
+ *
+ * Returns a local SQLite-backed query builder client.
+ * Used by Server Components and API routes.
+ */
+
+import { createLocalClient } from '@/lib/osteoflow/database/server-query-builder'
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function createClient(): Promise<any> {
+  return createLocalClient()
+}
+
+/**
+ * Service client with elevated privileges.
+ * In desktop mode, this is identical to createClient() since there's no RLS.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function createServiceClient(): Promise<any> {
+  return createLocalClient()
+}
