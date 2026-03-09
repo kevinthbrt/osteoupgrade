@@ -25,6 +25,7 @@ export interface SendEmailOptions {
     filename: string
     content: string
     contentType?: string
+    encoding?: 'base64' | 'utf8' | 'ascii'
   }>
   replyTo?: string
 }

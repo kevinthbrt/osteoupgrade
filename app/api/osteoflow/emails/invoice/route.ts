@@ -62,13 +62,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Erreur lors de la génération du PDF' }, { status: 500 })
     }
 
+    const pdfBase64 = Buffer.from(pdfBuffer).toString('base64')
+
     const serviceClient = await createServiceClient()
     const { data: emailSettings } = await serviceClient.from('email_settings').select('*').eq('practitioner_id', practitioner.id).eq('is_verified', true).single()
 
     if (emailSettings) {
       const result = await sendEmail(
         { smtp_host: emailSettings.smtp_host, smtp_port: emailSettings.smtp_port, smtp_secure: emailSettings.smtp_secure, smtp_user: emailSettings.smtp_user, smtp_password: emailSettings.smtp_password, from_name: emailSettings.from_name, from_email: emailSettings.from_email },
-        { to: patient.email, subject, html: invoiceHtml, attachments: [{ filename: `${invoice.invoice_number}.pdf`, content: Buffer.from(pdfBuffer), contentType: 'application/pdf' }] }
+        { to: patient.email, subject, html: invoiceHtml, attachments: [{ filename: `${invoice.invoice_number}.pdf`, content: pdfBase64, contentType: 'application/pdf', encoding: 'base64' }] }
       )
       if (!result.success) return NextResponse.json({ error: `Erreur SMTP: ${result.error || 'Échec'}` }, { status: 500 })
     } else if (process.env.RESEND_API_KEY) {
