@@ -26,7 +26,7 @@ interface LocalUser {
 }
 
 interface HeaderProps {
-  user: LocalUser
+  user: LocalUser | null
   practitioner: Practitioner | null
 }
 
@@ -70,11 +70,11 @@ export function Header({ user, practitioner }: HeaderProps) {
 
   const displayName = practitioner
     ? `${practitioner.first_name} ${practitioner.last_name}`
-    : user.email
+    : user?.email || 'utilisateur@osteoflow.app'
 
   const initials = practitioner
     ? getInitials(practitioner.first_name, practitioner.last_name)
-    : user.email?.charAt(0).toUpperCase() || 'U'
+    : user?.email?.charAt(0).toUpperCase() || 'U'
 
   // Get current page info
   const currentPage = Object.entries(pageTitles).find(([path]) =>

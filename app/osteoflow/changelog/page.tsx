@@ -3,7 +3,7 @@
 import { Sparkles, Bug, Zap } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/osteoflow/ui/card'
 import { changelog } from '@/lib/osteoflow/data/changelog'
-import packageJson from '../../../../package.json'
+import packageJson from '../../../package.json'
 
 const typeConfig = {
   feature: { icon: Sparkles, label: 'Nouveau', className: 'bg-emerald-100 text-emerald-700' },

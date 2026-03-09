@@ -179,8 +179,8 @@ export default function StatisticsPage() {
       // Process patient stats
       if (patients) {
         const byGender = [
-          { gender: 'M', count: patients.filter(p => p.gender === 'M').length },
-          { gender: 'F', count: patients.filter(p => p.gender === 'F').length },
+          { gender: 'M', count: patients.filter((p: { gender: string | null }) => p.gender === 'M').length },
+          { gender: 'F', count: patients.filter((p: { gender: string | null }) => p.gender === 'F').length },
         ]
 
         const getAgeGroup = (birthDate: string) => {
@@ -194,7 +194,7 @@ export default function StatisticsPage() {
         }
 
         const ageGroupCounts: Record<string, number> = {}
-        patients.forEach(p => {
+        patients.forEach((p: { birth_date: string | null }) => {
           if (p.birth_date) {
             const group = getAgeGroup(p.birth_date)
             ageGroupCounts[group] = (ageGroupCounts[group] || 0) + 1

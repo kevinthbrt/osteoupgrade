@@ -135,6 +135,7 @@ export async function POST(request: Request) {
     }
 
     const pdfBytes = await generateAccountingPdf(pdfData)
+    const pdfBase64 = Buffer.from(pdfBytes).toString('base64')
 
     const subject = `Récapitulatif comptable ${formatDate(startDate)} - ${formatDate(endDate)}`
     const emailContent = `Bonjour,\n\nVeuillez trouver en pièce jointe le récapitulatif comptable pour la période du ${formatDate(startDate)} au ${formatDate(endDate)}.\n\nCordialement,`
@@ -166,8 +167,9 @@ export async function POST(request: Request) {
           attachments: [
             {
               filename: `recap_comptable_${startDate}_${endDate}.pdf`,
-              content: Buffer.from(pdfBytes),
+              content: pdfBase64,
               contentType: 'application/pdf',
+              encoding: 'base64',
             },
           ],
         }
