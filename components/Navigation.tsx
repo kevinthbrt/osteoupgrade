@@ -22,6 +22,7 @@ import {
   Wrench,
   Calendar,
   Mail,
+  HeartPulse,
   GraduationCap,
   FolderOpen,
   FileText,
@@ -307,6 +308,23 @@ export default function Navigation() {
 
           {/* Navigation */}
           <nav className="flex-1 px-4 py-4 space-y-1 overflow-y-auto">
+            <div className="px-1 pb-3">
+              <Link
+                href="/osteoflow/dashboard"
+                className="flex items-center gap-3 rounded-xl border border-emerald-400/20 bg-gradient-to-r from-emerald-500/20 to-teal-500/20 px-4 py-3 text-white shadow-lg shadow-emerald-950/20 transition-all hover:from-emerald-500/30 hover:to-teal-500/30"
+                onClick={() => setIsOpen(false)}
+              >
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/10">
+                  <HeartPulse className="h-5 w-5 text-emerald-200" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold">Acceder a Osteoflow</p>
+                  <p className="text-[11px] text-emerald-100/80">Cabinet, patients, consultations</p>
+                </div>
+                <ChevronRight className="h-4 w-4 text-emerald-200" />
+              </Link>
+            </div>
+
             {/* Helper function to render a menu item */}
             {(() => {
               const renderMenuItem = (item: MenuItem) => {

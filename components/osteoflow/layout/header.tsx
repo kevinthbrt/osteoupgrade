@@ -1,0 +1,306 @@
+'use client'
+
+import { useEffect, useState, useRef, useCallback } from 'react'
+import { useRouter, usePathname } from 'next/navigation'
+import { createClient } from '@/lib/osteoflow/db'
+import { Button } from '@/components/osteoflow/ui/button'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/osteoflow/ui/dropdown-menu'
+import { Avatar, AvatarFallback } from '@/components/osteoflow/ui/avatar'
+import { LogOut, Settings, User, Search, HelpCircle } from 'lucide-react'
+import { getInitials } from '@/lib/osteoflow/utils'
+import type { Practitioner } from '@/lib/osteoflow/types'
+import { Input } from '@/components/osteoflow/ui/input'
+import { NotificationBell } from '@/components/osteoflow/layout/notification-bell'
+
+interface LocalUser {
+  id: string
+  email: string
+  user_metadata?: { first_name?: string; last_name?: string }
+}
+
+interface HeaderProps {
+  user: LocalUser | null
+  practitioner: Practitioner | null
+}
+
+interface PatientResult {
+  id: string
+  first_name: string
+  last_name: string
+  phone: string
+  email: string | null
+}
+
+const pageTitles: Record<string, { title: string; description: string }> = {
+  '/dashboard': { title: 'Tableau de bord', description: 'Vue d\'ensemble de votre activité' },
+  '/patients': { title: 'Patients', description: 'Gérez vos patients et leurs informations' },
+  '/consultations': { title: 'Consultations', description: 'Historique de toutes vos consultations' },
+  '/invoices': { title: 'Factures', description: 'Gérez vos factures et paiements' },
+  '/messages': { title: 'Messagerie', description: 'Communiquez avec vos patients' },
+  '/accounting': { title: 'Comptabilité', description: 'Analysez votre activité' },
+  '/settings': { title: 'Paramètres', description: 'Configurez votre cabinet' },
+  '/changelog': { title: 'Changelog', description: 'Historique des mises à jour' },
+}
+
+export function Header({ user, practitioner }: HeaderProps) {
+  const router = useRouter()
+  const pathname = usePathname()
+  const db = createClient()
+
+  // Patient search state
+  const [searchQuery, setSearchQuery] = useState('')
+  const [searchResults, setSearchResults] = useState<PatientResult[]>([])
+  const [showResults, setShowResults] = useState(false)
+  const [isSearching, setIsSearching] = useState(false)
+  const searchRef = useRef<HTMLDivElement>(null)
+  const searchTimerRef = useRef<NodeJS.Timeout | null>(null)
+
+  const handleSignOut = async () => {
+    await db.auth.signOut()
+    router.push('/login')
+    router.refresh()
+  }
+
+  const displayName = practitioner
+    ? `${practitioner.first_name} ${practitioner.last_name}`
+    : user?.email || 'utilisateur@osteoflow.app'
+
+  const initials = practitioner
+    ? getInitials(practitioner.first_name, practitioner.last_name)
+    : user?.email?.charAt(0).toUpperCase() || 'U'
+
+  // Get current page info
+  const currentPage = Object.entries(pageTitles).find(([path]) =>
+    pathname.startsWith(path)
+  )?.[1] || { title: 'Dashboard', description: 'Bienvenue sur Osteoflow' }
+
+  // Patient search
+  const searchPatients = useCallback(async (query: string) => {
+    if (query.trim().length < 2) {
+      setSearchResults([])
+      setShowResults(false)
+      return
+    }
+
+    setIsSearching(true)
+    try {
+      const { data, error } = await db
+        .from('patients')
+        .select('id, first_name, last_name, phone, email')
+        .is('archived_at', null)
+        .or(`first_name.ilike.%${query}%,last_name.ilike.%${query}%,phone.ilike.%${query}%,email.ilike.%${query}%`)
+        .limit(8)
+        .order('last_name')
+
+      if (error) {
+        console.error('Search error:', error)
+        return
+      }
+
+      setSearchResults(data || [])
+      setShowResults(true)
+    } catch (error) {
+      console.error('Search error:', error)
+    } finally {
+      setIsSearching(false)
+    }
+  }, [db])
+
+  // Debounced search
+  useEffect(() => {
+    if (searchTimerRef.current) {
+      clearTimeout(searchTimerRef.current)
+    }
+
+    if (searchQuery.trim().length < 2) {
+      setSearchResults([])
+      setShowResults(false)
+      return
+    }
+
+    searchTimerRef.current = setTimeout(() => {
+      searchPatients(searchQuery)
+    }, 300)
+
+    return () => {
+      if (searchTimerRef.current) {
+        clearTimeout(searchTimerRef.current)
+      }
+    }
+  }, [searchQuery, searchPatients])
+
+  // Close results on click outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
+        setShowResults(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  const handleSelectPatient = (patientId: string) => {
+    setShowResults(false)
+    setSearchQuery('')
+    router.push(`/patients/${patientId}`)
+  }
+
+  return (
+    <header className="sticky top-0 z-30 border-b border-border/40 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl">
+      <div className="flex h-16 items-center gap-4 px-6 lg:px-8">
+        {/* Spacer for mobile menu button */}
+        <div className="w-10 lg:hidden" />
+
+        {/* Page title */}
+        <div className="hidden lg:block min-w-0">
+          <h1 className="text-lg font-semibold text-foreground leading-tight">{currentPage.title}</h1>
+          <p className="text-xs text-muted-foreground">{currentPage.description}</p>
+        </div>
+
+        {/* Spacer */}
+        <div className="flex-1" />
+
+        {/* Search bar - patient search */}
+        <div className="hidden md:block relative" ref={searchRef}>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Rechercher un patient..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onFocus={() => {
+                if (searchResults.length > 0) setShowResults(true)
+              }}
+              className="pl-10 w-72 bg-muted/40 border-0 focus-visible:ring-1 focus-visible:ring-primary/30 h-9 rounded-xl"
+            />
+            {isSearching && (
+              <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                <div className="w-4 h-4 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+              </div>
+            )}
+          </div>
+
+          {/* Search results dropdown */}
+          {showResults && (
+            <div className="absolute top-full mt-2 w-full bg-white dark:bg-slate-900 rounded-2xl border border-border/50 shadow-xl overflow-hidden z-50">
+              {searchResults.length === 0 ? (
+                <div className="px-4 py-3 text-sm text-muted-foreground text-center">
+                  Aucun patient trouvé
+                </div>
+              ) : (
+                <div className="py-1 max-h-80 overflow-y-auto">
+                  {searchResults.map((patient) => (
+                    <button
+                      key={patient.id}
+                      onClick={() => handleSelectPatient(patient.id)}
+                      className="w-full text-left px-4 py-2.5 hover:bg-accent/50 transition-colors flex items-center gap-3"
+                    >
+                      <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                        <span className="text-xs font-semibold text-primary">
+                          {patient.first_name[0]}{patient.last_name[0]}
+                        </span>
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium truncate">
+                          {patient.last_name} {patient.first_name}
+                        </p>
+                        <p className="text-xs text-muted-foreground truncate">
+                          {patient.phone}
+                          {patient.email && ` · ${patient.email}`}
+                        </p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Actions */}
+        <div className="flex items-center gap-1">
+          {/* Help button */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="hidden sm:flex rounded-full text-muted-foreground hover:text-foreground h-9 w-9"
+          >
+            <HelpCircle className="h-4 w-4" />
+          </Button>
+
+          {/* Notifications */}
+          <NotificationBell />
+
+          {/* Separator */}
+          <div className="hidden sm:block w-px h-6 bg-border/50 mx-1" />
+
+          {/* User menu */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                className="relative h-9 gap-2 rounded-full pl-1 pr-3 hover:bg-accent/50"
+              >
+                <Avatar className="h-7 w-7">
+                  <AvatarFallback className="text-white text-xs font-medium gradient-primary">
+                    {initials}
+                  </AvatarFallback>
+                </Avatar>
+                <span className="hidden sm:block text-sm font-medium text-foreground">
+                  {practitioner?.first_name || 'Utilisateur'}
+                </span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="w-64 p-2 rounded-2xl" align="end" forceMount>
+              <DropdownMenuLabel className="font-normal p-3 bg-accent/50 rounded-xl mb-2">
+                <div className="flex items-center gap-3">
+                  <Avatar className="h-10 w-10">
+                    <AvatarFallback className="text-white gradient-primary">
+                      {initials}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex flex-col">
+                    <p className="text-sm font-medium leading-none">{displayName}</p>
+                    <p className="text-xs leading-none text-muted-foreground mt-1">
+                      {user?.email ?? practitioner?.email ?? 'utilisateur@osteoflow.app'}
+                    </p>
+                  </div>
+                </div>
+              </DropdownMenuLabel>
+              <DropdownMenuItem
+                onClick={() => router.push('/settings')}
+                className="rounded-xl py-2.5"
+              >
+                <User className="mr-3 h-4 w-4" />
+                <span>Mon profil</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => router.push('/settings')}
+                className="rounded-xl py-2.5"
+              >
+                <Settings className="mr-3 h-4 w-4" />
+                <span>Paramètres</span>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator className="my-2" />
+              <DropdownMenuItem
+                onClick={handleSignOut}
+                className="rounded-xl py-2.5 text-destructive focus:text-destructive focus:bg-destructive/10"
+              >
+                <LogOut className="mr-3 h-4 w-4" />
+                <span>Changer de praticien</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </div>
+    </header>
+  )
+}
