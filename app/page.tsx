@@ -258,13 +258,6 @@ export default function LandingPage() {
                 Se connecter
               </button>
               <button
-                onClick={() => router.push('/osteoflow/dashboard')}
-                className="hidden md:inline-flex items-center gap-2 bg-gradient-to-r from-emerald-500 to-teal-500 text-white px-4 py-2.5 rounded-xl font-semibold text-sm hover:from-emerald-400 hover:to-teal-400 transition-all shadow-sm hover:shadow-md"
-              >
-                <HeartPulse className="h-4 w-4" />
-                Osteoflow
-              </button>
-              <button
                 onClick={() => router.push('/auth')}
                 className="bg-gradient-to-r from-sky-500 to-blue-500 text-white px-5 py-2.5 rounded-xl font-semibold text-sm hover:from-sky-400 hover:to-blue-400 transition-all shadow-sm hover:shadow-md"
               >
@@ -285,19 +278,6 @@ export default function LandingPage() {
         {/* Mobile menu */}
         {mobileMenuOpen && (
           <div className="lg:hidden bg-white border-t border-slate-100 px-4 py-4 space-y-1">
-            <button
-              onClick={() => {
-                setMobileMenuOpen(false)
-                router.push('/osteoflow/dashboard')
-              }}
-              className="flex items-center justify-between w-full px-4 py-3 text-sm font-semibold text-white bg-gradient-to-r from-emerald-500 to-teal-500 rounded-xl shadow-sm"
-            >
-              <span className="flex items-center gap-2">
-                <HeartPulse className="h-4 w-4" />
-                Acceder a Osteoflow
-              </span>
-              <ChevronRight className="h-4 w-4" />
-            </button>
             {[
               { label: 'Fonctionnalites', id: 'features' },
               { label: 'Modules', id: 'modules' },
