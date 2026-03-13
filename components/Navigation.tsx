@@ -117,20 +117,10 @@ export default function Navigation() {
           icon: Clipboard
         },
         {
-          href: '/body-regions',
-          label: 'Topographie & Diagnostics',
-          icon: Stethoscope,
-          isNew: true
-        },
-        {
-          href: '/diagnostics',
-          label: 'Diagnostics',
-          icon: FolderOpen
-        },
-        {
           href: '/topographie',
           label: 'Topographie',
-          icon: BookOpen
+          icon: Stethoscope,
+          isNew: true
         }
       ]
     },
@@ -180,20 +170,15 @@ export default function Navigation() {
       icon: Clipboard,
       items: [
         {
-          href: '/body-regions',
-          label: 'Topographie & Diagnostics',
+          href: '/topographie',
+          label: 'Topographie',
           icon: Stethoscope,
           isNew: true
         },
         {
           href: '/admin/diagnostics',
-          label: 'Diagnostics',
+          label: 'Diagnostics (Admin)',
           icon: FolderOpen
-        },
-        {
-          href: '/topographie',
-          label: 'Topographie',
-          icon: BookOpen
         }
       ]
     },
