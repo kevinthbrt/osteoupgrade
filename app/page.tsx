@@ -421,16 +421,16 @@ const scrollTo = useCallback((id: string) => {
       </section>
 
       {/* ─── FEATURES SECTION ─── */}
-      <section id="features" ref={features.ref} className="py-20 lg:py-28 px-4 sm:px-6 lg:px-8 bg-white relative overflow-hidden">
+      <section id="features" ref={features.ref} className="py-20 lg:py-28 px-4 sm:px-6 lg:px-8 bg-slate-50 relative overflow-hidden">
 
-        {/* Très subtil tint ambiant qui suit la feature active */}
+        {/* Tint ambiant coloré qui suit la feature active */}
         {featuresList.map((feature, i) => (
           <div
             key={i}
             className={`absolute inset-0 transition-opacity duration-700 pointer-events-none ${
               activeFeature === i ? 'opacity-100' : 'opacity-0'
             }`}
-            style={{ background: `radial-gradient(ellipse 60% 50% at 72% 40%, rgba(${feature.glow}, 0.05) 0%, transparent 70%)` }}
+            style={{ background: `radial-gradient(ellipse 55% 50% at 72% 40%, rgba(${feature.glow}, 0.07) 0%, transparent 70%)` }}
           />
         ))}
 
@@ -455,7 +455,7 @@ const scrollTo = useCallback((id: string) => {
             features.isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
           }`}>
 
-            {/* Left: Question cards */}
+            {/* Left: Question cards — blanc sur fond slate-50 */}
             <div className="lg:col-span-2 space-y-2.5">
               {featuresList.map((feature, i) => {
                 const Icon = feature.icon
@@ -466,19 +466,20 @@ const scrollTo = useCallback((id: string) => {
                     onClick={() => setActiveFeature(i)}
                     className={`group w-full text-left p-4 sm:p-5 rounded-2xl border transition-all duration-300 ${
                       isActive
-                        ? 'bg-white border-slate-300 shadow-lg'
-                        : 'bg-slate-50 border-slate-200 hover:bg-white hover:border-slate-300 hover:shadow-sm'
+                        ? 'bg-white border-slate-200 shadow-md'
+                        : 'bg-white/60 border-slate-200/70 hover:bg-white hover:border-slate-300 hover:shadow-sm'
                     }`}
                     style={isActive ? {
-                      boxShadow: `0 4px 24px rgba(${feature.glow}, 0.14), 0 1px 4px rgba(0,0,0,0.06)`
+                      boxShadow: `0 4px 20px rgba(${feature.glow}, 0.16), 0 1px 4px rgba(0,0,0,0.05)`,
+                      borderColor: `rgba(${feature.glow}, 0.30)`
                     } : {}}
                   >
                     <div className="flex items-center gap-3.5">
                       <div
                         className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 bg-gradient-to-br ${feature.gradient} transition-all duration-300 ${
-                          isActive ? 'scale-110' : 'opacity-35 group-hover:opacity-55'
+                          isActive ? 'scale-110' : 'opacity-40 group-hover:opacity-60'
                         }`}
-                        style={isActive ? { boxShadow: `0 4px 14px rgba(${feature.glow}, 0.38)` } : {}}
+                        style={isActive ? { boxShadow: `0 4px 12px rgba(${feature.glow}, 0.40)` } : {}}
                       >
                         <Icon className="h-5 w-5 text-white" />
                       </div>
@@ -504,14 +505,14 @@ const scrollTo = useCallback((id: string) => {
             <div className="lg:col-span-3 lg:sticky lg:top-24">
               <div className="relative">
 
-                {/* Soft colored glow halo derrière le panneau */}
+                {/* Glow halo derrière le panneau */}
                 {featuresList.map((feature, i) => (
                   <div
                     key={i}
                     className={`absolute -inset-6 rounded-[2.5rem] blur-2xl transition-opacity duration-700 pointer-events-none ${
                       activeFeature === i ? 'opacity-100' : 'opacity-0'
                     }`}
-                    style={{ background: `radial-gradient(ellipse at center, rgba(${feature.glow}, 0.10) 0%, transparent 70%)` }}
+                    style={{ background: `radial-gradient(ellipse at center, rgba(${feature.glow}, 0.13) 0%, transparent 70%)` }}
                   />
                 ))}
 
@@ -529,21 +530,21 @@ const scrollTo = useCallback((id: string) => {
                         }`}
                       >
                         <div
-                          className="rounded-2xl border overflow-hidden bg-white"
+                          className="rounded-2xl overflow-hidden bg-white"
                           style={{
-                            borderColor: `rgba(${feature.glow}, 0.18)`,
-                            boxShadow: `0 8px 40px rgba(${feature.glow}, 0.10), 0 1px 3px rgba(0,0,0,0.06)`
+                            border: `1.5px solid rgba(${feature.glow}, 0.22)`,
+                            boxShadow: `0 12px 48px rgba(${feature.glow}, 0.13), 0 2px 8px rgba(0,0,0,0.07)`
                           }}
                         >
-                          {/* Colored header band */}
+                          {/* Header coloré */}
                           <div
                             className="p-6 sm:p-7 pb-5"
-                            style={{ background: `linear-gradient(135deg, rgba(${feature.glow}, 0.07) 0%, rgba(${feature.glow}, 0.02) 60%, transparent 100%)` }}
+                            style={{ background: `linear-gradient(135deg, rgba(${feature.glow}, 0.10) 0%, rgba(${feature.glow}, 0.03) 60%, white 100%)` }}
                           >
                             <div className="flex items-center gap-3 mb-3">
                               <div
                                 className={`w-11 h-11 rounded-xl bg-gradient-to-br ${feature.gradient} flex items-center justify-center flex-shrink-0`}
-                                style={{ boxShadow: `0 4px 16px rgba(${feature.glow}, 0.32)` }}
+                                style={{ boxShadow: `0 4px 16px rgba(${feature.glow}, 0.35)` }}
                               >
                                 <Icon className="h-5 w-5 text-white" />
                               </div>
@@ -564,9 +565,9 @@ const scrollTo = useCallback((id: string) => {
                                   key={tag}
                                   className="px-2.5 py-1 rounded-lg text-xs font-semibold border"
                                   style={{
-                                    background: `rgba(${feature.glow}, 0.07)`,
-                                    borderColor: `rgba(${feature.glow}, 0.16)`,
-                                    color: `rgba(${feature.glow}, 0.85)`
+                                    background: `rgba(${feature.glow}, 0.08)`,
+                                    borderColor: `rgba(${feature.glow}, 0.20)`,
+                                    color: `rgba(${feature.glow}, 0.90)`
                                   }}
                                 >
                                   {tag}
@@ -575,16 +576,16 @@ const scrollTo = useCallback((id: string) => {
                             </div>
                           </div>
 
-                          {/* Screenshot — browser frame clair */}
-                          <div className="mx-5 mb-5 sm:mx-6 sm:mb-6 rounded-xl overflow-hidden border border-slate-200">
-                            <div className="flex items-center gap-1.5 px-3 py-2 bg-slate-50 border-b border-slate-200">
+                          {/* Screenshot */}
+                          <div className="mx-5 mb-5 sm:mx-6 sm:mb-6 rounded-xl overflow-hidden border border-slate-200 shadow-sm">
+                            <div className="flex items-center gap-1.5 px-3 py-2 bg-slate-100 border-b border-slate-200">
                               <div className="flex gap-1">
-                                <div className="w-2.5 h-2.5 rounded-full bg-red-400/80" />
-                                <div className="w-2.5 h-2.5 rounded-full bg-yellow-400/80" />
-                                <div className="w-2.5 h-2.5 rounded-full bg-green-400/80" />
+                                <div className="w-2.5 h-2.5 rounded-full bg-red-400" />
+                                <div className="w-2.5 h-2.5 rounded-full bg-yellow-400" />
+                                <div className="w-2.5 h-2.5 rounded-full bg-green-400" />
                               </div>
                               <div className="flex-1 flex justify-center">
-                                <div className="px-3 py-0.5 rounded bg-slate-200/70 text-[10px] text-slate-500 font-mono">osteo-upgrade.fr</div>
+                                <div className="px-3 py-0.5 rounded bg-white border border-slate-200 text-[10px] text-slate-400 font-mono">osteo-upgrade.fr</div>
                               </div>
                             </div>
                             <div className="relative aspect-[16/9]">
