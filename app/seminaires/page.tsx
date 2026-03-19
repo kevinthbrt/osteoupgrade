@@ -405,25 +405,6 @@ export default function SeminarsPage() {
     setUserRegistrations((prev) => [...prev, registrationRecord])
     setAllRegistrations((prev) => [...prev, registrationRecord])
 
-    // Déclencher l'automatisation "Inscription à un séminaire"
-    try {
-      await fetch('/api/automations/enroll', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId: profile?.id,
-          triggerEvent: 'Inscription à un séminaire',
-          metadata: {
-            seminar_id: id,
-            seminar_title: targetSeminar?.title,
-            seminar_date: seminarDateLabel
-          }
-        })
-      })
-    } catch (err) {
-      console.error('Erreur lors du déclenchement de l\'automatisation:', err)
-    }
-
     alert('Inscription confirmée !')
   }
 
@@ -452,25 +433,6 @@ export default function SeminarsPage() {
           !(registration.seminar_id === id && registration.user_id === profile?.id)
       )
     )
-
-    // Déclencher l'automatisation "Désinscription d'un séminaire"
-    try {
-      await fetch('/api/automations/enroll', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId: profile?.id,
-          triggerEvent: 'Désinscription d\'un séminaire',
-          metadata: {
-            seminar_id: id,
-            seminar_title: targetSeminar?.title,
-            seminar_date: seminarDateLabel
-          }
-        })
-      })
-    } catch (err) {
-      console.error('Erreur lors du déclenchement de l\'automatisation:', err)
-    }
 
     alert('Votre inscription a été annulée')
   }
