@@ -83,11 +83,13 @@ async function generateEmailContent(
   const subject = applyReplacements(stepSubject, replacements)
 
   // Si un template_slug est fourni, charger le template depuis la base de données
+  // template_slug peut être un UUID (anciens templates) ou un name/slug (templates séminaires)
   if (templateSlug) {
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(templateSlug)
     const { data: template } = await supabase
       .from('mail_templates')
       .select('html, text')
-      .eq('id', templateSlug)
+      .eq(isUuid ? 'id' : 'name', templateSlug)
       .single()
 
     if (template) {
