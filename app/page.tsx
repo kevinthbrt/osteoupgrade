@@ -423,9 +423,9 @@ const scrollTo = useCallback((id: string) => {
       {/* ─── FEATURES SECTION ─── */}
       <section id="features" ref={features.ref} className="py-20 lg:py-28 px-4 sm:px-6 lg:px-8 bg-slate-50 relative overflow-hidden">
 
-        {/* Warm gold halos */}
-        <div className="absolute top-0 right-0 w-[750px] h-[550px] rounded-full bg-amber-200/50 blur-[160px] pointer-events-none" />
-        <div className="absolute bottom-0 left-0 w-[550px] h-[420px] rounded-full bg-sky-100/50 blur-[130px] pointer-events-none" />
+        {/* Sky/blue halos — couleur principale de la section */}
+        <div className="absolute top-0 right-0 w-[750px] h-[550px] rounded-full bg-sky-200/55 blur-[160px] pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-[550px] h-[420px] rounded-full bg-blue-100/50 blur-[130px] pointer-events-none" />
 
         {/* Tint ambiant coloré qui suit la feature active */}
         {featuresList.map((feature, i) => (
@@ -615,11 +615,9 @@ const scrollTo = useCallback((id: string) => {
 
       {/* ─── GAMIFICATION / REWARDS ─── */}
       <section ref={gamification.ref} className="py-20 lg:py-28 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-slate-50 to-white relative overflow-hidden">
-        {/* Warm gold halos */}
-        <div className="absolute top-0 right-0 w-[750px] h-[550px] rounded-full bg-amber-200/50 blur-[160px] pointer-events-none" />
-        <div className="absolute bottom-0 left-0 w-[550px] h-[420px] rounded-full bg-sky-100/50 blur-[130px] pointer-events-none" />
-        {/* Purple accent centre */}
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] rounded-full bg-purple-500/[0.04] blur-[150px]" />
+        {/* Purple/indigo halos — couleur principale de la section */}
+        <div className="absolute top-0 right-0 w-[750px] h-[550px] rounded-full bg-purple-200/50 blur-[160px] pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-[550px] h-[420px] rounded-full bg-indigo-100/50 blur-[130px] pointer-events-none" />
 
         <div className="max-w-7xl mx-auto relative">
           <div className={`text-center mb-16 transition-all duration-700 ${
@@ -1041,8 +1039,11 @@ const scrollTo = useCallback((id: string) => {
       </section>
 
       {/* ─── OSTEOFLOW BONUS ─── */}
-      <section ref={osteoflow.ref} className="py-20 lg:py-28 px-4 sm:px-6 lg:px-8 bg-slate-50 border-y border-slate-200/50">
-        <div className="max-w-7xl mx-auto">
+      <section ref={osteoflow.ref} className="py-20 lg:py-28 px-4 sm:px-6 lg:px-8 bg-slate-50 border-y border-slate-200/50 relative overflow-hidden">
+        {/* Sky/blue halos — couleur principale de la section */}
+        <div className="absolute top-0 right-0 w-[750px] h-[550px] rounded-full bg-sky-200/55 blur-[160px] pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-[550px] h-[420px] rounded-full bg-blue-100/50 blur-[130px] pointer-events-none" />
+        <div className="max-w-7xl mx-auto relative">
           <div className={`transition-all duration-700 ${
             osteoflow.isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
           }`}>
