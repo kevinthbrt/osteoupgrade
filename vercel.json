@@ -1,6 +1,14 @@
 {
   "crons": [
     {
+      "path": "/api/automations/process",
+      "schedule": "* * * * *"
+    },
+    {
+      "path": "/api/automations/seminar-reminders",
+      "schedule": "0 8 * * *"
+    },
+    {
       "path": "/api/subscriptions/check-renewals",
       "schedule": "0 9 * * *"
     }

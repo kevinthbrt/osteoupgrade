@@ -405,6 +405,10 @@ export default function SeminarsPage() {
     setUserRegistrations((prev) => [...prev, registrationRecord])
     setAllRegistrations((prev) => [...prev, registrationRecord])
 
+    // Déclencher le processeur d'automations pour envoyer l'email de confirmation immédiatement
+    // (le trigger DB a déjà créé l'enrollment, on démarre le traitement sans attendre le cron)
+    fetch('/api/automations/process', { method: 'POST' }).catch(() => {})
+
     alert('Inscription confirmée !')
   }
 
@@ -433,6 +437,9 @@ export default function SeminarsPage() {
           !(registration.seminar_id === id && registration.user_id === profile?.id)
       )
     )
+
+    // Déclencher le processeur d'automations pour envoyer l'email d'annulation immédiatement
+    fetch('/api/automations/process', { method: 'POST' }).catch(() => {})
 
     alert('Votre inscription a été annulée')
   }
