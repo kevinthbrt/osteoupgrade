@@ -188,49 +188,61 @@ export default function LandingPage() {
       icon: TestTube2,
       title: 'Tests orthopediques',
       painPoint: 'Un doute sur un test a utiliser ?',
-      desc: 'Base de 200+ tests classes par region avec sensibilite, specificite et videos demonstratives.',
+      desc: 'Notre bibliotheque de 200+ tests orthopediques classes par region anatomique, avec sensibilite, specificite, videos demonstratives et indication clinique. Trouve le bon test en quelques secondes.',
       gradient: 'from-blue-500 to-cyan-500',
       screenshot: SCREENSHOT_PATHS.tests,
+      glow: '14, 165, 233',
+      tags: ['200+ tests', 'Sensi / Speci', 'Videos demo', 'Par region'],
     },
     {
       icon: Stethoscope,
       title: 'Diagnostics & Pathologies',
       painPoint: 'Un doute sur une pathologie ?',
-      desc: '150+ pathologies detaillees avec signes cliniques, red flags et tests associes.',
+      desc: 'Notre encyclopedie de 150+ pathologies detaillees : signes cliniques, red flags, tests associes et protocoles de prise en charge. Le diagnostic de reference au cabinet.',
       gradient: 'from-rose-500 to-pink-500',
       screenshot: SCREENSHOT_PATHS.diagnostics,
+      glow: '244, 63, 94',
+      tags: ['150+ pathologies', 'Red flags', 'Tests associes', 'Protocoles'],
     },
     {
       icon: Map,
       title: 'Topographie clinique',
       painPoint: 'Un doute sur la douleur d\'un patient ?',
-      desc: 'Guides topographiques pour structurer ton raisonnement region par region.',
+      desc: 'Notre bibliotheque d\'aide au diagnostic topographique region par region. Identifiez rapidement les structures impliquees et orientez votre bilan clinique.',
       gradient: 'from-sky-500 to-indigo-500',
       screenshot: SCREENSHOT_PATHS.topographie,
+      glow: '99, 102, 241',
+      tags: ['Par region', 'Structures', 'Aide diagnostic', 'Raisonnement'],
     },
     {
       icon: GraduationCap,
-      title: 'E-Learning complet',
+      title: 'E-Learning & Revue d\'etudes',
       painPoint: 'Perdu dans la masse d\'etudes scientifiques ?',
-      desc: 'Cours structures, revue de litterature et quiz pour valider tes connaissances.',
+      desc: 'Cours structures, revues de litterature mensuelles et quiz interactifs. Chaque mois, les meilleures etudes EBP passees en revue et synthetisees pour la pratique.',
       gradient: 'from-violet-500 to-purple-500',
       screenshot: SCREENSHOT_PATHS.elearning,
+      glow: '139, 92, 246',
+      tags: ['500+ contenus', 'EBP mensuel', 'Quiz', 'Revue litterature'],
     },
     {
       icon: Play,
       title: 'Techniques en video',
       painPoint: 'Vous manquez de techniques ?',
-      desc: '150+ videos de techniques (HVLA, mobilisation, tissulaire) organisees par region.',
+      desc: 'Notre catalogue de 150+ techniques de therapie manuelle (HVLA, mobilisation, tissulaire) organisees par region anatomique, avec demonstrations video detaillees.',
       gradient: 'from-orange-500 to-red-500',
       screenshot: SCREENSHOT_PATHS.videos,
+      glow: '249, 115, 22',
+      tags: ['150+ techniques', 'HVLA', 'Mobilisation', 'Tissulaire'],
     },
     {
       icon: Dumbbell,
-      title: 'Exercices & Outils',
+      title: 'Outils professionnels',
       painPoint: 'Vous voulez optimiser votre cabinet ?',
-      desc: 'Bibliotheque d\'exercices, exports PDF, fiches patients et modeles de documents.',
+      desc: 'Modeles de courriers, posters pour salle d\'attente, fiches exercices PDF patients. Tout pour optimiser votre communication et votre cabinet au quotidien.',
       gradient: 'from-emerald-500 to-teal-500',
       screenshot: SCREENSHOT_PATHS.exercices,
+      glow: '16, 185, 129',
+      tags: ['Modeles courriers', 'Posters', 'Fiches PDF', 'Communication'],
     },
   ]
 
@@ -418,124 +430,176 @@ export default function LandingPage() {
       </section>
 
       {/* ─── FEATURES SECTION ─── */}
-      <section id="features" ref={features.ref} className="py-20 lg:py-28 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto">
+      <section id="features" ref={features.ref} className="py-20 lg:py-28 px-4 sm:px-6 lg:px-8 bg-[#070b19] relative overflow-hidden">
+
+        {/* Dynamic background glow that follows active feature */}
+        {featuresList.map((feature, i) => (
+          <div
+            key={i}
+            className={`absolute inset-0 transition-opacity duration-700 pointer-events-none ${
+              activeFeature === i ? 'opacity-100' : 'opacity-0'
+            }`}
+            style={{ background: `radial-gradient(ellipse 55% 60% at 75% 50%, rgba(${feature.glow}, 0.08) 0%, transparent 70%)` }}
+          />
+        ))}
+
+        <div className="max-w-7xl mx-auto relative">
           <div className={`text-center mb-16 transition-all duration-700 ${
             features.isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
           }`}>
-            <div className="inline-flex items-center gap-2 bg-slate-100 text-slate-600 px-4 py-2 rounded-full text-xs font-semibold mb-6 uppercase tracking-wider">
-              Fonctionnalites
+            <div className="inline-flex items-center gap-2 bg-white/5 border border-white/10 text-white/60 px-4 py-2 rounded-full text-xs font-semibold mb-6 uppercase tracking-wider">
+              La plateforme
             </div>
-            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-slate-900 mb-4 tracking-tight">
-              Tout pour ta pratique.
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-4 tracking-tight">
+              Votre doute.
               <br />
-              <span className="text-slate-400">Rien de superflu.</span>
+              <span className="text-white/30">Notre reponse.</span>
             </h2>
-            <p className="text-lg text-slate-500 max-w-2xl mx-auto">
-              Chaque outil a ete pense pour repondre a un besoin reel au cabinet.
-              Du diagnostic a la prise en charge, structure ton approche clinique.
+            <p className="text-lg text-slate-400 max-w-2xl mx-auto">
+              Cliquez sur votre situation pour decouvrir comment OsteoUpgrade vous accompagne.
             </p>
           </div>
 
-          {/* Bento grid */}
-          <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 transition-all duration-700 delay-200 ${
+          <div className={`grid grid-cols-1 lg:grid-cols-5 gap-6 lg:gap-10 items-start transition-all duration-700 delay-200 ${
             features.isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
           }`}>
-            {featuresList.map((feature, i) => {
-              const Icon = feature.icon
-              const isActive = activeFeature === i
-              return (
-                <button
-                  key={i}
-                  onClick={() => setActiveFeature(i)}
-                  className={`group relative text-left rounded-2xl p-6 lg:p-8 transition-all duration-500 border ${
-                    isActive
-                      ? 'bg-slate-900 text-white border-slate-800 shadow-2xl shadow-slate-900/20 scale-[1.02]'
-                      : 'bg-white text-slate-900 border-slate-200 hover:border-slate-300 hover:shadow-lg'
-                  } ${i === 0 ? 'md:col-span-2 lg:col-span-1' : ''}`}
-                >
-                  <div className={`inline-flex items-center justify-center w-12 h-12 rounded-xl mb-5 bg-gradient-to-br ${feature.gradient} ${
-                    isActive ? 'shadow-lg' : 'opacity-90'
-                  }`}>
-                    <Icon className="h-6 w-6 text-white" />
-                  </div>
 
-                  <p className={`text-xs font-medium italic mb-1.5 ${isActive ? 'text-sky-300/80' : 'text-slate-400'}`}>
-                    {feature.painPoint}
-                  </p>
-                  <h3 className={`text-lg font-bold mb-2 ${isActive ? 'text-white' : 'text-slate-900'}`}>
-                    {feature.title}
-                  </h3>
+            {/* Left: Question cards */}
+            <div className="lg:col-span-2 space-y-2.5">
+              {featuresList.map((feature, i) => {
+                const Icon = feature.icon
+                const isActive = activeFeature === i
+                return (
+                  <button
+                    key={i}
+                    onClick={() => setActiveFeature(i)}
+                    className={`group w-full text-left p-4 sm:p-5 rounded-2xl border transition-all duration-300 ${
+                      isActive
+                        ? 'bg-white/[0.07] border-white/20'
+                        : 'bg-white/[0.02] border-white/[0.06] hover:bg-white/[0.05] hover:border-white/[0.12]'
+                    }`}
+                    style={isActive ? {
+                      boxShadow: `0 0 25px rgba(${feature.glow}, 0.18), 0 4px 20px rgba(0,0,0,0.4)`
+                    } : {}}
+                  >
+                    <div className="flex items-center gap-3.5">
+                      <div
+                        className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 bg-gradient-to-br ${feature.gradient} transition-all duration-300 ${
+                          isActive ? 'scale-110' : 'opacity-50 group-hover:opacity-75'
+                        }`}
+                        style={isActive ? { boxShadow: `0 0 18px rgba(${feature.glow}, 0.45)` } : {}}
+                      >
+                        <Icon className="h-5 w-5 text-white" />
+                      </div>
+                      <p className={`text-sm font-semibold leading-snug flex-1 transition-colors duration-300 ${
+                        isActive ? 'text-white' : 'text-white/50 group-hover:text-white/70'
+                      }`}>
+                        {feature.painPoint}
+                      </p>
+                      <ChevronRight className={`h-4 w-4 flex-shrink-0 transition-all duration-300 ${
+                        isActive ? 'text-white/60 translate-x-0.5' : 'text-white/15 group-hover:text-white/35'
+                      }`} />
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
 
-                  <p className={`text-sm leading-relaxed ${isActive ? 'text-slate-300' : 'text-slate-500'}`}>
-                    {feature.desc}
-                  </p>
+            {/* Right: Solution reveal panel */}
+            <div className="lg:col-span-3 lg:sticky lg:top-24">
+              <div className="relative">
 
-                  <div className={`mt-4 flex items-center gap-1 text-xs font-semibold transition-colors ${
-                    isActive ? 'text-sky-400' : 'text-slate-400 group-hover:text-slate-600'
-                  }`}>
-                    Explorer
-                    <ChevronRight className="h-3.5 w-3.5" />
-                  </div>
-                </button>
-              )
-            })}
-          </div>
-
-          {/* Feature screenshot preview */}
-          <div className={`mt-12 transition-all duration-700 delay-300 ${
-            features.isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
-          }`}>
-            <div className="relative rounded-2xl overflow-hidden shadow-2xl shadow-slate-900/10 border border-slate-200 bg-[#0c1222]">
-              {/* Browser chrome */}
-              <div className="flex items-center gap-2 px-4 py-3 bg-[#0a0e1a] border-b border-white/5">
-                <div className="flex gap-1.5">
-                  <div className="w-3 h-3 rounded-full bg-red-500/80" />
-                  <div className="w-3 h-3 rounded-full bg-yellow-500/80" />
-                  <div className="w-3 h-3 rounded-full bg-green-500/80" />
-                </div>
-                <div className="flex-1 flex justify-center">
-                  <div className="px-4 py-1 rounded-md bg-white/5 text-[10px] text-white/40 font-mono">
-                    osteo-upgrade.fr
-                  </div>
-                </div>
-              </div>
-
-              {/* Screenshot container with crossfade */}
-              <div className="relative aspect-[3/2] sm:aspect-[16/9] lg:aspect-[2.2/1]">
+                {/* Glow blob behind the active panel */}
                 {featuresList.map((feature, i) => (
                   <div
                     key={i}
-                    className={`absolute inset-0 transition-opacity duration-500 ${
+                    className={`absolute -inset-8 rounded-[3rem] blur-3xl transition-opacity duration-700 pointer-events-none ${
                       activeFeature === i ? 'opacity-100' : 'opacity-0'
                     }`}
-                  >
-                    <Image
-                      src={feature.screenshot}
-                      alt={`Capture d'ecran - ${feature.title}`}
-                      fill
-                      className="object-cover object-top"
-                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 90vw, 1200px"
-                    />
-                  </div>
+                    style={{ background: `radial-gradient(ellipse at center, rgba(${feature.glow}, 0.2) 0%, transparent 65%)` }}
+                  />
                 ))}
-              </div>
-            </div>
 
-            {/* Active feature label */}
-            <div className="flex items-center justify-center gap-3 mt-6">
-              {featuresList.map((_, i) => (
-                <button
-                  key={i}
-                  onClick={() => setActiveFeature(i)}
-                  className={`w-2 h-2 rounded-full transition-all duration-300 ${
-                    activeFeature === i
-                      ? 'bg-sky-500 w-8'
-                      : 'bg-slate-300 hover:bg-slate-400'
-                  }`}
-                  aria-label={`Voir ${featuresList[i].title}`}
-                />
-              ))}
+                {/* Panels stacked via CSS grid overlay */}
+                <div className="grid">
+                  {featuresList.map((feature, i) => {
+                    const Icon = feature.icon
+                    return (
+                      <div
+                        key={i}
+                        className={`[grid-area:1/1] transition-all duration-500 ${
+                          activeFeature === i
+                            ? 'opacity-100 translate-y-0'
+                            : 'opacity-0 translate-y-3 pointer-events-none'
+                        }`}
+                      >
+                        <div
+                          className="rounded-2xl border overflow-hidden"
+                          style={{
+                            background: `linear-gradient(135deg, rgba(${feature.glow}, 0.10) 0%, rgba(15,23,42,0.90) 50%)`,
+                            borderColor: `rgba(${feature.glow}, 0.22)`
+                          }}
+                        >
+                          {/* Header */}
+                          <div className="p-6 sm:p-7 pb-4">
+                            <div className="flex items-center gap-3 mb-3">
+                              <div
+                                className={`w-11 h-11 rounded-xl bg-gradient-to-br ${feature.gradient} flex items-center justify-center flex-shrink-0`}
+                                style={{ boxShadow: `0 0 22px rgba(${feature.glow}, 0.38)` }}
+                              >
+                                <Icon className="h-5 w-5 text-white" />
+                              </div>
+                              <div>
+                                <p className="text-[10px] text-white/35 font-semibold uppercase tracking-widest mb-0.5">La solution</p>
+                                <h3 className="text-base font-bold text-white">{feature.title}</h3>
+                              </div>
+                            </div>
+                            <p className="text-sm text-white/55 leading-relaxed mb-4">{feature.desc}</p>
+                            <div className="flex flex-wrap gap-1.5">
+                              {feature.tags.map((tag) => (
+                                <span
+                                  key={tag}
+                                  className="px-2.5 py-1 rounded-lg text-xs font-medium border"
+                                  style={{
+                                    background: `rgba(${feature.glow}, 0.10)`,
+                                    borderColor: `rgba(${feature.glow}, 0.22)`,
+                                    color: 'rgba(255,255,255,0.65)'
+                                  }}
+                                >
+                                  {tag}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Screenshot */}
+                          <div className="mx-5 mb-5 sm:mx-6 sm:mb-6 rounded-xl overflow-hidden border border-white/[0.08]">
+                            <div className="flex items-center gap-1.5 px-3 py-2 bg-black/40 border-b border-white/5">
+                              <div className="flex gap-1">
+                                <div className="w-2.5 h-2.5 rounded-full bg-red-500/70" />
+                                <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/70" />
+                                <div className="w-2.5 h-2.5 rounded-full bg-green-500/70" />
+                              </div>
+                              <div className="flex-1 flex justify-center">
+                                <div className="px-3 py-0.5 rounded bg-white/5 text-[10px] text-white/30 font-mono">osteo-upgrade.fr</div>
+                              </div>
+                            </div>
+                            <div className="relative aspect-[16/9]">
+                              <Image
+                                src={feature.screenshot}
+                                alt={`Apercu - ${feature.title}`}
+                                fill
+                                className="object-cover object-top"
+                                sizes="(max-width: 1024px) 100vw, 700px"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
             </div>
           </div>
         </div>
