@@ -423,6 +423,10 @@ const scrollTo = useCallback((id: string) => {
       {/* ─── FEATURES SECTION ─── */}
       <section id="features" ref={features.ref} className="py-20 lg:py-28 px-4 sm:px-6 lg:px-8 bg-slate-50 relative overflow-hidden">
 
+        {/* Warm gold halos */}
+        <div className="absolute top-0 right-0 w-[750px] h-[550px] rounded-full bg-amber-200/50 blur-[160px] pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-[550px] h-[420px] rounded-full bg-sky-100/50 blur-[130px] pointer-events-none" />
+
         {/* Tint ambiant coloré qui suit la feature active */}
         {featuresList.map((feature, i) => (
           <div
@@ -611,6 +615,10 @@ const scrollTo = useCallback((id: string) => {
 
       {/* ─── GAMIFICATION / REWARDS ─── */}
       <section ref={gamification.ref} className="py-20 lg:py-28 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-slate-50 to-white relative overflow-hidden">
+        {/* Warm gold halos */}
+        <div className="absolute top-0 right-0 w-[750px] h-[550px] rounded-full bg-amber-200/50 blur-[160px] pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-[550px] h-[420px] rounded-full bg-sky-100/50 blur-[130px] pointer-events-none" />
+        {/* Purple accent centre */}
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] rounded-full bg-purple-500/[0.04] blur-[150px]" />
 
         <div className="max-w-7xl mx-auto relative">
@@ -776,9 +784,9 @@ const scrollTo = useCallback((id: string) => {
 
       {/* ─── GOLD EXPERIENCE ─── */}
       <section ref={goldExperience.ref} className="py-20 lg:py-28 px-4 sm:px-6 lg:px-8 bg-white relative overflow-hidden">
-        {/* Subtle warm glow */}
-        <div className="absolute top-0 right-0 w-[700px] h-[500px] rounded-full bg-amber-100/60 blur-[150px] pointer-events-none" />
-        <div className="absolute bottom-0 left-0 w-[500px] h-[400px] rounded-full bg-sky-100/40 blur-[120px] pointer-events-none" />
+        {/* Warm gold glow */}
+        <div className="absolute top-0 right-0 w-[750px] h-[550px] rounded-full bg-amber-200/60 blur-[160px] pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-[550px] h-[420px] rounded-full bg-sky-100/50 blur-[130px] pointer-events-none" />
 
         <div className="relative max-w-7xl mx-auto">
 
