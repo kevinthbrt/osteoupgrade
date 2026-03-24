@@ -26,7 +26,8 @@ import {
   FolderOpen,
   FileText,
   Gift,
-  Tag
+  Tag,
+  BookMarked
 } from 'lucide-react'
 
 type MenuItem = {
@@ -112,6 +113,11 @@ export default function Navigation() {
           icon: FileText
         },
         {
+          href: '/elearning/encyclopedie',
+          label: 'Encyclopédie',
+          icon: BookMarked
+        },
+        {
           href: '/tests',
           label: 'Tests orthopédiques',
           icon: Clipboard
@@ -171,6 +177,11 @@ export default function Navigation() {
           label: 'Revue de littérature',
           icon: FileText,
           badge: 'Nouveau'
+        },
+        {
+          href: '/elearning/encyclopedie',
+          label: 'Encyclopédie',
+          icon: BookMarked
         }
       ]
     },
