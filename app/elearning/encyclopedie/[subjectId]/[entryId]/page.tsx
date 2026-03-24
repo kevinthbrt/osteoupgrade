@@ -14,6 +14,8 @@ import {
   Image as ImageIcon,
   Loader2,
   Play,
+  TestTube2,
+  Layers,
 } from 'lucide-react'
 
 type EntryImage = { url: string; caption?: string }
@@ -28,6 +30,18 @@ type Entry = {
   images: EntryImage[] | null
   order_index: number
   is_free_access: boolean
+}
+
+type OrthopedicTest = {
+  id: string
+  name: string
+  category: string
+}
+
+type OrthopedicTestCluster = {
+  id: string
+  name: string
+  region: string
 }
 
 type Subject = {
@@ -52,6 +66,8 @@ export default function EntryDetailPage() {
   const [entry, setEntry] = useState<Entry | null>(null)
   const [breadcrumb, setBreadcrumb] = useState<BreadcrumbItem[]>([])
   const [siblings, setSiblings] = useState<Entry[]>([])
+  const [associatedTests, setAssociatedTests] = useState<OrthopedicTest[]>([])
+  const [associatedClusters, setAssociatedClusters] = useState<OrthopedicTestCluster[]>([])
   const [loading, setLoading] = useState(true)
   const [userRole, setUserRole] = useState<string>('free')
 
@@ -87,6 +103,49 @@ export default function EntryDetailPage() {
 
       if (!entryData) { router.push(`/elearning/encyclopedie/${subjectId}`); return }
       setEntry(entryData)
+
+      // Load associated tests & clusters
+      const [{ data: testLinks }, { data: clusterLinks }] = await Promise.all([
+        supabase
+          .from('encyclopedia_entry_tests')
+          .select('test_id, order_index')
+          .eq('entry_id', entryId)
+          .order('order_index'),
+        supabase
+          .from('encyclopedia_entry_clusters')
+          .select('cluster_id, order_index')
+          .eq('entry_id', entryId)
+          .order('order_index'),
+      ])
+
+      if (testLinks && testLinks.length > 0) {
+        const testIds = testLinks.map(l => l.test_id)
+        const { data: tests } = await supabase
+          .from('orthopedic_tests')
+          .select('id, name, category')
+          .in('id', testIds)
+        // Preserve order
+        const orderedTests = testIds
+          .map(id => tests?.find(t => t.id === id))
+          .filter(Boolean) as OrthopedicTest[]
+        setAssociatedTests(orderedTests)
+      } else {
+        setAssociatedTests([])
+      }
+
+      if (clusterLinks && clusterLinks.length > 0) {
+        const clusterIds = clusterLinks.map(l => l.cluster_id)
+        const { data: clusters } = await supabase
+          .from('orthopedic_test_clusters')
+          .select('id, name, region')
+          .in('id', clusterIds)
+        const orderedClusters = clusterIds
+          .map(id => clusters?.find(c => c.id === id))
+          .filter(Boolean) as OrthopedicTestCluster[]
+        setAssociatedClusters(orderedClusters)
+      } else {
+        setAssociatedClusters([])
+      }
 
       // Build breadcrumb by walking up parent_id chain
       const crumbs: BreadcrumbItem[] = []
@@ -278,6 +337,62 @@ export default function EntryDetailPage() {
                     </figure>
                   ))}
                 </div>
+              </div>
+            )}
+
+            {/* Tests & Clusters utiles */}
+            {(associatedTests.length > 0 || associatedClusters.length > 0) && (
+              <div className="px-8 py-6 border-t border-slate-200">
+                <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2 mb-4">
+                  <TestTube2 className="h-5 w-5 text-purple-600" />
+                  Tests / Clusters utiles
+                </h3>
+
+                {associatedTests.length > 0 && (
+                  <div className="mb-4">
+                    <p className="text-sm font-semibold text-slate-600 mb-2">Tests individuels</p>
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      {associatedTests.map((test) => (
+                        <button
+                          key={test.id}
+                          onClick={() => router.push(`/tests/${test.id}`)}
+                          className="flex items-center gap-3 p-3 bg-purple-50 border border-purple-200 rounded-xl hover:bg-purple-100 transition text-left"
+                        >
+                          <TestTube2 className="h-4 w-4 text-purple-600 flex-shrink-0" />
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium text-slate-900 truncate">{test.name}</p>
+                            {test.category && (
+                              <p className="text-xs text-slate-500">{test.category}</p>
+                            )}
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {associatedClusters.length > 0 && (
+                  <div>
+                    <p className="text-sm font-semibold text-slate-600 mb-2">Clusters de tests</p>
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      {associatedClusters.map((cluster) => (
+                        <button
+                          key={cluster.id}
+                          onClick={() => router.push(`/tests/clusters/${cluster.id}`)}
+                          className="flex items-center gap-3 p-3 bg-indigo-50 border border-indigo-200 rounded-xl hover:bg-indigo-100 transition text-left"
+                        >
+                          <Layers className="h-4 w-4 text-indigo-600 flex-shrink-0" />
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium text-slate-900 truncate">{cluster.name}</p>
+                            {cluster.region && (
+                              <p className="text-xs text-slate-500">{cluster.region}</p>
+                            )}
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
