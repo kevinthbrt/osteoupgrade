@@ -210,6 +210,32 @@ export type Database = {
           email: string | null
         }
       }>
+      encyclopedia_subjects: TableDefinition<{
+        id: string
+        title: string
+        description: string | null
+        icon: string | null
+        color: string | null
+        order_index: number
+        is_free_access: boolean
+        created_by: string | null
+        created_at: string
+        updated_at: string
+      }>
+      encyclopedia_entries: TableDefinition<{
+        id: string
+        subject_id: string
+        parent_id: string | null
+        title: string
+        content_html: string | null
+        vimeo_url: string | null
+        images: { url: string; caption?: string }[] | null
+        order_index: number
+        is_free_access: boolean
+        created_by: string | null
+        created_at: string
+        updated_at: string
+      }>
     }
   }
 }

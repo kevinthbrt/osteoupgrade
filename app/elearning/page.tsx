@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation'
 import AuthLayout from '@/components/AuthLayout'
 import {
+  BookMarked,
   BookOpen,
   TestTube as TestTubeIcon,
   Stethoscope,
@@ -36,6 +37,16 @@ export default function ElearningHubPage() {
       href: '/elearning/revue-litterature',
       gradient: 'from-emerald-500 to-teal-600',
       count: 'Articles',
+      category: 'Apprentissage'
+    },
+    {
+      id: 'encyclopedie',
+      title: 'Encyclopédie',
+      description: 'Fiches de référence structurées par matière : sémiologie, anatomie, biomécanique et plus',
+      icon: BookMarked,
+      href: '/elearning/encyclopedie',
+      gradient: 'from-purple-500 to-indigo-600',
+      count: 'Fiches',
       category: 'Apprentissage'
     },
     {
@@ -114,7 +125,7 @@ export default function ElearningHubPage() {
                   <div className="text-xs text-slate-300">Contenus</div>
                 </div>
                 <div className="bg-white/10 backdrop-blur-sm rounded-xl p-3 border border-white/20">
-                  <div className="text-2xl font-bold text-white">6</div>
+                  <div className="text-2xl font-bold text-white">7</div>
                   <div className="text-xs text-slate-300">Modules</div>
                 </div>
                 <div className="bg-white/10 backdrop-blur-sm rounded-xl p-3 border border-white/20">
