@@ -16,7 +16,12 @@ import {
   Play,
   TestTube2,
   Layers,
+  X,
+  Info,
+  TrendingUp,
+  FileText,
 } from 'lucide-react'
+import TestDetailModal from '@/components/TestDetailModal'
 
 type EntryImage = { url: string; caption?: string }
 
@@ -42,6 +47,36 @@ type OrthopedicTestCluster = {
   id: string
   name: string
   region: string
+}
+
+type FullTest = {
+  id: string
+  name: string
+  description: string
+  category: string
+  indications: string | null
+  video_url: string | null
+  sensitivity: number | null
+  specificity: number | null
+  rv_positive: number | null
+  rv_negative: number | null
+  interest: string | null
+  sources: string | null
+}
+
+type FullCluster = {
+  id: string
+  name: string
+  region: string
+  description: string | null
+  indications: string | null
+  interest: string | null
+  sources: string | null
+  sensitivity: number | null
+  specificity: number | null
+  rv_positive: number | null
+  rv_negative: number | null
+  tests: { id: string; name: string; category: string }[]
 }
 
 type Subject = {
@@ -70,6 +105,61 @@ export default function EntryDetailPage() {
   const [associatedClusters, setAssociatedClusters] = useState<OrthopedicTestCluster[]>([])
   const [loading, setLoading] = useState(true)
   const [userRole, setUserRole] = useState<string>('free')
+
+  // Modal states
+  const [selectedTest, setSelectedTest] = useState<FullTest | null>(null)
+  const [showTestModal, setShowTestModal] = useState(false)
+  const [selectedCluster, setSelectedCluster] = useState<FullCluster | null>(null)
+  const [showClusterModal, setShowClusterModal] = useState(false)
+
+  const openTestModal = async (testId: string) => {
+    const { data } = await supabase
+      .from('orthopedic_tests')
+      .select('*')
+      .eq('id', testId)
+      .single()
+    if (data) {
+      setSelectedTest(data)
+      setShowTestModal(true)
+    }
+  }
+
+  const openClusterModal = async (clusterId: string) => {
+    const { data: cluster } = await supabase
+      .from('orthopedic_test_clusters')
+      .select('*')
+      .eq('id', clusterId)
+      .single()
+    if (cluster) {
+      // Load tests in this cluster
+      const { data: items } = await supabase
+        .from('orthopedic_test_cluster_items')
+        .select('test_id, order_index')
+        .eq('cluster_id', clusterId)
+        .order('order_index')
+
+      let clusterTests: { id: string; name: string; category: string }[] = []
+      if (items && items.length > 0) {
+        const testIds = items.map(i => i.test_id)
+        const { data: tests } = await supabase
+          .from('orthopedic_tests')
+          .select('id, name, category')
+          .in('id', testIds)
+        clusterTests = testIds
+          .map(id => tests?.find(t => t.id === id))
+          .filter(Boolean) as { id: string; name: string; category: string }[]
+      }
+
+      setSelectedCluster({ ...cluster, tests: clusterTests })
+      setShowClusterModal(true)
+    }
+  }
+
+  const getYoutubeId = (url: string | null) => {
+    if (!url) return null
+    const match = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\n?]*)/)
+    return match ? match[1] : null
+  }
 
   const loadData = useCallback(async () => {
     try {
@@ -355,7 +445,7 @@ export default function EntryDetailPage() {
                       {associatedTests.map((test) => (
                         <button
                           key={test.id}
-                          onClick={() => router.push(`/tests/${test.id}`)}
+                          onClick={() => openTestModal(test.id)}
                           className="flex items-center gap-3 p-3 bg-purple-50 border border-purple-200 rounded-xl hover:bg-purple-100 transition text-left"
                         >
                           <TestTube2 className="h-4 w-4 text-purple-600 flex-shrink-0" />
@@ -378,7 +468,7 @@ export default function EntryDetailPage() {
                       {associatedClusters.map((cluster) => (
                         <button
                           key={cluster.id}
-                          onClick={() => router.push(`/tests/clusters/${cluster.id}`)}
+                          onClick={() => openClusterModal(cluster.id)}
                           className="flex items-center gap-3 p-3 bg-indigo-50 border border-indigo-200 rounded-xl hover:bg-indigo-100 transition text-left"
                         >
                           <Layers className="h-4 w-4 text-indigo-600 flex-shrink-0" />
@@ -455,6 +545,144 @@ export default function EntryDetailPage() {
           </article>
         </FreeContentGate>
       </div>
+
+      {/* Test Detail Modal */}
+      <TestDetailModal
+        test={selectedTest}
+        isOpen={showTestModal}
+        onClose={() => { setShowTestModal(false); setSelectedTest(null) }}
+      />
+
+      {/* Cluster Detail Modal */}
+      {showClusterModal && selectedCluster && (
+        <div className="fixed inset-0 bg-black bg-opacity-70 z-[60] flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+            {/* Header */}
+            <div className="p-6 border-b border-gray-200 bg-gradient-to-r from-indigo-600 to-purple-600 text-white">
+              <div className="flex items-center justify-between">
+                <div className="flex-1 pr-4">
+                  <div className="flex items-center gap-3 mb-2">
+                    <Layers className="h-6 w-6" />
+                    <h2 className="text-2xl font-bold">{selectedCluster.name}</h2>
+                  </div>
+                  {selectedCluster.region && (
+                    <span className="inline-block px-3 py-1 bg-white/20 rounded-full text-sm">
+                      Région : {selectedCluster.region}
+                    </span>
+                  )}
+                  {selectedCluster.indications && (
+                    <p className="mt-2 text-white/80 text-sm">{selectedCluster.indications}</p>
+                  )}
+                </div>
+                <button
+                  onClick={() => { setShowClusterModal(false); setSelectedCluster(null) }}
+                  className="p-2 hover:bg-white/20 rounded-lg transition-colors flex-shrink-0"
+                >
+                  <X className="h-6 w-6" />
+                </button>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-6">
+              {/* Description */}
+              {selectedCluster.description && (
+                <div className="bg-gray-50 rounded-lg p-5">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Info className="h-5 w-5 text-gray-600" />
+                    <h3 className="font-semibold text-gray-900">Description</h3>
+                  </div>
+                  <p className="text-gray-700 whitespace-pre-line leading-relaxed">
+                    {selectedCluster.description}
+                  </p>
+                </div>
+              )}
+
+              {/* Tests in cluster */}
+              {selectedCluster.tests && selectedCluster.tests.length > 0 && (
+                <div>
+                  <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                    <TestTube2 className="h-5 w-5 text-purple-600" />
+                    Tests du cluster ({selectedCluster.tests.length})
+                  </h3>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    {selectedCluster.tests.map((t) => (
+                      <button
+                        key={t.id}
+                        onClick={() => {
+                          setShowClusterModal(false)
+                          setSelectedCluster(null)
+                          openTestModal(t.id)
+                        }}
+                        className="flex items-center gap-3 p-3 bg-purple-50 border border-purple-200 rounded-xl hover:bg-purple-100 transition text-left"
+                      >
+                        <TestTube2 className="h-4 w-4 text-purple-600 flex-shrink-0" />
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-gray-900 truncate">{t.name}</p>
+                          {t.category && <p className="text-xs text-gray-500">{t.category}</p>}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Metrics */}
+              {(selectedCluster.sensitivity !== null || selectedCluster.specificity !== null) && (
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  {selectedCluster.sensitivity !== null && selectedCluster.sensitivity !== undefined && (
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                      <div className="text-xs text-green-600 font-medium mb-1">Sensibilité</div>
+                      <div className="text-2xl font-bold text-green-700">{selectedCluster.sensitivity}%</div>
+                    </div>
+                  )}
+                  {selectedCluster.specificity !== null && selectedCluster.specificity !== undefined && (
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                      <div className="text-xs text-blue-600 font-medium mb-1">Spécificité</div>
+                      <div className="text-2xl font-bold text-blue-700">{selectedCluster.specificity}%</div>
+                    </div>
+                  )}
+                  {selectedCluster.rv_positive !== null && selectedCluster.rv_positive !== undefined && (
+                    <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                      <div className="text-xs text-purple-600 font-medium mb-1">RV+</div>
+                      <div className="text-2xl font-bold text-purple-700">{selectedCluster.rv_positive}</div>
+                    </div>
+                  )}
+                  {selectedCluster.rv_negative !== null && selectedCluster.rv_negative !== undefined && (
+                    <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+                      <div className="text-xs text-orange-600 font-medium mb-1">RV-</div>
+                      <div className="text-2xl font-bold text-orange-700">{selectedCluster.rv_negative}</div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Interest */}
+              {selectedCluster.interest && (
+                <div className="bg-purple-50 rounded-lg p-5">
+                  <div className="flex items-center gap-2 mb-3">
+                    <TrendingUp className="h-5 w-5 text-purple-600" />
+                    <h3 className="font-semibold text-purple-900">Intérêt clinique</h3>
+                  </div>
+                  <p className="text-purple-800 whitespace-pre-line leading-relaxed">
+                    {selectedCluster.interest}
+                  </p>
+                </div>
+              )}
+
+              {/* Sources */}
+              {selectedCluster.sources && (
+                <div className="border-t pt-4">
+                  <h3 className="text-sm font-semibold text-gray-600 mb-2">Sources</h3>
+                  <p className="text-sm text-gray-600 whitespace-pre-line leading-relaxed">
+                    {selectedCluster.sources}
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </AuthLayout>
   )
 }
