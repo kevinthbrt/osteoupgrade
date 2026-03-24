@@ -786,255 +786,159 @@ const scrollTo = useCallback((id: string) => {
         <div className="absolute top-0 right-0 w-[750px] h-[550px] rounded-full bg-amber-200/60 blur-[160px] pointer-events-none" />
         <div className="absolute bottom-0 left-0 w-[550px] h-[420px] rounded-full bg-sky-100/50 blur-[130px] pointer-events-none" />
 
-        <div className="relative max-w-7xl mx-auto">
+        <div className="relative max-w-5xl mx-auto">
 
           {/* Header */}
-          <div className={`text-center mb-14 transition-all duration-700 ${
+          <div className={`text-center mb-12 transition-all duration-700 ${
             goldExperience.isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
           }`}>
-            <div className="inline-flex items-center gap-2 bg-amber-100 text-amber-700 border border-amber-200 px-4 py-2 rounded-full text-xs font-bold mb-6 uppercase tracking-wider">
-              <Crown className="h-3.5 w-3.5" />
+            <div className="inline-flex items-center gap-2 bg-amber-100 text-amber-700 border border-amber-200 px-4 py-2 rounded-full text-sm font-bold mb-6 uppercase tracking-wider">
+              <Crown className="h-4 w-4" />
               Experience Gold
             </div>
-            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-slate-900 mb-4 tracking-tight">
-              La formation qui change tout.
+            <h2 className="text-4xl sm:text-5xl lg:text-6xl font-black text-slate-900 mb-4 tracking-tight">
+              Tout inclus.
               <br />
               <span className="bg-gradient-to-r from-amber-500 to-orange-500 bg-clip-text text-transparent">
-                Et qui se rentabilise.
+                Moins cher que les alternatives.
               </span>
             </h2>
-            <p className="text-lg text-slate-500 max-w-2xl mx-auto">
-              Seminaires presentiels inclus. Programme de parrainage remunere. Prix imbattable.
-            </p>
           </div>
 
-          {/* PRICE SHOCK BANNER */}
-          <div className={`mb-12 transition-all duration-700 delay-100 ${
+          {/* COMPARISON TABLE */}
+          <div className={`mb-8 transition-all duration-700 delay-100 ${
             goldExperience.isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
           }`}>
-            <div className="rounded-3xl bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 p-8 sm:p-10 overflow-hidden relative">
-              {/* Background shimmer */}
-              <div className="absolute inset-0 bg-gradient-to-r from-amber-500/5 via-amber-400/10 to-amber-500/5" />
-              <div className="relative grid grid-cols-1 md:grid-cols-3 gap-6 items-center">
+            <div className="rounded-3xl overflow-hidden border border-slate-200 shadow-xl">
 
-                {/* Classic seminar — bad */}
-                <div className="text-center md:text-left">
-                  <div className="inline-flex items-center gap-2 bg-red-500/15 border border-red-500/25 text-red-400 px-3 py-1 rounded-lg text-xs font-semibold mb-3">
-                    <span className="w-1.5 h-1.5 rounded-full bg-red-400 inline-block" />
-                    1 seminaire classique
-                  </div>
-                  <div className="text-4xl sm:text-5xl font-black text-white/40 line-through decoration-red-400 mb-1">
-                    1 500€
-                  </div>
-                  <p className="text-sm text-slate-500">Par formation. Rien d&apos;autre inclus.</p>
-                </div>
-
-                {/* VS divider */}
-                <div className="flex items-center justify-center">
-                  <div className="w-14 h-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center">
-                    <span className="text-lg font-black text-white/30">VS</span>
-                  </div>
-                </div>
-
-                {/* Gold — great */}
-                <div className="text-center md:text-right">
-                  <div className="inline-flex items-center gap-2 bg-emerald-500/15 border border-emerald-500/25 text-emerald-400 px-3 py-1 rounded-lg text-xs font-semibold mb-3">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block" />
-                    OsteoUpgrade Gold
-                  </div>
-                  <div className="text-4xl sm:text-5xl font-black text-amber-400 mb-1">
-                    499€<span className="text-xl font-semibold text-amber-400/60">/an</span>
-                  </div>
-                  <p className="text-sm text-slate-400 font-medium">Plateforme complète + séminaire + parrainage</p>
+              {/* Header row */}
+              <div className="grid grid-cols-2 bg-slate-100">
+                <div className="px-8 py-5 text-base font-bold text-slate-500 uppercase tracking-wider">Ce que vous payez ailleurs</div>
+                <div className="px-8 py-5 bg-gradient-to-r from-amber-500 to-orange-500 text-base font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                  <Crown className="h-4 w-4" /> Experience Gold
                 </div>
               </div>
+
+              {/* Row 1 — Seminaire */}
+              <div className="grid grid-cols-2 border-t border-slate-200">
+                <div className="px-8 py-7 bg-white flex items-center gap-5">
+                  <div className="w-12 h-12 rounded-2xl bg-red-50 flex items-center justify-center flex-shrink-0">
+                    <Calendar className="h-6 w-6 text-red-400" />
+                  </div>
+                  <div>
+                    <div className="text-lg font-bold text-slate-800">Séminaire classique</div>
+                    <div className="text-3xl font-black text-red-400 line-through decoration-red-300">700€</div>
+                    <div className="text-sm text-slate-400">par formation</div>
+                  </div>
+                </div>
+                <div className="px-8 py-7 bg-amber-50 flex items-center gap-4">
+                  <div className="w-8 h-8 rounded-full bg-amber-500 flex items-center justify-center flex-shrink-0">
+                    <span className="text-white font-black text-sm">✓</span>
+                  </div>
+                  <div>
+                    <div className="text-lg font-bold text-slate-900">2 jours de séminaire</div>
+                    <div className="text-sm text-slate-600">20 participants max · 80% pratique · experts spécialisés</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Row 2 — Logiciel patient */}
+              <div className="grid grid-cols-2 border-t border-slate-200">
+                <div className="px-8 py-7 bg-white flex items-center gap-5">
+                  <div className="w-12 h-12 rounded-2xl bg-red-50 flex items-center justify-center flex-shrink-0">
+                    <Stethoscope className="h-6 w-6 text-red-400" />
+                  </div>
+                  <div>
+                    <div className="text-lg font-bold text-slate-800">Logiciel patient</div>
+                    <div className="text-3xl font-black text-red-400 line-through decoration-red-300">25€<span className="text-xl">/mois</span></div>
+                    <div className="text-sm text-slate-400">soit 300€/an</div>
+                  </div>
+                </div>
+                <div className="px-8 py-7 bg-amber-50 flex items-center gap-4">
+                  <div className="w-8 h-8 rounded-full bg-amber-500 flex items-center justify-center flex-shrink-0">
+                    <span className="text-white font-black text-sm">✓</span>
+                  </div>
+                  <div>
+                    <div className="text-lg font-bold text-slate-900">Logiciel patient inclus</div>
+                    <div className="text-sm text-slate-600">Dossiers, agenda, facturation — tout en un</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Row 3 — Elearning */}
+              <div className="grid grid-cols-2 border-t border-slate-200">
+                <div className="px-8 py-7 bg-white flex items-center gap-5">
+                  <div className="w-12 h-12 rounded-2xl bg-red-50 flex items-center justify-center flex-shrink-0">
+                    <GraduationCap className="h-6 w-6 text-red-400" />
+                  </div>
+                  <div>
+                    <div className="text-lg font-bold text-slate-800">E-learning</div>
+                    <div className="text-3xl font-black text-red-400 line-through decoration-red-300">250€<span className="text-xl">/an</span></div>
+                    <div className="text-sm text-slate-400">sans le présentiel</div>
+                  </div>
+                </div>
+                <div className="px-8 py-7 bg-amber-50 flex items-center gap-4">
+                  <div className="w-8 h-8 rounded-full bg-amber-500 flex items-center justify-center flex-shrink-0">
+                    <span className="text-white font-black text-sm">✓</span>
+                  </div>
+                  <div>
+                    <div className="text-lg font-bold text-slate-900">Plateforme e-learning complète</div>
+                    <div className="text-sm text-slate-600">Vidéos, protocoles, cas cliniques — illimité</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Row 4 — Parrainage */}
+              <div className="grid grid-cols-2 border-t border-slate-200">
+                <div className="px-8 py-7 bg-white flex items-center gap-5">
+                  <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center flex-shrink-0">
+                    <Gift className="h-6 w-6 text-slate-300" />
+                  </div>
+                  <div>
+                    <div className="text-lg font-bold text-slate-800">Parrainage cashback</div>
+                    <div className="text-3xl font-black text-slate-300">—</div>
+                    <div className="text-sm text-slate-400">inexistant ailleurs</div>
+                  </div>
+                </div>
+                <div className="px-8 py-7 bg-amber-50 flex items-center gap-4">
+                  <div className="w-8 h-8 rounded-full bg-emerald-500 flex items-center justify-center flex-shrink-0">
+                    <span className="text-white font-black text-sm">✓</span>
+                  </div>
+                  <div>
+                    <div className="text-lg font-bold text-slate-900">10% de commission par filleul</div>
+                    <div className="text-sm text-slate-600">10 filleuls = Gold entièrement remboursé</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* TOTAL ROW */}
+              <div className="grid grid-cols-2 border-t-2 border-slate-300">
+                <div className="px-8 py-8 bg-slate-900 flex items-center">
+                  <div>
+                    <div className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-1">Total à payer ailleurs</div>
+                    <div className="text-5xl font-black text-red-400 line-through decoration-red-400">1 250€+</div>
+                    <div className="text-sm text-slate-500 mt-1">par an, sans cashback</div>
+                  </div>
+                </div>
+                <div className="px-8 py-8 bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-between">
+                  <div>
+                    <div className="text-sm font-bold text-white/70 uppercase tracking-wider mb-1">Experience Gold</div>
+                    <div className="text-5xl font-black text-white">499€</div>
+                    <div className="text-sm text-white/80 mt-1">par an · tout inclus</div>
+                  </div>
+                  <button
+                    onClick={() => scrollTo('pricing')}
+                    className="group bg-white text-amber-600 px-6 py-4 rounded-2xl font-black text-base hover:bg-amber-50 transition-all shadow-lg inline-flex items-center gap-2 flex-shrink-0"
+                  >
+                    Je démarre
+                    <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
+                  </button>
+                </div>
+              </div>
+
             </div>
           </div>
 
-          {/* TWO MAIN CARDS */}
-          <div className={`grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8 transition-all duration-700 delay-200 ${
-            goldExperience.isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
-          }`}>
-
-            {/* SEMINAIRES CARD — light warm bg */}
-            <div className="rounded-3xl bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200/70 overflow-hidden">
-              {/* Top visual */}
-              <div className="bg-gradient-to-br from-amber-500 to-orange-500 p-8 relative overflow-hidden">
-                <div className="absolute -right-8 -top-8 w-40 h-40 rounded-full bg-white/10 blur-2xl" />
-                <div className="absolute -left-4 bottom-0 w-32 h-32 rounded-full bg-orange-600/30 blur-xl" />
-                <div className="relative">
-                  {/* Mini event card */}
-                  <div className="bg-white/15 backdrop-blur-sm rounded-2xl p-5 border border-white/20 max-w-xs">
-                    <div className="flex items-center gap-3 mb-4">
-                      <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center">
-                        <Calendar className="h-5 w-5 text-white" />
-                      </div>
-                      <div>
-                        <div className="text-[10px] text-white/70 font-medium">Prochain seminaire</div>
-                        <div className="text-sm text-white font-bold">Rachis & Bassin</div>
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2 mb-3">
-                      <div className="rounded-lg bg-white/10 p-2 text-center">
-                        <div className="text-xs font-bold text-white">2 jours</div>
-                        <div className="text-[9px] text-white/60">Formation</div>
-                      </div>
-                      <div className="rounded-lg bg-white/10 p-2 text-center">
-                        <div className="text-xs font-bold text-white">20 max</div>
-                        <div className="text-[9px] text-white/60">Participants</div>
-                      </div>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs text-white/70">12 / 20 places</span>
-                      <div className="h-1.5 flex-1 mx-3 rounded-full bg-white/20 overflow-hidden">
-                        <div className="h-full w-[60%] rounded-full bg-white" />
-                      </div>
-                    </div>
-                  </div>
-                  <div className="absolute -top-2 -right-2 px-3 py-1.5 rounded-xl bg-white text-amber-600 text-[10px] font-black shadow-lg animate-float">
-                    INCLUS GOLD ✓
-                  </div>
-                </div>
-              </div>
-
-              {/* Content */}
-              <div className="p-7">
-                <h3 className="text-2xl font-bold text-slate-900 mb-2">Seminaires presentiels</h3>
-                <p className="text-slate-600 text-sm leading-relaxed mb-5">
-                  2 jours de formation intensive en petit groupe. Pratique manuelle, cas cliniques et reseau entre confreres.
-                  <strong className="text-slate-800"> Inclus dans l&apos;abonnement Gold.</strong>
-                </p>
-                <div className="grid grid-cols-2 gap-2.5">
-                  {[
-                    { icon: Users, label: '20 participants max', color: 'text-amber-600' },
-                    { icon: Stethoscope, label: '80% de pratique', color: 'text-amber-600' },
-                    { icon: GraduationCap, label: 'Experts specialises', color: 'text-amber-600' },
-                    { icon: Gift, label: '2 jours offerts/an', color: 'text-amber-600' },
-                  ].map((item) => {
-                    const Icon = item.icon
-                    return (
-                      <div key={item.label} className="flex items-center gap-2 rounded-xl bg-white border border-amber-100 p-3 shadow-sm">
-                        <Icon className={`h-4 w-4 flex-shrink-0 ${item.color}`} />
-                        <span className="text-xs font-semibold text-slate-700">{item.label}</span>
-                      </div>
-                    )
-                  })}
-                </div>
-              </div>
-            </div>
-
-            {/* PARRAINAGE CARD — light green bg */}
-            <div className="rounded-3xl bg-gradient-to-br from-emerald-50 to-teal-50 border border-emerald-200/70 overflow-hidden">
-              {/* Top visual — earnings dashboard */}
-              <div className="bg-gradient-to-br from-emerald-500 to-teal-500 p-8 relative overflow-hidden">
-                <div className="absolute -right-8 -top-8 w-40 h-40 rounded-full bg-white/10 blur-2xl" />
-                <div className="absolute -left-4 bottom-0 w-32 h-32 rounded-full bg-teal-600/30 blur-xl" />
-                <div className="relative">
-                  {/* Earnings visual */}
-                  <div className="bg-white/15 backdrop-blur-sm rounded-2xl p-5 border border-white/20 max-w-xs">
-                    <div className="flex items-center justify-between mb-4">
-                      <div>
-                        <div className="text-[10px] text-white/70 font-medium">Tes gains ce mois</div>
-                        <div className="text-2xl font-black text-white">249,50€</div>
-                      </div>
-                      <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center">
-                        <Wallet className="h-5 w-5 text-white" />
-                      </div>
-                    </div>
-                    {/* Parrain rows */}
-                    {[
-                      { name: 'Claire M.', amount: '+49,90€', status: 'Actif' },
-                      { name: 'Remi B.', amount: '+49,90€', status: 'Actif' },
-                      { name: 'Sarah L.', amount: '+49,90€', status: 'Actif' },
-                    ].map((row) => (
-                      <div key={row.name} className="flex items-center justify-between py-1.5 border-t border-white/10">
-                        <div className="flex items-center gap-2">
-                          <div className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center text-[9px] text-white font-bold">
-                            {row.name[0]}
-                          </div>
-                          <span className="text-[11px] text-white/80">{row.name}</span>
-                        </div>
-                        <span className="text-[11px] font-bold text-emerald-200">{row.amount}</span>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="absolute -bottom-2 -left-2 px-3 py-1.5 rounded-xl bg-white text-emerald-600 text-[10px] font-black shadow-lg animate-float-delayed">
-                    10% de commission 💰
-                  </div>
-                </div>
-              </div>
-
-              {/* Content */}
-              <div className="p-7">
-                <h3 className="text-2xl font-bold text-slate-900 mb-2">Gagnez de l&apos;argent en parrainant</h3>
-                <p className="text-slate-600 text-sm leading-relaxed mb-3">
-                  Parrainez vos collegues et touchez <strong className="text-slate-800">10% de commission sur chaque abonnement annuel</strong>.
-                  5 filleuls Gold = 249,50€ dans votre poche.
-                </p>
-                {/* Quick calc */}
-                <div className="rounded-xl bg-white border border-emerald-100 p-4 mb-5 shadow-sm">
-                  <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Simulation rapide</div>
-                  <div className="space-y-2">
-                    {[
-                      { n: '1 filleul', earn: '49,90€/an' },
-                      { n: '5 filleuls', earn: '249,50€/an' },
-                      { n: '10 filleuls', earn: '499€/an — Gold remboursé !' },
-                    ].map((row) => (
-                      <div key={row.n} className="flex items-center justify-between text-sm">
-                        <span className="text-slate-600">{row.n}</span>
-                        <span className="font-bold text-emerald-600">{row.earn}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-2.5">
-                  {[
-                    { icon: Gift, label: 'Code perso unique', color: 'text-emerald-600' },
-                    { icon: Wallet, label: '10% par filleul', color: 'text-emerald-600' },
-                    { icon: TrendingUp, label: 'Suivi en temps reel', color: 'text-emerald-600' },
-                    { icon: Crown, label: 'Exclusif membres Gold', color: 'text-emerald-600' },
-                  ].map((item) => {
-                    const Icon = item.icon
-                    return (
-                      <div key={item.label} className="flex items-center gap-2 rounded-xl bg-white border border-emerald-100 p-3 shadow-sm">
-                        <Icon className={`h-4 w-4 flex-shrink-0 ${item.color}`} />
-                        <span className="text-xs font-semibold text-slate-700">{item.label}</span>
-                      </div>
-                    )
-                  })}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Gold CTA */}
-          <div className={`transition-all duration-700 delay-400 ${
-            goldExperience.isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
-          }`}>
-            <div className="rounded-3xl bg-gradient-to-r from-amber-500 to-orange-500 p-8 sm:p-10 text-center relative overflow-hidden shadow-xl shadow-amber-200">
-              <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent" />
-              <div className="relative">
-                <div className="inline-flex items-center gap-2 bg-white/20 border border-white/30 text-white px-4 py-1.5 rounded-full text-xs font-bold mb-4">
-                  <Sparkles className="h-3.5 w-3.5" />
-                  Offre imbattable
-                </div>
-                <h3 className="text-2xl sm:text-3xl font-black text-white mb-2">
-                  Tout ca pour seulement 499€/an
-                </h3>
-                <p className="text-white/80 mb-6 max-w-lg mx-auto">
-                  Plateforme complète + 2 jours de seminaire presentiel + programme de parrainage remunere.
-                  Un seminaire classique seul coute entre 500€ et 1 500€.
-                </p>
-                <button
-                  onClick={() => scrollTo('pricing')}
-                  className="group bg-white text-amber-600 px-8 py-4 rounded-xl font-black text-base hover:bg-amber-50 transition-all shadow-lg inline-flex items-center gap-2"
-                >
-                  Voir les tarifs
-                  <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
-                </button>
-              </div>
-            </div>
-          </div>
         </div>
       </section>
 
