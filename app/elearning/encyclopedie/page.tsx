@@ -130,31 +130,29 @@ export default function EncyclopediePage() {
       <div className="min-h-screen">
         {/* Header */}
         <div className="mb-8">
-          <button
-            onClick={() => router.push('/elearning')}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-xl text-slate-700 hover:bg-slate-50 transition-colors font-medium shadow-sm mb-6"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            E-Learning
-          </button>
-
-          <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-purple-900 via-indigo-800 to-purple-900 text-white shadow-2xl">
+          <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-blue-600 via-primary-600 to-purple-700 text-white shadow-2xl">
             <div className="absolute inset-0 bg-grid-white/[0.02] bg-[size:60px_60px]" />
             <div className="absolute top-0 right-0 w-96 h-96 bg-purple-500/30 rounded-full blur-3xl" />
-            <div className="absolute bottom-0 left-0 w-96 h-96 bg-indigo-500/20 rounded-full blur-3xl" />
 
             <div className="relative px-6 py-8 md:px-10 md:py-10">
+              <button
+                onClick={() => router.push('/elearning')}
+                className="text-sm text-blue-100 hover:text-white mb-4 flex items-center gap-2"
+              >
+                &larr; Retour au E-Learning
+              </button>
+
               <div className="max-w-4xl">
                 <div className="inline-flex items-center gap-2 rounded-full bg-white/10 backdrop-blur-sm px-3 py-1.5 mb-4 border border-white/20">
-                  <BookMarked className="h-3.5 w-3.5 text-purple-200" />
-                  <span className="text-xs font-semibold text-purple-100">Encyclopédie</span>
+                  <BookMarked className="h-3.5 w-3.5 text-blue-200" />
+                  <span className="text-xs font-semibold text-blue-100">Encyclopédie</span>
                 </div>
 
-                <h1 className="text-3xl md:text-4xl font-bold mb-3 bg-clip-text text-transparent bg-gradient-to-r from-white to-purple-100">
+                <h1 className="text-3xl md:text-4xl font-bold mb-3 bg-clip-text text-transparent bg-gradient-to-r from-white to-blue-100">
                   Encyclopédie
                 </h1>
 
-                <p className="text-base md:text-lg text-slate-300 max-w-2xl">
+                <p className="text-base md:text-lg text-blue-100 max-w-2xl">
                   Accédez à l&apos;ensemble des fiches de référence organisées par matière. Des contenus structurés pour consolider vos connaissances.
                 </p>
               </div>
