@@ -8,7 +8,6 @@ import FreeContentGate from '@/components/FreeContentGate'
 import SubjectModal from './components/SubjectModal'
 import DeleteConfirmModal from './components/DeleteConfirmModal'
 import {
-  ArrowLeft,
   ArrowRight,
   BookMarked,
   Edit3,
@@ -128,23 +127,17 @@ export default function EncyclopediePage() {
   return (
     <AuthLayout>
       <div className="min-h-screen">
-        {/* Header */}
-        <div className="mb-8">
-          <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-blue-600 via-primary-600 to-purple-700 text-white shadow-2xl">
-            <div className="absolute inset-0 bg-grid-white/[0.02] bg-[size:60px_60px]" />
-            <div className="absolute top-0 right-0 w-96 h-96 bg-purple-500/30 rounded-full blur-3xl" />
+        {/* Hero Section */}
+        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white shadow-2xl mb-8">
+          <div className="absolute inset-0 bg-grid-white/[0.02] bg-[size:60px_60px]" />
+          <div className="absolute top-0 right-0 w-96 h-96 bg-blue-500/30 rounded-full blur-3xl" />
+          <div className="absolute bottom-0 left-0 w-96 h-96 bg-emerald-500/20 rounded-full blur-3xl" />
 
-            <div className="relative px-6 py-8 md:px-10 md:py-10">
-              <button
-                onClick={() => router.push('/elearning')}
-                className="text-sm text-blue-100 hover:text-white mb-4 flex items-center gap-2"
-              >
-                &larr; Retour au E-Learning
-              </button>
-
+          <div className="relative px-6 py-8 md:px-10 md:py-10">
+            <div className="flex flex-wrap items-start justify-between gap-6">
               <div className="max-w-4xl">
                 <div className="inline-flex items-center gap-2 rounded-full bg-white/10 backdrop-blur-sm px-3 py-1.5 mb-4 border border-white/20">
-                  <BookMarked className="h-3.5 w-3.5 text-blue-200" />
+                  <BookMarked className="h-3.5 w-3.5 text-blue-300" />
                   <span className="text-xs font-semibold text-blue-100">Encyclopédie</span>
                 </div>
 
@@ -152,17 +145,27 @@ export default function EncyclopediePage() {
                   Encyclopédie
                 </h1>
 
-                <p className="text-base md:text-lg text-blue-100 max-w-2xl">
+                <p className="text-base md:text-lg text-slate-300 mb-6 max-w-2xl">
                   Accédez à l&apos;ensemble des fiches de référence organisées par matière. Des contenus structurés pour consolider vos connaissances.
                 </p>
               </div>
+
+              {isAdmin && (
+                <button
+                  onClick={() => { setSubjectToEdit(null); setShowSubjectModal(true) }}
+                  className="inline-flex items-center gap-2 rounded-xl bg-white/10 px-4 py-3 text-sm font-semibold text-white shadow-lg backdrop-blur-sm border border-white/20 hover:bg-white/20 transition"
+                >
+                  <Plus className="h-4 w-4" />
+                  Nouvelle matière
+                </button>
+              )}
             </div>
           </div>
         </div>
 
-        {/* Search + Admin actions */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
-          <div className="relative flex-1 max-w-md">
+        {/* Search */}
+        <div className="mb-6">
+          <div className="relative max-w-md">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
             <input
               type="text"
@@ -172,16 +175,6 @@ export default function EncyclopediePage() {
               className="w-full pl-10 pr-4 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition bg-white"
             />
           </div>
-
-          {isAdmin && (
-            <button
-              onClick={() => { setSubjectToEdit(null); setShowSubjectModal(true) }}
-              className="inline-flex items-center gap-2 px-5 py-2.5 bg-purple-600 text-white font-semibold rounded-xl hover:bg-purple-700 transition shadow-lg"
-            >
-              <Plus className="h-4 w-4" />
-              Nouvelle matière
-            </button>
-          )}
         </div>
 
         {/* Subject Grid */}

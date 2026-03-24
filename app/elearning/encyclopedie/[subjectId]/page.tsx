@@ -8,7 +8,6 @@ import FreeContentGate from '@/components/FreeContentGate'
 import EntryModal from '../components/EntryModal'
 import DeleteConfirmModal from '../components/DeleteConfirmModal'
 import {
-  ArrowLeft,
   BookMarked,
   ChevronDown,
   ChevronRight,
@@ -323,59 +322,57 @@ export default function SubjectDetailPage() {
 
   if (!subject) return null
 
-  const gradient = subject.color || 'from-purple-500 to-indigo-600'
-
   return (
     <AuthLayout>
       <div className="min-h-screen max-w-5xl mx-auto">
-        {/* Subject header */}
-        <div className={`relative overflow-hidden rounded-3xl bg-gradient-to-br ${gradient} text-white shadow-2xl mb-8`}>
+        {/* Hero Section */}
+        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white shadow-2xl mb-8">
           <div className="absolute inset-0 bg-grid-white/[0.02] bg-[size:60px_60px]" />
-          <div className="absolute top-0 right-0 w-96 h-96 bg-purple-500/30 rounded-full blur-3xl" />
+          <div className="absolute top-0 right-0 w-96 h-96 bg-blue-500/30 rounded-full blur-3xl" />
+          <div className="absolute bottom-0 left-0 w-96 h-96 bg-emerald-500/20 rounded-full blur-3xl" />
 
           <div className="relative px-6 py-8 md:px-10 md:py-10">
-            <button
-              onClick={() => router.push('/elearning/encyclopedie')}
-              className="text-sm text-white/70 hover:text-white mb-4 flex items-center gap-2"
-            >
-              &larr; Retour à l&apos;encyclopédie
-            </button>
+            <div className="flex flex-wrap items-start justify-between gap-6">
+              <div className="max-w-4xl">
+                <button
+                  onClick={() => router.push('/elearning/encyclopedie')}
+                  className="text-sm text-slate-400 hover:text-white mb-4 flex items-center gap-2 transition"
+                >
+                  &larr; Retour à l&apos;encyclopédie
+                </button>
 
-            <div className="max-w-4xl">
-              <div className="inline-flex items-center gap-2 rounded-full bg-white/10 backdrop-blur-sm px-3 py-1.5 mb-4 border border-white/20">
-                <BookMarked className="h-3.5 w-3.5 text-white/80" />
-                <span className="text-xs font-semibold text-white/80">Encyclopédie</span>
+                <div className="inline-flex items-center gap-2 rounded-full bg-white/10 backdrop-blur-sm px-3 py-1.5 mb-4 border border-white/20">
+                  <BookMarked className="h-3.5 w-3.5 text-blue-300" />
+                  <span className="text-xs font-semibold text-blue-100">Encyclopédie</span>
+                </div>
+
+                <h1 className="text-3xl md:text-4xl font-bold mb-3 bg-clip-text text-transparent bg-gradient-to-r from-white to-blue-100">
+                  {subject.title}
+                </h1>
+
+                {subject.description && (
+                  <p className="text-base md:text-lg text-slate-300 max-w-2xl mb-2">
+                    {subject.description}
+                  </p>
+                )}
+
+                <div className="flex items-center gap-4 text-sm text-slate-400">
+                  <span>{entries.length} entrée{entries.length !== 1 ? 's' : ''}</span>
+                </div>
               </div>
 
-              <h1 className="text-3xl md:text-4xl font-bold mb-3 bg-clip-text text-transparent bg-gradient-to-r from-white to-white/80">
-                {subject.title}
-              </h1>
-
-              {subject.description && (
-                <p className="text-base md:text-lg text-white/80 max-w-2xl mb-2">
-                  {subject.description}
-                </p>
+              {isAdmin && (
+                <button
+                  onClick={handleAddRoot}
+                  className="inline-flex items-center gap-2 rounded-xl bg-white/10 px-4 py-3 text-sm font-semibold text-white shadow-lg backdrop-blur-sm border border-white/20 hover:bg-white/20 transition"
+                >
+                  <Plus className="h-4 w-4" />
+                  Ajouter un chapitre
+                </button>
               )}
-
-              <div className="flex items-center gap-4 text-sm text-white/60">
-                <span>{entries.length} entrée{entries.length !== 1 ? 's' : ''}</span>
-              </div>
             </div>
           </div>
         </div>
-
-        {/* Admin: add root entry */}
-        {isAdmin && (
-          <div className="flex justify-end mb-4">
-            <button
-              onClick={handleAddRoot}
-              className="inline-flex items-center gap-2 px-5 py-2.5 bg-purple-600 text-white font-semibold rounded-xl hover:bg-purple-700 transition shadow-lg"
-            >
-              <Plus className="h-4 w-4" />
-              Ajouter un chapitre
-            </button>
-          </div>
-        )}
 
         {/* Tree */}
         {tree.length === 0 ? (
