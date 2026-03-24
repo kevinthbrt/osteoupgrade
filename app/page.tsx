@@ -155,6 +155,12 @@ export default function LandingPage() {
   const [isVisible, setIsVisible] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [activeFeature, setActiveFeature] = useState(0)
+  const [panelKey, setPanelKey] = useState(0)
+
+  const handleFeatureClick = (i: number) => {
+    setActiveFeature(i)
+    setPanelKey(k => k + 1)
+  }
 
   const hero = useScrollReveal()
   const stats = useScrollReveal()
@@ -446,58 +452,55 @@ const scrollTo = useCallback((id: string) => {
               La plateforme
             </div>
             <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-slate-900 mb-4 tracking-tight">
-              Votre doute.
+              Peu importe où vous en êtes.
               <br />
-              <span className="bg-gradient-to-r from-sky-500 to-blue-600 bg-clip-text text-transparent">Notre reponse.</span>
+              <span className="bg-gradient-to-r from-sky-500 to-blue-600 bg-clip-text text-transparent">OsteoUpgrade s&apos;adapte.</span>
             </h2>
             <p className="text-lg text-slate-500 max-w-2xl mx-auto">
-              Cliquez sur votre situation pour decouvrir comment OsteoUpgrade vous accompagne.
+              Cliquez sur votre situation — la solution apparaît immédiatement.
             </p>
           </div>
 
-          <div className={`grid grid-cols-1 lg:grid-cols-5 gap-6 lg:gap-10 items-start transition-all duration-700 delay-200 ${
+          <div className={`grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-10 items-start transition-all duration-700 delay-200 ${
             features.isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
           }`}>
 
-            {/* Left: Question cards — blanc sur fond slate-50 */}
-            <div className="lg:col-span-2 space-y-2.5">
+            {/* Left: Question cards */}
+            <div className="space-y-3">
               {featuresList.map((feature, i) => {
                 const Icon = feature.icon
                 const isActive = activeFeature === i
                 return (
                   <button
                     key={i}
-                    onClick={() => setActiveFeature(i)}
-                    className={`group w-full text-left p-4 sm:p-5 rounded-2xl border transition-all duration-300 ${
+                    onClick={() => handleFeatureClick(i)}
+                    className={`group w-full text-left p-5 sm:p-6 rounded-2xl border transition-all duration-300 active:scale-[0.98] ${
                       isActive
-                        ? 'bg-white border-slate-200 shadow-md'
-                        : 'bg-white/60 border-slate-200/70 hover:bg-white hover:border-slate-300 hover:shadow-sm'
+                        ? 'bg-white border-slate-200 shadow-lg'
+                        : 'bg-white/60 border-slate-200/70 hover:bg-white hover:border-slate-300 hover:shadow-md'
                     }`}
                     style={isActive ? {
-                      boxShadow: `0 4px 20px rgba(${feature.glow}, 0.16), 0 1px 4px rgba(0,0,0,0.05)`,
-                      borderColor: `rgba(${feature.glow}, 0.30)`
+                      boxShadow: `0 6px 28px rgba(${feature.glow}, 0.20), 0 1px 4px rgba(0,0,0,0.05)`,
+                      borderColor: `rgba(${feature.glow}, 0.35)`
                     } : {}}
                   >
-                    <div className="flex items-center gap-3.5">
+                    <div className="flex items-center gap-4">
                       <div
-                        className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 bg-gradient-to-br ${feature.gradient} transition-all duration-300 ${
-                          isActive ? 'scale-110' : 'opacity-40 group-hover:opacity-60'
+                        className={`w-13 h-13 rounded-2xl flex items-center justify-center flex-shrink-0 bg-gradient-to-br ${feature.gradient} transition-all duration-300 ${
+                          isActive ? 'scale-110' : 'opacity-40 group-hover:opacity-70'
                         }`}
-                        style={isActive ? { boxShadow: `0 4px 12px rgba(${feature.glow}, 0.40)` } : {}}
+                        style={isActive ? { boxShadow: `0 6px 16px rgba(${feature.glow}, 0.45)` } : {}}
                       >
-                        <Icon className="h-5 w-5 text-white" />
+                        <Icon className="h-6 w-6 text-white" />
                       </div>
-                      <p className={`text-sm font-semibold leading-snug flex-1 transition-colors duration-300 ${
+                      <p className={`text-base font-semibold leading-snug flex-1 transition-colors duration-300 ${
                         isActive ? 'text-slate-900' : 'text-slate-500 group-hover:text-slate-700'
                       }`}>
                         {feature.painPoint}
                       </p>
                       <ChevronRight
-                        className="h-4 w-4 flex-shrink-0 transition-all duration-300"
-                        style={{
-                          color: isActive ? `rgba(${feature.glow}, 0.8)` : 'rgb(203 213 225)',
-                          transform: isActive ? 'translateX(2px)' : undefined
-                        }}
+                        className={`h-5 w-5 flex-shrink-0 transition-all duration-300 ${isActive ? 'translate-x-1' : ''}`}
+                        style={{ color: isActive ? `rgba(${feature.glow}, 0.8)` : 'rgb(203 213 225)' }}
                       />
                     </div>
                   </button>
@@ -506,7 +509,7 @@ const scrollTo = useCallback((id: string) => {
             </div>
 
             {/* Right: Solution reveal panel */}
-            <div className="lg:col-span-3 lg:sticky lg:top-24">
+            <div className="lg:sticky lg:top-24">
               <div className="relative">
 
                 {/* Glow halo derrière le panneau */}
@@ -526,11 +529,11 @@ const scrollTo = useCallback((id: string) => {
                     const Icon = feature.icon
                     return (
                       <div
-                        key={i}
-                        className={`[grid-area:1/1] transition-all duration-500 ${
+                        key={activeFeature === i ? `active-${panelKey}` : i}
+                        className={`[grid-area:1/1] transition-all duration-400 ${
                           activeFeature === i
-                            ? 'opacity-100 translate-y-0'
-                            : 'opacity-0 translate-y-3 pointer-events-none'
+                            ? 'opacity-100 translate-y-0 scale-100'
+                            : 'opacity-0 translate-y-5 scale-[0.97] pointer-events-none'
                         }`}
                       >
                         <div
