@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useMemo } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import AuthLayout from '@/components/AuthLayout'
 import { supabase } from '@/lib/supabase'
@@ -22,6 +22,7 @@ import {
   FileText,
 } from 'lucide-react'
 import TestDetailModal from '@/components/TestDetailModal'
+import TableOfContents, { parseHeadingsFromHtml } from '../../components/TableOfContents'
 
 type EntryImage = { url: string; caption?: string }
 
@@ -307,6 +308,12 @@ export default function EntryDetailPage() {
   const isFreeUser = userRole === 'free'
   const locked = isFreeUser && !entry.is_free_access
 
+  // Parse headings from HTML for Table of Contents
+  const { processedHtml, tocItems } = useMemo(() => {
+    if (!entry.content_html) return { processedHtml: '', tocItems: [] }
+    return parseHeadingsFromHtml(entry.content_html)
+  }, [entry.content_html])
+
   // Prev/next navigation
   const currentIndex = siblings.findIndex(s => s.id === entry.id)
   const prevEntry = currentIndex > 0 ? siblings[currentIndex - 1] : null
@@ -314,7 +321,7 @@ export default function EntryDetailPage() {
 
   return (
     <AuthLayout>
-      <div className="max-w-5xl mx-auto">
+      <div className={`mx-auto ${tocItems.length > 0 ? 'max-w-7xl' : 'max-w-5xl'}`}>
         {/* Back button */}
         <button
           onClick={() => router.push(`/elearning/encyclopedie/${subjectId}`)}
@@ -325,8 +332,9 @@ export default function EntryDetailPage() {
         </button>
 
         <FreeContentGate isLocked={locked}>
+          <div className={`${tocItems.length > 0 ? 'lg:flex lg:gap-6' : ''}`}>
           {/* Fiche Card */}
-          <article className="bg-white rounded-2xl shadow-2xl overflow-hidden">
+          <article className={`bg-white rounded-2xl shadow-2xl overflow-hidden ${tocItems.length > 0 ? 'lg:flex-1 lg:min-w-0' : ''}`}>
             {/* Header with gradient */}
             <div className={`bg-gradient-to-r ${gradient} px-8 py-6 border-b-4 border-black/10`}>
               <div className="flex items-center gap-4">
@@ -392,7 +400,7 @@ export default function EntryDetailPage() {
               <div className="px-8 py-6">
                 <div
                   className="prose prose-lg prose-slate max-w-none
-                    prose-headings:text-slate-900 prose-headings:font-bold
+                    prose-headings:text-slate-900 prose-headings:font-bold prose-headings:scroll-mt-24
                     prose-h2:text-2xl prose-h2:pb-2 prose-h2:border-b-2 prose-h2:border-purple-500 prose-h2:mb-4
                     prose-h3:text-xl prose-h3:text-purple-900
                     prose-p:text-slate-700 prose-p:leading-relaxed
@@ -403,7 +411,7 @@ export default function EntryDetailPage() {
                     prose-table:rounded-xl prose-table:overflow-hidden
                     prose-th:bg-purple-100 prose-th:text-purple-900
                     prose-td:border-slate-200"
-                  dangerouslySetInnerHTML={{ __html: entry.content_html }}
+                  dangerouslySetInnerHTML={{ __html: processedHtml }}
                 />
               </div>
             )}
@@ -543,6 +551,12 @@ export default function EntryDetailPage() {
               </div>
             </div>
           </article>
+
+          {/* Table of Contents - right sidebar */}
+          {tocItems.length > 0 && (
+            <TableOfContents items={tocItems} className="lg:w-64 xl:w-72 flex-shrink-0" />
+          )}
+          </div>
         </FreeContentGate>
       </div>
 
