@@ -291,6 +291,12 @@ export default function EntryDetailPage() {
     loadData()
   }, [loadData])
 
+  // Parse headings from HTML for Table of Contents (must be before early returns - React hooks rules)
+  const { processedHtml, tocItems } = useMemo(() => {
+    if (!entry?.content_html) return { processedHtml: '', tocItems: [] }
+    return parseHeadingsFromHtml(entry.content_html)
+  }, [entry?.content_html])
+
   if (loading) {
     return (
       <AuthLayout>
@@ -307,12 +313,6 @@ export default function EntryDetailPage() {
   const vimeoId = extractVimeoId(entry.vimeo_url)
   const isFreeUser = userRole === 'free'
   const locked = isFreeUser && !entry.is_free_access
-
-  // Parse headings from HTML for Table of Contents
-  const { processedHtml, tocItems } = useMemo(() => {
-    if (!entry.content_html) return { processedHtml: '', tocItems: [] }
-    return parseHeadingsFromHtml(entry.content_html)
-  }, [entry.content_html])
 
   // Prev/next navigation
   const currentIndex = siblings.findIndex(s => s.id === entry.id)
