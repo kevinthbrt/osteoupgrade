@@ -122,6 +122,7 @@ export default function EntryDetailPage() {
   // Inject prose styles + anchor fix + ResizeObserver into the srcDoc HTML
   const buildSrcDoc = (html: string) => {
     const injection = `<style>
+html,body{height:auto!important;overflow:visible!important}
 body{font-family:system-ui,sans-serif;color:#334155;line-height:1.75;font-size:1.125rem;margin:0;padding:0}
 h1,h2,h3,h4,h5,h6{color:#0f172a;font-weight:700;margin-top:1.5rem;margin-bottom:.75rem}
 h2{font-size:1.5rem;padding-bottom:.5rem;border-bottom:2px solid #a855f7;margin-bottom:1rem}
@@ -146,9 +147,11 @@ document.addEventListener('click', function(e) {
   var el = id ? document.getElementById(id) : null;
   if (el) el.scrollIntoView({ behavior: 'smooth' });
 });
-new ResizeObserver(function() {
-  window.parent.postMessage({ type: 'iframe-resize', height: document.body.scrollHeight }, '*');
-}).observe(document.body);
+function sendHeight() {
+  var h = Math.max(document.body.scrollHeight, document.documentElement.scrollHeight);
+  window.parent.postMessage({ type: 'iframe-resize', height: h }, '*');
+}
+new ResizeObserver(sendHeight).observe(document.documentElement);
 <\/script>`
     return html.includes('</head>')
       ? html.replace('</head>', injection + '</head>')
