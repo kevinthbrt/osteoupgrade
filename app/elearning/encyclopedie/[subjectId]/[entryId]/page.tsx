@@ -114,6 +114,24 @@ export default function EntryDetailPage() {
     iframe.style.height = iframe.contentDocument.body.scrollHeight + 'px'
   }
 
+  // Inject a script that intercepts anchor-hash clicks inside the iframe
+  // so they scroll within the iframe instead of triggering CSP-blocked navigation
+  const buildSrcDoc = (html: string) => {
+    const anchorFix = `<script>
+document.addEventListener('click', function(e) {
+  var a = e.target.closest('a[href^="#"]');
+  if (!a) return;
+  e.preventDefault();
+  var id = a.getAttribute('href').slice(1);
+  var el = id ? document.getElementById(id) : null;
+  if (el) el.scrollIntoView({ behavior: 'smooth' });
+});
+<\/script>`
+    return html.includes('</head>')
+      ? html.replace('</head>', anchorFix + '</head>')
+      : anchorFix + html
+  }
+
   // Modal states
   const [selectedTest, setSelectedTest] = useState<FullTest | null>(null)
   const [showTestModal, setShowTestModal] = useState(false)
@@ -400,8 +418,8 @@ export default function EntryDetailPage() {
               <div className="px-8 py-6">
                 <iframe
                   ref={iframeRef}
-                  srcDoc={entry.content_html}
-                  sandbox="allow-scripts allow-same-origin"
+                  srcDoc={buildSrcDoc(entry.content_html)}
+                  sandbox="allow-scripts"
                   className="w-full border-0"
                   style={{ minHeight: '200px' }}
                   onLoad={handleIframeLoad}
