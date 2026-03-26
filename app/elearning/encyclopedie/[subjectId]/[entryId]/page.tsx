@@ -106,21 +106,57 @@ export default function EntryDetailPage() {
   const [loading, setLoading] = useState(true)
   const [userRole, setUserRole] = useState<string>('free')
 
-  const contentRef = useRef<HTMLDivElement>(null)
+  const iframeRef = useRef<HTMLIFrameElement>(null)
 
-  // Re-execute inline scripts from content_html after render
+  // Listen for resize messages from the iframe (sent by ResizeObserver inside)
   useEffect(() => {
-    if (!contentRef.current) return
-    const scripts = contentRef.current.querySelectorAll('script')
-    scripts.forEach((oldScript) => {
-      const newScript = document.createElement('script')
-      Array.from(oldScript.attributes).forEach((attr) =>
-        newScript.setAttribute(attr.name, attr.value)
-      )
-      newScript.textContent = oldScript.textContent
-      oldScript.parentNode?.replaceChild(newScript, oldScript)
-    })
-  }, [entry?.content_html])
+    const handleMessage = (e: MessageEvent) => {
+      if (e.data?.type === 'iframe-resize' && iframeRef.current) {
+        iframeRef.current.style.height = e.data.height + 'px'
+      }
+    }
+    window.addEventListener('message', handleMessage)
+    return () => window.removeEventListener('message', handleMessage)
+  }, [])
+
+  // Inject prose styles + anchor fix + ResizeObserver into the srcDoc HTML
+  const buildSrcDoc = (html: string) => {
+    const injection = `<style>
+html,body{height:auto!important;overflow:visible!important}
+body{font-family:system-ui,sans-serif;color:#334155;line-height:1.75;font-size:1.125rem;margin:0;padding:0}
+h1,h2,h3,h4,h5,h6{color:#0f172a;font-weight:700;margin-top:1.5rem;margin-bottom:.75rem}
+h2{font-size:1.5rem;padding-bottom:.5rem;border-bottom:2px solid #a855f7;margin-bottom:1rem}
+h3{font-size:1.25rem;color:#3b0764}
+p{color:#475569;line-height:1.75;margin:.75rem 0}
+strong{color:#0f172a}
+ul,ol{padding-left:1.5rem;margin:.5rem 0}
+li{color:#475569;margin:.25rem 0}
+a{color:#9333ea;text-decoration:none}
+a:hover{text-decoration:underline}
+blockquote{border-left:4px solid #a855f7;background:#faf5ff;border-radius:.75rem;padding:.25rem 1rem;margin:1rem 0}
+table{border-radius:.75rem;overflow:hidden;width:100%;border-collapse:collapse;margin:1rem 0}
+th{background:#f3e8ff;color:#581c87;padding:.75rem;text-align:left}
+td{border:1px solid #e2e8f0;padding:.75rem}
+img{max-width:100%;height:auto;border-radius:.5rem}
+</style><script>
+document.addEventListener('click', function(e) {
+  var a = e.target.closest('a[href^="#"]');
+  if (!a) return;
+  e.preventDefault();
+  var id = a.getAttribute('href').slice(1);
+  var el = id ? document.getElementById(id) : null;
+  if (el) el.scrollIntoView({ behavior: 'smooth' });
+});
+function sendHeight() {
+  var h = Math.max(document.body.scrollHeight, document.documentElement.scrollHeight);
+  window.parent.postMessage({ type: 'iframe-resize', height: h }, '*');
+}
+new ResizeObserver(sendHeight).observe(document.documentElement);
+<\/script>`
+    return html.includes('</head>')
+      ? html.replace('</head>', injection + '</head>')
+      : injection + html
+  }
 
   // Modal states
   const [selectedTest, setSelectedTest] = useState<FullTest | null>(null)
@@ -406,21 +442,13 @@ export default function EntryDetailPage() {
             {/* Rich text content */}
             {entry.content_html && (
               <div className="px-8 py-6">
-                <div
-                  ref={contentRef}
-                  className="prose prose-lg prose-slate max-w-none
-                    prose-headings:text-slate-900 prose-headings:font-bold
-                    prose-h2:text-2xl prose-h2:pb-2 prose-h2:border-b-2 prose-h2:border-purple-500 prose-h2:mb-4
-                    prose-h3:text-xl prose-h3:text-purple-900
-                    prose-p:text-slate-700 prose-p:leading-relaxed
-                    prose-strong:text-slate-900
-                    prose-ul:space-y-1 prose-li:text-slate-700
-                    prose-a:text-purple-600 prose-a:no-underline hover:prose-a:underline
-                    prose-blockquote:border-purple-500 prose-blockquote:bg-purple-50 prose-blockquote:rounded-xl prose-blockquote:py-1 prose-blockquote:px-4
-                    prose-table:rounded-xl prose-table:overflow-hidden
-                    prose-th:bg-purple-100 prose-th:text-purple-900
-                    prose-td:border-slate-200"
-                  dangerouslySetInnerHTML={{ __html: entry.content_html }}
+                <iframe
+                  ref={iframeRef}
+                  srcDoc={buildSrcDoc(entry.content_html)}
+                  sandbox="allow-scripts"
+                  className="w-full border-0"
+                  style={{ minHeight: '200px' }}
+                  title="Contenu"
                 />
               </div>
             )}
