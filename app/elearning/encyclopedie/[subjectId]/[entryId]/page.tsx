@@ -106,21 +106,13 @@ export default function EntryDetailPage() {
   const [loading, setLoading] = useState(true)
   const [userRole, setUserRole] = useState<string>('free')
 
-  const contentRef = useRef<HTMLDivElement>(null)
+  const iframeRef = useRef<HTMLIFrameElement>(null)
 
-  // Re-execute inline scripts from content_html after render
-  useEffect(() => {
-    if (!contentRef.current) return
-    const scripts = contentRef.current.querySelectorAll('script')
-    scripts.forEach((oldScript) => {
-      const newScript = document.createElement('script')
-      Array.from(oldScript.attributes).forEach((attr) =>
-        newScript.setAttribute(attr.name, attr.value)
-      )
-      newScript.textContent = oldScript.textContent
-      oldScript.parentNode?.replaceChild(newScript, oldScript)
-    })
-  }, [entry?.content_html])
+  const handleIframeLoad = () => {
+    const iframe = iframeRef.current
+    if (!iframe?.contentDocument?.body) return
+    iframe.style.height = iframe.contentDocument.body.scrollHeight + 'px'
+  }
 
   // Modal states
   const [selectedTest, setSelectedTest] = useState<FullTest | null>(null)
@@ -406,21 +398,14 @@ export default function EntryDetailPage() {
             {/* Rich text content */}
             {entry.content_html && (
               <div className="px-8 py-6">
-                <div
-                  ref={contentRef}
-                  className="prose prose-lg prose-slate max-w-none
-                    prose-headings:text-slate-900 prose-headings:font-bold
-                    prose-h2:text-2xl prose-h2:pb-2 prose-h2:border-b-2 prose-h2:border-purple-500 prose-h2:mb-4
-                    prose-h3:text-xl prose-h3:text-purple-900
-                    prose-p:text-slate-700 prose-p:leading-relaxed
-                    prose-strong:text-slate-900
-                    prose-ul:space-y-1 prose-li:text-slate-700
-                    prose-a:text-purple-600 prose-a:no-underline hover:prose-a:underline
-                    prose-blockquote:border-purple-500 prose-blockquote:bg-purple-50 prose-blockquote:rounded-xl prose-blockquote:py-1 prose-blockquote:px-4
-                    prose-table:rounded-xl prose-table:overflow-hidden
-                    prose-th:bg-purple-100 prose-th:text-purple-900
-                    prose-td:border-slate-200"
-                  dangerouslySetInnerHTML={{ __html: entry.content_html }}
+                <iframe
+                  ref={iframeRef}
+                  srcDoc={entry.content_html}
+                  sandbox="allow-scripts allow-same-origin"
+                  className="w-full border-0"
+                  style={{ minHeight: '200px' }}
+                  onLoad={handleIframeLoad}
+                  title="Contenu"
                 />
               </div>
             )}
