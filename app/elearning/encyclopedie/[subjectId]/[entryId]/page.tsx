@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import AuthLayout from '@/components/AuthLayout'
 import { supabase } from '@/lib/supabase'
@@ -105,6 +105,22 @@ export default function EntryDetailPage() {
   const [associatedClusters, setAssociatedClusters] = useState<OrthopedicTestCluster[]>([])
   const [loading, setLoading] = useState(true)
   const [userRole, setUserRole] = useState<string>('free')
+
+  const contentRef = useRef<HTMLDivElement>(null)
+
+  // Re-execute inline scripts from content_html after render
+  useEffect(() => {
+    if (!contentRef.current) return
+    const scripts = contentRef.current.querySelectorAll('script')
+    scripts.forEach((oldScript) => {
+      const newScript = document.createElement('script')
+      Array.from(oldScript.attributes).forEach((attr) =>
+        newScript.setAttribute(attr.name, attr.value)
+      )
+      newScript.textContent = oldScript.textContent
+      oldScript.parentNode?.replaceChild(newScript, oldScript)
+    })
+  }, [entry?.content_html])
 
   // Modal states
   const [selectedTest, setSelectedTest] = useState<FullTest | null>(null)
@@ -391,6 +407,7 @@ export default function EntryDetailPage() {
             {entry.content_html && (
               <div className="px-8 py-6">
                 <div
+                  ref={contentRef}
                   className="prose prose-lg prose-slate max-w-none
                     prose-headings:text-slate-900 prose-headings:font-bold
                     prose-h2:text-2xl prose-h2:pb-2 prose-h2:border-b-2 prose-h2:border-purple-500 prose-h2:mb-4
