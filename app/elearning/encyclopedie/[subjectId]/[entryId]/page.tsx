@@ -108,16 +108,36 @@ export default function EntryDetailPage() {
 
   const iframeRef = useRef<HTMLIFrameElement>(null)
 
-  const handleIframeLoad = () => {
-    const iframe = iframeRef.current
-    if (!iframe?.contentDocument?.body) return
-    iframe.style.height = iframe.contentDocument.body.scrollHeight + 'px'
-  }
+  // Listen for resize messages from the iframe (sent by ResizeObserver inside)
+  useEffect(() => {
+    const handleMessage = (e: MessageEvent) => {
+      if (e.data?.type === 'iframe-resize' && iframeRef.current) {
+        iframeRef.current.style.height = e.data.height + 'px'
+      }
+    }
+    window.addEventListener('message', handleMessage)
+    return () => window.removeEventListener('message', handleMessage)
+  }, [])
 
-  // Inject a script that intercepts anchor-hash clicks inside the iframe
-  // so they scroll within the iframe instead of triggering CSP-blocked navigation
+  // Inject prose styles + anchor fix + ResizeObserver into the srcDoc HTML
   const buildSrcDoc = (html: string) => {
-    const anchorFix = `<script>
+    const injection = `<style>
+body{font-family:system-ui,sans-serif;color:#334155;line-height:1.75;font-size:1.125rem;margin:0;padding:0}
+h1,h2,h3,h4,h5,h6{color:#0f172a;font-weight:700;margin-top:1.5rem;margin-bottom:.75rem}
+h2{font-size:1.5rem;padding-bottom:.5rem;border-bottom:2px solid #a855f7;margin-bottom:1rem}
+h3{font-size:1.25rem;color:#3b0764}
+p{color:#475569;line-height:1.75;margin:.75rem 0}
+strong{color:#0f172a}
+ul,ol{padding-left:1.5rem;margin:.5rem 0}
+li{color:#475569;margin:.25rem 0}
+a{color:#9333ea;text-decoration:none}
+a:hover{text-decoration:underline}
+blockquote{border-left:4px solid #a855f7;background:#faf5ff;border-radius:.75rem;padding:.25rem 1rem;margin:1rem 0}
+table{border-radius:.75rem;overflow:hidden;width:100%;border-collapse:collapse;margin:1rem 0}
+th{background:#f3e8ff;color:#581c87;padding:.75rem;text-align:left}
+td{border:1px solid #e2e8f0;padding:.75rem}
+img{max-width:100%;height:auto;border-radius:.5rem}
+</style><script>
 document.addEventListener('click', function(e) {
   var a = e.target.closest('a[href^="#"]');
   if (!a) return;
@@ -126,10 +146,13 @@ document.addEventListener('click', function(e) {
   var el = id ? document.getElementById(id) : null;
   if (el) el.scrollIntoView({ behavior: 'smooth' });
 });
+new ResizeObserver(function() {
+  window.parent.postMessage({ type: 'iframe-resize', height: document.body.scrollHeight }, '*');
+}).observe(document.body);
 <\/script>`
     return html.includes('</head>')
-      ? html.replace('</head>', anchorFix + '</head>')
-      : anchorFix + html
+      ? html.replace('</head>', injection + '</head>')
+      : injection + html
   }
 
   // Modal states
@@ -422,7 +445,6 @@ document.addEventListener('click', function(e) {
                   sandbox="allow-scripts"
                   className="w-full border-0"
                   style={{ minHeight: '200px' }}
-                  onLoad={handleIframeLoad}
                   title="Contenu"
                 />
               </div>
