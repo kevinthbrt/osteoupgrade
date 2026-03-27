@@ -161,6 +161,8 @@ document.addEventListener('click',function(e){var a=e.target.closest('a[href^="#
     --green-bg: #f0fdf4;
     --red-flag: #dc2626;
     --red-flag-bg: #fef2f2;
+    --red: #dc2626;
+    --red-bg: #fef2f2;
     --warning: #f59e0b;
     --warning-bg: #fffbeb;
     --text-dark: #0f172a;
