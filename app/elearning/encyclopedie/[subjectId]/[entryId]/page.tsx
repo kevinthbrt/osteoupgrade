@@ -1279,6 +1279,38 @@ new ResizeObserver(sendHeight).observe(document.documentElement);
   }
 })();
 
+// ── Tab switching (.tab-btn / .tool-panel)
+document.querySelectorAll('.tab-btn').forEach(function (btn) {
+  btn.addEventListener('click', function () {
+    document.querySelectorAll('.tab-btn').forEach(function (b) { b.classList.remove('active'); });
+    document.querySelectorAll('.tool-panel').forEach(function (p) { p.classList.remove('active'); });
+    btn.classList.add('active');
+    var panel = document.getElementById('panel-' + btn.dataset.panel);
+    if (panel) panel.classList.add('active');
+  });
+});
+
+// ── Check item toggle (.check-item)
+document.addEventListener('click', function (e) {
+  var item = e.target.closest('.check-item');
+  if (!item) return;
+  if (item.dataset.role === 'mixed') {
+    item.classList.toggle('checked');
+  } else {
+    item.classList.toggle('checked-red');
+  }
+});
+
+// ── Radio option toggle (.radio-opt / .question-block)
+document.addEventListener('click', function (e) {
+  var opt = e.target.closest('.radio-opt');
+  if (!opt) return;
+  var block = opt.closest('.question-block');
+  if (!block) return;
+  block.querySelectorAll('.radio-opt').forEach(function (o) { o.classList.remove('selected'); });
+  opt.classList.add('selected');
+});
+
 <\/script>`
     return `<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">${fonts}${designCSS}${baseJS}</head><body>${html}</body></html>`
   }
