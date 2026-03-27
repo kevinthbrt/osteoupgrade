@@ -138,6 +138,8 @@ table{border-radius:.75rem;overflow:hidden;width:100%;border-collapse:collapse;m
 th{background:#f3e8ff;color:#581c87;padding:.75rem;text-align:left}
 td{border:1px solid #e2e8f0;padding:.75rem}
 img{max-width:100%;height:auto;border-radius:.5rem}
+/* Sticky headers inside iframe stick to the iframe top, not the page — disable */
+.site-header{position:relative!important;top:auto!important}
 </style><script>
 document.addEventListener('click', function(e) {
   var a = e.target.closest('a[href^="#"]');
@@ -153,8 +155,8 @@ function sendHeight() {
 }
 new ResizeObserver(sendHeight).observe(document.documentElement);
 <\/script>`
-    return html.includes('</head>')
-      ? html.replace('</head>', injection + '</head>')
+    return html.includes('<head>')
+      ? html.replace('<head>', '<head>' + injection)
       : injection + html
   }
 
