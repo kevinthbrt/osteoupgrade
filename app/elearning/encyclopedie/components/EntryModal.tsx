@@ -1,9 +1,10 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { X, Loader2, Plus, Trash2, Upload, Search, GripVertical, TestTube2, Image as ImageIcon } from 'lucide-react'
+import { X, Loader2, Trash2, Upload, Search, GripVertical, TestTube2, Image as ImageIcon, Wand2 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import Image from 'next/image'
+import { rawTextToHtml } from '@/lib/encyclopedia/rawTextToHtml'
 
 type EntryImage = { url: string; caption?: string }
 
@@ -46,6 +47,7 @@ interface EntryModalProps {
 
 export default function EntryModal({ open, onClose, onSaved, subjectId, parentId, entry }: EntryModalProps) {
   const [title, setTitle] = useState('')
+  const [rawTextContent, setRawTextContent] = useState('')
   const [contentHtml, setContentHtml] = useState('')
   const [vimeoUrl, setVimeoUrl] = useState('')
   const [images, setImages] = useState<EntryImage[]>([])
@@ -71,6 +73,7 @@ export default function EntryModal({ open, onClose, onSaved, subjectId, parentId
   useEffect(() => {
     if (entry) {
       setTitle(entry.title)
+      setRawTextContent('')
       setContentHtml(entry.content_html || '')
       setVimeoUrl(entry.vimeo_url || '')
       setImages(entry.images || [])
@@ -78,6 +81,7 @@ export default function EntryModal({ open, onClose, onSaved, subjectId, parentId
       if (entry.id) loadExistingAssociations(entry.id)
     } else {
       setTitle('')
+      setRawTextContent('')
       setContentHtml('')
       setVimeoUrl('')
       setImages([])
@@ -273,6 +277,31 @@ export default function EntryModal({ open, onClose, onSaved, subjectId, parentId
           </div>
 
           {/* Content HTML */}
+          <div>
+            <div className="flex items-center justify-between mb-1">
+              <label className="block text-sm font-semibold text-slate-700">Texte brut (optionnel)</label>
+              <button
+                type="button"
+                onClick={() => setContentHtml(rawTextToHtml(rawTextContent))}
+                disabled={!rawTextContent.trim()}
+                className="px-3 py-1.5 text-xs font-semibold text-purple-700 bg-purple-100 rounded-lg hover:bg-purple-200 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
+              >
+                <Wand2 className="h-3.5 w-3.5" />
+                Convertir en HTML
+              </button>
+            </div>
+            <textarea
+              value={rawTextContent}
+              onChange={(e) => setRawTextContent(e.target.value)}
+              rows={7}
+              placeholder="# Titre section\nTexte du cours...\n\n- Point clé 1\n- Point clé 2\n\n| Colonne A | Colonne B |\n|---|---|\n| Valeur 1 | Valeur 2 |"
+              className="w-full px-4 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition resize-y text-sm"
+            />
+            <p className="mt-1 text-xs text-slate-500">
+              Supporte les titres Markdown (<code>#</code>, <code>##</code>, <code>###</code>), listes, tableaux au format pipe et callouts <code>:::info</code>/<code>:::warning</code>.
+            </p>
+          </div>
+
           <div>
             <label className="block text-sm font-semibold text-slate-700 mb-1">Contenu (HTML)</label>
             <textarea
