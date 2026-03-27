@@ -124,9 +124,9 @@ export default function EntryDetailPage() {
     const injection = `<style>
 html,body{height:auto!important;overflow:visible!important}
 body{font-family:system-ui,sans-serif;color:#334155;line-height:1.75;font-size:1.125rem;margin:0;padding:0}
-h1,h2,h3,h4,h5,h6{color:#0f172a;font-weight:700;margin-top:1.5rem;margin-bottom:.75rem}
+h1,h2,h3,h4,h5,h6{font-weight:700;margin-top:1.5rem;margin-bottom:.75rem}
 h2{font-size:1.5rem;padding-bottom:.5rem;border-bottom:2px solid #a855f7;margin-bottom:1rem}
-h3{font-size:1.25rem;color:#3b0764}
+h3{font-size:1.25rem}
 p{color:#475569;line-height:1.75;margin:.75rem 0}
 strong{color:#0f172a}
 ul,ol{padding-left:1.5rem;margin:.5rem 0}
