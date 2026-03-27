@@ -942,6 +942,8 @@ document.addEventListener('click',function(e){var a=e.target.closest('a[href^="#
   .kp-text { flex: 1; color: var(--text-mid); font-size: 0.96rem; line-height: 1.6; }
   .kp-item strong { color: inherit; }
   .kp-text strong { color: var(--navy); }
+  .card.full-navy .kp-text { color: rgba(255,255,255,0.85); }
+  .card.full-navy .kp-text strong { color: white; }
 
   /* ─── FOOTER ─── */
   footer {
