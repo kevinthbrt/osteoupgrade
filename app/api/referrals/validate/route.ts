@@ -1,12 +1,22 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
+import { rateLimit } from '@/lib/rate-limit'
 
 /**
  * POST /api/referrals/validate
  * Validates a referral code without requiring authentication
  */
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
+  const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown'
+  const { allowed, retryAfter } = rateLimit(`referrals-validate:${ip}`, { limit: 10, windowSeconds: 60 })
+  if (!allowed) {
+    return NextResponse.json({ error: 'Too many requests' }, {
+      status: 429,
+      headers: { 'Retry-After': String(retryAfter) },
+    })
+  }
+
   try {
     const supabase = createRouteHandlerClient({ cookies })
     const body = await request.json()

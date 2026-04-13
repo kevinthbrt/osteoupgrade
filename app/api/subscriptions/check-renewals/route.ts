@@ -24,8 +24,6 @@ export async function GET(request: Request) {
     const now = new Date()
     const sevenDaysFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)
 
-    console.log('🔍 Checking Stripe subscriptions for upcoming renewals (within 7 days)...')
-
     // Récupérer tous les utilisateurs Premium actifs avec un stripe_subscription_id
     const { data: premiumUsers, error: usersError } = await supabaseAdmin
       .from('profiles')
@@ -35,11 +33,9 @@ export async function GET(request: Request) {
       .not('stripe_subscription_id', 'is', null)
 
     if (usersError) {
-      console.error('❌ Error fetching premium users:', usersError)
-      return NextResponse.json({ error: usersError.message }, { status: 500 })
+      console.error('Error fetching premium users for renewal check')
+      return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
     }
-
-    console.log(`Found ${premiumUsers?.length || 0} active premium users to check`)
 
     const notifications: any[] = []
     const cooldownMs = REMINDER_COOLDOWN_DAYS * 24 * 60 * 60 * 1000
@@ -50,7 +46,6 @@ export async function GET(request: Request) {
         if (user.renewal_reminder_sent_at) {
           const lastSent = new Date(user.renewal_reminder_sent_at).getTime()
           if (now.getTime() - lastSent < cooldownMs) {
-            console.log(`⏭️ Skipping ${user.email}: reminder already sent recently`)
             continue
           }
         }
@@ -68,8 +63,6 @@ export async function GET(request: Request) {
           const daysUntilRenewal = Math.ceil(
             (periodEndDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
           )
-
-          console.log(`📨 Sending renewal reminder to ${user.email} (renouvellement dans ${daysUntilRenewal} j)`)
 
           // Déclencher l'automatisation "Renouvellement imminent" → template e4444444
           await fetch(`${process.env.NEXT_PUBLIC_URL || 'http://localhost:3000'}/api/automations/trigger`, {
@@ -101,26 +94,19 @@ export async function GET(request: Request) {
 
           notifications.push({
             user_id: user.id,
-            email: user.email,
             days_until_renewal: daysUntilRenewal,
             renewal_date: periodEndDate.toISOString(),
             status: 'sent'
           })
-
-          console.log(`✅ Renewal reminder sent to ${user.email}`)
         }
       } catch (err) {
-        console.error(`❌ Error processing renewal check for ${user.email}:`, err)
+        console.error('Error processing renewal check for a user')
         notifications.push({
           user_id: user.id,
-          email: user.email,
           status: 'failed',
-          error: err instanceof Error ? err.message : 'Unknown error'
         })
       }
     }
-
-    console.log(`✅ Renewal check complete: ${notifications.filter(n => n.status === 'sent').length} reminders sent`)
 
     return NextResponse.json({
       success: true,
@@ -130,7 +116,7 @@ export async function GET(request: Request) {
       details: notifications
     })
   } catch (error: any) {
-    console.error('❌ Error in check-renewals:', error)
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    console.error('Error in check-renewals')
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
