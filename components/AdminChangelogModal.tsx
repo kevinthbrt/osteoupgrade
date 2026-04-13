@@ -15,10 +15,43 @@ type ChangelogEntry = {
 
 // ─────────────────────────────────────────────
 // 🔖 INCRÉMENTER cette valeur à chaque mise à jour
-const CHANGELOG_VERSION = 8
+const CHANGELOG_VERSION = 9
 // ─────────────────────────────────────────────
 
 const CHANGELOG: ChangelogEntry[] = [
+  {
+    date: '13 avril 2026',
+    changes: [
+      {
+        type: 'fix',
+        text: 'Sécurité — /api/quiz/attempts : la route était accessible sans authentification et permettait de lire/écrire les données de quiz de n\'importe quel utilisateur. Authentification obligatoire et vérification d\'appartenance des données ajoutées. Validation Zod sur tous les paramètres.'
+      },
+      {
+        type: 'fix',
+        text: 'Sécurité — Endpoint de debug /api/emails/debug-payload désactivé en production (retourne 404). Il exposait la structure interne des webhooks Resend.'
+      },
+      {
+        type: 'fix',
+        text: 'Sécurité — /api/profile ne retourne plus les champs access_token, refresh_token et expires_at dans la réponse JSON.'
+      },
+      {
+        type: 'fix',
+        text: 'Sécurité — Rate limiting ajouté sur /api/referrals/validate (10 req/min par IP). Nouveau module lib/rate-limit.ts réutilisable sur tous les endpoints.'
+      },
+      {
+        type: 'fix',
+        text: 'Sécurité — Suppression de tous les console.log contenant des données sensibles (user IDs, emails, montants, codes de parrainage) dans le webhook Stripe et le cron de renouvellements.'
+      },
+      {
+        type: 'fix',
+        text: 'Sécurité — Supabase : suppression de la policy INSERT ouverte sur la table received_emails (les insertions via service role continuent de fonctionner normalement).'
+      },
+      {
+        type: 'fix',
+        text: 'Dépendances — correction de 2 vulnérabilités critiques : Next.js 14.1.0 → 14.2.35 (SSRF dans Server Actions), jsPDF 2.5.2 → 4.2.1 (ReDoS). 9 vulnérabilités hautes résolues via npm audit fix.'
+      }
+    ]
+  },
   {
     date: '1 mars 2026',
     changes: [
