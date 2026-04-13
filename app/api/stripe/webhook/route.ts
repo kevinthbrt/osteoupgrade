@@ -19,7 +19,7 @@ export async function POST(request: Request) {
     try {
       event = stripe.webhooks.constructEvent(body, signature, webhookSecret)
     } catch (err: any) {
-      console.error(`Webhook signature verification failed: ${err.message}`)
+      console.error('Webhook signature verification failed')
       return NextResponse.json({ error: 'Webhook signature verification failed' }, { status: 400 })
     }
 
@@ -46,13 +46,13 @@ export async function POST(request: Request) {
         break
 
       default:
-        console.log(`Unhandled event type: ${event.type}`)
+        break
     }
 
     return NextResponse.json({ received: true })
   } catch (error: any) {
-    console.error('Webhook error:', error)
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    console.error('Webhook error')
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
 
@@ -65,22 +65,10 @@ async function handleCheckoutCompleted(session: any) {
   const referralCode = session.metadata?.referral_code
   const referrerUserId = session.metadata?.referrer_user_id
 
-  console.log('📦 Checkout session data:', {
-    userId,
-    planType,
-    isAnnual,
-    billingInterval,
-    referralCode,
-    referrerUserId,
-    sessionId: session.id
-  })
-
   if (!userId || !planType) {
-    console.error('❌ Missing userId or planType in checkout session:', { userId, planType })
+    console.error('Checkout completed: missing userId or planType')
     return
   }
-
-  console.log(`✅ Checkout completed for user ${userId}, plan ${planType}, interval: ${billingInterval}`)
 
   // Mettre à jour le profil utilisateur (sans engagement)
   const subscriptionStartDate = new Date()
@@ -96,8 +84,6 @@ async function handleCheckoutCompleted(session: any) {
     stripe_subscription_id: session.subscription
   }
 
-  console.log('📝 Updating profile with:', updateData)
-
   const { data: updatedProfile, error: updateError } = await supabaseAdmin
     .from('profiles')
     .update(updateData)
@@ -105,11 +91,9 @@ async function handleCheckoutCompleted(session: any) {
     .select()
 
   if (updateError) {
-    console.error('❌ Error updating profile:', updateError)
+    console.error('Error updating profile on checkout completed')
     return
   }
-
-  console.log('✅ Profile updated successfully:', updatedProfile)
 
   // Récupérer l'email du user
   const { data: profile } = await supabaseAdmin
@@ -119,14 +103,12 @@ async function handleCheckoutCompleted(session: any) {
     .single()
 
   if (!profile) {
-    console.error('❌ Profile not found for email automation')
+    console.error('Profile not found for email automation')
     return
   }
 
   // 💰 GÉRER LA COMMISSION DE PARRAINAGE (UNIQUEMENT POUR LES ABONNEMENTS ANNUELS)
   if (referrerUserId && referralCode && isAnnual) {
-    console.log('💰 Processing referral commission for:', referralCode)
-
     // Utiliser le montant réellement payé (après code promo éventuel)
     // session.amount_total est le montant total facturé en centimes (après réductions)
     let subscriptionAmount = session.amount_total || 0
@@ -135,26 +117,17 @@ async function handleCheckoutCompleted(session: any) {
       try {
         const subscription = await stripe.subscriptions.retrieve(session.subscription)
         subscriptionAmount = subscription.items.data[0]?.price?.unit_amount || 0
-        console.log('💵 Fallback subscription amount (base price):', subscriptionAmount, 'cents')
       } catch (err) {
-        console.error('❌ Error retrieving subscription amount:', err)
+        console.error('Error retrieving subscription amount')
       }
-    } else {
-      console.log('💵 Actual paid amount (after discounts):', subscriptionAmount, 'cents')
     }
 
     if (subscriptionAmount > 0) {
       // Calculer la commission (10%)
       const commissionAmount = Math.floor(subscriptionAmount * 0.10)
 
-      console.log('📊 Commission calculation:', {
-        subscriptionAmount,
-        commissionAmount,
-        percentage: '10%'
-      })
-
       // 1️⃣ Créer la transaction de parrainage pour LE PARRAIN
-      const { data: referrerTransaction, error: referrerError } = await supabaseAdmin
+      const { error: referrerError } = await supabaseAdmin
         .from('referral_transactions')
         .insert({
           referrer_id: referrerUserId,
@@ -171,10 +144,8 @@ async function handleCheckoutCompleted(session: any) {
         .single()
 
       if (referrerError) {
-        console.error('❌ Error creating referrer transaction:', referrerError)
+        console.error('Error creating referrer transaction')
       } else {
-        console.log('✅ Referrer transaction created:', referrerTransaction)
-
         // Notifier le parrain par email
         try {
           const { data: referrerProfile } = await supabaseAdmin
@@ -200,15 +171,14 @@ async function handleCheckoutCompleted(session: any) {
                 }
               })
             })
-            console.log('✅ Referrer notification sent')
           }
         } catch (err) {
-          console.error('⚠️ Error sending referrer notification:', err)
+          console.error('Error sending referrer notification')
         }
       }
 
       // 2️⃣ Créer AUSSI une transaction de parrainage pour LE FILLEUL (10% de son propre achat)
-      const { data: referredTransaction, error: referredError } = await supabaseAdmin
+      const { error: referredError } = await supabaseAdmin
         .from('referral_transactions')
         .insert({
           referrer_id: userId, // Le filleul reçoit la commission dans son propre compte
@@ -225,10 +195,8 @@ async function handleCheckoutCompleted(session: any) {
         .single()
 
       if (referredError) {
-        console.error('❌ Error creating referred user (self) transaction:', referredError)
+        console.error('Error creating referred user transaction')
       } else {
-        console.log('✅ Referred user (self) transaction created:', referredTransaction)
-
         // Notifier le filleul qu'il a gagné 10% sur son propre achat
         try {
           await fetch(`${process.env.NEXT_PUBLIC_URL || 'http://localhost:3000'}/api/automations/trigger`, {
@@ -246,9 +214,8 @@ async function handleCheckoutCompleted(session: any) {
               }
             })
           })
-          console.log('✅ Referred user (self) bonus notification sent')
         } catch (err) {
-          console.error('⚠️ Error sending referred user notification:', err)
+          console.error('Error sending referred user notification')
         }
       }
     }
@@ -272,16 +239,12 @@ async function handleCheckoutCompleted(session: any) {
         .in('status', ['pending', 'processing'])
 
       if (cancelError) {
-        console.error('⚠️ Error cancelling relance enrollment:', cancelError)
-      } else {
-        console.log('✅ Relance Premium enrollment cancelled for:', profile.email)
+        console.error('Error cancelling relance enrollment')
       }
     }
   } catch (err) {
-    console.error('⚠️ Error cancelling relance enrollment:', err)
+    console.error('Error cancelling relance enrollment')
   }
-
-  console.log('📧 Triggering automation for:', profile.email)
 
   // 🚀 DÉCLENCHER L'AUTOMATISATION selon le plan (Silver ou Gold)
   const eventName = planType === 'premium_gold' ? 'Passage à Premium Gold' : 'Passage à Premium Silver'
@@ -300,7 +263,7 @@ async function handleCheckoutCompleted(session: any) {
         .single()
       userReferralCode = referralCodeData?.referral_code || ''
     } catch (err) {
-      console.error('⚠️ Could not fetch referral code for user:', userId)
+      console.error('Could not fetch referral code for automation')
     }
   }
 
@@ -323,9 +286,8 @@ async function handleCheckoutCompleted(session: any) {
         }
       })
     })
-    console.log(`✅ Automation triggered: ${eventName}`)
   } catch (err) {
-    console.error('❌ Error triggering automation:', err)
+    console.error('Error triggering automation')
   }
 }
 
@@ -334,11 +296,9 @@ async function handleSubscriptionUpdated(subscription: any) {
   const customerId = subscription.customer
 
   if (!customerId) {
-    console.error('❌ Missing customer ID in subscription')
+    console.error('Missing customer ID in subscription update')
     return
   }
-
-  console.log(`ℹ️ Subscription updated for customer ${customerId}, status: ${subscription.status}`)
 
   // Trouver l'utilisateur par son stripe_customer_id
   const { data: profile, error: profileError } = await supabaseAdmin
@@ -348,7 +308,7 @@ async function handleSubscriptionUpdated(subscription: any) {
     .single()
 
   if (profileError || !profile) {
-    console.error('❌ Profile not found for customer:', customerId, profileError)
+    console.error('Profile not found for subscription update')
     return
   }
 
@@ -359,8 +319,6 @@ async function handleSubscriptionUpdated(subscription: any) {
       subscription_status: subscription.status
     })
     .eq('id', profile.id)
-
-  console.log(`✅ Updated subscription status to ${subscription.status} for user ${profile.id}`)
 }
 
 // Gérer la suppression/annulation d'abonnement
@@ -368,11 +326,9 @@ async function handleSubscriptionDeleted(subscription: any) {
   const customerId = subscription.customer
 
   if (!customerId) {
-    console.error('❌ Missing customer ID in subscription')
+    console.error('Missing customer ID in subscription deletion')
     return
   }
-
-  console.log(`❌ Subscription deleted for customer ${customerId}`)
 
   // Trouver l'utilisateur par son stripe_customer_id
   const { data: profile, error: profileError } = await supabaseAdmin
@@ -382,11 +338,9 @@ async function handleSubscriptionDeleted(subscription: any) {
     .single()
 
   if (profileError || !profile) {
-    console.error('❌ Profile not found for customer:', customerId, profileError)
+    console.error('Profile not found for subscription deletion')
     return
   }
-
-  console.log(`Found user ${profile.id} for customer ${customerId}`)
 
   // Révoquer le premium (plus d'engagement, annulation immédiate)
   const { error: updateError } = await supabaseAdmin
@@ -401,11 +355,9 @@ async function handleSubscriptionDeleted(subscription: any) {
     .eq('id', profile.id)
 
   if (updateError) {
-    console.error('❌ Error updating profile:', updateError)
+    console.error('Error downgrading user to free')
     return
   }
-
-  console.log('✅ User downgraded to free')
 
   // 🚀 DÉCLENCHER L'AUTOMATISATION "Abonnement expiré"
   try {
@@ -423,9 +375,8 @@ async function handleSubscriptionDeleted(subscription: any) {
         }
       })
     })
-    console.log('✅ Automation triggered: Abonnement expiré')
   } catch (err) {
-    console.error('❌ Error triggering automation:', err)
+    console.error('Error triggering expiry automation')
   }
 }
 
@@ -434,7 +385,6 @@ async function handlePaymentSucceeded(invoice: any) {
   const subscriptionId = invoice.subscription
 
   if (!subscriptionId) {
-    console.log('ℹ️ Payment succeeded but no subscription ID (one-time payment)')
     return
   }
 
@@ -443,11 +393,8 @@ async function handlePaymentSucceeded(invoice: any) {
   // billing_reason = 'subscription_create' → premier paiement
   // billing_reason = 'subscription_cycle'  → renouvellement périodique → on envoie e5555555
   if (invoice.billing_reason === 'subscription_create') {
-    console.log('ℹ️ Skipping invoice.payment_succeeded for initial subscription (handled by checkout.session.completed)')
     return
   }
-
-  console.log(`✅ Renewal payment succeeded for subscription ${subscriptionId} (billing_reason: ${invoice.billing_reason})`)
 
   // Trouver l'utilisateur par son stripe_subscription_id
   const { data: profile, error: profileError } = await supabaseAdmin
@@ -457,11 +404,9 @@ async function handlePaymentSucceeded(invoice: any) {
     .single()
 
   if (profileError || !profile) {
-    console.error('❌ Profile not found for subscription:', subscriptionId, profileError)
+    console.error('Profile not found for payment succeeded')
     return
   }
-
-  console.log(`💰 Renewal payment processed for user ${profile.id}`)
 
   // S'assurer que le statut de l'abonnement est actif
   const { error: updateError } = await supabaseAdmin
@@ -472,7 +417,7 @@ async function handlePaymentSucceeded(invoice: any) {
     .eq('id', profile.id)
 
   if (updateError) {
-    console.error('❌ Error updating subscription status:', updateError)
+    console.error('Error updating subscription status on renewal')
   }
 
   // 🚀 DÉCLENCHER L'AUTOMATISATION "Renouvellement effectué" → template e5555555
@@ -492,14 +437,12 @@ async function handlePaymentSucceeded(invoice: any) {
         }
       })
     })
-    console.log('✅ Automation triggered: Renouvellement effectué')
   } catch (err) {
-    console.error('❌ Error triggering automation:', err)
+    console.error('Error triggering renewal automation')
   }
 }
 
 // Paiement échoué
 async function handlePaymentFailed(invoice: any) {
-  console.log(`❌ Payment failed for subscription ${invoice.subscription}`)
   // Optionnel : alerter l'utilisateur
 }

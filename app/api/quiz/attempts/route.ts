@@ -1,56 +1,93 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { cookies } from 'next/headers'
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
+import { supabaseAdmin } from '@/lib/supabase-server'
+import { z } from 'zod'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+const getSchema = z.object({
+  quiz_id: z.string().uuid(),
+  user_id: z.string().uuid(),
+})
+
+const postSchema = z.object({
+  quiz_id: z.string().uuid(),
+  user_id: z.string().uuid(),
+  score: z.number().min(0).max(100),
+  total_questions: z.number().int().min(1).optional(),
+  correct_answers: z.number().int().min(0).optional(),
+  passed: z.boolean().optional(),
+  answers_data: z.unknown().optional(),
+})
 
 export async function GET(request: NextRequest) {
   try {
-    const searchParams = request.nextUrl.searchParams
-    const quizId = searchParams.get('quiz_id')
-    const userId = searchParams.get('user_id')
+    const supabase = createRouteHandlerClient({ cookies })
+    const { data: { user }, error: userError } = await supabase.auth.getUser()
 
-    if (!quizId || !userId) {
-      return NextResponse.json({ error: 'Missing quiz_id or user_id' }, { status: 400 })
+    if (userError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const supabase = createClient(supabaseUrl, supabaseKey)
+    const searchParams = request.nextUrl.searchParams
+    const parsed = getSchema.safeParse({
+      quiz_id: searchParams.get('quiz_id'),
+      user_id: searchParams.get('user_id'),
+    })
 
-    const { data: attempts, error } = await supabase
+    if (!parsed.success) {
+      return NextResponse.json({ error: 'Invalid parameters' }, { status: 400 })
+    }
+
+    const { quiz_id, user_id } = parsed.data
+
+    if (user_id !== user.id) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+
+    const { data: attempts, error } = await supabaseAdmin
       .from('elearning_quiz_attempts')
       .select('*')
-      .eq('quiz_id', quizId)
-      .eq('user_id', userId)
+      .eq('quiz_id', quiz_id)
+      .eq('user_id', user.id)
       .order('completed_at', { ascending: false })
 
     if (error) {
-      console.error('Error fetching quiz attempts:', error)
-      return NextResponse.json({ error: error.message }, { status: 500 })
+      return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
     }
 
     return NextResponse.json({ attempts })
-  } catch (error) {
-    console.error('Error in GET /api/quiz/attempts:', error)
+  } catch {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json()
-    const { quiz_id, user_id, score, total_questions, correct_answers, passed, answers_data } = body
+    const supabase = createRouteHandlerClient({ cookies })
+    const { data: { user }, error: userError } = await supabase.auth.getUser()
 
-    if (!quiz_id || !user_id || score === undefined) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
+    if (userError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const supabase = createClient(supabaseUrl, supabaseKey)
+    const body = await request.json()
+    const parsed = postSchema.safeParse(body)
 
-    const { data: attempt, error } = await supabase
+    if (!parsed.success) {
+      return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
+    }
+
+    const { quiz_id, user_id, score, total_questions, correct_answers, passed, answers_data } = parsed.data
+
+    if (user_id !== user.id) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+
+    const { data: attempt, error } = await supabaseAdmin
       .from('elearning_quiz_attempts')
       .insert({
         quiz_id,
-        user_id,
+        user_id: user.id,
         score,
         total_questions,
         correct_answers,
@@ -62,13 +99,11 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (error) {
-      console.error('Error creating quiz attempt:', error)
-      return NextResponse.json({ error: error.message }, { status: 500 })
+      return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
     }
 
     return NextResponse.json({ attempt })
-  } catch (error) {
-    console.error('Error in POST /api/quiz/attempts:', error)
+  } catch {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
