@@ -97,139 +97,137 @@ export default function ElearningHubPage() {
 
   return (
     <AuthLayout>
-      <div className="min-h-screen">
-        {/* Hero Section */}
-        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white shadow-2xl mb-8">
-          <div className="absolute inset-0 bg-grid-white/[0.02] bg-[size:60px_60px]" />
-          <div className="absolute top-0 right-0 w-96 h-96 bg-blue-500/30 rounded-full blur-3xl" />
-          <div className="absolute bottom-0 left-0 w-96 h-96 bg-emerald-500/20 rounded-full blur-3xl" />
+      <div className="min-h-screen -m-6 md:-m-8">
 
-          <div className="relative px-6 py-8 md:px-10 md:py-10">
-            <div className="max-w-4xl">
-              <div className="inline-flex items-center gap-2 rounded-full bg-white/10 backdrop-blur-sm px-3 py-1.5 mb-4 border border-white/20">
-                <GraduationCap className="h-3.5 w-3.5 text-blue-300" />
-                <span className="text-xs font-semibold text-blue-100">E-Learning</span>
-              </div>
+        {/* ── Header ─────────────────────────────────────────────────── */}
+        <div className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 px-6 md:px-10 pt-8 pb-6">
+          {/* Animated blobs */}
+          <div className="absolute top-0 left-0 w-72 h-72 bg-blue-500/20 rounded-full blur-3xl animate-pulse -translate-x-1/2 -translate-y-1/4" style={{ animationDuration: '4s' }} />
+          <div className="absolute top-1/2 right-0 w-56 h-56 bg-indigo-500/15 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '6s', animationDelay: '2s' }} />
+          <div className="absolute bottom-0 right-1/4 w-48 h-48 bg-sky-400/15 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '5s', animationDelay: '1s' }} />
 
-              <h1 className="text-3xl md:text-4xl font-bold mb-3 bg-clip-text text-transparent bg-gradient-to-r from-white to-blue-100">
+          <div className="relative">
+            <div className="bg-white/[0.09] backdrop-blur-xl border border-white/20 ring-1 ring-inset ring-white/15 rounded-3xl shadow-[0_12px_40px_rgba(0,8,30,0.65),inset_0_1px_0_rgba(255,255,255,0.12)] p-6 md:p-8">
+              <p className="text-sky-300 text-sm font-medium mb-1 tracking-wide flex items-center gap-2">
+                <GraduationCap className="h-4 w-4" /> E-Learning
+              </p>
+              <h1 className="text-3xl md:text-4xl font-bold tracking-tight bg-gradient-to-r from-white via-sky-100 to-blue-200 bg-clip-text text-transparent">
                 Contenu Théorique & Éducatif
               </h1>
-
-              <p className="text-base md:text-lg text-slate-300 mb-6 max-w-2xl">
+              <p className="text-blue-300/70 text-sm mt-1.5">
                 Accédez à tout le contenu théorique et clinique : cours, tests orthopédiques, diagnostics et guides topographiques.
               </p>
 
-              <div className="grid grid-cols-3 gap-4 max-w-lg">
+              {/* Stats row */}
+              <div className="grid grid-cols-3 gap-4 max-w-lg mt-6">
                 <div className="bg-white/10 backdrop-blur-sm rounded-xl p-3 border border-white/20">
                   <div className="text-2xl font-bold text-white">500+</div>
-                  <div className="text-xs text-slate-300">Contenus</div>
+                  <div className="text-xs text-blue-300/70">Contenus</div>
                 </div>
                 <div className="bg-white/10 backdrop-blur-sm rounded-xl p-3 border border-white/20">
                   <div className="text-2xl font-bold text-white">7</div>
-                  <div className="text-xs text-slate-300">Modules</div>
+                  <div className="text-xs text-blue-300/70">Modules</div>
                 </div>
                 <div className="bg-white/10 backdrop-blur-sm rounded-xl p-3 border border-white/20">
                   <div className="text-2xl font-bold text-white">∞</div>
-                  <div className="text-xs text-slate-300">Possibilités</div>
+                  <div className="text-xs text-blue-300/70">Possibilités</div>
                 </div>
               </div>
             </div>
           </div>
+
+          {/* Bottom glow lines */}
+          <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-sky-400/40 to-transparent" />
+          <div className="absolute bottom-0 left-1/4 right-1/4 h-px bg-gradient-to-r from-transparent via-blue-300/50 to-transparent blur-sm" />
         </div>
 
-        {/* Apprentissage Section */}
-        <div className="mb-8">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="p-2 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600">
-              <Sparkles className="h-5 w-5 text-white" />
-            </div>
-            <div>
-              <h2 className="text-2xl font-bold text-slate-900">Apprentissage</h2>
-              <p className="text-sm text-slate-600">Développez vos connaissances et compétences</p>
-            </div>
-          </div>
+        {/* ── Body ───────────────────────────────────────────────────── */}
+        <div className="relative overflow-hidden bg-gradient-to-br from-blue-100/90 via-sky-50 to-indigo-50/80 px-6 md:px-10 pt-8 pb-10">
+          {/* Animated background blobs */}
+          <div className="pointer-events-none absolute top-0 left-1/4 w-96 h-96 bg-blue-400/40 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '6s' }} />
+          <div className="pointer-events-none absolute top-1/2 right-0 w-80 h-80 bg-sky-400/35 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '8s', animationDelay: '2s' }} />
+          <div className="pointer-events-none absolute bottom-0 left-0 w-72 h-72 bg-indigo-400/30 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '7s', animationDelay: '1s' }} />
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {apprentissage.map((module) => {
-              const Icon = module.icon
+          <div className="relative space-y-8">
 
-              return (
-                <button
-                  key={module.id}
-                  onClick={() => router.push(module.href)}
-                  className="group relative overflow-hidden rounded-2xl bg-white border-2 border-slate-200 hover:border-blue-300 p-6 text-left shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-1"
-                >
-                  <div className={`absolute inset-0 bg-gradient-to-br ${module.gradient} opacity-0 group-hover:opacity-5 transition-opacity`} />
+            {/* Apprentissage Section */}
+            <section>
+              <div className="flex items-center gap-2.5 mb-4">
+                <div className="h-5 w-1 rounded-full bg-gradient-to-b from-blue-500 to-blue-700" />
+                <h2 className="text-sm font-bold text-slate-800 tracking-wide">Apprentissage</h2>
+              </div>
 
-                  <div className="relative">
-                    <div className="flex items-start justify-between mb-4">
-                      <div className={`inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br ${module.gradient} shadow-lg transform transition-transform group-hover:scale-110`}>
-                        <Icon className="h-7 w-7 text-white" />
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                {apprentissage.map((module) => {
+                  const Icon = module.icon
+
+                  return (
+                    <button
+                      key={module.id}
+                      onClick={() => router.push(module.href)}
+                      className="group rounded-2xl bg-white/85 backdrop-blur-2xl border border-white/70 shadow-xl ring-1 ring-inset ring-white/60 p-5 text-left hover:bg-white/95 hover:shadow-2xl transition-all duration-200 hover:-translate-y-0.5"
+                    >
+                      <div className="flex items-start justify-between mb-4">
+                        <div className={`inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br ${module.gradient} shadow-lg transform transition-transform group-hover:scale-110`}>
+                          <Icon className="h-7 w-7 text-white" />
+                        </div>
+                        <span className="px-3 py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-700">
+                          {module.count}
+                        </span>
                       </div>
-                      <span className="px-3 py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-700">
-                        {module.count}
-                      </span>
-                    </div>
 
-                    <h3 className="text-xl font-bold text-slate-900 mb-2">{module.title}</h3>
-                    <p className="text-sm text-slate-600 leading-relaxed mb-4">{module.description}</p>
+                      <h3 className="text-xl font-bold text-slate-900 mb-2">{module.title}</h3>
+                      <p className="text-sm text-slate-600 leading-relaxed mb-4">{module.description}</p>
 
-                    <div className="flex items-center gap-2 text-slate-400 group-hover:text-blue-600 transition-colors">
-                      <span className="text-sm font-semibold">Explorer</span>
-                      <ArrowRight className="h-4 w-4 transform group-hover:translate-x-1 transition-transform" />
-                    </div>
-                  </div>
-                </button>
-              )
-            })}
-          </div>
-        </div>
-
-        {/* Référence Clinique Section */}
-        <div className="mb-8">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="p-2 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600">
-              <TestTubeIcon className="h-5 w-5 text-white" />
-            </div>
-            <div>
-              <h2 className="text-2xl font-bold text-slate-900">Référence Clinique</h2>
-              <p className="text-sm text-slate-600">Guides, tests et diagnostics pour votre pratique</p>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {reference.map((module) => {
-              const Icon = module.icon
-
-              return (
-                <button
-                  key={module.id}
-                  onClick={() => router.push(module.href)}
-                  className="group relative overflow-hidden rounded-2xl bg-white border-2 border-slate-200 hover:border-emerald-300 p-6 text-left shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-1"
-                >
-                  <div className={`absolute inset-0 bg-gradient-to-br ${module.gradient} opacity-0 group-hover:opacity-5 transition-opacity`} />
-
-                  <div className="relative">
-                    <div className="flex items-start justify-between mb-4">
-                      <div className={`inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br ${module.gradient} shadow-lg transform transition-transform group-hover:scale-110`}>
-                        <Icon className="h-7 w-7 text-white" />
+                      <div className="flex items-center gap-2 text-slate-400 group-hover:text-blue-600 transition-colors">
+                        <span className="text-sm font-semibold">Explorer</span>
+                        <ArrowRight className="h-4 w-4 transform group-hover:translate-x-1 transition-transform" />
                       </div>
-                      <span className="px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-700">
-                        {module.count}
-                      </span>
-                    </div>
+                    </button>
+                  )
+                })}
+              </div>
+            </section>
 
-                    <h3 className="text-xl font-bold text-slate-900 mb-2">{module.title}</h3>
-                    <p className="text-sm text-slate-600 leading-relaxed mb-4">{module.description}</p>
+            {/* Référence Clinique Section */}
+            <section>
+              <div className="flex items-center gap-2.5 mb-4">
+                <div className="h-5 w-1 rounded-full bg-gradient-to-b from-emerald-500 to-emerald-700" />
+                <h2 className="text-sm font-bold text-slate-800 tracking-wide">Référence Clinique</h2>
+              </div>
 
-                    <div className="flex items-center gap-2 text-slate-400 group-hover:text-emerald-600 transition-colors">
-                      <span className="text-sm font-semibold">Explorer</span>
-                      <ArrowRight className="h-4 w-4 transform group-hover:translate-x-1 transition-transform" />
-                    </div>
-                  </div>
-                </button>
-              )
-            })}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {reference.map((module) => {
+                  const Icon = module.icon
+
+                  return (
+                    <button
+                      key={module.id}
+                      onClick={() => router.push(module.href)}
+                      className="group rounded-2xl bg-white/85 backdrop-blur-2xl border border-white/70 shadow-xl ring-1 ring-inset ring-white/60 p-5 text-left hover:bg-white/95 hover:shadow-2xl transition-all duration-200 hover:-translate-y-0.5"
+                    >
+                      <div className="flex items-start justify-between mb-4">
+                        <div className={`inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br ${module.gradient} shadow-lg transform transition-transform group-hover:scale-110`}>
+                          <Icon className="h-7 w-7 text-white" />
+                        </div>
+                        <span className="px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-700">
+                          {module.count}
+                        </span>
+                      </div>
+
+                      <h3 className="text-xl font-bold text-slate-900 mb-2">{module.title}</h3>
+                      <p className="text-sm text-slate-600 leading-relaxed mb-4">{module.description}</p>
+
+                      <div className="flex items-center gap-2 text-slate-400 group-hover:text-emerald-600 transition-colors">
+                        <span className="text-sm font-semibold">Explorer</span>
+                        <ArrowRight className="h-4 w-4 transform group-hover:translate-x-1 transition-transform" />
+                      </div>
+                    </button>
+                  )
+                })}
+              </div>
+            </section>
+
           </div>
         </div>
 

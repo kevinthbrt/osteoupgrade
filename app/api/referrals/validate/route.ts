@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       valid: true,
       referralCode: result.referral_code,
-      referrerName: result.referrer_name || 'A Premium Gold member'
+      referrerName: result.referrer_name || 'A Premium member'
     })
   } catch (error: any) {
     console.error('Error validating referral code:', error)

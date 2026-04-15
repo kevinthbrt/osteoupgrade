@@ -42,10 +42,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
     }
 
-    // Vérifier que l'utilisateur est Premium Gold
-    if (profile.role !== 'premium_gold') {
+    // Vérifier que l'utilisateur est Premium
+    if (profile.role !== 'premium' && profile.role !== 'admin') {
       return NextResponse.json(
-        { error: 'Only Premium Gold members can request payouts' },
+        { error: 'Only Premium members can request payouts' },
         { status: 403 }
       )
     }

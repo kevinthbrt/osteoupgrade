@@ -15,8 +15,6 @@ import {
   Award,
   ArrowRight,
   Loader2,
-  Sparkles,
-  Brain,
   Zap,
   Dumbbell,
   LogIn,
@@ -38,154 +36,64 @@ export default function Dashboard() {
   const [referralData, setReferralData] = useState<{ code: string | null; referrals_count: number; available_earnings: number } | null>(null)
   const [codeCopied, setCodeCopied] = useState(false)
   const [stats, setStats] = useState({
-    level: 1,
-    totalXp: 0,
-    currentStreak: 0,
-    unlockedAchievements: 0,
-    weekLogins: 0,
-    weekElearning: 0,
-    weekPractice: 0,
-    weekTesting: 0,
-    elearningProgress: 0,
-    practiceProgress: 0,
-    testingProgress: 0,
-    totalLogins: 0,
-    totalElearningCompleted: 0,
-    totalPracticeViewed: 0,
-    totalTestingViewed: 0
+    level: 1, totalXp: 0, currentStreak: 0, unlockedAchievements: 0,
+    weekLogins: 0, weekElearning: 0, weekPractice: 0, weekTesting: 0,
+    elearningProgress: 0, practiceProgress: 0, testingProgress: 0,
+    totalLogins: 0, totalElearningCompleted: 0, totalPracticeViewed: 0, totalTestingViewed: 0
   })
 
   const badgeIconMap: Record<string, ComponentType<{ className?: string }>> = {
-    GraduationCap,
-    Zap,
-    Calendar,
-    Dumbbell,
-    Flame,
-    LogIn
+    GraduationCap, Zap, Calendar, Dumbbell, Flame, LogIn
   }
 
-  useEffect(() => {
-    loadDashboardData()
-    trackDailyLogin()
-  }, [])
+  useEffect(() => { loadDashboardData(); trackDailyLogin() }, [])
 
   const trackDailyLogin = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser()
-      if (user) {
-        await supabase.rpc('record_user_login', { p_user_id: user.id })
-      }
-    } catch (error) {
-      console.error('Erreur tracking login:', error)
-    }
+      if (user) await supabase.rpc('record_user_login', { p_user_id: user.id })
+    } catch (e) { console.error(e) }
   }
 
   const loadDashboardData = async () => {
     try {
       const response = await fetch('/api/profile', { cache: 'no-store' })
-
-      if (!response.ok) {
-        setProfile({ role: 'free', full_name: 'Invité' })
-        setLoading(false)
-        return
-      }
-
+      if (!response.ok) { setProfile({ role: 'free', full_name: 'Invité' }); setLoading(false); return }
       const { user, profile: profileData } = await response.json()
+      if (profileData) setProfile(profileData)
 
-      if (profileData) {
-        setProfile(profileData)
-      }
-
-      // Get gamification stats
-      const { data: gamificationStats } = await supabase
-        .from('user_gamification_stats')
-        .select('*')
-        .eq('user_id', user.id)
-        .single()
-
-      if (gamificationStats) {
-        // Get achievements count
-        const { count: achievementsCount } = await supabase
-          .from('user_achievements')
-          .select('*', { count: 'exact', head: true })
-          .eq('user_id', user.id)
-
+      const { data: gs } = await supabase.from('user_gamification_stats').select('*').eq('user_id', user.id).single()
+      if (gs) {
+        const { count: achievementsCount } = await supabase.from('user_achievements').select('*', { count: 'exact', head: true }).eq('user_id', user.id)
         setStats({
-          level: gamificationStats.level || 1,
-          totalXp: gamificationStats.total_xp || 0,
-          currentStreak: gamificationStats.current_streak || 0,
-          unlockedAchievements: achievementsCount || 0,
-          weekLogins: gamificationStats.week_logins || 0,
-          weekElearning: gamificationStats.week_elearning || 0,
-          weekPractice: gamificationStats.week_practice || 0,
-          weekTesting: gamificationStats.week_testing || 0,
-          elearningProgress: gamificationStats.elearning_progress || 0,
-          practiceProgress: gamificationStats.practice_progress || 0,
-          testingProgress: gamificationStats.testing_progress || 0,
-          totalLogins: gamificationStats.total_logins || 0,
-          totalElearningCompleted: gamificationStats.total_elearning_completed || 0,
-          totalPracticeViewed: gamificationStats.total_practice_viewed || 0,
-          totalTestingViewed: gamificationStats.total_testing_viewed || 0
+          level: gs.level || 1, totalXp: gs.total_xp || 0, currentStreak: gs.current_streak || 0,
+          unlockedAchievements: achievementsCount || 0, weekLogins: gs.week_logins || 0,
+          weekElearning: gs.week_elearning || 0, weekPractice: gs.week_practice || 0,
+          weekTesting: gs.week_testing || 0, elearningProgress: gs.elearning_progress || 0,
+          practiceProgress: gs.practice_progress || 0, testingProgress: gs.testing_progress || 0,
+          totalLogins: gs.total_logins || 0, totalElearningCompleted: gs.total_elearning_completed || 0,
+          totalPracticeViewed: gs.total_practice_viewed || 0, totalTestingViewed: gs.total_testing_viewed || 0
         })
       }
 
       const { data: achievements } = await supabase
-        .from('user_achievements')
-        .select('achievement:achievements(id, name, icon, description)')
-        .eq('user_id', user.id)
-        .order('unlocked_at', { ascending: false })
-        .limit(6)
-
+        .from('user_achievements').select('achievement:achievements(id, name, icon, description)')
+        .eq('user_id', user.id).order('unlocked_at', { ascending: false }).limit(6)
       if (achievements) {
-        setBadges(
-          achievements
-            .map((item: { achievement: { id: string; name: string; icon: string | null; description?: string | null }[] | { id: string; name: string; icon: string | null; description?: string | null } | null }) => {
-              if (Array.isArray(item.achievement)) {
-                return item.achievement[0] ?? null
-              }
-              return item.achievement
-            })
-            .filter((achievement): achievement is { id: string; name: string; icon: string | null; description?: string | null } => Boolean(achievement))
-        )
+        setBadges(achievements.map((item: any) =>
+          Array.isArray(item.achievement) ? item.achievement[0] ?? null : item.achievement
+        ).filter(Boolean))
       }
 
-      // Load referral data for Gold members
-      if (profileData?.role === 'premium_gold') {
+      if (profileData?.role === 'premium' || profileData?.role === 'admin') {
         try {
-          const [codeResponse, earningsResponse] = await Promise.all([
-            fetch('/api/referrals/my-code'),
-            fetch('/api/referrals/earnings')
-          ])
-
-          let referralCode = null
-          let referralsCount = 0
-          let availableEarnings = 0
-
-          if (codeResponse.ok) {
-            const codeData = await codeResponse.json()
-            referralCode = codeData.referralCode
-          }
-
-          if (earningsResponse.ok) {
-            const earningsData = await earningsResponse.json()
-            referralsCount = earningsData.transactions?.length || 0
-            availableEarnings = earningsData.summary?.available_amount || 0
-          }
-
-          setReferralData({
-            code: referralCode,
-            referrals_count: referralsCount,
-            available_earnings: availableEarnings
-          })
-        } catch (error) {
-          console.error('Error loading referral data:', error)
-        }
+          const [codeRes, earningsRes] = await Promise.all([fetch('/api/referrals/my-code'), fetch('/api/referrals/earnings')])
+          const referralCode = codeRes.ok ? (await codeRes.json()).referralCode : null
+          const earningsData = earningsRes.ok ? await earningsRes.json() : null
+          setReferralData({ code: referralCode, referrals_count: earningsData?.transactions?.length || 0, available_earnings: earningsData?.summary?.available_amount || 0 })
+        } catch (e) { console.error(e) }
       }
-    } catch (error) {
-      console.error('Error loading dashboard:', error)
-    } finally {
-      setLoading(false)
-    }
+    } catch (e) { console.error(e) } finally { setLoading(false) }
   }
 
   const copyReferralCode = () => {
@@ -198,432 +106,298 @@ export default function Dashboard() {
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
-    if (searchQuery.trim()) {
-      router.push(`/search?q=${encodeURIComponent(searchQuery)}`)
-    }
+    if (searchQuery.trim()) router.push(`/search?q=${encodeURIComponent(searchQuery)}`)
   }
 
   const modules = [
-    {
-      id: 'pratique',
-      title: 'Pratique',
-      description: 'Techniques ostéopathiques en vidéo organisées par région anatomique',
-      icon: Stethoscope,
-      href: '/pratique',
-      gradient: 'from-pink-500 via-pink-600 to-rose-600',
-      bgPattern: 'bg-pink-50',
-      count: '150+ vidéos',
-      emoji: '🩺',
-      features: ['HVLA', 'Mobilisation', 'Techniques tissulaires']
-    },
-    {
-      id: 'elearning',
-      title: 'E-Learning',
-      description: 'Tout le contenu théorique : cours, tests ortho, diagnostics, topographie et quiz',
-      icon: GraduationCap,
-      href: '/elearning',
-      gradient: 'from-blue-500 via-blue-600 to-cyan-600',
-      bgPattern: 'bg-blue-50',
-      count: '500+ contenus',
-      emoji: '📚',
-      features: ['Cours', 'Tests ortho', 'Diagnostics', 'Quiz']
-    },
-    {
-      id: 'outils',
-      title: 'Outils',
-      description: 'Exercices thérapeutiques et outils pratiques pour vos patients',
-      icon: Wrench,
-      href: '/outils',
-      gradient: 'from-orange-500 via-orange-600 to-red-600',
-      bgPattern: 'bg-orange-50',
-      count: '150+ exercices',
-      emoji: '🛠️',
-      features: ['Exercices par région', 'Fiches patients', 'Protocoles']
-    },
-    {
-      id: 'seminaires',
-      title: 'Séminaires',
-      description: 'Formations présentielles pour approfondir vos compétences',
-      icon: Calendar,
-      href: '/seminaires',
-      gradient: 'from-amber-500 via-orange-500 to-red-500',
-      bgPattern: 'bg-amber-50',
-      count: 'Sessions',
-      emoji: '📅',
-      features: ['Ateliers', 'Intervenants', 'Réseau']
-    }
+    { id: 'pratique', title: 'Pratique', description: 'Techniques ostéopathiques en vidéo, par région anatomique', icon: Stethoscope, href: '/pratique', count: '150+ vidéos', gradient: 'from-pink-500 to-rose-600', emoji: '🩺' },
+    { id: 'elearning', title: 'E-Learning', description: 'Cours, tests orthopédiques, diagnostics et quiz interactifs', icon: GraduationCap, href: '/elearning', count: '500+ contenus', gradient: 'from-blue-500 to-cyan-500', emoji: '📚' },
+    { id: 'outils', title: 'Outils', description: 'Exercices thérapeutiques et fiches patients', icon: Wrench, href: '/outils', count: '150+ exercices', gradient: 'from-orange-500 to-red-500', emoji: '🛠️' },
+    { id: 'parrainage', title: 'Parrainage', description: 'Parrainez vos collègues et gagnez 10% de commission', icon: Gift, href: '/parrainage', count: '10% cashback', gradient: 'from-amber-400 to-yellow-500', emoji: '🎁' },
   ]
 
-  if (loading) {
-    return (
-      <AuthLayout>
-        <div className="flex items-center justify-center h-96">
-          <Loader2 className="h-12 w-12 text-slate-400 animate-spin" />
-        </div>
-      </AuthLayout>
-    )
-  }
+  const xpToNextLevel = 500
+  const xpProgress = Math.min((stats.totalXp % xpToNextLevel) / xpToNextLevel * 100, 100)
+
+  const weekProgress = [
+    { label: 'E-Learning', value: stats.weekElearning, max: 7, color: 'from-blue-500 to-cyan-500', icon: GraduationCap },
+    { label: 'Pratique', value: stats.weekPractice, max: 7, color: 'from-pink-500 to-rose-500', icon: Stethoscope },
+    { label: 'Tests', value: stats.weekTesting, max: 7, color: 'from-violet-500 to-indigo-500', icon: Zap },
+  ]
+
+  const badgeColors = [
+    'from-sky-400 to-blue-500',
+    'from-emerald-400 to-teal-500',
+    'from-violet-400 to-purple-500',
+    'from-amber-400 to-orange-500',
+    'from-rose-400 to-pink-500',
+    'from-cyan-400 to-sky-500',
+  ]
+
+  if (loading) return (
+    <AuthLayout>
+      <div className="flex items-center justify-center h-96">
+        <Loader2 className="h-10 w-10 text-blue-500 animate-spin" />
+      </div>
+    </AuthLayout>
+  )
 
   return (
     <AuthLayout>
-      <div className="min-h-screen pb-12">
-        {/* Hero Header */}
-        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white mb-6 shadow-xl">
-          {/* Animated background pattern */}
-          <div className="absolute inset-0 opacity-10">
-            <div className="absolute top-0 left-0 w-64 h-64 bg-sky-400 rounded-full blur-3xl animate-pulse" />
-            <div className="absolute bottom-0 right-0 w-64 h-64 bg-purple-400 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
-          </div>
+      <div className="min-h-screen -m-6 md:-m-8">
 
-          <div className="relative px-6 py-6 md:px-8 md:py-8">
-            <div className="max-w-6xl mx-auto">
-              {/* Welcome Message */}
-              <div className="flex items-center gap-3 mb-4">
-                <div className="p-2 rounded-xl bg-white/10 backdrop-blur-sm border border-white/20">
-                  <Sparkles className="h-5 w-5 text-yellow-300" />
-                </div>
+        {/* ── Header ─────────────────────────────────────────────────── */}
+        <div className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 px-6 md:px-10 pt-8 pb-6">
+          {/* Water/aurora effect — 5 blobs animés à vitesses différentes */}
+          <div className="absolute top-0 left-0 w-80 h-80 bg-blue-500/25 rounded-full blur-3xl animate-pulse -translate-x-1/2 -translate-y-1/2" style={{ animationDuration: '4s' }} />
+          <div className="absolute top-1/2 left-1/4 w-64 h-64 bg-cyan-400/20 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '6s', animationDelay: '1s' }} />
+          <div className="absolute top-0 right-1/4 w-56 h-56 bg-indigo-500/20 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '5s', animationDelay: '2s' }} />
+          <div className="absolute bottom-0 right-0 w-72 h-72 bg-sky-400/20 rounded-full blur-3xl animate-pulse translate-x-1/3 translate-y-1/3" style={{ animationDuration: '7s', animationDelay: '0.5s' }} />
+          <div className="absolute top-1/3 right-1/3 w-48 h-48 bg-blue-300/15 rounded-full blur-2xl animate-pulse" style={{ animationDuration: '3.5s', animationDelay: '1.5s' }} />
+
+          <div className="relative">
+            {/* Glass content panel — légèrement plus opaque + ombre portée pour l'effet de profondeur */}
+            <div className="bg-white/[0.09] backdrop-blur-xl border border-white/20 ring-1 ring-inset ring-white/15 rounded-3xl p-6 md:p-8 shadow-[0_12px_40px_rgba(0,8,30,0.65),inset_0_1px_0_rgba(255,255,255,0.12)]">
+              {/* Greeting */}
+              <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-5 mb-6">
                 <div>
-                  <div className="text-xs text-slate-400 font-medium">Bienvenue</div>
-                  <h1 className="text-2xl md:text-3xl font-bold">
-                    {profile?.full_name || 'Docteur'} 👋
+                  <p className="text-sky-300 text-sm font-medium mb-1 tracking-wide">Bienvenue 👋</p>
+                  <h1 className="text-3xl md:text-4xl font-bold tracking-tight bg-gradient-to-r from-white via-sky-100 to-blue-200 bg-clip-text text-transparent">
+                    {profile?.full_name || 'Docteur'}
                   </h1>
+                  <p className="text-blue-300/70 text-sm mt-1.5">Continuez votre progression.</p>
+                </div>
+
+                {/* Quick stats pills — colored per metric */}
+                <div className="flex flex-wrap gap-2">
+                  <div className="flex items-center gap-2 bg-yellow-400/15 backdrop-blur-sm border border-yellow-300/25 rounded-full px-4 py-2 shadow-sm">
+                    <Trophy className="h-4 w-4 text-yellow-400" />
+                    <span className="text-white text-sm font-semibold">Niv. {stats.level}</span>
+                  </div>
+                  <div className="flex items-center gap-2 bg-orange-400/15 backdrop-blur-sm border border-orange-300/25 rounded-full px-4 py-2 shadow-sm">
+                    <Flame className="h-4 w-4 text-orange-400" />
+                    <span className="text-white text-sm font-semibold">{stats.currentStreak} jours</span>
+                  </div>
+                  <div className="flex items-center gap-2 bg-sky-400/15 backdrop-blur-sm border border-sky-300/25 rounded-full px-4 py-2 shadow-sm">
+                    <Zap className="h-4 w-4 text-sky-300" />
+                    <span className="text-white text-sm font-semibold">{stats.totalXp} XP</span>
+                  </div>
                 </div>
               </div>
 
-              <p className="text-sm text-slate-300 mb-6 max-w-2xl">
-                Développez vos compétences en ostéopathie avec nos modules interactifs
-              </p>
-
-              {/* Search Bar */}
-              <form onSubmit={handleSearch} className="relative max-w-2xl mb-4">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              {/* Search */}
+              <form onSubmit={handleSearch} className="relative max-w-xl mb-5">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-blue-300/60" />
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Rechercher une technique, pathologie, cours, test..."
-                  className="w-full pl-11 pr-6 py-3 rounded-xl bg-white/95 backdrop-blur-sm border-2 border-white/50 text-slate-900 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-400/50 focus:border-white transition-all shadow-lg text-sm"
+                  placeholder="Rechercher un cours, technique, test..."
+                  className="w-full pl-11 pr-4 py-3 rounded-2xl bg-white/10 backdrop-blur-md border border-white/15 text-white placeholder-blue-300/50 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400/60 focus:bg-white/18 transition-all"
                 />
-                {searchQuery && (
-                  <button
-                    type="submit"
-                    className="absolute right-2 top-1/2 -translate-y-1/2 px-4 py-1.5 bg-gradient-to-r from-sky-500 to-blue-600 text-white rounded-lg text-sm font-semibold hover:from-sky-600 hover:to-blue-700 transition-all shadow-lg"
-                  >
-                    Rechercher
-                  </button>
-                )}
               </form>
 
-              {/* Progression & Badges Section */}
-              <div className="rounded-3xl bg-gradient-to-br from-purple-600 via-fuchsia-600 to-indigo-600 p-6 shadow-2xl border border-white/10">
-                <div className="flex items-start justify-between text-white mb-4">
-                  <div>
-                    <div className="flex items-center gap-2 text-sm font-semibold text-purple-100">
-                      <Trophy className="h-4 w-4 text-yellow-300" />
-                      Progression globale
-                    </div>
-                    <div className="text-3xl font-bold mt-1">Niveau {stats.level}</div>
-                    <div className="text-sm text-purple-100">
-                      {stats.totalXp % 500}/{500} XP jusqu'au niveau {stats.level + 1}
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-3xl font-bold">{stats.totalXp}</div>
-                    <div className="text-xs text-purple-100">XP total</div>
-                  </div>
-                </div>
-
-                <div className="h-3 w-full rounded-full bg-white/20 overflow-hidden mb-5">
+              {/* XP progress bar */}
+              <div className="flex items-center gap-3 max-w-xl">
+                <span className="text-xs text-blue-300/60 flex-shrink-0 font-medium">XP</span>
+                <div className="flex-1 h-2 bg-white/10 rounded-full overflow-hidden">
                   <div
-                    className="h-full rounded-full bg-gradient-to-r from-yellow-300 to-amber-400"
-                    style={{ width: `${Math.min((stats.totalXp % 500) / 500 * 100, 100)}%` }}
+                    className="h-full rounded-full bg-gradient-to-r from-blue-400 via-sky-400 to-cyan-400 transition-all duration-700 shadow-[0_0_8px_rgba(56,189,248,0.6)]"
+                    style={{ width: `${xpProgress}%` }}
                   />
                 </div>
-
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
-                  <div className="rounded-2xl bg-white/15 p-3 text-white">
-                    <div className="flex items-center gap-2 text-xs text-purple-100">
-                      <Flame className="h-4 w-4 text-orange-200" />
-                      Série
-                    </div>
-                    <div className="text-2xl font-bold mt-1">{stats.currentStreak}</div>
-                    <div className="text-xs text-purple-100">jours</div>
-                  </div>
-                  <div className="rounded-2xl bg-white/15 p-3 text-white">
-                    <div className="flex items-center gap-2 text-xs text-purple-100">
-                      <LogIn className="h-4 w-4 text-emerald-200" />
-                      Connexions
-                    </div>
-                    <div className="text-2xl font-bold mt-1">{stats.totalLogins}</div>
-                    <div className="text-xs text-purple-100">total</div>
-                  </div>
-                  <div className="rounded-2xl bg-white/15 p-3 text-white">
-                    <div className="flex items-center gap-2 text-xs text-purple-100">
-                      <GraduationCap className="h-4 w-4 text-sky-200" />
-                      E-learning
-                    </div>
-                    <div className="text-2xl font-bold mt-1">{stats.totalElearningCompleted}</div>
-                    <div className="text-xs text-purple-100">leçons</div>
-                  </div>
-                  <div className="rounded-2xl bg-white/15 p-3 text-white">
-                    <div className="flex items-center gap-2 text-xs text-purple-100">
-                      <Zap className="h-4 w-4 text-yellow-200" />
-                      Activité
-                    </div>
-                    <div className="text-2xl font-bold mt-1">{stats.totalPracticeViewed + stats.totalTestingViewed}</div>
-                    <div className="text-xs text-purple-100">actions</div>
-                  </div>
-                </div>
-
-                {/* Badges Section Inside Purple Block */}
-                <div className="pt-4 border-t border-white/20">
-                  <div className="flex items-center gap-2 text-white font-semibold mb-3">
-                    <Award className="h-4 w-4 text-yellow-300" />
-                    Badges débloqués
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
-                    {badges.length > 0 ? (
-                      badges.slice(0, 6).map((badge, index) => {
-                        const BadgeIcon = badge.icon ? badgeIconMap[badge.icon] : null
-                        const colorClasses = [
-                          'bg-emerald-50 text-emerald-600',
-                          'bg-sky-50 text-sky-600',
-                          'bg-indigo-50 text-indigo-600',
-                          'bg-amber-50 text-amber-600',
-                          'bg-rose-50 text-rose-600',
-                          'bg-purple-50 text-purple-600'
-                        ]
-                        const colorClass = colorClasses[index % colorClasses.length]
-                        return (
-                          <div
-                            key={badge.id}
-                            className="flex items-center gap-2 rounded-xl bg-white/95 px-3 py-2"
-                          >
-                            <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${colorClass} flex-shrink-0`}>
-                              {BadgeIcon ? (
-                                <BadgeIcon className="h-4 w-4" />
-                              ) : (
-                                <span className="text-sm">🏅</span>
-                              )}
-                            </div>
-                            <div className="min-w-0 flex-1">
-                              <div className="text-xs font-semibold text-slate-900 truncate">{badge.name}</div>
-                              <div className="text-xs text-slate-500 truncate">
-                                {badge.description || 'Badge débloqué'}
-                              </div>
-                            </div>
-                          </div>
-                        )
-                      })
-                    ) : (
-                      <div className="col-span-full text-sm text-purple-100">Aucun badge débloqué pour le moment.</div>
-                    )}
-                  </div>
-
-                  {stats.unlockedAchievements > badges.length && (
-                    <div className="mt-3 text-xs text-purple-100 text-center">
-                      +{stats.unlockedAchievements - badges.length} autres badges débloqués
-                    </div>
-                  )}
-                </div>
+                <span className="text-xs text-blue-300/60 flex-shrink-0">{stats.totalXp % xpToNextLevel}/{xpToNextLevel}</span>
               </div>
             </div>
           </div>
+
+          {/* Bottom glow line */}
+          <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-sky-400/40 to-transparent" />
+          <div className="absolute bottom-0 left-1/4 right-1/4 h-px bg-gradient-to-r from-transparent via-blue-300/50 to-transparent blur-sm" />
         </div>
 
-        {/* Premium upgrade banner - free users only */}
-        {profile?.role === 'free' && (
-          <div className="mb-6">
-            <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-yellow-400 via-amber-400 to-yellow-500 p-6 shadow-xl border border-yellow-300">
-              <div className="absolute top-0 right-0 w-48 h-48 bg-white/10 rounded-full blur-2xl -translate-y-12 translate-x-12" />
-              <div className="relative flex flex-col sm:flex-row items-start sm:items-center gap-4">
-                <div className="flex-shrink-0 w-14 h-14 rounded-2xl bg-yellow-900/20 flex items-center justify-center shadow-inner">
-                  <Crown className="h-8 w-8 text-yellow-900" />
+        {/* ── Body ───────────────────────────────────────────────────── */}
+        <div className="relative overflow-hidden bg-gradient-to-br from-blue-100/90 via-sky-50 to-indigo-50/80 px-6 md:px-10 pt-8 pb-10 space-y-8">
+          {/* Blobs de fond */}
+          <div className="pointer-events-none absolute top-0 left-1/4 w-96 h-96 bg-blue-400/45 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '6s' }} />
+          <div className="pointer-events-none absolute top-1/3 right-0 w-80 h-80 bg-sky-400/40 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '8s', animationDelay: '2s' }} />
+          <div className="pointer-events-none absolute bottom-0 left-0 w-72 h-72 bg-indigo-400/35 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '7s', animationDelay: '1s' }} />
+          <div className="pointer-events-none absolute top-1/2 right-1/3 w-64 h-64 bg-cyan-300/30 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '5s', animationDelay: '3s' }} />
+          <div className="pointer-events-none absolute bottom-1/3 left-1/2 w-56 h-56 bg-blue-300/25 rounded-full blur-2xl animate-pulse" style={{ animationDuration: '9s', animationDelay: '0.5s' }} />
+
+          {/* Bannière Premium */}
+          {profile?.role === 'free' && (
+            <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-500 p-5 shadow-lg">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -translate-y-8 translate-x-8" />
+              <div className="relative flex items-center gap-4">
+                <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl bg-amber-900/20">
+                  <Crown className="h-6 w-6 text-amber-900" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h3 className="text-xl font-extrabold text-yellow-900 mb-1 flex items-center gap-2">
-                    <Lock className="h-5 w-5" />
-                    Débloquez tout OsteoUpgrade
-                  </h3>
-                  <p className="text-sm text-yellow-900/80 max-w-lg">
-                    Accès illimité aux 150+ vidéos Pratique, 500+ contenus E-Learning, exercices patients et bien plus. Rejoignez les membres Premium dès maintenant.
-                  </p>
+                  <p className="font-bold text-amber-900">Débloquez tout OsteoUpgrade</p>
+                  <p className="text-amber-800/80 text-sm mt-0.5">150+ vidéos · 500+ contenus · Exercices patients — dès 29€/mois</p>
                 </div>
                 <button
                   onClick={() => router.push('/settings/subscription')}
-                  className="flex-shrink-0 inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-yellow-900 text-yellow-100 font-bold hover:bg-yellow-800 transition-all shadow-lg whitespace-nowrap"
+                  className="flex-shrink-0 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-amber-900 text-amber-100 text-sm font-bold hover:bg-amber-800 transition-colors shadow-md"
                 >
-                  <Crown className="h-5 w-5" />
-                  Passer Premium
-                  <ArrowRight className="h-4 w-4" />
+                  Passer Premium <ArrowRight className="h-4 w-4" />
                 </button>
               </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Ambassador Space - Only for Premium Gold */}
-        {profile?.role === 'premium_gold' && referralData && (
-          <div className="mb-8">
-            <div className="bg-gradient-to-br from-yellow-50 to-amber-50 border-2 border-yellow-300 rounded-2xl shadow-xl overflow-hidden">
-              {/* Header */}
-              <div className="bg-gradient-to-r from-yellow-500 to-amber-600 p-6 text-yellow-900">
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="p-2 bg-yellow-900/20 rounded-lg">
-                    <Crown className="h-6 w-6" />
-                  </div>
-                  <h2 className="text-2xl font-bold">Espace Ambassadeur Gold</h2>
-                </div>
-                <p className="text-yellow-900/80 text-sm">
-                  Parrainez vos collègues et gagnez 10% de commission sur chaque abonnement annuel
-                </p>
+          {/* ── Cette semaine + Badges ─────────────────────────────── */}
+          <section className="grid md:grid-cols-2 gap-6">
+
+            {/* Cette semaine */}
+            <div>
+              <div className="flex items-center gap-2.5 mb-4">
+                <div className="h-5 w-1 rounded-full bg-gradient-to-b from-sky-500 to-sky-700" />
+                <h2 className="text-sm font-bold text-slate-800 tracking-wide">Cette semaine</h2>
               </div>
-
-              {/* Content */}
-              <div className="p-6">
-                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 mb-6">
-                  {/* Referral Code Card */}
-                  <div className="bg-white border-2 border-yellow-200 rounded-xl p-5 shadow-sm">
-                    <div className="flex items-center gap-2 mb-3">
-                      <Gift className="h-5 w-5 text-yellow-600" />
-                      <h3 className="font-semibold text-gray-900">Votre code</h3>
-                    </div>
-                    <div className="flex items-center gap-2 mb-2">
-                      <div className="flex-1 bg-yellow-100 border border-yellow-300 rounded-lg px-4 py-3 font-mono text-2xl font-bold text-yellow-900 text-center">
-                        {referralData.code || '---'}
+              <div className="rounded-2xl bg-sky-100/85 backdrop-blur-2xl border border-sky-300/70 shadow-xl ring-1 ring-inset ring-white/60 px-5 py-5 space-y-4">
+                {weekProgress.map(({ label, value, max, color, icon: Icon }) => (
+                  <div key={label}>
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <Icon className="h-4 w-4 text-slate-500" />
+                        <span className="text-sm font-medium text-slate-700">{label}</span>
                       </div>
-                      <button
-                        onClick={copyReferralCode}
-                        className="p-3 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg transition-colors"
-                        title="Copier le code"
-                      >
-                        {codeCopied ? <Check className="h-5 w-5" /> : <Copy className="h-5 w-5" />}
+                      <span className="text-sm font-bold text-slate-900">{value}</span>
+                    </div>
+                    <div className="h-2 w-full rounded-full bg-white/70 overflow-hidden">
+                      <div className={`h-full rounded-full bg-gradient-to-r ${color} transition-all duration-700`}
+                        style={{ width: `${Math.min(value / max * 100, 100)}%` }} />
+                    </div>
+                  </div>
+                ))}
+                <div className="pt-3 border-t border-sky-200/50 grid grid-cols-3 gap-2">
+                  {[
+                    { label: 'Connexions', value: stats.totalLogins },
+                    { label: 'Leçons', value: stats.totalElearningCompleted },
+                    { label: 'Actions', value: stats.totalPracticeViewed + stats.totalTestingViewed },
+                  ].map(({ label, value }) => (
+                    <div key={label} className="rounded-xl bg-white/65 py-2.5 text-center border border-sky-200/50">
+                      <div className="text-xl font-bold text-slate-900">{value}</div>
+                      <div className="text-[10px] text-slate-500 mt-0.5">{label}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Badges */}
+            <div>
+              <div className="flex items-center gap-2.5 mb-4">
+                <div className="h-5 w-1 rounded-full bg-gradient-to-b from-violet-500 to-indigo-600" />
+                <h2 className="text-sm font-bold text-slate-800 tracking-wide">
+                  Badges débloqués
+                  {stats.unlockedAchievements > 0 && <span className="ml-1.5 text-xs font-normal text-slate-500">{stats.unlockedAchievements} au total</span>}
+                </h2>
+              </div>
+              <div className="rounded-2xl bg-indigo-100/85 backdrop-blur-2xl border border-indigo-300/70 shadow-xl ring-1 ring-inset ring-white/60 overflow-hidden">
+                {badges.length > 0 ? (
+                  badges.slice(0, 4).map((badge, i) => {
+                    const BadgeIcon = badge.icon ? badgeIconMap[badge.icon] : null
+                    return (
+                      <div key={badge.id} className={`flex items-center gap-3 px-5 py-3.5 ${i < Math.min(badges.length, 4) - 1 ? 'border-b border-indigo-200/50' : ''}`}>
+                        <div className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-gradient-to-br ${badgeColors[i % badgeColors.length]} shadow-sm`}>
+                          {BadgeIcon ? <BadgeIcon className="h-4 w-4 text-white" /> : <span className="text-sm">🏅</span>}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold text-slate-900 truncate">{badge.name}</p>
+                          <p className="text-xs text-slate-500 truncate">{badge.description || 'Badge débloqué'}</p>
+                        </div>
+                      </div>
+                    )
+                  })
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-10 text-center px-5">
+                    <Award className="h-8 w-8 text-indigo-200 mb-2" />
+                    <p className="text-sm text-slate-500">Aucun badge débloqué pour le moment</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+          </section>
+
+          {/* ── Modules ────────────────────────────────────────────── */}
+          <section>
+            <div className="flex items-center gap-2.5 mb-4">
+              <div className="h-5 w-1 rounded-full bg-gradient-to-b from-blue-500 to-blue-700" />
+              <h2 className="text-sm font-bold text-slate-800 tracking-wide">Modules d'apprentissage</h2>
+            </div>
+            <div className="rounded-2xl overflow-hidden shadow-xl border border-blue-300/70 bg-blue-100/85 backdrop-blur-2xl ring-1 ring-inset ring-white/60">
+              {modules.map((module, i) => {
+                const Icon = module.icon
+                return (
+                  <button
+                    key={module.id}
+                    onClick={() => router.push(module.href)}
+                    className={`group w-full flex items-center gap-4 px-5 py-4 text-left hover:bg-white/40 transition-colors ${i < modules.length - 1 ? 'border-b border-blue-200/50' : ''}`}
+                  >
+                    <div className={`flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br ${module.gradient} shadow-md group-hover:scale-105 transition-transform duration-200`}>
+                      <Icon className="h-6 w-6 text-white" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-bold text-slate-900">{module.title}</p>
+                      <p className="text-sm text-slate-500 truncate">{module.description}</p>
+                    </div>
+                    <div className="flex items-center gap-3 flex-shrink-0">
+                      <span className="hidden sm:block text-sm font-medium text-slate-400">{module.count}</span>
+                      <span className="text-xl">{module.emoji}</span>
+                      <ArrowRight className="h-4 w-4 text-slate-300 group-hover:text-slate-600 group-hover:translate-x-0.5 transition-all" />
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
+          </section>
+
+          {/* ── Ambassadeur ────────────────────────────────────────── */}
+          {(profile?.role === 'premium' || profile?.role === 'admin') && referralData && (
+            <section>
+              <div className="flex items-center gap-2.5 mb-4">
+                <div className="h-5 w-1 rounded-full bg-gradient-to-b from-amber-400 to-amber-600" />
+                <h2 className="text-sm font-bold text-slate-800 tracking-wide">Espace Ambassadeur</h2>
+              </div>
+              <div className="rounded-2xl overflow-hidden shadow-xl border border-amber-300/75 bg-amber-100/85 backdrop-blur-2xl ring-1 ring-inset ring-white/60">
+                <div className="bg-gradient-to-r from-amber-400 to-yellow-500 px-5 py-3 flex items-center gap-2">
+                  <Crown className="h-4 w-4 text-amber-900" />
+                  <p className="text-sm font-semibold text-amber-900">10% de commission sur chaque abonnement annuel parrainé</p>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-amber-200/50">
+                  <div className="px-5 py-4">
+                    <p className="text-xs text-slate-500 mb-1.5">Votre code</p>
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono text-xl font-bold text-slate-900 tracking-widest">{referralData.code || '—'}</span>
+                      <button onClick={copyReferralCode} className="flex h-7 w-7 items-center justify-center rounded-lg bg-white/60 hover:bg-amber-100 text-slate-400 hover:text-amber-700 transition-colors">
+                        {codeCopied ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : <Copy className="h-3.5 w-3.5" />}
                       </button>
                     </div>
-                    <p className="text-xs text-gray-600">
-                      {codeCopied ? '✅ Code copié !' : 'Partagez ce code avec vos collègues'}
-                    </p>
+                    {codeCopied && <p className="text-[11px] text-emerald-600 mt-1">Copié !</p>}
                   </div>
-
-                  {/* Referrals Count Card */}
-                  <div className="bg-white border-2 border-blue-200 rounded-xl p-5 shadow-sm">
-                    <div className="flex items-center gap-2 mb-3">
-                      <Users className="h-5 w-5 text-blue-600" />
-                      <h3 className="font-semibold text-gray-900">Filleuls</h3>
-                    </div>
-                    <div className="text-4xl font-bold text-blue-600 mb-1">
-                      {referralData.referrals_count}
-                    </div>
-                    <p className="text-sm text-gray-600">
-                      {referralData.referrals_count === 0
-                        ? 'Aucun filleul pour le moment'
-                        : referralData.referrals_count === 1
-                        ? '1 personne parrainée'
-                        : `${referralData.referrals_count} personnes parrainées`}
-                    </p>
+                  <div className="px-5 py-4">
+                    <p className="text-xs text-slate-500 mb-1.5">Filleuls</p>
+                    <p className="text-2xl font-bold text-slate-900">{referralData.referrals_count}<span className="text-sm font-normal text-slate-400 ml-1">parrainés</span></p>
                   </div>
-
-                  {/* Earnings Card */}
-                  <div className="bg-white border-2 border-green-200 rounded-xl p-5 shadow-sm">
-                    <div className="flex items-center gap-2 mb-3">
-                      <Wallet className="h-5 w-5 text-green-600" />
-                      <h3 className="font-semibold text-gray-900">Cagnotte</h3>
+                  <div className="px-5 py-4 flex items-center justify-between">
+                    <div>
+                      <p className="text-xs text-slate-500 mb-1.5">Cagnotte</p>
+                      <p className="text-2xl font-bold text-slate-900">{((referralData.available_earnings || 0) / 100).toFixed(2)}€</p>
                     </div>
-                    <div className="text-4xl font-bold text-green-600 mb-1">
-                      {((referralData.available_earnings || 0) / 100).toFixed(2)}€
-                    </div>
-                    <p className="text-sm text-gray-600">
-                      {referralData.available_earnings >= 1000
-                        ? 'Vous pouvez demander un versement'
-                        : `Minimum 10€ pour un versement`}
-                    </p>
+                    <button onClick={() => router.push('/settings/referrals')} className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-sm font-semibold transition-colors">
+                      Gérer <ArrowRight className="h-3.5 w-3.5" />
+                    </button>
                   </div>
                 </div>
-
-                {/* Action Button */}
-                <button
-                  onClick={() => router.push('/settings/referrals')}
-                  className="w-full bg-gradient-to-r from-yellow-500 to-amber-600 hover:from-yellow-600 hover:to-amber-700 text-yellow-900 font-bold py-4 px-6 rounded-xl transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-2"
-                >
-                  <Crown className="h-5 w-5" />
-                  Accéder à mon espace ambassadeur complet
-                  <ArrowRight className="h-5 w-5" />
-                </button>
               </div>
-            </div>
-          </div>
-        )}
+            </section>
+          )}
 
-        {/* Main Modules Section */}
-        <div className="mb-12">
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h2 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
-                <Brain className="h-7 w-7 text-sky-600" />
-                Vos Modules d'Apprentissage
-              </h2>
-              <p className="text-slate-600 mt-1">Sélectionnez un module pour commencer</p>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {modules.map((module, index) => {
-              const Icon = module.icon
-
-              return (
-                <button
-                  key={module.id}
-                  onClick={() => router.push(module.href)}
-                  className="group relative overflow-hidden rounded-2xl bg-white border-2 border-slate-200 hover:border-transparent p-6 text-left shadow-lg hover:shadow-2xl transition-all duration-500 hover:scale-105"
-                  style={{ animationDelay: `${index * 100}ms` }}
-                >
-                  {/* Animated gradient border on hover */}
-                  <div className={`absolute inset-0 bg-gradient-to-br ${module.gradient} opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
-                  <div className="absolute inset-[2px] bg-white rounded-2xl" />
-
-                  {/* Background pattern */}
-                  <div className={`absolute top-0 right-0 w-40 h-40 ${module.bgPattern} rounded-full blur-3xl opacity-0 group-hover:opacity-30 transition-all duration-500`} />
-
-                  <div className="relative z-10">
-                    {/* Icon + Badge */}
-                    <div className="flex items-start justify-between mb-4">
-                      <div className={`inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br ${module.gradient} shadow-lg transform transition-all duration-500 group-hover:scale-110 group-hover:rotate-3`}>
-                        <Icon className="h-7 w-7 text-white" />
-                      </div>
-                      <span className="text-3xl transform transition-transform group-hover:scale-110 group-hover:rotate-12 duration-500">
-                        {module.emoji}
-                      </span>
-                    </div>
-
-                    {/* Content */}
-                    <h3 className="text-xl font-bold text-slate-900 mb-2">
-                      {module.title}
-                    </h3>
-
-                    <p className="text-sm text-slate-600 mb-3 line-clamp-2">
-                      {module.description}
-                    </p>
-
-                    {/* Count badge */}
-                    <div className="mb-3">
-                      <span className="px-2 py-1 rounded-lg text-xs font-semibold bg-slate-100 text-slate-700 group-hover:bg-slate-800 group-hover:text-white transition-colors">
-                        {module.count}
-                      </span>
-                    </div>
-
-                    {/* Arrow */}
-                    <div className="flex items-center gap-2 text-slate-400 group-hover:text-sky-600 transition-colors">
-                      <span className="text-xs font-semibold">Explorer</span>
-                      <ArrowRight className="h-4 w-4 transform group-hover:translate-x-1 transition-transform" />
-                    </div>
-                  </div>
-                </button>
-              )
-            })}
-          </div>
         </div>
-
       </div>
     </AuthLayout>
   )

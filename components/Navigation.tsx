@@ -26,8 +26,7 @@ import {
   FolderOpen,
   FileText,
   Gift,
-  Tag,
-  BookMarked
+  Tag
 } from 'lucide-react'
 
 type MenuItem = {
@@ -86,12 +85,6 @@ export default function Navigation() {
       label: 'Pratique',
       icon: Stethoscope,
     },
-    {
-      href: '/seminaires',
-      label: 'Séminaires',
-      icon: Calendar,
-      roles: ['premium_gold', 'admin']
-    },
     { href: '/parrainage', label: 'Parrainage & Cagnotte', icon: Gift },
     { href: '/settings', label: 'Paramètres', icon: Settings },
   ]
@@ -113,25 +106,9 @@ export default function Navigation() {
           icon: FileText
         },
         {
-          href: '/elearning/encyclopedie',
-          label: 'Encyclopédie',
-          icon: BookMarked
-        },
-        {
           href: '/tests',
           label: 'Tests orthopédiques',
           icon: Clipboard
-        },
-        {
-          href: '/body-regions',
-          label: 'Topographie & Diagnostics',
-          icon: Stethoscope,
-          isNew: true
-        },
-        {
-          href: '/diagnostics',
-          label: 'Diagnostics',
-          icon: FolderOpen
         },
         {
           href: '/topographie',
@@ -177,11 +154,6 @@ export default function Navigation() {
           label: 'Revue de littérature',
           icon: FileText,
           badge: 'Nouveau'
-        },
-        {
-          href: '/elearning/encyclopedie',
-          label: 'Encyclopédie',
-          icon: BookMarked
         }
       ]
     },
@@ -191,15 +163,15 @@ export default function Navigation() {
       icon: Clipboard,
       items: [
         {
-          href: '/body-regions',
-          label: 'Topographie & Diagnostics',
-          icon: Stethoscope,
-          isNew: true
+          href: '/admin/diagnostics',
+          label: 'Diagnostics (admin)',
+          icon: FolderOpen
         },
         {
-          href: '/admin/diagnostics',
-          label: 'Diagnostics',
-          icon: FolderOpen
+          href: '/diagnostics',
+          label: 'Diagnostics (legacy)',
+          icon: Stethoscope,
+          badge: 'Temp'
         },
         {
           href: '/topographie',
@@ -243,8 +215,6 @@ export default function Navigation() {
     const badges = {
       free: { text: 'Gratuit', bg: 'bg-gray-100', color: 'text-gray-700' },
       premium: { text: 'Premium', bg: 'bg-gradient-to-r from-yellow-400 to-yellow-500', color: 'text-white' },
-      premium_silver: { text: 'Silver', bg: 'bg-gradient-to-r from-gray-300 to-gray-400', color: 'text-white' },
-      premium_gold: { text: 'Gold', bg: 'bg-gradient-to-r from-yellow-400 to-yellow-500', color: 'text-white' },
       admin: { text: 'Admin', bg: 'bg-gradient-to-r from-purple-500 to-purple-600', color: 'text-white' }
     }
 
@@ -252,7 +222,7 @@ export default function Navigation() {
 
     return (
       <span className={`px-2 py-1 rounded-full text-xs font-medium ${badge.bg} ${badge.color} flex items-center gap-1`}>
-        {(profile.role === 'premium' || profile.role === 'premium_silver' || profile.role === 'premium_gold') && <Crown className="h-3 w-3" />}
+        {profile.role === 'premium' && <Crown className="h-3 w-3" />}
         {profile.role === 'admin' && <Shield className="h-3 w-3" />}
         {badge.text}
       </span>
@@ -268,18 +238,23 @@ export default function Navigation() {
       {/* Mobile menu button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-slate-900 text-white rounded-lg shadow-lg border border-white/10 hover:bg-slate-800 transition-all"
+        className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-slate-900 text-white rounded-lg shadow-lg border border-blue-900/50 hover:bg-blue-950 transition-all"
       >
         {isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
       </button>
 
       {/* Sidebar */}
-      <aside className={`fixed top-0 left-0 h-full bg-gradient-to-b from-slate-900 via-slate-900 to-slate-800 border-r border-white/10 transition-transform duration-300 z-40 ${
+      <aside className={`fixed top-0 left-0 h-full bg-gradient-to-b from-slate-900 via-blue-950 to-slate-900 border-r border-blue-900/50 transition-transform duration-300 z-40 overflow-hidden ${
         isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
       } w-72 lg:w-64`}>
-        <div className="flex flex-col h-full">
+        {/* Ambient blobs */}
+        <div className="absolute top-0 left-0 w-48 h-48 bg-blue-500/10 rounded-full blur-3xl animate-pulse pointer-events-none -translate-x-1/2 -translate-y-1/4" style={{ animationDuration: '5s' }} />
+        <div className="absolute bottom-1/4 right-0 w-40 h-40 bg-cyan-400/8 rounded-full blur-3xl animate-pulse pointer-events-none translate-x-1/3" style={{ animationDuration: '7s', animationDelay: '2s' }} />
+        <div className="absolute top-1/2 left-1/2 w-32 h-32 bg-indigo-500/8 rounded-full blur-2xl animate-pulse pointer-events-none -translate-x-1/2 -translate-y-1/2" style={{ animationDuration: '4s', animationDelay: '1s' }} />
+
+        <div className="flex flex-col h-full relative">
           {/* Logo */}
-          <div className="p-6 border-b border-white/10">
+          <div className="p-6 border-b border-blue-900/50">
             <div className="flex items-center justify-center space-x-3">
               <div className="flex items-center justify-center">
                 <Image
@@ -299,21 +274,23 @@ export default function Navigation() {
           </div>
 
           {/* User info */}
-          <div className="px-6 py-4 border-b border-white/10">
-            <div className="flex items-center justify-between">
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-white truncate">
-                  {profile?.full_name || user?.email}
-                </p>
-                <p className="text-xs text-slate-400 truncate">{user?.email}</p>
+          <div className="px-4 py-4 border-b border-blue-900/50">
+            <div className="rounded-xl bg-white/5 backdrop-blur-md border border-white/10 ring-1 ring-inset ring-white/5 px-4 py-3">
+              <div className="flex items-center justify-between">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-white truncate">
+                    {profile?.full_name || user?.email}
+                  </p>
+                  <p className="text-xs text-blue-300/70 truncate">{user?.email}</p>
+                </div>
+                {getRoleBadge()}
               </div>
-              {getRoleBadge()}
+              {profileError && (
+                <p className="mt-2 text-[11px] text-amber-200">
+                  {profileError}
+                </p>
+              )}
             </div>
-            {profileError && (
-              <p className="mt-2 text-[11px] text-amber-200">
-                {profileError}
-              </p>
-            )}
           </div>
 
           {/* Navigation */}
@@ -333,11 +310,11 @@ export default function Navigation() {
                   <Link
                     key={item.href}
                     href={isRestricted ? '#' : item.href}
-                    className={`flex items-center px-3 py-2.5 rounded-lg transition-all group relative ${
+                    className={`flex items-center px-3 py-2.5 rounded-xl transition-all group relative ${
                       isActive
-                        ? 'bg-sky-500/20 text-white font-medium shadow-sm'
-                        : 'text-slate-300 hover:bg-white/5 hover:text-white'
-                    } ${isRestricted ? 'opacity-50 cursor-not-allowed hover:bg-transparent hover:text-slate-300' : ''}`}
+                        ? 'bg-sky-500/20 backdrop-blur-sm text-white font-medium shadow-sm border border-sky-400/20 ring-1 ring-inset ring-white/10'
+                        : 'text-slate-300 border border-transparent hover:bg-white/10 hover:backdrop-blur-sm hover:border-white/15 hover:shadow-sm hover:text-white'
+                    } ${isRestricted ? 'opacity-50 cursor-not-allowed hover:bg-transparent hover:border-transparent hover:shadow-none hover:text-slate-300' : ''}`}
                     onClick={() => {
                       if (!isRestricted) {
                         setIsOpen(false)
@@ -384,10 +361,10 @@ export default function Navigation() {
                           toggleGroup(group.id)
                         }
                       }}
-                      className={`flex items-center w-full px-2 py-2 rounded-lg transition-all ${
+                      className={`flex items-center w-full px-2 py-2 rounded-xl transition-all ${
                         isGroupActive
-                          ? 'bg-sky-500/20 text-white'
-                          : 'text-slate-300 hover:bg-white/5 hover:text-white'
+                          ? 'bg-sky-500/20 backdrop-blur-sm text-white border border-sky-400/20 ring-1 ring-inset ring-white/10'
+                          : 'text-slate-300 border border-transparent hover:bg-white/10 hover:backdrop-blur-sm hover:border-white/15 hover:shadow-sm hover:text-white'
                       } ${isRestricted ? 'opacity-50 cursor-not-allowed' : ''}`}
                     >
                       <GroupIcon className={`h-5 w-5 mr-3 ${isGroupActive ? 'text-sky-300' : 'text-slate-400'}`} />
@@ -404,10 +381,10 @@ export default function Navigation() {
                             <Link
                               key={item.href}
                               href={item.href}
-                              className={`flex items-center px-4 py-2 rounded-lg transition-all group ${
+                              className={`flex items-center px-4 py-2 rounded-xl transition-all group ${
                                 isActive
-                                  ? 'bg-sky-500/20 text-white font-medium shadow-sm'
-                                  : 'text-slate-300 hover:bg-white/5 hover:text-white'
+                                  ? 'bg-sky-500/20 backdrop-blur-sm text-white font-medium border border-sky-400/20 ring-1 ring-inset ring-white/10'
+                                  : 'text-slate-300 border border-transparent hover:bg-white/10 hover:backdrop-blur-sm hover:border-white/15 hover:shadow-sm hover:text-white'
                               }`}
                               onClick={() => setIsOpen(false)}
                             >
@@ -442,14 +419,11 @@ export default function Navigation() {
                   {/* Outils Group */}
                   {renderUserGroup(userGroups[1])}
 
-                  {/* Séminaires */}
+                  {/* Parrainage & Cagnotte */}
                   {renderMenuItem(menuItems[2])}
 
-                  {/* Parrainage & Cagnotte */}
-                  {renderMenuItem(menuItems[3])}
-
                   {/* Paramètres */}
-                  {renderMenuItem(menuItems[4])}
+                  {renderMenuItem(menuItems[3])}
                 </>
               )
             })()}
@@ -469,10 +443,10 @@ export default function Navigation() {
                     <Link
                       key={adminOverviewItem.href}
                       href={adminOverviewItem.href}
-                      className={`flex items-center px-3 py-2.5 rounded-lg transition-all group ${
+                      className={`flex items-center px-3 py-2.5 rounded-xl transition-all group ${
                         isActive
-                          ? 'bg-purple-500/20 text-white font-medium shadow-sm'
-                          : 'text-slate-300 hover:bg-white/5 hover:text-white'
+                          ? 'bg-purple-500/20 backdrop-blur-sm text-white font-medium border border-purple-400/20 ring-1 ring-inset ring-white/10'
+                          : 'text-slate-300 border border-transparent hover:bg-white/10 hover:backdrop-blur-sm hover:border-white/15 hover:shadow-sm hover:text-white'
                       }`}
                       onClick={() => setIsOpen(false)}
                     >
@@ -493,10 +467,10 @@ export default function Navigation() {
                       <button
                         type="button"
                         onClick={() => toggleGroup(group.id)}
-                        className={`flex items-center w-full px-2 py-2 rounded-lg transition-all ${
+                        className={`flex items-center w-full px-2 py-2 rounded-xl transition-all ${
                           isGroupActive
-                            ? 'bg-purple-500/20 text-white'
-                            : 'text-slate-300 hover:bg-white/5 hover:text-white'
+                            ? 'bg-purple-500/20 backdrop-blur-sm text-white border border-purple-400/20 ring-1 ring-inset ring-white/10'
+                            : 'text-slate-300 border border-transparent hover:bg-white/10 hover:backdrop-blur-sm hover:border-white/15 hover:shadow-sm hover:text-white'
                         }`}
                       >
                         <GroupIcon className={`h-5 w-5 mr-3 ${isGroupActive ? 'text-purple-300' : 'text-slate-400'}`} />
@@ -513,10 +487,10 @@ export default function Navigation() {
                               <Link
                                 key={item.href}
                                 href={item.href}
-                                className={`flex items-center px-4 py-2 rounded-lg transition-all group ${
+                                className={`flex items-center px-4 py-2 rounded-xl transition-all group ${
                                   isActive
-                                    ? 'bg-purple-500/20 text-white font-medium shadow-sm'
-                                    : 'text-slate-300 hover:bg-white/5 hover:text-white'
+                                    ? 'bg-purple-500/20 backdrop-blur-sm text-white font-medium border border-purple-400/20 ring-1 ring-inset ring-white/10'
+                                    : 'text-slate-300 border border-transparent hover:bg-white/10 hover:backdrop-blur-sm hover:border-white/15 hover:shadow-sm hover:text-white'
                                 }`}
                                 onClick={() => setIsOpen(false)}
                               >
@@ -539,10 +513,10 @@ export default function Navigation() {
 
                 <Link
                   href="/admin/users"
-                  className={`flex items-center px-3 py-2.5 rounded-lg transition-all group ${
+                  className={`flex items-center px-3 py-2.5 rounded-xl transition-all group ${
                     pathname === '/admin/users'
-                      ? 'bg-purple-500/20 text-white font-medium shadow-sm'
-                      : 'text-slate-300 hover:bg-white/5 hover:text-white'
+                      ? 'bg-purple-500/20 backdrop-blur-sm text-white font-medium border border-purple-400/20 ring-1 ring-inset ring-white/10'
+                      : 'text-slate-300 border border-transparent hover:bg-white/10 hover:backdrop-blur-sm hover:border-white/15 hover:shadow-sm hover:text-white'
                   }`}
                   onClick={() => setIsOpen(false)}
                 >
@@ -553,10 +527,10 @@ export default function Navigation() {
 
                 <Link
                   href="/admin/promo"
-                  className={`flex items-center px-3 py-2.5 rounded-lg transition-all group ${
+                  className={`flex items-center px-3 py-2.5 rounded-xl transition-all group ${
                     pathname === '/admin/promo'
-                      ? 'bg-purple-500/20 text-white font-medium shadow-sm'
-                      : 'text-slate-300 hover:bg-white/5 hover:text-white'
+                      ? 'bg-purple-500/20 backdrop-blur-sm text-white font-medium border border-purple-400/20 ring-1 ring-inset ring-white/10'
+                      : 'text-slate-300 border border-transparent hover:bg-white/10 hover:backdrop-blur-sm hover:border-white/15 hover:shadow-sm hover:text-white'
                   }`}
                   onClick={() => setIsOpen(false)}
                 >
@@ -584,10 +558,10 @@ export default function Navigation() {
           )}
 
           {/* Logout button + Legal links */}
-          <div className="p-4 border-t border-white/10 space-y-3">
+          <div className="p-4 border-t border-blue-900/50 space-y-3">
             <button
               onClick={handleLogout}
-              className="flex items-center w-full px-3 py-2.5 text-slate-300 rounded-lg hover:bg-red-500/20 hover:text-red-300 transition-all group"
+              className="flex items-center w-full px-3 py-2.5 text-slate-300 rounded-xl border border-transparent hover:bg-red-500/15 hover:backdrop-blur-sm hover:border-red-400/20 hover:shadow-sm hover:text-red-300 transition-all group"
             >
               <LogOut className="h-5 w-5 mr-3 text-slate-400 group-hover:text-red-400" />
               <span>Déconnexion</span>

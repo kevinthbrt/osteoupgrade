@@ -4,7 +4,7 @@ import { useEffect, useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import AuthLayout from '@/components/AuthLayout'
-import { Crown, Check, Sparkles, Users, Loader2, ArrowLeft, ExternalLink, Gift, Shield, Calendar, TrendingUp, Wallet, ChevronRight, Copy } from 'lucide-react'
+import { Crown, Check, Sparkles, Loader2, ArrowLeft, ExternalLink, Gift, Shield, Calendar, TrendingUp, Wallet, ChevronRight } from 'lucide-react'
 import Link from 'next/link'
 
 function SubscriptionContent() {
@@ -130,10 +130,10 @@ function SubscriptionContent() {
     }
   }
 
-  const isReferralEligiblePlan = (planType: string) => planType !== 'premium_silver_monthly'
+  const isReferralEligiblePlan = (planType: string) => planType !== 'premium_monthly'
 
   const handleUpgrade = (planType: string) => {
-    if (profile?.role === 'premium_silver' || profile?.role === 'premium_gold') {
+    if (profile?.role === 'premium') {
       return
     }
 
@@ -191,46 +191,129 @@ function SubscriptionContent() {
     )
   }
 
-  const isPremium = profile?.role === 'premium_silver' || profile?.role === 'premium_gold'
-  const isGold = profile?.role === 'premium_gold'
-  const isGoldPromoActive = process.env.NEXT_PUBLIC_GOLD_PROMO_ACTIVE === 'true'
+  const isPremium = profile?.role === 'premium' || profile?.role === 'admin'
   const pendingPlanSupportsReferral = pendingPlanType ? isReferralEligiblePlan(pendingPlanType) : false
 
   return (
     <AuthLayout>
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="flex items-center gap-4">
-          <button
-            onClick={() => router.push('/dashboard')}
-            className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Retour au dashboard
-          </button>
-        </div>
+      {pendingPlanType && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-lg bg-white/85 backdrop-blur-2xl border border-white/70 shadow-2xl ring-1 ring-inset ring-white/60 rounded-2xl p-6 space-y-5">
+            <div className="flex items-start gap-3">
+              <div className="p-2.5 bg-yellow-100 rounded-lg">
+                <Gift className="h-5 w-5 text-yellow-700" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-gray-900">
+                  {pendingPlanSupportsReferral
+                    ? 'Avez-vous un code de parrainage ?'
+                    : 'Information avant paiement'}
+                </h3>
+                <p className="text-sm text-gray-600 mt-1">
+                  {pendingPlanSupportsReferral
+                    ? "Avant de passer sur Stripe, renseignez votre code si vous en possédez un pour profiter des avantages du parrainage. Vous pouvez aussi continuer sans code."
+                    : "Le parrainage s'applique uniquement sur les abonnements annuels. Cette offre mensuelle ne permet pas d'appliquer un code parrainage."}
+                </p>
+              </div>
+            </div>
 
-        <div className="bg-gradient-to-r from-purple-600 to-purple-700 rounded-xl shadow-sm p-8 text-white">
-          <div className="flex items-center gap-3 mb-3">
-            <Crown className="h-8 w-8" />
-            <h1 className="text-3xl font-bold">Abonnement Premium</h1>
+            {pendingPlanSupportsReferral && (
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-700">Code de parrainage (optionnel)</label>
+                <div className="flex items-center gap-3">
+                  <input
+                    type="text"
+                    value={referralCode}
+                    onChange={(e) => {
+                      const code = e.target.value.toUpperCase()
+                      setReferralCode(code)
+                      if (code.length >= 4) {
+                        validateReferralCode(code)
+                      } else {
+                        setCodeValidation(null)
+                      }
+                    }}
+                    placeholder="ex. KEVIN123"
+                    className="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent uppercase font-mono tracking-wider text-gray-900 placeholder:font-sans placeholder:tracking-normal"
+                    maxLength={10}
+                  />
+                  {validatingCode && <Loader2 className="h-5 w-5 animate-spin text-yellow-600" />}
+                </div>
+
+                {codeValidation && (
+                  <div
+                    className={`text-sm font-medium px-4 py-2 rounded-lg ${
+                      codeValidation.valid
+                        ? 'bg-green-50 border border-green-200 text-green-800'
+                        : 'bg-red-50 border border-red-200 text-red-800'
+                    }`}
+                  >
+                    {codeValidation.valid ? '✅' : '❌'} {codeValidation.message}
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div className="flex flex-col-reverse sm:flex-row gap-3 sm:justify-end">
+              <button
+                type="button"
+                onClick={() => setPendingPlanType(null)}
+                className="px-4 py-2.5 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition"
+              >
+                Annuler
+              </button>
+              {pendingPlanSupportsReferral && (
+                <button
+                  type="button"
+                  onClick={handleSkipReferral}
+                  className="px-4 py-2.5 rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50 transition"
+                >
+                  Je n'ai pas de code
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={handleContinueWithReferral}
+                disabled={pendingPlanSupportsReferral && (validatingCode || (!!referralCode && !codeValidation?.valid))}
+                className="px-4 py-2.5 rounded-lg bg-purple-600 text-white font-semibold hover:bg-purple-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Continuer vers Stripe
+              </button>
+            </div>
           </div>
-          <p className="text-purple-100 max-w-3xl">
-            {isPremium
-              ? 'Vous êtes actuellement abonné Premium. Merci de votre confiance !'
-              : 'Choisissez la formule qui correspond le mieux à vos besoins et boostez votre pratique clinique.'}
-          </p>
         </div>
+      )}
+      <div className="min-h-screen -m-6 md:-m-8">
+        {/* ── Header ── */}
+        <div className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 px-6 md:px-10 pt-8 pb-6">
+          <div className="absolute top-0 left-0 w-72 h-72 bg-purple-500/15 rounded-full blur-3xl animate-pulse -translate-x-1/2 -translate-y-1/4" style={{ animationDuration: '4s' }} />
+          <div className="absolute top-1/2 right-0 w-56 h-56 bg-indigo-400/10 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '6s', animationDelay: '2s' }} />
+          <div className="absolute bottom-0 right-1/4 w-48 h-48 bg-sky-400/15 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '5s', animationDelay: '1s' }} />
+          <div className="relative">
+            <div className="bg-white/[0.09] backdrop-blur-xl border border-white/20 ring-1 ring-inset ring-white/15 rounded-3xl shadow-[0_12px_40px_rgba(0,8,30,0.65),inset_0_1px_0_rgba(255,255,255,0.12)] p-6 md:p-8">
+              <button onClick={() => router.push('/dashboard')} className="inline-flex items-center gap-2 text-white/50 hover:text-white/80 text-sm mb-4 transition"><ArrowLeft className="h-4 w-4" /> Retour au dashboard</button>
+              <p className="text-purple-300 text-sm font-medium mb-1 tracking-wide flex items-center gap-2"><Crown className="h-4 w-4" /> Premium</p>
+              <h1 className="text-3xl md:text-4xl font-bold tracking-tight bg-gradient-to-r from-white via-purple-100 to-indigo-200 bg-clip-text text-transparent">Abonnement Premium</h1>
+              <p className="text-blue-300/70 text-sm mt-1.5">{isPremium ? 'Vous êtes actuellement abonné Premium. Merci de votre confiance !' : 'Choisissez la formule qui correspond le mieux à vos besoins et boostez votre pratique clinique.'}</p>
+            </div>
+          </div>
+          <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-purple-400/40 to-transparent" />
+          <div className="absolute bottom-0 left-1/4 right-1/4 h-px bg-gradient-to-r from-transparent via-purple-300/50 to-transparent blur-sm" />
+        </div>
+        {/* ── Body ── */}
+        <div className="relative overflow-hidden bg-gradient-to-br from-blue-100/90 via-sky-50 to-indigo-50/80 px-6 md:px-10 pt-8 pb-10">
+          <div className="pointer-events-none absolute top-0 left-1/4 w-96 h-96 bg-purple-400/20 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '6s' }} />
+          <div className="pointer-events-none absolute top-1/2 right-0 w-80 h-80 bg-sky-400/25 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '8s', animationDelay: '2s' }} />
+          <div className="pointer-events-none absolute bottom-0 left-0 w-72 h-72 bg-indigo-400/20 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '7s', animationDelay: '1s' }} />
+          <div className="relative space-y-6">
 
         {/* Current Status */}
         {isPremium && (
-          <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-6 space-y-6">
+          <div className="bg-white/85 backdrop-blur-2xl border border-white/70 shadow-xl ring-1 ring-inset ring-white/60 rounded-2xl p-6 space-y-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-500">Votre abonnement actuel</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {profile.role === 'premium_gold' ? 'Premium Gold' : 'Premium Silver'}
-                </p>
+                <p className="text-2xl font-bold text-gray-900">Premium</p>
               </div>
               <span className="inline-flex items-center gap-2 rounded-full bg-green-100 px-4 py-2 text-sm font-semibold text-green-700">
                 <Check className="h-4 w-4" />
@@ -284,7 +367,7 @@ function SubscriptionContent() {
               <button
                 onClick={handleManageSubscription}
                 disabled={openingPortal}
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-gray-900 text-white px-6 py-3 rounded-lg font-semibold hover:bg-gray-800 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-slate-800/90 backdrop-blur-sm border border-white/20 text-white font-semibold hover:bg-slate-700/90 shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {openingPortal ? (
                   <>
@@ -308,7 +391,7 @@ function SubscriptionContent() {
 
         {/* Referral Code Input - Only for non-premium users */}
         {!isPremium && (
-          <div className="bg-gradient-to-br from-yellow-50 to-amber-50 border-2 border-yellow-300 rounded-xl p-6">
+          <div className="bg-amber-100/85 backdrop-blur-2xl border border-amber-300/70 shadow-xl ring-1 ring-inset ring-white/60 rounded-2xl p-6">
             <div className="flex items-start gap-4">
               <div className="p-3 bg-yellow-500 rounded-lg flex-shrink-0">
                 <Gift className="h-6 w-6 text-yellow-900" />
@@ -318,7 +401,7 @@ function SubscriptionContent() {
                   Vous avez un code de parrainage ?
                 </h3>
                 <p className="text-sm text-gray-600 mb-4">
-                  Un collègue membre <strong>Gold</strong> vous a partagé son code ? Entrez-le ici — il sera
+                  Un collègue membre <strong>Premium</strong> vous a partagé son code ? Entrez-le ici — il sera
                   automatiquement appliqué à votre commande et votre parrain recevra une commission de 10%.
                 </p>
 
@@ -371,35 +454,19 @@ function SubscriptionContent() {
           </div>
         )}
 
-        {/* Section parrainage pour les membres Gold */}
-        {isGold && (
-          <div className="bg-gradient-to-br from-yellow-50 to-amber-50 border-2 border-yellow-300 rounded-xl p-6">
+        {/* Section parrainage pour les membres Premium */}
+        {isPremium && (
+          <div className="bg-amber-100/85 backdrop-blur-2xl border border-amber-300/70 shadow-xl ring-1 ring-inset ring-white/60 rounded-2xl p-6">
             <div className="flex items-start gap-4">
               <div className="p-3 bg-yellow-500 rounded-lg flex-shrink-0">
                 <Crown className="h-6 w-6 text-yellow-900" />
               </div>
               <div className="flex-1">
-                <h3 className="font-semibold text-gray-900 mb-1">Votre programme de parrainage Gold</h3>
+                <h3 className="font-semibold text-gray-900 mb-1">Votre programme de parrainage</h3>
                 <p className="text-sm text-gray-600 mb-4">
-                  En tant que membre Gold, vous disposez d'un code de parrainage unique. Chaque abonnement annuel
-                  souscrit avec votre code vous rapporte <strong>10% de commission</strong> directement dans votre cagnotte.
+                  En tant que membre Premium, vous disposez d'un code de parrainage unique. Chaque abonnement annuel
+                  souscrit avec votre code vous rapporte <strong>10% de commission</strong> (24€) directement dans votre cagnotte.
                 </p>
-                <div className="grid gap-3 sm:grid-cols-2 mb-4">
-                  <div className="bg-white border border-yellow-200 rounded-lg p-3 flex items-center gap-3">
-                    <TrendingUp className="h-5 w-5 text-yellow-600 flex-shrink-0" />
-                    <div>
-                      <p className="text-sm font-semibold text-yellow-900">Silver parrainé → +24€</p>
-                      <p className="text-xs text-gray-500">10% de 240€/an</p>
-                    </div>
-                  </div>
-                  <div className="bg-white border border-yellow-200 rounded-lg p-3 flex items-center gap-3">
-                    <Wallet className="h-5 w-5 text-yellow-600 flex-shrink-0" />
-                    <div>
-                      <p className="text-sm font-semibold text-yellow-900">Gold parrainé → +49,90€</p>
-                      <p className="text-xs text-gray-500">10% de 499€/an</p>
-                    </div>
-                  </div>
-                </div>
                 <Link
                   href="/parrainage"
                   className="inline-flex items-center gap-2 bg-yellow-600 text-white px-5 py-2.5 rounded-lg font-semibold hover:bg-yellow-700 transition text-sm"
@@ -413,157 +480,13 @@ function SubscriptionContent() {
           </div>
         )}
 
-        {/* Plans Comparison */}
-        <div className="grid gap-8 lg:grid-cols-2">
-          {/* Premium Silver */}
-          <div className="relative bg-white border-2 border-blue-200 rounded-2xl shadow-lg overflow-hidden">
-            <div className="bg-gradient-to-r from-blue-500 to-blue-600 p-6 text-white">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="p-2 bg-white/20 rounded-lg">
-                  <Check className="h-6 w-6" />
-                </div>
-                <h2 className="text-2xl font-bold">Premium Silver</h2>
-              </div>
-              <p className="text-blue-100">L'essentiel des outils cliniques, réunis dans une seule plateforme</p>
-              <div className="mt-6">
-                <div className="space-y-4">
-                  {/* Monthly Option */}
-                  <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4">
-                    <div className="flex items-baseline gap-2 mb-1">
-                      <span className="text-4xl font-bold">29€</span>
-                      <span className="text-blue-100">/mois</span>
-                    </div>
-                    <p className="text-sm text-blue-200">Sans engagement • Annulable à tout moment</p>
-                  </div>
-
-                  {/* Annual Option */}
-                  <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border-2 border-white/30">
-                    <div className="flex items-center justify-between mb-1">
-                      <div className="flex items-baseline gap-2">
-                        <span className="text-4xl font-bold">240€</span>
-                        <span className="text-blue-100">/an</span>
-                      </div>
-                      <span className="bg-green-400 text-green-900 text-xs font-bold px-2 py-1 rounded-full">
-                        -17%
-                      </span>
-                    </div>
-                    <p className="text-sm text-blue-200">Soit 20€/mois • 2 mois offerts</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="p-6 space-y-6">
-              <p className="text-gray-700">
-                La formule Premium Silver donne accès à l'intégralité des modules digitaux d'OsteoUpgrade, conçus pour
-                structurer ton raisonnement clinique, gagner du temps en consultation et améliorer la qualité de tes
-                prises en charge.
-              </p>
-
-              <div>
-                <h3 className="font-semibold text-gray-900 mb-3">Inclus dans l'abonnement :</h3>
-                <div className="space-y-3">
-                  <div className="flex items-start gap-3">
-                    <Check className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
-                    <p className="text-sm text-gray-700">
-                      <strong>Tests orthopédiques + export PDF</strong> : fiches structurées, indications cliniques et
-                      documents prêts à partager.
-                    </p>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <Check className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
-                    <p className="text-sm text-gray-700">
-                      <strong>E-learning actualisé en continu</strong> : raisonnement clinique, protocoles, anatomie…
-                    </p>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <Check className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
-                    <p className="text-sm text-gray-700">
-                      <strong>Module pratique</strong> : techniques articulaires, musculaires, mobilisations,
-                      palpations.
-                    </p>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <Check className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
-                    <p className="text-sm text-gray-700">
-                      <strong>Créateur de fiches d'exercices</strong> : personnalisation + export PDF pour tes
-                      patients.
-                    </p>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <Check className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
-                    <p className="text-sm text-gray-700">
-                      <strong>Topographies des pathologies</strong> : cartes symptomatiques détaillées + explications
-                      cliniques.
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-blue-50 border border-blue-100 rounded-lg p-4">
-                <p className="text-sm font-semibold text-blue-900 mb-1">Pour qui ?</p>
-                <p className="text-sm text-blue-800">
-                  Pour les thérapeutes qui veulent un outil complet, fiable et évolutif pour améliorer leur pratique au
-                  quotidien.
-                </p>
-              </div>
-
-              <div className="space-y-3">
-                <button
-                  onClick={() => handleUpgrade('premium_silver_monthly')}
-                  disabled={
-                    processingPlan !== null ||
-                    profile?.role === 'premium_silver' ||
-                    profile?.role === 'premium_gold'
-                  }
-                  className="w-full bg-blue-600 text-white py-4 px-6 rounded-lg font-semibold hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                >
-                  {processingPlan === 'premium_silver_monthly' ? (
-                    <>
-                      <Loader2 className="h-5 w-5 animate-spin" />
-                      Redirection...
-                    </>
-                  ) : profile?.role === 'premium_silver' || profile?.role === 'premium_gold' ? (
-                    'Déjà Premium'
-                  ) : (
-                    'Choisir Silver Mensuel (29€/mois)'
-                  )}
-                </button>
-
-                <button
-                  onClick={() => handleUpgrade('premium_silver_annual')}
-                  disabled={
-                    processingPlan !== null ||
-                    profile?.role === 'premium_silver' ||
-                    profile?.role === 'premium_gold'
-                  }
-                  className="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white py-4 px-6 rounded-lg font-bold hover:from-blue-700 hover:to-blue-800 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 border-2 border-blue-400"
-                >
-                  {processingPlan === 'premium_silver_annual' ? (
-                    <>
-                      <Loader2 className="h-5 w-5 animate-spin" />
-                      Redirection...
-                    </>
-                  ) : profile?.role === 'premium_silver' || profile?.role === 'premium_gold' ? (
-                    'Déjà Premium'
-                  ) : (
-                    <>
-                      <Check className="h-5 w-5" />
-                      Choisir Silver Annuel (240€/an)
-                    </>
-                  )}
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* Premium Gold - HIGHLIGHTED */}
-          <div className="relative bg-white border-4 border-yellow-400 rounded-2xl shadow-2xl overflow-hidden">
-            {/* Badge "Recommandé" */}
+        {/* Plan Premium */}
+        {!isPremium && (
+          <div className="relative bg-white border-4 border-yellow-400 rounded-2xl shadow-2xl overflow-hidden max-w-2xl">
             <div className="absolute top-6 right-6 z-10">
               <div className="bg-gradient-to-r from-yellow-400 to-yellow-500 text-yellow-900 px-4 py-2 rounded-full text-sm font-bold shadow-lg flex items-center gap-2">
                 <Sparkles className="h-4 w-4" />
-                Recommandé
+                Accès complet
               </div>
             </div>
 
@@ -572,158 +495,82 @@ function SubscriptionContent() {
                 <div className="p-2 bg-yellow-900/20 rounded-lg">
                   <Crown className="h-6 w-6" />
                 </div>
-                <h2 className="text-2xl font-bold">Premium Gold</h2>
+                <h2 className="text-2xl font-bold">Premium</h2>
               </div>
-              <p className="text-yellow-900/90">L'expérience complète : outils avancés + formation présentielle</p>
+              <p className="text-yellow-900/90">L'intégralité des outils cliniques, réunis dans une seule plateforme</p>
               <div className="mt-6">
-                <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4">
-                  <div className="flex items-baseline gap-2 mb-1">
-                    {isGoldPromoActive ? (
-                      <>
-                        <span className="text-3xl font-bold line-through opacity-60">499€</span>
-                        <span className="text-5xl font-bold text-red-900">399€</span>
-                        <span className="text-yellow-900/80">/an</span>
-                      </>
-                    ) : (
-                      <>
-                        <span className="text-5xl font-bold">499€</span>
-                        <span className="text-yellow-900/80">/an</span>
-                      </>
-                    )}
+                <div className="space-y-4">
+                  <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4">
+                    <div className="flex items-baseline gap-2 mb-1">
+                      <span className="text-4xl font-bold">29€</span>
+                      <span className="text-yellow-900/80">/mois</span>
+                    </div>
+                    <p className="text-sm text-yellow-900/70">Sans engagement • Annulable à tout moment</p>
                   </div>
-                  {isGoldPromoActive ? (
-                    <p className="text-sm text-yellow-900/70">
-                      🎉 <strong>Offre promotionnelle</strong> • Économisez 100€
-                    </p>
-                  ) : (
-                    <p className="text-sm text-yellow-900/70">Soit 41,58€/mois • Accès annuel complet</p>
-                  )}
+                  <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border-2 border-white/30">
+                    <div className="flex items-center justify-between mb-1">
+                      <div className="flex items-baseline gap-2">
+                        <span className="text-4xl font-bold">240€</span>
+                        <span className="text-yellow-900/80">/an</span>
+                      </div>
+                      <span className="bg-green-400 text-green-900 text-xs font-bold px-2 py-1 rounded-full">-17%</span>
+                    </div>
+                    <p className="text-sm text-yellow-900/70">Soit 20€/mois • 2 mois offerts + parrainage inclus</p>
+                  </div>
                 </div>
               </div>
             </div>
 
             <div className="p-6 space-y-6">
-              <p className="text-gray-700">
-                La formule Premium Gold est conçue pour les praticiens qui souhaitent aller plus loin. Elle inclut tout
-                le contenu digital de la plateforme et une expérience de formation unique en présentiel.
-              </p>
-
               <div>
                 <h3 className="font-semibold text-gray-900 mb-3">Inclus dans l'abonnement :</h3>
                 <div className="space-y-3">
-                  <div className="flex items-start gap-3">
-                    <Check className="h-5 w-5 text-yellow-600 flex-shrink-0 mt-0.5" />
-                    <p className="text-sm text-gray-700">Tests orthopédiques avec PDF</p>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <Check className="h-5 w-5 text-yellow-600 flex-shrink-0 mt-0.5" />
-                    <p className="text-sm text-gray-700">E-learning mis à jour</p>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <Check className="h-5 w-5 text-yellow-600 flex-shrink-0 mt-0.5" />
-                    <p className="text-sm text-gray-700">Module pratique</p>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <Check className="h-5 w-5 text-yellow-600 flex-shrink-0 mt-0.5" />
-                    <p className="text-sm text-gray-700">Fiches d'exercices patients avec PDF</p>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <Check className="h-5 w-5 text-yellow-600 flex-shrink-0 mt-0.5" />
-                    <p className="text-sm text-gray-700">Topographies des pathologies</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-gradient-to-r from-yellow-50 to-yellow-100 border-2 border-yellow-300 rounded-lg p-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <Sparkles className="h-5 w-5 text-yellow-700" />
-                  <p className="text-sm font-bold text-yellow-900">+ L'exclusivité Gold :</p>
-                </div>
-                <div className="space-y-2 mt-3">
-                  <div className="flex items-start gap-3">
-                    <Users className="h-5 w-5 text-yellow-700 flex-shrink-0 mt-0.5" />
-                    <div>
-                      <p className="text-sm font-bold text-yellow-900">Séminaire présentiel annuel (2 jours)</p>
-                      <p className="text-sm text-yellow-800 mt-1">
-                        Une immersion complète avec l'équipe OsteoUpgrade : échanges cliniques, techniques avancées,
-                        ateliers pratiques, mises en situation, networking entre thérapeutes motivés.
-                      </p>
+                  {[
+                    { title: 'Tests orthopédiques + export PDF', desc: 'Fiches structurées, indications cliniques et documents prêts à partager.' },
+                    { title: 'E-learning actualisé en continu', desc: 'Raisonnement clinique, protocoles, anatomie…' },
+                    { title: 'Module pratique', desc: 'Techniques articulaires, musculaires, mobilisations, palpations.' },
+                    { title: 'Créateur de fiches d\'exercices', desc: 'Personnalisation + export PDF pour tes patients.' },
+                    { title: 'Topographies des pathologies', desc: 'Cartes symptomatiques détaillées + explications cliniques.' },
+                    { title: 'Programme de parrainage', desc: '10% de commission sur chaque abonnement annuel parrainé (annuel uniquement).' },
+                  ].map((item) => (
+                    <div key={item.title} className="flex items-start gap-3">
+                      <Check className="h-5 w-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+                      <p className="text-sm text-gray-700"><strong>{item.title}</strong> : {item.desc}</p>
                     </div>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <Gift className="h-5 w-5 text-yellow-700 flex-shrink-0 mt-0.5" />
-                    <div>
-                      <p className="text-sm font-bold text-yellow-900">Système de parrainage</p>
-                      <p className="text-sm text-yellow-800 mt-1">
-                        Obtenez 10% de commission sur chaque abonnement annuel parrainé et constituez votre cagnotte.
-                      </p>
-                    </div>
-                  </div>
+                  ))}
                 </div>
               </div>
 
-              <div className="bg-yellow-50 border border-yellow-100 rounded-lg p-4">
-                <p className="text-sm font-semibold text-yellow-900 mb-1">Pour qui ?</p>
-                <p className="text-sm text-yellow-800">
-                  Pour les praticiens qui veulent progresser plus vite, affiner leur expertise et rejoindre un groupe
-                  réduit engagé dans l'amélioration continue.
-                </p>
-              </div>
-
-              <button
-                onClick={() => handleUpgrade('premium_gold_annual')}
-                disabled={processingPlan !== null || profile?.role === 'premium_gold'}
-                className="w-full bg-gradient-to-r from-yellow-500 to-yellow-600 text-yellow-900 py-4 px-6 rounded-lg font-bold hover:from-yellow-600 hover:to-yellow-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg"
-              >
-                {processingPlan === 'premium_gold_annual' ? (
-                  <>
-                    <Loader2 className="h-5 w-5 animate-spin" />
-                    Redirection...
-                  </>
-                ) : profile?.role === 'premium_gold' ? (
-                  'Votre abonnement actuel'
-                ) : (
-                  <>
-                    <Crown className="h-5 w-5" />
-                    {isGoldPromoActive ? 'Choisir Gold (399€/an)' : 'Choisir Gold (499€/an)'}
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Section parrainage pour les Silver - incitation à passer Gold */}
-        {profile?.role === 'premium_silver' && (
-          <div className="bg-gradient-to-r from-yellow-50 to-amber-50 border-2 border-yellow-200 rounded-xl p-6">
-            <div className="flex items-start gap-4">
-              <div className="p-3 bg-yellow-400 rounded-lg flex-shrink-0">
-                <Gift className="h-6 w-6 text-yellow-900" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-gray-900 mb-1">
-                  Débloquez le parrainage avec Gold
-                </h3>
-                <p className="text-sm text-gray-700 mb-3">
-                  Votre abonnement Silver vous donne accès à tous les outils cliniques. Avec Gold, vous obtenez en plus :
-                  un <strong>code de parrainage unique</strong> qui vous permet de gagner <strong>10% de commission</strong>{' '}
-                  sur chaque abonnement annuel souscrit grâce à vous. Parrainer 3 collègues Silver couvre déjà 15% du
-                  coût annuel de votre Gold.
-                </p>
-                <Link
-                  href="/parrainage"
-                  className="inline-flex items-center gap-2 text-yellow-800 font-medium text-sm hover:underline"
+              <div className="space-y-3">
+                <button
+                  onClick={() => handleUpgrade('premium_monthly')}
+                  disabled={processingPlan !== null}
+                  className="w-full bg-yellow-500 text-yellow-900 py-4 px-6 rounded-lg font-semibold hover:bg-yellow-600 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
-                  En savoir plus sur le programme de parrainage
-                  <ChevronRight className="h-4 w-4" />
-                </Link>
+                  {processingPlan === 'premium_monthly' ? (
+                    <><Loader2 className="h-5 w-5 animate-spin" />Redirection...</>
+                  ) : (
+                    'Choisir Premium Mensuel (29€/mois)'
+                  )}
+                </button>
+                <button
+                  onClick={() => handleUpgrade('premium_annual')}
+                  disabled={processingPlan !== null}
+                  className="w-full bg-gradient-to-r from-yellow-500 to-yellow-600 text-yellow-900 py-4 px-6 rounded-lg font-bold hover:from-yellow-600 hover:to-yellow-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 border-2 border-yellow-400 shadow-lg"
+                >
+                  {processingPlan === 'premium_annual' ? (
+                    <><Loader2 className="h-5 w-5 animate-spin" />Redirection...</>
+                  ) : (
+                    <><Crown className="h-5 w-5" />Choisir Premium Annuel (240€/an)</>
+                  )}
+                </button>
               </div>
             </div>
           </div>
         )}
 
         {/* FAQ ou Notes */}
-        <div className="bg-gray-50 border border-gray-200 rounded-xl p-6">
+        <div className="bg-white/85 backdrop-blur-2xl border border-white/70 shadow-xl ring-1 ring-inset ring-white/60 rounded-2xl p-6">
           <h3 className="font-semibold text-gray-900 mb-3">💡 Bon à savoir</h3>
           <div className="space-y-2 text-sm text-gray-700">
             <p>✅ Paiement sécurisé via Stripe</p>
@@ -732,10 +579,10 @@ function SubscriptionContent() {
             <p>✅ Notification par email 7 jours avant chaque renouvellement</p>
             <p>✅ Accès immédiat à tous les contenus après validation du paiement</p>
             <p>✅ Droit de rétractation de 14 jours</p>
-            <p>✅ <strong>Gold uniquement :</strong> code de parrainage avec 10% de commission sur les abonnements annuels parrainés</p>
+            <p>✅ <strong>Abonnement annuel :</strong> code de parrainage avec 10% de commission sur les abonnements annuels parrainés</p>
             {!isPremium && (
               <p className="text-xs text-blue-700 mt-3 pt-3 border-t border-gray-300 flex items-center gap-1">
-                💡 <span>Vous avez reçu un code d'un collègue Gold ? Saisissez-le ci-dessus pour que votre parrain soit crédité.</span>
+                💡 <span>Vous avez reçu un code d'un collègue Premium ? Saisissez-le ci-dessus pour que votre parrain soit crédité.</span>
               </p>
             )}
           </div>
@@ -757,94 +604,9 @@ function SubscriptionContent() {
           </p>
         </div>
 
-        {pendingPlanType && (
-          <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-            <div className="w-full max-w-lg bg-white rounded-2xl shadow-2xl border border-gray-200 p-6 space-y-5">
-              <div className="flex items-start gap-3">
-                <div className="p-2.5 bg-yellow-100 rounded-lg">
-                  <Gift className="h-5 w-5 text-yellow-700" />
-                </div>
-                <div>
-                  <h3 className="text-lg font-bold text-gray-900">
-                    {pendingPlanSupportsReferral
-                      ? 'Avez-vous un code de parrainage ?'
-                      : 'Information avant paiement'}
-                  </h3>
-                  <p className="text-sm text-gray-600 mt-1">
-                    {pendingPlanSupportsReferral
-                      ? "Avant de passer sur Stripe, renseignez votre code si vous en possédez un pour profiter des avantages du parrainage. Vous pouvez aussi continuer sans code."
-                      : "Le parrainage s'applique uniquement sur les abonnements annuels. Cette offre mensuelle ne permet pas d'appliquer un code parrainage."}
-                  </p>
-                </div>
-              </div>
-
-              {pendingPlanSupportsReferral && (
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-700">Code de parrainage (optionnel)</label>
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="text"
-                      value={referralCode}
-                      onChange={(e) => {
-                        const code = e.target.value.toUpperCase()
-                        setReferralCode(code)
-                        if (code.length >= 4) {
-                          validateReferralCode(code)
-                        } else {
-                          setCodeValidation(null)
-                        }
-                      }}
-                      placeholder="ex. KEVIN123"
-                      className="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent uppercase font-mono tracking-wider text-gray-900 placeholder:font-sans placeholder:tracking-normal"
-                      maxLength={10}
-                    />
-                    {validatingCode && <Loader2 className="h-5 w-5 animate-spin text-yellow-600" />}
-                  </div>
-
-                  {codeValidation && (
-                    <div
-                      className={`text-sm font-medium px-4 py-2 rounded-lg ${
-                        codeValidation.valid
-                          ? 'bg-green-50 border border-green-200 text-green-800'
-                          : 'bg-red-50 border border-red-200 text-red-800'
-                      }`}
-                    >
-                      {codeValidation.valid ? '✅' : '❌'} {codeValidation.message}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              <div className="flex flex-col-reverse sm:flex-row gap-3 sm:justify-end">
-                <button
-                  type="button"
-                  onClick={() => setPendingPlanType(null)}
-                  className="px-4 py-2.5 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition"
-                >
-                  Annuler
-                </button>
-                {pendingPlanSupportsReferral && (
-                  <button
-                    type="button"
-                    onClick={handleSkipReferral}
-                    className="px-4 py-2.5 rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50 transition"
-                  >
-                    Je n'ai pas de code
-                  </button>
-                )}
-                <button
-                  type="button"
-                  onClick={handleContinueWithReferral}
-                  disabled={pendingPlanSupportsReferral && (validatingCode || (!!referralCode && !codeValidation?.valid))}
-                  className="px-4 py-2.5 rounded-lg bg-purple-600 text-white font-semibold hover:bg-purple-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Continuer vers Stripe
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
+          </div>{/* end relative space-y-6 */}
+        </div>{/* end body */}
+      </div>{/* end min-h-screen */}
     </AuthLayout>
   )
 }

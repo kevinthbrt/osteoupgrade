@@ -794,7 +794,7 @@ const scrollTo = useCallback((id: string) => {
           }`}>
             <div className="inline-flex items-center gap-2 bg-amber-100 text-amber-700 border border-amber-200 px-4 py-2 rounded-full text-sm font-bold mb-6 uppercase tracking-wider">
               <Crown className="h-4 w-4" />
-              Experience Gold
+              Experience Premium
             </div>
             <h2 className="text-4xl sm:text-5xl lg:text-6xl font-black text-slate-900 mb-4 tracking-tight">
               Tout inclus.
@@ -815,34 +815,11 @@ const scrollTo = useCallback((id: string) => {
               <div className="grid grid-cols-2 bg-slate-100">
                 <div className="px-8 py-5 text-base font-bold text-slate-500 uppercase tracking-wider">Ce que vous payez ailleurs</div>
                 <div className="px-8 py-5 bg-gradient-to-r from-amber-500 to-orange-500 text-base font-bold text-white uppercase tracking-wider flex items-center gap-2">
-                  <Crown className="h-4 w-4" /> Experience Gold
+                  <Crown className="h-4 w-4" /> Experience Premium
                 </div>
               </div>
 
-              {/* Row 1 — Seminaire */}
-              <div className="grid grid-cols-2 border-t border-slate-200">
-                <div className="px-8 py-7 bg-white flex items-center gap-5">
-                  <div className="w-12 h-12 rounded-2xl bg-red-50 flex items-center justify-center flex-shrink-0">
-                    <Calendar className="h-6 w-6 text-red-400" />
-                  </div>
-                  <div>
-                    <div className="text-lg font-bold text-slate-800">Séminaire classique</div>
-                    <div className="text-3xl font-black text-red-400 line-through decoration-red-300">700€</div>
-                    <div className="text-sm text-slate-400">par formation</div>
-                  </div>
-                </div>
-                <div className="px-8 py-7 bg-amber-50 flex items-center gap-4">
-                  <div className="w-8 h-8 rounded-full bg-amber-500 flex items-center justify-center flex-shrink-0">
-                    <span className="text-white font-black text-sm">✓</span>
-                  </div>
-                  <div>
-                    <div className="text-lg font-bold text-slate-900">2 jours de séminaire</div>
-                    <div className="text-sm text-slate-600">20 participants max · 80% pratique · experts spécialisés</div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Row 2 — Logiciel patient */}
+              {/* Row 1 — Logiciel patient */}
               <div className="grid grid-cols-2 border-t border-slate-200">
                 <div className="px-8 py-7 bg-white flex items-center gap-5">
                   <div className="w-12 h-12 rounded-2xl bg-red-50 flex items-center justify-center flex-shrink-0">
@@ -874,7 +851,7 @@ const scrollTo = useCallback((id: string) => {
                   <div>
                     <div className="text-lg font-bold text-slate-800">E-learning</div>
                     <div className="text-3xl font-black text-red-400 line-through decoration-red-300">250€<span className="text-xl">/an</span></div>
-                    <div className="text-sm text-slate-400">sans le présentiel</div>
+                    <div className="text-sm text-slate-400">sans accès illimité</div>
                   </div>
                 </div>
                 <div className="px-8 py-7 bg-amber-50 flex items-center gap-4">
@@ -906,7 +883,7 @@ const scrollTo = useCallback((id: string) => {
                   </div>
                   <div>
                     <div className="text-lg font-bold text-slate-900">10% de commission par filleul</div>
-                    <div className="text-sm text-slate-600">10 filleuls = Gold entièrement remboursé</div>
+                    <div className="text-sm text-slate-600">10 filleuls = abonnement entièrement remboursé</div>
                   </div>
                 </div>
               </div>
@@ -922,8 +899,8 @@ const scrollTo = useCallback((id: string) => {
                 </div>
                 <div className="px-8 py-8 bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-between">
                   <div>
-                    <div className="text-sm font-bold text-white/70 uppercase tracking-wider mb-1">Experience Gold</div>
-                    <div className="text-5xl font-black text-white">499€</div>
+                    <div className="text-sm font-bold text-white/70 uppercase tracking-wider mb-1">Experience Premium</div>
+                    <div className="text-5xl font-black text-white">240€</div>
                     <div className="text-sm text-white/80 mt-1">par an · tout inclus</div>
                   </div>
                   <button
@@ -1114,10 +1091,10 @@ const scrollTo = useCallback((id: string) => {
               Tarifs
             </div>
             <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-slate-900 mb-4 tracking-tight">
-              Moins cher qu&apos;un seul seminaire.
+              L&apos;acces complet pour 20&euro;/mois.
             </h2>
             <p className="text-lg text-slate-500 max-w-xl mx-auto">
-              Un seminaire classique coute entre 500&euro; et 1500&euro;. Pour 499&euro;/an, accede a <span className="text-slate-700 font-semibold">tout le contenu en ligne + un seminaire presentiel</span>.
+              Tout le contenu en ligne pour 29&euro;/mois ou 240&euro;/an — moins cher qu&apos;une seule revue scientifique.
             </p>
           </div>
 
@@ -1158,71 +1135,9 @@ const scrollTo = useCallback((id: string) => {
               </button>
             </div>
 
-            {/* Silver */}
-            <div className="rounded-2xl bg-white border border-slate-200 p-8 hover:shadow-lg transition-all">
-              <div className="mb-8">
-                <div className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-2">Silver</div>
-
-                {/* Monthly price */}
-                <div className="flex items-baseline gap-1 mb-1">
-                  <span className="text-5xl font-bold text-slate-900">29&euro;</span>
-                  <span className="text-slate-400 text-sm">/mois</span>
-                </div>
-                <p className="text-xs text-slate-400 mb-4">Sans engagement &middot; Annulable a tout moment</p>
-
-                {/* Annual option */}
-                <div className="rounded-xl bg-slate-50 border border-slate-200 p-3">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <span className="text-lg font-bold text-slate-900">240&euro;</span>
-                      <span className="text-slate-400 text-xs">/an</span>
-                    </div>
-                    <span className="bg-emerald-100 text-emerald-700 text-[10px] font-bold px-2 py-0.5 rounded-full">
-                      -17%
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-slate-500 mt-0.5">Soit 20&euro;/mois &middot; 2 mois offerts</p>
-                </div>
-
-                <p className="text-sm text-slate-500 mt-4">Acces complet a toute la plateforme en ligne.</p>
-              </div>
-
-              <ul className="space-y-3 mb-8">
-                {[
-                  'Toutes les regions anatomiques',
-                  'Bibliotheque complete de tests',
-                  'Tous les diagnostics & pathologies',
-                  'E-learning complet + quiz',
-                  'Exercices + exports PDF',
-                  'Revue de litterature',
-                  'Topographie clinique',
-                ].map((f, i) => (
-                  <li key={i} className="flex items-start gap-3 text-sm text-slate-600">
-                    <CheckCircle className="h-4 w-4 text-slate-900 flex-shrink-0 mt-0.5" />
-                    {f}
-                  </li>
-                ))}
-              </ul>
-
-              <div className="space-y-2.5">
-                <button
-                  onClick={() => router.push('/auth')}
-                  className="w-full py-3.5 rounded-xl bg-slate-900 text-white font-semibold text-sm hover:bg-slate-800 transition-all shadow-sm"
-                >
-                  Silver mensuel &middot; 29&euro;/mois
-                </button>
-                <button
-                  onClick={() => router.push('/auth')}
-                  className="w-full py-3.5 rounded-xl border-2 border-slate-900 text-slate-900 font-semibold text-sm hover:bg-slate-900 hover:text-white transition-all"
-                >
-                  Silver annuel &middot; 240&euro;/an
-                </button>
-              </div>
-            </div>
-
-            {/* Gold */}
+            {/* Premium */}
             <div className="rounded-2xl relative overflow-hidden">
-              {/* Gold border effect */}
+              {/* Premium border effect */}
               <div className="absolute inset-0 bg-gradient-to-br from-amber-400 via-amber-500 to-orange-500 rounded-2xl" />
               <div className="absolute inset-[2px] bg-white rounded-[14px]" />
 
@@ -1236,35 +1151,42 @@ const scrollTo = useCallback((id: string) => {
                 </div>
 
                 <div className="mb-8">
-                  <div className="text-sm font-semibold text-amber-600 uppercase tracking-wider mb-2">Gold</div>
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-5xl font-bold text-slate-900">499&euro;</span>
-                    <span className="text-slate-400 text-sm">/an</span>
-                  </div>
-                  <p className="text-xs text-slate-400 mt-1">Soit 41,58&euro;/mois &middot; Acces annuel complet</p>
+                  <div className="text-sm font-semibold text-amber-600 uppercase tracking-wider mb-2">Premium</div>
 
-                  {/* Value comparison */}
-                  <div className="mt-4 rounded-xl bg-amber-50 border border-amber-200 p-3">
-                    <div className="flex items-center gap-2 mb-1">
-                      <Flame className="h-3.5 w-3.5 text-amber-600" />
-                      <span className="text-xs font-bold text-amber-700">Offre imbattable</span>
+                  {/* Monthly price */}
+                  <div className="flex items-baseline gap-1 mb-1">
+                    <span className="text-5xl font-bold text-slate-900">29&euro;</span>
+                    <span className="text-slate-400 text-sm">/mois</span>
+                  </div>
+                  <p className="text-xs text-slate-400 mb-4">Sans engagement &middot; Annulable a tout moment</p>
+
+                  {/* Annual option */}
+                  <div className="rounded-xl bg-amber-50 border border-amber-200 p-3">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="text-lg font-bold text-slate-900">240&euro;</span>
+                        <span className="text-slate-400 text-xs">/an</span>
+                      </div>
+                      <span className="bg-emerald-100 text-emerald-700 text-[10px] font-bold px-2 py-0.5 rounded-full">
+                        -17%
+                      </span>
                     </div>
-                    <p className="text-[11px] text-amber-600/80">
-                      1 seminaire classique = 500-1500&euro;. Ici : toute la plateforme + seminaire pour 499&euro;.
-                    </p>
+                    <p className="text-[11px] text-amber-700 mt-0.5">Soit 20&euro;/mois &middot; 2 mois offerts + parrainage</p>
                   </div>
 
-                  <p className="text-sm text-slate-500 mt-3">L&apos;experience complete : en ligne + presentiel.</p>
+                  <p className="text-sm text-slate-500 mt-3">Acces complet a toute la plateforme en ligne.</p>
                 </div>
 
                 <ul className="space-y-3 mb-8">
                   {[
-                    'Tout ce qui est dans Silver',
-                    'Seminaires presentiels (2 jours)',
-                    'Masterclass exclusives',
-                    'Programme ambassadeur (10% commission)',
-                    'Acces prioritaire aux nouveautes',
-                    'Support premium dedie',
+                    'Toutes les regions anatomiques',
+                    'Bibliotheque complete de tests',
+                    'Tous les diagnostics & pathologies',
+                    'E-learning complet + quiz',
+                    'Exercices + exports PDF',
+                    'Revue de litterature',
+                    'Topographie clinique',
+                    'Programme ambassadeur (10% commission · annuel)',
                   ].map((f, i) => (
                     <li key={i} className="flex items-start gap-3 text-sm text-slate-700">
                       <CheckCircle className="h-4 w-4 text-amber-500 flex-shrink-0 mt-0.5" />
@@ -1273,22 +1195,27 @@ const scrollTo = useCallback((id: string) => {
                   ))}
                 </ul>
 
-                <button
-                  onClick={() => router.push('/auth')}
-                  className="w-full py-3.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-400 text-slate-900 font-bold text-sm hover:from-amber-400 hover:to-amber-300 transition-all shadow-lg shadow-amber-500/20"
-                >
-                  Choisir Gold &middot; 499&euro;/an
-                </button>
+                <div className="space-y-2.5">
+                  <button
+                    onClick={() => router.push('/auth')}
+                    className="w-full py-3.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-400 text-slate-900 font-bold text-sm hover:from-amber-400 hover:to-amber-300 transition-all shadow-lg shadow-amber-500/20"
+                  >
+                    Premium mensuel &middot; 29&euro;/mois
+                  </button>
+                  <button
+                    onClick={() => router.push('/auth')}
+                    className="w-full py-3.5 rounded-xl border-2 border-amber-500 text-amber-700 font-semibold text-sm hover:bg-amber-500 hover:text-slate-900 transition-all"
+                  >
+                    Premium annuel &middot; 240&euro;/an
+                  </button>
+                </div>
               </div>
             </div>
           </div>
 
           <div className="mt-10 text-center">
-            <p className="text-sm font-medium text-slate-600 mb-1">
-              Un seminaire classique coute 500 a 1500&euro;. Gold te donne tout pour 499&euro;/an.
-            </p>
             <p className="text-xs text-slate-400">
-              Silver disponible en mensuel ou annuel. Gold en abonnement annuel. Sans engagement au-dela.
+              Mensuel ou annuel, sans engagement. Annulable a tout moment depuis votre compte.
             </p>
           </div>
         </div>
@@ -1304,15 +1231,15 @@ const scrollTo = useCallback((id: string) => {
           cta.isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
         }`}>
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-6 tracking-tight leading-tight">
-            Tout le contenu + un seminaire
+            Tout le contenu en ligne
             <br />
             <span className="bg-gradient-to-r from-amber-400 to-amber-300 bg-clip-text text-transparent">
-              pour le prix d&apos;un seul seminaire.
+              pour 240&euro;/an.
             </span>
           </h2>
           <p className="text-lg text-slate-400 mb-4 max-w-lg mx-auto">
-            200+ tests, 150+ pathologies, e-learning complet, videos et un seminaire presentiel de 2 jours.
-            Le tout pour 499&euro;/an.
+            200+ tests, 150+ pathologies, e-learning complet, videos et bien plus.
+            Le tout pour 29&euro;/mois ou 240&euro;/an.
           </p>
           <p className="text-sm text-slate-500 mb-10 max-w-md mx-auto">
             Commence gratuitement avec le module epaule. Pas de carte bancaire.

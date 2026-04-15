@@ -33,7 +33,7 @@ const CATEGORIES = [
   { value: 'autre', label: 'Autre', icon: '📄' }
 ]
 
-const ALLOWED_ROLES = ['premium_silver', 'premium_gold', 'admin']
+const ALLOWED_ROLES = ['premium', 'admin']
 
 export default function CommunicationPage() {
   const router = useRouter()
@@ -317,403 +317,423 @@ export default function CommunicationPage() {
 
   return (
     <AuthLayout>
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900">
-        <div className="max-w-7xl mx-auto px-4 py-8">
-          {/* Free user banner */}
-          {isFree && (
-            <div className="mb-6">
-              <FreeUserBanner />
-            </div>
-          )}
-
-          {/* Header */}
-          <div className="mb-8">
-            <div className="flex items-center justify-between gap-4 mb-4">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center">
-                  <FileText className="w-6 h-6 text-white" />
-                </div>
-                <div>
-                  <h1 className="text-3xl font-bold text-white">Communication</h1>
-                  <p className="text-blue-200">Modèles de courriers et documents professionnels</p>
-                </div>
-              </div>
-
-              {/* Admin Button */}
-              {isAdmin && (
-                <button
-                  onClick={() => openAdminModal()}
-                  className="px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg hover:shadow-lg transition-all flex items-center gap-2"
-                >
-                  <Plus className="w-5 h-5" />
-                  Ajouter un document
-                </button>
-              )}
+      {/* Admin Modal */}
+      {showAdminModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white/85 backdrop-blur-2xl border border-white/70 shadow-2xl ring-1 ring-inset ring-white/60 rounded-3xl p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold text-slate-800">
+                {editingDocument ? 'Modifier le Document' : 'Nouveau Document'}
+              </h2>
+              <button
+                onClick={closeAdminModal}
+                className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+              >
+                <X className="w-6 h-6 text-slate-600" />
+              </button>
             </div>
 
-            {/* Admin Badge */}
-            {isAdmin && (
-              <div className="inline-flex items-center gap-2 px-4 py-2 bg-purple-500/20 border border-purple-500/30 rounded-lg">
-                <Shield className="w-4 h-4 text-purple-300" />
-                <span className="text-purple-200 text-sm font-medium">
-                  Mode Administrateur - Vous pouvez gérer tous les documents
-                </span>
-              </div>
-            )}
-          </div>
-
-          {/* Filters */}
-          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 mb-6">
-            <div className="grid md:grid-cols-2 gap-4">
-              {/* Recherche */}
-              <div className="relative">
-                <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-white/40" />
+            <div className="space-y-6">
+              {/* Titre */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Titre *
+                </label>
                 <input
                   type="text"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder="Rechercher un document..."
-                  className="w-full pl-12 pr-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/40 focus:ring-2 focus:ring-blue-500"
+                  value={formData.title}
+                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                  className="w-full bg-white/70 backdrop-blur-sm border border-blue-200/60 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-300 focus:border-blue-400 outline-none text-slate-800 placeholder-slate-400"
+                  placeholder="Ex: Modèle de facture"
                 />
               </div>
 
-              {/* Filtre catégorie */}
-              <div className="relative">
-                <Filter className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-white/40" />
+              {/* Description */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Description
+                </label>
+                <textarea
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  rows={3}
+                  className="w-full bg-white/70 backdrop-blur-sm border border-blue-200/60 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-300 focus:border-blue-400 outline-none text-slate-800 placeholder-slate-400"
+                  placeholder="Description du document..."
+                />
+              </div>
+
+              {/* Catégorie */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Catégorie
+                </label>
                 <select
-                  value={filterCategory}
-                  onChange={(e) => setFilterCategory(e.target.value)}
-                  className="w-full pl-12 pr-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white focus:ring-2 focus:ring-blue-500"
+                  value={formData.category}
+                  onChange={(e) => setFormData({ ...formData, category: e.target.value as any })}
+                  className="w-full bg-white/70 backdrop-blur-sm border border-blue-200/60 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-300 focus:border-blue-400 outline-none text-slate-800"
                 >
-                  <option value="">Toutes les catégories</option>
                   {CATEGORIES.map(cat => (
-                    <option key={cat.value} value={cat.value}>
-                      {cat.icon} {cat.label}
-                    </option>
+                    <option key={cat.value} value={cat.value}>{cat.icon} {cat.label}</option>
                   ))}
                 </select>
               </div>
-            </div>
-          </div>
 
-          {/* Documents */}
-          {loading ? (
-            <div className="text-center py-12">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto"></div>
-              <p className="text-white mt-4">Chargement...</p>
-            </div>
-          ) : (
-            <>
-              {documentsByCategory.length === 0 ? (
-                <div className="text-center py-12 bg-white/5 rounded-xl">
-                  <FileText className="w-16 h-16 text-white/30 mx-auto mb-4" />
-                  <p className="text-white/60">
-                    {searchTerm || filterCategory
-                      ? 'Aucun document ne correspond à votre recherche'
-                      : 'Aucun document disponible pour le moment'}
-                  </p>
-                  {isAdmin && !searchTerm && !filterCategory && (
-                    <button
-                      onClick={() => openAdminModal()}
-                      className="mt-4 px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg hover:shadow-lg transition-all inline-flex items-center gap-2"
-                    >
-                      <Plus className="w-5 h-5" />
-                      Ajouter le premier document
-                    </button>
-                  )}
-                </div>
-              ) : (
-                <div className="space-y-8">
-                  {documentsByCategory.map((category) => (
-                    <div key={category.value}>
-                      {/* Titre de catégorie */}
-                      <div className="flex items-center gap-3 mb-4">
-                        <span className="text-3xl">{category.icon}</span>
-                        <h2 className="text-2xl font-bold text-white">{category.label}</h2>
-                        <span className="px-3 py-1 bg-blue-500/20 text-blue-300 rounded-full text-sm">
-                          {category.documents.length}
-                        </span>
-                      </div>
-
-                      {/* Liste des documents */}
-                      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {category.documents.map((doc) => (
-                          <FreeContentGate key={doc.id} isLocked={isFree}>
-                          <div
-                            className={`bg-white/10 backdrop-blur-sm rounded-xl p-6 hover:bg-white/15 transition-all group relative ${
-                              !doc.is_active && isAdmin ? 'opacity-60 border-2 border-red-500/30' : ''
-                            }`}
-                          >
-                            {/* Admin Controls */}
-                            {isAdmin && (
-                              <div className="absolute top-3 right-3 flex items-center gap-2">
-                                <button
-                                  onClick={() => toggleDocumentActive(doc)}
-                                  className={`p-2 ${
-                                    doc.is_active
-                                      ? 'bg-blue-500/20 hover:bg-blue-500/30 text-blue-300'
-                                      : 'bg-gray-500/20 hover:bg-gray-500/30 text-gray-300'
-                                  } rounded-lg transition-colors`}
-                                  title={doc.is_active ? 'Désactiver' : 'Activer'}
-                                >
-                                  {doc.is_active ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
-                                </button>
-                                <button
-                                  onClick={() => openAdminModal(doc)}
-                                  className="p-2 bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-300 rounded-lg transition-colors"
-                                  title="Modifier"
-                                >
-                                  <Edit className="w-4 h-4" />
-                                </button>
-                                <button
-                                  onClick={() => handleDeleteDocument(doc.id)}
-                                  className="p-2 bg-red-500/20 hover:bg-red-500/30 text-red-300 rounded-lg transition-colors"
-                                  title="Supprimer"
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                </button>
-                              </div>
-                            )}
-
-                            <div className="flex items-start gap-4 mb-4">
-                              <div className="w-12 h-12 bg-gradient-to-br from-blue-400 to-purple-500 rounded-lg flex items-center justify-center flex-shrink-0">
-                                <FileText className="w-6 h-6 text-white" />
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <h3 className="text-lg font-semibold text-white mb-1 truncate">
-                                  {doc.title}
-                                </h3>
-                                {doc.description && (
-                                  <p className="text-blue-200 text-sm line-clamp-2">
-                                    {doc.description}
-                                  </p>
-                                )}
-                              </div>
-                            </div>
-
-                            <div className="space-y-2 mb-4">
-                              <div className="flex items-center gap-2 text-sm text-blue-300">
-                                <span className="truncate">📄 {doc.file_name}</span>
-                              </div>
-                              {doc.file_size && doc.file_size > 0 && (
-                                <div className="flex items-center gap-2 text-sm text-blue-300">
-                                  <span>📊 {(doc.file_size / 1024).toFixed(2)} KB</span>
-                                </div>
-                              )}
-                              {isAdmin && (
-                                <div className="flex items-center gap-2 text-sm text-blue-300">
-                                  <span>🔢 Ordre: {doc.display_order}</span>
-                                </div>
-                              )}
-                            </div>
-
-                            <button
-                              onClick={() => handleDownload(doc)}
-                              className="w-full px-4 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg hover:shadow-lg transition-all flex items-center justify-center gap-2 group-hover:scale-105"
-                            >
-                              <Download className="w-5 h-5" />
-                              Télécharger
-                            </button>
-                          </div>
-                          </FreeContentGate>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </>
-          )}
-
-          {/* Info Premium */}
-          <div className="mt-8 bg-gradient-to-r from-yellow-500/10 to-orange-500/10 border border-yellow-500/20 rounded-xl p-6">
-            <div className="flex items-start gap-4">
-              <Crown className="w-8 h-8 text-yellow-400 flex-shrink-0 mt-1" />
+              {/* Upload Fichier */}
               <div>
-                <h3 className="text-xl font-bold text-white mb-2">
-                  Accès Premium
-                </h3>
-                <p className="text-blue-200">
-                  Vous avez accès à tous les modèles de communication grâce à votre abonnement Premium.
-                  Ces documents sont régulièrement mis à jour et de nouveaux modèles sont ajoutés.
-                </p>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Fichier * (Word ou PDF)
+                </label>
+                {formData.file_url ? (
+                  <div className="flex items-center gap-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+                    <FileText className="w-8 h-8 text-green-600" />
+                    <div className="flex-1">
+                      <p className="text-slate-800 font-medium">{formData.file_name}</p>
+                      {formData.file_size > 0 && (
+                        <p className="text-green-600 text-sm">
+                          {(formData.file_size / 1024).toFixed(2)} KB
+                        </p>
+                      )}
+                    </div>
+                    <button
+                      onClick={() => setFormData({ ...formData, file_url: '', file_name: '', file_size: 0 })}
+                      className="p-2 bg-red-100 hover:bg-red-200 text-red-600 rounded-lg"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
+                ) : (
+                  <label className="block w-full p-8 border-2 border-dashed border-blue-200/60 rounded-lg cursor-pointer hover:border-blue-400/60 transition-colors bg-white/40">
+                    <input
+                      type="file"
+                      accept=".doc,.docx,.pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/pdf"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0]
+                        if (file) handleFileUpload(file)
+                      }}
+                      className="hidden"
+                      disabled={uploadingFile}
+                    />
+                    <div className="text-center">
+                      {uploadingFile ? (
+                        <>
+                          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+                          <p className="text-slate-600">Upload en cours...</p>
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="w-12 h-12 text-slate-400 mx-auto mb-4" />
+                          <p className="text-slate-700 mb-2">Cliquez pour uploader un fichier</p>
+                          <p className="text-slate-500 text-sm">Formats acceptés: .doc, .docx, .pdf</p>
+                        </>
+                      )}
+                    </div>
+                  </label>
+                )}
               </div>
+
+              {/* Ordre d'affichage */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Ordre d'affichage
+                </label>
+                <input
+                  type="number"
+                  value={formData.display_order}
+                  onChange={(e) => setFormData({ ...formData, display_order: parseInt(e.target.value) || 0 })}
+                  className="w-full bg-white/70 backdrop-blur-sm border border-blue-200/60 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-300 focus:border-blue-400 outline-none text-slate-800"
+                />
+              </div>
+
+              {/* Actif */}
+              <div className="flex items-center gap-3">
+                <input
+                  type="checkbox"
+                  id="is_active"
+                  checked={formData.is_active}
+                  onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
+                  className="w-5 h-5 rounded border-blue-200 bg-white/70 text-blue-500 focus:ring-2 focus:ring-blue-300"
+                />
+                <label htmlFor="is_active" className="text-slate-700 font-medium">
+                  Document actif (visible pour les utilisateurs)
+                </label>
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex gap-4 mt-8">
+              <button
+                onClick={closeAdminModal}
+                className="flex-1 px-6 py-3 bg-white/70 hover:bg-white/90 border border-white/60 text-slate-600 rounded-xl transition-colors"
+                disabled={saving}
+              >
+                Annuler
+              </button>
+              <button
+                onClick={handleSaveDocument}
+                disabled={saving || !formData.title || !formData.file_url}
+                className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-blue-500/90 backdrop-blur-sm border border-blue-400/30 text-white font-semibold hover:bg-blue-600/90 shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {saving ? (
+                  <>
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                    Enregistrement...
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-5 h-5" />
+                    Enregistrer
+                  </>
+                )}
+              </button>
             </div>
           </div>
         </div>
+      )}
 
-        {/* Admin Modal */}
-        {showAdminModal && (
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-2xl p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-bold text-white">
-                  {editingDocument ? 'Modifier le Document' : 'Nouveau Document'}
-                </h2>
-                <button
-                  onClick={closeAdminModal}
-                  className="p-2 hover:bg-white/10 rounded-lg transition-colors"
-                >
-                  <X className="w-6 h-6 text-white" />
-                </button>
+      <div className="min-h-screen -m-6 md:-m-8">
+        {/* Dark Header */}
+        <div className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 px-6 md:px-10 pt-8 pb-6">
+          <div className="absolute top-0 left-0 w-72 h-72 bg-blue-500/15 rounded-full blur-3xl animate-pulse -translate-x-1/2 -translate-y-1/4" style={{ animationDuration: '4s' }} />
+          <div className="absolute top-1/2 right-0 w-56 h-56 bg-indigo-400/10 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '6s', animationDelay: '2s' }} />
+          <div className="absolute bottom-0 right-1/4 w-48 h-48 bg-sky-400/15 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '5s', animationDelay: '1s' }} />
+          <div className="relative">
+            <div className="bg-white/[0.09] backdrop-blur-xl border border-white/20 ring-1 ring-inset ring-white/15 rounded-3xl shadow-[0_12px_40px_rgba(0,8,30,0.65),inset_0_1px_0_rgba(255,255,255,0.12)] p-6 md:p-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center flex-shrink-0">
+                  <FileText className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <p className="text-blue-300/80 text-xs font-semibold uppercase tracking-widest mb-1">Outils</p>
+                  <h1 className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-white via-blue-100 to-sky-200 bg-clip-text text-transparent">
+                    Communication
+                  </h1>
+                  <p className="text-blue-200/70 text-sm mt-0.5">Modèles de courriers et documents professionnels</p>
+                </div>
               </div>
 
-              <div className="space-y-6">
-                {/* Titre */}
-                <div>
-                  <label className="block text-sm font-medium text-blue-200 mb-2">
-                    Titre *
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.title}
-                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                    className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/40 focus:ring-2 focus:ring-blue-500"
-                    placeholder="Ex: Modèle de facture"
-                  />
-                </div>
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                {/* Admin Badge */}
+                {isAdmin && (
+                  <div className="inline-flex items-center gap-2 px-4 py-2 bg-purple-500/20 border border-purple-500/30 rounded-lg">
+                    <Shield className="w-4 h-4 text-purple-300" />
+                    <span className="text-purple-200 text-sm font-medium">
+                      Mode Administrateur
+                    </span>
+                  </div>
+                )}
 
-                {/* Description */}
-                <div>
-                  <label className="block text-sm font-medium text-blue-200 mb-2">
-                    Description
-                  </label>
-                  <textarea
-                    value={formData.description}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    rows={3}
-                    className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/40 focus:ring-2 focus:ring-blue-500"
-                    placeholder="Description du document..."
-                  />
-                </div>
-
-                {/* Catégorie */}
-                <div>
-                  <label className="block text-sm font-medium text-blue-200 mb-2">
-                    Catégorie
-                  </label>
-                  <select
-                    value={formData.category}
-                    onChange={(e) => setFormData({ ...formData, category: e.target.value as any })}
-                    className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white focus:ring-2 focus:ring-blue-500"
+                {/* Admin Button */}
+                {isAdmin && (
+                  <button
+                    onClick={() => openAdminModal()}
+                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-500/90 backdrop-blur-sm border border-blue-400/30 text-white font-semibold hover:bg-blue-600/90 shadow-sm transition-all"
                   >
-                    {CATEGORIES.map(cat => (
-                      <option key={cat.value} value={cat.value}>{cat.icon} {cat.label}</option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Upload Fichier */}
-                <div>
-                  <label className="block text-sm font-medium text-blue-200 mb-2">
-                    Fichier * (Word ou PDF)
-                  </label>
-                  {formData.file_url ? (
-                    <div className="flex items-center gap-4 p-4 bg-green-500/20 border border-green-500/30 rounded-lg">
-                      <FileText className="w-8 h-8 text-green-300" />
-                      <div className="flex-1">
-                        <p className="text-white font-medium">{formData.file_name}</p>
-                        {formData.file_size > 0 && (
-                          <p className="text-green-300 text-sm">
-                            {(formData.file_size / 1024).toFixed(2)} KB
-                          </p>
-                        )}
-                      </div>
-                      <button
-                        onClick={() => setFormData({ ...formData, file_url: '', file_name: '', file_size: 0 })}
-                        className="p-2 bg-red-500/20 hover:bg-red-500/30 text-red-300 rounded-lg"
-                      >
-                        <X className="w-5 h-5" />
-                      </button>
-                    </div>
-                  ) : (
-                    <label className="block w-full p-8 border-2 border-dashed border-white/20 rounded-lg cursor-pointer hover:border-blue-500/50 transition-colors">
-                      <input
-                        type="file"
-                        accept=".doc,.docx,.pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/pdf"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0]
-                          if (file) handleFileUpload(file)
-                        }}
-                        className="hidden"
-                        disabled={uploadingFile}
-                      />
-                      <div className="text-center">
-                        {uploadingFile ? (
-                          <>
-                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
-                            <p className="text-white">Upload en cours...</p>
-                          </>
-                        ) : (
-                          <>
-                            <Upload className="w-12 h-12 text-white/40 mx-auto mb-4" />
-                            <p className="text-white mb-2">Cliquez pour uploader un fichier</p>
-                            <p className="text-white/60 text-sm">Formats acceptés: .doc, .docx, .pdf</p>
-                          </>
-                        )}
-                      </div>
-                    </label>
-                  )}
-                </div>
-
-                {/* Ordre d'affichage */}
-                <div>
-                  <label className="block text-sm font-medium text-blue-200 mb-2">
-                    Ordre d'affichage
-                  </label>
-                  <input
-                    type="number"
-                    value={formData.display_order}
-                    onChange={(e) => setFormData({ ...formData, display_order: parseInt(e.target.value) || 0 })}
-                    className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-
-                {/* Actif */}
-                <div className="flex items-center gap-3">
-                  <input
-                    type="checkbox"
-                    id="is_active"
-                    checked={formData.is_active}
-                    onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
-                    className="w-5 h-5 rounded border-white/20 bg-white/10 text-blue-500 focus:ring-2 focus:ring-blue-500"
-                  />
-                  <label htmlFor="is_active" className="text-white font-medium">
-                    Document actif (visible pour les utilisateurs)
-                  </label>
-                </div>
-              </div>
-
-              {/* Actions */}
-              <div className="flex gap-4 mt-8">
-                <button
-                  onClick={closeAdminModal}
-                  className="flex-1 px-6 py-3 bg-white/10 hover:bg-white/20 text-white rounded-lg transition-colors"
-                  disabled={saving}
-                >
-                  Annuler
-                </button>
-                <button
-                  onClick={handleSaveDocument}
-                  disabled={saving || !formData.title || !formData.file_url}
-                  className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 hover:shadow-lg text-white rounded-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {saving ? (
-                    <>
-                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                      Enregistrement...
-                    </>
-                  ) : (
-                    <>
-                      <Save className="w-5 h-5" />
-                      Enregistrer
-                    </>
-                  )}
-                </button>
+                    <Plus className="w-5 h-5" />
+                    Ajouter un document
+                  </button>
+                )}
               </div>
             </div>
           </div>
-        )}
+          <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-blue-400/40 to-transparent" />
+          <div className="absolute bottom-0 left-1/4 right-1/4 h-px bg-gradient-to-r from-transparent via-sky-300/50 to-transparent blur-sm" />
+        </div>
+
+        {/* Light Body */}
+        <div className="relative overflow-hidden bg-gradient-to-br from-blue-100/90 via-sky-50 to-indigo-50/80 px-6 md:px-10 pt-8 pb-10">
+          <div className="pointer-events-none absolute top-0 left-1/4 w-96 h-96 bg-blue-400/20 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '6s' }} />
+          <div className="pointer-events-none absolute top-1/2 right-0 w-80 h-80 bg-sky-400/25 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '8s', animationDelay: '2s' }} />
+          <div className="pointer-events-none absolute bottom-0 left-0 w-72 h-72 bg-indigo-400/20 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '7s', animationDelay: '1s' }} />
+          <div className="relative space-y-6">
+
+            {/* Free user banner */}
+            {isFree && (
+              <div>
+                <FreeUserBanner />
+              </div>
+            )}
+
+            {/* Filters */}
+            <div className="bg-white/85 backdrop-blur-2xl border border-white/70 shadow-xl ring-1 ring-inset ring-white/60 rounded-2xl p-6">
+              <div className="grid md:grid-cols-2 gap-4">
+                {/* Recherche */}
+                <div className="relative">
+                  <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400" />
+                  <input
+                    type="text"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    placeholder="Rechercher un document..."
+                    className="w-full pl-12 pr-4 bg-white/70 backdrop-blur-sm border border-blue-200/60 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-300 focus:border-blue-400 outline-none text-slate-700 placeholder-slate-400"
+                  />
+                </div>
+
+                {/* Filtre catégorie */}
+                <div className="relative">
+                  <Filter className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400" />
+                  <select
+                    value={filterCategory}
+                    onChange={(e) => setFilterCategory(e.target.value)}
+                    className="w-full pl-12 pr-4 bg-white/70 backdrop-blur-sm border border-blue-200/60 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-300 focus:border-blue-400 outline-none text-slate-700"
+                  >
+                    <option value="">Toutes les catégories</option>
+                    {CATEGORIES.map(cat => (
+                      <option key={cat.value} value={cat.value}>
+                        {cat.icon} {cat.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {/* Documents */}
+            {loading ? (
+              <div className="text-center py-12">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
+                <p className="text-slate-600 mt-4">Chargement...</p>
+              </div>
+            ) : (
+              <>
+                {documentsByCategory.length === 0 ? (
+                  <div className="text-center py-12 bg-white/85 backdrop-blur-2xl border border-white/70 shadow-xl ring-1 ring-inset ring-white/60 rounded-2xl">
+                    <FileText className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+                    <p className="text-slate-500">
+                      {searchTerm || filterCategory
+                        ? 'Aucun document ne correspond à votre recherche'
+                        : 'Aucun document disponible pour le moment'}
+                    </p>
+                    {isAdmin && !searchTerm && !filterCategory && (
+                      <button
+                        onClick={() => openAdminModal()}
+                        className="mt-4 inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-500/90 backdrop-blur-sm border border-blue-400/30 text-white font-semibold hover:bg-blue-600/90 shadow-sm transition-all"
+                      >
+                        <Plus className="w-5 h-5" />
+                        Ajouter le premier document
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  <div className="space-y-8">
+                    {documentsByCategory.map((category) => (
+                      <div key={category.value}>
+                        {/* Titre de catégorie */}
+                        <div className="flex items-center gap-3 mb-4">
+                          <span className="text-3xl">{category.icon}</span>
+                          <h2 className="text-2xl font-bold text-slate-800">{category.label}</h2>
+                          <span className="px-3 py-1 bg-blue-500/20 text-blue-700 rounded-full text-sm font-medium">
+                            {category.documents.length}
+                          </span>
+                        </div>
+
+                        {/* Liste des documents */}
+                        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                          {category.documents.map((doc) => (
+                            <FreeContentGate key={doc.id} isLocked={isFree}>
+                              <div
+                                className={`bg-white/85 backdrop-blur-2xl border border-white/70 shadow-xl ring-1 ring-inset ring-white/60 rounded-2xl p-6 hover:shadow-2xl transition-all group relative ${
+                                  !doc.is_active && isAdmin ? 'bg-white/50 backdrop-blur-sm border border-white/40 opacity-60' : ''
+                                }`}
+                              >
+                                {/* Admin Controls */}
+                                {isAdmin && (
+                                  <div className="absolute top-3 right-3 flex items-center gap-2">
+                                    <button
+                                      onClick={() => toggleDocumentActive(doc)}
+                                      className={`p-2 rounded-lg transition-colors ${
+                                        doc.is_active
+                                          ? 'bg-blue-100 hover:bg-blue-200 text-blue-600'
+                                          : 'bg-slate-100 hover:bg-slate-200 text-slate-500'
+                                      }`}
+                                      title={doc.is_active ? 'Désactiver' : 'Activer'}
+                                    >
+                                      {doc.is_active ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                                    </button>
+                                    <button
+                                      onClick={() => openAdminModal(doc)}
+                                      className="p-2 bg-yellow-100 hover:bg-yellow-200 text-yellow-700 rounded-lg transition-colors"
+                                      title="Modifier"
+                                    >
+                                      <Edit className="w-4 h-4" />
+                                    </button>
+                                    <button
+                                      onClick={() => handleDeleteDocument(doc.id)}
+                                      className="p-2 bg-red-100 hover:bg-red-200 text-red-600 rounded-lg transition-colors"
+                                      title="Supprimer"
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                    </button>
+                                  </div>
+                                )}
+
+                                <div className="flex items-start gap-4 mb-4">
+                                  <div className="w-12 h-12 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-lg flex items-center justify-center flex-shrink-0">
+                                    <FileText className="w-6 h-6 text-white" />
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <h3 className="text-lg font-semibold text-slate-800 mb-1 truncate">
+                                      {doc.title}
+                                    </h3>
+                                    {doc.description && (
+                                      <p className="text-slate-500 text-sm line-clamp-2">
+                                        {doc.description}
+                                      </p>
+                                    )}
+                                  </div>
+                                </div>
+
+                                <div className="space-y-2 mb-4">
+                                  <div className="flex items-center gap-2 text-sm text-slate-500">
+                                    <span className="truncate">📄 {doc.file_name}</span>
+                                  </div>
+                                  {doc.file_size && doc.file_size > 0 && (
+                                    <div className="flex items-center gap-2 text-sm text-slate-500">
+                                      <span>📊 {(doc.file_size / 1024).toFixed(2)} KB</span>
+                                    </div>
+                                  )}
+                                  {isAdmin && (
+                                    <div className="flex items-center gap-2 text-sm text-slate-500">
+                                      <span>🔢 Ordre: {doc.display_order}</span>
+                                    </div>
+                                  )}
+                                </div>
+
+                                <button
+                                  onClick={() => handleDownload(doc)}
+                                  className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-blue-500/90 backdrop-blur-sm border border-blue-400/30 text-white font-semibold hover:bg-blue-600/90 shadow-sm transition-all group-hover:scale-[1.02]"
+                                >
+                                  <Download className="w-5 h-5" />
+                                  Télécharger
+                                </button>
+                              </div>
+                            </FreeContentGate>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
+
+            {/* Info Premium */}
+            <div className="bg-white/85 backdrop-blur-2xl border border-white/70 shadow-xl ring-1 ring-inset ring-white/60 rounded-2xl p-6">
+              <div className="flex items-start gap-4">
+                <Crown className="w-8 h-8 text-yellow-500 flex-shrink-0 mt-1" />
+                <div>
+                  <h3 className="text-xl font-bold text-slate-800 mb-2">
+                    Accès Premium
+                  </h3>
+                  <p className="text-slate-600">
+                    Vous avez accès à tous les modèles de communication grâce à votre abonnement Premium.
+                    Ces documents sont régulièrement mis à jour et de nouveaux modèles sont ajoutés.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
       </div>
     </AuthLayout>
   )

@@ -462,68 +462,68 @@ export default function ImprovedTestsPage() {
 
   return (
     <AuthLayout>
-      <div className="min-h-screen pb-12">
-        {profile?.role === 'free' && <div className="mb-6"><FreeUserBanner /></div>}
-        {/* Header */}
-        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-blue-600 via-primary-600 to-purple-700 text-white mb-8 shadow-2xl">
-          <div className="absolute inset-0 bg-grid-white/[0.02] bg-[size:60px_60px]" />
-          <div className="absolute top-0 right-0 w-96 h-96 bg-purple-500/30 rounded-full blur-3xl" />
-
-          <div className="relative px-6 py-8 md:px-10 md:py-10">
-            <button
-              onClick={() => router.push('/dashboard')}
-              className="text-sm text-blue-100 hover:text-white mb-4 flex items-center gap-2"
-            >
-              ← Retour au dashboard
-            </button>
-
-            <div className="max-w-4xl">
-              <div className="flex items-start justify-between">
-                <div>
-                  <h1 className="text-3xl md:text-4xl font-bold mb-3 bg-clip-text text-transparent bg-gradient-to-r from-white to-blue-100">
-                    Tests orthopédiques
-                  </h1>
-
-                  <p className="text-base md:text-lg text-blue-100 mb-6 max-w-2xl">
-                    Tests et clusters organisés par grandes régions anatomiques pour un diagnostic précis
-                  </p>
-                </div>
-
-                {profile?.role === 'admin' && (
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => router.push('/diagnostics')}
-                      className="px-4 py-2 bg-white/10 hover:bg-white/20 backdrop-blur-sm text-white rounded-lg font-medium transition-colors flex items-center space-x-2 border border-white/20"
-                      title="Gérer les diagnostics"
-                    >
-                      <FolderOpen className="h-4 w-4" />
-                      <span>Diagnostics</span>
-                    </button>
-                    <button
-                      onClick={() => router.push('/admin/tests/new')}
-                      className="px-6 py-3 bg-white text-primary-600 rounded-xl hover:bg-blue-50 flex items-center gap-2 font-semibold shadow-lg transition-colors"
-                    >
-                      <Plus className="h-5 w-5" />
-                      Nouveau test
-                    </button>
-                    <button
-                      onClick={() => setClusterModalOpen(true)}
-                      className="px-4 py-2 bg-white/10 hover:bg-white/20 backdrop-blur-sm text-white rounded-lg font-medium transition-colors flex items-center space-x-2 border border-white/20"
-                    >
-                      <Layers className="h-4 w-4" />
-                      <span>Nouveau cluster</span>
-                    </button>
-                  </div>
-                )}
+      <div className="min-h-screen -m-6 md:-m-8">
+        {/* Dark header */}
+        <div className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 px-6 md:px-10 pt-8 pb-6">
+          <div className="absolute top-0 left-0 w-72 h-72 bg-emerald-500/15 rounded-full blur-3xl animate-pulse -translate-x-1/2 -translate-y-1/4" style={{ animationDuration: '4s' }} />
+          <div className="absolute top-1/2 right-0 w-56 h-56 bg-teal-400/10 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '6s', animationDelay: '2s' }} />
+          <div className="absolute bottom-0 right-1/4 w-48 h-48 bg-sky-400/15 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '5s', animationDelay: '1s' }} />
+          <div className="relative">
+            <div className="bg-white/[0.09] backdrop-blur-xl border border-white/20 ring-1 ring-inset ring-white/15 rounded-3xl shadow-[0_12px_40px_rgba(0,8,30,0.65),inset_0_1px_0_rgba(255,255,255,0.12)] p-6 md:p-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <div>
+                <p className="text-emerald-300 text-sm font-medium mb-1 tracking-wide flex items-center gap-2">
+                  <Clipboard className="h-4 w-4" /> Tests Orthopédiques
+                </p>
+                <h1 className="text-3xl md:text-4xl font-bold tracking-tight bg-gradient-to-r from-white via-emerald-100 to-teal-200 bg-clip-text text-transparent">
+                  Tests orthopédiques
+                </h1>
+                <p className="text-blue-300/70 text-sm mt-1.5">
+                  Tests et clusters organisés par grandes régions anatomiques pour un diagnostic précis
+                </p>
               </div>
+
+              {profile?.role === 'admin' && (
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    onClick={() => router.push('/diagnostics')}
+                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-500/90 backdrop-blur-sm border border-emerald-400/30 text-white font-semibold hover:bg-emerald-600/90 shadow-sm transition-all"
+                    title="Gérer les diagnostics"
+                  >
+                    <FolderOpen className="h-4 w-4" />
+                    <span>Diagnostics</span>
+                  </button>
+                  <button
+                    onClick={() => router.push('/admin/tests/new')}
+                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-500/90 backdrop-blur-sm border border-emerald-400/30 text-white font-semibold hover:bg-emerald-600/90 shadow-sm transition-all"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Nouveau test
+                  </button>
+                  <button
+                    onClick={() => setClusterModalOpen(true)}
+                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-500/90 backdrop-blur-sm border border-emerald-400/30 text-white font-semibold hover:bg-emerald-600/90 shadow-sm transition-all"
+                  >
+                    <Layers className="h-4 w-4" />
+                    <span>Nouveau cluster</span>
+                  </button>
+                </div>
+              )}
             </div>
           </div>
+          <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-emerald-400/40 to-transparent" />
+          <div className="absolute bottom-0 left-1/4 right-1/4 h-px bg-gradient-to-r from-transparent via-teal-300/50 to-transparent blur-sm" />
         </div>
 
-        <div className="space-y-6">
+        {/* Light body */}
+        <div className="relative overflow-hidden bg-gradient-to-br from-blue-100/90 via-sky-50 to-indigo-50/80 px-6 md:px-10 pt-8 pb-10">
+          <div className="pointer-events-none absolute top-0 left-1/4 w-96 h-96 bg-emerald-400/20 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '6s' }} />
+          <div className="pointer-events-none absolute top-1/2 right-0 w-80 h-80 bg-sky-400/25 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '8s', animationDelay: '2s' }} />
+          <div className="pointer-events-none absolute bottom-0 left-0 w-72 h-72 bg-indigo-400/20 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '7s', animationDelay: '1s' }} />
+          <div className="relative space-y-6">
+        {profile?.role === 'free' && <FreeUserBanner />}
         {/* Grille de sélection des zones anatomiques */}
         {!selectedRegion ? (
-          <div className="bg-white rounded-xl shadow-sm p-6">
+          <div className="bg-white/85 backdrop-blur-2xl border border-white/70 shadow-xl ring-1 ring-inset ring-white/60 rounded-2xl p-6">
             <div className="mb-4">
               <h2 className="text-lg font-semibold text-gray-900 mb-2">Sélectionnez une zone anatomique</h2>
               <p className="text-sm text-gray-600">Cliquez sur une région pour afficher les tests et clusters associés</p>
@@ -544,7 +544,7 @@ export default function ImprovedTestsPage() {
                         <FreeContentGate key={region} isLocked={isRegionLocked} compact>
                           <button
                             onClick={() => !isRegionLocked && setSelectedRegion(region)}
-                            className="w-full px-4 py-3 rounded-lg font-medium transition-all text-sm bg-gray-50 text-gray-700 hover:bg-gray-100 border border-gray-200 hover:border-primary-300 hover:shadow-md"
+                            className="w-full px-4 py-3 rounded-xl font-medium transition-all text-sm bg-white/70 backdrop-blur-sm border border-white/60 text-slate-600 hover:bg-white/90"
                           >
                             {region}
                           </button>
@@ -557,10 +557,10 @@ export default function ImprovedTestsPage() {
             </div>
           </div>
         ) : (
-          <div className="bg-gradient-to-r from-primary-50 to-primary-100 rounded-xl shadow-sm p-4 border-2 border-primary-200">
+          <div className="bg-white/85 backdrop-blur-2xl border border-white/70 shadow-xl ring-1 ring-inset ring-white/60 rounded-2xl p-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg shadow-md">
+                <div className="flex items-center gap-2 px-4 py-2 bg-emerald-500/90 backdrop-blur-sm border border-emerald-400/30 text-white rounded-xl shadow-sm">
                   {getRegionIcon(
                     Object.entries(BODY_REGIONS).find(([_, regions]) =>
                       regions.includes(selectedRegion)
@@ -574,7 +574,7 @@ export default function ImprovedTestsPage() {
               </div>
               <button
                 onClick={() => setSelectedRegion('')}
-                className="px-4 py-2 bg-white border-2 border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 hover:border-gray-400 font-medium transition-all shadow-sm"
+                className="px-4 py-2 bg-white/70 backdrop-blur-sm border border-blue-200/60 text-slate-700 rounded-xl hover:bg-white/90 font-medium transition-all"
               >
                 Changer de région
               </button>
@@ -584,7 +584,7 @@ export default function ImprovedTestsPage() {
 
         {/* Search + filtres - Affiché seulement si une région est sélectionnée */}
         {selectedRegion && (
-          <div className="bg-white rounded-xl shadow-sm p-4">
+          <div className="bg-white/85 backdrop-blur-2xl border border-white/70 shadow-xl ring-1 ring-inset ring-white/60 rounded-2xl p-4">
             <div className="flex flex-col lg:flex-row gap-4">
               <div className="flex-1 relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
@@ -593,18 +593,18 @@ export default function ImprovedTestsPage() {
                   placeholder="Rechercher un test ou un cluster (nom, description, indication...)"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                  className="w-full pl-10 pr-4 bg-white/70 backdrop-blur-sm border border-blue-200/60 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-emerald-300 focus:border-emerald-400 outline-none"
                 />
               </div>
 
-              <div className="flex border border-gray-300 rounded-lg overflow-hidden">
+              <div className="flex gap-1">
                 <button
                   type="button"
                   onClick={() => setViewMode('grid')}
-                  className={`px-3 py-2 ${
+                  className={`px-3 py-2 rounded-xl text-sm font-medium transition-all ${
                     viewMode === 'grid'
-                      ? 'bg-primary-100 text-primary-700'
-                      : 'bg-white text-gray-700'
+                      ? 'bg-emerald-500/90 backdrop-blur-sm border border-emerald-400/30 text-white shadow-sm'
+                      : 'bg-white/70 backdrop-blur-sm border border-white/60 text-slate-600 hover:bg-white/90'
                   }`}
                 >
                   Grille
@@ -612,10 +612,10 @@ export default function ImprovedTestsPage() {
                 <button
                   type="button"
                   onClick={() => setViewMode('list')}
-                  className={`px-3 py-2 ${
+                  className={`px-3 py-2 rounded-xl text-sm font-medium transition-all ${
                     viewMode === 'list'
-                      ? 'bg-primary-100 text-primary-700'
-                      : 'bg-white text-gray-700'
+                      ? 'bg-emerald-500/90 backdrop-blur-sm border border-emerald-400/30 text-white shadow-sm'
+                      : 'bg-white/70 backdrop-blur-sm border border-white/60 text-slate-600 hover:bg-white/90'
                   }`}
                 >
                   Liste
@@ -633,13 +633,13 @@ export default function ImprovedTestsPage() {
 
         {/* Liste par catégorie */}
         {!selectedRegion ? (
-          <div className="bg-white rounded-xl shadow-sm p-12 text-center">
-            <Clipboard className="h-12 w-12 text-primary-400 mx-auto mb-4" />
+          <div className="bg-white/85 backdrop-blur-2xl border border-white/70 shadow-xl ring-1 ring-inset ring-white/60 rounded-2xl p-12 text-center">
+            <Clipboard className="h-12 w-12 text-emerald-400 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">Bienvenue dans le module Tests</h3>
             <p className="text-gray-600">Sélectionnez une zone anatomique ci-dessus pour commencer</p>
           </div>
         ) : filteredTests.length === 0 && filteredClusters.length === 0 ? (
-          <div className="bg-white rounded-xl shadow-sm p-12 text-center">
+          <div className="bg-white/85 backdrop-blur-2xl border border-white/70 shadow-xl ring-1 ring-inset ring-white/60 rounded-2xl p-12 text-center">
             <Clipboard className="h-12 w-12 text-gray-400 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">Aucun élément trouvé</h3>
             <p className="text-gray-600">Modifiez vos critères de recherche</p>
@@ -654,17 +654,17 @@ export default function ImprovedTestsPage() {
               return (
                 <div
                   key={category}
-                  className="bg-white rounded-xl shadow-sm overflow-hidden"
+                  className="bg-white/85 backdrop-blur-2xl border border-white/70 shadow-xl ring-1 ring-inset ring-white/60 rounded-2xl overflow-hidden"
                 >
                   <button
                     type="button"
                     onClick={() => toggleRegion(category)}
-                    className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
+                    className="w-full px-6 py-4 flex items-center justify-between hover:bg-white/95 transition-colors"
                   >
                     <div className="flex items-center space-x-3">
                       {getRegionIcon(category)}
                       <h2 className="text-lg font-semibold text-gray-900">{category}</h2>
-                      <span className="px-2 py-1 bg-primary-100 text-primary-700 text-xs rounded-full">
+                      <span className="px-2 py-1 bg-emerald-100 text-emerald-700 text-xs rounded-full">
                         {categoryClusters.length} cluster(s) • {categoryTests.length} test(s)
                       </span>
                     </div>
@@ -688,7 +688,7 @@ export default function ImprovedTestsPage() {
                               {categoryClusters.map((cluster) => (
                                 <FreeContentGate key={cluster.id} isLocked={profile?.role === 'free' && !cluster.is_free_access}>
                                 <div
-                                  className="border border-indigo-100 rounded-lg hover:shadow-md transition-all cursor-pointer bg-indigo-50/40"
+                                  className="bg-white/85 backdrop-blur-2xl border border-white/70 shadow-xl ring-1 ring-inset ring-white/60 rounded-2xl overflow-hidden hover:shadow-2xl transition-all cursor-pointer"
                                   onClick={() => handleClusterClick(cluster)}
                                 >
                                   <div className="p-4">
@@ -777,7 +777,7 @@ export default function ImprovedTestsPage() {
                               {categoryClusters.map((cluster) => (
                                 <FreeContentGate key={cluster.id} isLocked={profile?.role === 'free' && !cluster.is_free_access}>
                                 <div
-                                  className="border border-indigo-100 rounded-lg p-4 hover:shadow-md transition-all cursor-pointer bg-indigo-50/40"
+                                  className="bg-white/85 backdrop-blur-2xl border border-white/70 shadow-xl ring-1 ring-inset ring-white/60 rounded-2xl overflow-hidden p-4 hover:shadow-2xl transition-all cursor-pointer"
                                   onClick={() => handleClusterClick(cluster)}
                                 >
                                   <div className="flex items-center justify-between">
@@ -873,7 +873,7 @@ export default function ImprovedTestsPage() {
                                 return (
                                   <FreeContentGate key={test.id} isLocked={profile?.role === 'free' && !test.is_free_access}>
                                   <div
-                                    className="border border-gray-200 rounded-lg hover:shadow-md transition-all cursor-pointer overflow-hidden"
+                                    className="bg-white/85 backdrop-blur-2xl border border-white/70 shadow-xl ring-1 ring-inset ring-white/60 rounded-2xl overflow-hidden hover:shadow-2xl transition-all cursor-pointer"
                                     onClick={() => handleTestClick(test)}
                                   >
                                     {/* Vignette vidéo si disponible */}
@@ -966,7 +966,7 @@ export default function ImprovedTestsPage() {
                               {categoryTests.map((test) => (
                                 <FreeContentGate key={test.id} isLocked={profile?.role === 'free' && !test.is_free_access}>
                                 <div
-                                  className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-all cursor-pointer"
+                                  className="bg-white/85 backdrop-blur-2xl border border-white/70 shadow-xl ring-1 ring-inset ring-white/60 rounded-2xl overflow-hidden p-4 hover:shadow-2xl transition-all cursor-pointer"
                                   onClick={() => handleTestClick(test)}
                                 >
                                   <div className="flex items-center justify-between">
@@ -1048,7 +1048,7 @@ export default function ImprovedTestsPage() {
         )}
 
         {/* Related Modules */}
-        <div className="bg-white rounded-xl shadow-sm p-6">
+        <div className="bg-white/85 backdrop-blur-2xl border border-white/70 shadow-xl ring-1 ring-inset ring-white/60 rounded-2xl p-6">
           <RelatedContent
             title="📚 Explorer aussi"
             items={[
@@ -1082,14 +1082,15 @@ export default function ImprovedTestsPage() {
             ]}
           />
         </div>
-        </div>
-      </div>
+          </div>{/* end relative space-y-6 */}
+        </div>{/* end light body */}
+      </div>{/* end min-h-screen */}
 
       {/* Modal création CLUSTER */}
       {clusterModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl max-w-5xl w-full max-h-[90vh] overflow-hidden flex flex-col">
-            <div className="p-6 border-b flex items-center justify-between">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white/85 backdrop-blur-2xl border border-white/70 shadow-2xl ring-1 ring-inset ring-white/60 rounded-3xl max-w-5xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+            <div className="p-6 border-b border-white/40 flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <Layers className="h-5 w-5 text-primary-600" />
                 <div>
@@ -1334,7 +1335,7 @@ export default function ImprovedTestsPage() {
               </div>
             </div>
 
-            <div className="p-6 border-t flex items-center justify-between">
+            <div className="p-6 border-t border-white/40 flex items-center justify-between">
               <p className="text-sm text-gray-500">
                 {clusterSelectedTests.length} test(s) seront ajoutés automatiquement dans ce cluster.
               </p>
@@ -1368,9 +1369,9 @@ export default function ImprovedTestsPage() {
 
       {/* Modal détail TEST */}
       {showTestModal && selectedTest && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="sticky top-0 bg-white border-b p-6">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white/85 backdrop-blur-2xl border border-white/70 shadow-2xl ring-1 ring-inset ring-white/60 rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-white/90 backdrop-blur-xl border-b border-white/40 p-6 rounded-t-3xl">
               <div className="flex items-start justify-between">
                 <div>
                   <h2 className="text-xl font-bold text-gray-900">
@@ -1532,9 +1533,9 @@ export default function ImprovedTestsPage() {
 
       {/* Modal détail CLUSTER */}
       {showClusterModal && selectedCluster && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="sticky top-0 bg-white border-b p-6">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white/85 backdrop-blur-2xl border border-white/70 shadow-2xl ring-1 ring-inset ring-white/60 rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-white/90 backdrop-blur-xl border-b border-white/40 p-6 rounded-t-3xl">
               <div className="flex items-start justify-between">
                 <div>
                   <h2 className="text-xl font-bold text-gray-900">

@@ -29,7 +29,7 @@ export async function GET(request: Request) {
       .from('profiles')
       .select('id, email, role, stripe_subscription_id, stripe_customer_id, renewal_reminder_sent_at')
       .eq('subscription_status', 'active')
-      .in('role', ['premium_silver', 'premium_gold'])
+      .eq('role', 'premium')
       .not('stripe_subscription_id', 'is', null)
 
     if (usersError) {
@@ -81,7 +81,7 @@ export async function GET(request: Request) {
                   year: 'numeric'
                 }),
                 jours: daysUntilRenewal,
-                nom: user.role === 'premium_gold' ? 'Premium Gold' : 'Premium Silver'
+                nom: 'Premium'
               }
             })
           })

@@ -165,6 +165,11 @@ export default function DiagnosticsPage() {
 
       setProfile(profileData)
 
+      if (profileData?.role !== 'admin') {
+        router.push('/dashboard')
+        return
+      }
+
       // Ne charger les pathologies que si une région est sélectionnée
       if (!selectedRegion) {
         setPathologies([])
@@ -249,7 +254,7 @@ export default function DiagnosticsPage() {
     }
   }
 
-  const isPremium = profile?.role && ['premium_silver', 'premium_gold', 'admin'].includes(profile.role)
+  const isPremium = profile?.role && ['premium', 'admin'].includes(profile.role)
   const isAdmin = profile?.role === 'admin'
 
   const filteredItems = pathologies.filter(p =>
@@ -343,56 +348,388 @@ export default function DiagnosticsPage() {
 
   return (
     <AuthLayout>
-      <div className="min-h-screen pb-12">
-        {isFree && <div className="mb-6"><FreeUserBanner /></div>}
-        {/* Header */}
-        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-rose-600 via-pink-600 to-purple-700 text-white mb-8 shadow-2xl">
-          <div className="absolute inset-0 bg-grid-white/[0.02] bg-[size:60px_60px]" />
-          <div className="absolute top-0 right-0 w-96 h-96 bg-purple-500/30 rounded-full blur-3xl" />
-
-          <div className="relative px-6 py-8 md:px-10 md:py-10">
-            <button
-              onClick={() => router.push('/dashboard')}
-              className="text-sm text-rose-100 hover:text-white mb-4 flex items-center gap-2"
-            >
-              ← Retour au dashboard
-            </button>
-
-            <div className="max-w-4xl">
-              <div className="inline-flex items-center gap-2 rounded-full bg-white/10 backdrop-blur-sm px-3 py-1.5 mb-4 border border-white/20">
-                <Sparkles className="h-3.5 w-3.5 text-yellow-300" />
-                <span className="text-xs font-semibold text-rose-100">Premium</span>
-              </div>
-
-              <div className="flex items-start justify-between">
-                <div>
-                  <h1 className="text-3xl md:text-4xl font-bold mb-3 bg-clip-text text-transparent bg-gradient-to-r from-white to-rose-100">
-                    Diagnostics
-                  </h1>
-
-                  <p className="text-base md:text-lg text-rose-100 mb-6 max-w-2xl">
-                    Accédez rapidement aux pathologies par région, avec les signes cliniques,
-                    la gravité et les drapeaux rouges pour guider votre raisonnement.
-                  </p>
+      {/* Modals — rendered outside the layout wrapper to avoid stacking context issues */}
+      {selectedItem && (
+        <div
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          onClick={() => setSelectedItem(null)}
+        >
+          <div
+            className="bg-white/85 backdrop-blur-2xl border border-white/70 shadow-2xl ring-1 ring-inset ring-white/60 rounded-3xl max-w-3xl w-full max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Image en haut pour pathologies */}
+            {selectedItem.image_url && (
+              <div className="relative h-96 bg-gradient-to-br from-slate-100 to-slate-200 rounded-t-3xl overflow-hidden">
+                <img
+                  src={selectedItem.image_url}
+                  alt={selectedItem.name}
+                  className="w-full h-full object-contain"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent pointer-events-none" />
+                <div className="absolute bottom-6 left-6 right-6">
+                  {selectedItem.is_red_flag && (
+                    <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-red-600 text-white text-sm font-bold mb-3 shadow-lg">
+                      <AlertCircle className="h-4 w-4" />
+                      Drapeau rouge
+                    </span>
+                  )}
+                  <h2 className="text-3xl font-bold text-white mb-2">{selectedItem.name}</h2>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="px-3 py-1 rounded-lg bg-white/90 backdrop-blur-sm text-sm font-semibold text-slate-900">
+                      {selectedItem.region || 'Non classé'}
+                    </span>
+                    {selectedItem.severity && (
+                      <span className={`px-3 py-1 rounded-lg text-sm font-semibold ${getSeverityColor(selectedItem.severity)} backdrop-blur-sm`}>
+                        {getSeverityLabel(selectedItem.severity)}
+                      </span>
+                    )}
+                  </div>
                 </div>
+                <button
+                  onClick={() => setSelectedItem(null)}
+                  className="absolute top-4 right-4 p-2 bg-white/90 hover:bg-white rounded-lg transition-colors shadow-lg"
+                >
+                  <X className="h-5 w-5 text-slate-900" />
+                </button>
+              </div>
+            )}
 
-                {isAdmin && (
+            {/* Header sans image */}
+            {!selectedItem.image_url && (
+              <div className="sticky top-0 bg-gradient-to-br from-rose-600 to-purple-700 text-white p-6 rounded-t-3xl">
+                <div className="flex items-start justify-between">
+                  <div>
+                    {selectedItem.is_red_flag && (
+                      <span className="inline-flex items-center gap-1 px-3 py-1 rounded-lg bg-red-500 text-white text-xs font-semibold mb-2">
+                        <AlertCircle className="h-3 w-3" />
+                        Drapeau rouge
+                      </span>
+                    )}
+                    <h2 className="text-2xl font-bold mb-2">{selectedItem.name}</h2>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="px-2 py-1 rounded bg-white/20 text-sm font-semibold">
+                        {selectedItem.region}
+                      </span>
+                      {selectedItem.severity && (
+                        <span className="px-2 py-1 rounded bg-white/20 text-sm font-semibold">
+                          {getSeverityLabel(selectedItem.severity)}
+                        </span>
+                      )}
+                    </div>
+                  </div>
                   <button
-                    onClick={handleCreateNew}
-                    className="px-6 py-3 bg-white text-rose-600 rounded-xl hover:bg-rose-50 flex items-center gap-2 font-semibold shadow-lg transition-colors"
+                    onClick={() => setSelectedItem(null)}
+                    className="p-2 hover:bg-white/10 rounded-lg transition-colors"
                   >
-                    <Plus className="h-5 w-5" />
-                    Créer une pathologie
+                    <X className="h-5 w-5" />
                   </button>
+                </div>
+              </div>
+            )}
+
+            <div className="p-6 space-y-6">
+              {selectedItem.description && (
+                <div>
+                  <h3 className="text-sm font-semibold text-slate-700 mb-2 flex items-center gap-2">
+                    <Info className="h-4 w-4" />
+                    Description
+                  </h3>
+                  <p className="text-slate-600 leading-relaxed whitespace-pre-line">{selectedItem.description}</p>
+                </div>
+              )}
+
+              {selectedItem.clinical_signs && (
+                <div className="bg-amber-50 border-2 border-amber-200 rounded-xl p-4">
+                  <h3 className="text-sm font-semibold text-amber-900 mb-2 flex items-center gap-2">
+                    <AlertCircle className="h-4 w-4" />
+                    Signes cliniques
+                  </h3>
+                  <p className="text-amber-800 leading-relaxed whitespace-pre-line">{selectedItem.clinical_signs}</p>
+                </div>
+              )}
+
+              <div>
+                <h3 className="text-sm font-semibold text-slate-700 mb-2 flex items-center gap-2">
+                  <Info className="h-4 w-4" />
+                  Clusters associés
+                </h3>
+                {selectedItem.clusters?.length > 0 ? (
+                  <div className="space-y-2">
+                    {selectedItem.clusters.map((cluster: OrthopedicTestCluster) => (
+                      <div
+                        key={cluster.id}
+                        className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 hover:border-slate-300 hover:bg-slate-100 transition"
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => setSelectedCluster(cluster)}
+                        onKeyDown={(event) => {
+                          if (event.key === 'Enter' || event.key === ' ') {
+                            setSelectedCluster(cluster)
+                          }
+                        }}
+                      >
+                        <div className="text-sm font-semibold text-slate-900">{cluster.name}</div>
+                        {cluster.description && (
+                          <div className="text-xs text-slate-600 whitespace-pre-line">
+                            {cluster.description}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-sm text-slate-500">Aucun cluster associé.</div>
                 )}
               </div>
+
+              <div>
+                <h3 className="text-sm font-semibold text-slate-700 mb-2 flex items-center gap-2">
+                  <Info className="h-4 w-4" />
+                  Tests associés
+                </h3>
+                {selectedItem.tests?.length > 0 ? (
+                  <div className="space-y-2">
+                    {selectedItem.tests.map((test: OrthopedicTest) => (
+                      <div
+                        key={test.id}
+                        className="rounded-xl border border-slate-200 bg-white px-3 py-2 hover:border-slate-300 hover:bg-slate-50 transition"
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => setSelectedTest(test)}
+                        onKeyDown={(event) => {
+                          if (event.key === 'Enter' || event.key === ' ') {
+                            setSelectedTest(test)
+                          }
+                        }}
+                      >
+                        <div className="text-sm font-semibold text-slate-900">{test.name}</div>
+                        {test.description && (
+                          <div className="text-xs text-slate-600 whitespace-pre-line">
+                            {test.description}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-sm text-slate-500">Aucun test associé.</div>
+                )}
+              </div>
+
+              {/* Admin actions in modal */}
+              {isAdmin && (
+                <div className="pt-4 border-t border-slate-200">
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={() => {
+                        setSelectedItem(null)
+                        handleEdit(selectedItem.id)
+                      }}
+                      className="flex-1 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold transition-colors flex items-center justify-center gap-2"
+                    >
+                      <Edit className="h-4 w-4" />
+                      Modifier
+                    </button>
+                    <button
+                      onClick={() => {
+                        setSelectedItem(null)
+                        handleDelete(selectedItem.id, selectedItem.name)
+                      }}
+                      className="flex-1 px-4 py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl font-semibold transition-colors flex items-center justify-center gap-2"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      Supprimer
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
+      )}
+
+      {selectedTest && (
+        <div
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] flex items-center justify-center p-4"
+          onClick={() => setSelectedTest(null)}
+        >
+          <div
+            className="bg-white/85 backdrop-blur-2xl border border-white/70 shadow-2xl ring-1 ring-inset ring-white/60 rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-6 border-b border-slate-200 flex items-start justify-between">
+              <div>
+                <h2 className="text-2xl font-bold text-slate-900">{selectedTest.name}</h2>
+                {selectedTest.category && (
+                  <div className="text-sm text-slate-500">{selectedTest.category}</div>
+                )}
+              </div>
+              <button
+                onClick={() => setSelectedTest(null)}
+                className="p-2 rounded-lg hover:bg-slate-100 transition-colors"
+              >
+                <X className="h-5 w-5 text-slate-600" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              {selectedTest.description && (
+                <div>
+                  <h3 className="text-sm font-semibold text-slate-700 mb-2">Description</h3>
+                  <p className="text-slate-600 whitespace-pre-line">{selectedTest.description}</p>
+                </div>
+              )}
+              {(selectedTest.sensitivity || selectedTest.specificity) && (
+                <div className="flex flex-wrap gap-4 text-sm text-slate-600">
+                  {selectedTest.sensitivity && (
+                    <div>
+                      <span className="font-semibold text-slate-800">Sensibilité:</span>{' '}
+                      {selectedTest.sensitivity}%
+                    </div>
+                  )}
+                  {selectedTest.specificity && (
+                    <div>
+                      <span className="font-semibold text-slate-800">Spécificité:</span>{' '}
+                      {selectedTest.specificity}%
+                    </div>
+                  )}
+                </div>
+              )}
+              {selectedTest.video_url && (
+                <div className="space-y-3">
+                  <div className="text-sm font-semibold text-slate-700">Vidéo du test</div>
+                  <div className="relative w-full overflow-hidden rounded-xl border border-slate-200 bg-black" style={{ paddingTop: '56.25%' }}>
+                    <iframe
+                      src={getVideoEmbedUrl(selectedTest.video_url)}
+                      className="absolute inset-0 h-full w-full"
+                      title={`Vidéo ${selectedTest.name}`}
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {selectedCluster && (
+        <div
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] flex items-center justify-center p-4"
+          onClick={() => setSelectedCluster(null)}
+        >
+          <div
+            className="bg-white/85 backdrop-blur-2xl border border-white/70 shadow-2xl ring-1 ring-inset ring-white/60 rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-6 border-b border-slate-200 flex items-start justify-between">
+              <div>
+                <h2 className="text-2xl font-bold text-slate-900">{selectedCluster.name}</h2>
+                {selectedCluster.region && (
+                  <div className="text-sm text-slate-500">{selectedCluster.region}</div>
+                )}
+              </div>
+              <button
+                onClick={() => setSelectedCluster(null)}
+                className="p-2 rounded-lg hover:bg-slate-100 transition-colors"
+              >
+                <X className="h-5 w-5 text-slate-600" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              {selectedCluster.description && (
+                <div>
+                  <h3 className="text-sm font-semibold text-slate-700 mb-2">Description</h3>
+                  <p className="text-slate-600 whitespace-pre-line">{selectedCluster.description}</p>
+                </div>
+              )}
+              {selectedCluster.indications && (
+                <div>
+                  <h3 className="text-sm font-semibold text-slate-700 mb-2">Indications</h3>
+                  <p className="text-slate-600 whitespace-pre-line">{selectedCluster.indications}</p>
+                </div>
+              )}
+              {selectedCluster.interest && (
+                <div>
+                  <h3 className="text-sm font-semibold text-slate-700 mb-2">Intérêt</h3>
+                  <p className="text-slate-600 whitespace-pre-line">{selectedCluster.interest}</p>
+                </div>
+              )}
+              {selectedCluster.sources && (
+                <div>
+                  <h3 className="text-sm font-semibold text-slate-700 mb-2">Sources</h3>
+                  <p className="text-slate-600 whitespace-pre-line">{selectedCluster.sources}</p>
+                </div>
+              )}
+              {(selectedCluster.sensitivity || selectedCluster.specificity) && (
+                <div className="flex flex-wrap gap-4 text-sm text-slate-600">
+                  {selectedCluster.sensitivity && (
+                    <div>
+                      <span className="font-semibold text-slate-800">Sensibilité:</span>{' '}
+                      {selectedCluster.sensitivity}%
+                    </div>
+                  )}
+                  {selectedCluster.specificity && (
+                    <div>
+                      <span className="font-semibold text-slate-800">Spécificité:</span>{' '}
+                      {selectedCluster.specificity}%
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="min-h-screen -m-6 md:-m-8">
+        {isFree && <div className="px-6 md:px-10 pt-6"><FreeUserBanner /></div>}
+
+        {/* Dark header */}
+        <div className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 px-6 md:px-10 pt-8 pb-6">
+          <div className="absolute top-0 left-0 w-72 h-72 bg-rose-500/15 rounded-full blur-3xl animate-pulse -translate-x-1/2 -translate-y-1/4" style={{ animationDuration: '4s' }} />
+          <div className="absolute top-1/2 right-0 w-56 h-56 bg-red-400/10 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '6s', animationDelay: '2s' }} />
+          <div className="absolute bottom-0 right-1/4 w-48 h-48 bg-sky-400/15 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '5s', animationDelay: '1s' }} />
+          <div className="relative">
+            <div className="bg-white/[0.09] backdrop-blur-xl border border-white/20 ring-1 ring-inset ring-white/15 rounded-3xl shadow-[0_12px_40px_rgba(0,8,30,0.65),inset_0_1px_0_rgba(255,255,255,0.12)] p-6 md:p-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <div>
+                <p className="text-rose-300 text-sm font-medium mb-1 tracking-wide flex items-center gap-2">
+                  <Stethoscope className="h-4 w-4" /> Diagnostics &amp; Pathologies
+                </p>
+                <h1 className="text-3xl md:text-4xl font-bold tracking-tight bg-gradient-to-r from-white via-rose-100 to-red-200 bg-clip-text text-transparent">
+                  Diagnostics
+                </h1>
+                <p className="text-blue-300/70 text-sm mt-1.5">
+                  Accédez rapidement aux pathologies par région, avec les signes cliniques,
+                  la gravité et les drapeaux rouges pour guider votre raisonnement.
+                </p>
+              </div>
+              {isAdmin && (
+                <button
+                  onClick={handleCreateNew}
+                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-rose-500/90 backdrop-blur-sm border border-rose-400/30 text-white font-semibold hover:bg-rose-600/90 shadow-sm transition-all"
+                >
+                  <Plus className="h-5 w-5" />
+                  Créer une pathologie
+                </button>
+              )}
+            </div>
+          </div>
+          <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-rose-400/40 to-transparent" />
+          <div className="absolute bottom-0 left-1/4 right-1/4 h-px bg-gradient-to-r from-transparent via-red-300/50 to-transparent blur-sm" />
+        </div>
+
+        {/* Light body */}
+        <div className="relative overflow-hidden bg-gradient-to-br from-blue-100/90 via-sky-50 to-indigo-50/80 px-6 md:px-10 pt-8 pb-10">
+          <div className="pointer-events-none absolute top-0 left-1/4 w-96 h-96 bg-rose-400/20 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '6s' }} />
+          <div className="pointer-events-none absolute top-1/2 right-0 w-80 h-80 bg-sky-400/25 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '8s', animationDelay: '2s' }} />
+          <div className="pointer-events-none absolute bottom-0 left-0 w-72 h-72 bg-indigo-400/20 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '7s', animationDelay: '1s' }} />
+          <div className="relative space-y-6">
 
         {/* Breadcrumb et recherche */}
         {selectedRegion && (
-          <div className="bg-white rounded-2xl shadow-sm p-6 mb-6">
+          <div className="bg-white/85 backdrop-blur-2xl border border-white/70 shadow-xl ring-1 ring-inset ring-white/60 rounded-2xl p-6">
             <div className="flex flex-col md:flex-row gap-4">
               {/* Bouton retour */}
               <button
@@ -413,7 +750,7 @@ export default function DiagnosticsPage() {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Rechercher une pathologie..."
-                  className="w-full pl-12 pr-4 py-3 border-2 border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-rose-400 focus:border-transparent"
+                  className="w-full pl-12 pr-4 py-3 bg-white/70 backdrop-blur-sm border border-blue-200/60 rounded-lg focus:ring-2 focus:ring-rose-300 focus:border-rose-400 outline-none"
                 />
               </div>
             </div>
@@ -422,7 +759,7 @@ export default function DiagnosticsPage() {
 
         {/* Grille des régions (quand aucune région sélectionnée) */}
         {!selectedRegion ? (
-          <div className="bg-white rounded-2xl shadow-sm p-8">
+          <div className="bg-white/85 backdrop-blur-2xl border border-white/70 shadow-xl ring-1 ring-inset ring-white/60 rounded-2xl p-8">
             <h2 className="text-2xl font-bold text-slate-900 mb-6">Sélectionnez une zone anatomique</h2>
             <p className="text-slate-600 mb-8">Cliquez sur une région pour afficher les diagnostics associés</p>
 
@@ -441,7 +778,7 @@ export default function DiagnosticsPage() {
                           <button
                             key={region.value}
                             onClick={() => setSelectedRegion(region.value)}
-                            className="w-full px-4 py-3 bg-white border-2 border-slate-200 rounded-xl hover:border-rose-400 hover:bg-rose-50 transition-all text-slate-900 font-medium text-sm text-center"
+                            className="w-full px-4 py-3 bg-white/70 backdrop-blur-sm border border-white/60 rounded-xl hover:border-rose-400 hover:bg-white/90 transition-all text-slate-900 font-medium text-sm text-center"
                           >
                             {region.label}
                           </button>
@@ -470,7 +807,7 @@ export default function DiagnosticsPage() {
               <FreeContentGate key={item.id} isLocked={isItemLocked}>
               <button
                 onClick={() => !isItemLocked && setSelectedItem(item)}
-                className="group relative overflow-hidden rounded-2xl bg-white border-2 border-slate-200 hover:border-rose-300 shadow-sm hover:shadow-xl transition-all duration-300 text-left flex flex-col w-full"
+                className="group relative bg-white/85 backdrop-blur-2xl border border-white/70 shadow-xl ring-1 ring-inset ring-white/60 rounded-2xl overflow-hidden transition-all hover:shadow-2xl hover:-translate-y-0.5 text-left flex flex-col w-full"
               >
                 {/* En-tête fixe avec titre uniquement */}
                 <div className="p-5 pb-3 h-[80px] flex items-center flex-shrink-0">
@@ -625,7 +962,7 @@ export default function DiagnosticsPage() {
           })}
 
             {filteredItems.length === 0 && (
-              <div className="col-span-full text-center py-12 bg-white rounded-2xl shadow-sm">
+              <div className="col-span-full text-center py-12 bg-white/85 backdrop-blur-2xl border border-white/70 shadow-xl ring-1 ring-inset ring-white/60 rounded-2xl">
                 <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-slate-100 mb-4">
                   <Search className="h-8 w-8 text-slate-400" />
                 </div>
@@ -640,340 +977,8 @@ export default function DiagnosticsPage() {
           </div>
         )}
 
-        {/* Detail Modal */}
-        {selectedItem && (
-          <div
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-            onClick={() => setSelectedItem(null)}
-          >
-            <div
-              className="bg-white rounded-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto shadow-2xl"
-              onClick={(e) => e.stopPropagation()}
-            >
-              {/* Image en haut pour pathologies */}
-              {selectedItem.image_url && (
-                <div className="relative h-96 bg-gradient-to-br from-slate-100 to-slate-200">
-                  <img
-                    src={selectedItem.image_url}
-                    alt={selectedItem.name}
-                    className="w-full h-full object-contain"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent pointer-events-none" />
-                  <div className="absolute bottom-6 left-6 right-6">
-                    {selectedItem.is_red_flag && (
-                      <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-red-600 text-white text-sm font-bold mb-3 shadow-lg">
-                        <AlertCircle className="h-4 w-4" />
-                        Drapeau rouge
-                      </span>
-                    )}
-                    <h2 className="text-3xl font-bold text-white mb-2">{selectedItem.name}</h2>
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="px-3 py-1 rounded-lg bg-white/90 backdrop-blur-sm text-sm font-semibold text-slate-900">
-                        {selectedItem.region || 'Non classé'}
-                      </span>
-                      {selectedItem.severity && (
-                        <span className={`px-3 py-1 rounded-lg text-sm font-semibold ${getSeverityColor(selectedItem.severity)} backdrop-blur-sm`}>
-                          {getSeverityLabel(selectedItem.severity)}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => setSelectedItem(null)}
-                    className="absolute top-4 right-4 p-2 bg-white/90 hover:bg-white rounded-lg transition-colors shadow-lg"
-                  >
-                    <X className="h-5 w-5 text-slate-900" />
-                  </button>
-                </div>
-              )}
-
-              {/* Header sans image */}
-              {!selectedItem.image_url && (
-                <div className="sticky top-0 bg-gradient-to-br from-rose-600 to-purple-700 text-white p-6 rounded-t-2xl">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      {selectedItem.is_red_flag && (
-                        <span className="inline-flex items-center gap-1 px-3 py-1 rounded-lg bg-red-500 text-white text-xs font-semibold mb-2">
-                          <AlertCircle className="h-3 w-3" />
-                          Drapeau rouge
-                        </span>
-                      )}
-                      <h2 className="text-2xl font-bold mb-2">{selectedItem.name}</h2>
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="px-2 py-1 rounded bg-white/20 text-sm font-semibold">
-                          {selectedItem.region}
-                        </span>
-                        {selectedItem.severity && (
-                          <span className="px-2 py-1 rounded bg-white/20 text-sm font-semibold">
-                            {getSeverityLabel(selectedItem.severity)}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => setSelectedItem(null)}
-                      className="p-2 hover:bg-white/10 rounded-lg transition-colors"
-                    >
-                      <X className="h-5 w-5" />
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              <div className="p-6 space-y-6">
-                {selectedItem.description && (
-                  <div>
-                    <h3 className="text-sm font-semibold text-slate-700 mb-2 flex items-center gap-2">
-                      <Info className="h-4 w-4" />
-                      Description
-                    </h3>
-                    <p className="text-slate-600 leading-relaxed whitespace-pre-line">{selectedItem.description}</p>
-                  </div>
-                )}
-
-                {selectedItem.clinical_signs && (
-                  <div className="bg-amber-50 border-2 border-amber-200 rounded-xl p-4">
-                    <h3 className="text-sm font-semibold text-amber-900 mb-2 flex items-center gap-2">
-                      <AlertCircle className="h-4 w-4" />
-                      Signes cliniques
-                    </h3>
-                    <p className="text-amber-800 leading-relaxed whitespace-pre-line">{selectedItem.clinical_signs}</p>
-                  </div>
-                )}
-
-                <div>
-                  <h3 className="text-sm font-semibold text-slate-700 mb-2 flex items-center gap-2">
-                    <Info className="h-4 w-4" />
-                    Clusters associés
-                  </h3>
-                  {selectedItem.clusters?.length > 0 ? (
-                    <div className="space-y-2">
-                      {selectedItem.clusters.map((cluster: OrthopedicTestCluster) => (
-                        <div
-                          key={cluster.id}
-                          className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 hover:border-slate-300 hover:bg-slate-100 transition"
-                          role="button"
-                          tabIndex={0}
-                          onClick={() => setSelectedCluster(cluster)}
-                          onKeyDown={(event) => {
-                            if (event.key === 'Enter' || event.key === ' ') {
-                              setSelectedCluster(cluster)
-                            }
-                          }}
-                        >
-                          <div className="text-sm font-semibold text-slate-900">{cluster.name}</div>
-                          {cluster.description && (
-                            <div className="text-xs text-slate-600 whitespace-pre-line">
-                              {cluster.description}
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-sm text-slate-500">Aucun cluster associé.</div>
-                  )}
-                </div>
-
-                <div>
-                  <h3 className="text-sm font-semibold text-slate-700 mb-2 flex items-center gap-2">
-                    <Info className="h-4 w-4" />
-                    Tests associés
-                  </h3>
-                  {selectedItem.tests?.length > 0 ? (
-                    <div className="space-y-2">
-                      {selectedItem.tests.map((test: OrthopedicTest) => (
-                        <div
-                          key={test.id}
-                          className="rounded-xl border border-slate-200 bg-white px-3 py-2 hover:border-slate-300 hover:bg-slate-50 transition"
-                          role="button"
-                          tabIndex={0}
-                          onClick={() => setSelectedTest(test)}
-                          onKeyDown={(event) => {
-                            if (event.key === 'Enter' || event.key === ' ') {
-                              setSelectedTest(test)
-                            }
-                          }}
-                        >
-                          <div className="text-sm font-semibold text-slate-900">{test.name}</div>
-                          {test.description && (
-                            <div className="text-xs text-slate-600 whitespace-pre-line">
-                              {test.description}
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-sm text-slate-500">Aucun test associé.</div>
-                  )}
-                </div>
-
-                {/* Admin actions in modal */}
-                {isAdmin && (
-                  <div className="pt-4 border-t border-slate-200">
-                    <div className="flex items-center gap-3">
-                      <button
-                        onClick={() => {
-                          setSelectedItem(null)
-                          handleEdit(selectedItem.id)
-                        }}
-                        className="flex-1 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold transition-colors flex items-center justify-center gap-2"
-                      >
-                        <Edit className="h-4 w-4" />
-                        Modifier
-                      </button>
-                      <button
-                        onClick={() => {
-                          setSelectedItem(null)
-                          handleDelete(selectedItem.id, selectedItem.name)
-                        }}
-                        className="flex-1 px-4 py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl font-semibold transition-colors flex items-center justify-center gap-2"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                        Supprimer
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
           </div>
-        )}
-
-        {selectedTest && (
-          <div
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] flex items-center justify-center p-4"
-            onClick={() => setSelectedTest(null)}
-          >
-            <div
-              className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="p-6 border-b border-slate-200 flex items-start justify-between">
-                <div>
-                  <h2 className="text-2xl font-bold text-slate-900">{selectedTest.name}</h2>
-                  {selectedTest.category && (
-                    <div className="text-sm text-slate-500">{selectedTest.category}</div>
-                  )}
-                </div>
-                <button
-                  onClick={() => setSelectedTest(null)}
-                  className="p-2 rounded-lg hover:bg-slate-100 transition-colors"
-                >
-                  <X className="h-5 w-5 text-slate-600" />
-                </button>
-              </div>
-              <div className="p-6 space-y-4">
-                {selectedTest.description && (
-                  <div>
-                    <h3 className="text-sm font-semibold text-slate-700 mb-2">Description</h3>
-                    <p className="text-slate-600 whitespace-pre-line">{selectedTest.description}</p>
-                  </div>
-                )}
-                {(selectedTest.sensitivity || selectedTest.specificity) && (
-                  <div className="flex flex-wrap gap-4 text-sm text-slate-600">
-                    {selectedTest.sensitivity && (
-                      <div>
-                        <span className="font-semibold text-slate-800">Sensibilité:</span>{' '}
-                        {selectedTest.sensitivity}%
-                      </div>
-                    )}
-                    {selectedTest.specificity && (
-                      <div>
-                        <span className="font-semibold text-slate-800">Spécificité:</span>{' '}
-                        {selectedTest.specificity}%
-                      </div>
-                    )}
-                  </div>
-                )}
-              {selectedTest.video_url && (
-                <div className="space-y-3">
-                  <div className="text-sm font-semibold text-slate-700">Vidéo du test</div>
-                  <div className="relative w-full overflow-hidden rounded-xl border border-slate-200 bg-black" style={{ paddingTop: '56.25%' }}>
-                    <iframe
-                      src={getVideoEmbedUrl(selectedTest.video_url)}
-                      className="absolute inset-0 h-full w-full"
-                      title={`Vidéo ${selectedTest.name}`}
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                      allowFullScreen
-                    />
-                  </div>
-                </div>
-              )}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {selectedCluster && (
-          <div
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] flex items-center justify-center p-4"
-            onClick={() => setSelectedCluster(null)}
-          >
-            <div
-              className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="p-6 border-b border-slate-200 flex items-start justify-between">
-                <div>
-                  <h2 className="text-2xl font-bold text-slate-900">{selectedCluster.name}</h2>
-                  {selectedCluster.region && (
-                    <div className="text-sm text-slate-500">{selectedCluster.region}</div>
-                  )}
-                </div>
-                <button
-                  onClick={() => setSelectedCluster(null)}
-                  className="p-2 rounded-lg hover:bg-slate-100 transition-colors"
-                >
-                  <X className="h-5 w-5 text-slate-600" />
-                </button>
-              </div>
-              <div className="p-6 space-y-4">
-                {selectedCluster.description && (
-                  <div>
-                    <h3 className="text-sm font-semibold text-slate-700 mb-2">Description</h3>
-                    <p className="text-slate-600 whitespace-pre-line">{selectedCluster.description}</p>
-                  </div>
-                )}
-                {selectedCluster.indications && (
-                  <div>
-                    <h3 className="text-sm font-semibold text-slate-700 mb-2">Indications</h3>
-                    <p className="text-slate-600 whitespace-pre-line">{selectedCluster.indications}</p>
-                  </div>
-                )}
-                {selectedCluster.interest && (
-                  <div>
-                    <h3 className="text-sm font-semibold text-slate-700 mb-2">Intérêt</h3>
-                    <p className="text-slate-600 whitespace-pre-line">{selectedCluster.interest}</p>
-                  </div>
-                )}
-                {selectedCluster.sources && (
-                  <div>
-                    <h3 className="text-sm font-semibold text-slate-700 mb-2">Sources</h3>
-                    <p className="text-slate-600 whitespace-pre-line">{selectedCluster.sources}</p>
-                  </div>
-                )}
-                {(selectedCluster.sensitivity || selectedCluster.specificity) && (
-                  <div className="flex flex-wrap gap-4 text-sm text-slate-600">
-                    {selectedCluster.sensitivity && (
-                      <div>
-                        <span className="font-semibold text-slate-800">Sensibilité:</span>{' '}
-                        {selectedCluster.sensitivity}%
-                      </div>
-                    )}
-                    {selectedCluster.specificity && (
-                      <div>
-                        <span className="font-semibold text-slate-800">Spécificité:</span>{' '}
-                        {selectedCluster.specificity}%
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
+        </div>
       </div>
     </AuthLayout>
   )

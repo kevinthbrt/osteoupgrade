@@ -31,10 +31,10 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
     }
 
-    // Vérifier que l'utilisateur est Premium Gold
-    if (profile.role !== 'premium_gold') {
+    // Vérifier que l'utilisateur est Premium
+    if (profile.role !== 'premium' && profile.role !== 'admin') {
       return NextResponse.json(
-        { error: 'Only Premium Gold members have access to referral earnings' },
+        { error: 'Only Premium members have access to referral earnings' },
         { status: 403 }
       )
     }

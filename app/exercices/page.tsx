@@ -33,7 +33,7 @@ interface PlanItem {
   comment: string
 }
 
-const ALLOWED_ROLES = ['premium_silver', 'premium_gold', 'admin']
+const ALLOWED_ROLES = ['premium', 'admin']
 const FREE_ACCESSIBLE_REGIONS = ['epaule', 'épaule']
 
 const EMPTY_PLAN_ITEM = (exerciseId: string): PlanItem => ({
@@ -421,42 +421,31 @@ export default function ExercisesModule() {
 
   return (
     <AuthLayout>
-      <div className="space-y-8">
-        {/* Free user banner */}
-        {isFree && <FreeUserBanner />}
-
-        {/* Header */}
-        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white shadow-2xl">
-          {/* Decorative elements */}
-          <div className="absolute inset-0 bg-grid-white/[0.02] bg-[size:60px_60px]" />
-          <div className="absolute top-0 right-0 w-96 h-96 bg-emerald-500/30 rounded-full blur-3xl" />
-          <div className="absolute bottom-0 left-0 w-96 h-96 bg-teal-500/20 rounded-full blur-3xl" />
-
-          <div className="relative px-6 py-8 md:px-10 md:py-10">
-            <div className="max-w-4xl">
-              {/* Badge */}
-              <div className="inline-flex items-center gap-2 rounded-full bg-white/10 backdrop-blur-sm px-3 py-1.5 mb-4 border border-white/20">
-                <Dumbbell className="h-3.5 w-3.5 text-emerald-300" />
-                <span className="text-xs font-semibold text-emerald-100">
-                  Module Exercices
-                </span>
+      <div className="min-h-screen -m-6 md:-m-8">
+        {/* Dark header */}
+        <div className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 px-6 md:px-10 pt-8 pb-6">
+          <div className="absolute top-0 left-0 w-72 h-72 bg-emerald-500/15 rounded-full blur-3xl animate-pulse -translate-x-1/2 -translate-y-1/4" style={{ animationDuration: '4s' }} />
+          <div className="absolute top-1/2 right-0 w-56 h-56 bg-green-400/10 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '6s', animationDelay: '2s' }} />
+          <div className="absolute bottom-0 right-1/4 w-48 h-48 bg-sky-400/15 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '5s', animationDelay: '1s' }} />
+          <div className="relative">
+            <div className="bg-white/[0.09] backdrop-blur-xl border border-white/20 ring-1 ring-inset ring-white/15 rounded-3xl shadow-[0_12px_40px_rgba(0,8,30,0.65),inset_0_1px_0_rgba(255,255,255,0.12)] p-6 md:p-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <div>
+                <div className="inline-flex items-center gap-2 mb-3">
+                  <Dumbbell className="h-4 w-4 text-emerald-300" />
+                  <span className="text-sm font-semibold text-emerald-300">Module Exercices</span>
+                </div>
+                <h1 className="text-3xl md:text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white via-emerald-100 to-green-200">
+                  Planifier et exporter une fiche
+                </h1>
+                <p className="mt-2 text-base text-blue-300/70 max-w-2xl">
+                  Sélectionnez des exercices, personnalisez les paramètres puis exportez en PDF pour le patient.
+                </p>
               </div>
-
-              {/* Main heading */}
-              <h1 className="text-3xl md:text-4xl font-bold mb-3 bg-clip-text text-transparent bg-gradient-to-r from-white to-emerald-100">
-                Planifier et exporter une fiche
-              </h1>
-
-              <p className="text-base md:text-lg text-slate-300 mb-6 max-w-2xl">
-                Sélectionnez des exercices, personnalisez les paramètres puis exportez en PDF pour le patient.
-              </p>
-
-              {/* Action buttons */}
-              <div className="flex flex-wrap gap-3">
+              <div className="flex flex-wrap gap-3 shrink-0">
                 <button
                   onClick={exportToPDF}
                   disabled={isFree}
-                  className="inline-flex items-center gap-2 rounded-lg bg-emerald-500 hover:bg-emerald-400 px-5 py-2.5 text-sm font-semibold text-white shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-500/90 backdrop-blur-sm border border-emerald-400/30 text-white font-semibold hover:bg-emerald-600/90 shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Download className="h-4 w-4" />
                   Exporter en PDF
@@ -464,7 +453,7 @@ export default function ExercisesModule() {
                 {profile?.role === 'admin' && (
                   <button
                     onClick={scrollToAdminSection}
-                    className="inline-flex items-center gap-2 rounded-lg bg-purple-500 hover:bg-purple-400 px-5 py-2.5 text-sm font-semibold text-white shadow-lg transition-all"
+                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/10 backdrop-blur-sm border border-white/20 text-white font-semibold hover:bg-white/20 shadow-sm transition-all"
                   >
                     <Settings className="h-4 w-4" />
                     Gérer les exercices
@@ -473,474 +462,492 @@ export default function ExercisesModule() {
               </div>
             </div>
           </div>
+          <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-emerald-400/40 to-transparent" />
+          <div className="absolute bottom-0 left-1/4 right-1/4 h-px bg-gradient-to-r from-transparent via-green-300/50 to-transparent blur-sm" />
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-3">
-          <div className="rounded-2xl bg-white p-6 shadow-sm lg:col-span-1">
-            <h2 className="text-lg font-semibold text-gray-900">Informations patient</h2>
-            <p className="text-sm text-gray-500">Aucune sauvegarde en ligne, uniquement pour la fiche PDF.</p>
+        {/* Light body */}
+        <div className="relative overflow-hidden bg-gradient-to-br from-blue-100/90 via-sky-50 to-indigo-50/80 px-6 md:px-10 pt-8 pb-10">
+          <div className="pointer-events-none absolute top-0 left-1/4 w-96 h-96 bg-emerald-400/20 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '6s' }} />
+          <div className="pointer-events-none absolute top-1/2 right-0 w-80 h-80 bg-sky-400/25 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '8s', animationDelay: '2s' }} />
+          <div className="pointer-events-none absolute bottom-0 left-0 w-72 h-72 bg-indigo-400/20 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '7s', animationDelay: '1s' }} />
+          <div className="relative space-y-6">
 
-            <div className="mt-4 space-y-4">
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div>
-                  <label className="text-sm text-gray-600">Prénom</label>
-                  <input
-                    className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 focus:border-blue-500 focus:outline-none"
-                    value={patientInfo.firstName}
-                    onChange={(e) => setPatientInfo({ ...patientInfo, firstName: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <label className="text-sm text-gray-600">Nom</label>
-                  <input
-                    className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 focus:border-blue-500 focus:outline-none"
-                    value={patientInfo.lastName}
-                    onChange={(e) => setPatientInfo({ ...patientInfo, lastName: e.target.value })}
-                  />
-                </div>
-              </div>
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div>
-                  <label className="text-sm text-gray-600">Âge</label>
-                  <input
-                    type="number"
-                    className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 focus:border-blue-500 focus:outline-none"
-                    value={patientInfo.age}
-                    onChange={(e) => setPatientInfo({ ...patientInfo, age: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <label className="text-sm text-gray-600">Motif</label>
-                  <input
-                    className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 focus:border-blue-500 focus:outline-none"
-                    value={patientInfo.reason}
-                    onChange={(e) => setPatientInfo({ ...patientInfo, reason: e.target.value })}
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="text-sm text-gray-600">Informations générales</label>
-                <textarea
-                  rows={3}
-                  className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 focus:border-blue-500 focus:outline-none"
-                  value={patientInfo.notes}
-                  onChange={(e) => setPatientInfo({ ...patientInfo, notes: e.target.value })}
-                />
-              </div>
-            </div>
-          </div>
+            {/* Free user banner */}
+            {isFree && <FreeUserBanner />}
 
-          <div className="rounded-2xl bg-white p-6 shadow-sm lg:col-span-2">
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <h2 className="text-lg font-semibold text-gray-900">Fiche patient</h2>
-                <p className="text-sm text-gray-500">Ajustez répétitions, séries, repos et commentaires pour chaque exercice.</p>
-              </div>
-              {selectedExercises.length > 0 && (
-                <div className="text-sm text-gray-600">
-                  {selectedExercises.length} exercice(s) sélectionné(s)
-                </div>
-              )}
-            </div>
+            {/* Patient info + plan grid */}
+            <div className="grid gap-6 lg:grid-cols-3">
+              <div className="bg-white/85 backdrop-blur-2xl border border-white/70 shadow-xl ring-1 ring-inset ring-white/60 rounded-2xl p-6 lg:col-span-1">
+                <h2 className="text-lg font-semibold text-gray-900">Informations patient</h2>
+                <p className="text-sm text-gray-500">Aucune sauvegarde en ligne, uniquement pour la fiche PDF.</p>
 
-            {selectedExercises.length === 0 ? (
-              <div className="mt-6 rounded-lg border border-dashed border-gray-200 p-6 text-center text-gray-500">
-                Ajoutez des exercices depuis le catalogue pour constituer la fiche.
-              </div>
-            ) : (
-              <div className="mt-4 space-y-4">
-                {selectedExercises.map((item) => {
-                  const exercise = exercises.find((ex) => ex.id === item.exerciseId)
-                  return (
-                    <div key={item.uid} className="rounded-xl border border-gray-200 p-4 shadow-sm">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex-1">
-                          {exercise?.illustration_url && (
-                            <div className="mb-3 overflow-hidden rounded-lg">
-                              <img
-                                src={exercise.illustration_url}
-                                alt={exercise.name}
-                                className="h-32 w-full object-cover"
-                                onError={(e) => {
-                                  e.currentTarget.style.display = 'none'
-                                }}
-                              />
-                            </div>
-                          )}
-                          <h3 className="text-base font-semibold text-gray-900">{exercise?.name}</h3>
-                          <p className="text-sm text-gray-600">{exercise?.description}</p>
-                          {exercise?.progression_regression && (
-                            <p className="mt-1 text-xs text-gray-500">{exercise.progression_regression}</p>
-                          )}
-                        </div>
-                        <button
-                          onClick={() => removeFromPlan(item.uid)}
-                          className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-red-500"
-                        >
-                          <X className="h-4 w-4" />
-                        </button>
-                      </div>
-
-                      <div className="mt-4 grid gap-3 md:grid-cols-4">
-                        <div>
-                          <label className="text-sm text-gray-600">Répétitions / temps</label>
-                          <input
-                            className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 focus:border-blue-500 focus:outline-none"
-                            value={item.repetitions}
-                            onChange={(e) => updatePlanItem(item.uid, 'repetitions', e.target.value)}
-                            placeholder="ex: 12 ou 30s"
-                          />
-                        </div>
-                        <div>
-                          <label className="text-sm text-gray-600">Séries</label>
-                          <input
-                            className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 focus:border-blue-500 focus:outline-none"
-                            value={item.sets}
-                            onChange={(e) => updatePlanItem(item.uid, 'sets', e.target.value)}
-                            placeholder="ex: 3"
-                          />
-                        </div>
-                        <div>
-                          <label className="text-sm text-gray-600">Repos</label>
-                          <input
-                            className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 focus:border-blue-500 focus:outline-none"
-                            value={item.rest}
-                            onChange={(e) => updatePlanItem(item.uid, 'rest', e.target.value)}
-                            placeholder="ex: 45s"
-                          />
-                        </div>
-                        <div>
-                          <label className="text-sm text-gray-600">Commentaire</label>
-                          <input
-                            className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 focus:border-blue-500 focus:outline-none"
-                            value={item.comment}
-                            onChange={(e) => updatePlanItem(item.uid, 'comment', e.target.value)}
-                            placeholder="Consigne, douleur max…"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            )}
-          </div>
-        </div>
-
-        <div className="rounded-2xl bg-white p-6 shadow-sm">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900">Catalogue des exercices</h2>
-              <p className="text-sm text-gray-500">Sélectionnez un exercice pour l'ajouter à la fiche.</p>
-            </div>
-            <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-center">
-              <div className="relative w-full sm:w-56">
-                <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
-                <input
-                  placeholder="Rechercher un exercice"
-                  className="w-full rounded-lg border border-gray-200 bg-gray-50 py-2 pl-10 pr-3 text-sm focus:border-blue-500 focus:bg-white focus:outline-none"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-              </div>
-              <select
-                value={filterRegion}
-                onChange={(e) => setFilterRegion(e.target.value)}
-                className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-700 focus:border-blue-500 focus:bg-white focus:outline-none sm:w-40"
-              >
-                <option value="">Toutes les régions</option>
-                {regionOptions.map((region) => (
-                  <option key={region} value={region} className="capitalize">
-                    {region}
-                  </option>
-                ))}
-              </select>
-              <select
-                value={filterType}
-                onChange={(e) => setFilterType(e.target.value)}
-                className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-700 focus:border-blue-500 focus:bg-white focus:outline-none sm:w-40"
-              >
-                <option value="">Tous les types</option>
-                {typeOptions.map((type) => (
-                  <option key={type} value={type} className="capitalize">
-                    {type}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {filteredExercises.map((exercise) => (
-              <FreeContentGate key={exercise.id} isLocked={isExerciseLocked(exercise)}>
-              <div className="flex flex-col justify-between rounded-xl border border-gray-200 p-4 shadow-sm">
-                <div className="space-y-2">
-                  {exercise.illustration_url && (
-                    <div className="mb-3 overflow-hidden rounded-lg">
-                      <img
-                        src={exercise.illustration_url}
-                        alt={exercise.name}
-                        className="h-40 w-full object-cover"
-                        onError={(e) => {
-                          e.currentTarget.style.display = 'none'
-                        }}
-                      />
-                    </div>
-                  )}
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-base font-semibold text-gray-900">{exercise.name}</h3>
-                    <span className="rounded-full bg-blue-50 px-2 py-1 text-xs text-blue-700">Niveau {exercise.level}</span>
-                  </div>
-                  <p className="text-sm text-gray-600 line-clamp-2">{exercise.description}</p>
-                  <div className="text-xs text-gray-500">
-                    <span className="mr-2 rounded-full bg-gray-100 px-2 py-1">{exercise.region}</span>
-                    <span className="rounded-full bg-gray-100 px-2 py-1">{exercise.type}</span>
-                  </div>
-                  {exercise.progression_regression && (
-                    <p className="text-xs text-gray-500">{exercise.progression_regression}</p>
-                  )}
-                </div>
-                <button
-                  onClick={() => addToPlan(exercise.id)}
-                  disabled={isExerciseLocked(exercise)}
-                  className="mt-4 inline-flex items-center justify-center gap-2 rounded-lg bg-gray-900 px-3 py-2 text-sm text-white hover:bg-black disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <Plus className="h-4 w-4" /> Ajouter à la fiche
-                </button>
-              </div>
-              </FreeContentGate>
-            ))}
-          </div>
-
-          {filteredExercises.length === 0 && (
-            <div className="mt-4 rounded-lg border border-dashed border-gray-200 p-6 text-center text-gray-500">
-              Aucun exercice ne correspond à votre recherche.
-            </div>
-          )}
-        </div>
-
-        {profile?.role === 'admin' && (
-          <div ref={adminSectionRef} className="rounded-2xl bg-white p-6 shadow-sm">
-            <div className="flex items-center gap-2 text-sm text-purple-600">
-              <Dumbbell className="h-4 w-4" />
-              <span>Gestion administrateur</span>
-            </div>
-            <div className="mt-2 flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-gray-900">Ajouter ou modifier un exercice</h2>
-              {feedback && <span className={`text-sm ${feedback.includes('Erreur') || feedback.includes('Impossible') ? 'text-red-600' : 'text-green-600'}`}>{feedback}</span>}
-            </div>
-
-            <div className="mt-4 grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-              <div>
-                <label className="text-sm text-gray-600">Nom</label>
-                <input
-                  className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 focus:border-blue-500 focus:outline-none"
-                  value={exerciseForm.name}
-                  onChange={(e) => setExerciseForm({ ...exerciseForm, name: e.target.value })}
-                />
-              </div>
-              <div>
-                <label className="text-sm text-gray-600">Région</label>
-                <input
-                  className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 focus:border-blue-500 focus:outline-none"
-                  value={exerciseForm.region}
-                  onChange={(e) => setExerciseForm({ ...exerciseForm, region: e.target.value })}
-                />
-              </div>
-              <div>
-                <label className="text-sm text-gray-600">Type</label>
-                <input
-                  className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 focus:border-blue-500 focus:outline-none"
-                  value={exerciseForm.type}
-                  onChange={(e) => setExerciseForm({ ...exerciseForm, type: e.target.value })}
-                />
-              </div>
-              <div>
-                <label className="text-sm text-gray-600">Niveau (1-3)</label>
-                <input
-                  type="number"
-                  min={1}
-                  max={3}
-                  className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 focus:border-blue-500 focus:outline-none"
-                  value={exerciseForm.level}
-                  onChange={(e) => setExerciseForm({ ...exerciseForm, level: Number(e.target.value) })}
-                />
-              </div>
-              <div>
-                <label className="text-sm text-gray-600">Cible nerveuse (optionnel)</label>
-                <input
-                  className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 focus:border-blue-500 focus:outline-none"
-                  value={exerciseForm.nerve_target}
-                  onChange={(e) => setExerciseForm({ ...exerciseForm, nerve_target: e.target.value })}
-                />
-              </div>
-              <div>
-                <label className="text-sm text-gray-600">Progression / régression</label>
-                <input
-                  className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 focus:border-blue-500 focus:outline-none"
-                  value={exerciseForm.progression_regression}
-                  onChange={(e) => setExerciseForm({ ...exerciseForm, progression_regression: e.target.value })}
-                />
-              </div>
-              <div className="md:col-span-2 lg:col-span-3">
-                <label className="text-sm text-gray-600">Description</label>
-                <textarea
-                  rows={2}
-                  className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 focus:border-blue-500 focus:outline-none"
-                  value={exerciseForm.description}
-                  onChange={(e) => setExerciseForm({ ...exerciseForm, description: e.target.value })}
-                />
-              </div>
-              <div className="md:col-span-2 lg:col-span-3">
-                <label className="text-sm text-gray-600 block mb-2">Illustration de l'exercice</label>
-                <div className="space-y-3">
-                  {(imagePreview || exerciseForm.illustration_url) && (
-                    <div className="relative w-full max-w-md">
-                      <img
-                        src={imagePreview || exerciseForm.illustration_url}
-                        alt="Aperçu"
-                        className="w-full h-48 object-cover rounded-lg border border-gray-200"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setImagePreview(null)
-                          setExerciseForm({ ...exerciseForm, illustration_url: '' })
-                        }}
-                        className="absolute top-2 right-2 p-1 rounded-full bg-red-500 text-white hover:bg-red-600"
-                      >
-                        <X className="h-4 w-4" />
-                      </button>
-                    </div>
-                  )}
-                  <div className="flex items-center gap-3">
-                    <label className="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg cursor-pointer transition-colors">
-                      <Upload className="h-4 w-4" />
-                      {uploadingImage ? 'Upload en cours...' : 'Choisir une image'}
+                <div className="mt-4 space-y-4">
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div>
+                      <label className="text-sm text-gray-600">Prénom</label>
                       <input
-                        type="file"
-                        accept="image/*"
-                        onChange={handleImageUpload}
-                        disabled={uploadingImage}
-                        className="hidden"
+                        className="mt-1 w-full bg-white/70 backdrop-blur-sm border border-blue-200/60 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-emerald-300 focus:border-emerald-400 outline-none"
+                        value={patientInfo.firstName}
+                        onChange={(e) => setPatientInfo({ ...patientInfo, firstName: e.target.value })}
                       />
-                    </label>
-                    <span className="text-xs text-gray-500">ou</span>
-                    <input
-                      type="text"
-                      placeholder="Coller une URL d'image"
-                      value={exerciseForm.illustration_url}
-                      onChange={(e) => {
-                        setExerciseForm({ ...exerciseForm, illustration_url: e.target.value })
-                        setImagePreview(e.target.value)
-                      }}
-                      className="flex-1 rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+                    </div>
+                    <div>
+                      <label className="text-sm text-gray-600">Nom</label>
+                      <input
+                        className="mt-1 w-full bg-white/70 backdrop-blur-sm border border-blue-200/60 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-emerald-300 focus:border-emerald-400 outline-none"
+                        value={patientInfo.lastName}
+                        onChange={(e) => setPatientInfo({ ...patientInfo, lastName: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div>
+                      <label className="text-sm text-gray-600">Âge</label>
+                      <input
+                        type="number"
+                        className="mt-1 w-full bg-white/70 backdrop-blur-sm border border-blue-200/60 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-emerald-300 focus:border-emerald-400 outline-none"
+                        value={patientInfo.age}
+                        onChange={(e) => setPatientInfo({ ...patientInfo, age: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm text-gray-600">Motif</label>
+                      <input
+                        className="mt-1 w-full bg-white/70 backdrop-blur-sm border border-blue-200/60 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-emerald-300 focus:border-emerald-400 outline-none"
+                        value={patientInfo.reason}
+                        onChange={(e) => setPatientInfo({ ...patientInfo, reason: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-sm text-gray-600">Informations générales</label>
+                    <textarea
+                      rows={3}
+                      className="mt-1 w-full bg-white/70 backdrop-blur-sm border border-blue-200/60 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-emerald-300 focus:border-emerald-400 outline-none"
+                      value={patientInfo.notes}
+                      onChange={(e) => setPatientInfo({ ...patientInfo, notes: e.target.value })}
                     />
                   </div>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
-                <input
-                  id="is_active"
-                  type="checkbox"
-                  checked={exerciseForm.is_active}
-                  onChange={(e) => setExerciseForm({ ...exerciseForm, is_active: e.target.checked })}
-                />
-                <label htmlFor="is_active" className="text-sm text-gray-600">Actif</label>
-              </div>
-            </div>
 
-            <div className="mt-4 flex flex-wrap gap-3">
-              <button
-                onClick={handleSaveExercise}
-                className="inline-flex items-center gap-2 rounded-lg bg-purple-600 px-4 py-2 text-white hover:bg-purple-700"
-              >
-                {editingExerciseId ? <Save className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
-                {editingExerciseId ? 'Mettre à jour' : 'Ajouter'}
-              </button>
-              {editingExerciseId && (
-                <button
-                  onClick={resetExerciseForm}
-                  className="inline-flex items-center gap-2 rounded-lg border border-gray-200 px-4 py-2 text-gray-700 hover:bg-gray-50"
-                >
-                  <X className="h-4 w-4" />
-                  Annuler
-                </button>
-              )}
-            </div>
+              <div className="bg-white/85 backdrop-blur-2xl border border-white/70 shadow-xl ring-1 ring-inset ring-white/60 rounded-2xl p-6 lg:col-span-2">
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <h2 className="text-lg font-semibold text-gray-900">Fiche patient</h2>
+                    <p className="text-sm text-gray-500">Ajustez répétitions, séries, repos et commentaires pour chaque exercice.</p>
+                  </div>
+                  {selectedExercises.length > 0 && (
+                    <div className="text-sm text-gray-600">
+                      {selectedExercises.length} exercice(s) sélectionné(s)
+                    </div>
+                  )}
+                </div>
 
-            <div className="mt-6">
-              <h3 className="text-sm font-semibold text-gray-900 mb-3">Rechercher un exercice à modifier</h3>
-              <div className="relative">
-                <Search className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
-                <input
-                  placeholder="Rechercher par nom, région ou type..."
-                  className="w-full rounded-lg border border-gray-200 bg-gray-50 py-2.5 pl-10 pr-3 text-sm focus:border-purple-500 focus:bg-white focus:outline-none"
-                  value={adminSearchTerm}
-                  onChange={(e) => setAdminSearchTerm(e.target.value)}
-                />
-              </div>
-
-              <div className="mt-4 space-y-2 max-h-96 overflow-y-auto">
-                {adminFilteredExercises.length === 0 ? (
-                  <div className="rounded-lg border border-dashed border-gray-200 p-6 text-center text-gray-500 text-sm">
-                    {adminSearchTerm ? 'Aucun exercice ne correspond à votre recherche.' : 'Aucun exercice disponible.'}
+                {selectedExercises.length === 0 ? (
+                  <div className="mt-6 rounded-lg border border-dashed border-blue-200/60 p-6 text-center text-gray-500">
+                    Ajoutez des exercices depuis le catalogue pour constituer la fiche.
                   </div>
                 ) : (
-                  adminFilteredExercises.map((exercise) => (
-                    <div key={exercise.id} className="flex items-center justify-between rounded-lg border border-gray-200 p-3 hover:bg-gray-50 transition-colors">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <h4 className="font-medium text-gray-900 text-sm truncate">{exercise.name}</h4>
-                          <span
-                            className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${exercise.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}
-                          >
-                            {exercise.is_active ? 'Actif' : 'Archivé'}
-                          </span>
+                  <div className="mt-4 space-y-4">
+                    {selectedExercises.map((item) => {
+                      const exercise = exercises.find((ex) => ex.id === item.exerciseId)
+                      return (
+                        <div key={item.uid} className="bg-white/85 backdrop-blur-2xl border border-white/70 shadow-xl ring-1 ring-inset ring-white/60 rounded-2xl overflow-hidden p-4">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="flex-1">
+                              {exercise?.illustration_url && (
+                                <div className="mb-3 overflow-hidden rounded-lg">
+                                  <img
+                                    src={exercise.illustration_url}
+                                    alt={exercise.name}
+                                    className="h-32 w-full object-cover"
+                                    onError={(e) => {
+                                      e.currentTarget.style.display = 'none'
+                                    }}
+                                  />
+                                </div>
+                              )}
+                              <h3 className="text-base font-semibold text-gray-900">{exercise?.name}</h3>
+                              <p className="text-sm text-gray-600">{exercise?.description}</p>
+                              {exercise?.progression_regression && (
+                                <p className="mt-1 text-xs text-gray-500">{exercise.progression_regression}</p>
+                              )}
+                            </div>
+                            <button
+                              onClick={() => removeFromPlan(item.uid)}
+                              className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-red-500"
+                            >
+                              <X className="h-4 w-4" />
+                            </button>
+                          </div>
+
+                          <div className="mt-4 grid gap-3 md:grid-cols-4">
+                            <div>
+                              <label className="text-sm text-gray-600">Répétitions / temps</label>
+                              <input
+                                className="mt-1 w-full bg-white/70 backdrop-blur-sm border border-blue-200/60 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-emerald-300 focus:border-emerald-400 outline-none"
+                                value={item.repetitions}
+                                onChange={(e) => updatePlanItem(item.uid, 'repetitions', e.target.value)}
+                                placeholder="ex: 12 ou 30s"
+                              />
+                            </div>
+                            <div>
+                              <label className="text-sm text-gray-600">Séries</label>
+                              <input
+                                className="mt-1 w-full bg-white/70 backdrop-blur-sm border border-blue-200/60 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-emerald-300 focus:border-emerald-400 outline-none"
+                                value={item.sets}
+                                onChange={(e) => updatePlanItem(item.uid, 'sets', e.target.value)}
+                                placeholder="ex: 3"
+                              />
+                            </div>
+                            <div>
+                              <label className="text-sm text-gray-600">Repos</label>
+                              <input
+                                className="mt-1 w-full bg-white/70 backdrop-blur-sm border border-blue-200/60 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-emerald-300 focus:border-emerald-400 outline-none"
+                                value={item.rest}
+                                onChange={(e) => updatePlanItem(item.uid, 'rest', e.target.value)}
+                                placeholder="ex: 45s"
+                              />
+                            </div>
+                            <div>
+                              <label className="text-sm text-gray-600">Commentaire</label>
+                              <input
+                                className="mt-1 w-full bg-white/70 backdrop-blur-sm border border-blue-200/60 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-emerald-300 focus:border-emerald-400 outline-none"
+                                value={item.comment}
+                                onChange={(e) => updatePlanItem(item.uid, 'comment', e.target.value)}
+                                placeholder="Consigne, douleur max…"
+                              />
+                            </div>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-2 mt-1">
-                          <span className="text-xs text-gray-500 capitalize">{exercise.region}</span>
-                          <span className="text-xs text-gray-400">•</span>
-                          <span className="text-xs text-gray-500">{exercise.type}</span>
-                          <span className="text-xs text-gray-400">•</span>
-                          <span className="text-xs text-gray-500">Niveau {exercise.level}</span>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2 ml-3">
-                        <button
-                          onClick={() => {
-                            setEditingExerciseId(exercise.id)
-                            setExerciseForm({ ...exercise, nerve_target: exercise.nerve_target || '', progression_regression: exercise.progression_regression || '', illustration_url: exercise.illustration_url || '' })
-                            setImagePreview(exercise.illustration_url || null)
-                            window.scrollTo({ top: adminSectionRef.current?.offsetTop ?? 0, behavior: 'smooth' })
-                          }}
-                          className="rounded-lg border border-gray-200 p-2 text-blue-600 hover:bg-blue-50 transition-colors"
-                          title="Modifier"
-                        >
-                          <Edit className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteExercise(exercise.id)}
-                          className="rounded-lg border border-gray-200 p-2 text-red-600 hover:bg-red-50 transition-colors"
-                          title="Supprimer"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </div>
-                  ))
+                      )
+                    })}
+                  </div>
                 )}
               </div>
+            </div>
 
-              {adminFilteredExercises.length > 0 && (
-                <p className="mt-3 text-xs text-gray-500">
-                  {adminFilteredExercises.length} exercice{adminFilteredExercises.length > 1 ? 's' : ''} trouvé{adminFilteredExercises.length > 1 ? 's' : ''}
-                  {adminSearchTerm && ` pour "${adminSearchTerm}"`}
-                </p>
+            {/* Exercise catalogue */}
+            <div className="bg-white/85 backdrop-blur-2xl border border-white/70 shadow-xl ring-1 ring-inset ring-white/60 rounded-2xl p-6">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <h2 className="text-lg font-semibold text-gray-900">Catalogue des exercices</h2>
+                  <p className="text-sm text-gray-500">Sélectionnez un exercice pour l'ajouter à la fiche.</p>
+                </div>
+                <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-center">
+                  <div className="relative w-full sm:w-56">
+                    <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+                    <input
+                      placeholder="Rechercher un exercice"
+                      className="w-full bg-white/70 backdrop-blur-sm border border-blue-200/60 rounded-lg py-2.5 pl-10 pr-3 text-sm focus:ring-2 focus:ring-emerald-300 focus:border-emerald-400 outline-none"
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                  </div>
+                  <select
+                    value={filterRegion}
+                    onChange={(e) => setFilterRegion(e.target.value)}
+                    className="w-full bg-white/70 backdrop-blur-sm border border-blue-200/60 rounded-lg px-4 py-2.5 text-sm text-gray-700 focus:ring-2 focus:ring-emerald-300 focus:border-emerald-400 outline-none sm:w-40"
+                  >
+                    <option value="">Toutes les régions</option>
+                    {regionOptions.map((region) => (
+                      <option key={region} value={region} className="capitalize">
+                        {region}
+                      </option>
+                    ))}
+                  </select>
+                  <select
+                    value={filterType}
+                    onChange={(e) => setFilterType(e.target.value)}
+                    className="w-full bg-white/70 backdrop-blur-sm border border-blue-200/60 rounded-lg px-4 py-2.5 text-sm text-gray-700 focus:ring-2 focus:ring-emerald-300 focus:border-emerald-400 outline-none sm:w-40"
+                  >
+                    <option value="">Tous les types</option>
+                    {typeOptions.map((type) => (
+                      <option key={type} value={type} className="capitalize">
+                        {type}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                {filteredExercises.map((exercise) => (
+                  <FreeContentGate key={exercise.id} isLocked={isExerciseLocked(exercise)}>
+                  <div className="bg-white/85 backdrop-blur-2xl border border-white/70 shadow-xl ring-1 ring-inset ring-white/60 rounded-2xl overflow-hidden flex flex-col justify-between p-4">
+                    <div className="space-y-2">
+                      {exercise.illustration_url && (
+                        <div className="mb-3 overflow-hidden rounded-lg">
+                          <img
+                            src={exercise.illustration_url}
+                            alt={exercise.name}
+                            className="h-40 w-full object-cover"
+                            onError={(e) => {
+                              e.currentTarget.style.display = 'none'
+                            }}
+                          />
+                        </div>
+                      )}
+                      <div className="flex items-center justify-between">
+                        <h3 className="text-base font-semibold text-gray-900">{exercise.name}</h3>
+                        <span className="rounded-full bg-blue-50 px-2 py-1 text-xs text-blue-700">Niveau {exercise.level}</span>
+                      </div>
+                      <p className="text-sm text-gray-600 line-clamp-2">{exercise.description}</p>
+                      <div className="text-xs text-gray-500">
+                        <span className="mr-2 rounded-full bg-gray-100 px-2 py-1">{exercise.region}</span>
+                        <span className="rounded-full bg-gray-100 px-2 py-1">{exercise.type}</span>
+                      </div>
+                      {exercise.progression_regression && (
+                        <p className="text-xs text-gray-500">{exercise.progression_regression}</p>
+                      )}
+                    </div>
+                    <button
+                      onClick={() => addToPlan(exercise.id)}
+                      disabled={isExerciseLocked(exercise)}
+                      className="mt-4 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-500/90 backdrop-blur-sm border border-emerald-400/30 text-white font-semibold hover:bg-emerald-600/90 shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <Plus className="h-4 w-4" /> Ajouter à la fiche
+                    </button>
+                  </div>
+                  </FreeContentGate>
+                ))}
+              </div>
+
+              {filteredExercises.length === 0 && (
+                <div className="mt-4 rounded-lg border border-dashed border-blue-200/60 p-6 text-center text-gray-500">
+                  Aucun exercice ne correspond à votre recherche.
+                </div>
               )}
             </div>
+
+            {/* Admin section */}
+            {profile?.role === 'admin' && (
+              <div ref={adminSectionRef} className="bg-white/85 backdrop-blur-2xl border border-white/70 shadow-xl ring-1 ring-inset ring-white/60 rounded-2xl p-6">
+                <div className="flex items-center gap-2 text-sm text-emerald-600">
+                  <Dumbbell className="h-4 w-4" />
+                  <span>Gestion administrateur</span>
+                </div>
+                <div className="mt-2 flex items-center justify-between">
+                  <h2 className="text-lg font-semibold text-gray-900">Ajouter ou modifier un exercice</h2>
+                  {feedback && <span className={`text-sm ${feedback.includes('Erreur') || feedback.includes('Impossible') ? 'text-red-600' : 'text-green-600'}`}>{feedback}</span>}
+                </div>
+
+                <div className="mt-4 grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+                  <div>
+                    <label className="text-sm text-gray-600">Nom</label>
+                    <input
+                      className="mt-1 w-full bg-white/70 backdrop-blur-sm border border-blue-200/60 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-emerald-300 focus:border-emerald-400 outline-none"
+                      value={exerciseForm.name}
+                      onChange={(e) => setExerciseForm({ ...exerciseForm, name: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm text-gray-600">Région</label>
+                    <input
+                      className="mt-1 w-full bg-white/70 backdrop-blur-sm border border-blue-200/60 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-emerald-300 focus:border-emerald-400 outline-none"
+                      value={exerciseForm.region}
+                      onChange={(e) => setExerciseForm({ ...exerciseForm, region: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm text-gray-600">Type</label>
+                    <input
+                      className="mt-1 w-full bg-white/70 backdrop-blur-sm border border-blue-200/60 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-emerald-300 focus:border-emerald-400 outline-none"
+                      value={exerciseForm.type}
+                      onChange={(e) => setExerciseForm({ ...exerciseForm, type: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm text-gray-600">Niveau (1-3)</label>
+                    <input
+                      type="number"
+                      min={1}
+                      max={3}
+                      className="mt-1 w-full bg-white/70 backdrop-blur-sm border border-blue-200/60 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-emerald-300 focus:border-emerald-400 outline-none"
+                      value={exerciseForm.level}
+                      onChange={(e) => setExerciseForm({ ...exerciseForm, level: Number(e.target.value) })}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm text-gray-600">Cible nerveuse (optionnel)</label>
+                    <input
+                      className="mt-1 w-full bg-white/70 backdrop-blur-sm border border-blue-200/60 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-emerald-300 focus:border-emerald-400 outline-none"
+                      value={exerciseForm.nerve_target}
+                      onChange={(e) => setExerciseForm({ ...exerciseForm, nerve_target: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm text-gray-600">Progression / régression</label>
+                    <input
+                      className="mt-1 w-full bg-white/70 backdrop-blur-sm border border-blue-200/60 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-emerald-300 focus:border-emerald-400 outline-none"
+                      value={exerciseForm.progression_regression}
+                      onChange={(e) => setExerciseForm({ ...exerciseForm, progression_regression: e.target.value })}
+                    />
+                  </div>
+                  <div className="md:col-span-2 lg:col-span-3">
+                    <label className="text-sm text-gray-600">Description</label>
+                    <textarea
+                      rows={2}
+                      className="mt-1 w-full bg-white/70 backdrop-blur-sm border border-blue-200/60 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-emerald-300 focus:border-emerald-400 outline-none"
+                      value={exerciseForm.description}
+                      onChange={(e) => setExerciseForm({ ...exerciseForm, description: e.target.value })}
+                    />
+                  </div>
+                  <div className="md:col-span-2 lg:col-span-3">
+                    <label className="text-sm text-gray-600 block mb-2">Illustration de l'exercice</label>
+                    <div className="space-y-3">
+                      {(imagePreview || exerciseForm.illustration_url) && (
+                        <div className="relative w-full max-w-md">
+                          <img
+                            src={imagePreview || exerciseForm.illustration_url}
+                            alt="Aperçu"
+                            className="w-full h-48 object-cover rounded-lg border border-gray-200"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setImagePreview(null)
+                              setExerciseForm({ ...exerciseForm, illustration_url: '' })
+                            }}
+                            className="absolute top-2 right-2 p-1 rounded-full bg-red-500 text-white hover:bg-red-600"
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
+                        </div>
+                      )}
+                      <div className="flex items-center gap-3">
+                        <label className="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg cursor-pointer transition-colors">
+                          <Upload className="h-4 w-4" />
+                          {uploadingImage ? 'Upload en cours...' : 'Choisir une image'}
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleImageUpload}
+                            disabled={uploadingImage}
+                            className="hidden"
+                          />
+                        </label>
+                        <span className="text-xs text-gray-500">ou</span>
+                        <input
+                          type="text"
+                          placeholder="Coller une URL d'image"
+                          value={exerciseForm.illustration_url}
+                          onChange={(e) => {
+                            setExerciseForm({ ...exerciseForm, illustration_url: e.target.value })
+                            setImagePreview(e.target.value)
+                          }}
+                          className="flex-1 bg-white/70 backdrop-blur-sm border border-blue-200/60 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-emerald-300 focus:border-emerald-400 outline-none"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      id="is_active"
+                      type="checkbox"
+                      checked={exerciseForm.is_active}
+                      onChange={(e) => setExerciseForm({ ...exerciseForm, is_active: e.target.checked })}
+                    />
+                    <label htmlFor="is_active" className="text-sm text-gray-600">Actif</label>
+                  </div>
+                </div>
+
+                <div className="mt-4 flex flex-wrap gap-3">
+                  <button
+                    onClick={handleSaveExercise}
+                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-500/90 backdrop-blur-sm border border-emerald-400/30 text-white font-semibold hover:bg-emerald-600/90 shadow-sm transition-all"
+                  >
+                    {editingExerciseId ? <Save className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+                    {editingExerciseId ? 'Mettre à jour' : 'Ajouter'}
+                  </button>
+                  {editingExerciseId && (
+                    <button
+                      onClick={resetExerciseForm}
+                      className="inline-flex items-center gap-2 rounded-xl border border-gray-200 px-4 py-2.5 text-gray-700 hover:bg-gray-50"
+                    >
+                      <X className="h-4 w-4" />
+                      Annuler
+                    </button>
+                  )}
+                </div>
+
+                <div className="mt-6">
+                  <h3 className="text-sm font-semibold text-gray-900 mb-3">Rechercher un exercice à modifier</h3>
+                  <div className="relative">
+                    <Search className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
+                    <input
+                      placeholder="Rechercher par nom, région ou type..."
+                      className="w-full bg-white/70 backdrop-blur-sm border border-blue-200/60 rounded-lg py-2.5 pl-10 pr-3 text-sm focus:ring-2 focus:ring-emerald-300 focus:border-emerald-400 outline-none"
+                      value={adminSearchTerm}
+                      onChange={(e) => setAdminSearchTerm(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="mt-4 space-y-2 max-h-96 overflow-y-auto">
+                    {adminFilteredExercises.length === 0 ? (
+                      <div className="rounded-lg border border-dashed border-blue-200/60 p-6 text-center text-gray-500 text-sm">
+                        {adminSearchTerm ? 'Aucun exercice ne correspond à votre recherche.' : 'Aucun exercice disponible.'}
+                      </div>
+                    ) : (
+                      adminFilteredExercises.map((exercise) => (
+                        <div key={exercise.id} className="flex items-center justify-between rounded-lg border border-white/70 bg-white/60 backdrop-blur-sm p-3 hover:bg-white/80 transition-colors">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <h4 className="font-medium text-gray-900 text-sm truncate">{exercise.name}</h4>
+                              <span
+                                className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${exercise.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}
+                              >
+                                {exercise.is_active ? 'Actif' : 'Archivé'}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2 mt-1">
+                              <span className="text-xs text-gray-500 capitalize">{exercise.region}</span>
+                              <span className="text-xs text-gray-400">•</span>
+                              <span className="text-xs text-gray-500">{exercise.type}</span>
+                              <span className="text-xs text-gray-400">•</span>
+                              <span className="text-xs text-gray-500">Niveau {exercise.level}</span>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2 ml-3">
+                            <button
+                              onClick={() => {
+                                setEditingExerciseId(exercise.id)
+                                setExerciseForm({ ...exercise, nerve_target: exercise.nerve_target || '', progression_regression: exercise.progression_regression || '', illustration_url: exercise.illustration_url || '' })
+                                setImagePreview(exercise.illustration_url || null)
+                                window.scrollTo({ top: adminSectionRef.current?.offsetTop ?? 0, behavior: 'smooth' })
+                              }}
+                              className="rounded-lg border border-gray-200 p-2 text-emerald-600 hover:text-emerald-700 transition-colors"
+                              title="Modifier"
+                            >
+                              <Edit className="h-4 w-4" />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteExercise(exercise.id)}
+                              className="rounded-lg border border-gray-200 p-2 text-red-500 hover:text-red-700 transition-colors"
+                              title="Supprimer"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+
+                  {adminFilteredExercises.length > 0 && (
+                    <p className="mt-3 text-xs text-gray-500">
+                      {adminFilteredExercises.length} exercice{adminFilteredExercises.length > 1 ? 's' : ''} trouvé{adminFilteredExercises.length > 1 ? 's' : ''}
+                      {adminSearchTerm && ` pour "${adminSearchTerm}"`}
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
+
           </div>
-        )}
+        </div>
       </div>
     </AuthLayout>
   )
