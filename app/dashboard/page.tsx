@@ -160,7 +160,7 @@ export default function Dashboard() {
                 <h1 className="text-3xl md:text-4xl font-bold text-white tracking-tight">
                   {profile?.full_name || 'Docteur'}
                 </h1>
-                <p className="text-slate-400 text-sm mt-1.5">Continuez votre progression en ostéopathie</p>
+                <p className="text-slate-400 text-sm mt-1.5">Continuez votre progression.</p>
               </div>
 
               {/* Quick stats pills */}
@@ -206,12 +206,15 @@ export default function Dashboard() {
           </div>
         </div>
 
+        {/* ── Fondue header → body ────────────────────────────────────── */}
+        <div className="h-16 bg-gradient-to-b from-blue-950 via-blue-900/60 to-blue-100/70 pointer-events-none" />
+
         {/* ── Body ───────────────────────────────────────────────────── */}
-        <div className="relative overflow-hidden bg-gradient-to-br from-blue-100/80 via-sky-50 to-indigo-50/70 px-6 md:px-10 py-8 space-y-8">
+        <div className="relative overflow-hidden bg-gradient-to-br from-blue-100/90 via-sky-50 to-indigo-50/80 px-6 md:px-10 pt-2 pb-10 space-y-8">
           {/* Blobs de fond */}
-          <div className="pointer-events-none absolute top-0 left-1/4 w-96 h-96 bg-blue-400/20 rounded-full blur-3xl" />
-          <div className="pointer-events-none absolute top-1/3 right-0 w-80 h-80 bg-sky-400/20 rounded-full blur-3xl" />
-          <div className="pointer-events-none absolute bottom-0 left-0 w-72 h-72 bg-indigo-400/15 rounded-full blur-3xl" />
+          <div className="pointer-events-none absolute top-0 left-1/4 w-96 h-96 bg-blue-400/30 rounded-full blur-3xl" />
+          <div className="pointer-events-none absolute top-1/3 right-0 w-80 h-80 bg-sky-400/25 rounded-full blur-3xl" />
+          <div className="pointer-events-none absolute bottom-0 left-0 w-72 h-72 bg-indigo-400/20 rounded-full blur-3xl" />
 
           {/* Bannière Premium */}
           {profile?.role === 'free' && (
@@ -235,31 +238,65 @@ export default function Dashboard() {
             </div>
           )}
 
+          {/* ── Cette semaine ──────────────────────────────────────── */}
+          <section>
+            <div className="flex items-center gap-2.5 mb-4">
+              <div className="h-5 w-1 rounded-full bg-gradient-to-b from-sky-500 to-sky-700" />
+              <h2 className="text-sm font-bold text-slate-800 tracking-wide">Cette semaine</h2>
+            </div>
+            <div className="rounded-2xl bg-sky-100/75 backdrop-blur-2xl border border-sky-300/50 shadow-lg ring-1 ring-inset ring-white/40 px-5 py-5 space-y-4">
+              {weekProgress.map(({ label, value, max, color, icon: Icon }) => (
+                <div key={label}>
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <Icon className="h-4 w-4 text-slate-500" />
+                      <span className="text-sm font-medium text-slate-700">{label}</span>
+                    </div>
+                    <span className="text-sm font-bold text-slate-900">{value}</span>
+                  </div>
+                  <div className="h-2 w-full rounded-full bg-white/70 overflow-hidden">
+                    <div className={`h-full rounded-full bg-gradient-to-r ${color} transition-all duration-700`}
+                      style={{ width: `${Math.min(value / max * 100, 100)}%` }} />
+                  </div>
+                </div>
+              ))}
+              <div className="pt-3 border-t border-sky-200/50 grid grid-cols-3 gap-2">
+                {[
+                  { label: 'Connexions', value: stats.totalLogins },
+                  { label: 'Leçons', value: stats.totalElearningCompleted },
+                  { label: 'Actions', value: stats.totalPracticeViewed + stats.totalTestingViewed },
+                ].map(({ label, value }) => (
+                  <div key={label} className="rounded-xl bg-white/65 py-2.5 text-center border border-sky-200/50">
+                    <div className="text-xl font-bold text-slate-900">{value}</div>
+                    <div className="text-[10px] text-slate-500 mt-0.5">{label}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+
           {/* ── Modules ────────────────────────────────────────────── */}
           <section>
             <div className="flex items-center gap-2.5 mb-4">
               <div className="h-5 w-1 rounded-full bg-gradient-to-b from-blue-500 to-blue-700" />
               <h2 className="text-sm font-bold text-slate-800 tracking-wide">Modules d'apprentissage</h2>
             </div>
-            <div className="rounded-2xl overflow-hidden shadow-md border border-blue-200/50 bg-blue-50/60 backdrop-blur-xl">
+            <div className="rounded-2xl overflow-hidden shadow-lg border border-blue-300/50 bg-blue-100/75 backdrop-blur-2xl ring-1 ring-inset ring-white/40">
               {modules.map((module, i) => {
                 const Icon = module.icon
                 return (
                   <button
                     key={module.id}
                     onClick={() => router.push(module.href)}
-                    className={`group w-full flex items-center gap-4 px-5 py-4 text-left hover:bg-white/50 transition-colors ${i < modules.length - 1 ? 'border-b border-blue-100/60' : ''}`}
+                    className={`group w-full flex items-center gap-4 px-5 py-4 text-left hover:bg-white/40 transition-colors ${i < modules.length - 1 ? 'border-b border-blue-200/50' : ''}`}
                   >
-                    {/* Gradient icon */}
                     <div className={`flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br ${module.gradient} shadow-md group-hover:scale-105 transition-transform duration-200`}>
                       <Icon className="h-6 w-6 text-white" />
                     </div>
-
                     <div className="flex-1 min-w-0">
                       <p className="font-bold text-slate-900">{module.title}</p>
                       <p className="text-sm text-slate-500 truncate">{module.description}</p>
                     </div>
-
                     <div className="flex items-center gap-3 flex-shrink-0">
                       <span className="hidden sm:block text-sm font-medium text-slate-400">{module.count}</span>
                       <span className="text-xl">{module.emoji}</span>
@@ -271,87 +308,6 @@ export default function Dashboard() {
             </div>
           </section>
 
-          {/* ── Progression + Badges ───────────────────────────────── */}
-          <section className="grid md:grid-cols-2 gap-6">
-
-            {/* Progression semaine */}
-            <div>
-              <div className="flex items-center gap-2.5 mb-4">
-                <div className="h-5 w-1 rounded-full bg-gradient-to-b from-sky-500 to-sky-700" />
-                <h2 className="text-sm font-bold text-slate-800 tracking-wide">Cette semaine</h2>
-              </div>
-              <div className="rounded-2xl bg-sky-50/65 backdrop-blur-xl border border-sky-200/50 shadow-md px-5 py-5 space-y-4">
-                {weekProgress.map(({ label, value, max, color, icon: Icon }) => (
-                  <div key={label}>
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <Icon className="h-4 w-4 text-slate-400" />
-                        <span className="text-sm font-medium text-slate-700">{label}</span>
-                      </div>
-                      <span className="text-sm font-bold text-slate-900">{value}</span>
-                    </div>
-                    <div className="h-2 w-full rounded-full bg-white/70 overflow-hidden">
-                      <div
-                        className={`h-full rounded-full bg-gradient-to-r ${color} transition-all duration-700`}
-                        style={{ width: `${Math.min(value / max * 100, 100)}%` }}
-                      />
-                    </div>
-                  </div>
-                ))}
-
-                <div className="pt-3 border-t border-sky-200/40 grid grid-cols-3 gap-2">
-                  {[
-                    { label: 'Connexions', value: stats.totalLogins },
-                    { label: 'Leçons', value: stats.totalElearningCompleted },
-                    { label: 'Actions', value: stats.totalPracticeViewed + stats.totalTestingViewed },
-                  ].map(({ label, value }) => (
-                    <div key={label} className="rounded-xl bg-white/70 py-2.5 text-center border border-sky-100/60">
-                      <div className="text-xl font-bold text-slate-900">{value}</div>
-                      <div className="text-[10px] text-slate-400 mt-0.5">{label}</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* Badges */}
-            <div>
-              <div className="flex items-center gap-2.5 mb-4">
-                <div className="h-5 w-1 rounded-full bg-gradient-to-b from-violet-500 to-indigo-600" />
-                <h2 className="text-sm font-bold text-slate-800 tracking-wide">
-                  Badges débloqués
-                  {stats.unlockedAchievements > 0 && <span className="ml-1.5 text-xs font-normal text-slate-500">{stats.unlockedAchievements} au total</span>}
-                </h2>
-              </div>
-              <div className="rounded-2xl bg-indigo-50/65 backdrop-blur-xl border border-indigo-200/50 shadow-md overflow-hidden">
-                {badges.length > 0 ? (
-                  badges.slice(0, 4).map((badge, i) => {
-                    const BadgeIcon = badge.icon ? badgeIconMap[badge.icon] : null
-                    return (
-                      <div
-                        key={badge.id}
-                        className={`flex items-center gap-3 px-5 py-3.5 ${i < Math.min(badges.length, 4) - 1 ? 'border-b border-indigo-100/60' : ''}`}
-                      >
-                        <div className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-gradient-to-br ${badgeColors[i % badgeColors.length]} shadow-sm`}>
-                          {BadgeIcon ? <BadgeIcon className="h-4 w-4 text-white" /> : <span className="text-sm">🏅</span>}
-                        </div>
-                        <div className="min-w-0">
-                          <p className="text-sm font-semibold text-slate-900 truncate">{badge.name}</p>
-                          <p className="text-xs text-slate-400 truncate">{badge.description || 'Badge débloqué'}</p>
-                        </div>
-                      </div>
-                    )
-                  })
-                ) : (
-                  <div className="flex flex-col items-center justify-center py-10 text-center px-5">
-                    <Award className="h-8 w-8 text-slate-200 mb-2" />
-                    <p className="text-sm text-slate-400">Aucun badge débloqué pour le moment</p>
-                  </div>
-                )}
-              </div>
-            </div>
-          </section>
-
           {/* ── Ambassadeur ────────────────────────────────────────── */}
           {(profile?.role === 'premium' || profile?.role === 'admin') && referralData && (
             <section>
@@ -359,46 +315,32 @@ export default function Dashboard() {
                 <div className="h-5 w-1 rounded-full bg-gradient-to-b from-amber-400 to-amber-600" />
                 <h2 className="text-sm font-bold text-slate-800 tracking-wide">Espace Ambassadeur</h2>
               </div>
-              <div className="rounded-2xl overflow-hidden shadow-md border border-amber-300/60 bg-amber-50/65 backdrop-blur-xl">
-                {/* Header ambre */}
+              <div className="rounded-2xl overflow-hidden shadow-lg border border-amber-300/60 bg-amber-100/70 backdrop-blur-2xl ring-1 ring-inset ring-white/40">
                 <div className="bg-gradient-to-r from-amber-400 to-yellow-500 px-5 py-3 flex items-center gap-2">
                   <Crown className="h-4 w-4 text-amber-900" />
                   <p className="text-sm font-semibold text-amber-900">10% de commission sur chaque abonnement annuel parrainé</p>
                 </div>
-
-                {/* Stats en ligne */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-amber-100/60">
+                <div className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-amber-200/50">
                   <div className="px-5 py-4">
-                    <p className="text-xs text-slate-400 mb-1.5">Votre code</p>
+                    <p className="text-xs text-slate-500 mb-1.5">Votre code</p>
                     <div className="flex items-center gap-2">
                       <span className="font-mono text-xl font-bold text-slate-900 tracking-widest">{referralData.code || '—'}</span>
-                      <button
-                        onClick={copyReferralCode}
-                        className="flex h-7 w-7 items-center justify-center rounded-lg bg-slate-100 hover:bg-amber-100 text-slate-400 hover:text-amber-700 transition-colors"
-                      >
+                      <button onClick={copyReferralCode} className="flex h-7 w-7 items-center justify-center rounded-lg bg-white/60 hover:bg-amber-100 text-slate-400 hover:text-amber-700 transition-colors">
                         {codeCopied ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : <Copy className="h-3.5 w-3.5" />}
                       </button>
                     </div>
                     {codeCopied && <p className="text-[11px] text-emerald-600 mt-1">Copié !</p>}
                   </div>
-
                   <div className="px-5 py-4">
-                    <p className="text-xs text-slate-400 mb-1.5">Filleuls</p>
-                    <p className="text-2xl font-bold text-slate-900">
-                      {referralData.referrals_count}
-                      <span className="text-sm font-normal text-slate-400 ml-1">parrainés</span>
-                    </p>
+                    <p className="text-xs text-slate-500 mb-1.5">Filleuls</p>
+                    <p className="text-2xl font-bold text-slate-900">{referralData.referrals_count}<span className="text-sm font-normal text-slate-400 ml-1">parrainés</span></p>
                   </div>
-
                   <div className="px-5 py-4 flex items-center justify-between">
                     <div>
-                      <p className="text-xs text-slate-400 mb-1.5">Cagnotte</p>
+                      <p className="text-xs text-slate-500 mb-1.5">Cagnotte</p>
                       <p className="text-2xl font-bold text-slate-900">{((referralData.available_earnings || 0) / 100).toFixed(2)}€</p>
                     </div>
-                    <button
-                      onClick={() => router.push('/settings/referrals')}
-                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-sm font-semibold transition-colors"
-                    >
+                    <button onClick={() => router.push('/settings/referrals')} className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-sm font-semibold transition-colors">
                       Gérer <ArrowRight className="h-3.5 w-3.5" />
                     </button>
                   </div>
@@ -406,6 +348,42 @@ export default function Dashboard() {
               </div>
             </section>
           )}
+
+          {/* ── Badges ─────────────────────────────────────────────── */}
+          <section>
+            <div className="flex items-center gap-2.5 mb-4">
+              <div className="h-5 w-1 rounded-full bg-gradient-to-b from-violet-500 to-indigo-600" />
+              <h2 className="text-sm font-bold text-slate-800 tracking-wide">
+                Badges débloqués
+                {stats.unlockedAchievements > 0 && <span className="ml-1.5 text-xs font-normal text-slate-500">{stats.unlockedAchievements} au total</span>}
+              </h2>
+            </div>
+            <div className="rounded-2xl bg-indigo-100/70 backdrop-blur-2xl border border-indigo-300/50 shadow-lg ring-1 ring-inset ring-white/40 overflow-hidden">
+              {badges.length > 0 ? (
+                <div className="grid sm:grid-cols-2">
+                  {badges.slice(0, 4).map((badge, i) => {
+                    const BadgeIcon = badge.icon ? badgeIconMap[badge.icon] : null
+                    return (
+                      <div key={badge.id} className={`flex items-center gap-3 px-5 py-3.5 ${i % 2 === 0 && i + 1 < Math.min(badges.length, 4) ? 'sm:border-r border-indigo-200/50' : ''} ${i < Math.min(badges.length, 4) - 2 ? 'border-b border-indigo-200/50' : i < Math.min(badges.length, 4) - 1 && Math.min(badges.length, 4) % 2 !== 0 ? 'border-b border-indigo-200/50' : ''}`}>
+                        <div className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-gradient-to-br ${badgeColors[i % badgeColors.length]} shadow-sm`}>
+                          {BadgeIcon ? <BadgeIcon className="h-4 w-4 text-white" /> : <span className="text-sm">🏅</span>}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold text-slate-900 truncate">{badge.name}</p>
+                          <p className="text-xs text-slate-500 truncate">{badge.description || 'Badge débloqué'}</p>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-10 text-center px-5">
+                  <Award className="h-8 w-8 text-indigo-200 mb-2" />
+                  <p className="text-sm text-slate-500">Aucun badge débloqué pour le moment</p>
+                </div>
+              )}
+            </div>
+          </section>
 
         </div>
       </div>
