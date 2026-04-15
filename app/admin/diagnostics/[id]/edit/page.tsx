@@ -252,7 +252,7 @@ export default function EditDiagnosticPage() {
 
     if (newIndex < 0 || newIndex >= newTests.length) return
 
-    [newTests[index], newTests[newIndex]] = [newTests[newIndex], newTests[index]]
+    ;[newTests[index], newTests[newIndex]] = [newTests[newIndex], newTests[index]]
     setSelectedTests(newTests)
   }
 
@@ -295,7 +295,7 @@ export default function EditDiagnosticPage() {
 
     if (newIndex < 0 || newIndex >= newClusters.length) return
 
-    [newClusters[index], newClusters[newIndex]] = [newClusters[newIndex], newClusters[index]]
+    ;[newClusters[index], newClusters[newIndex]] = [newClusters[newIndex], newClusters[index]]
     setSelectedClusters(newClusters)
   }
 
@@ -425,472 +425,489 @@ export default function EditDiagnosticPage() {
 
   return (
     <AuthLayout>
-      <div className="max-w-6xl mx-auto">
-        <div className="bg-white rounded-xl shadow-sm">
-          <div className="p-6 border-b border-gray-200">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-4">
-                <button
-                  onClick={() => router.back()}
-                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                >
-                  <ArrowLeft className="h-5 w-5 text-gray-600" />
-                </button>
-                <div>
-                  <h1 className="text-2xl font-bold text-gray-900">
-                    Modifier le Diagnostic
-                  </h1>
-                  <p className="text-gray-600 mt-1">
-                    {formData.name}
-                  </p>
-                </div>
-              </div>
+      <div className="min-h-screen -m-6 md:-m-8">
+        {/* Dark glass header */}
+        <div className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 px-6 md:px-10 pt-8 pb-6">
+          <div className="absolute top-0 left-0 w-72 h-72 bg-purple-500/15 rounded-full blur-3xl animate-pulse -translate-x-1/2 -translate-y-1/4" style={{ animationDuration: '4s' }} />
+          <div className="absolute top-1/2 right-0 w-56 h-56 bg-indigo-400/10 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '6s', animationDelay: '2s' }} />
+          <div className="absolute bottom-0 right-1/4 w-48 h-48 bg-sky-400/15 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '5s', animationDelay: '1s' }} />
+          <div className="relative">
+            <div className="bg-white/5 backdrop-blur-md border border-white/10 ring-1 ring-inset ring-white/8 rounded-3xl p-6 md:p-8">
+              <button
+                onClick={() => router.back()}
+                className="inline-flex items-center gap-2 text-white/50 hover:text-white/80 transition-colors mb-4 text-sm"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Retour
+              </button>
+              <p className="text-purple-300 text-sm font-medium mb-1 tracking-wide">
+                <FileText className="h-4 w-4 inline mr-1" />
+                Admin — Diagnostics
+              </p>
+              <h1 className="text-3xl font-bold bg-gradient-to-r from-white via-purple-100 to-indigo-200 bg-clip-text text-transparent">
+                Modifier le Diagnostic
+              </h1>
+              {formData.name && (
+                <p className="text-white/50 text-sm mt-1">{formData.name}</p>
+              )}
             </div>
           </div>
+          <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-purple-400/40 to-transparent" />
+          <div className="absolute bottom-0 left-1/4 right-1/4 h-px bg-gradient-to-r from-transparent via-purple-300/50 to-transparent blur-sm" />
+        </div>
 
-          <form onSubmit={handleSubmit} className="p-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              {/* Colonne gauche - Informations générales */}
-              <div className="space-y-6">
-                <div className="space-y-4">
-                  <h2 className="text-lg font-semibold text-gray-900 pb-2 border-b flex items-center gap-2">
-                    <FileText className="h-5 w-5 text-purple-600" />
-                    Informations générales
-                  </h2>
+        {/* Light glass body */}
+        <div className="relative overflow-hidden bg-gradient-to-br from-blue-100/90 via-sky-50 to-indigo-50/80 px-6 md:px-10 pt-8 pb-10">
+          <div className="pointer-events-none absolute top-0 left-1/4 w-96 h-96 bg-purple-400/20 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '6s' }} />
+          <div className="pointer-events-none absolute top-1/2 right-0 w-80 h-80 bg-sky-400/25 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '8s', animationDelay: '2s' }} />
+          <div className="pointer-events-none absolute bottom-0 left-0 w-72 h-72 bg-indigo-400/20 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '7s', animationDelay: '1s' }} />
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Nom du diagnostic / Pathologie *
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.name}
-                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
-                      placeholder="Ex: Hernie discale L5-S1"
-                      required
-                    />
-                  </div>
+          <div className="relative space-y-6">
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Colonne gauche - Informations générales */}
+                <div className="space-y-6">
+                  {/* Informations générales */}
+                  <div className="bg-white/85 backdrop-blur-2xl border border-white/70 shadow-xl ring-1 ring-inset ring-white/60 rounded-2xl p-6 space-y-4">
+                    <h2 className="text-lg font-semibold text-slate-800 pb-2 border-b border-white/30 flex items-center gap-2">
+                      <FileText className="h-5 w-5 text-purple-500" />
+                      Informations générales
+                    </h2>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Région anatomique *
-                    </label>
-                    <select
-                      value={formData.region}
-                      onChange={(e) => setFormData({ ...formData, region: e.target.value as AnatomicalRegion })}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
-                      required
-                    >
-                      {REGIONS.map(r => (
-                        <option key={r.value} value={r.value}>{r.label}</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Description
-                    </label>
-                    <textarea
-                      value={formData.description}
-                      onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                      rows={3}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
-                      placeholder="Description clinique de la pathologie..."
-                    />
-                  </div>
-
-                  <div className="grid gap-4 md:grid-cols-2">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Gravité
+                      <label className="block text-sm font-medium text-slate-700 mb-2">
+                        Nom du diagnostic / Pathologie *
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.name}
+                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                        className="bg-white/70 backdrop-blur-sm border border-blue-200/60 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-purple-300 focus:border-purple-400 outline-none w-full"
+                        placeholder="Ex: Hernie discale L5-S1"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-2">
+                        Région anatomique *
                       </label>
                       <select
-                        value={formData.severity}
-                        onChange={(e) => setFormData({ ...formData, severity: e.target.value as 'low' | 'medium' | 'high' | '' })}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                        value={formData.region}
+                        onChange={(e) => setFormData({ ...formData, region: e.target.value as AnatomicalRegion })}
+                        className="bg-white/70 backdrop-blur-sm border border-blue-200/60 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-purple-300 focus:border-purple-400 outline-none w-full"
+                        required
                       >
-                        <option value="">Non définie</option>
-                        <option value="low">🟢 Légère</option>
-                        <option value="medium">🟡 Modérée</option>
-                        <option value="high">🔴 Sévère</option>
+                        {REGIONS.map(r => (
+                          <option key={r.value} value={r.value}>{r.label}</option>
+                        ))}
                       </select>
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Drapeau rouge
-                      </label>
-                      <label className="flex items-center gap-2 text-sm text-gray-700">
-                        <input
-                          type="checkbox"
-                          checked={formData.is_red_flag}
-                          onChange={(e) => setFormData({ ...formData, is_red_flag: e.target.checked })}
-                          className="h-4 w-4 text-red-600 border-gray-300 rounded"
-                        />
-                        Oui, c'est un drapeau rouge
-                      </label>
-                    </div>
-                  </div>
-
-                  {formData.is_red_flag && (
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Raison du drapeau rouge
+                      <label className="block text-sm font-medium text-slate-700 mb-2">
+                        Description
                       </label>
                       <textarea
-                        value={formData.red_flag_reason}
-                        onChange={(e) => setFormData({ ...formData, red_flag_reason: e.target.value })}
+                        value={formData.description}
+                        onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                         rows={3}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
-                        placeholder="Expliquez brièvement pourquoi cette pathologie est un drapeau rouge..."
+                        className="bg-white/70 backdrop-blur-sm border border-blue-200/60 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-purple-300 focus:border-purple-400 outline-none w-full"
+                        placeholder="Description clinique de la pathologie..."
                       />
                     </div>
-                  )}
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Signes cliniques évidents
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-2">
+                          Gravité
+                        </label>
+                        <select
+                          value={formData.severity}
+                          onChange={(e) => setFormData({ ...formData, severity: e.target.value as 'low' | 'medium' | 'high' | '' })}
+                          className="bg-white/70 backdrop-blur-sm border border-blue-200/60 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-purple-300 focus:border-purple-400 outline-none w-full"
+                        >
+                          <option value="">Non définie</option>
+                          <option value="low">🟢 Légère</option>
+                          <option value="medium">🟡 Modérée</option>
+                          <option value="high">🔴 Sévère</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-2">
+                          Drapeau rouge
+                        </label>
+                        <label className="flex items-center gap-2 text-sm text-slate-700 mt-1">
+                          <input
+                            type="checkbox"
+                            checked={formData.is_red_flag}
+                            onChange={(e) => setFormData({ ...formData, is_red_flag: e.target.checked })}
+                            className="h-4 w-4 text-red-600 border-gray-300 rounded"
+                          />
+                          Oui, c&apos;est un drapeau rouge
+                        </label>
+                      </div>
+                    </div>
+
+                    {formData.is_red_flag && (
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-2">
+                          Raison du drapeau rouge
+                        </label>
+                        <textarea
+                          value={formData.red_flag_reason}
+                          onChange={(e) => setFormData({ ...formData, red_flag_reason: e.target.value })}
+                          rows={3}
+                          className="bg-white/70 backdrop-blur-sm border border-blue-200/60 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-purple-300 focus:border-purple-400 outline-none w-full"
+                          placeholder="Expliquez brièvement pourquoi cette pathologie est un drapeau rouge..."
+                        />
+                      </div>
+                    )}
+
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-2">
+                        Signes cliniques évidents
+                      </label>
+                      <textarea
+                        value={formData.clinical_signs}
+                        onChange={(e) => setFormData({ ...formData, clinical_signs: e.target.value })}
+                        rows={4}
+                        className="bg-white/70 backdrop-blur-sm border border-blue-200/60 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-purple-300 focus:border-purple-400 outline-none w-full"
+                        placeholder="Ex: Douleur en barre dans le bas du dos, irradiation dans la jambe, perte de force..."
+                      />
+                      <p className="text-xs text-slate-500 mt-1">
+                        Ces signes seront affichés aux praticiens pour les aider à identifier la pathologie
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Image */}
+                  <div className="bg-white/85 backdrop-blur-2xl border border-white/70 shadow-xl ring-1 ring-inset ring-white/60 rounded-2xl p-6 space-y-4">
+                    <h2 className="text-lg font-semibold text-slate-800 pb-2 border-b border-white/30 flex items-center gap-2">
+                      <ImageIcon className="h-5 w-5 text-purple-500" />
+                      Photo du diagnostic
+                    </h2>
+
+                    {!imagePreview ? (
+                      <div className="border-2 border-dashed border-blue-200/60 rounded-xl p-8 text-center hover:border-purple-400/60 transition-colors bg-white/40">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleImageSelect}
+                          className="hidden"
+                          id="image-upload"
+                        />
+                        <label
+                          htmlFor="image-upload"
+                          className="cursor-pointer flex flex-col items-center"
+                        >
+                          <Upload className="h-12 w-12 text-slate-400 mb-3" />
+                          <span className="text-sm font-medium text-slate-700">
+                            Cliquez pour ajouter une photo
+                          </span>
+                          <span className="text-xs text-slate-500 mt-1">
+                            PNG, JPG jusqu&apos;à 10MB
+                          </span>
+                        </label>
+                      </div>
+                    ) : (
+                      <div className="relative">
+                        <div className="relative h-64 rounded-xl overflow-hidden">
+                          <Image
+                            src={imagePreview}
+                            alt="Preview"
+                            fill
+                            className="object-cover"
+                          />
+                        </div>
+                        <button
+                          type="button"
+                          onClick={handleRemoveImage}
+                          className="absolute top-2 right-2 p-2 bg-red-500/10 backdrop-blur-sm border border-red-300/30 text-red-600 hover:bg-red-500/20 rounded-xl"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="bg-white/85 backdrop-blur-2xl border border-white/70 shadow-xl ring-1 ring-inset ring-white/60 rounded-2xl p-4">
+                    <label className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={formData.is_active}
+                        onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
+                        className="h-4 w-4 text-purple-600 focus:ring-purple-500 rounded"
+                      />
+                      <span className="text-sm text-slate-700">
+                        Diagnostic actif (visible pour les praticiens)
+                      </span>
                     </label>
-                    <textarea
-                      value={formData.clinical_signs}
-                      onChange={(e) => setFormData({ ...formData, clinical_signs: e.target.value })}
-                      rows={4}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
-                      placeholder="Ex: Douleur en barre dans le bas du dos, irradiation dans la jambe, perte de force..."
-                    />
-                    <p className="text-xs text-gray-500 mt-1">
-                      Ces signes seront affichés aux praticiens pour les aider à identifier la pathologie
-                    </p>
                   </div>
                 </div>
 
-                {/* Image */}
-                <div className="space-y-4">
-                  <h2 className="text-lg font-semibold text-gray-900 pb-2 border-b flex items-center gap-2">
-                    <ImageIcon className="h-5 w-5 text-purple-600" />
-                    Photo du diagnostic
-                  </h2>
+                {/* Colonne droite - Tests et Clusters associés */}
+                <div className="space-y-6">
+                  <div className="bg-white/85 backdrop-blur-2xl border border-white/70 shadow-xl ring-1 ring-inset ring-white/60 rounded-2xl p-6 space-y-4">
+                    <h2 className="text-lg font-semibold text-slate-800 pb-2 border-b border-white/30 flex items-center gap-2">
+                      <TestTube2 className="h-5 w-5 text-purple-500" />
+                      Tests et Clusters associés ({selectedTests.length} tests, {selectedClusters.length} clusters)
+                    </h2>
 
-                  {!imagePreview ? (
-                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-purple-400 transition-colors">
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={handleImageSelect}
-                        className="hidden"
-                        id="image-upload"
-                      />
-                      <label
-                        htmlFor="image-upload"
-                        className="cursor-pointer flex flex-col items-center"
-                      >
-                        <Upload className="h-12 w-12 text-gray-400 mb-3" />
-                        <span className="text-sm font-medium text-gray-700">
-                          Cliquez pour ajouter une photo
-                        </span>
-                        <span className="text-xs text-gray-500 mt-1">
-                          PNG, JPG jusqu'à 10MB
-                        </span>
-                      </label>
-                    </div>
-                  ) : (
-                    <div className="relative">
-                      <div className="relative h-64 rounded-lg overflow-hidden">
-                        <Image
-                          src={imagePreview}
-                          alt="Preview"
-                          fill
-                          className="object-cover"
-                        />
-                      </div>
+                    {/* Onglets */}
+                    <div className="flex gap-2">
                       <button
                         type="button"
-                        onClick={handleRemoveImage}
-                        className="absolute top-2 right-2 p-2 bg-red-600 text-white rounded-full hover:bg-red-700"
+                        onClick={() => setActiveTab('tests')}
+                        className={`px-4 py-2 rounded-xl font-medium text-sm transition-all ${
+                          activeTab === 'tests'
+                            ? 'bg-purple-500/90 backdrop-blur-sm border border-purple-400/30 text-white shadow-sm'
+                            : 'bg-white/70 backdrop-blur-sm border border-blue-200/60 text-slate-700 hover:bg-white/90'
+                        }`}
                       >
-                        <X className="h-4 w-4" />
+                        Tests ({selectedTests.length})
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setActiveTab('clusters')}
+                        className={`px-4 py-2 rounded-xl font-medium text-sm transition-all ${
+                          activeTab === 'clusters'
+                            ? 'bg-purple-500/90 backdrop-blur-sm border border-purple-400/30 text-white shadow-sm'
+                            : 'bg-white/70 backdrop-blur-sm border border-blue-200/60 text-slate-700 hover:bg-white/90'
+                        }`}
+                      >
+                        Clusters ({selectedClusters.length})
                       </button>
                     </div>
-                  )}
-                </div>
 
-                <div>
-                  <label className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      checked={formData.is_active}
-                      onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
-                      className="h-4 w-4 text-purple-600 focus:ring-purple-500 rounded"
-                    />
-                    <span className="text-sm text-gray-700">
-                      Diagnostic actif (visible pour les praticiens)
-                    </span>
-                  </label>
-                </div>
-              </div>
+                    <p className="text-sm text-slate-600">
+                      {activeTab === 'tests'
+                        ? 'Sélectionnez les tests individuels pertinents pour ce diagnostic.'
+                        : 'Sélectionnez les clusters de tests pertinents pour ce diagnostic.'}
+                    </p>
 
-              {/* Colonne droite - Tests et Clusters associés */}
-              <div className="space-y-6">
-                <div>
-                  <h2 className="text-lg font-semibold text-gray-900 pb-2 border-b flex items-center gap-2">
-                    <TestTube2 className="h-5 w-5 text-purple-600" />
-                    Tests et Clusters associés ({selectedTests.length} tests, {selectedClusters.length} clusters)
-                  </h2>
+                    {/* Contenu de l'onglet Tests */}
+                    {activeTab === 'tests' && (
+                      <>
+                        {/* Tests sélectionnés */}
+                        {selectedTests.length > 0 && (
+                          <div className="bg-purple-50/80 backdrop-blur-sm border border-purple-200/40 rounded-xl p-4">
+                            <h3 className="text-sm font-semibold text-purple-900 mb-3">
+                              Tests sélectionnés
+                            </h3>
+                            <div className="space-y-2">
+                              {selectedTests.map((testId, index) => {
+                                const test = getTestDetails(testId)
+                                if (!test) return null
 
-                  {/* Onglets */}
-                  <div className="flex gap-2 mt-4">
-                    <button
-                      type="button"
-                      onClick={() => setActiveTab('tests')}
-                      className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors ${
-                        activeTab === 'tests'
-                          ? 'bg-purple-600 text-white'
-                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                      }`}
-                    >
-                      Tests ({selectedTests.length})
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setActiveTab('clusters')}
-                      className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors ${
-                        activeTab === 'clusters'
-                          ? 'bg-purple-600 text-white'
-                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                      }`}
-                    >
-                      Clusters ({selectedClusters.length})
-                    </button>
-                  </div>
-
-                  <p className="text-sm text-gray-600 mt-3">
-                    {activeTab === 'tests'
-                      ? 'Sélectionnez les tests individuels pertinents pour ce diagnostic.'
-                      : 'Sélectionnez les clusters de tests pertinents pour ce diagnostic.'}
-                  </p>
-                </div>
-
-                {/* Contenu de l'onglet Tests */}
-                {activeTab === 'tests' && (
-                  <>
-                    {/* Tests sélectionnés */}
-                    {selectedTests.length > 0 && (
-                  <div className="bg-purple-50 rounded-lg p-4">
-                    <h3 className="text-sm font-semibold text-purple-900 mb-3">
-                      Tests sélectionnés
-                    </h3>
-                    <div className="space-y-2">
-                      {selectedTests.map((testId, index) => {
-                        const test = getTestDetails(testId)
-                        if (!test) return null
-
-                        return (
-                          <div
-                            key={testId}
-                            className="flex items-center gap-2 bg-white rounded-lg p-3 border border-purple-200"
-                          >
-                            <div className="flex gap-1">
-                              <button
-                                type="button"
-                                onClick={() => moveTest(index, 'up')}
-                                disabled={index === 0}
-                                className="p-1 hover:bg-gray-100 rounded disabled:opacity-30"
-                              >
-                                <GripVertical className="h-4 w-4 text-gray-400" />
-                              </button>
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium text-gray-900 truncate">
-                                {index + 1}. {test.name}
-                              </p>
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => toggleTest(testId)}
-                              className="p-1 text-red-600 hover:bg-red-50 rounded"
-                            >
-                              <X className="h-4 w-4" />
-                            </button>
-                          </div>
-                        )
-                      })}
-                    </div>
-                  </div>
-                )}
-
-                {/* Recherche et liste des tests disponibles */}
-                <div>
-                  <div className="relative mb-3">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                    <input
-                      type="text"
-                      placeholder="Rechercher un test (nom, description, indication)..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500"
-                    />
-                  </div>
-
-                  <div className="max-h-96 overflow-y-auto space-y-2 border border-gray-200 rounded-lg p-3">
-                    {filteredTests.length === 0 ? (
-                      <p className="text-sm text-gray-500 text-center py-4">
-                        Aucun test trouvé pour cette région
-                      </p>
-                    ) : (
-                      filteredTests.map(test => (
-                        <div
-                          key={test.id}
-                          className={`p-3 border rounded-lg cursor-pointer transition-colors ${
-                            selectedTests.includes(test.id)
-                              ? 'bg-purple-50 border-purple-300'
-                              : 'hover:bg-gray-50 border-gray-200'
-                          }`}
-                          onClick={() => toggleTest(test.id)}
-                        >
-                          <div className="flex items-start gap-2">
-                            <input
-                              type="checkbox"
-                              checked={selectedTests.includes(test.id)}
-                              onChange={() => {}}
-                              className="mt-1"
-                            />
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium text-gray-900">{test.name}</p>
-                              {test.category && (
-                                <p className="text-xs text-gray-500 mt-0.5">{test.category}</p>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </div>
-                  </>
-                )}
-
-                {/* Contenu de l'onglet Clusters */}
-                {activeTab === 'clusters' && (
-                  <>
-                    {/* Clusters sélectionnés */}
-                    {selectedClusters.length > 0 && (
-                      <div className="bg-purple-50 rounded-lg p-4">
-                        <h3 className="text-sm font-semibold text-purple-900 mb-3">
-                          Clusters sélectionnés
-                        </h3>
-                        <div className="space-y-2">
-                          {selectedClusters.map((clusterId, index) => {
-                            const cluster = getClusterDetails(clusterId)
-                            if (!cluster) return null
-
-                            return (
-                              <div
-                                key={clusterId}
-                                className="flex items-center gap-2 bg-white rounded-lg p-3 border border-purple-200"
-                              >
-                                <div className="flex gap-1">
-                                  <button
-                                    type="button"
-                                    onClick={() => moveCluster(index, 'up')}
-                                    disabled={index === 0}
-                                    className="p-1 hover:bg-gray-100 rounded disabled:opacity-30"
+                                return (
+                                  <div
+                                    key={testId}
+                                    className="flex items-center gap-2 bg-white/80 rounded-lg p-3 border border-purple-200/60"
                                   >
-                                    <GripVertical className="h-4 w-4 text-gray-400" />
-                                  </button>
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <p className="text-sm font-medium text-gray-900 truncate">
-                                    {index + 1}. {cluster.name}
-                                  </p>
-                                </div>
-                                <button
-                                  type="button"
-                                  onClick={() => toggleCluster(clusterId)}
-                                  className="p-1 text-red-600 hover:bg-red-50 rounded"
+                                    <div className="flex gap-1">
+                                      <button
+                                        type="button"
+                                        onClick={() => moveTest(index, 'up')}
+                                        disabled={index === 0}
+                                        className="p-1 hover:bg-gray-100 rounded disabled:opacity-30"
+                                      >
+                                        <GripVertical className="h-4 w-4 text-gray-400" />
+                                      </button>
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                      <p className="text-sm font-medium text-slate-900 truncate">
+                                        {index + 1}. {test.name}
+                                      </p>
+                                    </div>
+                                    <button
+                                      type="button"
+                                      onClick={() => toggleTest(testId)}
+                                      className="p-1 bg-red-500/10 backdrop-blur-sm border border-red-300/30 text-red-600 hover:bg-red-500/20 rounded-lg"
+                                    >
+                                      <X className="h-4 w-4" />
+                                    </button>
+                                  </div>
+                                )
+                              })}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Recherche et liste des tests disponibles */}
+                        <div>
+                          <div className="relative mb-3">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                            <input
+                              type="text"
+                              placeholder="Rechercher un test (nom, description, indication)..."
+                              value={searchQuery}
+                              onChange={(e) => setSearchQuery(e.target.value)}
+                              className="bg-white/70 backdrop-blur-sm border border-blue-200/60 rounded-lg pl-10 pr-4 py-2.5 focus:ring-2 focus:ring-purple-300 focus:border-purple-400 outline-none w-full text-sm"
+                            />
+                          </div>
+
+                          <div className="max-h-96 overflow-y-auto space-y-2 border border-white/50 bg-white/30 rounded-xl p-3">
+                            {filteredTests.length === 0 ? (
+                              <p className="text-sm text-slate-500 text-center py-4">
+                                Aucun test trouvé pour cette région
+                              </p>
+                            ) : (
+                              filteredTests.map(test => (
+                                <div
+                                  key={test.id}
+                                  className={`p-3 border rounded-lg cursor-pointer transition-colors ${
+                                    selectedTests.includes(test.id)
+                                      ? 'bg-purple-50/90 border-purple-300/60'
+                                      : 'hover:bg-white/80 border-blue-200/40 bg-white/50'
+                                  }`}
+                                  onClick={() => toggleTest(test.id)}
                                 >
-                                  <X className="h-4 w-4" />
-                                </button>
-                              </div>
-                            )
-                          })}
+                                  <div className="flex items-start gap-2">
+                                    <input
+                                      type="checkbox"
+                                      checked={selectedTests.includes(test.id)}
+                                      onChange={() => {}}
+                                      className="mt-1"
+                                    />
+                                    <div className="flex-1 min-w-0">
+                                      <p className="text-sm font-medium text-slate-900">{test.name}</p>
+                                      {test.category && (
+                                        <p className="text-xs text-slate-500 mt-0.5">{test.category}</p>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+                              ))
+                            )}
+                          </div>
                         </div>
-                      </div>
+                      </>
                     )}
 
-                    {/* Recherche et liste des clusters disponibles */}
-                    <div>
-                      <div className="relative mb-3">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                        <input
-                          type="text"
-                          placeholder="Rechercher un cluster (nom, description, indication)..."
-                          value={clusterSearchQuery}
-                          onChange={(e) => setClusterSearchQuery(e.target.value)}
-                          className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500"
-                        />
-                      </div>
+                    {/* Contenu de l'onglet Clusters */}
+                    {activeTab === 'clusters' && (
+                      <>
+                        {/* Clusters sélectionnés */}
+                        {selectedClusters.length > 0 && (
+                          <div className="bg-purple-50/80 backdrop-blur-sm border border-purple-200/40 rounded-xl p-4">
+                            <h3 className="text-sm font-semibold text-purple-900 mb-3">
+                              Clusters sélectionnés
+                            </h3>
+                            <div className="space-y-2">
+                              {selectedClusters.map((clusterId, index) => {
+                                const cluster = getClusterDetails(clusterId)
+                                if (!cluster) return null
 
-                      <div className="max-h-96 overflow-y-auto space-y-2 border border-gray-200 rounded-lg p-3">
-                        {filteredClusters.length === 0 ? (
-                          <p className="text-sm text-gray-500 text-center py-4">
-                            Aucun cluster trouvé pour cette région
-                          </p>
-                        ) : (
-                          filteredClusters.map(cluster => (
-                            <div
-                              key={cluster.id}
-                              className={`p-3 border rounded-lg cursor-pointer transition-colors ${
-                                selectedClusters.includes(cluster.id)
-                                  ? 'bg-purple-50 border-purple-300'
-                                  : 'hover:bg-gray-50 border-gray-200'
-                              }`}
-                              onClick={() => toggleCluster(cluster.id)}
-                            >
-                              <div className="flex items-start gap-2">
-                                <input
-                                  type="checkbox"
-                                  checked={selectedClusters.includes(cluster.id)}
-                                  onChange={() => {}}
-                                  className="mt-1"
-                                />
-                                <div className="flex-1 min-w-0">
-                                  <p className="text-sm font-medium text-gray-900">{cluster.name}</p>
-                                  {cluster.region && (
-                                    <p className="text-xs text-gray-500 mt-0.5">{cluster.region}</p>
-                                  )}
-                                </div>
-                              </div>
+                                return (
+                                  <div
+                                    key={clusterId}
+                                    className="flex items-center gap-2 bg-white/80 rounded-lg p-3 border border-purple-200/60"
+                                  >
+                                    <div className="flex gap-1">
+                                      <button
+                                        type="button"
+                                        onClick={() => moveCluster(index, 'up')}
+                                        disabled={index === 0}
+                                        className="p-1 hover:bg-gray-100 rounded disabled:opacity-30"
+                                      >
+                                        <GripVertical className="h-4 w-4 text-gray-400" />
+                                      </button>
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                      <p className="text-sm font-medium text-slate-900 truncate">
+                                        {index + 1}. {cluster.name}
+                                      </p>
+                                    </div>
+                                    <button
+                                      type="button"
+                                      onClick={() => toggleCluster(clusterId)}
+                                      className="p-1 bg-red-500/10 backdrop-blur-sm border border-red-300/30 text-red-600 hover:bg-red-500/20 rounded-lg"
+                                    >
+                                      <X className="h-4 w-4" />
+                                    </button>
+                                  </div>
+                                )
+                              })}
                             </div>
-                          ))
+                          </div>
                         )}
-                      </div>
-                    </div>
-                  </>
-                )}
-              </div>
-            </div>
 
-            {/* Actions */}
-            <div className="flex justify-end space-x-4 pt-6 mt-6 border-t">
-              <button
-                type="button"
-                onClick={() => router.back()}
-                className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium"
-              >
-                Annuler
-              </button>
-              <button
-                type="submit"
-                disabled={saving || uploading}
-                className="bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white px-6 py-2 rounded-lg font-medium flex items-center gap-2"
-              >
-                <Save className="h-4 w-4" />
-                {saving ? 'Enregistrement...' : uploading ? 'Upload...' : 'Enregistrer les modifications'}
-              </button>
-            </div>
-          </form>
+                        {/* Recherche et liste des clusters disponibles */}
+                        <div>
+                          <div className="relative mb-3">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                            <input
+                              type="text"
+                              placeholder="Rechercher un cluster (nom, description, indication)..."
+                              value={clusterSearchQuery}
+                              onChange={(e) => setClusterSearchQuery(e.target.value)}
+                              className="bg-white/70 backdrop-blur-sm border border-blue-200/60 rounded-lg pl-10 pr-4 py-2.5 focus:ring-2 focus:ring-purple-300 focus:border-purple-400 outline-none w-full text-sm"
+                            />
+                          </div>
+
+                          <div className="max-h-96 overflow-y-auto space-y-2 border border-white/50 bg-white/30 rounded-xl p-3">
+                            {filteredClusters.length === 0 ? (
+                              <p className="text-sm text-slate-500 text-center py-4">
+                                Aucun cluster trouvé pour cette région
+                              </p>
+                            ) : (
+                              filteredClusters.map(cluster => (
+                                <div
+                                  key={cluster.id}
+                                  className={`p-3 border rounded-lg cursor-pointer transition-colors ${
+                                    selectedClusters.includes(cluster.id)
+                                      ? 'bg-purple-50/90 border-purple-300/60'
+                                      : 'hover:bg-white/80 border-blue-200/40 bg-white/50'
+                                  }`}
+                                  onClick={() => toggleCluster(cluster.id)}
+                                >
+                                  <div className="flex items-start gap-2">
+                                    <input
+                                      type="checkbox"
+                                      checked={selectedClusters.includes(cluster.id)}
+                                      onChange={() => {}}
+                                      className="mt-1"
+                                    />
+                                    <div className="flex-1 min-w-0">
+                                      <p className="text-sm font-medium text-slate-900">{cluster.name}</p>
+                                      {cluster.region && (
+                                        <p className="text-xs text-slate-500 mt-0.5">{cluster.region}</p>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+                              ))
+                            )}
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="flex justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => router.back()}
+                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/70 backdrop-blur-sm border border-blue-200/60 text-slate-700 hover:bg-white/90 font-medium transition-all"
+                >
+                  Annuler
+                </button>
+                <button
+                  type="submit"
+                  disabled={saving || uploading}
+                  className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-purple-500/90 backdrop-blur-sm border border-purple-400/30 text-white font-semibold hover:bg-purple-600/90 shadow-sm transition-all disabled:opacity-50"
+                >
+                  <Save className="h-4 w-4" />
+                  <span>{saving ? 'Enregistrement...' : uploading ? 'Upload...' : 'Enregistrer les modifications'}</span>
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       </div>
     </AuthLayout>
