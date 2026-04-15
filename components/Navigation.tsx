@@ -313,8 +313,8 @@ export default function Navigation() {
                     className={`flex items-center px-3 py-2.5 rounded-xl transition-all group relative ${
                       isActive
                         ? 'bg-sky-500/20 backdrop-blur-sm text-white font-medium shadow-sm border border-sky-400/20 ring-1 ring-inset ring-white/10'
-                        : 'text-slate-300 hover:bg-white/8 hover:text-white'
-                    } ${isRestricted ? 'opacity-50 cursor-not-allowed hover:bg-transparent hover:text-slate-300' : ''}`}
+                        : 'text-slate-300 border border-transparent hover:bg-white/10 hover:backdrop-blur-sm hover:border-white/15 hover:shadow-sm hover:text-white'
+                    } ${isRestricted ? 'opacity-50 cursor-not-allowed hover:bg-transparent hover:border-transparent hover:shadow-none hover:text-slate-300' : ''}`}
                     onClick={() => {
                       if (!isRestricted) {
                         setIsOpen(false)
@@ -364,7 +364,7 @@ export default function Navigation() {
                       className={`flex items-center w-full px-2 py-2 rounded-xl transition-all ${
                         isGroupActive
                           ? 'bg-sky-500/20 backdrop-blur-sm text-white border border-sky-400/20 ring-1 ring-inset ring-white/10'
-                          : 'text-slate-300 hover:bg-white/8 hover:text-white'
+                          : 'text-slate-300 border border-transparent hover:bg-white/10 hover:backdrop-blur-sm hover:border-white/15 hover:shadow-sm hover:text-white'
                       } ${isRestricted ? 'opacity-50 cursor-not-allowed' : ''}`}
                     >
                       <GroupIcon className={`h-5 w-5 mr-3 ${isGroupActive ? 'text-sky-300' : 'text-slate-400'}`} />
@@ -384,7 +384,7 @@ export default function Navigation() {
                               className={`flex items-center px-4 py-2 rounded-xl transition-all group ${
                                 isActive
                                   ? 'bg-sky-500/20 backdrop-blur-sm text-white font-medium border border-sky-400/20 ring-1 ring-inset ring-white/10'
-                                  : 'text-slate-300 hover:bg-white/8 hover:text-white'
+                                  : 'text-slate-300 border border-transparent hover:bg-white/10 hover:backdrop-blur-sm hover:border-white/15 hover:shadow-sm hover:text-white'
                               }`}
                               onClick={() => setIsOpen(false)}
                             >
@@ -446,7 +446,7 @@ export default function Navigation() {
                       className={`flex items-center px-3 py-2.5 rounded-xl transition-all group ${
                         isActive
                           ? 'bg-purple-500/20 backdrop-blur-sm text-white font-medium border border-purple-400/20 ring-1 ring-inset ring-white/10'
-                          : 'text-slate-300 hover:bg-white/8 hover:text-white'
+                          : 'text-slate-300 border border-transparent hover:bg-white/10 hover:backdrop-blur-sm hover:border-white/15 hover:shadow-sm hover:text-white'
                       }`}
                       onClick={() => setIsOpen(false)}
                     >
@@ -470,7 +470,7 @@ export default function Navigation() {
                         className={`flex items-center w-full px-2 py-2 rounded-xl transition-all ${
                           isGroupActive
                             ? 'bg-purple-500/20 backdrop-blur-sm text-white border border-purple-400/20 ring-1 ring-inset ring-white/10'
-                            : 'text-slate-300 hover:bg-white/8 hover:text-white'
+                            : 'text-slate-300 border border-transparent hover:bg-white/10 hover:backdrop-blur-sm hover:border-white/15 hover:shadow-sm hover:text-white'
                         }`}
                       >
                         <GroupIcon className={`h-5 w-5 mr-3 ${isGroupActive ? 'text-purple-300' : 'text-slate-400'}`} />
@@ -490,7 +490,7 @@ export default function Navigation() {
                                 className={`flex items-center px-4 py-2 rounded-xl transition-all group ${
                                   isActive
                                     ? 'bg-purple-500/20 backdrop-blur-sm text-white font-medium border border-purple-400/20 ring-1 ring-inset ring-white/10'
-                                    : 'text-slate-300 hover:bg-white/8 hover:text-white'
+                                    : 'text-slate-300 border border-transparent hover:bg-white/10 hover:backdrop-blur-sm hover:border-white/15 hover:shadow-sm hover:text-white'
                                 }`}
                                 onClick={() => setIsOpen(false)}
                               >
@@ -516,7 +516,7 @@ export default function Navigation() {
                   className={`flex items-center px-3 py-2.5 rounded-xl transition-all group ${
                     pathname === '/admin/users'
                       ? 'bg-purple-500/20 backdrop-blur-sm text-white font-medium border border-purple-400/20 ring-1 ring-inset ring-white/10'
-                      : 'text-slate-300 hover:bg-white/8 hover:text-white'
+                      : 'text-slate-300 border border-transparent hover:bg-white/10 hover:backdrop-blur-sm hover:border-white/15 hover:shadow-sm hover:text-white'
                   }`}
                   onClick={() => setIsOpen(false)}
                 >
@@ -530,7 +530,7 @@ export default function Navigation() {
                   className={`flex items-center px-3 py-2.5 rounded-xl transition-all group ${
                     pathname === '/admin/promo'
                       ? 'bg-purple-500/20 backdrop-blur-sm text-white font-medium border border-purple-400/20 ring-1 ring-inset ring-white/10'
-                      : 'text-slate-300 hover:bg-white/8 hover:text-white'
+                      : 'text-slate-300 border border-transparent hover:bg-white/10 hover:backdrop-blur-sm hover:border-white/15 hover:shadow-sm hover:text-white'
                   }`}
                   onClick={() => setIsOpen(false)}
                 >
@@ -561,7 +561,7 @@ export default function Navigation() {
           <div className="p-4 border-t border-blue-900/50 space-y-3">
             <button
               onClick={handleLogout}
-              className="flex items-center w-full px-3 py-2.5 text-slate-300 rounded-lg hover:bg-red-500/20 hover:text-red-300 transition-all group"
+              className="flex items-center w-full px-3 py-2.5 text-slate-300 rounded-xl border border-transparent hover:bg-red-500/15 hover:backdrop-blur-sm hover:border-red-400/20 hover:shadow-sm hover:text-red-300 transition-all group"
             >
               <LogOut className="h-5 w-5 mr-3 text-slate-400 group-hover:text-red-400" />
               <span>Déconnexion</span>
