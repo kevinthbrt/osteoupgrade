@@ -164,8 +164,14 @@ export default function Navigation() {
       items: [
         {
           href: '/admin/diagnostics',
-          label: 'Diagnostics',
+          label: 'Diagnostics (admin)',
           icon: FolderOpen
+        },
+        {
+          href: '/diagnostics',
+          label: 'Diagnostics (legacy)',
+          icon: Stethoscope,
+          badge: 'Temp'
         },
         {
           href: '/topographie',
