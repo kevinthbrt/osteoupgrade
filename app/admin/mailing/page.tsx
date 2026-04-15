@@ -68,8 +68,8 @@ const automationTriggerPresets = [
   { label: 'Abonnement expiré', value: 'Abonnement expiré' },
   { label: 'Inactif depuis 30 jours', value: 'Inactif depuis 30 jours' },
   { label: 'Sur free depuis 14 jours', value: 'Sur free depuis 14 jours' },
-  { label: 'Inscription à un séminaire', value: 'Inscription à un séminaire' },
-  { label: 'Désinscription d\'un séminaire', value: 'Désinscription d\'un séminaire' }
+  { label: 'Nouveau parrainage', value: 'Nouveau parrainage' },
+  { label: 'Bonus parrainage filleul', value: 'Bonus parrainage filleul' }
 ]
 
 export default function MailingAdminPage() {
@@ -85,7 +85,7 @@ export default function MailingAdminPage() {
   const [html, setHtml] = useState('<p>Rédigez votre newsletter ici...</p>')
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>('')
   const [audienceMode, setAudienceMode] = useState<'manual' | 'all' | 'subscription'>('manual')
-  const [subscriptionFilter, setSubscriptionFilter] = useState<string>('premium_silver')
+  const [subscriptionFilter, setSubscriptionFilter] = useState<string>('premium')
   const [sending, setSending] = useState(false)
   const [result, setResult] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
   const [attachments, setAttachments] = useState<Attachment[]>([])
@@ -731,8 +731,7 @@ export default function MailingAdminPage() {
                   onChange={(e) => setSubscriptionFilter(e.target.value)}
                   className="w-full rounded-lg border-gray-300 shadow-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                 >
-                  <option value="premium_silver">Premium Silver</option>
-                  <option value="premium_gold">Premium Gold</option>
+                  <option value="premium">Premium</option>
                   <option value="free">Gratuit</option>
                 </select>
               )}
@@ -821,7 +820,7 @@ export default function MailingAdminPage() {
                       <p className="text-xs font-semibold text-blue-900 mb-2">📝 Variables disponibles (cliquez pour insérer) :</p>
                       <div className="flex flex-wrap gap-2">
                         {[
-                          { var: '{{nom}}', desc: 'Nom du plan (Premium Silver/Gold)' },
+                          { var: '{{nom}}', desc: 'Nom du plan (Premium)' },
                           { var: '{{prix}}', desc: 'Prix mensuel (29,99€ / 49,99€)' },
                           { var: '{{date_fact}}', desc: 'Date de prochaine facturation' },
                           { var: '{{date_renouv}}', desc: 'Date de renouvellement' },
@@ -1231,7 +1230,7 @@ export default function MailingAdminPage() {
                           <p className="text-xs font-semibold text-blue-900 mb-2">📝 Variables disponibles (cliquez pour insérer) :</p>
                           <div className="flex flex-wrap gap-2">
                             {[
-                              { var: '{{nom}}', desc: 'Nom du plan (Premium Silver/Gold)' },
+                              { var: '{{nom}}', desc: 'Nom du plan (Premium)' },
                               { var: '{{prix}}', desc: 'Prix mensuel (29,99€ / 49,99€)' },
                               { var: '{{date_fact}}', desc: 'Date de prochaine facturation' },
                               { var: '{{date_renouv}}', desc: 'Date de renouvellement' },

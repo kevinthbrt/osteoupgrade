@@ -240,7 +240,7 @@ export default function BodyRegionsPage() {
     }
   }
 
-  const isPremium = profile?.role && ['premium_silver', 'premium_gold', 'admin'].includes(profile.role)
+  const isPremium = profile?.role && ['premium', 'admin'].includes(profile.role)
   const isAdmin = profile?.role === 'admin'
   const isFree = profile?.role === 'free'
 

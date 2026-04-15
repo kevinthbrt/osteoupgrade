@@ -74,7 +74,7 @@ const canAccessFormation = (role: string | undefined, isPrivate?: boolean, isFre
   if (isPrivate) return role === 'admin'
   // Free users can access courses marked as free access
   if (isFreeAccess && role === 'free') return true
-  return ['premium_silver', 'premium_gold', 'admin'].includes(role)
+  return ['premium', 'admin'].includes(role)
 }
 
 const getVimeoEmbedUrl = (url: string) => {
@@ -233,7 +233,7 @@ export default function CoursPage() {
     }
   }
 
-  const isPremium = profile?.role === 'premium_silver' || profile?.role === 'premium_gold' || profile?.role === 'admin'
+  const isPremium = profile?.role === 'premium' || profile?.role === 'admin'
   const isAdmin = profile?.role === 'admin'
 
   const selectedFormation = useMemo(

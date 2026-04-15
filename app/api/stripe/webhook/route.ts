@@ -167,7 +167,7 @@ async function handleCheckoutCompleted(session: any) {
                 metadata: {
                   commission: `${(commissionAmount / 100).toFixed(2)}€`,
                   referred_user: profile.email,
-                  plan: planType === 'premium_gold' ? 'Premium Gold' : 'Premium Silver'
+                  plan: 'Premium'
                 }
               })
             })
@@ -210,7 +210,7 @@ async function handleCheckoutCompleted(session: any) {
               contact_email: profile.email,
               metadata: {
                 commission: `${(commissionAmount / 100).toFixed(2)}€`,
-                plan: planType === 'premium_gold' ? 'Premium Gold' : 'Premium Silver'
+                plan: 'Premium'
               }
             })
           })
@@ -246,27 +246,21 @@ async function handleCheckoutCompleted(session: any) {
     console.error('Error cancelling relance enrollment')
   }
 
-  // 🚀 DÉCLENCHER L'AUTOMATISATION selon le plan (Silver ou Gold)
-  const eventName = planType === 'premium_gold' ? 'Passage à Premium Gold' : 'Passage à Premium Silver'
-  const displayPrice = planType === 'premium_gold'
-    ? (isAnnual ? '499€' : '49,99€')
-    : (isAnnual ? '240€' : '29€')
-
-  // Récupérer le code de parrainage de l'utilisateur (pour l'email de bienvenue Gold)
+  // Récupérer le code de parrainage de l'utilisateur (pour l'email de bienvenue)
   let userReferralCode = ''
-  if (planType === 'premium_gold') {
-    try {
-      const { data: referralCodeData } = await supabaseAdmin
-        .from('referral_codes')
-        .select('referral_code')
-        .eq('user_id', userId)
-        .single()
-      userReferralCode = referralCodeData?.referral_code || ''
-    } catch (err) {
-      console.error('Could not fetch referral code for automation')
-    }
+  try {
+    const { data: referralCodeData } = await supabaseAdmin
+      .from('referral_codes')
+      .select('referral_code')
+      .eq('user_id', userId)
+      .single()
+    userReferralCode = referralCodeData?.referral_code || ''
+  } catch (err) {
+    console.error('Could not fetch referral code for automation')
   }
 
+  // 🚀 DÉCLENCHER L'AUTOMATISATION "Passage à Premium"
+  const displayPrice = isAnnual ? '240€' : '29€'
   try {
     await fetch(`${process.env.NEXT_PUBLIC_URL || 'http://localhost:3000'}/api/automations/trigger`, {
       method: 'POST',
@@ -275,10 +269,10 @@ async function handleCheckoutCompleted(session: any) {
         'Authorization': `Bearer ${process.env.CRON_SECRET}`
       },
       body: JSON.stringify({
-        event: eventName,
+        event: 'Passage à Premium',
         contact_email: profile.email,
         metadata: {
-          nom: planType === 'premium_gold' ? 'Premium Gold' : 'Premium Silver',
+          nom: 'Premium',
           prix: displayPrice,
           interval: isAnnual ? 'annuel' : 'mensuel',
           date_fact: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString('fr-FR'),
@@ -432,7 +426,7 @@ async function handlePaymentSucceeded(invoice: any) {
         event: 'Renouvellement effectué',
         contact_email: profile.email,
         metadata: {
-          nom: profile.role === 'premium_gold' ? 'Premium Gold' : 'Premium Silver',
+          nom: 'Premium',
           date_fact: new Date().toLocaleDateString('fr-FR')
         }
       })

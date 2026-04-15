@@ -249,7 +249,7 @@ export default function DiagnosticsPage() {
     }
   }
 
-  const isPremium = profile?.role && ['premium_silver', 'premium_gold', 'admin'].includes(profile.role)
+  const isPremium = profile?.role && ['premium', 'admin'].includes(profile.role)
   const isAdmin = profile?.role === 'admin'
 
   const filteredItems = pathologies.filter(p =>

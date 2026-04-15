@@ -48,8 +48,8 @@ export default function ReferralsPage() {
 
       setProfile(profileData)
 
-      // Check if user is Premium Gold
-      if (profileData?.role !== 'premium_gold') {
+      // Check if user is Premium
+      if (profileData?.role !== 'premium' && profileData?.role !== 'admin') {
         router.push('/dashboard')
         return
       }
@@ -83,7 +83,7 @@ export default function ReferralsPage() {
     if (navigator.share) {
       navigator
         .share({
-          title: 'Rejoignez OsteoUpgrade Premium Gold',
+          title: 'Rejoignez OsteoUpgrade Premium',
           text: 'Utilisez mon code de parrainage pour vous inscrire !',
           url
         })
@@ -269,7 +269,7 @@ export default function ReferralsPage() {
           <div className="mt-4 bg-blue-50 border border-blue-200 rounded-lg p-4">
             <p className="text-sm text-blue-900">
               💡 <strong>Comment ça marche ?</strong> Partagez votre code avec vos collègues et connaissances. À chaque
-              abonnement annuel (Silver ou Gold) souscrit avec votre code, vous gagnez 10% du montant de l'abonnement
+              abonnement annuel Premium souscrit avec votre code, vous gagnez 10% du montant de l'abonnement
               dans votre cagnotte.
             </p>
           </div>
@@ -387,14 +387,8 @@ export default function ReferralsPage() {
                         {transaction.referred_user?.email || 'Utilisateur'}
                       </td>
                       <td className="px-4 py-4 text-sm">
-                        <span
-                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                            transaction.subscription_type === 'premium_gold'
-                              ? 'bg-yellow-100 text-yellow-800'
-                              : 'bg-blue-100 text-blue-800'
-                          }`}
-                        >
-                          {transaction.subscription_type === 'premium_gold' ? 'Gold' : 'Silver'} • Annuel
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                          Premium • Annuel
                         </span>
                       </td>
                       <td className="px-4 py-4 text-sm font-semibold text-gray-900">

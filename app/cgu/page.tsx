@@ -60,10 +60,9 @@ export default function CGUPage() {
                 <li><strong>Utilisateur :</strong> Toute personne accédant à la Plateforme</li>
                 <li><strong>Abonné :</strong> Utilisateur ayant souscrit à une offre Premium</li>
                 <li><strong>Compte Gratuit :</strong> Accès limité au module épaule uniquement</li>
-                <li><strong>Abonnement Premium Silver :</strong> Accès complet à la plateforme numérique, disponible en formule mensuelle (29 €/mois) ou annuelle (240 €/an)</li>
-                <li><strong>Abonnement Premium Gold :</strong> Accès complet à la plateforme numérique avec avantages exclusifs (499 €/an)</li>
+                <li><strong>Abonnement Premium :</strong> Accès complet à la plateforme numérique, disponible en formule mensuelle (29 €/mois) ou annuelle (240 €/an)</li>
                 <li><strong>Période de facturation :</strong> Durée correspondant à l'intervalle entre deux prélèvements automatiques (mensuel ou annuel selon l'offre choisie)</li>
-                <li><strong>Programme Ambassadeur :</strong> Dispositif de parrainage réservé aux abonnés Gold permettant d'obtenir un crédit sur la plateforme</li>
+                <li><strong>Programme Ambassadeur :</strong> Dispositif de parrainage réservé aux abonnés Premium annuels permettant d'obtenir un crédit sur la plateforme</li>
               </ul>
             </section>
 
@@ -96,9 +95,9 @@ export default function CGUPage() {
                   </ul>
                 </div>
 
-                {/* Silver */}
-                <div className="border border-gray-200 rounded-lg p-5">
-                  <h4 className="font-bold text-lg text-blue-600 mb-1">Premium Silver</h4>
+                {/* Premium */}
+                <div className="border border-amber-200 rounded-lg p-5 bg-amber-50">
+                  <h4 className="font-bold text-lg text-amber-600 mb-1">Premium</h4>
                   <div className="flex flex-wrap gap-4 mb-2">
                     <div>
                       <p className="text-2xl font-bold text-gray-900">29 €<span className="text-base text-gray-600 font-normal">/mois</span></p>
@@ -119,21 +118,7 @@ export default function CGUPage() {
                     <li>✓ Bibliothèque complète de tests diagnostiques</li>
                     <li>✓ Quiz complet</li>
                     <li>✓ Revue de littérature</li>
-                  </ul>
-                </div>
-
-                {/* Gold */}
-                <div className="border border-amber-200 rounded-lg p-5 bg-amber-50">
-                  <h4 className="font-bold text-lg text-amber-600 mb-1">Premium Gold <span className="text-sm font-normal text-amber-700 ml-1">— Populaire</span></h4>
-                  <p className="text-2xl font-bold text-gray-900 mb-1">499 €<span className="text-base text-gray-600 font-normal">/an</span></p>
-                  <p className="text-sm text-gray-500 mb-2">soit 41,58 €/mois — Formule annuelle uniquement</p>
-                  <ul className="mt-3 space-y-1 text-sm text-gray-700">
-                    <li>✓ Tout le contenu Silver</li>
-                    <li>✓ Séminaire présentiel annuel (2 jours)</li>
-                    <li>✓ Masterclasses exclusives</li>
-                    <li>✓ Programme Ambassadeur (10 % de commission en crédit plateforme)</li>
-                    <li>✓ Accès prioritaire aux nouveautés</li>
-                    <li>✓ Support premium dédié</li>
+                    <li>✓ Programme Ambassadeur (10 % de commission · abonnement annuel uniquement)</li>
                   </ul>
                 </div>
               </div>
@@ -157,9 +142,8 @@ export default function CGUPage() {
                 Le premier prélèvement intervient à la date de souscription. Les prélèvements suivants ont lieu :
               </p>
               <ul className="list-disc list-inside space-y-2 text-gray-700 mt-3 ml-4">
-                <li><strong>Silver mensuel :</strong> chaque mois, à la même date que la souscription initiale</li>
-                <li><strong>Silver annuel :</strong> chaque année, à la même date que la souscription initiale</li>
-                <li><strong>Gold annuel :</strong> chaque année, à la même date que la souscription initiale</li>
+                <li><strong>Premium mensuel :</strong> chaque mois, à la même date que la souscription initiale</li>
+                <li><strong>Premium annuel :</strong> chaque année, à la même date que la souscription initiale</li>
               </ul>
 
               <p className="text-gray-700 leading-relaxed mt-4">
@@ -190,8 +174,8 @@ export default function CGUPage() {
                 La résiliation prend effet à la date de fin de la période de facturation en cours :
               </p>
               <ul className="list-disc list-inside space-y-2 text-gray-700 mt-3 ml-4">
-                <li><strong>Silver mensuel :</strong> l'accès Premium reste actif jusqu'à la fin du mois payé en cours ; aucun nouveau prélèvement n'est effectué</li>
-                <li><strong>Silver ou Gold annuel :</strong> l'accès Premium reste actif jusqu'à la fin de l'année payée en cours ; aucun renouvellement n'est effectué ; <strong>aucun remboursement au prorata</strong> n'est réalisé pour les mois non consommés de la période annuelle en cours</li>
+                <li><strong>Premium mensuel :</strong> l'accès Premium reste actif jusqu'à la fin du mois payé en cours ; aucun nouveau prélèvement n'est effectué</li>
+                <li><strong>Premium annuel :</strong> l'accès Premium reste actif jusqu'à la fin de l'année payée en cours ; aucun renouvellement n'est effectué ; <strong>aucun remboursement au prorata</strong> n'est réalisé pour les mois non consommés de la période annuelle en cours</li>
               </ul>
 
               <h3 className="text-xl font-semibold text-gray-900 mt-6 mb-3">6.2 - Résiliation à l'initiative d'OsteoUpgrade</h3>
@@ -258,14 +242,14 @@ export default function CGUPage() {
               <h3 className="text-xl font-semibold text-gray-900 mt-6 mb-3">9.1 - Accès et éligibilité</h3>
               <p className="text-gray-700 leading-relaxed">
                 Le Programme Ambassadeur est réservé exclusivement aux abonnés ayant souscrit à l'offre
-                <strong> Premium Gold</strong> en cours de validité. Il permet à l'Abonné Gold de parrainer
+                <strong> Premium</strong> en cours de validité. Il permet à l'Abonné Premium de parrainer
                 de nouveaux utilisateurs et d'obtenir en contrepartie un crédit sur la plateforme OsteoUpgrade.
               </p>
 
               <h3 className="text-xl font-semibold text-gray-900 mt-6 mb-3">9.2 - Fonctionnement</h3>
               <p className="text-gray-700 leading-relaxed">
-                Chaque Abonné Gold dispose d'un lien de parrainage personnel. Lorsqu'un nouveau client souscrit
-                un abonnement annuel OsteoUpgrade (Silver annuel ou Gold) en utilisant ce lien, l'Abonné parrain
+                Chaque Abonné Premium dispose d'un lien de parrainage personnel. Lorsqu'un nouveau client souscrit
+                un abonnement annuel Premium OsteoUpgrade en utilisant ce lien, l'Abonné parrain
                 accumule une commission équivalente à <strong>10 % du montant de la première année</strong> d'abonnement
                 du filleul.
               </p>
@@ -281,33 +265,14 @@ export default function CGUPage() {
               <ul className="list-disc list-inside space-y-2 text-gray-700 mt-3 ml-4">
                 <li>L'Abonné ne peut pas se parrainer lui-même</li>
                 <li>Le virement n'est possible qu'à partir de <strong>50 € cumulés</strong> dans le solde ambassadeur</li>
-                <li>Le solde ambassadeur non réclamé à la résiliation du compte Gold est définitivement perdu</li>
+                <li>Le solde ambassadeur non réclamé à la résiliation du compte Premium est définitivement perdu</li>
                 <li>Le Programme Ambassadeur ne peut pas être utilisé à des fins de revente ou de commercialisation</li>
                 <li>OsteoUpgrade se réserve le droit de modifier ou de suspendre le Programme Ambassadeur à tout moment, avec un préavis de 30 jours aux abonnés concernés</li>
                 <li>Tout abus, fraude ou tentative de contournement des règles entraîne la perte définitive des commissions accumulées et peut conduire à la résiliation du compte</li>
               </ul>
             </section>
 
-            {/* Article 10 - Séminaires */}
-            <section>
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">Article 10 - Séminaires Présentiels (Gold)</h2>
-              <p className="text-gray-700 leading-relaxed">
-                L'abonnement Premium Gold inclut l'accès à <strong>un séminaire présentiel de 2 jours par période
-                d'abonnement annuel</strong>. Cet accès est personnel et non transmissible.
-              </p>
-              <p className="text-gray-700 leading-relaxed mt-4">
-                Les dates, lieux et modalités d'inscription aux séminaires sont communiqués sur la Plateforme et
-                par email. OsteoUpgrade se réserve le droit de modifier, reporter ou annuler un séminaire en cas
-                de force majeure ou de circonstances exceptionnelles ; dans ce cas, une nouvelle date sera proposée
-                à l'Abonné.
-              </p>
-              <p className="text-gray-700 leading-relaxed mt-4">
-                Le droit au séminaire est valable pour la période d'abonnement annuel en cours et ne peut pas être
-                reporté à la période suivante en cas de non-utilisation.
-              </p>
-            </section>
-
-            {/* Article 11 - Propriété intellectuelle */}
+            {/* Article 10 - Propriété intellectuelle */}
             <section>
               <h2 className="text-2xl font-bold text-gray-900 mb-4">Article 11 - Propriété Intellectuelle</h2>
               <p className="text-gray-700 leading-relaxed">

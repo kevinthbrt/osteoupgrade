@@ -116,7 +116,7 @@ export type Database = {
         id: string
         email: string
         full_name: string | null
-        role: 'free' | 'premium_silver' | 'premium_gold' | 'admin'
+        role: 'free' | 'premium' | 'admin'
         subscription_status: string | null
         subscription_end_date: string | null
         subscription_start_date: string | null
@@ -183,32 +183,6 @@ export type Database = {
         completed: boolean | null
         created_at: string
         updated_at: string
-      }>
-      // Tables personnalisées pour les séminaires (à créer dans Supabase)
-      seminars?: TableDefinition<{
-        id: string
-        title: string
-        date: string
-        start_date: string | null
-        end_date: string | null
-        location: string
-        theme: string | null
-        facilitator: string | null
-        capacity: number | null
-        created_by: string | null
-        image_url: string | null
-        created_at: string
-      }>
-      seminar_registrations?: TableDefinition<{
-        id: string
-        user_id: string
-        seminar_id: string
-        registered_at: string
-        created_at: string
-        profiles?: {
-          full_name: string | null
-          email: string | null
-        }
       }>
       encyclopedia_subjects: TableDefinition<{
         id: string

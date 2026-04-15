@@ -13,8 +13,7 @@ export type TriggerEvent =
   | 'free_14_days'
   | 'user_registered'
   | 'Inscription'
-  | 'Passage à Premium Silver'
-  | 'Passage à Premium Gold'
+  | 'Passage à Premium'
   | 'Renouvellement imminent'
   | 'Renouvellement effectué'
   | 'Abonnement expiré'
@@ -22,11 +21,6 @@ export type TriggerEvent =
   | 'Bonus parrainage filleul'
   | 'Demande de paiement parrainage'
   | 'Paiement parrainage effectué'
-  | 'seminar_registration_created'
-  | 'seminar_registration_cancelled'
-  | 'seminar_reminder_1_month'
-  | 'seminar_reminder_1_week'
-  | 'seminar_reminder_1_day'
 
 interface TriggerData {
   contact_id?: string
@@ -229,42 +223,3 @@ export async function onSubscriptionUpgraded(
   })
 }
 
-/**
- * Helper: Déclencher lors de l'inscription à un séminaire
- */
-export async function onSeminarRegistration(
-  email: string,
-  seminarData: Record<string, any>
-) {
-  return triggerAutomations('seminar_registration_created', {
-    contact_email: email,
-    metadata: seminarData
-  })
-}
-
-/**
- * Helper: Déclencher lors de l'annulation d'une inscription à un séminaire
- */
-export async function onSeminarCancellation(
-  email: string,
-  seminarData: Record<string, any>
-) {
-  return triggerAutomations('seminar_registration_cancelled', {
-    contact_email: email,
-    metadata: seminarData
-  })
-}
-
-/**
- * Helper: Déclencher un rappel de séminaire (1 mois, 1 semaine, ou 1 jour)
- */
-export async function onSeminarReminder(
-  reminderType: 'seminar_reminder_1_month' | 'seminar_reminder_1_week' | 'seminar_reminder_1_day',
-  email: string,
-  seminarData: Record<string, any>
-) {
-  return triggerAutomations(reminderType, {
-    contact_email: email,
-    metadata: seminarData
-  })
-}

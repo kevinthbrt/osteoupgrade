@@ -245,7 +245,7 @@ export default function TopographiePage() {
     }
   }
 
-  const isPremium = role ? ['premium_silver', 'premium_gold', 'admin'].includes(role) : false
+  const isPremium = role ? ['premium', 'admin'].includes(role) : false
   const isAdmin = role === 'admin'
 
   const filteredZones = useMemo(() => {

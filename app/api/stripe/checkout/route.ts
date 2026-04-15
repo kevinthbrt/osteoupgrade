@@ -94,7 +94,7 @@ export async function POST(request: Request) {
         return NextResponse.json(
           {
             error: 'Vous ne pouvez pas utiliser votre propre code de parrainage',
-            details: 'Le code de parrainage doit être celui d\'un autre membre Premium Gold.'
+            details: 'Le code de parrainage doit être celui d\'un autre membre Premium.'
           },
           { status: 400 }
         )

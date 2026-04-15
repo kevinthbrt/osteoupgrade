@@ -65,7 +65,7 @@ type PracticeVideo = {
   is_free_access?: boolean | null
 }
 
-const isPremium = (role?: string) => ['premium_silver', 'premium_gold', 'admin'].includes(role || '')
+const isPremium = (role?: string) => ['premium', 'admin'].includes(role || '')
 const isAdmin = (role?: string) => role === 'admin'
 
 const getVimeoEmbedUrl = (video: PracticeVideo): string => {

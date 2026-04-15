@@ -33,7 +33,7 @@ const CATEGORIES = [
   { value: 'autre', label: 'Autre', icon: '📄' }
 ]
 
-const ALLOWED_ROLES = ['premium_silver', 'premium_gold', 'admin']
+const ALLOWED_ROLES = ['premium', 'admin']
 
 export default function CommunicationPage() {
   const router = useRouter()

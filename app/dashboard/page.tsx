@@ -149,8 +149,8 @@ export default function Dashboard() {
         )
       }
 
-      // Load referral data for Gold members
-      if (profileData?.role === 'premium_gold') {
+      // Load referral data for Premium members
+      if (profileData?.role === 'premium' || profileData?.role === 'admin') {
         try {
           const [codeResponse, earningsResponse] = await Promise.all([
             fetch('/api/referrals/my-code'),
@@ -241,16 +241,16 @@ export default function Dashboard() {
       features: ['Exercices par région', 'Fiches patients', 'Protocoles']
     },
     {
-      id: 'seminaires',
-      title: 'Séminaires',
-      description: 'Formations présentielles pour approfondir vos compétences',
-      icon: Calendar,
-      href: '/seminaires',
-      gradient: 'from-amber-500 via-orange-500 to-red-500',
+      id: 'parrainage',
+      title: 'Parrainage',
+      description: 'Parrainez vos collègues et gagnez 10% de commission',
+      icon: Gift,
+      href: '/parrainage',
+      gradient: 'from-amber-500 via-yellow-500 to-amber-400',
       bgPattern: 'bg-amber-50',
-      count: 'Sessions',
-      emoji: '📅',
-      features: ['Ateliers', 'Intervenants', 'Réseau']
+      count: '10% cashback',
+      emoji: '🎁',
+      features: ['Code unique', 'Commission annuelle', 'Virement']
     }
   ]
 
@@ -463,8 +463,8 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* Ambassador Space - Only for Premium Gold */}
-        {profile?.role === 'premium_gold' && referralData && (
+        {/* Ambassador Space - For Premium members */}
+        {(profile?.role === 'premium' || profile?.role === 'admin') && referralData && (
           <div className="mb-8">
             <div className="bg-gradient-to-br from-yellow-50 to-amber-50 border-2 border-yellow-300 rounded-2xl shadow-xl overflow-hidden">
               {/* Header */}
@@ -473,7 +473,7 @@ export default function Dashboard() {
                   <div className="p-2 bg-yellow-900/20 rounded-lg">
                     <Crown className="h-6 w-6" />
                   </div>
-                  <h2 className="text-2xl font-bold">Espace Ambassadeur Gold</h2>
+                  <h2 className="text-2xl font-bold">Espace Ambassadeur</h2>
                 </div>
                 <p className="text-yellow-900/80 text-sm">
                   Parrainez vos collègues et gagnez 10% de commission sur chaque abonnement annuel

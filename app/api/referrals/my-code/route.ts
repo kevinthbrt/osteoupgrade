@@ -5,7 +5,7 @@ import { supabaseAdmin } from '@/lib/supabase-server'
 
 /**
  * GET /api/referrals/my-code
- * Returns the referral code for the authenticated user (Premium Gold only)
+ * Returns the referral code for the authenticated user (Premium only)
  */
 export async function GET(request: Request) {
   try {
@@ -31,10 +31,10 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
     }
 
-    // Vérifier que l'utilisateur est Premium Gold
-    if (profile.role !== 'premium_gold') {
+    // Vérifier que l'utilisateur est Premium
+    if (profile.role !== 'premium' && profile.role !== 'admin') {
       return NextResponse.json(
-        { error: 'Only Premium Gold members have access to referral codes' },
+        { error: 'Only Premium members have access to referral codes' },
         { status: 403 }
       )
     }

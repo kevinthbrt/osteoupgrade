@@ -33,7 +33,7 @@ interface PlanItem {
   comment: string
 }
 
-const ALLOWED_ROLES = ['premium_silver', 'premium_gold', 'admin']
+const ALLOWED_ROLES = ['premium', 'admin']
 const FREE_ACCESSIBLE_REGIONS = ['epaule', 'épaule']
 
 const EMPTY_PLAN_ITEM = (exerciseId: string): PlanItem => ({

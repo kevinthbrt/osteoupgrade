@@ -17,9 +17,7 @@ import {
   TrendingUp,
   Share2,
   ChevronRight,
-  Star,
-  CheckCircle,
-  Lock
+  Star
 } from 'lucide-react'
 
 export default function ParrainagePage() {
@@ -47,7 +45,7 @@ export default function ParrainagePage() {
 
       setProfile(profileData)
 
-      if (profileData?.role === 'premium_gold' || profileData?.role === 'admin') {
+      if (profileData?.role === 'premium' || profileData?.role === 'admin') {
         const [codeRes, earningsRes] = await Promise.all([
           fetch('/api/referrals/my-code'),
           fetch('/api/referrals/earnings')
@@ -95,9 +93,8 @@ export default function ParrainagePage() {
     )
   }
 
-  const isGold = profile?.role === 'premium_gold' || profile?.role === 'admin'
-  const isSilver = profile?.role === 'premium_silver'
-  const isFree = !isGold && !isSilver
+  const isPremium = profile?.role === 'premium' || profile?.role === 'admin'
+  const isFree = !isPremium
 
   const availableAmount = earnings?.summary?.available_amount || 0
   const totalReferrals = earnings?.summary?.total_referrals || 0
@@ -124,7 +121,7 @@ export default function ParrainagePage() {
               Recommandez OsteoUpgrade à vos collègues et gagnez <strong>10% de commission</strong> sur
               chaque abonnement annuel souscrit grâce à vous.
             </p>
-            {isGold && availableAmount > 0 && (
+            {isPremium && availableAmount > 0 && (
               <div className="mt-4 inline-flex items-center gap-2 bg-yellow-900/20 border border-yellow-900/30 rounded-full px-4 py-2">
                 <Wallet className="h-5 w-5" />
                 <span className="font-bold text-lg">{(availableAmount / 100).toFixed(2)}€</span>
@@ -144,7 +141,7 @@ export default function ParrainagePage() {
               </div>
               <h3 className="font-semibold text-gray-900 mb-2">Partagez votre code</h3>
               <p className="text-sm text-gray-600">
-                En tant que membre <strong>Gold</strong>, vous disposez d'un code unique à partager avec vos collègues ostéopathes.
+                En tant que membre <strong>Premium</strong>, vous disposez d'un code unique à partager avec vos collègues ostéopathes.
               </p>
             </div>
             <div className="flex flex-col items-center text-center">
@@ -153,7 +150,7 @@ export default function ParrainagePage() {
               </div>
               <h3 className="font-semibold text-gray-900 mb-2">Votre filleul s'abonne</h3>
               <p className="text-sm text-gray-600">
-                Il saisit votre code lors de son inscription et souscrit à un abonnement annuel Silver (240€) ou Gold (499€).
+                Il saisit votre code lors de son inscription et souscrit à un abonnement annuel Premium (240€).
               </p>
             </div>
             <div className="flex flex-col items-center text-center">
@@ -168,33 +165,23 @@ export default function ParrainagePage() {
             </div>
           </div>
 
-          {/* Exemples de gains */}
-          <div className="mt-8 grid gap-3 sm:grid-cols-2">
-            <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex items-center gap-4">
-              <div className="p-3 bg-blue-600 rounded-lg">
+          {/* Exemple de gain */}
+          <div className="mt-8">
+            <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 flex items-center gap-4 max-w-xs">
+              <div className="p-3 bg-yellow-600 rounded-lg">
                 <TrendingUp className="h-5 w-5 text-white" />
               </div>
               <div>
-                <p className="font-semibold text-blue-900">Silver annuel parrainé</p>
-                <p className="text-2xl font-bold text-blue-700">+24€</p>
-                <p className="text-xs text-blue-600">10% de 240€</p>
-              </div>
-            </div>
-            <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 flex items-center gap-4">
-              <div className="p-3 bg-yellow-600 rounded-lg">
-                <Crown className="h-5 w-5 text-white" />
-              </div>
-              <div>
-                <p className="font-semibold text-yellow-900">Gold annuel parrainé</p>
-                <p className="text-2xl font-bold text-yellow-700">+49,90€</p>
-                <p className="text-xs text-yellow-600">10% de 499€</p>
+                <p className="font-semibold text-yellow-900">Premium annuel parrainé</p>
+                <p className="text-2xl font-bold text-yellow-700">+24€</p>
+                <p className="text-xs text-yellow-600">10% de 240€</p>
               </div>
             </div>
           </div>
         </div>
 
-        {/* ─── SECTION CONDITIONNELLE : GOLD ─── */}
-        {isGold && (
+        {/* ─── SECTION PREMIUM : code + cagnotte ─── */}
+        {isPremium && (
           <>
             {/* Votre code */}
             <div className="bg-white border-2 border-yellow-400 rounded-2xl shadow-lg p-8">
@@ -300,53 +287,7 @@ export default function ParrainagePage() {
           </>
         )}
 
-        {/* ─── SECTION CONDITIONNELLE : SILVER ─── */}
-        {isSilver && (
-          <div className="bg-white border-2 border-blue-200 rounded-2xl shadow-sm p-8">
-            <div className="flex items-start gap-4">
-              <div className="p-3 bg-yellow-100 rounded-xl flex-shrink-0">
-                <Lock className="h-6 w-6 text-yellow-700" />
-              </div>
-              <div className="flex-1">
-                <h2 className="text-xl font-bold text-gray-900 mb-2">
-                  Le parrainage est réservé aux membres Gold
-                </h2>
-                <p className="text-gray-600 mb-4">
-                  En passant à Premium Gold, vous débloquez votre code de parrainage personnel et commencez à
-                  toucher <strong>10% de commission</strong> sur chaque abonnement annuel parrainé.
-                </p>
-                <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 mb-5 space-y-2">
-                  <div className="flex items-center gap-2 text-sm text-yellow-900">
-                    <CheckCircle className="h-4 w-4 text-yellow-600 flex-shrink-0" />
-                    Code de parrainage unique
-                  </div>
-                  <div className="flex items-center gap-2 text-sm text-yellow-900">
-                    <CheckCircle className="h-4 w-4 text-yellow-600 flex-shrink-0" />
-                    10% par Silver annuel parrainé → <strong>+24€</strong>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm text-yellow-900">
-                    <CheckCircle className="h-4 w-4 text-yellow-600 flex-shrink-0" />
-                    10% par Gold annuel parrainé → <strong>+49,90€</strong>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm text-yellow-900">
-                    <CheckCircle className="h-4 w-4 text-yellow-600 flex-shrink-0" />
-                    Cagnotte retirable dès 10€ par virement
-                  </div>
-                </div>
-                <Link
-                  href="/settings/subscription"
-                  className="inline-flex items-center gap-2 bg-gradient-to-r from-yellow-500 to-yellow-600 text-yellow-900 px-6 py-3 rounded-lg font-bold hover:from-yellow-600 hover:to-yellow-700 transition shadow-md"
-                >
-                  <Crown className="h-5 w-5" />
-                  Passer à Premium Gold
-                  <ArrowRight className="h-4 w-4" />
-                </Link>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* ─── SECTION CONDITIONNELLE : FREE ─── */}
+        {/* ─── SECTION FREE ─── */}
         {isFree && (
           <div className="bg-gradient-to-br from-gray-50 to-gray-100 border-2 border-gray-200 rounded-2xl p-8">
             <div className="text-center max-w-xl mx-auto">
@@ -354,10 +295,10 @@ export default function ParrainagePage() {
                 <Crown className="h-8 w-8 text-yellow-600" />
               </div>
               <h2 className="text-xl font-bold text-gray-900 mb-2">
-                Devenez membre Gold pour participer
+                Devenez membre Premium pour participer
               </h2>
               <p className="text-gray-600 mb-6">
-                Le programme de parrainage est exclusif aux membres <strong>Premium Gold</strong>.
+                Le programme de parrainage est exclusif aux membres <strong>Premium</strong>.
                 Abonnez-vous pour débloquer votre code et commencer à gagner des commissions.
               </p>
               <Link
@@ -365,7 +306,7 @@ export default function ParrainagePage() {
                 className="inline-flex items-center gap-2 bg-gradient-to-r from-yellow-500 to-yellow-600 text-yellow-900 px-8 py-4 rounded-xl font-bold text-lg hover:from-yellow-600 hover:to-yellow-700 transition shadow-lg"
               >
                 <Crown className="h-5 w-5" />
-                Découvrir les offres Premium
+                Découvrir l'offre Premium
                 <ArrowRight className="h-5 w-5" />
               </Link>
             </div>
@@ -382,11 +323,11 @@ export default function ParrainagePage() {
             {[
               {
                 title: 'Qui peut parrainer ?',
-                text: 'Uniquement les membres Premium Gold actifs. Le code est automatiquement généré à l\'activation de votre abonnement.'
+                text: 'Tous les membres Premium actifs. Le code est automatiquement généré à l\'activation de votre abonnement.'
               },
               {
                 title: 'Quels abonnements sont éligibles ?',
-                text: 'Seuls les abonnements annuels génèrent une commission : Silver 240€/an (+24€) et Gold 499€/an (+49,90€).'
+                text: 'Seuls les abonnements annuels génèrent une commission : Premium 240€/an → +24€ de commission.'
               },
               {
                 title: 'Combien de fois peut-on être parrainé ?',
