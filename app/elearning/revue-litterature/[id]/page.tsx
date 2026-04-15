@@ -193,18 +193,41 @@ export default function LiteratureReviewDetailPage() {
 
   return (
     <AuthLayout>
-      <div className="max-w-7xl mx-auto">
-        {/* Back button */}
-        <button
-          onClick={() => router.push('/elearning/revue-litterature')}
-          className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-xl text-slate-700 hover:bg-slate-50 transition-colors font-medium shadow-sm mb-6"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Retour
-        </button>
+      <div className="min-h-screen -m-6 md:-m-8">
+        {/* ── Header ── */}
+        <div className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 px-6 md:px-10 pt-8 pb-6">
+          <div className="absolute top-0 left-0 w-72 h-72 bg-indigo-500/15 rounded-full blur-3xl animate-pulse -translate-x-1/2 -translate-y-1/4" style={{ animationDuration: '4s' }} />
+          <div className="absolute top-1/2 right-0 w-56 h-56 bg-violet-400/10 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '6s', animationDelay: '2s' }} />
+          <div className="absolute bottom-0 right-1/4 w-48 h-48 bg-sky-400/15 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '5s', animationDelay: '1s' }} />
+          <div className="relative">
+            <div className="bg-white/5 backdrop-blur-md border border-white/10 ring-1 ring-inset ring-white/8 rounded-3xl p-6 md:p-8">
+              <button
+                onClick={() => router.push('/elearning/revue-litterature')}
+                className="inline-flex items-center gap-2 text-white/50 hover:text-white/80 text-sm mb-4 transition"
+              >
+                <ArrowLeft className="h-4 w-4" /> Retour aux articles
+              </button>
+              <p className="text-indigo-300 text-sm font-medium mb-1 tracking-wide flex items-center gap-2">
+                <Tag className="h-4 w-4" /> Revue de Littérature
+              </p>
+              <h1 className="text-2xl md:text-3xl font-bold tracking-tight bg-gradient-to-r from-white via-indigo-100 to-violet-200 bg-clip-text text-transparent line-clamp-2">
+                {review.title}
+              </h1>
+            </div>
+          </div>
+          <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-indigo-400/40 to-transparent" />
+          <div className="absolute bottom-0 left-1/4 right-1/4 h-px bg-gradient-to-r from-transparent via-violet-300/50 to-transparent blur-sm" />
+        </div>
+
+        {/* ── Body ── */}
+        <div className="relative overflow-hidden bg-gradient-to-br from-blue-100/90 via-sky-50 to-indigo-50/80 px-6 md:px-10 pt-8 pb-10">
+          <div className="pointer-events-none absolute top-0 left-1/4 w-96 h-96 bg-indigo-400/20 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '6s' }} />
+          <div className="pointer-events-none absolute top-1/2 right-0 w-80 h-80 bg-sky-400/25 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '8s', animationDelay: '2s' }} />
+          <div className="pointer-events-none absolute bottom-0 left-0 w-72 h-72 bg-purple-400/20 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '7s', animationDelay: '1s' }} />
+          <div className="relative max-w-5xl mx-auto">
 
         {/* Magazine Container */}
-        <article className="bg-white rounded-2xl shadow-2xl overflow-hidden">
+        <article className="bg-white/85 backdrop-blur-2xl border border-white/70 shadow-2xl ring-1 ring-inset ring-white/60 rounded-3xl overflow-hidden">
           {/* Magazine Header - Brand Identity */}
           <div className="bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-600 px-8 py-6 border-b-4 border-emerald-700">
             <div className="flex items-center gap-4">
@@ -458,7 +481,7 @@ export default function LiteratureReviewDetailPage() {
               </div>
               <button
                 onClick={() => router.push('/elearning/revue-litterature')}
-                className="inline-flex items-center gap-2 px-6 py-3 bg-emerald-600 text-white font-semibold rounded-xl hover:bg-emerald-700 transition shadow-lg"
+                className="inline-flex items-center gap-2 px-6 py-3 bg-emerald-500/90 backdrop-blur-sm border border-emerald-400/30 text-white font-semibold rounded-xl hover:bg-emerald-600/90 transition shadow-sm"
               >
                 <ArrowLeft className="h-4 w-4" />
                 Tous les articles
@@ -466,6 +489,8 @@ export default function LiteratureReviewDetailPage() {
             </div>
           </div>
         </article>
+          </div>
+        </div>
       </div>
     </AuthLayout>
   )
