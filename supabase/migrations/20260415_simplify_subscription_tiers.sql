@@ -8,7 +8,162 @@ SET role = 'premium'
 WHERE role IN ('premium_silver', 'premium_gold');
 
 -- 2. Mettre à jour les politiques RLS qui vérifient les anciens rôles
--- (les politiques existantes sont remplacées par des nouvelles ci-dessous)
+
+-- elearning_formations
+DROP POLICY IF EXISTS "Allow users to view formations" ON elearning_formations;
+CREATE POLICY "Allow users to view formations"
+ON elearning_formations FOR SELECT
+USING (
+  auth.uid() IS NOT NULL AND (
+    (SELECT role FROM profiles WHERE id = auth.uid()) = 'admin'
+    OR
+    (
+      NOT is_private AND
+      (SELECT role FROM profiles WHERE id = auth.uid()) IN ('premium', 'admin')
+    )
+    OR
+    (
+      is_free_access = true AND
+      (SELECT role FROM profiles WHERE id = auth.uid()) = 'free'
+    )
+  )
+);
+
+-- orthopedic_tests
+DROP POLICY IF EXISTS "Allow authenticated users to view tests" ON orthopedic_tests;
+CREATE POLICY "Allow authenticated users to view tests"
+ON orthopedic_tests FOR SELECT
+USING (
+  auth.uid() IS NOT NULL AND (
+    (SELECT role FROM profiles WHERE id = auth.uid()) IN ('premium', 'admin')
+    OR
+    (
+      is_free_access = true AND
+      (SELECT role FROM profiles WHERE id = auth.uid()) = 'free'
+    )
+  )
+);
+
+-- pathologies
+DROP POLICY IF EXISTS "Allow authenticated users to view pathologies" ON pathologies;
+CREATE POLICY "Allow authenticated users to view pathologies"
+ON pathologies FOR SELECT
+USING (
+  auth.uid() IS NOT NULL AND (
+    (SELECT role FROM profiles WHERE id = auth.uid()) IN ('premium', 'admin')
+    OR
+    (
+      is_free_access = true AND
+      (SELECT role FROM profiles WHERE id = auth.uid()) = 'free'
+    )
+  )
+);
+
+-- elearning_topographic_views
+DROP POLICY IF EXISTS "Allow authenticated users to view topographic views" ON elearning_topographic_views;
+CREATE POLICY "Allow authenticated users to view topographic views"
+ON elearning_topographic_views FOR SELECT
+USING (
+  auth.uid() IS NOT NULL AND (
+    (SELECT role FROM profiles WHERE id = auth.uid()) IN ('premium', 'admin')
+    OR
+    (
+      is_free_access = true AND
+      (SELECT role FROM profiles WHERE id = auth.uid()) = 'free'
+    )
+  )
+);
+
+-- practice_videos
+DROP POLICY IF EXISTS "Allow authenticated users to view practice videos" ON practice_videos;
+CREATE POLICY "Allow authenticated users to view practice videos"
+ON practice_videos FOR SELECT
+USING (
+  auth.uid() IS NOT NULL AND (
+    (SELECT role FROM profiles WHERE id = auth.uid()) IN ('premium', 'admin')
+    OR
+    (
+      is_free_access = true AND
+      (SELECT role FROM profiles WHERE id = auth.uid()) = 'free'
+    )
+  )
+);
+
+-- elearning_quizzes
+DROP POLICY IF EXISTS "Authenticated users can view active quizzes they have access to" ON public.elearning_quizzes;
+CREATE POLICY "Authenticated users can view active quizzes they have access to"
+  ON public.elearning_quizzes FOR SELECT
+  USING (
+    is_active = true
+    AND auth.uid() IS NOT NULL
+    AND (
+      EXISTS (
+        SELECT 1 FROM public.profiles
+        WHERE profiles.id = auth.uid()
+        AND profiles.role IN ('premium', 'admin')
+      )
+      OR
+      EXISTS (
+        SELECT 1
+        FROM public.elearning_subparts  es
+        JOIN public.elearning_chapters  ec ON ec.id = es.chapter_id
+        JOIN public.elearning_formations ef ON ef.id = ec.formation_id
+        WHERE es.id = elearning_quizzes.subpart_id
+        AND ef.is_free_access = true
+      )
+    )
+  );
+
+-- elearning_quiz_questions
+DROP POLICY IF EXISTS "Authenticated users can view questions they have access to" ON public.elearning_quiz_questions;
+CREATE POLICY "Authenticated users can view questions they have access to"
+  ON public.elearning_quiz_questions FOR SELECT
+  USING (
+    auth.uid() IS NOT NULL
+    AND (
+      EXISTS (
+        SELECT 1 FROM public.profiles
+        WHERE profiles.id = auth.uid()
+        AND profiles.role IN ('premium', 'admin')
+      )
+      OR
+      EXISTS (
+        SELECT 1
+        FROM public.elearning_quizzes    eq
+        JOIN public.elearning_subparts   es ON es.id = eq.subpart_id
+        JOIN public.elearning_chapters   ec ON ec.id = es.chapter_id
+        JOIN public.elearning_formations ef ON ef.id = ec.formation_id
+        WHERE eq.id = elearning_quiz_questions.quiz_id
+        AND ef.is_free_access = true
+      )
+    )
+  );
+
+-- elearning_quiz_answers
+DROP POLICY IF EXISTS "Authenticated users can view answers they have access to" ON public.elearning_quiz_answers;
+CREATE POLICY "Authenticated users can view answers they have access to"
+  ON public.elearning_quiz_answers FOR SELECT
+  USING (
+    auth.uid() IS NOT NULL
+    AND (
+      EXISTS (
+        SELECT 1 FROM public.profiles
+        WHERE profiles.id = auth.uid()
+        AND profiles.role IN ('premium', 'admin')
+      )
+      OR
+      EXISTS (
+        SELECT 1
+        FROM public.elearning_quiz_questions eq_q
+        JOIN public.elearning_quizzes        eq  ON eq.id  = eq_q.quiz_id
+        JOIN public.elearning_subparts       es  ON es.id  = eq.subpart_id
+        JOIN public.elearning_chapters       ec  ON ec.id  = es.chapter_id
+        JOIN public.elearning_formations     ef  ON ef.id  = ec.formation_id
+        WHERE eq_q.id = elearning_quiz_answers.question_id
+        AND ef.is_free_access = true
+      )
+    )
+  );
 
 -- 3. Mettre à jour les codes de parrainage : le trigger vérifiait premium_gold
 -- On met à jour la fonction pour accepter 'premium'
@@ -78,6 +233,62 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- 5. Supprimer les tables liées aux séminaires (plus utilisées)
+-- 5. Mettre à jour l'ancienne fonction de validation (signature à 1 argument)
+-- L'ancienne fonction vérifiait `IS DISTINCT FROM 'premium_gold'` — remplacer par IN ('premium', 'admin')
+CREATE OR REPLACE FUNCTION public.validate_referral_code(p_code text)
+RETURNS TABLE (
+  valid boolean,
+  referral_code text,
+  referrer_name text,
+  error text
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_referral record;
+BEGIN
+  SELECT
+    rc.referral_code,
+    rc.is_active,
+    p.role,
+    p.full_name
+  INTO v_referral
+  FROM public.referral_codes rc
+  JOIN public.profiles p ON p.id = rc.user_id
+  WHERE rc.referral_code = UPPER(p_code)
+  LIMIT 1;
+
+  IF v_referral IS NULL THEN
+    RETURN QUERY SELECT false, NULL::text, NULL::text, 'Invalid referral code';
+    RETURN;
+  END IF;
+
+  IF v_referral.is_active IS NOT TRUE THEN
+    RETURN QUERY SELECT false, v_referral.referral_code, NULL::text, 'This referral code is no longer active';
+    RETURN;
+  END IF;
+
+  IF v_referral.role NOT IN ('premium', 'admin') THEN
+    RETURN QUERY SELECT false, v_referral.referral_code, NULL::text, 'This referral code is no longer valid';
+    RETURN;
+  END IF;
+
+  RETURN QUERY SELECT true, v_referral.referral_code, COALESCE(v_referral.full_name, 'A Premium member'), NULL::text;
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.validate_referral_code(text) TO anon, authenticated;
+
+-- 6. Corriger la contrainte subscription_type sur referral_transactions
+-- L'ancienne contrainte n'acceptait que 'premium_silver' et 'premium_gold' — ajouter 'premium'
+ALTER TABLE public.referral_transactions
+  DROP CONSTRAINT IF EXISTS referral_transactions_subscription_type_check;
+ALTER TABLE public.referral_transactions
+  ADD CONSTRAINT referral_transactions_subscription_type_check
+  CHECK (subscription_type = ANY (ARRAY['premium_silver'::text, 'premium_gold'::text, 'premium'::text]));
+
+-- 7. Supprimer les tables liées aux séminaires (plus utilisées)
 DROP TABLE IF EXISTS seminar_registrations CASCADE;
 DROP TABLE IF EXISTS seminars CASCADE;
