@@ -147,17 +147,17 @@ export default function Dashboard() {
       <div className="min-h-screen -m-6 md:-m-8">
 
         {/* ── Header ─────────────────────────────────────────────────── */}
-        <div className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 px-6 md:px-10 pt-8 pb-6">
-          {/* Water/aurora effect — 5 blobs animés à vitesses différentes */}
-          <div className="absolute top-0 left-0 w-80 h-80 bg-blue-500/25 rounded-full blur-3xl animate-pulse -translate-x-1/2 -translate-y-1/2" style={{ animationDuration: '4s' }} />
-          <div className="absolute top-1/2 left-1/4 w-64 h-64 bg-cyan-400/20 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '6s', animationDelay: '1s' }} />
-          <div className="absolute top-0 right-1/4 w-56 h-56 bg-indigo-500/20 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '5s', animationDelay: '2s' }} />
-          <div className="absolute bottom-0 right-0 w-72 h-72 bg-sky-400/20 rounded-full blur-3xl animate-pulse translate-x-1/3 translate-y-1/3" style={{ animationDuration: '7s', animationDelay: '0.5s' }} />
-          <div className="absolute top-1/3 right-1/3 w-48 h-48 bg-blue-300/15 rounded-full blur-2xl animate-pulse" style={{ animationDuration: '3.5s', animationDelay: '1.5s' }} />
+        <div className="relative overflow-hidden bg-gradient-to-br from-[#050c1a] via-[#0a1628] to-[#050c1a] px-6 md:px-10 pt-8 pb-6">
+          {/* Blobs arrière-plan — opacité réduite pour rester "loin" derrière le panel */}
+          <div className="absolute top-0 left-0 w-80 h-80 bg-blue-500/15 rounded-full blur-3xl animate-pulse -translate-x-1/2 -translate-y-1/2" style={{ animationDuration: '4s' }} />
+          <div className="absolute top-1/2 left-1/4 w-64 h-64 bg-cyan-400/12 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '6s', animationDelay: '1s' }} />
+          <div className="absolute top-0 right-1/4 w-56 h-56 bg-indigo-500/12 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '5s', animationDelay: '2s' }} />
+          <div className="absolute bottom-0 right-0 w-72 h-72 bg-sky-400/12 rounded-full blur-3xl animate-pulse translate-x-1/3 translate-y-1/3" style={{ animationDuration: '7s', animationDelay: '0.5s' }} />
+          <div className="absolute top-1/3 right-1/3 w-48 h-48 bg-blue-300/8 rounded-full blur-2xl animate-pulse" style={{ animationDuration: '3.5s', animationDelay: '1.5s' }} />
 
           <div className="relative">
-            {/* Glass content panel */}
-            <div className="bg-white/5 backdrop-blur-md border border-white/10 ring-1 ring-inset ring-white/8 rounded-3xl p-6 md:p-8">
+            {/* Glass content panel — légèrement plus opaque + ombre portée pour l'effet de profondeur */}
+            <div className="bg-white/[0.09] backdrop-blur-xl border border-white/20 ring-1 ring-inset ring-white/15 rounded-3xl p-6 md:p-8 shadow-[0_12px_40px_rgba(0,8,30,0.65),inset_0_1px_0_rgba(255,255,255,0.12)]">
               {/* Greeting */}
               <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-5 mb-6">
                 <div>
