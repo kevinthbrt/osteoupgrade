@@ -165,6 +165,11 @@ export default function DiagnosticsPage() {
 
       setProfile(profileData)
 
+      if (profileData?.role !== 'admin') {
+        router.push('/dashboard')
+        return
+      }
+
       // Ne charger les pathologies que si une région est sélectionnée
       if (!selectedRegion) {
         setPathologies([])

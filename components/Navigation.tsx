@@ -26,8 +26,7 @@ import {
   FolderOpen,
   FileText,
   Gift,
-  Tag,
-  BookMarked
+  Tag
 } from 'lucide-react'
 
 type MenuItem = {
@@ -107,25 +106,9 @@ export default function Navigation() {
           icon: FileText
         },
         {
-          href: '/elearning/encyclopedie',
-          label: 'Encyclopédie',
-          icon: BookMarked
-        },
-        {
           href: '/tests',
           label: 'Tests orthopédiques',
           icon: Clipboard
-        },
-        {
-          href: '/body-regions',
-          label: 'Topographie & Diagnostics',
-          icon: Stethoscope,
-          isNew: true
-        },
-        {
-          href: '/diagnostics',
-          label: 'Diagnostics',
-          icon: FolderOpen
         },
         {
           href: '/topographie',
@@ -171,11 +154,6 @@ export default function Navigation() {
           label: 'Revue de littérature',
           icon: FileText,
           badge: 'Nouveau'
-        },
-        {
-          href: '/elearning/encyclopedie',
-          label: 'Encyclopédie',
-          icon: BookMarked
         }
       ]
     },
@@ -184,12 +162,6 @@ export default function Navigation() {
       label: 'Tests & Diagnostics',
       icon: Clipboard,
       items: [
-        {
-          href: '/body-regions',
-          label: 'Topographie & Diagnostics',
-          icon: Stethoscope,
-          isNew: true
-        },
         {
           href: '/admin/diagnostics',
           label: 'Diagnostics',
@@ -434,14 +406,11 @@ export default function Navigation() {
                   {/* Outils Group */}
                   {renderUserGroup(userGroups[1])}
 
-                  {/* Séminaires */}
+                  {/* Parrainage & Cagnotte */}
                   {renderMenuItem(menuItems[2])}
 
-                  {/* Parrainage & Cagnotte */}
-                  {renderMenuItem(menuItems[3])}
-
                   {/* Paramètres */}
-                  {renderMenuItem(menuItems[4])}
+                  {renderMenuItem(menuItems[3])}
                 </>
               )
             })()}

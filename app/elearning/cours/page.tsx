@@ -30,7 +30,10 @@ import {
   Loader2,
   ClipboardCheck,
   Lock,
-  Trophy
+  Trophy,
+  Trash2,
+  Pencil,
+  Tag
 } from 'lucide-react'
 import FreeContentGate from '@/components/FreeContentGate'
 import FreeUserBanner from '@/components/FreeUserBanner'
@@ -53,6 +56,13 @@ type Chapter = {
   subparts: Subpart[]
 }
 
+type Subject = {
+  id: string
+  name: string
+  color: string
+  order_index: number
+}
+
 type Formation = {
   id: string
   title: string
@@ -60,6 +70,7 @@ type Formation = {
   is_private?: boolean
   photo_url?: string
   is_free_access?: boolean
+  subject_id?: string | null
   chapters: Chapter[]
 }
 
@@ -95,6 +106,11 @@ export default function CoursPage() {
   const router = useRouter()
   const [profile, setProfile] = useState<Profile | null>(null)
   const [formations, setFormations] = useState<Formation[]>([])
+  const [subjects, setSubjects] = useState<Subject[]>([])
+  const [selectedSubjectId, setSelectedSubjectId] = useState<string>('all')
+  const [showSubjectModal, setShowSubjectModal] = useState(false)
+  const [editingSubject, setEditingSubject] = useState<Subject | null>(null)
+  const [subjectForm, setSubjectForm] = useState({ name: '', color: '#6366f1' })
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedFormationId, setSelectedFormationId] = useState<string>('')
   const subpartRefs = useRef<Record<string, HTMLDivElement | null>>({})
@@ -108,6 +124,7 @@ export default function CoursPage() {
 
   useEffect(() => {
     loadData()
+    loadSubjects()
   }, [])
 
   const loadData = async () => {
@@ -131,6 +148,46 @@ export default function CoursPage() {
     }
   }
 
+  const loadSubjects = async () => {
+    const { data } = await supabase
+      .from('course_subjects')
+      .select('id, name, color, order_index')
+      .order('order_index', { ascending: true })
+    setSubjects(data || [])
+  }
+
+  const handleSaveSubject = async () => {
+    if (!subjectForm.name.trim()) return
+    if (editingSubject) {
+      await supabase
+        .from('course_subjects')
+        .update({ name: subjectForm.name, color: subjectForm.color, updated_at: new Date().toISOString() })
+        .eq('id', editingSubject.id)
+    } else {
+      await supabase.from('course_subjects').insert({
+        name: subjectForm.name,
+        color: subjectForm.color,
+        order_index: subjects.length
+      })
+    }
+    await loadSubjects()
+    setShowSubjectModal(false)
+    setEditingSubject(null)
+    setSubjectForm({ name: '', color: '#6366f1' })
+  }
+
+  const handleDeleteSubject = async (id: string) => {
+    if (!confirm('Supprimer cette matière ? Les cours associés ne seront pas supprimés.')) return
+    await supabase.from('course_subjects').delete().eq('id', id)
+    await loadSubjects()
+  }
+
+  const handleAssignSubject = async (formationId: string, subjectId: string) => {
+    const value = subjectId === '' ? null : subjectId
+    await supabase.from('elearning_formations').update({ subject_id: value }).eq('id', formationId)
+    setFormations(prev => prev.map(f => f.id === formationId ? { ...f, subject_id: value } : f))
+  }
+
   const loadFormationsFromSupabase = async (userId: string, role?: string, preserveFormationId?: string) => {
     const roleToUse = role ?? profile?.role
 
@@ -138,7 +195,7 @@ export default function CoursPage() {
       const { data, error } = await supabase
         .from('elearning_formations')
         .select(
-          `id, title, description, is_private, photo_url, is_free_access,
+          `id, title, description, is_private, photo_url, is_free_access, subject_id,
           chapters:elearning_chapters(id, title, order_index,
             subparts:elearning_subparts(id, title, vimeo_url, description_html, order_index,
               progress:elearning_subpart_progress(user_id, completed_at),
@@ -171,6 +228,7 @@ export default function CoursPage() {
           is_private: formation.is_private,
           photo_url: formation.photo_url,
           is_free_access: formation.is_free_access,
+          subject_id: formation.subject_id,
           chapters:
             formation.chapters?.map((chapter: any) => ({
               id: chapter.id,
@@ -249,6 +307,12 @@ export default function CoursPage() {
       return haystack.includes(term)
     })
   }, [formations, searchTerm])
+
+  const displayedFormations = useMemo(() => {
+    if (selectedSubjectId === 'all') return filteredFormations
+    if (selectedSubjectId === 'none') return filteredFormations.filter(f => !f.subject_id)
+    return filteredFormations.filter(f => f.subject_id === selectedSubjectId)
+  }, [filteredFormations, selectedSubjectId])
 
   useEffect(() => {
     if (!selectedFormation) return
@@ -433,13 +497,22 @@ export default function CoursPage() {
               </div>
 
               {isAdmin && (
-                <button
-                  onClick={() => setShowWizard(true)}
-                  className="inline-flex items-center gap-2 rounded-xl bg-white/10 px-4 py-3 text-sm font-semibold text-white shadow-lg backdrop-blur-sm border border-white/20 hover:bg-white/20 transition"
-                >
-                  <Plus className="h-4 w-4" />
-                  Ajouter une formation
-                </button>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    onClick={() => setShowWizard(true)}
+                    className="inline-flex items-center gap-2 rounded-xl bg-white/10 px-4 py-3 text-sm font-semibold text-white shadow-lg backdrop-blur-sm border border-white/20 hover:bg-white/20 transition"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Ajouter une formation
+                  </button>
+                  <button
+                    onClick={() => setShowSubjectModal(true)}
+                    className="inline-flex items-center gap-2 rounded-xl bg-white/10 px-4 py-3 text-sm font-semibold text-white shadow-lg backdrop-blur-sm border border-white/20 hover:bg-white/20 transition"
+                  >
+                    <Tag className="h-4 w-4" />
+                    Gérer les matières
+                  </button>
+                </div>
               )}
             </div>
           </div>
@@ -468,35 +541,80 @@ export default function CoursPage() {
                     className="w-full rounded-xl border border-slate-200 bg-white py-3 pl-10 pr-4 text-sm text-slate-700 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
                   />
                 </div>
+
+                {subjects.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    <button
+                      onClick={() => setSelectedSubjectId('all')}
+                      className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                        selectedSubjectId === 'all'
+                          ? 'bg-blue-600 text-white shadow-sm'
+                          : 'bg-white border border-slate-200 text-slate-600 hover:border-blue-300 hover:text-blue-600'
+                      }`}
+                    >
+                      Toutes
+                    </button>
+                    {subjects.map(subject => (
+                      <button
+                        key={subject.id}
+                        onClick={() => setSelectedSubjectId(subject.id)}
+                        className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                          selectedSubjectId === subject.id
+                            ? 'text-white shadow-sm'
+                            : 'bg-white border border-slate-200 text-slate-600 hover:text-white'
+                        }`}
+                        style={
+                          selectedSubjectId === subject.id
+                            ? { backgroundColor: subject.color }
+                            : { borderColor: subject.color + '60', color: subject.color }
+                        }
+                      >
+                        {subject.name}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </>
             )}
 
             <div className={selectedFormation ? "hidden" : "grid gap-5 md:grid-cols-2 lg:grid-cols-3"}>
-              {filteredFormations.map((formation) => {
+              {displayedFormations.map((formation) => {
                 const stats = computeProgress(formation)
                 const isFormationLocked = isFree && !formation.is_free_access
+                const formationSubject = subjects.find(s => s.id === formation.subject_id)
                 return (
                   <FreeContentGate key={formation.id} isLocked={isFormationLocked}>
+                  <div className={`group text-left border-2 rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 bg-white w-full flex flex-col ${
+                    selectedFormationId === formation.id
+                      ? 'border-blue-500 ring-4 ring-blue-100 transform scale-[1.02]'
+                      : 'border-transparent hover:border-blue-200 hover:-translate-y-1'
+                  }`}>
                   <button
                     onClick={() => {
                       if (!isFormationLocked) setSelectedFormationId(formation.id)
                     }}
-                    className={`group text-left border-2 rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 bg-white w-full ${
-                      selectedFormationId === formation.id
-                        ? 'border-blue-500 ring-4 ring-blue-100 transform scale-[1.02]'
-                        : 'border-transparent hover:border-blue-200 hover:-translate-y-1'
-                    }`}
+                    className="text-left w-full flex-1"
                   >
                     <div className="bg-gradient-to-br from-blue-500 via-blue-600 to-indigo-600 px-4 py-3 flex items-center justify-between">
                       <div className="flex items-center gap-2 text-white">
                         <Sparkles className="h-5 w-5" />
                         <span className="font-bold text-base">{formation.title}</span>
                       </div>
-                      {formation.is_private && (
-                        <span className="px-2 py-1 rounded-full text-[10px] bg-white/20 text-white font-semibold uppercase backdrop-blur-sm">
-                          Privé
-                        </span>
-                      )}
+                      <div className="flex items-center gap-2">
+                        {formationSubject && (
+                          <span
+                            className="px-2 py-1 rounded-full text-[10px] font-semibold uppercase backdrop-blur-sm"
+                            style={{ backgroundColor: formationSubject.color + '33', color: '#fff', border: `1px solid ${formationSubject.color}99` }}
+                          >
+                            {formationSubject.name}
+                          </span>
+                        )}
+                        {formation.is_private && (
+                          <span className="px-2 py-1 rounded-full text-[10px] bg-white/20 text-white font-semibold uppercase backdrop-blur-sm">
+                            Privé
+                          </span>
+                        )}
+                      </div>
                     </div>
 
                     {formation.photo_url && (
@@ -548,6 +666,23 @@ export default function CoursPage() {
                       </div>
                     </div>
                   </button>
+                  {isAdmin && (
+                    <div className="px-4 pb-3 border-t border-slate-100 pt-3">
+                      <label className="text-xs text-slate-500 font-medium block mb-1">Matière</label>
+                      <select
+                        value={formation.subject_id ?? ''}
+                        onChange={e => handleAssignSubject(formation.id, e.target.value)}
+                        onClick={e => e.stopPropagation()}
+                        className="w-full text-xs border border-slate-200 rounded-lg px-2 py-1.5 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                      >
+                        <option value="">— Aucune matière —</option>
+                        {subjects.map(s => (
+                          <option key={s.id} value={s.id}>{s.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                  </div>
                   </FreeContentGate>
                 )
               })}
@@ -563,7 +698,7 @@ export default function CoursPage() {
               </div>
             )}
 
-            {!selectedFormation && formations.length > 0 && filteredFormations.length === 0 && (
+            {!selectedFormation && formations.length > 0 && displayedFormations.length === 0 && (
               <div className="rounded-2xl border border-slate-200 bg-white p-6 text-center text-sm text-slate-600">
                 Aucune formation ne correspond à votre recherche.
               </div>
@@ -951,6 +1086,96 @@ export default function CoursPage() {
             loadData()
           }}
         />
+      )}
+
+      {showSubjectModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+              <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                <Tag className="h-5 w-5 text-blue-600" />
+                Gérer les matières
+              </h2>
+              <button
+                onClick={() => { setShowSubjectModal(false); setEditingSubject(null); setSubjectForm({ name: '', color: '#6366f1' }) }}
+                className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-500 transition"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="px-6 py-4 space-y-4">
+              {/* Existing subjects */}
+              {subjects.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Matières existantes</p>
+                  {subjects.map(subject => (
+                    <div key={subject.id} className="flex items-center gap-3 p-3 rounded-xl border border-slate-100 bg-slate-50">
+                      <div className="w-4 h-4 rounded-full flex-shrink-0" style={{ backgroundColor: subject.color }} />
+                      <span className="flex-1 text-sm font-medium text-slate-800">{subject.name}</span>
+                      <button
+                        onClick={() => {
+                          setEditingSubject(subject)
+                          setSubjectForm({ name: subject.name, color: subject.color })
+                        }}
+                        className="p-1.5 rounded-lg hover:bg-white text-slate-400 hover:text-blue-600 transition"
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteSubject(subject.id)}
+                        className="p-1.5 rounded-lg hover:bg-white text-slate-400 hover:text-red-600 transition"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Create / Edit form */}
+              <div className="space-y-3 border-t border-slate-100 pt-4">
+                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                  {editingSubject ? 'Modifier la matière' : 'Nouvelle matière'}
+                </p>
+                <div className="flex gap-3">
+                  <input
+                    type="text"
+                    value={subjectForm.name}
+                    onChange={e => setSubjectForm(prev => ({ ...prev, name: e.target.value }))}
+                    placeholder="Nom de la matière"
+                    className="flex-1 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
+                  />
+                  <div className="flex items-center gap-2">
+                    <label className="text-xs text-slate-500">Couleur</label>
+                    <input
+                      type="color"
+                      value={subjectForm.color}
+                      onChange={e => setSubjectForm(prev => ({ ...prev, color: e.target.value }))}
+                      className="w-10 h-9 rounded-lg border border-slate-200 cursor-pointer"
+                    />
+                  </div>
+                </div>
+                <div className="flex gap-2 justify-end">
+                  {editingSubject && (
+                    <button
+                      onClick={() => { setEditingSubject(null); setSubjectForm({ name: '', color: '#6366f1' }) }}
+                      className="px-4 py-2 rounded-xl border border-slate-200 text-sm text-slate-600 hover:bg-slate-50 transition"
+                    >
+                      Annuler
+                    </button>
+                  )}
+                  <button
+                    onClick={handleSaveSubject}
+                    className="px-4 py-2 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition"
+                  >
+                    {editingSubject ? 'Mettre à jour' : 'Créer'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </AuthLayout>
   )
