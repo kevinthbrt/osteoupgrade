@@ -156,65 +156,74 @@ export default function Dashboard() {
           <div className="absolute top-1/3 right-1/3 w-48 h-48 bg-blue-300/15 rounded-full blur-2xl animate-pulse" style={{ animationDuration: '3.5s', animationDelay: '1.5s' }} />
 
           <div className="relative">
-            {/* Greeting */}
-            <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-5 mb-6">
-              <div>
-                <p className="text-blue-400 text-sm font-medium mb-1">Bienvenue 👋</p>
-                <h1 className="text-3xl md:text-4xl font-bold text-white tracking-tight">
-                  {profile?.full_name || 'Docteur'}
-                </h1>
-                <p className="text-slate-400 text-sm mt-1.5">Continuez votre progression.</p>
+            {/* Glass content panel */}
+            <div className="bg-white/5 backdrop-blur-md border border-white/10 ring-1 ring-inset ring-white/8 rounded-3xl p-6 md:p-8">
+              {/* Greeting */}
+              <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-5 mb-6">
+                <div>
+                  <p className="text-sky-300 text-sm font-medium mb-1 tracking-wide">Bienvenue 👋</p>
+                  <h1 className="text-3xl md:text-4xl font-bold tracking-tight bg-gradient-to-r from-white via-sky-100 to-blue-200 bg-clip-text text-transparent">
+                    {profile?.full_name || 'Docteur'}
+                  </h1>
+                  <p className="text-blue-300/70 text-sm mt-1.5">Continuez votre progression.</p>
+                </div>
+
+                {/* Quick stats pills — colored per metric */}
+                <div className="flex flex-wrap gap-2">
+                  <div className="flex items-center gap-2 bg-yellow-400/15 backdrop-blur-sm border border-yellow-300/25 rounded-full px-4 py-2 shadow-sm">
+                    <Trophy className="h-4 w-4 text-yellow-400" />
+                    <span className="text-white text-sm font-semibold">Niv. {stats.level}</span>
+                  </div>
+                  <div className="flex items-center gap-2 bg-orange-400/15 backdrop-blur-sm border border-orange-300/25 rounded-full px-4 py-2 shadow-sm">
+                    <Flame className="h-4 w-4 text-orange-400" />
+                    <span className="text-white text-sm font-semibold">{stats.currentStreak} jours</span>
+                  </div>
+                  <div className="flex items-center gap-2 bg-sky-400/15 backdrop-blur-sm border border-sky-300/25 rounded-full px-4 py-2 shadow-sm">
+                    <Zap className="h-4 w-4 text-sky-300" />
+                    <span className="text-white text-sm font-semibold">{stats.totalXp} XP</span>
+                  </div>
+                </div>
               </div>
 
-              {/* Quick stats pills */}
-              <div className="flex flex-wrap gap-2">
-                <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/10 rounded-full px-4 py-2">
-                  <Trophy className="h-4 w-4 text-yellow-400" />
-                  <span className="text-white text-sm font-semibold">Niv. {stats.level}</span>
-                </div>
-                <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/10 rounded-full px-4 py-2">
-                  <Flame className="h-4 w-4 text-orange-400" />
-                  <span className="text-white text-sm font-semibold">{stats.currentStreak} jours</span>
-                </div>
-                <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/10 rounded-full px-4 py-2">
-                  <Zap className="h-4 w-4 text-sky-400" />
-                  <span className="text-white text-sm font-semibold">{stats.totalXp} XP</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Search */}
-            <form onSubmit={handleSearch} className="relative max-w-xl mb-6">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Rechercher un cours, technique, test..."
-                className="w-full pl-11 pr-4 py-3 rounded-2xl bg-white/10 backdrop-blur-sm border border-white/10 text-white placeholder-slate-400 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400/50 focus:bg-white/15 transition-all"
-              />
-            </form>
-
-            {/* XP progress bar */}
-            <div className="flex items-center gap-3 max-w-xl">
-              <span className="text-xs text-slate-400 flex-shrink-0">XP</span>
-              <div className="flex-1 h-1.5 bg-white/10 rounded-full overflow-hidden">
-                <div
-                  className="h-full rounded-full bg-gradient-to-r from-blue-400 to-cyan-400 transition-all duration-700"
-                  style={{ width: `${xpProgress}%` }}
+              {/* Search */}
+              <form onSubmit={handleSearch} className="relative max-w-xl mb-5">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-blue-300/60" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Rechercher un cours, technique, test..."
+                  className="w-full pl-11 pr-4 py-3 rounded-2xl bg-white/10 backdrop-blur-md border border-white/15 text-white placeholder-blue-300/50 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400/60 focus:bg-white/18 transition-all"
                 />
+              </form>
+
+              {/* XP progress bar */}
+              <div className="flex items-center gap-3 max-w-xl">
+                <span className="text-xs text-blue-300/60 flex-shrink-0 font-medium">XP</span>
+                <div className="flex-1 h-2 bg-white/10 rounded-full overflow-hidden">
+                  <div
+                    className="h-full rounded-full bg-gradient-to-r from-blue-400 via-sky-400 to-cyan-400 transition-all duration-700 shadow-[0_0_8px_rgba(56,189,248,0.6)]"
+                    style={{ width: `${xpProgress}%` }}
+                  />
+                </div>
+                <span className="text-xs text-blue-300/60 flex-shrink-0">{stats.totalXp % xpToNextLevel}/{xpToNextLevel}</span>
               </div>
-              <span className="text-xs text-slate-400 flex-shrink-0">{stats.totalXp % xpToNextLevel}/{xpToNextLevel}</span>
             </div>
           </div>
+
+          {/* Bottom glow line */}
+          <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-sky-400/40 to-transparent" />
+          <div className="absolute bottom-0 left-1/4 right-1/4 h-px bg-gradient-to-r from-transparent via-blue-300/50 to-transparent blur-sm" />
         </div>
 
         {/* ── Body ───────────────────────────────────────────────────── */}
         <div className="relative overflow-hidden bg-gradient-to-br from-blue-100/90 via-sky-50 to-indigo-50/80 px-6 md:px-10 pt-8 pb-10 space-y-8">
           {/* Blobs de fond */}
-          <div className="pointer-events-none absolute top-0 left-1/4 w-96 h-96 bg-blue-400/30 rounded-full blur-3xl" />
-          <div className="pointer-events-none absolute top-1/3 right-0 w-80 h-80 bg-sky-400/25 rounded-full blur-3xl" />
-          <div className="pointer-events-none absolute bottom-0 left-0 w-72 h-72 bg-indigo-400/20 rounded-full blur-3xl" />
+          <div className="pointer-events-none absolute top-0 left-1/4 w-96 h-96 bg-blue-400/45 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '6s' }} />
+          <div className="pointer-events-none absolute top-1/3 right-0 w-80 h-80 bg-sky-400/40 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '8s', animationDelay: '2s' }} />
+          <div className="pointer-events-none absolute bottom-0 left-0 w-72 h-72 bg-indigo-400/35 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '7s', animationDelay: '1s' }} />
+          <div className="pointer-events-none absolute top-1/2 right-1/3 w-64 h-64 bg-cyan-300/30 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '5s', animationDelay: '3s' }} />
+          <div className="pointer-events-none absolute bottom-1/3 left-1/2 w-56 h-56 bg-blue-300/25 rounded-full blur-2xl animate-pulse" style={{ animationDuration: '9s', animationDelay: '0.5s' }} />
 
           {/* Bannière Premium */}
           {profile?.role === 'free' && (
