@@ -1514,9 +1514,9 @@ export default function MailingAdminPage() {
           )}
         </div>
 
-          </div>{/* end relative space-y-6 */}
-        </div>{/* end light body */}
-      </div>{/* end min-h-screen */}
+          </div>
+        </div>
+      </div>
     </AuthLayout>
   )
 }
