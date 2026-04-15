@@ -144,250 +144,267 @@ export default function ReferralPayoutsAdminPage() {
   const otherPayouts = payouts.filter((p) => p.payout_status !== 'requested' && p.payout_status !== 'completed')
 
   return (
-    <AuthLayout>
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => router.push('/admin')}
-              className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Retour au dashboard admin
-            </button>
-          </div>
-        </div>
+    <>
+      {/* Confirmation Modal — outside main layout wrapper */}
+      {showModal && selectedPayout && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white/85 backdrop-blur-2xl border border-white/70 shadow-2xl ring-1 ring-inset ring-white/60 rounded-3xl max-w-md w-full p-6">
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">Confirmer le paiement</h2>
 
-        <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-xl shadow-sm p-8 text-white">
-          <h1 className="text-3xl font-bold mb-2">Gestion des Paiements de Parrainage</h1>
-          <p className="text-blue-100">Gérez les demandes de paiement des commissions de parrainage</p>
-        </div>
-
-        {/* Stats */}
-        <div className="grid gap-6 sm:grid-cols-3">
-          <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-6">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-yellow-100 rounded-lg">
-                <Clock className="h-6 w-6 text-yellow-600" />
+            <div className="space-y-4">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <p className="text-sm text-blue-900 mb-2">
+                  <strong>Bénéficiaire :</strong>{' '}
+                  {(Array.isArray(selectedPayout.user) ? selectedPayout.user[0] : selectedPayout.user)?.full_name ||
+                    (Array.isArray(selectedPayout.user) ? selectedPayout.user[0] : selectedPayout.user)?.email}
+                </p>
+                <p className="text-sm text-blue-900">
+                  <strong>Montant :</strong> {(selectedPayout.amount / 100).toFixed(2)}€
+                </p>
               </div>
+
               <div>
-                <p className="text-sm text-gray-600">En attente</p>
-                <p className="text-2xl font-bold text-gray-900">{pendingPayouts.length}</p>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Notes (optionnel)</label>
+                <textarea
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  rows={3}
+                  placeholder="Ex: Virement effectué le..."
+                  className="w-full bg-white/70 backdrop-blur-sm border border-blue-200/60 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-purple-300 outline-none"
+                />
               </div>
-            </div>
-          </div>
 
-          <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-6">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-green-100 rounded-lg">
-                <CheckCircle className="h-6 w-6 text-green-600" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">Complétés</p>
-                <p className="text-2xl font-bold text-gray-900">{completedPayouts.length}</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-6">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <DollarSign className="h-6 w-6 text-blue-600" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">Montant total en attente</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {(pendingPayouts.reduce((sum, p) => sum + p.amount, 0) / 100).toFixed(2)}€
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                <p className="text-xs text-yellow-800">
+                  En confirmant, le bénéficiaire recevra automatiquement un email de confirmation et les transactions
+                  seront marquées comme payées.
                 </p>
               </div>
             </div>
+
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => {
+                  setShowModal(false)
+                  setSelectedPayout(null)
+                  setNotes('')
+                }}
+                disabled={processing}
+                className="flex-1 bg-gray-200 text-gray-700 px-4 py-3 rounded-xl font-semibold hover:bg-gray-300 transition disabled:opacity-50"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={handleMarkAsCompleted}
+                disabled={processing}
+                className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-emerald-500/90 backdrop-blur-sm border border-emerald-400/30 text-white font-semibold hover:bg-emerald-600/90 shadow-sm transition-all disabled:opacity-50"
+              >
+                {processing ? (
+                  <>
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                    Traitement...
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle className="h-5 w-5" />
+                    Confirmer le paiement
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </div>
+      )}
 
-        {/* Demandes en attente */}
-        {pendingPayouts.length > 0 && (
-          <div className="bg-white border border-yellow-300 rounded-xl shadow-lg p-6">
-            <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-              <Clock className="h-6 w-6 text-yellow-600" />
-              Demandes en attente de traitement
-            </h2>
+      <AuthLayout>
+        <div className="min-h-screen -m-6 md:-m-8">
+          {/* Dark header */}
+          <div className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 px-6 md:px-10 pt-8 pb-6">
+            <div className="absolute top-0 left-0 w-72 h-72 bg-purple-500/15 rounded-full blur-3xl animate-pulse -translate-x-1/2 -translate-y-1/4" style={{ animationDuration: '4s' }} />
+            <div className="absolute top-1/2 right-0 w-56 h-56 bg-indigo-400/10 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '6s', animationDelay: '2s' }} />
+            <div className="absolute bottom-0 right-1/4 w-48 h-48 bg-sky-400/15 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '5s', animationDelay: '1s' }} />
+            <div className="relative">
+              <div className="bg-white/5 backdrop-blur-md border border-white/10 ring-1 ring-inset ring-white/8 rounded-3xl p-6 md:p-8">
+                <button onClick={() => router.push('/admin')} className="inline-flex items-center gap-2 text-white/50 hover:text-white/80 text-sm mb-4 transition">
+                  <ArrowLeft className="h-4 w-4" /> Retour admin
+                </button>
+                <p className="text-purple-300 text-sm font-medium mb-1 tracking-wide flex items-center gap-2">
+                  <DollarSign className="h-4 w-4" /> Admin — Paiements Parrainage
+                </p>
+                <h1 className="text-3xl md:text-4xl font-bold tracking-tight bg-gradient-to-r from-white via-purple-100 to-indigo-200 bg-clip-text text-transparent">
+                  Demandes de paiement
+                </h1>
+                <p className="text-blue-300/70 text-sm mt-1.5">Gérez les demandes de virement des ambassadeurs</p>
+              </div>
+            </div>
+            <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-purple-400/40 to-transparent" />
+            <div className="absolute bottom-0 left-1/4 right-1/4 h-px bg-gradient-to-r from-transparent via-purple-300/50 to-transparent blur-sm" />
+          </div>
 
-            <div className="space-y-4">
-              {pendingPayouts.map((payout) => {
-                const userInfo = Array.isArray(payout.user) ? payout.user[0] : payout.user
-                return (
-                  <div key={payout.id} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition">
-                    <div className="flex items-start justify-between gap-4 flex-wrap">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-2">
-                          <User className="h-4 w-4 text-gray-600" />
-                          <p className="font-semibold text-gray-900">{userInfo?.full_name || userInfo?.email}</p>
-                        </div>
-                        <div className="space-y-1 text-sm text-gray-600">
-                          <p className="flex items-center gap-2">
-                            <Mail className="h-4 w-4" />
-                            {userInfo?.email}
-                          </p>
-                          <p className="flex items-center gap-2">
-                            <Calendar className="h-4 w-4" />
-                            Demandé le {new Date(payout.requested_at).toLocaleDateString('fr-FR')}
-                          </p>
-                          <p className="flex items-center gap-2">
-                            <DollarSign className="h-4 w-4" />
-                            <strong className="text-lg text-gray-900">{(payout.amount / 100).toFixed(2)}€</strong>
-                          </p>
-                        </div>
-                      </div>
+          {/* Light body */}
+          <div className="relative overflow-hidden bg-gradient-to-br from-blue-100/90 via-sky-50 to-indigo-50/80 px-6 md:px-10 pt-8 pb-10">
+            <div className="pointer-events-none absolute top-0 left-1/4 w-96 h-96 bg-purple-400/20 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '6s' }} />
+            <div className="pointer-events-none absolute top-1/2 right-0 w-80 h-80 bg-sky-400/25 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '8s', animationDelay: '2s' }} />
+            <div className="pointer-events-none absolute bottom-0 left-0 w-72 h-72 bg-indigo-400/20 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '7s', animationDelay: '1s' }} />
+            <div className="relative space-y-6">
 
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => handleViewRIB(payout)}
-                          className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-700 transition text-sm"
-                        >
-                          <FileText className="h-4 w-4" />
-                          Voir le RIB
-                        </button>
-                        <button
-                          onClick={() => {
-                            setSelectedPayout(payout)
-                            setShowModal(true)
-                          }}
-                          className="inline-flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-green-700 transition text-sm"
-                        >
-                          <CheckCircle className="h-4 w-4" />
-                          Marquer comme payé
-                        </button>
-                      </div>
+              {/* Stats */}
+              <div className="grid gap-6 sm:grid-cols-3">
+                <div className="bg-white/85 backdrop-blur-2xl border border-white/70 shadow-xl ring-1 ring-inset ring-white/60 rounded-2xl p-6">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-yellow-100 rounded-lg">
+                      <Clock className="h-6 w-6 text-yellow-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">En attente</p>
+                      <p className="text-2xl font-bold text-gray-900">{pendingPayouts.length}</p>
                     </div>
                   </div>
-                )
-              })}
+                </div>
+
+                <div className="bg-white/85 backdrop-blur-2xl border border-white/70 shadow-xl ring-1 ring-inset ring-white/60 rounded-2xl p-6">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-green-100 rounded-lg">
+                      <CheckCircle className="h-6 w-6 text-green-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">Complétés</p>
+                      <p className="text-2xl font-bold text-gray-900">{completedPayouts.length}</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-white/85 backdrop-blur-2xl border border-white/70 shadow-xl ring-1 ring-inset ring-white/60 rounded-2xl p-6">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-blue-100 rounded-lg">
+                      <DollarSign className="h-6 w-6 text-blue-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">Montant total en attente</p>
+                      <p className="text-2xl font-bold text-gray-900">
+                        {(pendingPayouts.reduce((sum, p) => sum + p.amount, 0) / 100).toFixed(2)}€
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Demandes en attente */}
+              {pendingPayouts.length > 0 && (
+                <div className="bg-white/85 backdrop-blur-2xl border border-white/70 shadow-xl ring-1 ring-inset ring-white/60 rounded-2xl p-6">
+                  <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                    <Clock className="h-6 w-6 text-yellow-600" />
+                    Demandes en attente de traitement
+                  </h2>
+
+                  <div className="space-y-4">
+                    {pendingPayouts.map((payout) => {
+                      const userInfo = Array.isArray(payout.user) ? payout.user[0] : payout.user
+                      return (
+                        <div key={payout.id} className="bg-white/70 backdrop-blur-sm border border-blue-100/60 rounded-xl p-4">
+                          <div className="flex items-start justify-between gap-4 flex-wrap">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-2">
+                                <User className="h-4 w-4 text-gray-600" />
+                                <p className="font-semibold text-gray-900">{userInfo?.full_name || userInfo?.email}</p>
+                              </div>
+                              <div className="space-y-1 text-sm text-gray-600">
+                                <p className="flex items-center gap-2">
+                                  <Mail className="h-4 w-4" />
+                                  {userInfo?.email}
+                                </p>
+                                <p className="flex items-center gap-2">
+                                  <Calendar className="h-4 w-4" />
+                                  Demandé le {new Date(payout.requested_at).toLocaleDateString('fr-FR')}
+                                </p>
+                                <p className="flex items-center gap-2">
+                                  <DollarSign className="h-4 w-4" />
+                                  <strong className="text-lg text-gray-900">{(payout.amount / 100).toFixed(2)}€</strong>
+                                </p>
+                              </div>
+                            </div>
+
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => handleViewRIB(payout)}
+                                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-purple-500/90 backdrop-blur-sm border border-purple-400/30 text-white font-semibold hover:bg-purple-600/90 shadow-sm transition-all disabled:opacity-50 text-sm"
+                              >
+                                <FileText className="h-4 w-4" />
+                                Voir le RIB
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setSelectedPayout(payout)
+                                  setShowModal(true)
+                                }}
+                                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-500/90 backdrop-blur-sm border border-emerald-400/30 text-white font-semibold hover:bg-emerald-600/90 shadow-sm transition-all disabled:opacity-50 text-sm"
+                              >
+                                <CheckCircle className="h-4 w-4" />
+                                Marquer comme payé
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Historique des paiements */}
+              <div className="bg-white/85 backdrop-blur-2xl border border-white/70 shadow-xl ring-1 ring-inset ring-white/60 rounded-2xl p-6">
+                <h2 className="text-xl font-bold text-gray-900 mb-4">Historique des paiements</h2>
+
+                {completedPayouts.length > 0 ? (
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead className="bg-gray-50 border-b border-gray-200">
+                        <tr>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Bénéficiaire</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Montant</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Demandé le</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Payé le</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-200">
+                        {completedPayouts.map((payout) => {
+                          const userInfo = Array.isArray(payout.user) ? payout.user[0] : payout.user
+                          return (
+                            <tr key={payout.id} className="hover:bg-gray-50">
+                              <td className="px-4 py-4 text-sm text-gray-900">{userInfo?.full_name || userInfo?.email}</td>
+                              <td className="px-4 py-4 text-sm font-semibold text-gray-900">
+                                {(payout.amount / 100).toFixed(2)}€
+                              </td>
+                              <td className="px-4 py-4 text-sm text-gray-600">
+                                {new Date(payout.requested_at).toLocaleDateString('fr-FR')}
+                              </td>
+                              <td className="px-4 py-4 text-sm text-gray-600">
+                                {payout.completed_at ? new Date(payout.completed_at).toLocaleDateString('fr-FR') : '-'}
+                              </td>
+                              <td className="px-4 py-4">
+                                <button
+                                  onClick={() => handleViewRIB(payout)}
+                                  className="text-purple-600 hover:text-purple-700 text-sm font-medium"
+                                >
+                                  Voir RIB
+                                </button>
+                              </td>
+                            </tr>
+                          )
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <p className="text-center text-gray-500 py-8">Aucun paiement complété</p>
+                )}
+              </div>
+
             </div>
           </div>
-        )}
-
-        {/* Historique des paiements */}
-        <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-6">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">Historique des paiements</h2>
-
-          {completedPayouts.length > 0 ? (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50 border-b border-gray-200">
-                  <tr>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Bénéficiaire</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Montant</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Demandé le</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Payé le</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200">
-                  {completedPayouts.map((payout) => {
-                    const userInfo = Array.isArray(payout.user) ? payout.user[0] : payout.user
-                    return (
-                      <tr key={payout.id} className="hover:bg-gray-50">
-                        <td className="px-4 py-4 text-sm text-gray-900">{userInfo?.full_name || userInfo?.email}</td>
-                        <td className="px-4 py-4 text-sm font-semibold text-gray-900">
-                          {(payout.amount / 100).toFixed(2)}€
-                        </td>
-                        <td className="px-4 py-4 text-sm text-gray-600">
-                          {new Date(payout.requested_at).toLocaleDateString('fr-FR')}
-                        </td>
-                        <td className="px-4 py-4 text-sm text-gray-600">
-                          {payout.completed_at ? new Date(payout.completed_at).toLocaleDateString('fr-FR') : '-'}
-                        </td>
-                        <td className="px-4 py-4">
-                          <button
-                            onClick={() => handleViewRIB(payout)}
-                            className="text-blue-600 hover:text-blue-700 text-sm font-medium"
-                          >
-                            Voir RIB
-                          </button>
-                        </td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <p className="text-center text-gray-500 py-8">Aucun paiement complété</p>
-          )}
         </div>
-
-        {/* Confirmation Modal */}
-        {showModal && selectedPayout && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6">
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">Confirmer le paiement</h2>
-
-              <div className="space-y-4">
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <p className="text-sm text-blue-900 mb-2">
-                    <strong>Bénéficiaire :</strong>{' '}
-                    {(Array.isArray(selectedPayout.user) ? selectedPayout.user[0] : selectedPayout.user)?.full_name ||
-                      (Array.isArray(selectedPayout.user) ? selectedPayout.user[0] : selectedPayout.user)?.email}
-                  </p>
-                  <p className="text-sm text-blue-900">
-                    <strong>Montant :</strong> {(selectedPayout.amount / 100).toFixed(2)}€
-                  </p>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Notes (optionnel)</label>
-                  <textarea
-                    value={notes}
-                    onChange={(e) => setNotes(e.target.value)}
-                    rows={3}
-                    placeholder="Ex: Virement effectué le..."
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                  />
-                </div>
-
-                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-                  <p className="text-xs text-yellow-800">
-                    En confirmant, le bénéficiaire recevra automatiquement un email de confirmation et les transactions
-                    seront marquées comme payées.
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex gap-3 mt-6">
-                <button
-                  onClick={() => {
-                    setShowModal(false)
-                    setSelectedPayout(null)
-                    setNotes('')
-                  }}
-                  disabled={processing}
-                  className="flex-1 bg-gray-200 text-gray-700 px-4 py-3 rounded-lg font-semibold hover:bg-gray-300 transition disabled:opacity-50"
-                >
-                  Annuler
-                </button>
-                <button
-                  onClick={handleMarkAsCompleted}
-                  disabled={processing}
-                  className="flex-1 bg-green-600 text-white px-4 py-3 rounded-lg font-semibold hover:bg-green-700 transition disabled:opacity-50 inline-flex items-center justify-center gap-2"
-                >
-                  {processing ? (
-                    <>
-                      <Loader2 className="h-5 w-5 animate-spin" />
-                      Traitement...
-                    </>
-                  ) : (
-                    <>
-                      <CheckCircle className="h-5 w-5" />
-                      Confirmer le paiement
-                    </>
-                  )}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-    </AuthLayout>
+      </AuthLayout>
+    </>
   )
 }
