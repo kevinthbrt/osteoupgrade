@@ -207,7 +207,11 @@ export default function Dashboard() {
         </div>
 
         {/* ── Body ───────────────────────────────────────────────────── */}
-        <div className="bg-slate-50 px-6 md:px-10 py-8 space-y-8">
+        <div className="relative overflow-hidden bg-gradient-to-br from-blue-50 via-slate-50 to-sky-50/60 px-6 md:px-10 py-8 space-y-8">
+          {/* Blobs de fond qui colorent sobrement le glass */}
+          <div className="pointer-events-none absolute top-0 left-1/4 w-96 h-96 bg-blue-300/10 rounded-full blur-3xl" />
+          <div className="pointer-events-none absolute top-1/3 right-0 w-80 h-80 bg-sky-300/10 rounded-full blur-3xl" />
+          <div className="pointer-events-none absolute bottom-0 left-0 w-72 h-72 bg-indigo-300/8 rounded-full blur-3xl" />
 
           {/* Bannière Premium */}
           {profile?.role === 'free' && (
@@ -234,14 +238,14 @@ export default function Dashboard() {
           {/* ── Modules ────────────────────────────────────────────── */}
           <section>
             <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-3">Modules</p>
-            <div className="rounded-2xl overflow-hidden shadow-sm border border-slate-200 bg-white">
+            <div className="rounded-2xl overflow-hidden shadow-sm border border-white/80 bg-white/65 backdrop-blur-md">
               {modules.map((module, i) => {
                 const Icon = module.icon
                 return (
                   <button
                     key={module.id}
                     onClick={() => router.push(module.href)}
-                    className={`group w-full flex items-center gap-4 px-5 py-4 text-left hover:bg-slate-50 transition-colors ${i < modules.length - 1 ? 'border-b border-slate-100' : ''}`}
+                    className={`group w-full flex items-center gap-4 px-5 py-4 text-left hover:bg-white/60 transition-colors ${i < modules.length - 1 ? 'border-b border-white/60' : ''}`}
                   >
                     {/* Gradient icon */}
                     <div className={`flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br ${module.gradient} shadow-md group-hover:scale-105 transition-transform duration-200`}>
@@ -270,7 +274,7 @@ export default function Dashboard() {
             {/* Progression semaine */}
             <div>
               <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-3">Cette semaine</p>
-              <div className="rounded-2xl bg-white border border-slate-200 shadow-sm px-5 py-5 space-y-4">
+              <div className="rounded-2xl bg-white/65 backdrop-blur-md border border-white/80 shadow-sm px-5 py-5 space-y-4">
                 {weekProgress.map(({ label, value, max, color, icon: Icon }) => (
                   <div key={label}>
                     <div className="flex items-center justify-between mb-2">
@@ -289,13 +293,13 @@ export default function Dashboard() {
                   </div>
                 ))}
 
-                <div className="pt-3 border-t border-slate-100 grid grid-cols-3 gap-2">
+                <div className="pt-3 border-t border-white/60 grid grid-cols-3 gap-2">
                   {[
                     { label: 'Connexions', value: stats.totalLogins },
                     { label: 'Leçons', value: stats.totalElearningCompleted },
                     { label: 'Actions', value: stats.totalPracticeViewed + stats.totalTestingViewed },
                   ].map(({ label, value }) => (
-                    <div key={label} className="rounded-xl bg-slate-50 py-2.5 text-center">
+                    <div key={label} className="rounded-xl bg-white/70 py-2.5 text-center border border-white/80">
                       <div className="text-xl font-bold text-slate-900">{value}</div>
                       <div className="text-[10px] text-slate-400 mt-0.5">{label}</div>
                     </div>
@@ -310,14 +314,14 @@ export default function Dashboard() {
                 Badges
                 {stats.unlockedAchievements > 0 && <span className="ml-1 normal-case font-normal">— {stats.unlockedAchievements} débloqués</span>}
               </p>
-              <div className="rounded-2xl bg-white border border-slate-200 shadow-sm overflow-hidden">
+              <div className="rounded-2xl bg-white/65 backdrop-blur-md border border-white/80 shadow-sm overflow-hidden">
                 {badges.length > 0 ? (
                   badges.slice(0, 4).map((badge, i) => {
                     const BadgeIcon = badge.icon ? badgeIconMap[badge.icon] : null
                     return (
                       <div
                         key={badge.id}
-                        className={`flex items-center gap-3 px-5 py-3.5 ${i < Math.min(badges.length, 4) - 1 ? 'border-b border-slate-100' : ''}`}
+                        className={`flex items-center gap-3 px-5 py-3.5 ${i < Math.min(badges.length, 4) - 1 ? 'border-b border-white/60' : ''}`}
                       >
                         <div className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-gradient-to-br ${badgeColors[i % badgeColors.length]} shadow-sm`}>
                           {BadgeIcon ? <BadgeIcon className="h-4 w-4 text-white" /> : <span className="text-sm">🏅</span>}
@@ -343,7 +347,7 @@ export default function Dashboard() {
           {(profile?.role === 'premium' || profile?.role === 'admin') && referralData && (
             <section>
               <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-3">Espace Ambassadeur</p>
-              <div className="rounded-2xl overflow-hidden shadow-sm border border-amber-200 bg-white">
+              <div className="rounded-2xl overflow-hidden shadow-sm border border-amber-200/70 bg-amber-50/40 backdrop-blur-md">
                 {/* Header ambre */}
                 <div className="bg-gradient-to-r from-amber-400 to-yellow-500 px-5 py-3 flex items-center gap-2">
                   <Crown className="h-4 w-4 text-amber-900" />
@@ -351,7 +355,7 @@ export default function Dashboard() {
                 </div>
 
                 {/* Stats en ligne */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-slate-100">
+                <div className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-amber-100/60">
                   <div className="px-5 py-4">
                     <p className="text-xs text-slate-400 mb-1.5">Votre code</p>
                     <div className="flex items-center gap-2">
