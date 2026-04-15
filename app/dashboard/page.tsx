@@ -207,11 +207,11 @@ export default function Dashboard() {
         </div>
 
         {/* ── Body ───────────────────────────────────────────────────── */}
-        <div className="relative overflow-hidden bg-gradient-to-br from-blue-50 via-slate-50 to-sky-50/60 px-6 md:px-10 py-8 space-y-8">
-          {/* Blobs de fond qui colorent sobrement le glass */}
-          <div className="pointer-events-none absolute top-0 left-1/4 w-96 h-96 bg-blue-300/10 rounded-full blur-3xl" />
-          <div className="pointer-events-none absolute top-1/3 right-0 w-80 h-80 bg-sky-300/10 rounded-full blur-3xl" />
-          <div className="pointer-events-none absolute bottom-0 left-0 w-72 h-72 bg-indigo-300/8 rounded-full blur-3xl" />
+        <div className="relative overflow-hidden bg-gradient-to-br from-blue-100/80 via-sky-50 to-indigo-50/70 px-6 md:px-10 py-8 space-y-8">
+          {/* Blobs de fond */}
+          <div className="pointer-events-none absolute top-0 left-1/4 w-96 h-96 bg-blue-400/20 rounded-full blur-3xl" />
+          <div className="pointer-events-none absolute top-1/3 right-0 w-80 h-80 bg-sky-400/20 rounded-full blur-3xl" />
+          <div className="pointer-events-none absolute bottom-0 left-0 w-72 h-72 bg-indigo-400/15 rounded-full blur-3xl" />
 
           {/* Bannière Premium */}
           {profile?.role === 'free' && (
@@ -237,15 +237,18 @@ export default function Dashboard() {
 
           {/* ── Modules ────────────────────────────────────────────── */}
           <section>
-            <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-3">Modules</p>
-            <div className="rounded-2xl overflow-hidden shadow-sm border border-white/80 bg-white/65 backdrop-blur-md">
+            <div className="flex items-center gap-2.5 mb-4">
+              <div className="h-5 w-1 rounded-full bg-gradient-to-b from-blue-500 to-blue-700" />
+              <h2 className="text-sm font-bold text-slate-800 tracking-wide">Modules d'apprentissage</h2>
+            </div>
+            <div className="rounded-2xl overflow-hidden shadow-md border border-blue-200/50 bg-blue-50/60 backdrop-blur-xl">
               {modules.map((module, i) => {
                 const Icon = module.icon
                 return (
                   <button
                     key={module.id}
                     onClick={() => router.push(module.href)}
-                    className={`group w-full flex items-center gap-4 px-5 py-4 text-left hover:bg-white/60 transition-colors ${i < modules.length - 1 ? 'border-b border-white/60' : ''}`}
+                    className={`group w-full flex items-center gap-4 px-5 py-4 text-left hover:bg-white/50 transition-colors ${i < modules.length - 1 ? 'border-b border-blue-100/60' : ''}`}
                   >
                     {/* Gradient icon */}
                     <div className={`flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br ${module.gradient} shadow-md group-hover:scale-105 transition-transform duration-200`}>
@@ -273,8 +276,11 @@ export default function Dashboard() {
 
             {/* Progression semaine */}
             <div>
-              <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-3">Cette semaine</p>
-              <div className="rounded-2xl bg-white/65 backdrop-blur-md border border-white/80 shadow-sm px-5 py-5 space-y-4">
+              <div className="flex items-center gap-2.5 mb-4">
+                <div className="h-5 w-1 rounded-full bg-gradient-to-b from-sky-500 to-sky-700" />
+                <h2 className="text-sm font-bold text-slate-800 tracking-wide">Cette semaine</h2>
+              </div>
+              <div className="rounded-2xl bg-sky-50/65 backdrop-blur-xl border border-sky-200/50 shadow-md px-5 py-5 space-y-4">
                 {weekProgress.map(({ label, value, max, color, icon: Icon }) => (
                   <div key={label}>
                     <div className="flex items-center justify-between mb-2">
@@ -284,7 +290,7 @@ export default function Dashboard() {
                       </div>
                       <span className="text-sm font-bold text-slate-900">{value}</span>
                     </div>
-                    <div className="h-2 w-full rounded-full bg-slate-100 overflow-hidden">
+                    <div className="h-2 w-full rounded-full bg-white/70 overflow-hidden">
                       <div
                         className={`h-full rounded-full bg-gradient-to-r ${color} transition-all duration-700`}
                         style={{ width: `${Math.min(value / max * 100, 100)}%` }}
@@ -293,13 +299,13 @@ export default function Dashboard() {
                   </div>
                 ))}
 
-                <div className="pt-3 border-t border-white/60 grid grid-cols-3 gap-2">
+                <div className="pt-3 border-t border-sky-200/40 grid grid-cols-3 gap-2">
                   {[
                     { label: 'Connexions', value: stats.totalLogins },
                     { label: 'Leçons', value: stats.totalElearningCompleted },
                     { label: 'Actions', value: stats.totalPracticeViewed + stats.totalTestingViewed },
                   ].map(({ label, value }) => (
-                    <div key={label} className="rounded-xl bg-white/70 py-2.5 text-center border border-white/80">
+                    <div key={label} className="rounded-xl bg-white/70 py-2.5 text-center border border-sky-100/60">
                       <div className="text-xl font-bold text-slate-900">{value}</div>
                       <div className="text-[10px] text-slate-400 mt-0.5">{label}</div>
                     </div>
@@ -310,18 +316,21 @@ export default function Dashboard() {
 
             {/* Badges */}
             <div>
-              <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-3">
-                Badges
-                {stats.unlockedAchievements > 0 && <span className="ml-1 normal-case font-normal">— {stats.unlockedAchievements} débloqués</span>}
-              </p>
-              <div className="rounded-2xl bg-white/65 backdrop-blur-md border border-white/80 shadow-sm overflow-hidden">
+              <div className="flex items-center gap-2.5 mb-4">
+                <div className="h-5 w-1 rounded-full bg-gradient-to-b from-violet-500 to-indigo-600" />
+                <h2 className="text-sm font-bold text-slate-800 tracking-wide">
+                  Badges débloqués
+                  {stats.unlockedAchievements > 0 && <span className="ml-1.5 text-xs font-normal text-slate-500">{stats.unlockedAchievements} au total</span>}
+                </h2>
+              </div>
+              <div className="rounded-2xl bg-indigo-50/65 backdrop-blur-xl border border-indigo-200/50 shadow-md overflow-hidden">
                 {badges.length > 0 ? (
                   badges.slice(0, 4).map((badge, i) => {
                     const BadgeIcon = badge.icon ? badgeIconMap[badge.icon] : null
                     return (
                       <div
                         key={badge.id}
-                        className={`flex items-center gap-3 px-5 py-3.5 ${i < Math.min(badges.length, 4) - 1 ? 'border-b border-white/60' : ''}`}
+                        className={`flex items-center gap-3 px-5 py-3.5 ${i < Math.min(badges.length, 4) - 1 ? 'border-b border-indigo-100/60' : ''}`}
                       >
                         <div className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-gradient-to-br ${badgeColors[i % badgeColors.length]} shadow-sm`}>
                           {BadgeIcon ? <BadgeIcon className="h-4 w-4 text-white" /> : <span className="text-sm">🏅</span>}
@@ -346,8 +355,11 @@ export default function Dashboard() {
           {/* ── Ambassadeur ────────────────────────────────────────── */}
           {(profile?.role === 'premium' || profile?.role === 'admin') && referralData && (
             <section>
-              <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-3">Espace Ambassadeur</p>
-              <div className="rounded-2xl overflow-hidden shadow-sm border border-amber-200/70 bg-amber-50/40 backdrop-blur-md">
+              <div className="flex items-center gap-2.5 mb-4">
+                <div className="h-5 w-1 rounded-full bg-gradient-to-b from-amber-400 to-amber-600" />
+                <h2 className="text-sm font-bold text-slate-800 tracking-wide">Espace Ambassadeur</h2>
+              </div>
+              <div className="rounded-2xl overflow-hidden shadow-md border border-amber-300/60 bg-amber-50/65 backdrop-blur-xl">
                 {/* Header ambre */}
                 <div className="bg-gradient-to-r from-amber-400 to-yellow-500 px-5 py-3 flex items-center gap-2">
                   <Crown className="h-4 w-4 text-amber-900" />
