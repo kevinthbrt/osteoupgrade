@@ -196,33 +196,120 @@ function SubscriptionContent() {
 
   return (
     <AuthLayout>
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="flex items-center gap-4">
-          <button
-            onClick={() => router.push('/dashboard')}
-            className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Retour au dashboard
-          </button>
-        </div>
+      {pendingPlanType && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-lg bg-white/85 backdrop-blur-2xl border border-white/70 shadow-2xl ring-1 ring-inset ring-white/60 rounded-2xl p-6 space-y-5">
+            <div className="flex items-start gap-3">
+              <div className="p-2.5 bg-yellow-100 rounded-lg">
+                <Gift className="h-5 w-5 text-yellow-700" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-gray-900">
+                  {pendingPlanSupportsReferral
+                    ? 'Avez-vous un code de parrainage ?'
+                    : 'Information avant paiement'}
+                </h3>
+                <p className="text-sm text-gray-600 mt-1">
+                  {pendingPlanSupportsReferral
+                    ? "Avant de passer sur Stripe, renseignez votre code si vous en possédez un pour profiter des avantages du parrainage. Vous pouvez aussi continuer sans code."
+                    : "Le parrainage s'applique uniquement sur les abonnements annuels. Cette offre mensuelle ne permet pas d'appliquer un code parrainage."}
+                </p>
+              </div>
+            </div>
 
-        <div className="bg-gradient-to-r from-purple-600 to-purple-700 rounded-xl shadow-sm p-8 text-white">
-          <div className="flex items-center gap-3 mb-3">
-            <Crown className="h-8 w-8" />
-            <h1 className="text-3xl font-bold">Abonnement Premium</h1>
+            {pendingPlanSupportsReferral && (
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-700">Code de parrainage (optionnel)</label>
+                <div className="flex items-center gap-3">
+                  <input
+                    type="text"
+                    value={referralCode}
+                    onChange={(e) => {
+                      const code = e.target.value.toUpperCase()
+                      setReferralCode(code)
+                      if (code.length >= 4) {
+                        validateReferralCode(code)
+                      } else {
+                        setCodeValidation(null)
+                      }
+                    }}
+                    placeholder="ex. KEVIN123"
+                    className="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent uppercase font-mono tracking-wider text-gray-900 placeholder:font-sans placeholder:tracking-normal"
+                    maxLength={10}
+                  />
+                  {validatingCode && <Loader2 className="h-5 w-5 animate-spin text-yellow-600" />}
+                </div>
+
+                {codeValidation && (
+                  <div
+                    className={`text-sm font-medium px-4 py-2 rounded-lg ${
+                      codeValidation.valid
+                        ? 'bg-green-50 border border-green-200 text-green-800'
+                        : 'bg-red-50 border border-red-200 text-red-800'
+                    }`}
+                  >
+                    {codeValidation.valid ? '✅' : '❌'} {codeValidation.message}
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div className="flex flex-col-reverse sm:flex-row gap-3 sm:justify-end">
+              <button
+                type="button"
+                onClick={() => setPendingPlanType(null)}
+                className="px-4 py-2.5 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition"
+              >
+                Annuler
+              </button>
+              {pendingPlanSupportsReferral && (
+                <button
+                  type="button"
+                  onClick={handleSkipReferral}
+                  className="px-4 py-2.5 rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50 transition"
+                >
+                  Je n'ai pas de code
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={handleContinueWithReferral}
+                disabled={pendingPlanSupportsReferral && (validatingCode || (!!referralCode && !codeValidation?.valid))}
+                className="px-4 py-2.5 rounded-lg bg-purple-600 text-white font-semibold hover:bg-purple-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Continuer vers Stripe
+              </button>
+            </div>
           </div>
-          <p className="text-purple-100 max-w-3xl">
-            {isPremium
-              ? 'Vous êtes actuellement abonné Premium. Merci de votre confiance !'
-              : 'Choisissez la formule qui correspond le mieux à vos besoins et boostez votre pratique clinique.'}
-          </p>
         </div>
+      )}
+      <div className="min-h-screen -m-6 md:-m-8">
+        {/* ── Header ── */}
+        <div className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 px-6 md:px-10 pt-8 pb-6">
+          <div className="absolute top-0 left-0 w-72 h-72 bg-purple-500/15 rounded-full blur-3xl animate-pulse -translate-x-1/2 -translate-y-1/4" style={{ animationDuration: '4s' }} />
+          <div className="absolute top-1/2 right-0 w-56 h-56 bg-indigo-400/10 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '6s', animationDelay: '2s' }} />
+          <div className="absolute bottom-0 right-1/4 w-48 h-48 bg-sky-400/15 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '5s', animationDelay: '1s' }} />
+          <div className="relative">
+            <div className="bg-white/5 backdrop-blur-md border border-white/10 ring-1 ring-inset ring-white/8 rounded-3xl p-6 md:p-8">
+              <button onClick={() => router.push('/dashboard')} className="inline-flex items-center gap-2 text-white/50 hover:text-white/80 text-sm mb-4 transition"><ArrowLeft className="h-4 w-4" /> Retour au dashboard</button>
+              <p className="text-purple-300 text-sm font-medium mb-1 tracking-wide flex items-center gap-2"><Crown className="h-4 w-4" /> Premium</p>
+              <h1 className="text-3xl md:text-4xl font-bold tracking-tight bg-gradient-to-r from-white via-purple-100 to-indigo-200 bg-clip-text text-transparent">Abonnement Premium</h1>
+              <p className="text-blue-300/70 text-sm mt-1.5">{isPremium ? 'Vous êtes actuellement abonné Premium. Merci de votre confiance !' : 'Choisissez la formule qui correspond le mieux à vos besoins et boostez votre pratique clinique.'}</p>
+            </div>
+          </div>
+          <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-purple-400/40 to-transparent" />
+          <div className="absolute bottom-0 left-1/4 right-1/4 h-px bg-gradient-to-r from-transparent via-purple-300/50 to-transparent blur-sm" />
+        </div>
+        {/* ── Body ── */}
+        <div className="relative overflow-hidden bg-gradient-to-br from-blue-100/90 via-sky-50 to-indigo-50/80 px-6 md:px-10 pt-8 pb-10">
+          <div className="pointer-events-none absolute top-0 left-1/4 w-96 h-96 bg-purple-400/20 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '6s' }} />
+          <div className="pointer-events-none absolute top-1/2 right-0 w-80 h-80 bg-sky-400/25 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '8s', animationDelay: '2s' }} />
+          <div className="pointer-events-none absolute bottom-0 left-0 w-72 h-72 bg-indigo-400/20 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '7s', animationDelay: '1s' }} />
+          <div className="relative space-y-6">
 
         {/* Current Status */}
         {isPremium && (
-          <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-6 space-y-6">
+          <div className="bg-white/85 backdrop-blur-2xl border border-white/70 shadow-xl ring-1 ring-inset ring-white/60 rounded-2xl p-6 space-y-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-500">Votre abonnement actuel</p>
@@ -280,7 +367,7 @@ function SubscriptionContent() {
               <button
                 onClick={handleManageSubscription}
                 disabled={openingPortal}
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-gray-900 text-white px-6 py-3 rounded-lg font-semibold hover:bg-gray-800 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-slate-800/90 backdrop-blur-sm border border-white/20 text-white font-semibold hover:bg-slate-700/90 shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {openingPortal ? (
                   <>
@@ -304,7 +391,7 @@ function SubscriptionContent() {
 
         {/* Referral Code Input - Only for non-premium users */}
         {!isPremium && (
-          <div className="bg-gradient-to-br from-yellow-50 to-amber-50 border-2 border-yellow-300 rounded-xl p-6">
+          <div className="bg-amber-100/85 backdrop-blur-2xl border border-amber-300/70 shadow-xl ring-1 ring-inset ring-white/60 rounded-2xl p-6">
             <div className="flex items-start gap-4">
               <div className="p-3 bg-yellow-500 rounded-lg flex-shrink-0">
                 <Gift className="h-6 w-6 text-yellow-900" />
@@ -369,7 +456,7 @@ function SubscriptionContent() {
 
         {/* Section parrainage pour les membres Premium */}
         {isPremium && (
-          <div className="bg-gradient-to-br from-yellow-50 to-amber-50 border-2 border-yellow-300 rounded-xl p-6">
+          <div className="bg-amber-100/85 backdrop-blur-2xl border border-amber-300/70 shadow-xl ring-1 ring-inset ring-white/60 rounded-2xl p-6">
             <div className="flex items-start gap-4">
               <div className="p-3 bg-yellow-500 rounded-lg flex-shrink-0">
                 <Crown className="h-6 w-6 text-yellow-900" />
@@ -483,7 +570,7 @@ function SubscriptionContent() {
         )}
 
         {/* FAQ ou Notes */}
-        <div className="bg-gray-50 border border-gray-200 rounded-xl p-6">
+        <div className="bg-white/85 backdrop-blur-2xl border border-white/70 shadow-xl ring-1 ring-inset ring-white/60 rounded-2xl p-6">
           <h3 className="font-semibold text-gray-900 mb-3">💡 Bon à savoir</h3>
           <div className="space-y-2 text-sm text-gray-700">
             <p>✅ Paiement sécurisé via Stripe</p>
@@ -517,94 +604,9 @@ function SubscriptionContent() {
           </p>
         </div>
 
-        {pendingPlanType && (
-          <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-            <div className="w-full max-w-lg bg-white rounded-2xl shadow-2xl border border-gray-200 p-6 space-y-5">
-              <div className="flex items-start gap-3">
-                <div className="p-2.5 bg-yellow-100 rounded-lg">
-                  <Gift className="h-5 w-5 text-yellow-700" />
-                </div>
-                <div>
-                  <h3 className="text-lg font-bold text-gray-900">
-                    {pendingPlanSupportsReferral
-                      ? 'Avez-vous un code de parrainage ?'
-                      : 'Information avant paiement'}
-                  </h3>
-                  <p className="text-sm text-gray-600 mt-1">
-                    {pendingPlanSupportsReferral
-                      ? "Avant de passer sur Stripe, renseignez votre code si vous en possédez un pour profiter des avantages du parrainage. Vous pouvez aussi continuer sans code."
-                      : "Le parrainage s'applique uniquement sur les abonnements annuels. Cette offre mensuelle ne permet pas d'appliquer un code parrainage."}
-                  </p>
-                </div>
-              </div>
-
-              {pendingPlanSupportsReferral && (
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-700">Code de parrainage (optionnel)</label>
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="text"
-                      value={referralCode}
-                      onChange={(e) => {
-                        const code = e.target.value.toUpperCase()
-                        setReferralCode(code)
-                        if (code.length >= 4) {
-                          validateReferralCode(code)
-                        } else {
-                          setCodeValidation(null)
-                        }
-                      }}
-                      placeholder="ex. KEVIN123"
-                      className="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent uppercase font-mono tracking-wider text-gray-900 placeholder:font-sans placeholder:tracking-normal"
-                      maxLength={10}
-                    />
-                    {validatingCode && <Loader2 className="h-5 w-5 animate-spin text-yellow-600" />}
-                  </div>
-
-                  {codeValidation && (
-                    <div
-                      className={`text-sm font-medium px-4 py-2 rounded-lg ${
-                        codeValidation.valid
-                          ? 'bg-green-50 border border-green-200 text-green-800'
-                          : 'bg-red-50 border border-red-200 text-red-800'
-                      }`}
-                    >
-                      {codeValidation.valid ? '✅' : '❌'} {codeValidation.message}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              <div className="flex flex-col-reverse sm:flex-row gap-3 sm:justify-end">
-                <button
-                  type="button"
-                  onClick={() => setPendingPlanType(null)}
-                  className="px-4 py-2.5 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition"
-                >
-                  Annuler
-                </button>
-                {pendingPlanSupportsReferral && (
-                  <button
-                    type="button"
-                    onClick={handleSkipReferral}
-                    className="px-4 py-2.5 rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50 transition"
-                  >
-                    Je n'ai pas de code
-                  </button>
-                )}
-                <button
-                  type="button"
-                  onClick={handleContinueWithReferral}
-                  disabled={pendingPlanSupportsReferral && (validatingCode || (!!referralCode && !codeValidation?.valid))}
-                  className="px-4 py-2.5 rounded-lg bg-purple-600 text-white font-semibold hover:bg-purple-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Continuer vers Stripe
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
+          </div>{/* end relative space-y-6 */}
+        </div>{/* end body */}
+      </div>{/* end min-h-screen */}
     </AuthLayout>
   )
 }
