@@ -15,10 +15,39 @@ type ChangelogEntry = {
 
 // ─────────────────────────────────────────────
 // 🔖 INCRÉMENTER cette valeur à chaque mise à jour
-const CHANGELOG_VERSION = 9
+const CHANGELOG_VERSION = 10
 // ─────────────────────────────────────────────
 
 const CHANGELOG: ChangelogEntry[] = [
+  {
+    date: '15 avril 2026',
+    changes: [
+      {
+        type: 'improvement',
+        text: 'Design — refonte visuelle "liquid glass" appliquée à toutes les pages de l\'application (dashboard, e-learning, pratique, parrainage, tests, exercices, topographie, diagnostics, outils, settings, admin). Header sombre avec blobs animés, corps clair en glassmorphism, boutons et cards en verre liquide.'
+      },
+      {
+        type: 'improvement',
+        text: 'Design — effet de profondeur sur le panel header : ombre portée, bordure plus lumineuse et verre légèrement plus opaque pour faire "flotter" le cadre devant le fond.'
+      },
+      {
+        type: 'fix',
+        text: 'Abonnements — simplification des tiers : premium_silver et premium_gold fusionnés en un seul rôle "premium". Tous les utilisateurs existants migrés automatiquement.'
+      },
+      {
+        type: 'fix',
+        text: 'Sécurité — 8 politiques RLS (elearning_formations, orthopedic_tests, pathologies, elearning_topographic_views, practice_videos, elearning_quizzes, elearning_quiz_questions, elearning_quiz_answers) mises à jour pour accepter le rôle "premium". Sans cette correction, les membres premium n\'auraient plus eu accès aux contenus après migration.'
+      },
+      {
+        type: 'fix',
+        text: 'Parrainage — fonction validate_referral_code (1 argument) corrigée : vérifiait l\'ancien rôle premium_gold, désormais accepte premium et admin.'
+      },
+      {
+        type: 'fix',
+        text: 'Parrainage — contrainte CHECK sur referral_transactions.subscription_type élargie pour accepter "premium" en plus des anciennes valeurs (évite les erreurs d\'insertion lors de nouveaux abonnements).'
+      }
+    ]
+  },
   {
     date: '13 avril 2026',
     changes: [
