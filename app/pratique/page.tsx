@@ -797,52 +797,56 @@ export default function PracticePage() {
       )}
 
       {/* ══════════════ MAIN CONTENT ══════════════ */}
-      <div className="space-y-6">
-        {isFreeUser && <FreeUserBanner />}
+      <div className="min-h-screen -m-6 md:-m-8">
 
-        {/* Hero */}
-        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white shadow-2xl">
-          <div className="absolute inset-0 bg-grid-white/[0.02] bg-[size:60px_60px]" />
-          <div className="absolute top-0 right-0 w-96 h-96 bg-pink-500/30 rounded-full blur-3xl" />
-          <div className="absolute bottom-0 left-0 w-96 h-96 bg-rose-500/20 rounded-full blur-3xl" />
-          <div className="relative px-6 py-8 md:px-10 md:py-10">
-            <div className="inline-flex items-center gap-2 rounded-full bg-white/10 backdrop-blur-sm px-3 py-1.5 mb-4 border border-white/20">
-              <Video className="h-3.5 w-3.5 text-pink-300" />
-              <span className="text-xs font-semibold text-pink-100">Module Pratique Premium</span>
+        {/* ── Header ── */}
+        <div className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 px-6 md:px-10 pt-8 pb-6">
+          <div className="absolute top-0 left-0 w-72 h-72 bg-pink-500/15 rounded-full blur-3xl animate-pulse -translate-x-1/2 -translate-y-1/4" style={{ animationDuration: '4s' }} />
+          <div className="absolute top-1/2 right-0 w-56 h-56 bg-rose-400/10 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '6s', animationDelay: '2s' }} />
+          <div className="absolute bottom-0 right-1/4 w-48 h-48 bg-sky-400/15 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '5s', animationDelay: '1s' }} />
+          <div className="relative">
+            <div className="bg-white/5 backdrop-blur-md border border-white/10 ring-1 ring-inset ring-white/8 rounded-3xl p-6 md:p-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <div>
+                <p className="text-pink-300 text-sm font-medium mb-1 tracking-wide flex items-center gap-2">
+                  <Video className="h-4 w-4" /> Module Pratique Premium
+                </p>
+                <h1 className="text-3xl md:text-4xl font-bold tracking-tight bg-gradient-to-r from-white via-pink-100 to-rose-200 bg-clip-text text-transparent">
+                  Techniques par région
+                </h1>
+                <p className="text-blue-300/70 text-sm mt-1.5">
+                  Vidéos de techniques cliniques organisées par région anatomique
+                </p>
+              </div>
+              {isAdmin(profile?.role) && (
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    onClick={() => { setEditingVideo(null); setForm(emptyForm(selectedRegion)); setShowVideoForm(true) }}
+                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-pink-500/90 backdrop-blur-sm border border-pink-400/30 text-white text-sm font-semibold hover:bg-pink-500 shadow-sm transition-all"
+                  >
+                    <Plus className="h-4 w-4" /> Ajouter une vidéo
+                  </button>
+                  <button
+                    onClick={() => setShowCategoryManager(true)}
+                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/10 backdrop-blur-sm border border-white/20 text-white text-sm font-semibold hover:bg-white/20 shadow-sm transition-all"
+                  >
+                    <Tag className="h-4 w-4" /> Catégories
+                  </button>
+                </div>
+              )}
             </div>
-            <h1 className="text-3xl md:text-4xl font-bold mb-3 bg-clip-text text-transparent bg-gradient-to-r from-white to-pink-100">
-              Techniques par région
-            </h1>
-            <p className="text-base md:text-lg text-slate-300 max-w-2xl">
-              Explorez nos vidéos de techniques cliniques organisées par région anatomique.
-              Cliquez sur une vidéo pour la lancer.
-            </p>
           </div>
+          <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-pink-400/40 to-transparent" />
+          <div className="absolute bottom-0 left-1/4 right-1/4 h-px bg-gradient-to-r from-transparent via-rose-300/50 to-transparent blur-sm" />
         </div>
 
-        {/* Admin toolbar */}
-        {isAdmin(profile?.role) && (
-          <div className="flex flex-wrap items-center gap-3">
-            <button
-              onClick={() => {
-                setEditingVideo(null)
-                setForm(emptyForm(selectedRegion))
-                setShowVideoForm(true)
-              }}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-pink-600 text-white hover:bg-pink-700 transition shadow"
-            >
-              <Plus className="h-4 w-4" />
-              Ajouter une vidéo
-            </button>
-            <button
-              onClick={() => setShowCategoryManager(true)}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-pink-200 bg-white text-pink-600 hover:bg-pink-50 transition shadow-sm"
-            >
-              <Tag className="h-4 w-4" />
-              Gérer les catégories
-            </button>
-          </div>
-        )}
+        {/* ── Body ── */}
+        <div className="relative overflow-hidden bg-gradient-to-br from-blue-100/90 via-sky-50 to-indigo-50/80 px-6 md:px-10 pt-8 pb-10">
+          <div className="pointer-events-none absolute top-0 left-1/4 w-96 h-96 bg-pink-400/25 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '6s' }} />
+          <div className="pointer-events-none absolute top-1/2 right-0 w-80 h-80 bg-sky-400/30 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '8s', animationDelay: '2s' }} />
+          <div className="pointer-events-none absolute bottom-0 left-0 w-72 h-72 bg-indigo-400/25 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '7s', animationDelay: '1s' }} />
+
+          <div className="relative space-y-6">
+        {isFreeUser && <FreeUserBanner />}
 
         {/* Region tabs */}
         <div className="flex flex-wrap gap-2">
@@ -853,15 +857,15 @@ export default function PracticePage() {
               <button
                 key={region.value}
                 onClick={() => setSelectedRegion(region.value)}
-                className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition whitespace-nowrap ${
+                className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all whitespace-nowrap ${
                   active
-                    ? 'bg-pink-600 text-white shadow-md shadow-pink-200'
-                    : 'bg-white border border-gray-200 text-gray-600 hover:border-pink-300 hover:text-pink-600'
+                    ? 'bg-pink-500/90 backdrop-blur-sm border border-pink-400/30 text-white shadow-sm'
+                    : 'bg-white/70 backdrop-blur-sm border border-white/60 text-slate-600 hover:bg-white/90 hover:text-pink-600'
                 }`}
               >
                 {region.label}
                 <span className={`text-xs rounded-full px-1.5 py-0.5 min-w-[20px] text-center ${
-                  active ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-500'
+                  active ? 'bg-white/20 text-white' : 'bg-blue-100 text-slate-500'
                 }`}>
                   {count}
                 </span>
@@ -873,16 +877,16 @@ export default function PracticePage() {
         {/* Category filter */}
         {categories.length > 0 && (
           <div className="flex items-center gap-2 flex-wrap">
-            <div className="flex items-center gap-1.5 text-sm text-gray-500">
+            <div className="flex items-center gap-1.5 text-sm text-slate-500">
               <Filter className="h-4 w-4" />
               <span>Filtrer :</span>
             </div>
             <button
               onClick={() => setSelectedCategory('all')}
-              className={`px-3 py-1.5 rounded-full text-sm font-medium transition ${
+              className={`px-3 py-1.5 rounded-xl text-sm font-medium transition-all ${
                 selectedCategory === 'all'
-                  ? 'bg-gray-900 text-white'
-                  : 'bg-white border border-gray-200 text-gray-600 hover:border-gray-400'
+                  ? 'bg-slate-900/90 backdrop-blur-sm border border-slate-700/30 text-white shadow-sm'
+                  : 'bg-white/70 backdrop-blur-sm border border-white/60 text-slate-600 hover:bg-white/90'
               }`}
             >
               Toutes
@@ -891,10 +895,10 @@ export default function PracticePage() {
               <button
                 key={cat.id}
                 onClick={() => setSelectedCategory(cat.id)}
-                className={`px-3 py-1.5 rounded-full text-sm font-medium transition border ${
+                className={`px-3 py-1.5 rounded-xl text-sm font-medium transition-all border ${
                   selectedCategory === cat.id
-                    ? 'text-white border-transparent'
-                    : 'bg-white border-gray-200 text-gray-600 hover:border-gray-400'
+                    ? 'text-white border-transparent shadow-sm'
+                    : 'bg-white/70 backdrop-blur-sm border-white/60 text-slate-600 hover:bg-white/90'
                 }`}
                 style={selectedCategory === cat.id ? { backgroundColor: cat.color, borderColor: cat.color } : undefined}
               >
@@ -907,20 +911,16 @@ export default function PracticePage() {
         {/* Video grid */}
         <div className="grid gap-5 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {paginatedVideos.length === 0 && (
-            <div className="col-span-full rounded-2xl border-2 border-dashed border-gray-200 bg-gradient-to-br from-slate-50 to-white p-12 text-center">
-              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-pink-100 to-rose-100 mb-4">
-                <Video className="h-8 w-8 text-pink-600" />
+            <div className="col-span-full rounded-2xl bg-white/85 backdrop-blur-2xl border border-white/70 shadow-xl ring-1 ring-inset ring-white/60 p-12 text-center">
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-pink-500 to-rose-600 mb-4 shadow-md">
+                <Video className="h-8 w-8 text-white" />
               </div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">Aucune vidéo disponible</h3>
-              <p className="text-gray-600 text-sm">Les vidéos pour cette région apparaîtront ici.</p>
+              <h3 className="text-lg font-semibold text-slate-900 mb-2">Aucune vidéo disponible</h3>
+              <p className="text-slate-500 text-sm">Les vidéos pour cette région apparaîtront ici.</p>
               {isAdmin(profile?.role) && (
                 <button
-                  onClick={() => {
-                    setEditingVideo(null)
-                    setForm(emptyForm(selectedRegion))
-                    setShowVideoForm(true)
-                  }}
-                  className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-pink-600 text-white hover:bg-pink-700 text-sm"
+                  onClick={() => { setEditingVideo(null); setForm(emptyForm(selectedRegion)); setShowVideoForm(true) }}
+                  className="mt-4 inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-pink-500/90 backdrop-blur-sm border border-pink-400/30 text-white text-sm font-semibold hover:bg-pink-500 shadow-sm transition-all"
                 >
                   <Plus className="h-4 w-4" /> Ajouter une vidéo
                 </button>
@@ -933,7 +933,7 @@ export default function PracticePage() {
             return (
               <FreeContentGate key={video.id} isLocked={isVideoLocked}>
               <div
-                className="group bg-white border border-gray-100 hover:border-pink-200 rounded-2xl shadow-sm hover:shadow-xl overflow-hidden flex flex-col transition-all duration-300 hover:-translate-y-0.5"
+                className="group rounded-2xl bg-white/85 backdrop-blur-2xl border border-white/70 shadow-xl ring-1 ring-inset ring-white/60 overflow-hidden flex flex-col transition-all duration-300 hover:shadow-2xl hover:-translate-y-0.5"
               >
                 {/* Thumbnail */}
                 <div
@@ -1028,6 +1028,8 @@ export default function PracticePage() {
           </div>
         )}
 
+          </div>
+        </div>
       </div>
     </AuthLayout>
   )
