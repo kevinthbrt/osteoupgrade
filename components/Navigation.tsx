@@ -238,18 +238,23 @@ export default function Navigation() {
       {/* Mobile menu button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-slate-900 text-white rounded-lg shadow-lg border border-white/10 hover:bg-slate-800 transition-all"
+        className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-slate-900 text-white rounded-lg shadow-lg border border-blue-900/50 hover:bg-blue-950 transition-all"
       >
         {isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
       </button>
 
       {/* Sidebar */}
-      <aside className={`fixed top-0 left-0 h-full bg-gradient-to-b from-slate-900 via-slate-900 to-slate-800 border-r border-white/10 transition-transform duration-300 z-40 ${
+      <aside className={`fixed top-0 left-0 h-full bg-gradient-to-b from-slate-900 via-blue-950 to-slate-900 border-r border-blue-900/50 transition-transform duration-300 z-40 overflow-hidden ${
         isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
       } w-72 lg:w-64`}>
-        <div className="flex flex-col h-full">
+        {/* Ambient blobs */}
+        <div className="absolute top-0 left-0 w-48 h-48 bg-blue-500/10 rounded-full blur-3xl animate-pulse pointer-events-none -translate-x-1/2 -translate-y-1/4" style={{ animationDuration: '5s' }} />
+        <div className="absolute bottom-1/4 right-0 w-40 h-40 bg-cyan-400/8 rounded-full blur-3xl animate-pulse pointer-events-none translate-x-1/3" style={{ animationDuration: '7s', animationDelay: '2s' }} />
+        <div className="absolute top-1/2 left-1/2 w-32 h-32 bg-indigo-500/8 rounded-full blur-2xl animate-pulse pointer-events-none -translate-x-1/2 -translate-y-1/2" style={{ animationDuration: '4s', animationDelay: '1s' }} />
+
+        <div className="flex flex-col h-full relative">
           {/* Logo */}
-          <div className="p-6 border-b border-white/10">
+          <div className="p-6 border-b border-blue-900/50">
             <div className="flex items-center justify-center space-x-3">
               <div className="flex items-center justify-center">
                 <Image
@@ -269,7 +274,7 @@ export default function Navigation() {
           </div>
 
           {/* User info */}
-          <div className="px-6 py-4 border-b border-white/10">
+          <div className="px-6 py-4 border-b border-blue-900/50">
             <div className="flex items-center justify-between">
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-white truncate">
@@ -551,7 +556,7 @@ export default function Navigation() {
           )}
 
           {/* Logout button + Legal links */}
-          <div className="p-4 border-t border-white/10 space-y-3">
+          <div className="p-4 border-t border-blue-900/50 space-y-3">
             <button
               onClick={handleLogout}
               className="flex items-center w-full px-3 py-2.5 text-slate-300 rounded-lg hover:bg-red-500/20 hover:text-red-300 transition-all group"
