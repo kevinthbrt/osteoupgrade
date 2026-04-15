@@ -267,56 +267,49 @@ export default function TopographiePage() {
 
   return (
     <AuthLayout>
-      <div className="max-w-6xl mx-auto space-y-6">
-        {isFree && <FreeUserBanner />}
-        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white shadow-2xl">
-          {/* Decorative elements */}
-          <div className="absolute inset-0 bg-grid-white/[0.02] bg-[size:60px_60px]" />
-          <div className="absolute top-0 right-0 w-96 h-96 bg-blue-500/30 rounded-full blur-3xl" />
-          <div className="absolute bottom-0 left-0 w-96 h-96 bg-indigo-500/20 rounded-full blur-3xl" />
-
-          <div className="relative px-6 py-8 md:px-10 md:py-10">
-            <div className="max-w-4xl">
-              {/* Badge */}
-              <div className="inline-flex items-center gap-2 rounded-full bg-white/10 backdrop-blur-sm px-3 py-1.5 mb-4 border border-white/20">
-                <BookOpen className="h-3.5 w-3.5 text-blue-300" />
-                <span className="text-xs font-semibold text-blue-100">
-                  Module Topographie
-                </span>
-              </div>
-
-              {/* Main heading */}
-              <h1 className="text-3xl md:text-4xl font-bold mb-3 bg-clip-text text-transparent bg-gradient-to-r from-white to-blue-100">
+      <div className="min-h-screen -m-6 md:-m-8">
+        {/* ── Header ── */}
+        <div className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 px-6 md:px-10 pt-8 pb-6">
+          <div className="absolute top-0 left-0 w-72 h-72 bg-cyan-500/15 rounded-full blur-3xl animate-pulse -translate-x-1/2 -translate-y-1/4" style={{ animationDuration: '4s' }} />
+          <div className="absolute top-1/2 right-0 w-56 h-56 bg-sky-400/10 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '6s', animationDelay: '2s' }} />
+          <div className="absolute bottom-0 right-1/4 w-48 h-48 bg-blue-400/15 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '5s', animationDelay: '1s' }} />
+          <div className="relative">
+            <div className="bg-white/5 backdrop-blur-md border border-white/10 ring-1 ring-inset ring-white/8 rounded-3xl p-6 md:p-8">
+              <p className="text-cyan-300 text-sm font-medium mb-1 tracking-wide flex items-center gap-2">
+                <BookOpen className="h-4 w-4" /> Module Topographie
+              </p>
+              <h1 className="text-3xl md:text-4xl font-bold tracking-tight bg-gradient-to-r from-white via-cyan-100 to-sky-200 bg-clip-text text-transparent">
                 Vues topographiques par zone
               </h1>
-
-              <p className="text-base md:text-lg text-slate-300 mb-6 max-w-2xl">
-                Naviguez par région anatomique et ouvrez chaque vue pour afficher l'image, le titre et la description.
+              <p className="text-blue-300/70 text-sm mt-1.5">
+                Naviguez par région anatomique et ouvrez chaque vue pour afficher l&apos;image, le titre et la description.
               </p>
-
-              {/* Status badge */}
-              <div className="flex items-center gap-2">
-                <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/10 backdrop-blur-sm border border-white/20">
-                  <CheckCircle className="h-4 w-4 text-emerald-300" />
-                  <span className="text-sm font-semibold">Contenu Premium</span>
-                </div>
-              </div>
             </div>
           </div>
+          <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-cyan-400/40 to-transparent" />
+          <div className="absolute bottom-0 left-1/4 right-1/4 h-px bg-gradient-to-r from-transparent via-sky-300/50 to-transparent blur-sm" />
         </div>
+
+        {/* ── Body ── */}
+        <div className="relative overflow-hidden bg-gradient-to-br from-blue-100/90 via-sky-50 to-indigo-50/80 px-6 md:px-10 pt-8 pb-10">
+          <div className="pointer-events-none absolute top-0 left-1/4 w-96 h-96 bg-cyan-400/20 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '6s' }} />
+          <div className="pointer-events-none absolute top-1/2 right-0 w-80 h-80 bg-sky-400/25 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '8s', animationDelay: '2s' }} />
+          <div className="pointer-events-none absolute bottom-0 left-0 w-72 h-72 bg-indigo-400/20 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '7s', animationDelay: '1s' }} />
+          <div className="relative space-y-6">
+        {isFree && <FreeUserBanner />}
 
         {/* Grille de sélection des zones anatomiques */}
         {selectedRegion === 'all' ? (
-          <div className="bg-white rounded-xl shadow-sm p-6">
+          <div className="bg-white/85 backdrop-blur-2xl border border-white/70 shadow-xl ring-1 ring-inset ring-white/60 rounded-2xl p-6">
             <div className="flex items-center justify-between mb-4">
               <div>
-                <h2 className="text-lg font-semibold text-gray-900 mb-1">Sélectionnez une zone anatomique</h2>
-                <p className="text-sm text-gray-600">Cliquez sur une région pour afficher les vues topographiques associées</p>
+                <h2 className="text-lg font-semibold text-slate-900 mb-1">Sélectionnez une zone anatomique</h2>
+                <p className="text-sm text-slate-500">Cliquez sur une région pour afficher les vues topographiques associées</p>
               </div>
               {isAdmin && (
                 <button
                   onClick={openCreateModal}
-                  className="px-4 py-2 bg-rose-600 text-white rounded-lg hover:bg-rose-700 transition-colors flex items-center gap-2"
+                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-cyan-500/90 backdrop-blur-sm border border-cyan-400/30 text-white text-sm font-semibold hover:bg-cyan-600/90 shadow-sm transition-all"
                 >
                   <Plus className="h-4 w-4" />
                   Nouvelle vue
@@ -328,7 +321,7 @@ export default function TopographiePage() {
             <div className="space-y-6">
               {Object.entries(BODY_REGIONS).map(([category, regions]) => (
                 <div key={category}>
-                  <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                  <h3 className="text-sm font-semibold text-slate-600 mb-3 flex items-center gap-2">
                     {getRegionIcon(category)}
                     {category}
                   </h3>
@@ -338,7 +331,7 @@ export default function TopographiePage() {
                         <button
                           key={region}
                           onClick={() => setSelectedRegion(region as AnatomicalRegion)}
-                          className="w-full px-4 py-3 rounded-lg font-medium transition-all text-sm bg-white text-gray-700 border-2 border-slate-200 hover:border-rose-400 hover:bg-rose-50"
+                          className="w-full px-4 py-3 rounded-xl font-medium transition-all text-sm bg-white/70 backdrop-blur-sm border border-white/60 text-slate-600 hover:bg-cyan-50/80 hover:border-cyan-300/50 hover:text-cyan-700"
                         >
                           {REGION_LABELS[region as AnatomicalRegion]}
                         </button>
@@ -350,10 +343,10 @@ export default function TopographiePage() {
             </div>
           </div>
         ) : (
-          <div className="bg-gradient-to-r from-rose-50 to-rose-100 rounded-xl shadow-sm p-4 border-2 border-rose-200">
+          <div className="bg-white/85 backdrop-blur-2xl border border-white/70 shadow-xl ring-1 ring-inset ring-white/60 rounded-2xl p-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="flex items-center gap-2 px-4 py-2 bg-rose-600 text-white rounded-lg shadow-md">
+                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-cyan-500/90 backdrop-blur-sm border border-cyan-400/30 text-white font-semibold shadow-sm">
                   {getRegionIcon(
                     Object.entries(BODY_REGIONS).find(([_, regions]) =>
                       regions.includes(selectedRegion)
@@ -361,7 +354,7 @@ export default function TopographiePage() {
                   )}
                   <span className="font-semibold">{REGION_LABELS[selectedRegion as AnatomicalRegion]}</span>
                 </div>
-                <div className="text-sm text-gray-700">
+                <div className="text-sm text-slate-600">
                   <span className="font-medium">{filteredZones.length}</span> vue(s) topographique(s)
                 </div>
               </div>
@@ -369,7 +362,7 @@ export default function TopographiePage() {
                 {isAdmin && (
                   <button
                     onClick={openCreateModal}
-                    className="px-4 py-2 bg-rose-600 text-white rounded-lg hover:bg-rose-700 transition-colors flex items-center gap-2"
+                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-cyan-500/90 backdrop-blur-sm border border-cyan-400/30 text-white text-sm font-semibold hover:bg-cyan-600/90 shadow-sm transition-all"
                   >
                     <Plus className="h-4 w-4" />
                     Nouvelle vue
@@ -377,7 +370,7 @@ export default function TopographiePage() {
                 )}
                 <button
                   onClick={() => setSelectedRegion('all')}
-                  className="px-4 py-2 bg-white border-2 border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 hover:border-gray-400 font-medium transition-all shadow-sm"
+                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/70 backdrop-blur-sm border border-blue-200/60 text-slate-700 text-sm font-medium hover:bg-white/90 transition-all"
                 >
                   Changer de région
                 </button>
@@ -386,19 +379,19 @@ export default function TopographiePage() {
           </div>
         )}
 
-        <div className="bg-white rounded-xl shadow-sm p-6">
+        <div className="bg-white/85 backdrop-blur-2xl border border-white/70 shadow-xl ring-1 ring-inset ring-white/60 rounded-2xl p-6">
           {zonesLoading ? (
             <div className="flex items-center justify-center h-64">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600" />
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-500" />
             </div>
           ) : filteredZones.length === 0 ? (
             <div className="text-center py-16">
-              <Map className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-              <p className="text-gray-600">Aucune vue topographique dans cette région pour le moment.</p>
+              <Map className="h-12 w-12 text-slate-300 mx-auto mb-3" />
+              <p className="text-slate-500">Aucune vue topographique dans cette région pour le moment.</p>
               {isAdmin && (
                 <button
                   onClick={openCreateModal}
-                  className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
+                  className="mt-4 inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-cyan-500/90 backdrop-blur-sm border border-cyan-400/30 text-white text-sm font-semibold hover:bg-cyan-600/90 shadow-sm transition-all"
                 >
                   <Plus className="h-4 w-4" />
                   Ajouter une vue
@@ -410,9 +403,9 @@ export default function TopographiePage() {
               {filteredZones.map(zone => (
                 <FreeContentGate key={zone.id} isLocked={isFree && !FREE_ACCESSIBLE_REGIONS_TOPO.includes(zone.region)}>
                 <div
-                  className="group relative rounded-xl border border-gray-200 overflow-hidden bg-gradient-to-br from-gray-50 to-white shadow-sm"
+                  className="group relative rounded-2xl bg-white/85 backdrop-blur-2xl border border-white/70 shadow-xl ring-1 ring-inset ring-white/60 overflow-hidden transition-all duration-300 hover:shadow-2xl hover:-translate-y-0.5"
                 >
-                  <div className="relative h-48 bg-white border-b border-gray-200 flex items-center justify-center overflow-hidden">
+                  <div className="relative h-48 bg-gradient-to-br from-slate-50 to-gray-100 flex items-center justify-center overflow-hidden">
                     {zone.image_url ? (
                       <img
                         src={zone.image_url}
@@ -420,12 +413,12 @@ export default function TopographiePage() {
                         className="w-full h-full object-contain p-4 transition-transform duration-300 group-hover:scale-105"
                       />
                     ) : (
-                      <div className="text-center text-gray-400">
+                      <div className="text-center text-slate-400">
                         <ImageIcon className="h-12 w-12 mx-auto mb-2" />
                         <p className="text-sm">Image manquante</p>
                       </div>
                     )}
-                    <div className="absolute top-3 left-3 inline-flex items-center gap-2 bg-white/90 px-3 py-1 rounded-full text-xs font-semibold text-gray-700">
+                    <div className="absolute top-3 left-3 inline-flex items-center gap-2 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-semibold text-slate-700 border border-white/60">
                       {REGION_LABELS[zone.region]}
                     </div>
                   </div>
@@ -433,15 +426,15 @@ export default function TopographiePage() {
                   <div className="p-4 space-y-3">
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <p className="text-xs uppercase tracking-wide text-primary-600 font-semibold">Vue topographique</p>
-                        <h3 className="text-lg font-bold text-gray-900 line-clamp-2">{zone.name}</h3>
+                        <p className="text-xs uppercase tracking-wide text-cyan-600 font-semibold">Vue topographique</p>
+                        <h3 className="text-lg font-bold text-slate-900 line-clamp-2 group-hover:text-cyan-700 transition-colors">{zone.name}</h3>
                       </div>
-                      <Sparkles className="h-5 w-5 text-primary-500" />
+                      <Sparkles className="h-5 w-5 text-cyan-400" />
                     </div>
 
                     {zone.description && (
                       <div
-                        className="text-sm text-gray-600 line-clamp-3 whitespace-pre-line"
+                        className="text-sm text-slate-500 line-clamp-3 whitespace-pre-line"
                         dangerouslySetInnerHTML={{
                           __html: sanitizeHtml(zone.description || '')
                         }}
@@ -451,14 +444,14 @@ export default function TopographiePage() {
                     <div className="flex gap-2">
                       <button
                         onClick={() => setActiveZone(zone)}
-                        className="flex-1 px-3 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-sm font-semibold"
+                        className="flex-1 inline-flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-cyan-500/90 backdrop-blur-sm border border-cyan-400/30 text-white text-sm font-semibold hover:bg-cyan-600/90 shadow-sm transition-all"
                       >
                         Ouvrir la vue
                       </button>
                       {isAdmin && (
                         <button
                           onClick={() => openEditModal(zone)}
-                          className="px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-700 hover:border-primary-200"
+                          className="px-3 py-2 rounded-xl bg-white/70 backdrop-blur-sm border border-blue-200/60 text-sm text-slate-600 hover:bg-white/90 transition-all"
                         >
                           Modifier
                         </button>
@@ -473,7 +466,7 @@ export default function TopographiePage() {
         </div>
 
         {/* Related Modules */}
-        <div className="bg-white rounded-xl shadow-sm p-6">
+        <div className="bg-white/85 backdrop-blur-2xl border border-white/70 shadow-xl ring-1 ring-inset ring-white/60 rounded-2xl p-6">
           <RelatedContent
             title="📚 Explorer aussi"
             items={[
@@ -507,11 +500,13 @@ export default function TopographiePage() {
             ]}
           />
         </div>
+          </div>
+        </div>
       </div>
 
       {activeZone && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-2xl max-w-7xl w-full max-h-[95vh] min-h-[70vh] overflow-hidden relative flex flex-col">
+          <div className="bg-white/85 backdrop-blur-2xl border border-white/70 shadow-2xl ring-1 ring-inset ring-white/60 rounded-3xl max-w-7xl w-full max-h-[95vh] min-h-[70vh] overflow-hidden relative flex flex-col">
             <button
               onClick={() => setActiveZone(null)}
               className="absolute top-4 right-4 p-2 bg-white rounded-full shadow hover:bg-gray-50"
@@ -568,10 +563,10 @@ export default function TopographiePage() {
 
       {showCreateModal && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
-            <div className="p-6 border-b flex items-center justify-between">
+          <div className="bg-white/85 backdrop-blur-2xl border border-white/70 shadow-2xl ring-1 ring-inset ring-white/60 rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+            <div className="p-6 border-b border-white/30 flex items-center justify-between">
               <div>
-                <p className="text-sm text-primary-600 font-semibold">Admin</p>
+                <p className="text-sm text-cyan-600 font-semibold">Admin</p>
                 <h3 className="text-xl font-bold text-gray-900">
                   {modalMode === 'edit' ? 'Modifier la vue topographique' : 'Nouvelle vue topographique'}
                 </h3>
@@ -591,7 +586,7 @@ export default function TopographiePage() {
                   <select
                     value={formData.region}
                     onChange={(e) => setFormData(prev => ({ ...prev, region: e.target.value as AnatomicalRegion }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                    className="w-full bg-white/70 backdrop-blur-sm border border-blue-200/60 rounded-lg px-3 py-2 focus:ring-2 focus:ring-cyan-300 focus:border-cyan-400 outline-none"
                     required
                   >
                     <option value="">Sélectionner</option>
@@ -614,7 +609,7 @@ export default function TopographiePage() {
                     value={formData.name}
                     onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
                     placeholder="Ex: Vue antérieure de l'épaule"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                    className="w-full bg-white/70 backdrop-blur-sm border border-blue-200/60 rounded-lg px-3 py-2 focus:ring-2 focus:ring-cyan-300 focus:border-cyan-400 outline-none"
                     required
                   />
                 </div>
@@ -652,7 +647,7 @@ export default function TopographiePage() {
                     ref={descriptionRef}
                     contentEditable
                     onInput={handleDescriptionInput}
-                    className="min-h-[120px] w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:outline-none bg-white"
+                    className="min-h-[120px] w-full px-3 py-2 bg-white/70 backdrop-blur-sm border border-blue-200/60 rounded-lg focus:ring-2 focus:ring-cyan-300 focus:outline-none"
                     aria-label="Description détaillée"
                     suppressContentEditableWarning
                   />
@@ -710,17 +705,17 @@ export default function TopographiePage() {
               </div>
             </div>
 
-            <div className="bg-gray-50 border-t px-6 py-4 flex items-center justify-end gap-3">
+            <div className="border-t border-white/30 px-6 py-4 flex items-center justify-end gap-3">
               <button
                 onClick={() => setShowCreateModal(false)}
-                className="px-4 py-2 text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50"
+                className="px-4 py-2.5 rounded-xl bg-white/70 backdrop-blur-sm border border-blue-200/60 text-slate-700 hover:bg-white/90 transition-all"
               >
                 Annuler
               </button>
               <button
                 onClick={handleCreateZone}
                 disabled={creating}
-                className="px-5 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 flex items-center gap-2"
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-cyan-500/90 backdrop-blur-sm border border-cyan-400/30 text-white font-semibold hover:bg-cyan-600/90 disabled:opacity-50 shadow-sm transition-all"
               >
                 {creating && <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />}
                 {modalMode === 'edit' ? 'Enregistrer les modifications' : 'Créer la vue'}
