@@ -876,7 +876,7 @@ export default function MailingAdminPage() {
                         <iframe
                           srcDoc={previewHtml}
                           className="w-full h-64 border-0"
-                          sandbox="allow-same-origin"
+                          sandbox="allow-same-origin allow-scripts"
                           title="Aperçu email"
                         />
                       </div>

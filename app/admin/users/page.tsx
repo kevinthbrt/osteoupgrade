@@ -119,7 +119,7 @@ export default function UsersManagementPage() {
       // Fetch gamification stats separately
       const { data: gamifData } = await supabase
         .from('user_gamification_stats')
-        .select('user_id, level, total_xp, current_streak, last_login_at')
+        .select('user_id, level, total_xp, current_streak, last_login_date')
 
       const gamifMap = Object.fromEntries((gamifData || []).map(g => [g.user_id, g]))
 
@@ -201,7 +201,7 @@ export default function UsersManagementPage() {
           g?.level ?? 1,
           g?.total_xp ?? 0,
           g?.current_streak ?? 0,
-          g?.last_login_at || u.last_sign_in_at || '',
+          g?.last_login_date || u.last_sign_in_at || '',
           new Date(u.created_at).toLocaleDateString('fr-FR')
         ].join(',')
       })
@@ -366,7 +366,7 @@ export default function UsersManagementPage() {
                   <tbody className="divide-y divide-blue-100/40">
                     {filteredUsers.map((user) => {
                       const g = user.gamification?.[0]
-                      const lastLogin = g?.last_login_at || user.last_sign_in_at || null
+                      const lastLogin = g?.last_login_date || user.last_sign_in_at || null
                       return (
                         <tr key={user.id} className="hover:bg-blue-50/40 transition-colors">
 
@@ -453,7 +453,7 @@ export default function UsersManagementPage() {
       {/* ── Detail Modal ── */}
       {showDetailModal && selectedUser && (() => {
         const g = selectedUser.gamification?.[0]
-        const lastLogin = g?.last_login_at || selectedUser.last_sign_in_at || null
+        const lastLogin = g?.last_login_date || selectedUser.last_sign_in_at || null
         return (
           <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
             <div className="rounded-2xl bg-white/90 backdrop-blur-2xl border border-white/70 shadow-2xl ring-1 ring-inset ring-white/60 w-full max-w-lg flex flex-col max-h-[90vh]">
