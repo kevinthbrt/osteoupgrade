@@ -15,10 +15,27 @@ type ChangelogEntry = {
 
 // ─────────────────────────────────────────────
 // 🔖 INCRÉMENTER cette valeur à chaque mise à jour
-const CHANGELOG_VERSION = 11
+const CHANGELOG_VERSION = 12
 // ─────────────────────────────────────────────
 
 const CHANGELOG: ChangelogEntry[] = [
+  {
+    date: '16 avril 2026',
+    changes: [
+      {
+        type: 'feature',
+        text: 'Osteoflow — section téléchargement ajoutée dans le dashboard (visible Premium et Admin) : liens Mac Intel, Mac Apple Silicon et Windows pointant dynamiquement vers la dernière release GitHub.'
+      },
+      {
+        type: 'feature',
+        text: 'Osteoflow — route API /api/osteoflow/download : redirige automatiquement vers le bon asset de la dernière release GitHub selon la plateforme demandée (mac, mac-arm64, windows).'
+      },
+      {
+        type: 'improvement',
+        text: 'Osteoflow — API licence (auth, verify, logout) : ajout des headers CORS et handlers OPTIONS pour permettre les appels depuis l\'app desktop Electron en production.'
+      }
+    ]
+  },
   {
     date: '16 avril 2026',
     changes: [
@@ -169,7 +186,7 @@ const CHANGELOG: ChangelogEntry[] = [
       },
       {
         type: 'fix',
-        text: 'Parrainage — clarification Silver mensuel : les codes de parrainage ne sont plus proposés/appliqués sur l’offre mensuelle (réservés aux formules annuelles).'
+        text: 'Parrainage — clarification Silver mensuel : les codes de parrainage ne sont plus proposés/appliqués sur l'offre mensuelle (réservés aux formules annuelles).'
       }
     ]
   },
@@ -182,15 +199,15 @@ const CHANGELOG: ChangelogEntry[] = [
       },
       {
         type: 'improvement',
-        text: 'Module Pratique (admin) — à la création/édition d’une vidéo, les métadonnées Vimeo sont désormais pré-remplies et enregistrées automatiquement à partir de l’URL Vimeo.'
+        text: 'Module Pratique (admin) — à la création/édition d'une vidéo, les métadonnées Vimeo sont désormais pré-remplies et enregistrées automatiquement à partir de l'URL Vimeo.'
       },
       {
         type: 'fix',
-        text: 'Module Pratique — fallback visuel renforcé : si une miniature échoue au chargement, affichage automatique d’un placeholder local.'
+        text: 'Module Pratique — fallback visuel renforcé : si une miniature échoue au chargement, affichage automatique d'un placeholder local.'
       },
       {
         type: 'improvement',
-        text: 'Maintenance — ajout d’un script de backfill pour compléter les anciennes vidéos sans miniature/ID/durée Vimeo directement en base.'
+        text: 'Maintenance — ajout d'un script de backfill pour compléter les anciennes vidéos sans miniature/ID/durée Vimeo directement en base.'
       }
     ]
   },
