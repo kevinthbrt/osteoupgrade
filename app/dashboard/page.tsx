@@ -148,14 +148,13 @@ export default function Dashboard() {
     <AuthLayout>
       <div className="min-h-screen -m-6 md:-m-8">
 
-        {/* ── Header ─────────────────────────────────────────────────── */}
+        {/* Header */}
         <div className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 px-6 md:px-10 pt-8 pb-6">
           <div className="absolute top-0 left-0 w-80 h-80 bg-blue-500/25 rounded-full blur-3xl animate-pulse -translate-x-1/2 -translate-y-1/2" style={{ animationDuration: '4s' }} />
           <div className="absolute top-1/2 left-1/4 w-64 h-64 bg-cyan-400/20 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '6s', animationDelay: '1s' }} />
           <div className="absolute top-0 right-1/4 w-56 h-56 bg-indigo-500/20 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '5s', animationDelay: '2s' }} />
           <div className="absolute bottom-0 right-0 w-72 h-72 bg-sky-400/20 rounded-full blur-3xl animate-pulse translate-x-1/3 translate-y-1/3" style={{ animationDuration: '7s', animationDelay: '0.5s' }} />
           <div className="absolute top-1/3 right-1/3 w-48 h-48 bg-blue-300/15 rounded-full blur-2xl animate-pulse" style={{ animationDuration: '3.5s', animationDelay: '1.5s' }} />
-
           <div className="relative">
             <div className="bg-white/[0.09] backdrop-blur-xl border border-white/20 ring-1 ring-inset ring-white/15 rounded-3xl p-6 md:p-8 shadow-[0_12px_40px_rgba(0,8,30,0.65),inset_0_1px_0_rgba(255,255,255,0.12)]">
               <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-5 mb-6">
@@ -181,36 +180,24 @@ export default function Dashboard() {
                   </div>
                 </div>
               </div>
-
               <form onSubmit={handleSearch} className="relative max-w-xl mb-5">
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-blue-300/60" />
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Rechercher un cours, technique, test..."
-                  className="w-full pl-11 pr-4 py-3 rounded-2xl bg-white/10 backdrop-blur-md border border-white/15 text-white placeholder-blue-300/50 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400/60 focus:bg-white/18 transition-all"
-                />
+                <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Rechercher un cours, technique, test..." className="w-full pl-11 pr-4 py-3 rounded-2xl bg-white/10 backdrop-blur-md border border-white/15 text-white placeholder-blue-300/50 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400/60 focus:bg-white/18 transition-all" />
               </form>
-
               <div className="flex items-center gap-3 max-w-xl">
                 <span className="text-xs text-blue-300/60 flex-shrink-0 font-medium">XP</span>
                 <div className="flex-1 h-2 bg-white/10 rounded-full overflow-hidden">
-                  <div
-                    className="h-full rounded-full bg-gradient-to-r from-blue-400 via-sky-400 to-cyan-400 transition-all duration-700 shadow-[0_0_8px_rgba(56,189,248,0.6)]"
-                    style={{ width: `${xpProgress}%` }}
-                  />
+                  <div className="h-full rounded-full bg-gradient-to-r from-blue-400 via-sky-400 to-cyan-400 transition-all duration-700 shadow-[0_0_8px_rgba(56,189,248,0.6)]" style={{ width: `${xpProgress}%` }} />
                 </div>
                 <span className="text-xs text-blue-300/60 flex-shrink-0">{stats.totalXp % xpToNextLevel}/{xpToNextLevel}</span>
               </div>
             </div>
           </div>
-
           <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-sky-400/40 to-transparent" />
           <div className="absolute bottom-0 left-1/4 right-1/4 h-px bg-gradient-to-r from-transparent via-blue-300/50 to-transparent blur-sm" />
         </div>
 
-        {/* ── Body ───────────────────────────────────────────────────── */}
+        {/* Body */}
         <div className="relative overflow-hidden bg-gradient-to-br from-blue-100/90 via-sky-50 to-indigo-50/80 px-6 md:px-10 pt-8 pb-10 space-y-8">
           <div className="pointer-events-none absolute top-0 left-1/4 w-96 h-96 bg-blue-400/45 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '6s' }} />
           <div className="pointer-events-none absolute top-1/3 right-0 w-80 h-80 bg-sky-400/40 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '8s', animationDelay: '2s' }} />
@@ -218,7 +205,6 @@ export default function Dashboard() {
           <div className="pointer-events-none absolute top-1/2 right-1/3 w-64 h-64 bg-cyan-300/30 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '5s', animationDelay: '3s' }} />
           <div className="pointer-events-none absolute bottom-1/3 left-1/2 w-56 h-56 bg-blue-300/25 rounded-full blur-2xl animate-pulse" style={{ animationDuration: '9s', animationDelay: '0.5s' }} />
 
-          {/* Bannière Premium */}
           {profile?.role === 'free' && (
             <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-500 p-5 shadow-lg">
               <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -translate-y-8 translate-x-8" />
@@ -230,20 +216,14 @@ export default function Dashboard() {
                   <p className="font-bold text-amber-900">Débloquez tout OsteoUpgrade</p>
                   <p className="text-amber-800/80 text-sm mt-0.5">150+ vidéos · 500+ contenus · Exercices patients — dès 29€/mois</p>
                 </div>
-                <button
-                  onClick={() => router.push('/settings/subscription')}
-                  className="flex-shrink-0 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-amber-900 text-amber-100 text-sm font-bold hover:bg-amber-800 transition-colors shadow-md"
-                >
+                <button onClick={() => router.push('/settings/subscription')} className="flex-shrink-0 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-amber-900 text-amber-100 text-sm font-bold hover:bg-amber-800 transition-colors shadow-md">
                   Passer Premium <ArrowRight className="h-4 w-4" />
                 </button>
               </div>
             </div>
           )}
 
-          {/* ── Cette semaine + Badges ─────────────────────────────── */}
           <section className="grid md:grid-cols-2 gap-6">
-
-            {/* Cette semaine */}
             <div>
               <div className="flex items-center gap-2.5 mb-4">
                 <div className="h-5 w-1 rounded-full bg-gradient-to-b from-sky-500 to-sky-700" />
@@ -260,8 +240,7 @@ export default function Dashboard() {
                       <span className="text-sm font-bold text-slate-900">{value}</span>
                     </div>
                     <div className="h-2 w-full rounded-full bg-white/70 overflow-hidden">
-                      <div className={`h-full rounded-full bg-gradient-to-r ${color} transition-all duration-700`}
-                        style={{ width: `${Math.min(value / max * 100, 100)}%` }} />
+                      <div className={`h-full rounded-full bg-gradient-to-r ${color} transition-all duration-700`} style={{ width: `${Math.min(value / max * 100, 100)}%` }} />
                     </div>
                   </div>
                 ))}
@@ -279,8 +258,6 @@ export default function Dashboard() {
                 </div>
               </div>
             </div>
-
-            {/* Badges */}
             <div>
               <div className="flex items-center gap-2.5 mb-4">
                 <div className="h-5 w-1 rounded-full bg-gradient-to-b from-violet-500 to-indigo-600" />
@@ -313,10 +290,8 @@ export default function Dashboard() {
                 )}
               </div>
             </div>
-
           </section>
 
-          {/* ── Modules ────────────────────────────────────────────── */}
           <section>
             <div className="flex items-center gap-2.5 mb-4">
               <div className="h-5 w-1 rounded-full bg-gradient-to-b from-blue-500 to-blue-700" />
@@ -326,11 +301,7 @@ export default function Dashboard() {
               {modules.map((module, i) => {
                 const Icon = module.icon
                 return (
-                  <button
-                    key={module.id}
-                    onClick={() => router.push(module.href)}
-                    className={`group w-full flex items-center gap-4 px-5 py-4 text-left hover:bg-white/40 transition-colors ${i < modules.length - 1 ? 'border-b border-blue-200/50' : ''}`}
-                  >
+                  <button key={module.id} onClick={() => router.push(module.href)} className={`group w-full flex items-center gap-4 px-5 py-4 text-left hover:bg-white/40 transition-colors ${i < modules.length - 1 ? 'border-b border-blue-200/50' : ''}`}>
                     <div className={`flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br ${module.gradient} shadow-md group-hover:scale-105 transition-transform duration-200`}>
                       <Icon className="h-6 w-6 text-white" />
                     </div>
@@ -349,7 +320,6 @@ export default function Dashboard() {
             </div>
           </section>
 
-          {/* ── Ambassadeur ────────────────────────────────────────── */}
           {(profile?.role === 'premium' || profile?.role === 'admin') && referralData && (
             <section>
               <div className="flex items-center gap-2.5 mb-4">
@@ -390,7 +360,6 @@ export default function Dashboard() {
             </section>
           )}
 
-          {/* ── Osteoflow ──────────────────────────────────────────── */}
           {(profile?.role === 'premium' || profile?.role === 'admin') && (
             <section>
               <div className="flex items-center gap-2.5 mb-4">
@@ -400,29 +369,20 @@ export default function Dashboard() {
               <div className="rounded-2xl overflow-hidden shadow-xl border border-violet-300/70 bg-violet-100/85 backdrop-blur-2xl ring-1 ring-inset ring-white/60">
                 <div className="bg-gradient-to-r from-violet-600 to-indigo-600 px-5 py-3 flex items-center gap-2">
                   <Laptop className="h-4 w-4 text-white" />
-                  <p className="text-sm font-semibold text-white">Inclus avec votre abonnement Premium — données 100% locales, aucun serveur de santé requis</p>
+                  <p className="text-sm font-semibold text-white">Inclus avec votre abonnement Premium</p>
                 </div>
                 <div className="px-5 py-5">
-                  <p className="text-sm text-slate-600 mb-5">Gérez vos patients, consultations et dossiers directement depuis votre ordinateur. Toutes les données restent sur votre machine — connectez-vous avec votre compte OsteoUpgrade pour activer la licence.</p>
+                  <p className="text-sm text-slate-600 mb-5">Gérez vos patients, consultations et dossiers directement depuis votre ordinateur. Toutes les données restent sur votre machine. Connectez-vous avec votre compte OsteoUpgrade pour activer la licence.</p>
                   <div className="flex flex-wrap gap-3">
-                    <a
-                      href="/api/osteoflow/download?platform=mac"
-                      className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-slate-900 text-white text-sm font-semibold hover:bg-slate-700 transition-colors shadow-md"
-                    >
+                    <a href="/api/osteoflow/download?platform=mac" className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-slate-900 text-white text-sm font-semibold hover:bg-slate-700 transition-colors shadow-md">
                       <Download className="h-4 w-4" />
                       Mac (Intel)
                     </a>
-                    <a
-                      href="/api/osteoflow/download?platform=mac-arm64"
-                      className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-slate-900 text-white text-sm font-semibold hover:bg-slate-700 transition-colors shadow-md"
-                    >
+                    <a href="/api/osteoflow/download?platform=mac-arm64" className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-slate-900 text-white text-sm font-semibold hover:bg-slate-700 transition-colors shadow-md">
                       <Download className="h-4 w-4" />
                       Mac (Apple Silicon)
                     </a>
-                    <a
-                      href="/api/osteoflow/download?platform=windows"
-                      className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-700 text-white text-sm font-semibold hover:bg-blue-600 transition-colors shadow-md"
-                    >
+                    <a href="/api/osteoflow/download?platform=windows" className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-700 text-white text-sm font-semibold hover:bg-blue-600 transition-colors shadow-md">
                       <Download className="h-4 w-4" />
                       Windows
                     </a>
