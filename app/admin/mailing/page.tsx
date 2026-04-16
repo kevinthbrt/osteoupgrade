@@ -117,23 +117,31 @@ export default function MailingAdminPage() {
   const [automationModalOpen, setAutomationModalOpen] = useState(false)
   const [togglingId, setTogglingId] = useState<string | null>(null)
   const [previewAutomation, setPreviewAutomation] = useState<Automation | null>(null)
-  const [previewHtml, setPreviewHtml] = useState<string | null>(null)
+  const [previewSteps, setPreviewSteps] = useState<{ subject: string; html: string; delayDays: number }[]>([])
+  const [activePreviewStep, setActivePreviewStep] = useState(0)
   const [loadingPreview, setLoadingPreview] = useState(false)
 
   const openAutomationPreview = async (automation: Automation) => {
-    if (previewAutomation?.id === automation.id) { setPreviewAutomation(null); setPreviewHtml(null); return }
+    if (previewAutomation?.id === automation.id) { setPreviewAutomation(null); setPreviewSteps([]); return }
     setPreviewAutomation(automation)
-    setPreviewHtml(null)
-    if (!automation.steps[0]?.templateId) return
+    setPreviewSteps([])
+    setActivePreviewStep(0)
+    if (!automation.steps.length) return
     setLoadingPreview(true)
     try {
-      const { data } = await supabase
-        .from('mail_templates')
-        .select('html, subject')
-        .or(`id.eq.${automation.steps[0].templateId},name.eq.${automation.steps[0].templateId}`)
-        .single()
-      setPreviewHtml(data?.html || null)
-    } catch { setPreviewHtml(null) }
+      const stepResults = await Promise.all(
+        automation.steps.map(async (step) => {
+          if (!step.templateId) return null
+          const { data } = await supabase
+            .from('mail_templates')
+            .select('html, subject')
+            .or(`id.eq.${step.templateId},name.eq.${step.templateId}`)
+            .single()
+          return data ? { subject: data.subject, html: data.html, delayDays: step.delayDays } : null
+        })
+      )
+      setPreviewSteps(stepResults.filter(Boolean) as { subject: string; html: string; delayDays: number }[])
+    } catch { setPreviewSteps([]) }
     finally { setLoadingPreview(false) }
   }
 
@@ -867,23 +875,49 @@ export default function MailingAdminPage() {
                   {loadingPreview ? (
                     <div className="flex items-center gap-2 text-sm text-slate-400 py-4 justify-center">
                       <div className="h-4 w-4 rounded-full border-2 border-purple-400 border-t-transparent animate-spin" />
-                      Chargement du template…
+                      Chargement des templates…
                     </div>
-                  ) : previewHtml ? (
+                  ) : previewSteps.length > 0 ? (
                     <div>
-                      <p className="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-3">Aperçu de l'email</p>
-                      <div className="rounded-xl border border-slate-200 bg-white overflow-auto max-h-72 shadow-inner">
-                        <iframe
-                          srcDoc={previewHtml}
-                          className="w-full h-64 border-0"
-                          sandbox="allow-same-origin allow-scripts"
-                          title="Aperçu email"
-                        />
+                      <div className="flex items-center justify-between mb-3">
+                        <p className="text-xs font-semibold text-slate-500 uppercase tracking-widest">Aperçu de l'email</p>
+                        {previewSteps.length > 1 && (
+                          <div className="flex gap-1">
+                            {previewSteps.map((step, idx) => (
+                              <button
+                                key={idx}
+                                onClick={() => setActivePreviewStep(idx)}
+                                className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-colors ${
+                                  activePreviewStep === idx
+                                    ? 'bg-purple-600 text-white'
+                                    : 'bg-white text-slate-500 border border-slate-200 hover:bg-slate-100'
+                                }`}
+                              >
+                                {step.delayDays === 0 ? 'Immédiat' : `J+${step.delayDays}`}
+                              </button>
+                            ))}
+                          </div>
+                        )}
                       </div>
+                      {previewSteps[activePreviewStep] && (
+                        <>
+                          <p className="text-xs text-slate-400 mb-2 truncate">
+                            Sujet : <span className="text-slate-600 font-medium">{previewSteps[activePreviewStep].subject}</span>
+                          </p>
+                          <div className="rounded-xl border border-slate-200 bg-white overflow-auto max-h-72 shadow-inner">
+                            <iframe
+                              srcDoc={previewSteps[activePreviewStep].html}
+                              className="w-full h-64 border-0"
+                              sandbox="allow-same-origin allow-scripts"
+                              title="Aperçu email"
+                            />
+                          </div>
+                        </>
+                      )}
                     </div>
                   ) : (
                     <p className="text-sm text-slate-400 text-center py-4">
-                      {automation.steps[0]?.templateId ? 'Template introuvable en base.' : 'Aucun template associé à cette automatisation.'}
+                      {automation.steps.length ? 'Templates introuvables en base.' : 'Aucun template associé à cette automatisation.'}
                     </p>
                   )}
                 </div>
