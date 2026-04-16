@@ -116,12 +116,10 @@ export default function UsersManagementPage() {
 
       const profiles = profileData || []
 
-      // Fetch gamification stats separately
-      const { data: gamifData } = await supabase
-        .from('user_gamification_stats')
-        .select('user_id, level, total_xp, current_streak, last_login_date')
-
-      const gamifMap = Object.fromEntries((gamifData || []).map(g => [g.user_id, g]))
+      // Fetch gamification stats via server route (bypasses RLS)
+      const gamifRes = await fetch('/api/admin/gamification-stats')
+      const gamifJson = gamifRes.ok ? await gamifRes.json() : { stats: [] }
+      const gamifMap = Object.fromEntries((gamifJson.stats || []).map((g: any) => [g.user_id, g]))
 
       const merged = profiles.map(p => ({
         ...p,
