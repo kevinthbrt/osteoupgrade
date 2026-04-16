@@ -106,16 +106,30 @@ export default function UsersManagementPage() {
 
   const loadUsers = async () => {
     try {
-      const { data } = await supabase
+      // Two separate queries to avoid FK relationship dependency
+      const { data: profileData, error: profileError } = await supabase
         .from('profiles')
-        .select(`
-          *,
-          gamification:user_gamification_stats(level, total_xp, current_streak, last_login_at)
-        `)
+        .select('*')
         .order('created_at', { ascending: false })
 
-      setUsers(data || [])
-      setFilteredUsers(data || [])
+      if (profileError) throw profileError
+
+      const profiles = profileData || []
+
+      // Fetch gamification stats separately
+      const { data: gamifData } = await supabase
+        .from('user_gamification_stats')
+        .select('user_id, level, total_xp, current_streak, last_login_at')
+
+      const gamifMap = Object.fromEntries((gamifData || []).map(g => [g.user_id, g]))
+
+      const merged = profiles.map(p => ({
+        ...p,
+        gamification: gamifMap[p.id] ? [gamifMap[p.id]] : []
+      }))
+
+      setUsers(merged)
+      setFilteredUsers(merged)
     } catch (error) {
       console.error('Error loading users:', error)
     } finally {

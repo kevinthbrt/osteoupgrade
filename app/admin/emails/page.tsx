@@ -130,6 +130,12 @@ export default function AdminEmailsPage() {
     setCounts(prev => ({ ...prev, unread: prev.unread + delta }))
   }
 
+  async function changeCategory(email: Email, category: string) {
+    await patchEmail(email.id, { category })
+    setEmails(prev => prev.map(e => e.id === email.id ? { ...e, category: category as Email['category'] } : e))
+    if (selectedEmail?.id === email.id) setSelectedEmail({ ...selectedEmail, category: category as Email['category'] })
+  }
+
   async function archiveEmail(emailId: string) {
     await patchEmail(emailId, { is_archived: true })
     setEmails(prev => prev.filter(e => e.id !== emailId))
@@ -329,9 +335,15 @@ export default function AdminEmailsPage() {
                           <Clock className="h-3.5 w-3.5" />
                           {fullDate(selectedEmail.received_at)}
                         </span>
-                        <span className={`px-2 py-0.5 rounded-full border text-[10px] font-semibold ${CATEGORY_STYLES[selectedEmail.category]?.pill}`}>
-                          {CATEGORY_STYLES[selectedEmail.category]?.label}
-                        </span>
+                        <select
+                          value={selectedEmail.category}
+                          onChange={e => changeCategory(selectedEmail, e.target.value)}
+                          className={`px-2 py-0.5 rounded-full border text-[10px] font-semibold cursor-pointer outline-none ${CATEGORY_STYLES[selectedEmail.category]?.pill}`}
+                        >
+                          {Object.entries(CATEGORY_STYLES).map(([k, v]) => (
+                            <option key={k} value={k}>{v.label}</option>
+                          ))}
+                        </select>
                       </div>
                     </div>
                     {/* Actions */}

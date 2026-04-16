@@ -116,6 +116,26 @@ export default function MailingAdminPage() {
   const [automations, setAutomations] = useState<Automation[]>([])
   const [automationModalOpen, setAutomationModalOpen] = useState(false)
   const [togglingId, setTogglingId] = useState<string | null>(null)
+  const [previewAutomation, setPreviewAutomation] = useState<Automation | null>(null)
+  const [previewHtml, setPreviewHtml] = useState<string | null>(null)
+  const [loadingPreview, setLoadingPreview] = useState(false)
+
+  const openAutomationPreview = async (automation: Automation) => {
+    if (previewAutomation?.id === automation.id) { setPreviewAutomation(null); setPreviewHtml(null); return }
+    setPreviewAutomation(automation)
+    setPreviewHtml(null)
+    if (!automation.steps[0]?.templateId) return
+    setLoadingPreview(true)
+    try {
+      const { data } = await supabase
+        .from('mail_templates')
+        .select('html, subject')
+        .or(`id.eq.${automation.steps[0].templateId},name.eq.${automation.steps[0].templateId}`)
+        .single()
+      setPreviewHtml(data?.html || null)
+    } catch { setPreviewHtml(null) }
+    finally { setLoadingPreview(false) }
+  }
 
   useEffect(() => {
     loadData()
@@ -792,53 +812,85 @@ export default function MailingAdminPage() {
         const abonnementAutomations = automations.filter(a => !isSeminaire(a))
         const seminaireAutomations = automations.filter(isSeminaire)
 
-        const AutomationRow = ({ automation, isObsolete }: { automation: Automation; isObsolete: boolean }) => (
-          <div className={`flex items-center gap-4 px-6 py-4 border-b border-slate-100 last:border-b-0 ${isObsolete ? 'opacity-50' : ''}`}>
-            {/* Icon */}
-            <div className={`flex-shrink-0 w-9 h-9 rounded-xl flex items-center justify-center ${isObsolete ? 'bg-slate-100' : 'bg-purple-100'}`}>
-              <Zap className={`h-4 w-4 ${isObsolete ? 'text-slate-400' : 'text-purple-600'}`} />
-            </div>
+        const AutomationRow = ({ automation, isObsolete }: { automation: Automation; isObsolete: boolean }) => {
+          const isExpanded = previewAutomation?.id === automation.id
+          return (
+            <div className={`border-b border-slate-100 last:border-b-0 ${isObsolete ? 'opacity-60' : ''}`}>
+              <div
+                className={`flex items-center gap-4 px-6 py-4 cursor-pointer hover:bg-slate-50 transition-colors ${isExpanded ? 'bg-purple-50/60' : ''}`}
+                onClick={() => openAutomationPreview(automation)}
+              >
+                {/* Icon */}
+                <div className={`flex-shrink-0 w-9 h-9 rounded-xl flex items-center justify-center ${isObsolete ? 'bg-slate-100' : isExpanded ? 'bg-purple-200' : 'bg-purple-100'}`}>
+                  <Zap className={`h-4 w-4 ${isObsolete ? 'text-slate-400' : 'text-purple-600'}`} />
+                </div>
 
-            {/* Info */}
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-sm font-semibold text-slate-800 truncate">{automation.name}</span>
-                {isObsolete && (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 text-xs font-medium flex-shrink-0">
-                    <AlertTriangle className="h-3 w-3" />
-                    Obsolète
-                  </span>
-                )}
-              </div>
-              <div className="flex items-center gap-3 mt-0.5 flex-wrap">
-                <span className="text-xs text-slate-500 flex items-center gap-1">
-                  <PlayCircle className="h-3 w-3" />
-                  {automation.trigger}
-                </span>
-                <span className="text-xs text-slate-400 flex items-center gap-1">
-                  <Clock className="h-3 w-3" />
-                  {automation.steps.length} étape{automation.steps.length !== 1 ? 's' : ''}
-                </span>
-              </div>
-            </div>
+                {/* Info */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-sm font-semibold text-slate-800 truncate">{automation.name}</span>
+                    {isObsolete && (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 text-xs font-medium flex-shrink-0">
+                        <AlertTriangle className="h-3 w-3" />
+                        Obsolète
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-3 mt-0.5 flex-wrap">
+                    <span className="text-xs text-slate-500 flex items-center gap-1">
+                      <PlayCircle className="h-3 w-3" />
+                      {automation.trigger}
+                    </span>
+                    <span className="text-xs text-slate-400 flex items-center gap-1">
+                      <Clock className="h-3 w-3" />
+                      {automation.steps.length} étape{automation.steps.length !== 1 ? 's' : ''}
+                    </span>
+                  </div>
+                </div>
 
-            {/* Toggle */}
-            <button
-              onClick={() => !isObsolete && toggleAutomation(automation.id)}
-              disabled={togglingId === automation.id || isObsolete}
-              className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors duration-200 focus:outline-none ${
-                automation.active ? 'bg-emerald-500' : 'bg-slate-200'
-              } ${isObsolete ? 'cursor-not-allowed' : 'cursor-pointer'} ${togglingId === automation.id ? 'opacity-50' : ''}`}
-              title={isObsolete ? 'Automatisation obsolète (tables supprimées)' : automation.active ? 'Désactiver' : 'Activer'}
-            >
-              <span
-                className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform duration-200 ${
-                  automation.active ? 'translate-x-6' : 'translate-x-1'
-                }`}
-              />
-            </button>
-          </div>
-        )
+                {/* Toggle */}
+                <button
+                  onClick={e => { e.stopPropagation(); if (!isObsolete) toggleAutomation(automation.id) }}
+                  disabled={togglingId === automation.id || isObsolete}
+                  className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors duration-200 focus:outline-none ${
+                    automation.active ? 'bg-emerald-500' : 'bg-slate-200'
+                  } ${isObsolete ? 'cursor-not-allowed' : 'cursor-pointer'} ${togglingId === automation.id ? 'opacity-50' : ''}`}
+                  title={isObsolete ? 'Automatisation obsolète' : automation.active ? 'Désactiver' : 'Activer'}
+                >
+                  <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform duration-200 ${automation.active ? 'translate-x-6' : 'translate-x-1'}`} />
+                </button>
+              </div>
+
+              {/* Email preview panel */}
+              {isExpanded && (
+                <div className="border-t border-purple-100 bg-slate-50 px-6 py-4">
+                  {loadingPreview ? (
+                    <div className="flex items-center gap-2 text-sm text-slate-400 py-4 justify-center">
+                      <div className="h-4 w-4 rounded-full border-2 border-purple-400 border-t-transparent animate-spin" />
+                      Chargement du template…
+                    </div>
+                  ) : previewHtml ? (
+                    <div>
+                      <p className="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-3">Aperçu de l'email</p>
+                      <div className="rounded-xl border border-slate-200 bg-white overflow-auto max-h-72 shadow-inner">
+                        <iframe
+                          srcDoc={previewHtml}
+                          className="w-full h-64 border-0"
+                          sandbox="allow-same-origin"
+                          title="Aperçu email"
+                        />
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-slate-400 text-center py-4">
+                      {automation.steps[0]?.templateId ? 'Template introuvable en base.' : 'Aucun template associé à cette automatisation.'}
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+          )
+        }
 
         return (
           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-4">
