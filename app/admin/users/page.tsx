@@ -10,15 +10,57 @@ import {
   Crown,
   Shield,
   User,
-  Mail,
   Calendar,
-  Edit,
-  Trash2,
-  ChevronDown,
-  Filter,
   Download,
-  MoreVertical
+  Flame,
+  Zap,
+  Trophy,
+  ExternalLink,
+  X,
+  Mail
 } from 'lucide-react'
+
+// ── helpers ────────────────────────────────────────────────────────────────
+
+function relativeDate(dateStr: string | null): string {
+  if (!dateStr) return 'Jamais'
+  const diff = Date.now() - new Date(dateStr).getTime()
+  const days = Math.floor(diff / 86400000)
+  if (days === 0) return "Aujourd'hui"
+  if (days === 1) return 'Hier'
+  if (days < 30) return `Il y a ${days} jours`
+  const months = Math.floor(days / 30)
+  if (months < 12) return `Il y a ${months} mois`
+  return `Il y a ${Math.floor(months / 12)} an(s)`
+}
+
+function roleBadge(role: string) {
+  if (role === 'admin')
+    return (
+      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-purple-100 text-purple-800">
+        <Shield className="h-3 w-3" /> Admin
+      </span>
+    )
+  if (role === 'premium')
+    return (
+      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-800">
+        <Crown className="h-3 w-3" /> Premium
+      </span>
+    )
+  return (
+    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-600">
+      <User className="h-3 w-3" /> Gratuit
+    </span>
+  )
+}
+
+function avatarColor(role: string) {
+  if (role === 'admin') return 'bg-purple-600'
+  if (role === 'premium') return 'bg-yellow-500'
+  return 'bg-slate-400'
+}
+
+// ── component ──────────────────────────────────────────────────────────────
 
 export default function UsersManagementPage() {
   const router = useRouter()
@@ -28,8 +70,9 @@ export default function UsersManagementPage() {
   const [filterRole, setFilterRole] = useState('all')
   const [loading, setLoading] = useState(true)
   const [selectedUser, setSelectedUser] = useState<any>(null)
-  const [showEditModal, setShowEditModal] = useState(false)
+  const [showDetailModal, setShowDetailModal] = useState(false)
   const [editRole, setEditRole] = useState('')
+  const [saving, setSaving] = useState(false)
 
   useEffect(() => {
     checkAdminAccess()
@@ -41,7 +84,7 @@ export default function UsersManagementPage() {
 
   const checkAdminAccess = async () => {
     const { data: { user } } = await supabase.auth.getUser()
-    
+
     if (!user) {
       router.push('/')
       return
@@ -63,13 +106,28 @@ export default function UsersManagementPage() {
 
   const loadUsers = async () => {
     try {
-      const { data } = await supabase
+      // Two separate queries to avoid FK relationship dependency
+      const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('*')
         .order('created_at', { ascending: false })
 
-      setUsers(data || [])
-      setFilteredUsers(data || [])
+      if (profileError) throw profileError
+
+      const profiles = profileData || []
+
+      // Fetch gamification stats via server route (bypasses RLS)
+      const gamifRes = await fetch('/api/admin/gamification-stats')
+      const gamifJson = gamifRes.ok ? await gamifRes.json() : { stats: [] }
+      const gamifMap = Object.fromEntries((gamifJson.stats || []).map((g: any) => [g.user_id, g]))
+
+      const merged = profiles.map(p => ({
+        ...p,
+        gamification: gamifMap[p.id] ? [gamifMap[p.id]] : []
+      }))
+
+      setUsers(merged)
+      setFilteredUsers(merged)
     } catch (error) {
       console.error('Error loading users:', error)
     } finally {
@@ -80,15 +138,13 @@ export default function UsersManagementPage() {
   const filterUsers = () => {
     let filtered = [...users]
 
-    // Search filter
     if (searchQuery) {
       filtered = filtered.filter(user =>
-        user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        user.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         user.full_name?.toLowerCase().includes(searchQuery.toLowerCase())
       )
     }
 
-    // Role filter
     if (filterRole !== 'all') {
       filtered = filtered.filter(user => user.role === filterRole)
     }
@@ -96,15 +152,20 @@ export default function UsersManagementPage() {
     setFilteredUsers(filtered)
   }
 
-  const handleEditUser = (user: any) => {
+  const openDetail = (user: any) => {
     setSelectedUser(user)
     setEditRole(user.role)
-    setShowEditModal(true)
+    setShowDetailModal(true)
+  }
+
+  const closeDetail = () => {
+    setShowDetailModal(false)
+    setSelectedUser(null)
   }
 
   const handleUpdateRole = async () => {
     if (!selectedUser) return
-
+    setSaving(true)
     try {
       const { error } = await supabase
         .from('profiles')
@@ -113,39 +174,35 @@ export default function UsersManagementPage() {
 
       if (error) throw error
 
+      // optimistic update
+      setUsers(prev =>
+        prev.map(u => u.id === selectedUser.id ? { ...u, role: editRole } : u)
+      )
+      setSelectedUser((prev: any) => ({ ...prev, role: editRole }))
       alert('Rôle mis à jour avec succès !')
-      setShowEditModal(false)
-      loadUsers()
     } catch (error: any) {
-      alert('Erreur: ' + error.message)
-    }
-  }
-
-  const handleDeleteUser = async (userId: string) => {
-    if (!confirm('Êtes-vous sûr de vouloir supprimer cet utilisateur ?')) return
-
-    try {
-      // Note: In production, you might want to soft delete or handle this differently
-      const { error } = await supabase.auth.admin.deleteUser(userId)
-      
-      if (error) throw error
-
-      alert('Utilisateur supprimé')
-      loadUsers()
-    } catch (error: any) {
-      alert('Erreur: ' + error.message)
+      alert('Erreur : ' + error.message)
+    } finally {
+      setSaving(false)
     }
   }
 
   const exportToCSV = () => {
     const csv = [
-      ['Email', 'Nom', 'Rôle', 'Date création'].join(','),
-      ...filteredUsers.map(u => [
-        u.email,
-        u.full_name || '',
-        u.role,
-        new Date(u.created_at).toLocaleDateString('fr-FR')
-      ].join(','))
+      ['Email', 'Nom', 'Rôle', 'Niveau', 'XP', 'Streak', 'Dernière connexion', 'Inscription'].join(','),
+      ...filteredUsers.map(u => {
+        const g = u.gamification?.[0]
+        return [
+          u.email,
+          u.full_name || '',
+          u.role,
+          g?.level ?? 1,
+          g?.total_xp ?? 0,
+          g?.current_streak ?? 0,
+          g?.last_login_date || u.last_sign_in_at || '',
+          new Date(u.created_at).toLocaleDateString('fr-FR')
+        ].join(',')
+      })
     ].join('\n')
 
     const blob = new Blob([csv], { type: 'text/csv' })
@@ -167,7 +224,7 @@ export default function UsersManagementPage() {
     return (
       <AuthLayout>
         <div className="flex items-center justify-center h-96">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600" />
         </div>
       </AuthLayout>
     )
@@ -213,8 +270,8 @@ export default function UsersManagementPage() {
           <div className="pointer-events-none absolute bottom-0 left-0 w-72 h-72 bg-indigo-400/30 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '7s', animationDelay: '1s' }} />
           <div className="relative space-y-6">
 
-            {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            {/* ── Stats Cards ── */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div className="rounded-2xl bg-white/85 backdrop-blur-2xl border border-white/70 shadow-xl ring-1 ring-inset ring-white/60 p-6">
                 <div className="flex items-center justify-between">
                   <div>
@@ -256,7 +313,7 @@ export default function UsersManagementPage() {
               </div>
             </div>
 
-            {/* Filters */}
+            {/* ── Filters ── */}
             <div className="rounded-2xl bg-white/85 backdrop-blur-2xl border border-white/70 shadow-xl ring-1 ring-inset ring-white/60 p-4">
               <div className="flex flex-col md:flex-row gap-4">
                 <div className="flex-1 relative">
@@ -272,7 +329,7 @@ export default function UsersManagementPage() {
                 <select
                   value={filterRole}
                   onChange={(e) => setFilterRole(e.target.value)}
-                  className="px-4 py-2.5 rounded-xl bg-white/70 backdrop-blur-sm border border-blue-200/60 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-400/50 transition-all"
+                  className="px-4 py-2.5 rounded-xl bg-white/70 backdrop-blur-sm border border-blue-200/60 text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-400/50 transition-all"
                 >
                   <option value="all">Tous les rôles</option>
                   <option value="free">Gratuit</option>
@@ -282,80 +339,106 @@ export default function UsersManagementPage() {
               </div>
             </div>
 
-            {/* Users Table */}
+            {/* ── Table ── */}
             <div className="rounded-2xl bg-white/85 backdrop-blur-2xl border border-white/70 shadow-xl ring-1 ring-inset ring-white/60 overflow-hidden">
               <div className="flex items-center gap-2.5 px-6 pt-5 pb-4 border-b border-white/50">
                 <div className="h-5 w-1 rounded-full bg-gradient-to-b from-blue-500 to-blue-700" />
-                <h2 className="text-sm font-bold text-slate-800 tracking-wide">Liste des utilisateurs</h2>
+                <h2 className="text-sm font-bold text-slate-800 tracking-wide">
+                  Liste des utilisateurs
+                </h2>
+                <span className="ml-auto text-xs text-slate-400">{filteredUsers.length} résultat{filteredUsers.length !== 1 ? 's' : ''}</span>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead className="bg-blue-50/60 border-b border-blue-100/60">
                     <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                        Utilisateur
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                        Email
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                        Rôle
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                        Date inscription
-                      </th>
-                      <th className="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">
-                        Actions
-                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Utilisateur</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Rôle</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Niveau</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Streak</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Dernière connexion</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Inscription</th>
+                      <th className="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-blue-100/40">
-                    {filteredUsers.map((user) => (
-                      <tr key={user.id} className="hover:bg-blue-50/40 transition-colors">
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center">
-                            <div className={`h-10 w-10 rounded-full flex items-center justify-center text-white font-medium ${
-                              user.role === 'admin' ? 'bg-purple-600' :
-                              user.role === 'premium' ? 'bg-yellow-500' :
-                              'bg-slate-400'
-                            }`}>
-                              {user.full_name ? user.full_name.charAt(0).toUpperCase() : user.email.charAt(0).toUpperCase()}
+                    {filteredUsers.map((user) => {
+                      const g = user.gamification?.[0]
+                      const lastLogin = g?.last_login_date || user.last_sign_in_at || null
+                      return (
+                        <tr key={user.id} className="hover:bg-blue-50/40 transition-colors">
+
+                          {/* Utilisateur */}
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="flex items-center gap-3">
+                              <div className={`h-9 w-9 rounded-full flex items-center justify-center text-white text-sm font-semibold shrink-0 ${avatarColor(user.role)}`}>
+                                {(user.full_name || user.email || '?').charAt(0).toUpperCase()}
+                              </div>
+                              <div className="min-w-0">
+                                <p className="text-sm font-medium text-slate-800 truncate">{user.full_name || 'Sans nom'}</p>
+                                <p className="text-xs text-slate-400 truncate">{user.email}</p>
+                              </div>
                             </div>
-                            <div className="ml-3">
-                              <p className="text-sm font-medium text-slate-800">
-                                {user.full_name || 'Sans nom'}
-                              </p>
+                          </td>
+
+                          {/* Rôle */}
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            {roleBadge(user.role)}
+                          </td>
+
+                          {/* Niveau */}
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="flex items-center gap-1.5">
+                              <Trophy className="h-3.5 w-3.5 text-amber-400 shrink-0" />
+                              <div>
+                                <p className="text-sm font-semibold text-slate-700">Niv.{g?.level ?? 1}</p>
+                                <p className="text-xs text-slate-400">{(g?.total_xp ?? 0).toLocaleString('fr-FR')} XP</p>
+                              </div>
                             </div>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <p className="text-sm text-slate-600">{user.email}</p>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                            user.role === 'admin' ? 'bg-purple-100 text-purple-800' :
-                            user.role === 'premium' ? 'bg-yellow-100 text-yellow-800' :
-                            'bg-gray-100 text-gray-800'
-                          }`}>
-                            {user.role === 'admin' && <Shield className="h-3 w-3 mr-1" />}
-                            {user.role === 'premium' && <Crown className="h-3 w-3 mr-1" />}
-                            {user.role === 'admin' ? 'Admin' :
-                             user.role === 'premium' ? 'Premium' : 'Gratuit'}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600">
-                          {new Date(user.created_at).toLocaleDateString('fr-FR')}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                          <button
-                            onClick={() => handleEditUser(user)}
-                            className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-white/70 backdrop-blur-sm border border-blue-200/60 text-slate-700 text-sm font-medium hover:bg-white/90 transition-all"
-                          >
-                            <Edit className="h-4 w-4" />
-                          </button>
+                          </td>
+
+                          {/* Streak */}
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="flex items-center gap-1">
+                              <Flame className={`h-4 w-4 shrink-0 ${(g?.current_streak ?? 0) > 0 ? 'text-orange-500' : 'text-slate-300'}`} />
+                              <span className="text-sm font-medium text-slate-700">{g?.current_streak ?? 0} j</span>
+                            </div>
+                          </td>
+
+                          {/* Dernière connexion */}
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className="text-sm text-slate-600">{relativeDate(lastLogin)}</span>
+                          </td>
+
+                          {/* Inscription */}
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="flex items-center gap-1.5 text-sm text-slate-600">
+                              <Calendar className="h-3.5 w-3.5 text-slate-400" />
+                              {new Date(user.created_at).toLocaleDateString('fr-FR')}
+                            </div>
+                          </td>
+
+                          {/* Actions */}
+                          <td className="px-6 py-4 whitespace-nowrap text-right">
+                            <button
+                              onClick={() => openDetail(user)}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/70 backdrop-blur-sm border border-blue-200/60 text-slate-700 text-xs font-medium hover:bg-white/90 transition-all"
+                            >
+                              <ExternalLink className="h-3.5 w-3.5" />
+                              Détails
+                            </button>
+                          </td>
+                        </tr>
+                      )
+                    })}
+
+                    {filteredUsers.length === 0 && (
+                      <tr>
+                        <td colSpan={7} className="px-6 py-12 text-center text-slate-400 text-sm">
+                          Aucun utilisateur trouvé.
                         </td>
                       </tr>
-                    ))}
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -365,62 +448,141 @@ export default function UsersManagementPage() {
         </div>
       </div>
 
-      {/* Edit Modal */}
-      {showEditModal && selectedUser && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="rounded-2xl bg-white/85 backdrop-blur-2xl border border-white/70 shadow-xl ring-1 ring-inset ring-white/60 max-w-md w-full p-6">
-            <h3 className="text-lg font-semibold text-slate-800 mb-4">
-              Modifier l&apos;utilisateur
-            </h3>
+      {/* ── Detail Modal ── */}
+      {showDetailModal && selectedUser && (() => {
+        const g = selectedUser.gamification?.[0]
+        const lastLogin = g?.last_login_date || selectedUser.last_sign_in_at || null
+        return (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="rounded-2xl bg-white/90 backdrop-blur-2xl border border-white/70 shadow-2xl ring-1 ring-inset ring-white/60 w-full max-w-lg flex flex-col max-h-[90vh]">
 
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
-                  Email
-                </label>
-                <p className="text-slate-800">{selectedUser.email}</p>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
-                  Nom
-                </label>
-                <p className="text-slate-800">{selectedUser.full_name || 'Non renseigné'}</p>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Rôle
-                </label>
-                <select
-                  value={editRole}
-                  onChange={(e) => setEditRole(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl bg-white/70 backdrop-blur-sm border border-blue-200/60 text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-400/50 transition-all"
+              {/* Modal header */}
+              <div className="flex items-start justify-between p-6 border-b border-slate-100">
+                <div className="flex items-center gap-4">
+                  <div className={`h-14 w-14 rounded-full flex items-center justify-center text-white text-xl font-bold shrink-0 ${avatarColor(selectedUser.role)}`}>
+                    {(selectedUser.full_name || selectedUser.email || '?').charAt(0).toUpperCase()}
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-slate-800">{selectedUser.full_name || 'Sans nom'}</h3>
+                    <p className="text-sm text-slate-500 mb-1">{selectedUser.email}</p>
+                    {roleBadge(selectedUser.role)}
+                  </div>
+                </div>
+                <button
+                  onClick={closeDetail}
+                  className="p-2 rounded-xl hover:bg-slate-100 text-slate-400 transition-colors"
                 >
-                  <option value="free">Gratuit</option>
-                  <option value="premium">Premium</option>
-                  <option value="admin">Admin</option>
-                </select>
+                  <X className="h-5 w-5" />
+                </button>
               </div>
-            </div>
 
-            <div className="flex justify-end gap-3 mt-6">
-              <button
-                onClick={() => setShowEditModal(false)}
-                className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-white/70 backdrop-blur-sm border border-blue-200/60 text-slate-700 text-sm font-medium hover:bg-white/90 transition-all"
-              >
-                Annuler
-              </button>
-              <button
-                onClick={handleUpdateRole}
-                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600/90 backdrop-blur-sm border border-blue-400/30 text-white text-sm font-semibold hover:bg-blue-600 shadow-sm transition-all"
-              >
-                Enregistrer
-              </button>
+              {/* Scrollable body */}
+              <div className="overflow-y-auto flex-1 p-6 space-y-6">
+
+                {/* Gamification stats row */}
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="rounded-xl bg-amber-50 border border-amber-100 p-3 text-center">
+                    <Trophy className="h-5 w-5 text-amber-500 mx-auto mb-1" />
+                    <p className="text-lg font-bold text-slate-800">Niv. {g?.level ?? 1}</p>
+                    <p className="text-xs text-slate-500">Niveau</p>
+                  </div>
+                  <div className="rounded-xl bg-blue-50 border border-blue-100 p-3 text-center">
+                    <Zap className="h-5 w-5 text-blue-500 mx-auto mb-1" />
+                    <p className="text-lg font-bold text-slate-800">{(g?.total_xp ?? 0).toLocaleString('fr-FR')}</p>
+                    <p className="text-xs text-slate-500">XP total</p>
+                  </div>
+                  <div className="rounded-xl bg-orange-50 border border-orange-100 p-3 text-center">
+                    <Flame className="h-5 w-5 text-orange-500 mx-auto mb-1" />
+                    <p className="text-lg font-bold text-slate-800">{g?.current_streak ?? 0} j</p>
+                    <p className="text-xs text-slate-500">Streak</p>
+                  </div>
+                </div>
+
+                {/* Informations */}
+                <div>
+                  <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Informations</h4>
+                  <div className="space-y-3">
+
+                    <div>
+                      <label className="block text-xs font-medium text-slate-500 mb-1">Rôle</label>
+                      <select
+                        value={editRole}
+                        onChange={(e) => setEditRole(e.target.value)}
+                        className="w-full px-4 py-2.5 rounded-xl bg-white/70 backdrop-blur-sm border border-blue-200/60 text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-400/50 transition-all text-sm"
+                      >
+                        <option value="free">Gratuit</option>
+                        <option value="premium">Premium</option>
+                        <option value="admin">Admin</option>
+                      </select>
+                    </div>
+
+                    <div className="flex justify-between text-sm py-1">
+                      <span className="text-slate-500">Inscription</span>
+                      <span className="text-slate-700 font-medium">{new Date(selectedUser.created_at).toLocaleDateString('fr-FR')}</span>
+                    </div>
+
+                    <div className="flex justify-between text-sm py-1">
+                      <span className="text-slate-500">Dernière connexion</span>
+                      <span className="text-slate-700 font-medium">{relativeDate(lastLogin)}</span>
+                    </div>
+
+                    {selectedUser.subscription_status && (
+                      <div className="flex justify-between text-sm py-1">
+                        <span className="text-slate-500">Statut abonnement</span>
+                        <span className="text-slate-700 font-medium capitalize">{selectedUser.subscription_status}</span>
+                      </div>
+                    )}
+
+                    {selectedUser.subscription_end_date && (
+                      <div className="flex justify-between text-sm py-1">
+                        <span className="text-slate-500">Fin d&apos;abonnement</span>
+                        <span className="text-slate-700 font-medium">
+                          {new Date(selectedUser.subscription_end_date).toLocaleDateString('fr-FR')}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Actions */}
+                <div>
+                  <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Actions</h4>
+                  <div className="space-y-2">
+                    <button
+                      onClick={handleUpdateRole}
+                      disabled={saving || editRole === selectedUser.role}
+                      className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600/90 backdrop-blur-sm border border-blue-400/30 text-white text-sm font-semibold hover:bg-blue-600 shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <Shield className="h-4 w-4" />
+                      {saving ? 'Enregistrement…' : 'Changer le rôle'}
+                    </button>
+
+                    <a
+                      href={`mailto:${selectedUser.email}`}
+                      className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-white/70 backdrop-blur-sm border border-blue-200/60 text-slate-700 text-sm font-medium hover:bg-white/90 transition-all"
+                    >
+                      <Mail className="h-4 w-4" />
+                      Envoyer un email
+                    </a>
+                  </div>
+                </div>
+
+              </div>
+
+              {/* Modal footer */}
+              <div className="flex justify-end px-6 py-4 border-t border-slate-100">
+                <button
+                  onClick={closeDetail}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white/70 backdrop-blur-sm border border-blue-200/60 text-slate-700 text-sm font-medium hover:bg-white/90 transition-all"
+                >
+                  Fermer
+                </button>
+              </div>
+
             </div>
           </div>
-        </div>
-      )}
+        )
+      })()}
     </AuthLayout>
   )
 }

@@ -19,8 +19,7 @@ import {
   ChevronRight,
   Settings,
   Bell,
-  Globe,
-  Smartphone
+  Globe
 } from 'lucide-react'
 
 export default function SettingsPage() {
@@ -387,27 +386,21 @@ export default function SettingsPage() {
                     <h2 className="text-sm font-bold text-slate-800 tracking-wide">Notifications</h2>
                   </div>
                   <div className="space-y-3">
-                    {[
-                      { key: 'email' as const, Icon: Mail, label: 'Notifications par email', sub: 'Recevez des mises à jour importantes' },
-                      { key: 'push' as const, Icon: Smartphone, label: 'Notifications push', sub: 'Notifications sur votre appareil' },
-                      { key: 'newsletter' as const, Icon: Bell, label: 'Newsletter', sub: 'Nouveautés et conseils mensuels' },
-                    ].map(({ key, Icon, label, sub }) => (
-                      <label key={key} className="flex items-center justify-between p-4 bg-white/60 backdrop-blur-sm rounded-xl border border-blue-100/60 cursor-pointer hover:bg-white/80 transition-all">
-                        <div className="flex items-center gap-3">
-                          <Icon className="h-5 w-5 text-slate-500" />
-                          <div>
-                            <p className="font-medium text-slate-900 text-sm">{label}</p>
-                            <p className="text-xs text-slate-500">{sub}</p>
-                          </div>
+                    <label className="flex items-center justify-between p-4 bg-white/60 backdrop-blur-sm rounded-xl border border-blue-100/60 cursor-pointer hover:bg-white/80 transition-all">
+                      <div className="flex items-center gap-3">
+                        <Bell className="h-5 w-5 text-slate-500" />
+                        <div>
+                          <p className="font-medium text-slate-900 text-sm">Newsletter</p>
+                          <p className="text-xs text-slate-500">Nouveautés, conseils et mises à jour de la plateforme</p>
                         </div>
-                        <input
-                          type="checkbox"
-                          checked={notifications[key]}
-                          onChange={(e) => setNotifications({ ...notifications, [key]: e.target.checked })}
-                          className="rounded text-blue-600 focus:ring-blue-500"
-                        />
-                      </label>
-                    ))}
+                      </div>
+                      <input
+                        type="checkbox"
+                        checked={notifications.newsletter}
+                        onChange={(e) => setNotifications({ ...notifications, newsletter: e.target.checked })}
+                        className="rounded text-blue-600 focus:ring-blue-500"
+                      />
+                    </label>
                     <div className="pt-2">
                       <button onClick={handleUpdateNotifications} disabled={savingNotifications}
                         className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600/90 backdrop-blur-sm border border-blue-400/30 text-white text-sm font-semibold hover:bg-blue-600 shadow-sm transition-all disabled:opacity-50">

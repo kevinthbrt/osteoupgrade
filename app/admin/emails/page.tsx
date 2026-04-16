@@ -1,19 +1,10 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import {
-  Mail,
-  MailOpen,
-  Archive,
-  Trash2,
-  Search,
-  Filter,
-  RefreshCw,
-  ChevronLeft,
-  Tag,
-  Clock,
-  User,
-  Paperclip
+  Mail, MailOpen, Archive, Trash2, Search, RefreshCw,
+  ChevronLeft, Clock, User, Paperclip, Pencil, Reply,
+  Send, X, Loader2
 } from 'lucide-react'
 import AuthLayout from '@/components/AuthLayout'
 
@@ -43,560 +34,448 @@ interface EmailCounts {
   spam: number
 }
 
+interface ComposeData {
+  to: string
+  subject: string
+  body: string
+}
+
+const CATEGORY_STYLES: Record<string, { label: string; pill: string; sidebar: string }> = {
+  parrainage: { label: 'Parrainage', pill: 'bg-amber-100 text-amber-800 border-amber-300', sidebar: 'bg-amber-50 text-amber-700 hover:bg-amber-100' },
+  support:    { label: 'Support',    pill: 'bg-blue-100 text-blue-800 border-blue-300',   sidebar: 'bg-blue-50 text-blue-700 hover:bg-blue-100' },
+  general:    { label: 'Général',    pill: 'bg-slate-100 text-slate-700 border-slate-300', sidebar: 'bg-slate-50 text-slate-700 hover:bg-slate-100' },
+  spam:       { label: 'Spam',       pill: 'bg-red-100 text-red-700 border-red-300',       sidebar: 'bg-red-50 text-red-700 hover:bg-red-100' },
+}
+
+function relativeDate(dateStr: string) {
+  const diff = Date.now() - new Date(dateStr).getTime()
+  const mins = Math.floor(diff / 60000)
+  const hours = Math.floor(diff / 3600000)
+  const days = Math.floor(diff / 86400000)
+  if (mins < 60) return `${mins}m`
+  if (hours < 24) return `${hours}h`
+  if (days === 1) return 'Hier'
+  if (days < 7) return `${days}j`
+  return new Date(dateStr).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' })
+}
+
+function fullDate(dateStr: string) {
+  return new Date(dateStr).toLocaleString('fr-FR', {
+    day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit'
+  })
+}
+
 export default function AdminEmailsPage() {
   const [emails, setEmails] = useState<Email[]>([])
   const [selectedEmail, setSelectedEmail] = useState<Email | null>(null)
   const [loading, setLoading] = useState(true)
-  const [counts, setCounts] = useState<EmailCounts>({
-    total: 0,
-    unread: 0,
-    parrainage: 0,
-    support: 0,
-    general: 0,
-    spam: 0
-  })
+  const [counts, setCounts] = useState<EmailCounts>({ total: 0, unread: 0, parrainage: 0, support: 0, general: 0, spam: 0 })
 
-  // Filters
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null)
   const [isReadFilter, setIsReadFilter] = useState<boolean | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
+  const searchTimeout = useRef<ReturnType<typeof setTimeout>>()
+
+  // Compose modal
+  const [showCompose, setShowCompose] = useState(false)
+  const [compose, setCompose] = useState<ComposeData>({ to: '', subject: '', body: '' })
+  const [sending, setSending] = useState(false)
+  const [sendResult, setSendResult] = useState<{ ok: boolean; msg: string } | null>(null)
+
+  useEffect(() => { loadEmails() }, [categoryFilter, isReadFilter])
 
   useEffect(() => {
-    loadEmails()
-  }, [categoryFilter, isReadFilter, searchQuery])
+    clearTimeout(searchTimeout.current)
+    searchTimeout.current = setTimeout(loadEmails, 400)
+    return () => clearTimeout(searchTimeout.current)
+  }, [searchQuery])
 
   async function loadEmails() {
+    setLoading(true)
     try {
-      setLoading(true)
-
-      const params = new URLSearchParams()
-      if (categoryFilter) params.set('category', categoryFilter)
-      if (isReadFilter !== null) params.set('is_read', String(isReadFilter))
-      if (searchQuery) params.set('search', searchQuery)
-      params.set('is_archived', 'false') // Only show non-archived by default
-
-      const response = await fetch(`/api/emails/list?${params.toString()}`)
-      const data = await response.json()
-
-      if (response.ok) {
-        setEmails(data.emails || [])
-        setCounts(data.counts || counts)
-      } else {
-        console.error('Failed to load emails:', data.error)
-      }
-    } catch (error) {
-      console.error('Error loading emails:', error)
-    } finally {
-      setLoading(false)
-    }
+      const p = new URLSearchParams()
+      if (categoryFilter) p.set('category', categoryFilter)
+      if (isReadFilter !== null) p.set('is_read', String(isReadFilter))
+      if (searchQuery) p.set('search', searchQuery)
+      p.set('is_archived', 'false')
+      const res = await fetch(`/api/emails/list?${p}`)
+      const data = await res.json()
+      if (res.ok) { setEmails(data.emails || []); setCounts(data.counts || counts) }
+    } catch (e) { console.error(e) } finally { setLoading(false) }
   }
 
   async function openEmail(email: Email) {
-    try {
-      const response = await fetch(`/api/emails/${email.id}`)
-      const data = await response.json()
-
-      if (response.ok) {
-        setSelectedEmail(data.email)
-        // Update email in list to reflect read status
-        setEmails(emails.map(e =>
-          e.id === email.id ? { ...e, is_read: true } : e
-        ))
-        setCounts(prev => ({
-          ...prev,
-          unread: Math.max(0, prev.unread - (email.is_read ? 0 : 1))
-        }))
-      }
-    } catch (error) {
-      console.error('Error opening email:', error)
+    const res = await fetch(`/api/emails/${email.id}`)
+    const data = await res.json()
+    if (res.ok) {
+      setSelectedEmail(data.email)
+      setEmails(prev => prev.map(e => e.id === email.id ? { ...e, is_read: true } : e))
+      if (!email.is_read) setCounts(prev => ({ ...prev, unread: Math.max(0, prev.unread - 1) }))
     }
   }
 
-  async function toggleReadStatus(emailId: string, currentStatus: boolean) {
-    try {
-      const response = await fetch(`/api/emails/${emailId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ is_read: !currentStatus })
-      })
+  async function patchEmail(emailId: string, patch: object) {
+    await fetch(`/api/emails/${emailId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(patch)
+    })
+  }
 
-      if (response.ok) {
-        setEmails(emails.map(e =>
-          e.id === emailId ? { ...e, is_read: !currentStatus } : e
-        ))
-        if (selectedEmail?.id === emailId) {
-          setSelectedEmail({ ...selectedEmail, is_read: !currentStatus })
-        }
-        setCounts(prev => ({
-          ...prev,
-          unread: prev.unread + (currentStatus ? 1 : -1)
-        }))
-      }
-    } catch (error) {
-      console.error('Error toggling read status:', error)
-    }
+  async function toggleRead(email: Email) {
+    await patchEmail(email.id, { is_read: !email.is_read })
+    const delta = email.is_read ? 1 : -1
+    setEmails(prev => prev.map(e => e.id === email.id ? { ...e, is_read: !email.is_read } : e))
+    if (selectedEmail?.id === email.id) setSelectedEmail({ ...selectedEmail, is_read: !email.is_read })
+    setCounts(prev => ({ ...prev, unread: prev.unread + delta }))
+  }
+
+  async function changeCategory(email: Email, category: string) {
+    await patchEmail(email.id, { category })
+    setEmails(prev => prev.map(e => e.id === email.id ? { ...e, category: category as Email['category'] } : e))
+    if (selectedEmail?.id === email.id) setSelectedEmail({ ...selectedEmail, category: category as Email['category'] })
   }
 
   async function archiveEmail(emailId: string) {
-    try {
-      const response = await fetch(`/api/emails/${emailId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ is_archived: true })
-      })
-
-      if (response.ok) {
-        setEmails(emails.filter(e => e.id !== emailId))
-        if (selectedEmail?.id === emailId) {
-          setSelectedEmail(null)
-        }
-      }
-    } catch (error) {
-      console.error('Error archiving email:', error)
-    }
+    await patchEmail(emailId, { is_archived: true })
+    setEmails(prev => prev.filter(e => e.id !== emailId))
+    if (selectedEmail?.id === emailId) setSelectedEmail(null)
   }
 
   async function deleteEmail(emailId: string) {
-    if (!confirm('Êtes-vous sûr de vouloir supprimer cet email définitivement ?')) {
-      return
-    }
+    if (!confirm('Supprimer cet email définitivement ?')) return
+    await fetch(`/api/emails/${emailId}`, { method: 'DELETE' })
+    setEmails(prev => prev.filter(e => e.id !== emailId))
+    if (selectedEmail?.id === emailId) setSelectedEmail(null)
+  }
 
+  function openReply(email: Email) {
+    setCompose({ to: email.from_email, subject: `Re: ${email.subject}`, body: '' })
+    setShowCompose(true)
+    setSendResult(null)
+  }
+
+  function openCompose() {
+    setCompose({ to: '', subject: '', body: '' })
+    setShowCompose(true)
+    setSendResult(null)
+  }
+
+  async function handleSend() {
+    if (!compose.to || !compose.subject || !compose.body) return
+    setSending(true)
+    setSendResult(null)
     try {
-      const response = await fetch(`/api/emails/${emailId}`, {
-        method: 'DELETE'
+      const res = await fetch('/api/mailing/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          to: compose.to,
+          subject: compose.subject,
+          html: compose.body.replace(/\n/g, '<br>'),
+          text: compose.body,
+          audienceMode: 'manual'
+        })
       })
-
-      if (response.ok) {
-        setEmails(emails.filter(e => e.id !== emailId))
-        if (selectedEmail?.id === emailId) {
-          setSelectedEmail(null)
-        }
+      const data = await res.json()
+      if (res.ok) {
+        setSendResult({ ok: true, msg: 'Email envoyé avec succès !' })
+        setTimeout(() => setShowCompose(false), 1500)
+      } else {
+        setSendResult({ ok: false, msg: data.error || 'Erreur lors de l\'envoi' })
       }
-    } catch (error) {
-      console.error('Error deleting email:', error)
-    }
+    } catch { setSendResult({ ok: false, msg: 'Erreur réseau' }) }
+    finally { setSending(false) }
   }
 
-  function getCategoryColor(category: string) {
-    switch (category) {
-      case 'parrainage':
-        return 'bg-yellow-100 text-yellow-800 border-yellow-300'
-      case 'support':
-        return 'bg-blue-100 text-blue-800 border-blue-300'
-      case 'spam':
-        return 'bg-red-100 text-red-800 border-red-300'
-      default:
-        return 'bg-gray-100 text-gray-800 border-gray-300'
-    }
-  }
-
-  function formatDate(dateString: string) {
-    const date = new Date(dateString)
-    const now = new Date()
-    const diffMs = now.getTime() - date.getTime()
-    const diffMins = Math.floor(diffMs / 60000)
-    const diffHours = Math.floor(diffMs / 3600000)
-    const diffDays = Math.floor(diffMs / 86400000)
-
-    if (diffMins < 60) {
-      return `Il y a ${diffMins} min`
-    } else if (diffHours < 24) {
-      return `Il y a ${diffHours}h`
-    } else if (diffDays < 7) {
-      return `Il y a ${diffDays}j`
-    } else {
-      return date.toLocaleDateString('fr-FR', {
-        day: '2-digit',
-        month: 'short',
-        year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined
-      })
-    }
-  }
+  const navItems = [
+    { label: 'Tous', count: counts.total, active: !categoryFilter && isReadFilter === null, onClick: () => { setCategoryFilter(null); setIsReadFilter(null) }, style: 'bg-purple-100 text-purple-700' },
+    { label: 'Non lus', count: counts.unread, active: isReadFilter === false && !categoryFilter, onClick: () => { setCategoryFilter(null); setIsReadFilter(false) }, style: 'bg-purple-100 text-purple-700' },
+  ]
 
   return (
     <AuthLayout>
-    <div className="min-h-screen -m-6 md:-m-8">
-      {/* Dark header */}
-      <div className="relative bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 px-6 md:px-10 pt-8 pb-6 overflow-hidden">
-        {/* Blobs */}
-        <div className="pointer-events-none absolute inset-0">
-          <div className="absolute -top-16 -left-16 h-64 w-64 rounded-full bg-purple-500/15 blur-3xl" />
-          <div className="absolute top-0 right-1/4 h-48 w-48 rounded-full bg-indigo-400/10 blur-2xl" />
-          <div className="absolute -bottom-12 right-0 h-56 w-56 rounded-full bg-sky-400/15 blur-3xl" />
-        </div>
+      <div className="min-h-screen -m-6 md:-m-8">
 
-        {/* Glow lines */}
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-purple-400/40 to-transparent" />
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-purple-300/50 to-transparent" />
-
-        {/* Glass panel */}
-        <div className="relative z-10 bg-white/[0.09] backdrop-blur-xl border border-white/20 ring-1 ring-inset ring-white/15 rounded-3xl shadow-[0_12px_40px_rgba(0,8,30,0.65),inset_0_1px_0_rgba(255,255,255,0.12)] p-6 md:p-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <Mail className="h-4 w-4 text-purple-300" />
-              <span className="text-xs font-semibold uppercase tracking-widest text-purple-300">
-                Admin — Emails
-              </span>
+        {/* ── Header ── */}
+        <div className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 px-6 md:px-10 pt-8 pb-6">
+          <div className="absolute top-0 left-0 w-72 h-72 bg-purple-500/15 rounded-full blur-3xl animate-pulse -translate-x-1/2 -translate-y-1/4" style={{ animationDuration: '4s' }} />
+          <div className="absolute top-1/2 right-0 w-56 h-56 bg-indigo-400/10 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '6s', animationDelay: '2s' }} />
+          <div className="absolute bottom-0 right-1/4 w-48 h-48 bg-sky-400/15 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '5s', animationDelay: '1s' }} />
+          <div className="relative">
+            <div className="bg-white/[0.09] backdrop-blur-xl border border-white/20 ring-1 ring-inset ring-white/15 rounded-3xl p-6 md:p-8 shadow-[0_12px_40px_rgba(0,8,30,0.65),inset_0_1px_0_rgba(255,255,255,0.12)] flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <div>
+                <p className="text-purple-300 text-sm font-medium mb-1 tracking-wide flex items-center gap-2">
+                  <Mail className="h-4 w-4" /> Administration
+                </p>
+                <h1 className="text-3xl md:text-4xl font-bold tracking-tight bg-gradient-to-r from-white via-purple-100 to-indigo-200 bg-clip-text text-transparent">
+                  Boîte mail
+                </h1>
+                <p className="text-blue-300/70 text-sm mt-1.5">{counts.unread} message{counts.unread !== 1 ? 's' : ''} non lu{counts.unread !== 1 ? 's' : ''}</p>
+              </div>
+              <div className="flex items-center gap-3">
+                <button onClick={loadEmails} className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/10 backdrop-blur-sm border border-white/20 text-white text-sm font-medium hover:bg-white/15 transition-all">
+                  <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+                  Actualiser
+                </button>
+                <button onClick={openCompose} className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-purple-500/90 backdrop-blur-sm border border-purple-400/30 text-white text-sm font-semibold hover:bg-purple-600 shadow-sm transition-all">
+                  <Pencil className="h-4 w-4" /> Composer
+                </button>
+              </div>
             </div>
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-white via-purple-100 to-indigo-200 bg-clip-text text-transparent">
-              Emails Reçus
-            </h1>
-            <p className="mt-1 text-blue-300/70 text-sm">
-              Gérez et consultez tous les emails entrants
-            </p>
           </div>
-          <div className="flex items-center gap-3">
-            <span className="px-3 py-1 rounded-full text-xs font-semibold bg-purple-500/20 border border-purple-400/30 text-purple-200">
-              {counts.unread} non lus
-            </span>
-            <button
-              onClick={loadEmails}
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-purple-500/90 backdrop-blur-sm border border-purple-400/30 text-white font-semibold hover:bg-purple-600/90 shadow-sm transition-all"
-            >
-              <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-              Actualiser
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Light body */}
-      <div className="relative bg-gradient-to-br from-blue-100/90 via-sky-50 to-indigo-50/80 px-6 md:px-10 pt-8 pb-10 overflow-hidden">
-        {/* Blobs */}
-        <div className="pointer-events-none absolute inset-0">
-          <div className="absolute -top-20 -left-20 h-72 w-72 rounded-full bg-purple-400/20 blur-3xl" />
-          <div className="absolute top-1/3 right-0 h-64 w-64 rounded-full bg-sky-400/25 blur-3xl" />
-          <div className="absolute bottom-0 left-1/3 h-56 w-56 rounded-full bg-indigo-400/20 blur-3xl" />
+          <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-purple-400/40 to-transparent" />
         </div>
 
-        <div className="relative space-y-6">
-          <div className="grid grid-cols-12 gap-6">
-            {/* Sidebar */}
-            <div className="col-span-3">
-              <div className="bg-white/85 backdrop-blur-2xl border border-white/70 shadow-xl ring-1 ring-inset ring-white/60 rounded-2xl p-6">
+        {/* ── Body ── */}
+        <div className="relative overflow-hidden bg-gradient-to-br from-blue-100/90 via-sky-50 to-indigo-50/80 px-4 md:px-6 pt-6 pb-10">
+          <div className="pointer-events-none absolute top-0 left-1/4 w-96 h-96 bg-purple-400/15 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '6s' }} />
+          <div className="pointer-events-none absolute bottom-0 left-0 w-72 h-72 bg-indigo-400/20 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '7s', animationDelay: '1s' }} />
+
+          <div className="relative flex gap-4 h-[calc(100vh-260px)] min-h-[500px]">
+
+            {/* ── Sidebar ── */}
+            <div className="w-48 flex-shrink-0 flex flex-col gap-2">
+              <div className="bg-white/85 backdrop-blur-2xl border border-white/70 shadow-xl ring-1 ring-inset ring-white/60 rounded-2xl p-3 flex flex-col gap-1">
+
                 {/* Search */}
-                <div className="relative mb-4">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+                <div className="relative mb-2">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
                   <input
                     type="text"
-                    placeholder="Rechercher..."
+                    placeholder="Rechercher…"
                     value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full pl-10 pr-4 bg-white/70 backdrop-blur-sm border border-blue-200/60 rounded-lg py-2.5 focus:ring-2 focus:ring-purple-300 focus:border-purple-400 outline-none text-sm"
+                    onChange={e => setSearchQuery(e.target.value)}
+                    className="w-full pl-8 pr-3 py-2 text-xs bg-white/70 border border-blue-200/60 rounded-xl focus:ring-2 focus:ring-purple-300 outline-none"
                   />
                 </div>
 
-                {/* Filters */}
-                <div className="space-y-2">
-                  <button
-                    onClick={() => {
-                      setCategoryFilter(null)
-                      setIsReadFilter(null)
-                    }}
-                    className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                      !categoryFilter && isReadFilter === null
-                        ? 'bg-purple-100/80 text-purple-700'
-                        : 'text-slate-700 hover:bg-white/60'
-                    }`}
-                  >
-                    <span>Tous les emails</span>
-                    <span className="text-xs">{counts.total}</span>
+                {navItems.map(item => (
+                  <button key={item.label} onClick={item.onClick}
+                    className={`flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition-colors ${item.active ? item.style : 'text-slate-600 hover:bg-white/60'}`}>
+                    <span>{item.label}</span>
+                    <span className="text-[11px] opacity-70">{item.count}</span>
                   </button>
+                ))}
 
-                  <button
-                    onClick={() => {
-                      setCategoryFilter(null)
-                      setIsReadFilter(false)
-                    }}
-                    className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                      isReadFilter === false && !categoryFilter
-                        ? 'bg-purple-100/80 text-purple-700'
-                        : 'text-slate-700 hover:bg-white/60'
-                    }`}
-                  >
-                    <span>Non lus</span>
-                    <span className="text-xs">{counts.unread}</span>
+                <div className="border-t border-blue-100/60 my-1" />
+                <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 px-3 py-1">Catégories</p>
+
+                {Object.entries(CATEGORY_STYLES).map(([key, cfg]) => (
+                  <button key={key} onClick={() => { setCategoryFilter(key); setIsReadFilter(null) }}
+                    className={`flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition-colors ${categoryFilter === key ? cfg.sidebar : 'text-slate-600 hover:bg-white/60'}`}>
+                    <span>{cfg.label}</span>
+                    <span className="text-[11px] opacity-70">{counts[key as keyof EmailCounts]}</span>
                   </button>
+                ))}
 
-                  <div className="border-t border-blue-200/50 my-3"></div>
-
-                  <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider px-3 mb-2">
-                    Catégories
-                  </div>
-
-                  <button
-                    onClick={() => {
-                      setCategoryFilter('parrainage')
-                      setIsReadFilter(null)
-                    }}
-                    className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                      categoryFilter === 'parrainage'
-                        ? 'bg-yellow-100/80 text-yellow-700'
-                        : 'text-slate-700 hover:bg-white/60'
-                    }`}
-                  >
-                    <span>Parrainage</span>
-                    <span className="text-xs">{counts.parrainage}</span>
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      setCategoryFilter('support')
-                      setIsReadFilter(null)
-                    }}
-                    className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                      categoryFilter === 'support'
-                        ? 'bg-blue-100/80 text-blue-700'
-                        : 'text-slate-700 hover:bg-white/60'
-                    }`}
-                  >
-                    <span>Support</span>
-                    <span className="text-xs">{counts.support}</span>
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      setCategoryFilter('general')
-                      setIsReadFilter(null)
-                    }}
-                    className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                      categoryFilter === 'general'
-                        ? 'bg-slate-100/80 text-slate-700'
-                        : 'text-slate-700 hover:bg-white/60'
-                    }`}
-                  >
-                    <span>Général</span>
-                    <span className="text-xs">{counts.general}</span>
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      setCategoryFilter('spam')
-                      setIsReadFilter(null)
-                    }}
-                    className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                      categoryFilter === 'spam'
-                        ? 'bg-red-100/80 text-red-700'
-                        : 'text-slate-700 hover:bg-white/60'
-                    }`}
-                  >
-                    <span>Spam</span>
-                    <span className="text-xs">{counts.spam}</span>
-                  </button>
-                </div>
+                <div className="border-t border-blue-100/60 my-1" />
+                <button onClick={() => { setCategoryFilter(null); setIsReadFilter(null); /* fetch archived */ }}
+                  className="flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium text-slate-500 hover:bg-white/60 transition-colors">
+                  <span>Archivés</span>
+                  <Archive className="h-3 w-3 opacity-50" />
+                </button>
               </div>
             </div>
 
-            {/* Email List */}
-            <div className="col-span-9">
-              {selectedEmail ? (
-                // Email Detail View
-                <div className="bg-white/85 backdrop-blur-2xl border border-white/70 shadow-xl ring-1 ring-inset ring-white/60 rounded-2xl p-6">
-                  {/* Header */}
-                  <div className="border-b border-blue-200/40 pb-6 mb-6">
-                    <div className="flex items-start justify-between mb-4">
-                      <button
-                        onClick={() => setSelectedEmail(null)}
-                        className="flex items-center text-slate-600 hover:text-slate-900 transition-colors"
-                      >
-                        <ChevronLeft className="h-5 w-5 mr-1" />
-                        Retour
-                      </button>
-                      <div className="flex items-center space-x-2">
-                        <button
-                          onClick={() => toggleReadStatus(selectedEmail.id, selectedEmail.is_read)}
-                          className="p-2 text-slate-600 hover:text-slate-900 bg-white/70 backdrop-blur-sm border border-blue-200/60 rounded-xl transition-colors"
-                          title={selectedEmail.is_read ? 'Marquer comme non lu' : 'Marquer comme lu'}
-                        >
-                          {selectedEmail.is_read ? (
-                            <Mail className="h-5 w-5" />
-                          ) : (
-                            <MailOpen className="h-5 w-5" />
-                          )}
-                        </button>
-                        <button
-                          onClick={() => archiveEmail(selectedEmail.id)}
-                          className="p-2 text-slate-600 hover:text-slate-900 bg-white/70 backdrop-blur-sm border border-blue-200/60 rounded-xl transition-colors"
-                          title="Archiver"
-                        >
-                          <Archive className="h-5 w-5" />
-                        </button>
-                        <button
-                          onClick={() => deleteEmail(selectedEmail.id)}
-                          className="p-2 bg-red-500/10 backdrop-blur-sm border border-red-300/30 text-red-600 hover:bg-red-500/20 rounded-xl transition-colors"
-                          title="Supprimer"
-                        >
-                          <Trash2 className="h-5 w-5" />
-                        </button>
-                      </div>
-                    </div>
-
-                    <h2 className="text-2xl font-semibold text-slate-900 mb-4">
-                      {selectedEmail.subject}
-                    </h2>
-
-                    <div className="flex items-center space-x-4 text-sm text-slate-600">
-                      <div className="flex items-center">
-                        <User className="h-4 w-4 mr-2" />
-                        <span className="font-medium">{selectedEmail.from_name || selectedEmail.from_email}</span>
-                        {selectedEmail.from_name && (
-                          <span className="ml-2 text-slate-400">&lt;{selectedEmail.from_email}&gt;</span>
-                        )}
-                      </div>
-                      <div className="flex items-center">
-                        <Clock className="h-4 w-4 mr-2" />
-                        {new Date(selectedEmail.received_at).toLocaleString('fr-FR', {
-                          day: 'numeric',
-                          month: 'long',
-                          year: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit'
-                        })}
-                      </div>
-                    </div>
-
-                    <div className="flex items-center space-x-2 mt-3">
-                      <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium border ${getCategoryColor(selectedEmail.category)}`}>
-                        {selectedEmail.category}
+            {/* ── Email list ── */}
+            <div className="w-72 flex-shrink-0 bg-white/85 backdrop-blur-2xl border border-white/70 shadow-xl ring-1 ring-inset ring-white/60 rounded-2xl overflow-hidden flex flex-col">
+              <div className="px-4 py-3 border-b border-blue-100/60 flex items-center justify-between">
+                <span className="text-xs font-semibold text-slate-600">{emails.length} message{emails.length !== 1 ? 's' : ''}</span>
+              </div>
+              <div className="flex-1 overflow-y-auto divide-y divide-blue-50">
+                {loading ? (
+                  <div className="flex items-center justify-center h-32 text-slate-400 text-sm gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin" /> Chargement…
+                  </div>
+                ) : emails.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center h-40 text-slate-400 text-sm gap-2">
+                    <Mail className="h-8 w-8 opacity-30" />
+                    <span>Aucun email</span>
+                  </div>
+                ) : emails.map(email => (
+                  <button key={email.id} onClick={() => openEmail(email)}
+                    className={`w-full text-left px-4 py-3 hover:bg-purple-50/60 transition-colors relative ${selectedEmail?.id === email.id ? 'bg-purple-50/80 border-l-2 border-purple-500' : ''} ${!email.is_read ? 'bg-blue-50/40' : ''}`}>
+                    {!email.is_read && <span className="absolute left-1.5 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-purple-500" />}
+                    <div className="flex items-center justify-between mb-1 gap-2">
+                      <span className={`text-xs truncate ${!email.is_read ? 'font-bold text-slate-900' : 'font-medium text-slate-700'}`}>
+                        {email.from_name || email.from_email}
                       </span>
-                      {selectedEmail.attachments && selectedEmail.attachments.length > 0 && (
-                        <span className="flex items-center text-xs text-slate-600">
-                          <Paperclip className="h-3 w-3 mr-1" />
-                          {selectedEmail.attachments.length} pièce(s) jointe(s)
+                      <span className="text-[10px] text-slate-400 flex-shrink-0">{relativeDate(email.received_at)}</span>
+                    </div>
+                    <p className={`text-xs truncate mb-1 ${!email.is_read ? 'font-semibold text-slate-800' : 'text-slate-600'}`}>
+                      {email.subject}
+                    </p>
+                    <div className="flex items-center gap-1.5">
+                      <span className={`px-1.5 py-0.5 rounded text-[10px] border ${CATEGORY_STYLES[email.category]?.pill || ''}`}>
+                        {CATEGORY_STYLES[email.category]?.label || email.category}
+                      </span>
+                      {email.attachments?.length > 0 && <Paperclip className="h-3 w-3 text-slate-400" />}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* ── Detail panel ── */}
+            <div className="flex-1 bg-white/85 backdrop-blur-2xl border border-white/70 shadow-xl ring-1 ring-inset ring-white/60 rounded-2xl overflow-hidden flex flex-col">
+              {selectedEmail ? (
+                <>
+                  {/* Detail header */}
+                  <div className="px-6 py-4 border-b border-blue-100/60 flex items-start justify-between gap-4">
+                    <div className="flex-1 min-w-0">
+                      <h2 className="text-lg font-bold text-slate-900 truncate mb-1">{selectedEmail.subject}</h2>
+                      <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500">
+                        <span className="flex items-center gap-1">
+                          <User className="h-3.5 w-3.5" />
+                          <span className="font-medium text-slate-700">{selectedEmail.from_name || selectedEmail.from_email}</span>
+                          {selectedEmail.from_name && <span className="text-slate-400">&lt;{selectedEmail.from_email}&gt;</span>}
                         </span>
-                      )}
+                        <span className="flex items-center gap-1">
+                          <Clock className="h-3.5 w-3.5" />
+                          {fullDate(selectedEmail.received_at)}
+                        </span>
+                        <select
+                          value={selectedEmail.category}
+                          onChange={e => changeCategory(selectedEmail, e.target.value)}
+                          className={`px-2 py-0.5 rounded-full border text-[10px] font-semibold cursor-pointer outline-none ${CATEGORY_STYLES[selectedEmail.category]?.pill}`}
+                        >
+                          {Object.entries(CATEGORY_STYLES).map(([k, v]) => (
+                            <option key={k} value={k}>{v.label}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                    {/* Actions */}
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <button onClick={() => openReply(selectedEmail)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-500/90 text-white text-xs font-semibold hover:bg-purple-600 transition-all">
+                        <Reply className="h-3.5 w-3.5" /> Répondre
+                      </button>
+                      <button onClick={() => toggleRead(selectedEmail)} title={selectedEmail.is_read ? 'Marquer non lu' : 'Marquer lu'}
+                        className="p-2 rounded-xl bg-white/70 border border-blue-200/60 text-slate-500 hover:bg-white/90 transition-all">
+                        {selectedEmail.is_read ? <Mail className="h-4 w-4" /> : <MailOpen className="h-4 w-4" />}
+                      </button>
+                      <button onClick={() => archiveEmail(selectedEmail.id)} title="Archiver"
+                        className="p-2 rounded-xl bg-white/70 border border-blue-200/60 text-slate-500 hover:bg-white/90 transition-all">
+                        <Archive className="h-4 w-4" />
+                      </button>
+                      <button onClick={() => deleteEmail(selectedEmail.id)} title="Supprimer"
+                        className="p-2 rounded-xl bg-red-50 border border-red-200/60 text-red-500 hover:bg-red-100 transition-all">
+                        <Trash2 className="h-4 w-4" />
+                      </button>
                     </div>
                   </div>
 
-                  {/* Content */}
-                  <div className="mb-6">
+                  {/* Body */}
+                  <div className="flex-1 overflow-y-auto px-6 py-5">
                     {selectedEmail.html_content ? (
-                      <div
-                        className="prose max-w-none"
-                        dangerouslySetInnerHTML={{ __html: selectedEmail.html_content }}
-                      />
+                      <div className="prose prose-sm max-w-none text-slate-700"
+                        dangerouslySetInnerHTML={{ __html: selectedEmail.html_content }} />
                     ) : (
-                      <div className="whitespace-pre-wrap text-slate-700">
+                      <pre className="whitespace-pre-wrap text-sm text-slate-700 font-sans">
                         {selectedEmail.text_content || 'Aucun contenu'}
-                      </div>
+                      </pre>
                     )}
                   </div>
 
                   {/* Attachments */}
-                  {selectedEmail.attachments && selectedEmail.attachments.length > 0 && (
-                    <div className="border-t border-blue-200/40 pt-6">
-                      <h3 className="text-sm font-semibold text-slate-900 mb-3">
-                        Pièces jointes
-                      </h3>
-                      <div className="space-y-2">
-                        {selectedEmail.attachments.map((attachment: any, index: number) => (
-                          <div
-                            key={index}
-                            className="flex items-center justify-between p-3 bg-white/60 backdrop-blur-sm border border-blue-200/40 rounded-xl"
-                          >
-                            <div className="flex items-center">
-                              <Paperclip className="h-4 w-4 text-slate-400 mr-2" />
-                              <span className="text-sm font-medium text-slate-700">
-                                {attachment.filename}
-                              </span>
-                              <span className="ml-2 text-xs text-slate-500">
-                                ({Math.round(attachment.size / 1024)} KB)
-                              </span>
-                            </div>
-                            <button
-                              onClick={async () => {
-                                try {
-                                  // Fetch download URL from our API
-                                  const response = await fetch(
-                                    `/api/emails/${selectedEmail.resend_email_id}/attachments/${attachment.id}`
-                                  )
-                                  if (response.ok) {
-                                    const data = await response.json()
-                                    // Open download URL in new tab
-                                    window.open(data.attachment.downloadUrl, '_blank')
-                                  } else {
-                                    alert('Erreur lors du téléchargement de la pièce jointe')
-                                  }
-                                } catch (error) {
-                                  console.error('Error downloading attachment:', error)
-                                  alert('Erreur lors du téléchargement de la pièce jointe')
-                                }
-                              }}
-                              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-purple-500/90 backdrop-blur-sm border border-purple-400/30 text-white font-semibold hover:bg-purple-600/90 shadow-sm transition-all text-xs"
-                            >
-                              Télécharger
-                            </button>
-                          </div>
+                  {selectedEmail.attachments?.length > 0 && (
+                    <div className="border-t border-blue-100/60 px-6 py-4">
+                      <p className="text-xs font-semibold text-slate-600 mb-2 flex items-center gap-1">
+                        <Paperclip className="h-3.5 w-3.5" /> {selectedEmail.attachments.length} pièce{selectedEmail.attachments.length > 1 ? 's' : ''} jointe{selectedEmail.attachments.length > 1 ? 's' : ''}
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        {selectedEmail.attachments.map((att: any, i: number) => (
+                          <button key={i} onClick={async () => {
+                            const res = await fetch(`/api/emails/${selectedEmail.resend_email_id}/attachments/${att.id}`)
+                            if (res.ok) { const d = await res.json(); window.open(d.attachment.downloadUrl, '_blank') }
+                          }}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/70 border border-blue-200/60 text-xs text-slate-700 hover:bg-white/90 transition-all">
+                            <Paperclip className="h-3 w-3 text-slate-400" />
+                            {att.filename} <span className="text-slate-400">({Math.round(att.size / 1024)} KB)</span>
+                          </button>
                         ))}
                       </div>
                     </div>
                   )}
-                </div>
+                </>
               ) : (
-                // Email List View
-                <div className="bg-white/85 backdrop-blur-2xl border border-white/70 shadow-xl ring-1 ring-inset ring-white/60 rounded-2xl overflow-hidden">
-                  {loading ? (
-                    <div className="p-12 text-center text-slate-500">
-                      Chargement...
-                    </div>
-                  ) : emails.length === 0 ? (
-                    <div className="p-12 text-center text-slate-500">
-                      <Mail className="h-12 w-12 mx-auto mb-4 text-slate-400" />
-                      <p className="text-lg font-medium">Aucun email</p>
-                      <p className="text-sm">Vous n'avez pas encore reçu d'emails.</p>
-                    </div>
-                  ) : (
-                    <div className="divide-y divide-blue-100/60">
-                      {emails.map((email) => (
-                        <div
-                          key={email.id}
-                          onClick={() => openEmail(email)}
-                          className={`p-4 hover:bg-white/60 cursor-pointer transition-colors ${
-                            !email.is_read ? 'bg-purple-50/40' : ''
-                          }`}
-                        >
-                          <div className="flex items-start justify-between">
-                            <div className="flex-1 min-w-0 mr-4">
-                              <div className="flex items-center space-x-3 mb-2">
-                                {!email.is_read && (
-                                  <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-                                )}
-                                <span className={`text-sm font-medium text-slate-900 ${!email.is_read ? 'font-semibold' : ''}`}>
-                                  {email.from_name || email.from_email}
-                                </span>
-                                <span className={`px-2 py-0.5 rounded text-xs border ${getCategoryColor(email.category)}`}>
-                                  {email.category}
-                                </span>
-                                {email.attachments && email.attachments.length > 0 && (
-                                  <Paperclip className="h-4 w-4 text-slate-400" />
-                                )}
-                              </div>
-                              <h3 className={`text-sm mb-1 truncate ${!email.is_read ? 'font-semibold text-slate-900' : 'text-slate-700'}`}>
-                                {email.subject}
-                              </h3>
-                              {email.text_content && (
-                                <p className="text-sm text-slate-500 truncate">
-                                  {email.text_content.substring(0, 100)}...
-                                </p>
-                              )}
-                            </div>
-                            <div className="flex flex-col items-end space-y-2">
-                              <span className="text-xs text-slate-500 whitespace-nowrap">
-                                {formatDate(email.received_at)}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                <div className="flex-1 flex flex-col items-center justify-center text-slate-400 gap-3">
+                  <MailOpen className="h-12 w-12 opacity-20" />
+                  <p className="text-sm">Sélectionnez un email pour le lire</p>
+                  <button onClick={openCompose}
+                    className="mt-2 inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-purple-500/90 text-white text-sm font-semibold hover:bg-purple-600 transition-all">
+                    <Pencil className="h-4 w-4" /> Nouveau message
+                  </button>
                 </div>
               )}
             </div>
+
           </div>
         </div>
+
+        {/* ── Compose modal ── */}
+        {showCompose && (
+          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-4">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col">
+              {/* Modal header */}
+              <div className="bg-gradient-to-r from-slate-800 to-slate-900 px-5 py-4 flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="flex items-center justify-center w-8 h-8 rounded-xl bg-purple-500/20 border border-purple-400/30">
+                    <Pencil className="h-4 w-4 text-purple-300" />
+                  </div>
+                  <h3 className="text-white font-semibold">{compose.subject.startsWith('Re:') ? 'Répondre' : 'Nouveau message'}</h3>
+                </div>
+                <button onClick={() => setShowCompose(false)} className="p-1.5 hover:bg-white/10 rounded-lg text-slate-400 hover:text-white transition">
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+
+              {/* Fields */}
+              <div className="p-5 space-y-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-500 mb-1">À</label>
+                  <input type="email" value={compose.to} onChange={e => setCompose(p => ({ ...p, to: e.target.value }))}
+                    placeholder="destinataire@email.com"
+                    className="w-full px-3 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-purple-300 focus:border-purple-400 outline-none" />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-500 mb-1">Objet</label>
+                  <input type="text" value={compose.subject} onChange={e => setCompose(p => ({ ...p, subject: e.target.value }))}
+                    placeholder="Objet de l'email"
+                    className="w-full px-3 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-purple-300 focus:border-purple-400 outline-none" />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-500 mb-1">Message</label>
+                  <textarea value={compose.body} onChange={e => setCompose(p => ({ ...p, body: e.target.value }))}
+                    rows={8} placeholder="Écrivez votre message…"
+                    className="w-full px-3 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-purple-300 focus:border-purple-400 outline-none resize-none" />
+                </div>
+
+                {sendResult && (
+                  <p className={`text-sm px-3 py-2 rounded-xl ${sendResult.ok ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'}`}>
+                    {sendResult.msg}
+                  </p>
+                )}
+              </div>
+
+              {/* Footer */}
+              <div className="px-5 pb-5 flex items-center justify-between">
+                <button onClick={() => setShowCompose(false)} className="px-4 py-2 text-sm text-slate-600 hover:text-slate-900 transition">
+                  Annuler
+                </button>
+                <button onClick={handleSend} disabled={sending || !compose.to || !compose.subject || !compose.body}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-purple-600 text-white text-sm font-semibold hover:bg-purple-700 disabled:opacity-50 transition-all">
+                  {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                  {sending ? 'Envoi…' : 'Envoyer'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
       </div>
-    </div>
     </AuthLayout>
   )
 }

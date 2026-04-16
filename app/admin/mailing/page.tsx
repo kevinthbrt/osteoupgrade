@@ -12,9 +12,7 @@ import {
   Save,
   X,
   PlayCircle,
-  Pause,
   Clock,
-  Users,
   Sparkles,
   ChevronDown,
   FileText,
@@ -24,7 +22,10 @@ import {
   Image as ImageIcon,
   List,
   Heading2,
-  Paperclip
+  Paperclip,
+  Settings2,
+  Zap,
+  AlertTriangle
 } from 'lucide-react'
 import AuthLayout from '@/components/AuthLayout'
 import { supabase } from '@/lib/supabase'
@@ -62,15 +63,6 @@ type Automation = {
   active: boolean
 }
 
-const automationTriggerPresets = [
-  { label: 'Nouvelle inscription', value: 'Nouvelle inscription' },
-  { label: 'Passage à Premium', value: 'Passage à Premium' },
-  { label: 'Abonnement expiré', value: 'Abonnement expiré' },
-  { label: 'Inactif depuis 30 jours', value: 'Inactif depuis 30 jours' },
-  { label: 'Sur free depuis 14 jours', value: 'Sur free depuis 14 jours' },
-  { label: 'Nouveau parrainage', value: 'Nouveau parrainage' },
-  { label: 'Bonus parrainage filleul', value: 'Bonus parrainage filleul' }
-]
 
 export default function MailingAdminPage() {
   const router = useRouter()
@@ -123,13 +115,35 @@ export default function MailingAdminPage() {
   // Automations state
   const [automations, setAutomations] = useState<Automation[]>([])
   const [automationModalOpen, setAutomationModalOpen] = useState(false)
-  const [automationDraft, setAutomationDraft] = useState<Omit<Automation, 'id' | 'active'>>({
-    name: '',
-    trigger: automationTriggerPresets[0]?.value || '',
-    audience: 'Tous les membres',
-    schedule: 'Démarrage immédiat',
-    steps: []
-  })
+  const [togglingId, setTogglingId] = useState<string | null>(null)
+  const [previewAutomation, setPreviewAutomation] = useState<Automation | null>(null)
+  const [previewSteps, setPreviewSteps] = useState<{ subject: string; html: string; delayDays: number }[]>([])
+  const [activePreviewStep, setActivePreviewStep] = useState(0)
+  const [loadingPreview, setLoadingPreview] = useState(false)
+
+  const openAutomationPreview = async (automation: Automation) => {
+    if (previewAutomation?.id === automation.id) { setPreviewAutomation(null); setPreviewSteps([]); return }
+    setPreviewAutomation(automation)
+    setPreviewSteps([])
+    setActivePreviewStep(0)
+    if (!automation.steps.length) return
+    setLoadingPreview(true)
+    try {
+      const stepResults = await Promise.all(
+        automation.steps.map(async (step) => {
+          if (!step.templateId) return null
+          const { data } = await supabase
+            .from('mail_templates')
+            .select('html, subject')
+            .or(`id.eq.${step.templateId},name.eq.${step.templateId}`)
+            .single()
+          return data ? { subject: data.subject, html: data.html, delayDays: step.delayDays } : null
+        })
+      )
+      setPreviewSteps(stepResults.filter(Boolean) as { subject: string; html: string; delayDays: number }[])
+    } catch { setPreviewSteps([]) }
+    finally { setLoadingPreview(false) }
+  }
 
   useEffect(() => {
     loadData()
@@ -449,98 +463,11 @@ export default function MailingAdminPage() {
   }
 
   // Automation management
-  const addAutomationStep = () => {
-    const lastDelay = automationDraft.steps.length > 0
-      ? automationDraft.steps[automationDraft.steps.length - 1].delayDays
-      : 0
-
-    setAutomationDraft((prev) => ({
-      ...prev,
-      steps: [
-        ...prev.steps,
-        {
-          id: `step-${Date.now()}`,
-          templateId: templates[0]?.id || '',
-          delayDays: lastDelay + 2
-        }
-      ]
-    }))
-  }
-
-  const updateAutomationStep = (stepId: string, updates: Partial<AutomationStep>) => {
-    setAutomationDraft((prev) => ({
-      ...prev,
-      steps: prev.steps.map((step) => (step.id === stepId ? { ...step, ...updates } : step))
-    }))
-  }
-
-  const removeAutomationStep = (stepId: string) => {
-    setAutomationDraft((prev) => ({
-      ...prev,
-      steps: prev.steps.filter((step) => step.id !== stepId)
-    }))
-  }
-
-  const handleAutomationSubmit = async (event: React.FormEvent) => {
-    event.preventDefault()
-    if (!automationDraft.name || !automationDraft.trigger || automationDraft.steps.length === 0) {
-      setResult({ type: 'error', message: 'Complétez tous les champs requis' })
-      return
-    }
-
-    try {
-      const steps = automationDraft.steps.map((step, index) => ({
-        step_order: index,
-        wait_minutes: step.delayDays * 24 * 60,
-        subject: templates.find(t => t.id === step.templateId)?.subject || 'Email automatique',
-        template_slug: step.templateId,
-        payload: {}
-      }))
-
-      const response = await fetch('/api/automations', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: automationDraft.name,
-          description: `Déclencheur: ${automationDraft.trigger}`,
-          trigger_event: automationDraft.trigger,
-          steps
-        })
-      })
-
-      if (!response.ok) throw new Error('Impossible de créer l\'automatisation')
-
-      const { automation } = await response.json()
-
-      const newAutomation: Automation = {
-        id: automation.id,
-        name: automation.name,
-        trigger: automation.trigger_event,
-        audience: automationDraft.audience,
-        schedule: automationDraft.schedule,
-        steps: automationDraft.steps,
-        active: automation.active
-      }
-
-      setAutomations((prev) => [...prev, newAutomation])
-      setResult({ type: 'success', message: 'Automatisation créée !' })
-      setAutomationModalOpen(false)
-      setAutomationDraft({
-        name: '',
-        trigger: automationTriggerPresets[0]?.value || '',
-        audience: 'Tous les membres',
-        schedule: 'Démarrage immédiat',
-        steps: []
-      })
-    } catch (error: any) {
-      setResult({ type: 'error', message: error?.message || 'Erreur' })
-    }
-  }
-
   const toggleAutomation = async (automationId: string) => {
     const automation = automations.find(a => a.id === automationId)
-    if (!automation) return
+    if (!automation || togglingId === automationId) return
 
+    setTogglingId(automationId)
     try {
       const response = await fetch(`/api/automations/${automationId}`, {
         method: 'PATCH',
@@ -551,23 +478,10 @@ export default function MailingAdminPage() {
       if (!response.ok) throw new Error('Impossible de mettre à jour')
 
       setAutomations((prev) => prev.map((auto) => (auto.id === automationId ? { ...auto, active: !auto.active } : auto)))
-      setResult({ type: 'success', message: `Automatisation ${!automation.active ? 'activée' : 'désactivée'}` })
     } catch (error: any) {
       setResult({ type: 'error', message: error?.message || 'Erreur' })
-    }
-  }
-
-  const deleteAutomation = async (automationId: string) => {
-    if (!confirm('Êtes-vous sûr de vouloir supprimer cette automatisation ?')) return
-
-    try {
-      const response = await fetch(`/api/automations/${automationId}`, { method: 'DELETE' })
-      if (!response.ok) throw new Error('Impossible de supprimer')
-
-      setAutomations((prev) => prev.filter((automation) => automation.id !== automationId))
-      setResult({ type: 'success', message: 'Automatisation supprimée' })
-    } catch (error: any) {
-      setResult({ type: 'error', message: error?.message || 'Erreur' })
+    } finally {
+      setTogglingId(null)
     }
   }
 
@@ -898,155 +812,195 @@ export default function MailingAdminPage() {
         </div>
       )}
 
-      {/* Automation Modal */}
-      {automationModalOpen && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white/85 backdrop-blur-2xl border border-white/70 shadow-2xl ring-1 ring-inset ring-white/60 rounded-3xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b border-gray-200 flex items-center justify-between">
-              <h3 className="text-xl font-bold text-gray-900">Programmer une automatisation</h3>
-              <button
-                onClick={() => {
-                  setAutomationModalOpen(false)
-                  setAutomationDraft({
-                    name: '',
-                    trigger: automationTriggerPresets[0]?.value || '',
-                    audience: 'Tous les membres',
-                    schedule: 'Démarrage immédiat',
-                    steps: []
-                  })
-                }}
-                className="text-gray-400 hover:text-gray-600"
+      {/* Automations Manager Modal */}
+      {automationModalOpen && (() => {
+        const isSeminaire = (a: Automation) =>
+          a.trigger.toLowerCase().includes('seminar') || a.trigger.toLowerCase().includes('séminaire') ||
+          a.name.toLowerCase().includes('séminaire') || a.name.toLowerCase().includes('seminaire')
+        const abonnementAutomations = automations.filter(a => !isSeminaire(a))
+        const seminaireAutomations = automations.filter(isSeminaire)
+
+        const AutomationRow = ({ automation, isObsolete }: { automation: Automation; isObsolete: boolean }) => {
+          const isExpanded = previewAutomation?.id === automation.id
+          return (
+            <div className={`border-b border-slate-100 last:border-b-0 ${isObsolete ? 'opacity-60' : ''}`}>
+              <div
+                className={`flex items-center gap-4 px-6 py-4 cursor-pointer hover:bg-slate-50 transition-colors ${isExpanded ? 'bg-purple-50/60' : ''}`}
+                onClick={() => openAutomationPreview(automation)}
               >
-                <X className="h-6 w-6" />
-              </button>
-            </div>
-
-            <form className="p-6 space-y-6" onSubmit={handleAutomationSubmit}>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Nom de l'automatisation</label>
-                  <input
-                    type="text"
-                    value={automationDraft.name}
-                    onChange={(e) => setAutomationDraft({ ...automationDraft, name: e.target.value })}
-                    placeholder="Ex: Bienvenue nouveau membre"
-                    className="w-full bg-white/70 backdrop-blur-sm border border-blue-200/60 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-purple-300 outline-none"
-                    required
-                  />
+                {/* Icon */}
+                <div className={`flex-shrink-0 w-9 h-9 rounded-xl flex items-center justify-center ${isObsolete ? 'bg-slate-100' : isExpanded ? 'bg-purple-200' : 'bg-purple-100'}`}>
+                  <Zap className={`h-4 w-4 ${isObsolete ? 'text-slate-400' : 'text-purple-600'}`} />
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Déclencheur</label>
-                  <select
-                    value={automationDraft.trigger}
-                    onChange={(e) => setAutomationDraft({ ...automationDraft, trigger: e.target.value })}
-                    className="w-full bg-white/70 backdrop-blur-sm border border-blue-200/60 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-purple-300 outline-none"
-                    required
-                  >
-                    {automationTriggerPresets.map((preset) => (
-                      <option key={preset.value} value={preset.value}>
-                        {preset.label}
-                      </option>
-                    ))}
-                  </select>
+                {/* Info */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-sm font-semibold text-slate-800 truncate">{automation.name}</span>
+                    {isObsolete && (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 text-xs font-medium flex-shrink-0">
+                        <AlertTriangle className="h-3 w-3" />
+                        Obsolète
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-3 mt-0.5 flex-wrap">
+                    <span className="text-xs text-slate-500 flex items-center gap-1">
+                      <PlayCircle className="h-3 w-3" />
+                      {automation.trigger}
+                    </span>
+                    <span className="text-xs text-slate-400 flex items-center gap-1">
+                      <Clock className="h-3 w-3" />
+                      {automation.steps.length} étape{automation.steps.length !== 1 ? 's' : ''}
+                    </span>
+                  </div>
                 </div>
+
+                {/* Toggle */}
+                <button
+                  onClick={e => { e.stopPropagation(); if (!isObsolete) toggleAutomation(automation.id) }}
+                  disabled={togglingId === automation.id || isObsolete}
+                  className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors duration-200 focus:outline-none ${
+                    automation.active ? 'bg-emerald-500' : 'bg-slate-200'
+                  } ${isObsolete ? 'cursor-not-allowed' : 'cursor-pointer'} ${togglingId === automation.id ? 'opacity-50' : ''}`}
+                  title={isObsolete ? 'Automatisation obsolète' : automation.active ? 'Désactiver' : 'Activer'}
+                >
+                  <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform duration-200 ${automation.active ? 'translate-x-6' : 'translate-x-1'}`} />
+                </button>
               </div>
 
-              <div>
-                <div className="flex items-center justify-between mb-3">
-                  <label className="block text-sm font-medium text-gray-700">Séquence d'emails</label>
-                  <button
-                    type="button"
-                    onClick={addAutomationStep}
-                    className="px-4 py-2 bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 transition flex items-center gap-2"
-                  >
-                    <Plus className="h-4 w-4" />
-                    Ajouter un email
-                  </button>
+              {/* Email preview panel */}
+              {isExpanded && (
+                <div className="border-t border-purple-100 bg-slate-50 px-6 py-4">
+                  {loadingPreview ? (
+                    <div className="flex items-center gap-2 text-sm text-slate-400 py-4 justify-center">
+                      <div className="h-4 w-4 rounded-full border-2 border-purple-400 border-t-transparent animate-spin" />
+                      Chargement des templates…
+                    </div>
+                  ) : previewSteps.length > 0 ? (
+                    <div>
+                      <div className="flex items-center justify-between mb-3">
+                        <p className="text-xs font-semibold text-slate-500 uppercase tracking-widest">Aperçu de l'email</p>
+                        {previewSteps.length > 1 && (
+                          <div className="flex gap-1">
+                            {previewSteps.map((step, idx) => (
+                              <button
+                                key={idx}
+                                onClick={() => setActivePreviewStep(idx)}
+                                className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-colors ${
+                                  activePreviewStep === idx
+                                    ? 'bg-purple-600 text-white'
+                                    : 'bg-white text-slate-500 border border-slate-200 hover:bg-slate-100'
+                                }`}
+                              >
+                                {step.delayDays === 0 ? 'Immédiat' : `J+${step.delayDays}`}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                      {previewSteps[activePreviewStep] && (
+                        <>
+                          <p className="text-xs text-slate-400 mb-2 truncate">
+                            Sujet : <span className="text-slate-600 font-medium">{previewSteps[activePreviewStep].subject}</span>
+                          </p>
+                          <div className="rounded-xl border border-slate-200 bg-white overflow-auto max-h-72 shadow-inner">
+                            <iframe
+                              srcDoc={previewSteps[activePreviewStep].html}
+                              className="w-full h-64 border-0"
+                              sandbox="allow-same-origin allow-scripts"
+                              title="Aperçu email"
+                            />
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-slate-400 text-center py-4">
+                      {automation.steps.length ? 'Templates introuvables en base.' : 'Aucun template associé à cette automatisation.'}
+                    </p>
+                  )}
                 </div>
+              )}
+            </div>
+          )
+        }
 
-                {automationDraft.steps.length === 0 ? (
-                  <div className="text-center py-8 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
-                    <p className="text-gray-600">Aucun email dans la séquence</p>
-                    <p className="text-sm text-gray-500 mt-1">Cliquez sur "Ajouter un email" pour commencer</p>
+        return (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-4">
+            <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full overflow-hidden max-h-[85vh] flex flex-col">
+              {/* Header */}
+              <div className="bg-gradient-to-r from-slate-800 to-slate-900 px-6 py-4 flex items-center justify-between flex-shrink-0">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-xl bg-white/10 flex items-center justify-center">
+                    <Settings2 className="h-4 w-4 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-white">Automatisations email</h3>
+                    <p className="text-xs text-slate-400 mt-0.5">{automations.length} automatisation{automations.length !== 1 ? 's' : ''} configurée{automations.length !== 1 ? 's' : ''}</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setAutomationModalOpen(false)}
+                  className="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors"
+                >
+                  <X className="h-4 w-4 text-white" />
+                </button>
+              </div>
+
+              {/* Body */}
+              <div className="overflow-y-auto flex-1">
+                {automations.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
+                    <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center mb-3">
+                      <Zap className="h-6 w-6 text-slate-400" />
+                    </div>
+                    <p className="text-sm font-medium text-slate-600">Aucune automatisation</p>
+                    <p className="text-xs text-slate-400 mt-1">Les automatisations sont configurées directement dans le code.</p>
                   </div>
                 ) : (
-                  <div className="space-y-3">
-                    {automationDraft.steps.map((step, index) => (
-                      <div key={step.id} className="flex items-center gap-3 p-4 bg-white/70 backdrop-blur-sm border border-blue-100/60 rounded-xl">
-                        <div className="flex-shrink-0 w-8 h-8 rounded-full bg-purple-600 text-white flex items-center justify-center font-semibold">
-                          {index + 1}
+                  <>
+                    {/* Abonnement section */}
+                    {abonnementAutomations.length > 0 && (
+                      <div>
+                        <div className="text-xs font-bold uppercase tracking-widest text-slate-500 px-6 py-3 bg-slate-50 border-b border-slate-100">
+                          Abonnement
                         </div>
-
-                        <div className="flex-1 grid grid-cols-2 gap-3">
-                          <select
-                            value={step.templateId}
-                            onChange={(e) => updateAutomationStep(step.id, { templateId: e.target.value })}
-                            className="bg-white/70 backdrop-blur-sm border border-blue-200/60 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-purple-300 outline-none"
-                          >
-                            <option value="">Sélectionnez un template</option>
-                            {templates.map((template) => (
-                              <option key={template.id} value={template.id}>
-                                {template.name}
-                              </option>
-                            ))}
-                          </select>
-
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm text-gray-600">Délai:</span>
-                            <input
-                              type="number"
-                              min="0"
-                              value={step.delayDays}
-                              onChange={(e) => updateAutomationStep(step.id, { delayDays: parseInt(e.target.value) || 0 })}
-                              className="w-24 bg-white/70 backdrop-blur-sm border border-blue-200/60 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-purple-300 outline-none"
-                            />
-                            <span className="text-sm text-gray-600">jours</span>
-                          </div>
-                        </div>
-
-                        <button
-                          type="button"
-                          onClick={() => removeAutomationStep(step.id)}
-                          className="flex-shrink-0 p-2 text-red-600 hover:bg-red-50 rounded-lg transition"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
+                        {abonnementAutomations.map(auto => (
+                          <AutomationRow key={auto.id} automation={auto} isObsolete={false} />
+                        ))}
                       </div>
-                    ))}
-                  </div>
+                    )}
+
+                    {/* Séminaires section */}
+                    {seminaireAutomations.length > 0 && (
+                      <div>
+                        <div className="text-xs font-bold uppercase tracking-widest text-slate-500 px-6 py-3 bg-slate-50 border-b border-slate-100 flex items-center gap-2">
+                          <span>Séminaires</span>
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 text-xs font-semibold normal-case tracking-normal">
+                            <AlertTriangle className="h-3 w-3" />
+                            Obsolètes
+                          </span>
+                        </div>
+                        {seminaireAutomations.map(auto => (
+                          <AutomationRow key={auto.id} automation={auto} isObsolete={true} />
+                        ))}
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
 
-              <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setAutomationModalOpen(false)
-                    setAutomationDraft({
-                      name: '',
-                      trigger: automationTriggerPresets[0]?.value || '',
-                      audience: 'Tous les membres',
-                      schedule: 'Démarrage immédiat',
-                      steps: []
-                    })
-                  }}
-                  className="px-6 py-2 bg-white/70 backdrop-blur-sm border border-blue-200/60 text-slate-700 rounded-xl hover:bg-white/90 transition"
-                >
-                  Annuler
-                </button>
-                <button
-                  type="submit"
-                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-purple-500/90 backdrop-blur-sm border border-purple-400/30 text-white font-semibold hover:bg-purple-600/90 shadow-sm transition-all"
-                >
-                  <Save className="h-4 w-4" />
-                  Créer l'automatisation
-                </button>
+              {/* Footer */}
+              <div className="border-t border-slate-100 px-6 py-3 bg-slate-50 flex-shrink-0">
+                <p className="text-xs text-slate-400 text-center">
+                  Les automatisations sont déclenchées automatiquement par les événements système. La configuration se fait dans le code.
+                </p>
               </div>
-            </form>
+            </div>
           </div>
-        </div>
-      )}
+        )
+      })()}
 
       <div className="min-h-screen -m-6 md:-m-8">
         {/* Dark Header */}
@@ -1426,88 +1380,41 @@ export default function MailingAdminPage() {
 
         {/* Automations Section */}
         <div className="bg-white/85 backdrop-blur-2xl border border-white/70 shadow-xl ring-1 ring-inset ring-white/60 rounded-2xl p-6">
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center justify-between">
             <div>
               <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
                 <Sparkles className="h-6 w-6 text-purple-600" />
                 Automatisations
               </h2>
-              <p className="text-gray-600 mt-1">Programmez des séquences d'emails automatiques</p>
+              <p className="text-gray-600 mt-1">
+                {automations.length > 0
+                  ? `${automations.filter(a => a.active).length} active${automations.filter(a => a.active).length !== 1 ? 's' : ''} sur ${automations.length}`
+                  : 'Séquences email déclenchées automatiquement'}
+              </p>
             </div>
             <button
               onClick={() => setAutomationModalOpen(true)}
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-purple-500/90 backdrop-blur-sm border border-purple-400/30 text-white font-semibold hover:bg-purple-600/90 shadow-sm transition-all"
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/70 backdrop-blur-sm border border-blue-200/60 text-slate-700 font-semibold hover:bg-white/90 shadow-sm transition-all"
             >
-              <Plus className="h-5 w-5" />
-              Nouvelle automatisation
+              <Settings2 className="h-4 w-4" />
+              Gérer les automatisations
             </button>
           </div>
 
-          {automations.length === 0 ? (
-            <div className="text-center py-12 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
-              <Sparkles className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-              <p className="text-gray-600">Aucune automatisation créée</p>
-              <p className="text-sm text-gray-500 mt-1">Cliquez sur "Nouvelle automatisation" pour commencer</p>
-            </div>
-          ) : (
-            <div className="space-y-4">
+          {/* Quick status preview */}
+          {automations.length > 0 && (
+            <div className="mt-4 flex flex-wrap gap-2">
               {automations.map((automation) => (
-                <div key={automation.id} className="bg-white/70 backdrop-blur-sm border border-blue-100/60 rounded-xl p-4 hover:border-purple-300/60 transition">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <h3 className="text-lg font-semibold text-gray-900">{automation.name}</h3>
-                        <span className={`px-3 py-1 rounded-full text-xs font-semibold ${automation.active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
-                          {automation.active ? 'Actif' : 'Inactif'}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-6 text-sm text-gray-600">
-                        <span className="flex items-center gap-1">
-                          <PlayCircle className="h-4 w-4" />
-                          Déclencheur: {automation.trigger}
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <Users className="h-4 w-4" />
-                          {automation.audience}
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <FileText className="h-4 w-4" />
-                          {automation.steps.length} email(s)
-                        </span>
-                      </div>
-                    </div>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => toggleAutomation(automation.id)}
-                        className={`px-4 py-2 rounded-lg transition ${automation.active ? 'bg-gray-100 text-gray-700 hover:bg-gray-200' : 'bg-green-100 text-green-700 hover:bg-green-200'}`}
-                      >
-                        {automation.active ? <Pause className="h-4 w-4" /> : <PlayCircle className="h-4 w-4" />}
-                      </button>
-                      <button
-                        onClick={() => deleteAutomation(automation.id)}
-                        className="px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Steps preview */}
-                  {automation.steps.length > 0 && (
-                    <div className="mt-4 pl-4 border-l-2 border-purple-200 space-y-2">
-                      {automation.steps.map((step, index) => {
-                        const template = templates.find(t => t.id === step.templateId)
-                        return (
-                          <div key={step.id} className="text-sm text-gray-600 flex items-center gap-2">
-                            <Clock className="h-4 w-4 text-purple-600" />
-                            <span>
-                              {step.delayDays === 0 ? 'Immédiat' : `J+${step.delayDays}`} - {template?.name || 'Template inconnu'}
-                            </span>
-                          </div>
-                        )
-                      })}
-                    </div>
-                  )}
+                <div
+                  key={automation.id}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border ${
+                    automation.active
+                      ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
+                      : 'bg-slate-50 border-slate-200 text-slate-500'
+                  }`}
+                >
+                  <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${automation.active ? 'bg-emerald-500' : 'bg-slate-300'}`} />
+                  {automation.name}
                 </div>
               ))}
             </div>

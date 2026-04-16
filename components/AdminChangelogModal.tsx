@@ -15,10 +15,51 @@ type ChangelogEntry = {
 
 // ─────────────────────────────────────────────
 // 🔖 INCRÉMENTER cette valeur à chaque mise à jour
-const CHANGELOG_VERSION = 10
+const CHANGELOG_VERSION = 11
 // ─────────────────────────────────────────────
 
 const CHANGELOG: ChangelogEntry[] = [
+  {
+    date: '16 avril 2026',
+    changes: [
+      {
+        type: 'improvement',
+        text: 'Admin — gestion des utilisateurs entièrement refaite : tableau avec XP, niveau, streak et dernière connexion. Modal de détail avec cards colorées par stat, bouton email direct.'
+      },
+      {
+        type: 'fix',
+        text: 'Admin — les stats de gamification des autres utilisateurs affichaient 0 / "jamais connecté" à cause d\'une politique RLS. Correction via une route API dédiée utilisant le service role pour contourner la restriction.'
+      },
+      {
+        type: 'improvement',
+        text: 'Admin — boite mail refaite en layout 3 colonnes (style Gmail) : sidebar de filtres, liste des emails, panneau de détail. Composition de nouveaux messages, réponse pré-remplie, changement de catégorie par liste déroulante, recherche avec délai.'
+      },
+      {
+        type: 'improvement',
+        text: 'Admin — automatisations mail : nouvelle interface en modal avec catégories (Abonnement, Parrainage), toggles on/off, et aperçu du template HTML au clic sur une automatisation.'
+      },
+      {
+        type: 'fix',
+        text: 'Admin — codes promo : restriction aux abonnements annuels Premium uniquement (le coupon Stripe cible désormais le price_id annuel via applies_to).'
+      },
+      {
+        type: 'fix',
+        text: 'Paramètres — section notifications simplifiée : suppression des cases email/push non fonctionnelles, conservation du seul toggle réellement persisté en base (newsletter).'
+      },
+      {
+        type: 'improvement',
+        text: 'Emails — suppression de toutes les automatisations et templates liés aux séminaires (obsolètes depuis la suppression des tables seminars/seminar_registrations).'
+      },
+      {
+        type: 'improvement',
+        text: 'Emails — mise à jour complète de tous les templates pour le plan Premium unifié : "Confirmation - Premium" fusionné (Silver + Gold) avec code parrainage, relances J+7/J+15 (bloc Gold remplacé par bloc parrainage), relance J+30 (tableau 3 colonnes simplifié en 2 colonnes Gratuit/Premium, séminaire supprimé), template parrainage filleul corrigé.'
+      },
+      {
+        type: 'fix',
+        text: 'Emails — automatisation "Confirmation - Passage à Premium Silver" renommée "Confirmation - Passage à Premium", automation "Passage à Premium Gold" supprimée.'
+      }
+    ]
+  },
   {
     date: '15 avril 2026',
     changes: [
