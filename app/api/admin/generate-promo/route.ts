@@ -25,18 +25,27 @@ export async function POST(request: Request) {
 
     const discountAmount = amountOff ?? 10000 // 100€ par défaut en centimes
 
-    // Crée le coupon Stripe
-    const coupon = await stripe.coupons.create({
+    const annualPriceId = process.env.STRIPE_PRICE_PREMIUM_ANNUAL
+
+    // Crée le coupon Stripe — restreint au plan annuel premium uniquement
+    const couponParams: any = {
       amount_off: discountAmount,
       currency: 'eur',
       duration: 'once',
       max_redemptions: maxRedemptions,
-      name: `Gold Promo -${discountAmount / 100}€`,
+      name: `Premium Annuel -${discountAmount / 100}€`,
       metadata: {
         created_by: admin.id,
-        purpose: 'gold_promo'
+        purpose: 'gold_promo',
+        plan: 'annual'
       }
-    })
+    }
+    // Restreindre au prix annuel si le price ID est configuré
+    if (annualPriceId) {
+      couponParams.applies_to = { prices: [annualPriceId] }
+    }
+
+    const coupon = await stripe.coupons.create(couponParams)
 
     // Crée le code promo lisible, ou laisse Stripe en générer un
     // Note: API 2025-11-17.clover requiert promotion.{type, coupon} au lieu de coupon directement
