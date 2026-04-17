@@ -186,7 +186,7 @@ const CHANGELOG: ChangelogEntry[] = [
       },
       {
         type: 'fix',
-        text: 'Parrainage — clarification Silver mensuel : les codes de parrainage ne sont plus proposés/appliqués sur l'offre mensuelle (réservés aux formules annuelles).'
+        text: 'Parrainage — clarification Silver mensuel : les codes de parrainage ne sont plus proposés/appliqués sur l\'offre mensuelle (réservés aux formules annuelles).'
       }
     ]
   },
@@ -199,15 +199,15 @@ const CHANGELOG: ChangelogEntry[] = [
       },
       {
         type: 'improvement',
-        text: 'Module Pratique (admin) — à la création/édition d'une vidéo, les métadonnées Vimeo sont désormais pré-remplies et enregistrées automatiquement à partir de l'URL Vimeo.'
+        text: 'Module Pratique (admin) — à la création/édition d\'une vidéo, les métadonnées Vimeo sont désormais pré-remplies et enregistrées automatiquement à partir de l\'URL Vimeo.'
       },
       {
         type: 'fix',
-        text: 'Module Pratique — fallback visuel renforcé : si une miniature échoue au chargement, affichage automatique d'un placeholder local.'
+        text: 'Module Pratique — fallback visuel renforcé : si une miniature échoue au chargement, affichage automatique d\'un placeholder local.'
       },
       {
         type: 'improvement',
-        text: 'Maintenance — ajout d'un script de backfill pour compléter les anciennes vidéos sans miniature/ID/durée Vimeo directement en base.'
+        text: 'Maintenance — ajout d\'un script de backfill pour compléter les anciennes vidéos sans miniature/ID/durée Vimeo directement en base.'
       }
     ]
   },
