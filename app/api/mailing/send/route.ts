@@ -40,15 +40,26 @@ export async function POST(request: Request) {
       if (error) throw new Error('Erreur lors de la récupération des emails')
       recipients = profiles.map(p => p.email).filter(Boolean)
     } else if (audienceMode === 'subscription') {
-      const { data: profiles, error } = await supabaseAdmin
-        .from('profiles')
-        .select('email')
-        .eq('role', subscriptionFilter)
-        .not('email', 'is', null)
-        .eq('newsletter_opt_in', true)
+      if (subscriptionFilter === 'newsletter_pre_launch') {
+        const { data: contacts, error } = await supabaseAdmin
+          .from('mail_contacts')
+          .select('email')
+          .eq('status', 'newsletter_pre_launch')
+          .not('email', 'is', null)
 
-      if (error) throw new Error('Erreur lors de la récupération des emails')
-      recipients = profiles.map(p => p.email).filter(Boolean)
+        if (error) throw new Error('Erreur lors de la récupération des contacts newsletter')
+        recipients = contacts.map(c => c.email).filter(Boolean)
+      } else {
+        const { data: profiles, error } = await supabaseAdmin
+          .from('profiles')
+          .select('email')
+          .eq('role', subscriptionFilter)
+          .not('email', 'is', null)
+          .eq('newsletter_opt_in', true)
+
+        if (error) throw new Error('Erreur lors de la récupération des emails')
+          recipients = profiles.map(p => p.email).filter(Boolean)
+      }
     } else {
       // Manual mode - admin explicitly chose recipients
       recipients = (Array.isArray(to) ? to : String(to || '')
