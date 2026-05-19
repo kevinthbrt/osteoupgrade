@@ -1166,6 +1166,7 @@ export default function MailingAdminPage() {
                 >
                   <option value="premium">Premium</option>
                   <option value="free">Gratuit</option>
+                  <option value="newsletter_pre_launch">Newsletter pré-lancement</option>
                 </select>
               )}
             </div>
