@@ -27,6 +27,7 @@
     "@vercel/blob": "^2.0.0",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.0",
+    "groq-sdk": "^1.2.0",
     "jspdf": "^4.2.1",
     "jspdf-autotable": "^5.0.7",
     "lucide-react": "^0.312.0",
