@@ -160,7 +160,6 @@ export default function LandingPage() {
   const stats = useScrollReveal()
   const features = useScrollReveal()
   const gamification = useScrollReveal()
-  const goldExperience = useScrollReveal()
   const pricing = useScrollReveal()
   const cta = useScrollReveal()
   const osteoflow = useScrollReveal()
@@ -177,49 +176,39 @@ const scrollTo = useCallback((id: string) => {
   const featuresList = [
     {
       icon: TestTube2,
-      title: 'Tests orthopediques',
-      painPoint: 'Un doute sur un test a utiliser ?',
-      desc: 'Notre bibliotheque de 200+ tests orthopediques classes par region anatomique, avec sensibilite, specificite, videos demonstratives et indication clinique. Trouve le bon test en quelques secondes.',
+      title: 'Tests orthopédiques',
+      painPoint: 'Un doute sur un test à utiliser ?',
+      desc: 'Notre bibliothèque de 200+ tests orthopédiques classés par région anatomique, avec sensibilité, spécificité, vidéos démonstratives et indication clinique. Trouvez le bon test en quelques secondes.',
       gradient: 'from-blue-500 to-cyan-500',
       screenshot: SCREENSHOT_PATHS.tests,
       glow: '14, 165, 233',
-      tags: ['200+ tests', 'Sensi / Speci', 'Videos demo', 'Par region'],
-    },
-    {
-      icon: Stethoscope,
-      title: 'Diagnostics & Pathologies',
-      painPoint: 'Un doute sur une pathologie ?',
-      desc: 'Notre encyclopedie de 150+ pathologies detaillees : signes cliniques, red flags, tests associes et protocoles de prise en charge. Le diagnostic de reference au cabinet.',
-      gradient: 'from-rose-500 to-pink-500',
-      screenshot: SCREENSHOT_PATHS.diagnostics,
-      glow: '244, 63, 94',
-      tags: ['150+ pathologies', 'Red flags', 'Tests associes', 'Protocoles'],
+      tags: ['200+ tests', 'Sensi / Spéci', 'Vidéos démo', 'Par région'],
     },
     {
       icon: Map,
       title: 'Topographie clinique',
       painPoint: 'Un doute sur la douleur d\'un patient ?',
-      desc: 'Notre bibliotheque d\'aide au diagnostic topographique region par region. Identifiez rapidement les structures impliquees et orientez votre bilan clinique.',
+      desc: 'Notre bibliothèque d\'aide au diagnostic topographique région par région. Identifiez rapidement les structures impliquées et orientez votre bilan clinique.',
       gradient: 'from-sky-500 to-indigo-500',
       screenshot: SCREENSHOT_PATHS.topographie,
       glow: '99, 102, 241',
-      tags: ['Par region', 'Structures', 'Aide diagnostic', 'Raisonnement'],
+      tags: ['Par région', 'Structures', 'Aide diagnostic', 'Raisonnement'],
     },
     {
       icon: GraduationCap,
-      title: 'E-Learning & Revue d\'etudes',
-      painPoint: 'Perdu dans la masse d\'etudes scientifiques ?',
-      desc: 'Cours structures, revues de litterature mensuelles et quiz interactifs. Chaque mois, les meilleures etudes EBP passees en revue et synthetisees pour la pratique.',
+      title: 'E-Learning & Revue d\'études',
+      painPoint: 'Perdu dans la masse d\'études scientifiques ?',
+      desc: 'Cours structurés, revues de littérature mensuelles et quiz interactifs. Chaque mois, les meilleures études EBP passées en revue et synthétisées pour la pratique.',
       gradient: 'from-violet-500 to-purple-500',
       screenshot: SCREENSHOT_PATHS.elearning,
       glow: '139, 92, 246',
-      tags: ['500+ contenus', 'EBP mensuel', 'Quiz', 'Revue litterature'],
+      tags: ['500+ contenus', 'EBP mensuel', 'Quiz', 'Revue littérature'],
     },
     {
       icon: Play,
-      title: 'Techniques en video',
+      title: 'Techniques en vidéo',
       painPoint: 'Vous manquez de techniques ?',
-      desc: 'Notre catalogue de 150+ techniques de therapie manuelle (HVLA, mobilisation, tissulaire) organisees par region anatomique, avec demonstrations video detaillees.',
+      desc: 'Notre catalogue de 150+ techniques de thérapie manuelle (HVLA, mobilisation, tissulaire) organisées par région anatomique, avec démonstrations vidéo détaillées.',
       gradient: 'from-orange-500 to-red-500',
       screenshot: SCREENSHOT_PATHS.videos,
       glow: '249, 115, 22',
@@ -229,11 +218,11 @@ const scrollTo = useCallback((id: string) => {
       icon: Dumbbell,
       title: 'Outils professionnels',
       painPoint: 'Vous voulez optimiser votre cabinet ?',
-      desc: 'Modeles de courriers, posters pour salle d\'attente, fiches exercices PDF patients. Tout pour optimiser votre communication et votre cabinet au quotidien.',
+      desc: 'Modèles de courriers, posters pour salle d\'attente, fiches exercices PDF patients. Tout pour optimiser votre communication et votre cabinet au quotidien.',
       gradient: 'from-emerald-500 to-teal-500',
       screenshot: SCREENSHOT_PATHS.exercices,
       glow: '16, 185, 129',
-      tags: ['Modeles courriers', 'Posters', 'Fiches PDF', 'Communication'],
+      tags: ['Modèles courriers', 'Posters', 'Fiches PDF', 'Communication'],
     },
   ]
 
@@ -252,7 +241,7 @@ const scrollTo = useCallback((id: string) => {
             <div className="hidden lg:flex items-center gap-8">
               {[
                 { label: 'Fonctionnalites', id: 'features' },
-                { label: 'Modules', id: 'modules' },
+                { label: 'OsteoFlow', id: 'osteoflow' },
                 { label: 'Tarifs', id: 'pricing' },
               ].map((item) => (
                 <button
@@ -295,7 +284,7 @@ const scrollTo = useCallback((id: string) => {
           <div className="lg:hidden bg-white border-t border-slate-100 px-4 py-4 space-y-1">
             {[
               { label: 'Fonctionnalites', id: 'features' },
-              { label: 'Modules', id: 'modules' },
+              { label: 'OsteoFlow', id: 'osteoflow' },
               { label: 'Tarifs', id: 'pricing' },
             ].map((item) => (
               <button
@@ -337,7 +326,7 @@ const scrollTo = useCallback((id: string) => {
             <div className={`transition-all duration-1000 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
               <div className="inline-flex items-center gap-2 bg-sky-500/10 border border-sky-500/20 text-sky-400 px-4 py-2 rounded-full text-xs font-semibold mb-8 backdrop-blur-sm">
                 <Sparkles className="h-3.5 w-3.5" />
-                Plateforme de reference pour osteopathes
+                Conçu par des ostéopathes, pour des ostéopathes
               </div>
 
               <h1 className="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-bold text-white leading-[1.08] mb-6 tracking-tight">
@@ -351,8 +340,8 @@ const scrollTo = useCallback((id: string) => {
               </h1>
 
               <p className="text-lg text-slate-400 mb-10 max-w-lg leading-relaxed">
-                Maitrisez les dernières preuves scientifiques (EBP) avec des
-                <span className="text-slate-300 font-medium"> protocoles concrets, applicables des demain en cabinet.</span>
+                Maîtrisez les dernières preuves scientifiques (EBP) avec des
+                <span className="text-slate-300 font-medium"> protocoles concrets, applicables dès demain en cabinet.</span>
               </p>
 
               <div className="flex flex-col sm:flex-row gap-4 mb-10">
@@ -367,7 +356,7 @@ const scrollTo = useCallback((id: string) => {
                   onClick={() => scrollTo('features')}
                   className="text-white/70 border border-white/15 px-7 py-4 rounded-xl font-semibold text-base hover:bg-white/5 hover:text-white hover:border-white/25 transition-all flex items-center justify-center gap-2 backdrop-blur-sm"
                 >
-                  Decouvrir la plateforme
+                  Découvrir la plateforme
                 </button>
               </div>
 
@@ -378,7 +367,7 @@ const scrollTo = useCallback((id: string) => {
                 </div>
                 <div className="flex items-center gap-2">
                   <CheckCircle className="h-4 w-4 text-emerald-500" />
-                  <span>Module epaule complet</span>
+                  <span>Module épaule complet</span>
                 </div>
               </div>
             </div>
@@ -398,9 +387,9 @@ const scrollTo = useCallback((id: string) => {
         }`}>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
             {[
-              { value: 200, suffix: '+', label: 'Tests orthopediques', icon: TestTube2 },
-              { value: 150, suffix: '+', label: 'Pathologies detaillees', icon: Stethoscope },
-              { value: 150, suffix: '+', label: 'Videos techniques', icon: Play },
+              { value: 200, suffix: '+', label: 'Tests orthopédiques', icon: TestTube2 },
+              { value: 150, suffix: '+', label: 'Pathologies détaillées', icon: Stethoscope },
+              { value: 150, suffix: '+', label: 'Vidéos techniques', icon: Play },
               { value: 500, suffix: '+', label: 'Contenus e-learning', icon: BookOpen },
             ].map((stat, i) => {
               const Icon = stat.icon
@@ -625,18 +614,18 @@ const scrollTo = useCallback((id: string) => {
           }`}>
             <div className="inline-flex items-center gap-2 bg-purple-100 text-purple-700 px-4 py-2 rounded-full text-xs font-semibold mb-6 uppercase tracking-wider">
               <Trophy className="h-3.5 w-3.5" />
-              Systeme de recompenses
+              Système de récompenses
             </div>
             <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-slate-900 mb-4 tracking-tight">
-              Progresse. Debloque.
+              Progresse. Débloque.
               <br />
               <span className="bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
-                Reste motive.
+                Reste motivé.
               </span>
             </h2>
             <p className="text-lg text-slate-500 max-w-2xl mx-auto">
               Chaque action sur la plateforme te fait gagner de l&apos;XP.
-              Monte en niveau, debloque des badges et maintiens ta serie quotidienne.
+              Monte en niveau, débloque des badges et maintiens ta série quotidienne.
             </p>
           </div>
 
@@ -678,7 +667,7 @@ const scrollTo = useCallback((id: string) => {
                 {/* Stats row */}
                 <div className="grid grid-cols-3 gap-3 mb-6">
                   {[
-                    { icon: Flame, label: 'Serie', value: '12 jours', color: 'text-orange-300', bg: 'bg-orange-500/15' },
+                    { icon: Flame, label: 'Série', value: '12 jours', color: 'text-orange-300', bg: 'bg-orange-500/15' },
                     { icon: Zap, label: 'Semaine', value: '24 actions', color: 'text-cyan-300', bg: 'bg-cyan-500/15' },
                     { icon: Award, label: 'Badges', value: '8 / 20', color: 'text-emerald-300', bg: 'bg-emerald-500/15' },
                   ].map((stat) => {
@@ -697,7 +686,7 @@ const scrollTo = useCallback((id: string) => {
                 <div className="border-t border-white/10 pt-5">
                   <div className="text-xs font-semibold text-purple-200 mb-3 flex items-center gap-2">
                     <Award className="h-3.5 w-3.5 text-amber-400" />
-                    Derniers badges debloques
+                    Derniers badges débloqués
                   </div>
                   <div className="grid grid-cols-3 gap-2">
                     {[
@@ -720,7 +709,7 @@ const scrollTo = useCallback((id: string) => {
                   <Zap className="h-3.5 w-3.5" />
                   <span className="text-xs font-bold">+25 XP</span>
                 </div>
-                <div className="text-[9px] text-emerald-100">Cours termine !</div>
+                <div className="text-[9px] text-emerald-100">Cours terminé !</div>
               </div>
             </div>
 
@@ -731,7 +720,7 @@ const scrollTo = useCallback((id: string) => {
                   Chaque effort compte
                 </h3>
                 <p className="text-slate-500 leading-relaxed">
-                  Completer un cours, visionner une technique, consulter un diagnostic...
+                  Compléter un cours, visionner une technique, consulter un test...
                   Chaque action sur la plateforme te rapporte de l&apos;XP et te fait progresser.
                 </p>
               </div>
@@ -741,25 +730,25 @@ const scrollTo = useCallback((id: string) => {
                   {
                     icon: Trophy,
                     title: 'Niveaux & XP',
-                    desc: 'Gagne de l\'XP a chaque action. Monte en niveau et suis ta progression globale.',
+                    desc: 'Gagne de l\'XP à chaque action. Monte en niveau et suis ta progression globale.',
                     color: 'from-amber-500 to-orange-500'
                   },
                   {
                     icon: Flame,
-                    title: 'Series quotidiennes',
-                    desc: 'Connecte-toi chaque jour pour maintenir ta serie et debloquer des bonus.',
+                    title: 'Séries quotidiennes',
+                    desc: 'Connecte-toi chaque jour pour maintenir ta série et débloquer des bonus.',
                     color: 'from-orange-500 to-red-500'
                   },
                   {
                     icon: Award,
                     title: 'Badges exclusifs',
-                    desc: 'Debloque des badges en atteignant des objectifs : premier cours, 10 tests, 30 jours...',
+                    desc: 'Débloque des badges en atteignant des objectifs : premier cours, 10 tests, 30 jours...',
                     color: 'from-purple-500 to-indigo-500'
                   },
                   {
                     icon: Target,
                     title: 'Objectifs hebdo',
-                    desc: 'Des objectifs chaque semaine pour rester engage et progresser regulierement.',
+                    desc: 'Des objectifs chaque semaine pour rester engagé et progresser régulièrement.',
                     color: 'from-emerald-500 to-teal-500'
                   },
                 ].map((item) => {
@@ -780,147 +769,8 @@ const scrollTo = useCallback((id: string) => {
         </div>
       </section>
 
-      {/* ─── GOLD EXPERIENCE ─── */}
-      <section ref={goldExperience.ref} className="py-20 lg:py-28 px-4 sm:px-6 lg:px-8 bg-white relative overflow-hidden">
-        {/* Warm gold glow */}
-        <div className="absolute top-0 right-0 w-[750px] h-[550px] rounded-full bg-amber-200/60 blur-[160px] pointer-events-none" />
-        <div className="absolute bottom-0 left-0 w-[550px] h-[420px] rounded-full bg-sky-100/50 blur-[130px] pointer-events-none" />
-
-        <div className="relative max-w-5xl mx-auto">
-
-          {/* Header */}
-          <div className={`text-center mb-12 transition-all duration-700 ${
-            goldExperience.isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
-          }`}>
-            <div className="inline-flex items-center gap-2 bg-amber-100 text-amber-700 border border-amber-200 px-4 py-2 rounded-full text-sm font-bold mb-6 uppercase tracking-wider">
-              <Crown className="h-4 w-4" />
-              Experience Premium
-            </div>
-            <h2 className="text-4xl sm:text-5xl lg:text-6xl font-black text-slate-900 mb-4 tracking-tight">
-              Tout inclus.
-              <br />
-              <span className="bg-gradient-to-r from-amber-500 to-orange-500 bg-clip-text text-transparent">
-                Moins cher que les alternatives.
-              </span>
-            </h2>
-          </div>
-
-          {/* COMPARISON TABLE */}
-          <div className={`mb-8 transition-all duration-700 delay-100 ${
-            goldExperience.isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
-          }`}>
-            <div className="rounded-3xl overflow-hidden border border-slate-200 shadow-xl">
-
-              {/* Header row */}
-              <div className="grid grid-cols-2 bg-slate-100">
-                <div className="px-8 py-5 text-base font-bold text-slate-500 uppercase tracking-wider">Ce que vous payez ailleurs</div>
-                <div className="px-8 py-5 bg-gradient-to-r from-amber-500 to-orange-500 text-base font-bold text-white uppercase tracking-wider flex items-center gap-2">
-                  <Crown className="h-4 w-4" /> Experience Premium
-                </div>
-              </div>
-
-              {/* Row 1 — Logiciel patient */}
-              <div className="grid grid-cols-2 border-t border-slate-200">
-                <div className="px-8 py-7 bg-white flex items-center gap-5">
-                  <div className="w-12 h-12 rounded-2xl bg-red-50 flex items-center justify-center flex-shrink-0">
-                    <Stethoscope className="h-6 w-6 text-red-400" />
-                  </div>
-                  <div>
-                    <div className="text-lg font-bold text-slate-800">Logiciel patient</div>
-                    <div className="text-3xl font-black text-red-400 line-through decoration-red-300">25€<span className="text-xl">/mois</span></div>
-                    <div className="text-sm text-slate-400">soit 300€/an</div>
-                  </div>
-                </div>
-                <div className="px-8 py-7 bg-amber-50 flex items-center gap-4">
-                  <div className="w-8 h-8 rounded-full bg-amber-500 flex items-center justify-center flex-shrink-0">
-                    <span className="text-white font-black text-sm">✓</span>
-                  </div>
-                  <div>
-                    <div className="text-lg font-bold text-slate-900">Logiciel patient inclus</div>
-                    <div className="text-sm text-slate-600">Dossiers, agenda, facturation — tout en un</div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Row 3 — Elearning */}
-              <div className="grid grid-cols-2 border-t border-slate-200">
-                <div className="px-8 py-7 bg-white flex items-center gap-5">
-                  <div className="w-12 h-12 rounded-2xl bg-red-50 flex items-center justify-center flex-shrink-0">
-                    <GraduationCap className="h-6 w-6 text-red-400" />
-                  </div>
-                  <div>
-                    <div className="text-lg font-bold text-slate-800">E-learning</div>
-                    <div className="text-3xl font-black text-red-400 line-through decoration-red-300">250€<span className="text-xl">/an</span></div>
-                    <div className="text-sm text-slate-400">sans accès illimité</div>
-                  </div>
-                </div>
-                <div className="px-8 py-7 bg-amber-50 flex items-center gap-4">
-                  <div className="w-8 h-8 rounded-full bg-amber-500 flex items-center justify-center flex-shrink-0">
-                    <span className="text-white font-black text-sm">✓</span>
-                  </div>
-                  <div>
-                    <div className="text-lg font-bold text-slate-900">Plateforme e-learning complète</div>
-                    <div className="text-sm text-slate-600">Vidéos, protocoles, cas cliniques — illimité</div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Row 4 — Parrainage */}
-              <div className="grid grid-cols-2 border-t border-slate-200">
-                <div className="px-8 py-7 bg-white flex items-center gap-5">
-                  <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center flex-shrink-0">
-                    <Gift className="h-6 w-6 text-slate-300" />
-                  </div>
-                  <div>
-                    <div className="text-lg font-bold text-slate-800">Parrainage cashback</div>
-                    <div className="text-3xl font-black text-slate-300">—</div>
-                    <div className="text-sm text-slate-400">inexistant ailleurs</div>
-                  </div>
-                </div>
-                <div className="px-8 py-7 bg-amber-50 flex items-center gap-4">
-                  <div className="w-8 h-8 rounded-full bg-emerald-500 flex items-center justify-center flex-shrink-0">
-                    <span className="text-white font-black text-sm">✓</span>
-                  </div>
-                  <div>
-                    <div className="text-lg font-bold text-slate-900">10% de commission par filleul</div>
-                    <div className="text-sm text-slate-600">10 filleuls = abonnement entièrement remboursé</div>
-                  </div>
-                </div>
-              </div>
-
-              {/* TOTAL ROW */}
-              <div className="grid grid-cols-2 border-t-2 border-slate-300">
-                <div className="px-8 py-8 bg-slate-900 flex items-center">
-                  <div>
-                    <div className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-1">Total à payer ailleurs</div>
-                    <div className="text-5xl font-black text-red-400 line-through decoration-red-400">1 250€+</div>
-                    <div className="text-sm text-slate-500 mt-1">par an, sans cashback</div>
-                  </div>
-                </div>
-                <div className="px-8 py-8 bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-between">
-                  <div>
-                    <div className="text-sm font-bold text-white/70 uppercase tracking-wider mb-1">Experience Premium</div>
-                    <div className="text-5xl font-black text-white">240€</div>
-                    <div className="text-sm text-white/80 mt-1">par an · tout inclus</div>
-                  </div>
-                  <button
-                    onClick={() => scrollTo('pricing')}
-                    className="group bg-white text-amber-600 px-6 py-4 rounded-2xl font-black text-base hover:bg-amber-50 transition-all shadow-lg inline-flex items-center gap-2 flex-shrink-0"
-                  >
-                    Je démarre
-                    <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
-                  </button>
-                </div>
-              </div>
-
-            </div>
-          </div>
-
-        </div>
-      </section>
-
-      {/* ─── OSTEOFLOW BONUS ─── */}
-      <section ref={osteoflow.ref} className="py-20 lg:py-28 px-4 sm:px-6 lg:px-8 bg-slate-50 border-y border-slate-200/50 relative overflow-hidden">
+      {/* ─── OSTEOFLOW — INCLUS PREMIUM ─── */}
+      <section id="osteoflow" ref={osteoflow.ref} className="py-20 lg:py-28 px-4 sm:px-6 lg:px-8 bg-slate-50 border-y border-slate-200/50 relative overflow-hidden">
         {/* Sky/blue halos — couleur principale de la section */}
         <div className="absolute top-0 right-0 w-[750px] h-[550px] rounded-full bg-sky-200/55 blur-[160px] pointer-events-none" />
         <div className="absolute bottom-0 left-0 w-[550px] h-[420px] rounded-full bg-blue-100/50 blur-[130px] pointer-events-none" />
@@ -929,8 +779,9 @@ const scrollTo = useCallback((id: string) => {
             osteoflow.isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
           }`}>
             <div className="flex items-center gap-3 mb-8">
-              <span className="bg-sky-100 text-sky-700 px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider">
-                Bonus #1
+              <span className="inline-flex items-center gap-1.5 bg-violet-100 text-violet-700 border border-violet-200 px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider">
+                <Crown className="h-3 w-3" />
+                Inclus avec Premium
               </span>
             </div>
 
@@ -938,22 +789,24 @@ const scrollTo = useCallback((id: string) => {
               {/* Left: Content */}
               <div>
                 <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-slate-900 mb-4 tracking-tight">
-                  Besoin d&apos;un logiciel
+                  Votre logiciel de cabinet
                   <br />
                   <span className="bg-gradient-to-r from-sky-500 to-blue-500 bg-clip-text text-transparent">
-                    patient complet ?
+                    inclus dans l&apos;abonnement.
                   </span>
                 </h2>
                 <p className="text-lg text-slate-500 mb-8 leading-relaxed">
-                  Decouvrez <span className="font-semibold text-slate-700">OsteoFlow</span>, notre logiciel de gestion patients evolutif et intuitif : messagerie, statistiques, comptabilite et bien plus.
+                  <span className="font-semibold text-slate-700">OsteoFlow</span> est notre logiciel de gestion cabinet desktop, inclus avec l&apos;abonnement Premium. Toutes vos données restent sur votre machine, sans abonnement supplémentaire.
                 </p>
 
-                <div className="grid grid-cols-2 gap-4 mb-8">
+                <div className="grid grid-cols-2 gap-3 mb-8">
                   {[
-                    { icon: MessageSquare, label: 'Messagerie patients', desc: 'Communiquez directement avec vos patients depuis la plateforme' },
-                    { icon: TrendingUp, label: 'Statistiques cabinet', desc: 'Suivez l\'activite et les performances de votre cabinet en temps reel' },
-                    { icon: Wallet, label: 'Comptabilite', desc: 'Gestion financiere simplifiee avec exports et recapitulatifs' },
-                    { icon: Users, label: 'Dossiers patients', desc: 'Fiches completes avec historique de soins et notes de consultation' },
+                    { icon: Users, label: 'Dossiers patients', desc: 'Fiches complètes avec historique de soins, anamnèse et notes de consultation' },
+                    { icon: Calendar, label: 'Consultations détaillées', desc: 'Suivi de chaque séance, avec historique complet et recherche par patient' },
+                    { icon: Brain, label: 'Prise de note par IA', desc: 'Structuration automatique de vos notes de consultation grâce à l\'IA intégrée' },
+                    { icon: Target, label: 'Objectifs du cabinet', desc: 'Définissez et suivez vos objectifs de consultation, de CA et de progression' },
+                    { icon: Wallet, label: 'Comptabilité et factures', desc: 'Gestion financière complète avec exports, factures et récapitulatifs' },
+                    { icon: TrendingUp, label: 'Statistiques cabinet', desc: 'Visualisez l\'activité de votre cabinet et suivez votre évolution mois par mois' },
                   ].map((item) => {
                     const Icon = item.icon
                     return (
@@ -972,7 +825,7 @@ const scrollTo = useCallback((id: string) => {
                   onClick={() => router.push('/auth')}
                   className="group bg-gradient-to-r from-sky-500 to-blue-500 text-white px-7 py-4 rounded-xl font-bold text-base hover:from-sky-400 hover:to-blue-400 transition-all shadow-lg shadow-sky-500/20 inline-flex items-center gap-2"
                 >
-                  Je Veux Decouvrir
+                  Commencer avec OsteoFlow
                   <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
                 </button>
               </div>
@@ -1048,8 +901,8 @@ const scrollTo = useCallback((id: string) => {
                 </div>
 
                 {/* Floating badge */}
-                <div className="absolute -top-3 -right-3 px-3 py-1.5 rounded-xl bg-sky-500 text-white text-[10px] font-bold shadow-lg shadow-sky-500/30 animate-float">
-                  Nouveau
+                <div className="absolute -top-3 -right-3 px-3 py-1.5 rounded-xl bg-violet-600 text-white text-[10px] font-bold shadow-lg shadow-violet-500/30 animate-float">
+                  Inclus Premium
                 </div>
               </div>
             </div>
@@ -1057,166 +910,317 @@ const scrollTo = useCallback((id: string) => {
         </div>
       </section>
 
-      {/* ─── SOCIAL PROOF ─── */}
-      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-slate-50 border-y border-slate-200/50">
-        <div className="max-w-4xl mx-auto text-center">
-          <div className="flex items-center justify-center gap-1 mb-4">
-            {[...Array(5)].map((_, i) => (
-              <Star key={i} className="h-5 w-5 fill-amber-400 text-amber-400" />
-            ))}
+      {/* ─── NOTRE ENGAGEMENT ─── */}
+      <section className="py-20 lg:py-24 px-4 sm:px-6 lg:px-8 bg-white">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-14">
+            <div className="inline-flex items-center gap-2 bg-slate-100 text-slate-600 px-4 py-2 rounded-full text-xs font-semibold mb-6 uppercase tracking-wider">
+              Notre philosophie
+            </div>
+            <h2 className="text-3xl sm:text-4xl font-bold text-slate-900 mb-4 tracking-tight">
+              Construit par des cliniciens,
+              <br />
+              <span className="bg-gradient-to-r from-sky-500 to-blue-600 bg-clip-text text-transparent">pour des cliniciens.</span>
+            </h2>
+            <p className="text-lg text-slate-500 max-w-2xl mx-auto">
+              OsteoUpgrade est né d&apos;un constat simple : les ressources cliniques de qualité sont éparpillées, coûteuses et difficiles à appliquer en cabinet. On a changé ça.
+            </p>
           </div>
-          <blockquote className="text-xl sm:text-2xl font-medium text-slate-700 mb-6 leading-relaxed italic">
-            &ldquo;OsteoUpgrade m&apos;a permis de structurer mon raisonnement clinique des mes premiers mois d&apos;installation.
-            Les tests orthopediques avec les donnees de sensibilite et specificite, c&apos;est exactement ce qui manquait.&rdquo;
-          </blockquote>
-          <div className="flex items-center justify-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-sky-400 to-blue-500 flex items-center justify-center text-white font-bold text-sm">
-              O
-            </div>
-            <div className="text-left">
-              <div className="text-sm font-semibold text-slate-900">Osteopathe D.O.</div>
-              <div className="text-xs text-slate-500">Utilisateur depuis 2024</div>
-            </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {[
+              {
+                icon: Brain,
+                title: 'Ancre dans la science',
+                desc: 'Chaque test, chaque pathologie, chaque protocole est documenté avec sa sensibilité, sa spécificité et ses références EBP. Pas d\'opinion, que des preuves.',
+                accent: 'from-sky-500 to-blue-600',
+                bg: 'bg-sky-50',
+                border: 'border-sky-100',
+              },
+              {
+                icon: Stethoscope,
+                title: 'Pense pour le cabinet',
+                desc: 'Conçu pour être consulté en 10 secondes entre deux patients. Interface claire, recherche instantanée, contenu directement actionnable. Pas un cours magistral.',
+                accent: 'from-emerald-500 to-teal-600',
+                bg: 'bg-emerald-50',
+                border: 'border-emerald-100',
+              },
+              {
+                icon: TrendingUp,
+                title: 'Evolue chaque mois',
+                desc: 'Nouvelles revues de littérature, nouveaux contenus, nouvelles fonctionnalités. La plateforme grandit avec votre pratique et intègre les dernières publications.',
+                accent: 'from-violet-500 to-purple-600',
+                bg: 'bg-violet-50',
+                border: 'border-violet-100',
+              },
+            ].map((item) => {
+              const Icon = item.icon
+              return (
+                <div key={item.title} className={`rounded-2xl ${item.bg} border ${item.border} p-7`}>
+                  <div className={`inline-flex items-center justify-center w-11 h-11 rounded-xl bg-gradient-to-br ${item.accent} mb-5`}>
+                    <Icon className="h-5 w-5 text-white" />
+                  </div>
+                  <h3 className="text-base font-bold text-slate-900 mb-2">{item.title}</h3>
+                  <p className="text-sm text-slate-600 leading-relaxed">{item.desc}</p>
+                </div>
+              )
+            })}
           </div>
         </div>
       </section>
 
-      {/* ─── PRICING SECTION ─── */}
-      <section id="pricing" ref={pricing.ref} className="py-20 lg:py-28 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-6xl mx-auto">
-          <div className={`text-center mb-16 transition-all duration-700 ${
+      {/* ─── TARIFS ET COMPARAISON ─── */}
+      <section id="pricing" ref={pricing.ref} className="py-20 lg:py-28 px-4 sm:px-6 lg:px-8 bg-white relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-[700px] h-[500px] rounded-full bg-amber-200/40 blur-[160px] pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-[500px] h-[400px] rounded-full bg-sky-100/40 blur-[130px] pointer-events-none" />
+
+        <div className="relative max-w-6xl mx-auto">
+          <div className={`text-center mb-14 transition-all duration-700 ${
             pricing.isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
           }`}>
-            <div className="inline-flex items-center gap-2 bg-slate-100 text-slate-600 px-4 py-2 rounded-full text-xs font-semibold mb-6 uppercase tracking-wider">
+            <div className="inline-flex items-center gap-2 bg-amber-100 text-amber-700 border border-amber-200 px-4 py-2 rounded-full text-sm font-bold mb-6 uppercase tracking-wider">
+              <Crown className="h-4 w-4" />
               Tarifs
             </div>
             <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-slate-900 mb-4 tracking-tight">
-              L&apos;acces complet pour 20&euro;/mois.
+              Tout inclus.
+              <br />
+              <span className="bg-gradient-to-r from-amber-500 to-orange-500 bg-clip-text text-transparent">
+                Dès 29&euro;/mois ou 240&euro;/an.
+              </span>
             </h2>
             <p className="text-lg text-slate-500 max-w-xl mx-auto">
-              Tout le contenu en ligne pour 29&euro;/mois ou 240&euro;/an — moins cher qu&apos;une seule revue scientifique.
+              OsteoUpgrade et OsteoFlow dans un seul abonnement, pour moins que les alternatives séparées.
             </p>
           </div>
 
-          <div className={`grid grid-cols-1 md:grid-cols-3 gap-6 items-start transition-all duration-700 delay-200 ${
+          <div className={`transition-all duration-700 delay-100 ${
             pricing.isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
           }`}>
-            {/* Free */}
-            <div className="rounded-2xl bg-white border border-slate-200 p-8 hover:shadow-lg transition-all">
-              <div className="mb-8">
-                <div className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-2">Free</div>
-                <div className="flex items-baseline gap-1">
-                  <span className="text-5xl font-bold text-slate-900">0&euro;</span>
-                  <span className="text-slate-400 text-sm">/an</span>
+            {/* Comparatif */}
+            <div className="rounded-3xl overflow-hidden border border-slate-200 shadow-xl mb-10">
+              <div className="grid grid-cols-2 bg-slate-100">
+                <div className="px-8 py-5 text-sm font-bold text-slate-500 uppercase tracking-wider">Alternatives séparées</div>
+                <div className="px-8 py-5 bg-gradient-to-r from-amber-500 to-orange-500 text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                  <Crown className="h-4 w-4" /> Premium tout inclus
                 </div>
-                <p className="text-sm text-slate-500 mt-3">Decouvre la plateforme avec le module epaule complet.</p>
               </div>
 
-              <ul className="space-y-3 mb-8">
-                {[
-                  'Module epaule complet',
-                  'Tests orthopediques epaule',
-                  'Diagnostics epaule',
-                  'E-learning epaule',
-                  'Outils de base',
-                ].map((f, i) => (
-                  <li key={i} className="flex items-start gap-3 text-sm text-slate-600">
-                    <CheckCircle className="h-4 w-4 text-slate-400 flex-shrink-0 mt-0.5" />
-                    {f}
-                  </li>
-                ))}
-              </ul>
+              <div className="grid grid-cols-2 border-t border-slate-200">
+                <div className="px-8 py-6 bg-white flex items-center gap-5">
+                  <div className="w-11 h-11 rounded-2xl bg-red-50 flex items-center justify-center flex-shrink-0">
+                    <Monitor className="h-5 w-5 text-red-400" />
+                  </div>
+                  <div>
+                    <div className="text-sm font-bold text-slate-800">Logiciel de cabinet</div>
+                    <div className="text-xs text-slate-400 mb-1">ex. Doctolink, Osteo2ls</div>
+                    <div className="text-2xl font-black text-red-400 line-through decoration-red-300">300&euro;/an</div>
+                  </div>
+                </div>
+                <div className="px-8 py-6 bg-amber-50 flex items-center gap-4">
+                  <div className="w-7 h-7 rounded-full bg-amber-500 flex items-center justify-center flex-shrink-0">
+                    <span className="text-white font-black text-xs">✓</span>
+                  </div>
+                  <div>
+                    <div className="text-sm font-bold text-slate-900">OsteoFlow inclus</div>
+                    <div className="text-xs text-slate-600">Dossiers, consultations, IA, comptabilité, factures</div>
+                  </div>
+                </div>
+              </div>
 
-              <button
-                onClick={() => router.push('/auth')}
-                className="w-full py-3.5 rounded-xl border-2 border-slate-200 text-slate-700 font-semibold text-sm hover:border-slate-300 hover:bg-slate-50 transition-all"
-              >
-                Commencer gratuitement
-              </button>
+              <div className="grid grid-cols-2 border-t border-slate-200">
+                <div className="px-8 py-6 bg-white flex items-center gap-5">
+                  <div className="w-11 h-11 rounded-2xl bg-red-50 flex items-center justify-center flex-shrink-0">
+                    <Play className="h-5 w-5 text-red-400" />
+                  </div>
+                  <div>
+                    <div className="text-sm font-bold text-slate-800">Formations techniques vidéo</div>
+                    <div className="text-xs text-slate-400 mb-1">plateformes de formation ostéo</div>
+                    <div className="text-2xl font-black text-red-400 line-through decoration-red-300">200&euro;/an</div>
+                  </div>
+                </div>
+                <div className="px-8 py-6 bg-amber-50 flex items-center gap-4">
+                  <div className="w-7 h-7 rounded-full bg-amber-500 flex items-center justify-center flex-shrink-0">
+                    <span className="text-white font-black text-xs">✓</span>
+                  </div>
+                  <div>
+                    <div className="text-sm font-bold text-slate-900">150+ techniques incluses</div>
+                    <div className="text-xs text-slate-600">HVLA, mobilisation, tissulaire, par région</div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 border-t border-slate-200">
+                <div className="px-8 py-6 bg-white flex items-center gap-5">
+                  <div className="w-11 h-11 rounded-2xl bg-red-50 flex items-center justify-center flex-shrink-0">
+                    <GraduationCap className="h-5 w-5 text-red-400" />
+                  </div>
+                  <div>
+                    <div className="text-sm font-bold text-slate-800">Plateforme e-learning EBP</div>
+                    <div className="text-xs text-slate-400 mb-1">accès limité, sans revue mensuelle</div>
+                    <div className="text-2xl font-black text-red-400 line-through decoration-red-300">250&euro;/an</div>
+                  </div>
+                </div>
+                <div className="px-8 py-6 bg-amber-50 flex items-center gap-4">
+                  <div className="w-7 h-7 rounded-full bg-amber-500 flex items-center justify-center flex-shrink-0">
+                    <span className="text-white font-black text-xs">✓</span>
+                  </div>
+                  <div>
+                    <div className="text-sm font-bold text-slate-900">E-learning illimité inclus</div>
+                    <div className="text-xs text-slate-600">Cours, quiz et revue de littérature mensuelle</div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 border-t border-slate-200">
+                <div className="px-8 py-6 bg-white flex items-center gap-5">
+                  <div className="w-11 h-11 rounded-2xl bg-slate-100 flex items-center justify-center flex-shrink-0">
+                    <Gift className="h-5 w-5 text-slate-300" />
+                  </div>
+                  <div>
+                    <div className="text-sm font-bold text-slate-800">Programme ambassadeur</div>
+                    <div className="text-xs text-slate-400">inexistant chez les concurrents</div>
+                    <div className="text-2xl font-black text-slate-300 mt-1">n/a</div>
+                  </div>
+                </div>
+                <div className="px-8 py-6 bg-amber-50 flex items-center gap-4">
+                  <div className="w-7 h-7 rounded-full bg-emerald-500 flex items-center justify-center flex-shrink-0">
+                    <span className="text-white font-black text-xs">✓</span>
+                  </div>
+                  <div>
+                    <div className="text-sm font-bold text-slate-900">10% de commission par filleul</div>
+                    <div className="text-xs text-slate-600">10 filleuls = abonnement entièrement remboursé</div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 border-t-2 border-slate-300">
+                <div className="px-8 py-7 bg-slate-900 flex items-center">
+                  <div>
+                    <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Total alternatives séparées</div>
+                    <div className="text-xs text-slate-500 mb-2">300 + 200 + 250 = 750&euro; minimum</div>
+                    <div className="text-4xl font-black text-red-400 line-through decoration-red-400">750&euro;+/an</div>
+                  </div>
+                </div>
+                <div className="px-8 py-7 bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-between">
+                  <div>
+                    <div className="text-xs font-bold text-white/70 uppercase tracking-wider mb-1">Premium tout inclus</div>
+                    <div className="text-4xl font-black text-white">240&euro;/an</div>
+                    <div className="text-sm text-white/80 mt-1">soit 20&euro;/mois · 2 mois offerts</div>
+                  </div>
+                  <button
+                    onClick={() => router.push('/auth')}
+                    className="group bg-white text-amber-600 px-5 py-3.5 rounded-2xl font-black text-sm hover:bg-amber-50 transition-all shadow-lg inline-flex items-center gap-2 flex-shrink-0"
+                  >
+                    Je démarre
+                    <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                  </button>
+                </div>
+              </div>
             </div>
 
-            {/* Premium */}
-            <div className="rounded-2xl relative overflow-hidden">
-              {/* Premium border effect */}
-              <div className="absolute inset-0 bg-gradient-to-br from-amber-400 via-amber-500 to-orange-500 rounded-2xl" />
-              <div className="absolute inset-[2px] bg-white rounded-[14px]" />
-
-              <div className="relative p-8">
-                {/* Badge */}
-                <div className="absolute top-6 right-6">
-                  <div className="flex items-center gap-1 bg-amber-50 text-amber-700 px-2.5 py-1 rounded-lg text-xs font-bold">
-                    <Crown className="h-3.5 w-3.5" />
-                    Populaire
-                  </div>
-                </div>
-
+            {/* Pricing cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-3xl mx-auto">
+              {/* Free */}
+              <div className="rounded-2xl bg-white border border-slate-200 p-8 hover:shadow-lg transition-all">
                 <div className="mb-8">
-                  <div className="text-sm font-semibold text-amber-600 uppercase tracking-wider mb-2">Premium</div>
-
-                  {/* Monthly price */}
-                  <div className="flex items-baseline gap-1 mb-1">
-                    <span className="text-5xl font-bold text-slate-900">29&euro;</span>
-                    <span className="text-slate-400 text-sm">/mois</span>
+                  <div className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-2">Gratuit</div>
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-5xl font-bold text-slate-900">0&euro;</span>
                   </div>
-                  <p className="text-xs text-slate-400 mb-4">Sans engagement &middot; Annulable a tout moment</p>
-
-                  {/* Annual option */}
-                  <div className="rounded-xl bg-amber-50 border border-amber-200 p-3">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <span className="text-lg font-bold text-slate-900">240&euro;</span>
-                        <span className="text-slate-400 text-xs">/an</span>
-                      </div>
-                      <span className="bg-emerald-100 text-emerald-700 text-[10px] font-bold px-2 py-0.5 rounded-full">
-                        -17%
-                      </span>
-                    </div>
-                    <p className="text-[11px] text-amber-700 mt-0.5">Soit 20&euro;/mois &middot; 2 mois offerts + parrainage</p>
-                  </div>
-
-                  <p className="text-sm text-slate-500 mt-3">Acces complet a toute la plateforme en ligne.</p>
+                  <p className="text-sm text-slate-500 mt-3">Découvrez la plateforme avec le module épaule complet, sans carte bancaire.</p>
                 </div>
-
                 <ul className="space-y-3 mb-8">
                   {[
-                    'Toutes les regions anatomiques',
-                    'Bibliotheque complete de tests',
-                    'Tous les diagnostics & pathologies',
-                    'E-learning complet + quiz',
-                    'Exercices + exports PDF',
-                    'Revue de litterature',
-                    'Topographie clinique',
-                    'Programme ambassadeur (10% commission · annuel)',
+                    'Module épaule complet',
+                    'Tests orthopédiques épaule',
+                    'E-learning épaule',
+                    'Topographie épaule',
+                    'Outils de base',
                   ].map((f, i) => (
-                    <li key={i} className="flex items-start gap-3 text-sm text-slate-700">
-                      <CheckCircle className="h-4 w-4 text-amber-500 flex-shrink-0 mt-0.5" />
-                      <span className="font-medium">{f}</span>
+                    <li key={i} className="flex items-start gap-3 text-sm text-slate-600">
+                      <CheckCircle className="h-4 w-4 text-slate-400 flex-shrink-0 mt-0.5" />
+                      {f}
                     </li>
                   ))}
                 </ul>
+                <button
+                  onClick={() => router.push('/auth')}
+                  className="w-full py-3.5 rounded-xl border-2 border-slate-200 text-slate-700 font-semibold text-sm hover:border-slate-300 hover:bg-slate-50 transition-all"
+                >
+                  Commencer gratuitement
+                </button>
+              </div>
 
-                <div className="space-y-2.5">
-                  <button
-                    onClick={() => router.push('/auth')}
-                    className="w-full py-3.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-400 text-slate-900 font-bold text-sm hover:from-amber-400 hover:to-amber-300 transition-all shadow-lg shadow-amber-500/20"
-                  >
-                    Premium mensuel &middot; 29&euro;/mois
-                  </button>
-                  <button
-                    onClick={() => router.push('/auth')}
-                    className="w-full py-3.5 rounded-xl border-2 border-amber-500 text-amber-700 font-semibold text-sm hover:bg-amber-500 hover:text-slate-900 transition-all"
-                  >
-                    Premium annuel &middot; 240&euro;/an
-                  </button>
+              {/* Premium */}
+              <div className="rounded-2xl relative overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-br from-amber-400 via-amber-500 to-orange-500 rounded-2xl" />
+                <div className="absolute inset-[2px] bg-white rounded-[14px]" />
+                <div className="relative p-8">
+                  <div className="absolute top-6 right-6">
+                    <div className="flex items-center gap-1 bg-amber-50 text-amber-700 px-2.5 py-1 rounded-lg text-xs font-bold">
+                      <Crown className="h-3.5 w-3.5" />
+                      Recommandé
+                    </div>
+                  </div>
+                  <div className="mb-7">
+                    <div className="text-sm font-semibold text-amber-600 uppercase tracking-wider mb-2">Premium</div>
+                    <div className="flex items-baseline gap-1 mb-1">
+                      <span className="text-5xl font-bold text-slate-900">29&euro;</span>
+                      <span className="text-slate-400 text-sm">/mois</span>
+                    </div>
+                    <p className="text-xs text-slate-400 mb-4">Sans engagement · Annulable à tout moment</p>
+                    <div className="rounded-xl bg-amber-50 border border-amber-200 p-3">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <span className="text-lg font-bold text-slate-900">240&euro;</span>
+                          <span className="text-slate-400 text-xs">/an</span>
+                        </div>
+                        <span className="bg-emerald-100 text-emerald-700 text-[10px] font-bold px-2 py-0.5 rounded-full">-17%</span>
+                      </div>
+                      <p className="text-[11px] text-amber-700 mt-0.5">Soit 20&euro;/mois · 2 mois offerts + parrainage</p>
+                    </div>
+                  </div>
+                  <ul className="space-y-2.5 mb-7">
+                    {[
+                      'Toutes les régions anatomiques',
+                      'Bibliothèque complète de tests',
+                      'E-learning complet et quiz',
+                      'Exercices et exports PDF',
+                      'Revue de littérature mensuelle',
+                      'Topographie clinique',
+                      'OsteoFlow inclus (logiciel desktop)',
+                      'Programme ambassadeur (10% · annuel)',
+                    ].map((f, i) => (
+                      <li key={i} className="flex items-start gap-3 text-sm text-slate-700">
+                        <CheckCircle className="h-4 w-4 text-amber-500 flex-shrink-0 mt-0.5" />
+                        <span className="font-medium">{f}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <div className="space-y-2.5">
+                    <button
+                      onClick={() => router.push('/auth')}
+                      className="w-full py-3.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-400 text-slate-900 font-bold text-sm hover:from-amber-400 hover:to-amber-300 transition-all shadow-lg shadow-amber-500/20"
+                    >
+                      Premium mensuel · 29&euro;/mois
+                    </button>
+                    <button
+                      onClick={() => router.push('/auth')}
+                      className="w-full py-3.5 rounded-xl border-2 border-amber-500 text-amber-700 font-semibold text-sm hover:bg-amber-500 hover:text-slate-900 transition-all"
+                    >
+                      Premium annuel · 240&euro;/an
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
 
-          <div className="mt-10 text-center">
-            <p className="text-xs text-slate-400">
-              Mensuel ou annuel, sans engagement. Annulable a tout moment depuis votre compte.
-            </p>
+            <div className="mt-8 text-center">
+              <p className="text-xs text-slate-400">
+                Mensuel ou annuel, sans engagement. Annulable à tout moment depuis votre compte.
+              </p>
+            </div>
           </div>
         </div>
       </section>
@@ -1238,11 +1242,11 @@ const scrollTo = useCallback((id: string) => {
             </span>
           </h2>
           <p className="text-lg text-slate-400 mb-4 max-w-lg mx-auto">
-            200+ tests, 150+ pathologies, e-learning complet, videos et bien plus.
+            200+ tests, e-learning complet, vidéos et bien plus.
             Le tout pour 29&euro;/mois ou 240&euro;/an.
           </p>
           <p className="text-sm text-slate-500 mb-10 max-w-md mx-auto">
-            Commence gratuitement avec le module epaule. Pas de carte bancaire.
+            Commence gratuitement avec le module épaule. Pas de carte bancaire.
           </p>
           <button
             onClick={() => router.push('/auth')}
