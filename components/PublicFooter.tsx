@@ -8,8 +8,8 @@ export default function PublicFooter() {
               Osteo<span className="text-amber-500">Upgrade</span>
             </div>
             <p className="text-sm text-slate-500 leading-relaxed">
-              La plateforme de reference pour structurer ton raisonnement clinique.
-              Developpee par des osteopathes, pour des osteopathes.
+              La plateforme de référence pour structurer ton raisonnement clinique.
+              Développée par des ostéopathes, pour des ostéopathes.
             </p>
           </div>
 
@@ -17,8 +17,8 @@ export default function PublicFooter() {
             <h4 className="text-sm font-semibold text-slate-900 mb-4 uppercase tracking-wider">Produit</h4>
             <ul className="space-y-2.5">
               {[
-                { label: 'Fonctionnalites', href: '/#features' },
-                { label: 'Modules', href: '/#modules' },
+                { label: 'Fonctionnalités', href: '/#features' },
+                { label: 'OsteoFlow', href: '/#osteoflow' },
                 { label: 'Tarifs', href: '/#pricing' },
                 { label: 'Essai gratuit', href: '/auth' },
               ].map((link) => (
@@ -36,7 +36,6 @@ export default function PublicFooter() {
             <ul className="space-y-2.5">
               {[
                 { label: 'E-Learning', href: '/auth' },
-                { label: 'Seminaires', href: '/auth' },
                 { label: 'Revue de littérature', href: '/auth' },
               ].map((link) => (
                 <li key={link.label}>
