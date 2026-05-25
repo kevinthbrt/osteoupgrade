@@ -60,7 +60,7 @@ export default function CGUPage() {
                 <li><strong>Utilisateur :</strong> Toute personne accédant à la Plateforme</li>
                 <li><strong>Abonné :</strong> Utilisateur ayant souscrit à une offre Premium</li>
                 <li><strong>Compte Gratuit :</strong> Accès limité au module épaule uniquement</li>
-                <li><strong>Abonnement Premium :</strong> Accès complet à la plateforme numérique, disponible en formule mensuelle (29 €/mois) ou annuelle (240 €/an)</li>
+                <li><strong>Abonnement Premium :</strong> Accès complet à la plateforme numérique, disponible en formule mensuelle (35 €/mois) ou annuelle (299 €/an)</li>
                 <li><strong>Période de facturation :</strong> Durée correspondant à l'intervalle entre deux prélèvements automatiques (mensuel ou annuel selon l'offre choisie)</li>
                 <li><strong>Programme Ambassadeur :</strong> Dispositif de parrainage réservé aux abonnés Premium annuels permettant d'obtenir un crédit sur la plateforme</li>
               </ul>
