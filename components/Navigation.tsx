@@ -123,11 +123,6 @@ export default function Navigation() {
       icon: Wrench,
       items: [
         {
-          href: '/exercices',
-          label: 'Exercices',
-          icon: Clipboard
-        },
-        {
           href: '/outils/communication',
           label: 'Communication',
           icon: Mail

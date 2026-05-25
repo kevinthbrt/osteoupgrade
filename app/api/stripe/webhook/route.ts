@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { headers } from 'next/headers'
 import { stripe } from '@/lib/stripe'
 import { supabaseAdmin } from '@/lib/supabase-server'
+import { sendTransactionalEmail } from '@/lib/mailing'
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!
 
@@ -282,6 +283,31 @@ async function handleCheckoutCompleted(session: any) {
     })
   } catch (err) {
     console.error('Error triggering automation')
+  }
+
+  // 📧 NOTIFIER L'ADMIN du nouvel abonnement
+  const adminEmail = process.env.ADMIN_EMAIL
+  if (adminEmail) {
+    try {
+      const planLabel = isAnnual ? 'Premium annuel (240€/an)' : 'Premium mensuel (29€/mois)'
+      const referralInfo = referralCode ? `<p style="margin:4px 0;font-size:13px;color:#64748b;">Code parrainage utilisé : <strong>${referralCode}</strong></p>` : ''
+      await sendTransactionalEmail({
+        to: adminEmail,
+        subject: `[OsteoUpgrade] Nouvel abonnement — ${profile.email}`,
+        html: `
+          <div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px;">
+            <h2 style="color:#0f172a;margin:0 0 16px;">Nouvel abonné</h2>
+            <p style="margin:0 0 8px;font-size:14px;color:#1e293b;"><strong>Email :</strong> ${profile.email}</p>
+            <p style="margin:0 0 8px;font-size:14px;color:#1e293b;"><strong>Plan :</strong> ${planLabel}</p>
+            ${referralInfo}
+            <p style="color:#94a3b8;font-size:12px;margin-top:24px;">OsteoUpgrade — notification automatique</p>
+          </div>
+        `,
+        skipUnsubscribeFooter: true,
+      })
+    } catch (err) {
+      console.error('Error sending admin new subscription notification')
+    }
   }
 }
 
