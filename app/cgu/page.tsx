@@ -100,12 +100,12 @@ export default function CGUPage() {
                   <h4 className="font-bold text-lg text-amber-600 mb-1">Premium</h4>
                   <div className="flex flex-wrap gap-4 mb-2">
                     <div>
-                      <p className="text-2xl font-bold text-gray-900">29 €<span className="text-base text-gray-600 font-normal">/mois</span></p>
+                      <p className="text-2xl font-bold text-gray-900">35 €<span className="text-base text-gray-600 font-normal">/mois</span></p>
                       <p className="text-sm text-gray-500">Formule mensuelle</p>
                     </div>
                     <div>
-                      <p className="text-2xl font-bold text-gray-900">240 €<span className="text-base text-gray-600 font-normal">/an</span></p>
-                      <p className="text-sm text-gray-500">Formule annuelle — soit 20 €/mois (2 mois offerts, −17 %)</p>
+                      <p className="text-2xl font-bold text-gray-900">299 €<span className="text-base text-gray-600 font-normal">/an</span></p>
+                      <p className="text-sm text-gray-500">Formule annuelle — soit 24,92 €/mois (3 mois offerts, −29 %)</p>
                     </div>
                   </div>
                   <ul className="mt-3 space-y-1 text-sm text-gray-700">
