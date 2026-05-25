@@ -218,11 +218,11 @@ const scrollTo = useCallback((id: string) => {
       icon: Dumbbell,
       title: 'Outils professionnels',
       painPoint: 'Vous voulez optimiser votre cabinet ?',
-      desc: 'Modèles de courriers, posters pour salle d\'attente, fiches exercices PDF patients. Tout pour optimiser votre communication et votre cabinet au quotidien.',
+      desc: 'Modèles de courriers prêts à l\'emploi, posters pour salle d\'attente et supports de communication. Tout pour optimiser votre cabinet au quotidien.',
       gradient: 'from-emerald-500 to-teal-500',
       screenshot: SCREENSHOT_PATHS.exercices,
       glow: '16, 185, 129',
-      tags: ['Modèles courriers', 'Posters', 'Fiches PDF', 'Communication'],
+      tags: ['Modèles courriers', 'Posters', 'Communication', 'PDF prêts'],
     },
   ]
 
