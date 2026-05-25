@@ -66,7 +66,7 @@ export async function POST(req: NextRequest) {
       cycle: '1',
     }
 
-    function applyVars(str: string): string {
+    const applyVars = (str: string): string => {
       const all = {
         '{{first_name}}': testContact.first_name,
         '{{last_name}}': testContact.last_name,
