@@ -15,10 +15,39 @@ type ChangelogEntry = {
 
 // ─────────────────────────────────────────────
 // 🔖 INCRÉMENTER cette valeur à chaque mise à jour
-const CHANGELOG_VERSION = 12
+const CHANGELOG_VERSION = 13
 // ─────────────────────────────────────────────
 
 const CHANGELOG: ChangelogEntry[] = [
+  {
+    date: '25 mai 2026',
+    changes: [
+      {
+        type: 'feature',
+        text: 'Notifications admin en temps réel — cloche dans la sidebar (section Administration) avec badge de non-lus. Panel slide-over listant bug reports, nouveaux abonnements et parrainages. Marquage lu / tout lire. Mise à jour instantanée via Supabase Realtime sans rechargement de page.'
+      },
+      {
+        type: 'feature',
+        text: 'Bannière bêta — bandeau visible sur toutes les pages avec bouton "Signaler un problème". Formulaire modal envoyant le signalement par email à l\'adresse admin et créant une notification interne en temps réel.'
+      },
+      {
+        type: 'improvement',
+        text: 'Landing page — refonte complète : section OsteoFlow repositionnée "Inclus avec Premium" avec 6 fonctionnalités détaillées (dont prise de note par IA et objectifs du cabinet). Section tarifs fusionnée avec le comparatif concurrence en un seul bloc transparent (calcul 300+200+250 = 750€/an vs 240€/an). "Notre philosophie" remplace l\'ancienne section preuve sociale.'
+      },
+      {
+        type: 'fix',
+        text: 'Landing page — corrections de tous les accents manquants, suppression des tirets cadratins, lien "Modules" corrigé en "OsteoFlow" (ancre #osteoflow). "Diagnostics & Pathologies" retiré de la liste des fonctionnalités (module non encore disponible aux utilisateurs).'
+      },
+      {
+        type: 'improvement',
+        text: 'Footer public — "Séminaires" supprimé de la liste Ressources, lien "Modules" corrigé vers OsteoFlow, accents manquants corrigés dans la description.'
+      },
+      {
+        type: 'improvement',
+        text: 'Navigation — module Exercices retiré du menu utilisateur (sera intégré à OsteoFlow à terme).'
+      }
+    ]
+  },
   {
     date: '16 avril 2026',
     changes: [

@@ -5,6 +5,31 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/).
 
 ---
 
+## [1.3.0] — 2026-05-25
+
+### Ajouté
+
+- **Notifications admin temps réel** : cloche dans la sidebar (section Administration uniquement) avec badge de non-lus. Panel slide-over droit listant les notifications par type (bug report, nouvel abonnement, parrainage). Marquage lu / tout lire. Alimentation automatique via Supabase Realtime (INSERT sur `admin_notifications`). (`components/AdminNotificationBell.tsx`, `lib/admin-notify.ts`)
+- **Table `admin_notifications`** : migration Supabase avec RLS admin-only et publication realtime. (`apply_migration: create_admin_notifications`)
+- **Bannière bêta** : bandeau visible sur toutes les pages avec bouton "Signaler un problème". Modal avec champ email optionnel et description. Envoi vers `ADMIN_EMAIL` via Resend + notification interne temps réel. (`components/BetaBanner.tsx`, `app/api/bug-report/route.ts`)
+- **Notif admin nouvel abonnement** : le webhook Stripe insère automatiquement une notification interne à chaque `checkout.session.completed`. (`app/api/stripe/webhook/route.ts`)
+
+### Amélioré
+
+- **Landing page — OsteoFlow** : repositionné de "Bonus #1" à "Inclus avec Premium" avec 6 fonctionnalités détaillées (dossiers patients, consultations, prise de note par IA, objectifs cabinet, comptabilité, statistiques).
+- **Landing page — Tarifs** : section comparatif et section tarifs fusionnées en un seul bloc. Calcul transparent affiché : 300 + 200 + 250 = 750€/an vs 240€/an OsteoUpgrade.
+- **Landing page — Philosophie** : section preuve sociale remplacée par "Notre philosophie" (3 piliers : EBP, pratique cabinet, évolution mensuelle).
+- **Footer public** : "Séminaires" supprimé des Ressources, lien "Modules" → "OsteoFlow" (`/#osteoflow`), accents corrigés dans la description.
+- **Navigation utilisateur** : module Exercices retiré du menu (sera intégré à OsteoFlow à terme).
+
+### Corrigé
+
+- **Landing page** : tous les accents manquants corrigés (`référence`, `Développée`, `orthopédiques`, `détaillées`, etc.), tirets cadratins supprimés, lien nav "Modules" → "OsteoFlow" corrigé.
+- **Landing page** : "Diagnostics & Pathologies" retiré de la liste des fonctionnalités (module non encore disponible aux utilisateurs).
+- **Landing page — Outils professionnels** : description nettoyée des références aux fiches exercices patients.
+
+---
+
 ## [1.2.0] — 2026-02-28
 
 ### Ajouté
