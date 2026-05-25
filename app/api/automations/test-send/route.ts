@@ -54,7 +54,7 @@ export async function POST(req: NextRequest) {
     // Metadata de test pour les variables {{...}}
     const testMetadata: Record<string, string> = {
       nom: 'Premium',
-      prix: '240€',
+      prix: '299€',
       interval: 'annuel',
       date_fact: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString('fr-FR'),
       date_renouv: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toLocaleDateString('fr-FR'),
