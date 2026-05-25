@@ -986,7 +986,7 @@ const scrollTo = useCallback((id: string) => {
               Tout inclus.
               <br />
               <span className="bg-gradient-to-r from-amber-500 to-orange-500 bg-clip-text text-transparent">
-                Dès 29&euro;/mois ou 240&euro;/an.
+                Dès 35&euro;/mois ou 299&euro;/an.
               </span>
             </h2>
             <p className="text-lg text-slate-500 max-w-xl mx-auto">
@@ -1105,8 +1105,8 @@ const scrollTo = useCallback((id: string) => {
                 <div className="px-8 py-7 bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-between">
                   <div>
                     <div className="text-xs font-bold text-white/70 uppercase tracking-wider mb-1">Premium tout inclus</div>
-                    <div className="text-4xl font-black text-white">240&euro;/an</div>
-                    <div className="text-sm text-white/80 mt-1">soit 20&euro;/mois · 2 mois offerts</div>
+                    <div className="text-4xl font-black text-white">299&euro;/an</div>
+                    <div className="text-sm text-white/80 mt-1">soit 24,92&euro;/mois · 3 mois offerts</div>
                   </div>
                   <button
                     onClick={() => router.push('/auth')}
@@ -1166,19 +1166,19 @@ const scrollTo = useCallback((id: string) => {
                   <div className="mb-7">
                     <div className="text-sm font-semibold text-amber-600 uppercase tracking-wider mb-2">Premium</div>
                     <div className="flex items-baseline gap-1 mb-1">
-                      <span className="text-5xl font-bold text-slate-900">29&euro;</span>
+                      <span className="text-5xl font-bold text-slate-900">35&euro;</span>
                       <span className="text-slate-400 text-sm">/mois</span>
                     </div>
                     <p className="text-xs text-slate-400 mb-4">Sans engagement · Annulable à tout moment</p>
                     <div className="rounded-xl bg-amber-50 border border-amber-200 p-3">
                       <div className="flex items-center justify-between">
                         <div>
-                          <span className="text-lg font-bold text-slate-900">240&euro;</span>
+                          <span className="text-lg font-bold text-slate-900">299&euro;</span>
                           <span className="text-slate-400 text-xs">/an</span>
                         </div>
-                        <span className="bg-emerald-100 text-emerald-700 text-[10px] font-bold px-2 py-0.5 rounded-full">-17%</span>
+                        <span className="bg-emerald-100 text-emerald-700 text-[10px] font-bold px-2 py-0.5 rounded-full">-29%</span>
                       </div>
-                      <p className="text-[11px] text-amber-700 mt-0.5">Soit 20&euro;/mois · 2 mois offerts + parrainage</p>
+                      <p className="text-[11px] text-amber-700 mt-0.5">Soit 24,92&euro;/mois · 3 mois offerts + parrainage</p>
                     </div>
                   </div>
                   <ul className="space-y-2.5 mb-7">
@@ -1203,13 +1203,13 @@ const scrollTo = useCallback((id: string) => {
                       onClick={() => router.push('/auth')}
                       className="w-full py-3.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-400 text-slate-900 font-bold text-sm hover:from-amber-400 hover:to-amber-300 transition-all shadow-lg shadow-amber-500/20"
                     >
-                      Premium mensuel · 29&euro;/mois
+                      Premium mensuel · 35&euro;/mois
                     </button>
                     <button
                       onClick={() => router.push('/auth')}
                       className="w-full py-3.5 rounded-xl border-2 border-amber-500 text-amber-700 font-semibold text-sm hover:bg-amber-500 hover:text-slate-900 transition-all"
                     >
-                      Premium annuel · 240&euro;/an
+                      Premium annuel · 299&euro;/an
                     </button>
                   </div>
                 </div>
@@ -1238,12 +1238,12 @@ const scrollTo = useCallback((id: string) => {
             Tout le contenu en ligne
             <br />
             <span className="bg-gradient-to-r from-amber-400 to-amber-300 bg-clip-text text-transparent">
-              pour 240&euro;/an.
+              pour 299&euro;/an.
             </span>
           </h2>
           <p className="text-lg text-slate-400 mb-4 max-w-lg mx-auto">
             200+ tests, e-learning complet, vidéos et bien plus.
-            Le tout pour 29&euro;/mois ou 240&euro;/an.
+            Le tout pour 35&euro;/mois ou 299&euro;/an.
           </p>
           <p className="text-sm text-slate-500 mb-10 max-w-md mx-auto">
             Commence gratuitement avec le module épaule. Pas de carte bancaire.

@@ -125,7 +125,7 @@ export default function ParrainagePage() {
                 <div className="grid gap-6 sm:grid-cols-3 mb-6">
                   {[
                     { num: '1', title: 'Partagez votre code', text: 'En tant que membre Premium, vous disposez d\'un code unique à partager avec vos collègues ostéopathes.' },
-                    { num: '2', title: 'Votre filleul s\'abonne', text: 'Il saisit votre code lors de son inscription et souscrit à un abonnement annuel Premium (240€).' },
+                    { num: '2', title: 'Votre filleul s\'abonne', text: 'Il saisit votre code lors de son inscription et souscrit à un abonnement annuel Premium (299€).' },
                     { num: '3', title: 'Vous gagnez 10%', text: 'La commission est créditée immédiatement dans votre cagnotte. Demandez un virement dès 10€ accumulés.' },
                   ].map(({ num, title, text }) => (
                     <div key={num} className="flex flex-col items-center text-center">
@@ -143,8 +143,8 @@ export default function ParrainagePage() {
                   </div>
                   <div>
                     <p className="font-semibold text-amber-900 text-sm">Premium annuel parrainé</p>
-                    <p className="text-2xl font-bold text-amber-700">+24€</p>
-                    <p className="text-xs text-amber-600">10% de 240€</p>
+                    <p className="text-2xl font-bold text-amber-700">+29,90€</p>
+                    <p className="text-xs text-amber-600">10% de 299€</p>
                   </div>
                 </div>
               </div>
@@ -290,7 +290,7 @@ export default function ParrainagePage() {
                 <div className="grid gap-4 sm:grid-cols-2">
                   {[
                     { title: 'Qui peut parrainer ?', text: 'Tous les membres Premium actifs. Le code est automatiquement généré à l\'activation de votre abonnement.' },
-                    { title: 'Quels abonnements sont éligibles ?', text: 'Seuls les abonnements annuels génèrent une commission : Premium 240€/an → +24€ de commission.' },
+                    { title: 'Quels abonnements sont éligibles ?', text: 'Seuls les abonnements annuels génèrent une commission : Premium 299€/an → +29,90€ de commission.' },
                     { title: 'Combien de fois peut-on être parrainé ?', text: 'Un utilisateur ne peut être parrainé qu\'une seule fois au total, peu importe l\'abonnement choisi.' },
                     { title: 'Quand est crédité la commission ?', text: 'Immédiatement après la validation du paiement de votre filleul. Pas de délai de carence.' },
                     { title: 'Comment retirer ma cagnotte ?', text: 'Depuis la page "Gérer ma cagnotte", dès 10€ accumulés, en fournissant votre RIB. Virement sous 5-10 jours ouvrés.' },
