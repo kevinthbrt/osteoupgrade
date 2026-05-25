@@ -3,6 +3,7 @@ import { headers } from 'next/headers'
 import { stripe } from '@/lib/stripe'
 import { supabaseAdmin } from '@/lib/supabase-server'
 import { sendTransactionalEmail } from '@/lib/mailing'
+import { notifyAdmin } from '@/lib/admin-notify'
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!
 
@@ -284,6 +285,13 @@ async function handleCheckoutCompleted(session: any) {
   } catch (err) {
     console.error('Error triggering automation')
   }
+
+  // 🔔 NOTIF INTERNE admin (cloche)
+  const planLabel = isAnnual ? 'Premium annuel · 240€/an' : 'Premium mensuel · 29€/mois'
+  const notifBody = referralCode
+    ? `${profile.email} — ${planLabel} (parrainage : ${referralCode})`
+    : `${profile.email} — ${planLabel}`
+  await notifyAdmin('new_subscription', 'Nouvel abonné', notifBody)
 
   // 📧 NOTIFIER L'ADMIN du nouvel abonnement
   const adminEmail = process.env.ADMIN_EMAIL

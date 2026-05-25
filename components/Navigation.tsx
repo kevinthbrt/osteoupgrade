@@ -28,6 +28,7 @@ import {
   Gift,
   Tag
 } from 'lucide-react'
+import AdminNotificationBell from './AdminNotificationBell'
 
 type MenuItem = {
   href: string
@@ -426,9 +427,12 @@ export default function Navigation() {
             {profile?.role === 'admin' && (
               <>
                 <div className="pt-4 pb-2">
-                  <p className="px-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                    Administration
-                  </p>
+                  <div className="px-3 flex items-center justify-between">
+                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                      Administration
+                    </p>
+                    <AdminNotificationBell />
+                  </div>
                 </div>
 
                 {(() => {

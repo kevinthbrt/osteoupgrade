@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { sendTransactionalEmail } from '@/lib/mailing'
+import { notifyAdmin } from '@/lib/admin-notify'
 
 export async function POST(req: NextRequest) {
   try {
@@ -13,6 +14,9 @@ export async function POST(req: NextRequest) {
     const userLine = email?.trim()
       ? `<p style="margin:0 0 8px;color:#64748b;font-size:14px;"><strong>De :</strong> ${email.trim()}</p>`
       : `<p style="margin:0 0 8px;color:#94a3b8;font-size:14px;font-style:italic;">Email non fourni</p>`
+
+    const notifBody = email?.trim() ? `De : ${email.trim()} — ${message.trim().slice(0, 120)}` : message.trim().slice(0, 120)
+    await notifyAdmin('bug_report', 'Signalement de bug', notifBody)
 
     await sendTransactionalEmail({
       to: adminEmail,
