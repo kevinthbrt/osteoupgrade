@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { Bell, Bug, CreditCard, Users, X, CheckCheck } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 
@@ -88,13 +89,13 @@ export default function AdminNotificationBell() {
         )}
       </button>
 
-      {open && (
+      {open && typeof document !== 'undefined' && createPortal(
         <>
-          {/* Backdrop */}
-          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+          {/* Backdrop — rendu hors de la sidebar via portal pour éviter overflow-hidden + transform */}
+          <div className="fixed inset-0 z-[60]" onClick={() => setOpen(false)} />
 
           {/* Slide-over panel (right side) */}
-          <div className="fixed top-0 right-0 h-full w-80 bg-slate-900 border-l border-blue-900/50 shadow-2xl z-50 flex flex-col">
+          <div className="fixed top-0 right-0 h-full w-80 bg-slate-900 border-l border-blue-900/50 shadow-2xl z-[61] flex flex-col">
             {/* Header */}
             <div className="flex items-center justify-between px-4 py-4 border-b border-blue-900/50 shrink-0">
               <div className="flex items-center gap-2">
@@ -160,7 +161,8 @@ export default function AdminNotificationBell() {
               )}
             </div>
           </div>
-        </>
+        </>,
+        document.body
       )}
     </>
   )
