@@ -38,7 +38,7 @@ Retourne UNIQUEMENT un objet JSON valide (sans texte autour, sans markdown) avec
 - "pregnancy_due_date" : la date de terme d'une grossesse au format YYYY-MM-DD
 - "surgical_history" : UNIQUEMENT la nouvelle procédure chirurgicale mentionnée (ex: "appendicectomie 2018")
 - "trauma_history" : UNIQUEMENT le nouveau traumatisme mentionné (ex: "fracture poignet gauche 2015")
-- "medical_history" : UNIQUEMENT la nouvelle pathologie ou maladie mentionnée (ex: "diabète type 2")
+- "medical_history" : une pathologie, maladie, ou traitement médicamenteux en cours mentionné (ex: "diabète type 2", "Lexomil 1mg/j depuis 6 mois")
 - "family_history" : UNIQUEMENT le nouvel antécédent familial mentionné (ex: "père — cancer colorectal")
 
 Règles strictes :
