@@ -207,14 +207,16 @@ export default function UsersManagementPage() {
     if (!selectedUser) return
     setSaving(true)
     try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ role: editRole })
-        .eq('id', selectedUser.id)
+      const res = await fetch('/api/admin/update-user-role', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: selectedUser.id, role: editRole })
+      })
+      if (!res.ok) {
+        const json = await res.json()
+        throw new Error(json.error || 'Erreur inconnue')
+      }
 
-      if (error) throw error
-
-      // optimistic update
       setUsers(prev =>
         prev.map(u => u.id === selectedUser.id ? { ...u, role: editRole } : u)
       )
