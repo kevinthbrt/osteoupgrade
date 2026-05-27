@@ -15,8 +15,8 @@ export const STRIPE_PLANS = {
     name: 'Premium',
     planType: 'premium',
     priceId: process.env.STRIPE_PRICE_PREMIUM_MONTHLY || '',
-    amount: 2900, // 29€/mois
-    displayPrice: '29€',
+    amount: 3500, // 35€/mois
+    displayPrice: '35€',
     displayInterval: 'mois',
     currency: 'eur',
     interval: 'month',
@@ -26,8 +26,8 @@ export const STRIPE_PLANS = {
     name: 'Premium',
     planType: 'premium',
     priceId: process.env.STRIPE_PRICE_PREMIUM_ANNUAL || '',
-    amount: 24000, // 240€/an
-    displayPrice: '240€',
+    amount: 29900, // 299€/an
+    displayPrice: '299€',
     displayInterval: 'an',
     currency: 'eur',
     interval: 'year',
