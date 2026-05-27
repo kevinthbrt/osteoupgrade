@@ -3,15 +3,11 @@
 import { useRouter } from 'next/navigation'
 import AuthLayout from '@/components/AuthLayout'
 import {
-  BookMarked,
   BookOpen,
   TestTube as TestTubeIcon,
-  Stethoscope,
   Map,
-  HeartPulse,
   GraduationCap,
   ArrowRight,
-  Sparkles,
   FileText
 } from 'lucide-react'
 
@@ -40,16 +36,6 @@ export default function ElearningHubPage() {
       category: 'Apprentissage'
     },
     {
-      id: 'encyclopedie',
-      title: 'Encyclopédie',
-      description: 'Fiches de référence structurées par matière : sémiologie, anatomie, biomécanique et plus',
-      icon: BookMarked,
-      href: '/elearning/encyclopedie',
-      gradient: 'from-purple-500 to-indigo-600',
-      count: 'Fiches',
-      category: 'Apprentissage'
-    },
-    {
       id: 'tests',
       title: 'Tests Orthopédiques',
       description: 'Base de données complète des tests orthopédiques organisés par région avec vidéos',
@@ -60,16 +46,6 @@ export default function ElearningHubPage() {
       category: 'Référence Clinique'
     },
     {
-      id: 'diagnostics',
-      title: 'Diagnostics & Pathologies',
-      description: 'Pathologies par région avec photos, signes cliniques, red flags et tests associés',
-      icon: Stethoscope,
-      href: '/diagnostics',
-      gradient: 'from-rose-500 to-pink-600',
-      count: '150+ pathologies',
-      category: 'Référence Clinique'
-    },
-    {
       id: 'topographie',
       title: 'Topographie',
       description: 'Guides topographiques pour structurer votre raisonnement clinique région par région',
@@ -77,16 +53,6 @@ export default function ElearningHubPage() {
       href: '/topographie',
       gradient: 'from-sky-500 to-blue-600',
       count: '15+ guides',
-      category: 'Référence Clinique'
-    },
-    {
-      id: 'prise-en-charge',
-      title: 'Prise en charge',
-      description: 'Conseils de prise en charge pour les différentes pathologies',
-      icon: HeartPulse,
-      href: '/elearning/prise-en-charge',
-      gradient: 'from-rose-500 to-red-600',
-      count: 'Nouveauté',
       category: 'Référence Clinique'
     }
   ]
@@ -125,7 +91,7 @@ export default function ElearningHubPage() {
                   <div className="text-xs text-blue-300/70">Contenus</div>
                 </div>
                 <div className="bg-white/10 backdrop-blur-sm rounded-xl p-3 border border-white/20">
-                  <div className="text-2xl font-bold text-white">7</div>
+                  <div className="text-2xl font-bold text-white">4</div>
                   <div className="text-xs text-blue-300/70">Modules</div>
                 </div>
                 <div className="bg-white/10 backdrop-blur-sm rounded-xl p-3 border border-white/20">
@@ -157,7 +123,7 @@ export default function ElearningHubPage() {
                 <h2 className="text-sm font-bold text-slate-800 tracking-wide">Apprentissage</h2>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {apprentissage.map((module) => {
                   const Icon = module.icon
 
@@ -196,7 +162,7 @@ export default function ElearningHubPage() {
                 <h2 className="text-sm font-bold text-slate-800 tracking-wide">Référence Clinique</h2>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {reference.map((module) => {
                   const Icon = module.icon
 
