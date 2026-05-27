@@ -84,6 +84,7 @@ export default function ExercisesModule() {
   const [uploadingImage, setUploadingImage] = useState(false)
   const [imagePreview, setImagePreview] = useState<string | null>(null)
   const [adminSearchTerm, setAdminSearchTerm] = useState('')
+  const [adminOnlyWithoutIllustration, setAdminOnlyWithoutIllustration] = useState(false)
 
   const adminSectionRef = useRef<HTMLDivElement>(null)
 
@@ -175,9 +176,11 @@ export default function ExercisesModule() {
   const adminFilteredExercises = useMemo(() => {
     return exercises.filter((exercise) => {
       const haystack = `${exercise.name} ${exercise.region} ${exercise.type}`.toLowerCase()
-      return haystack.includes(adminSearchTerm.toLowerCase())
+      if (!haystack.includes(adminSearchTerm.toLowerCase())) return false
+      if (adminOnlyWithoutIllustration && exercise.illustration_url) return false
+      return true
     })
-  }, [exercises, adminSearchTerm])
+  }, [exercises, adminSearchTerm, adminOnlyWithoutIllustration])
 
   const addToPlan = (exerciseId: string) => {
     setSelectedExercises((prev) => [...prev, EMPTY_PLAN_ITEM(exerciseId)])
@@ -884,11 +887,20 @@ export default function ExercisesModule() {
                       onChange={(e) => setAdminSearchTerm(e.target.value)}
                     />
                   </div>
+                  <label className="mt-3 flex items-center gap-2 cursor-pointer w-fit">
+                    <input
+                      type="checkbox"
+                      checked={adminOnlyWithoutIllustration}
+                      onChange={(e) => setAdminOnlyWithoutIllustration(e.target.checked)}
+                      className="h-4 w-4 rounded border-gray-300 text-emerald-500 focus:ring-emerald-400 cursor-pointer"
+                    />
+                    <span className="text-sm text-gray-600">Voir seulement les exercices sans illustration</span>
+                  </label>
 
                   <div className="mt-4 space-y-2 max-h-96 overflow-y-auto">
                     {adminFilteredExercises.length === 0 ? (
                       <div className="rounded-lg border border-dashed border-blue-200/60 p-6 text-center text-gray-500 text-sm">
-                        {adminSearchTerm ? 'Aucun exercice ne correspond à votre recherche.' : 'Aucun exercice disponible.'}
+                        {adminSearchTerm || adminOnlyWithoutIllustration ? 'Aucun exercice ne correspond à vos filtres.' : 'Aucun exercice disponible.'}
                       </div>
                     ) : (
                       adminFilteredExercises.map((exercise) => (
@@ -940,6 +952,7 @@ export default function ExercisesModule() {
                     <p className="mt-3 text-xs text-gray-500">
                       {adminFilteredExercises.length} exercice{adminFilteredExercises.length > 1 ? 's' : ''} trouvé{adminFilteredExercises.length > 1 ? 's' : ''}
                       {adminSearchTerm && ` pour "${adminSearchTerm}"`}
+                      {adminOnlyWithoutIllustration && ' · sans illustration'}
                     </p>
                   )}
                 </div>
