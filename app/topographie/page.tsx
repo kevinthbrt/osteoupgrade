@@ -17,13 +17,9 @@ import {
   Sparkles,
   Upload,
   X,
-  TestTube,
-  Stethoscope,
-  GraduationCap,
   User,
   Activity
 } from 'lucide-react'
-import RelatedContent, { RelatedItem } from '@/components/RelatedContent'
 import FreeContentGate from '@/components/FreeContentGate'
 import FreeUserBanner from '@/components/FreeUserBanner'
 
@@ -463,42 +459,6 @@ export default function TopographiePage() {
               ))}
             </div>
           )}
-        </div>
-
-        {/* Related Modules */}
-        <div className="bg-white/85 backdrop-blur-2xl border border-white/70 shadow-xl ring-1 ring-inset ring-white/60 rounded-2xl p-6">
-          <RelatedContent
-            title="📚 Explorer aussi"
-            items={[
-              {
-                id: 'tests',
-                title: 'Tests Orthopédiques',
-                description: 'Base de données complète des tests organisés par région avec vidéos',
-                module: 'Référence Clinique',
-                href: '/tests',
-                gradient: 'from-emerald-500 to-teal-600',
-                icon: TestTube
-              },
-              {
-                id: 'diagnostics',
-                title: 'Diagnostics & Pathologies',
-                description: 'Pathologies par région avec photos, signes cliniques et red flags',
-                module: 'Référence Clinique',
-                href: '/diagnostics',
-                gradient: 'from-rose-500 to-pink-600',
-                icon: Stethoscope
-              },
-              {
-                id: 'elearning',
-                title: 'Retour à E-Learning',
-                description: 'Voir tous les modules de contenu théorique',
-                module: 'Hub',
-                href: '/elearning',
-                gradient: 'from-blue-500 to-cyan-600',
-                icon: GraduationCap
-              }
-            ]}
-          />
         </div>
           </div>
         </div>
