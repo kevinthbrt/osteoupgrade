@@ -938,11 +938,11 @@ export default function CoursPage() {
                             >
                               <div className="flex items-center gap-2">
                                 <ChevronRight
-                                  className={`h-4 w-4 text-sky-600 transition-transform ${
+                                  className={`h-4 w-4 shrink-0 text-sky-600 transition-transform ${
                                     expandedChapters[chapter.id] ? 'rotate-90' : ''
                                   }`}
                                 />
-                                <Layers className="h-4 w-4 text-sky-600" />
+                                <Layers className="h-4 w-4 shrink-0 text-sky-600" />
                                 <span className="font-semibold text-gray-900 text-sm">{chapter.title}</span>
                               </div>
                               <span className="text-xs text-gray-500">{chapter.subparts.length}</span>

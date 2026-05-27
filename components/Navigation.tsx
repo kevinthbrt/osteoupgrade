@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
@@ -198,11 +198,16 @@ export default function Navigation() {
     return initialState
   })
 
+  const navRef = useRef<HTMLElement>(null)
+
   const toggleGroup = (groupId: string) => {
-    setExpandedGroups(prev => ({
-      ...prev,
-      [groupId]: !prev[groupId]
-    }))
+    setExpandedGroups(prev => {
+      const isOpening = !prev[groupId]
+      if (isOpening && navRef.current) {
+        navRef.current.scrollTo({ top: 0, behavior: 'smooth' })
+      }
+      return { ...prev, [groupId]: isOpening }
+    })
   }
 
   const getRoleBadge = () => {
@@ -290,7 +295,7 @@ export default function Navigation() {
           </div>
 
           {/* Navigation */}
-          <nav className="flex-1 px-4 py-4 space-y-1 overflow-y-auto">
+          <nav ref={navRef} className="flex-1 px-4 py-4 space-y-1 overflow-y-auto">
             {/* Helper function to render a menu item */}
             {(() => {
               const renderMenuItem = (item: MenuItem) => {
