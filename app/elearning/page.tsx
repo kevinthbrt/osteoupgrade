@@ -81,7 +81,7 @@ export default function ElearningHubPage() {
                 Contenu Théorique & Éducatif
               </h1>
               <p className="text-blue-300/70 text-sm mt-1.5">
-                Accédez à tout le contenu théorique et clinique : cours, tests orthopédiques, diagnostics et guides topographiques.
+                Accédez à tout le contenu théorique et clinique : cours, revue de littérature, tests orthopédiques et topographie.
               </p>
 
               {/* Stats row */}

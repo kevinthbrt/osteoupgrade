@@ -113,7 +113,7 @@ export default function Dashboard() {
 
   const modules = [
     { id: 'pratique', title: 'Pratique', description: 'Techniques ostéopathiques en vidéo, par région anatomique', icon: Stethoscope, href: '/pratique', count: '150+ vidéos', gradient: 'from-pink-500 to-rose-600', emoji: '🩺' },
-    { id: 'elearning', title: 'E-Learning', description: 'Cours, tests orthopédiques, diagnostics et quiz interactifs', icon: GraduationCap, href: '/elearning', count: '500+ contenus', gradient: 'from-blue-500 to-cyan-500', emoji: '📚' },
+    { id: 'elearning', title: 'E-Learning', description: 'Cours, revue de littérature, tests orthopédiques et topographie', icon: GraduationCap, href: '/elearning', count: '4 modules', gradient: 'from-blue-500 to-cyan-500', emoji: '📚' },
     { id: 'outils', title: 'Outils', description: 'Documents, courriers et communications professionnels', icon: Wrench, href: '/outils', count: 'Communication', gradient: 'from-orange-500 to-red-500', emoji: '🛠️' },
     { id: 'parrainage', title: 'Parrainage', description: 'Parrainez vos collègues et gagnez 10% de commission', icon: Gift, href: '/parrainage', count: '10% cashback', gradient: 'from-amber-400 to-yellow-500', emoji: '🎁' },
   ]
