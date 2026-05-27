@@ -3,28 +3,15 @@
 import { useRouter } from 'next/navigation'
 import AuthLayout from '@/components/AuthLayout'
 import {
-  Dumbbell,
   FileText,
   Wrench,
-  ArrowRight,
-  Sparkles,
-  Settings
+  ArrowRight
 } from 'lucide-react'
 
 export default function OutilsPage() {
   const router = useRouter()
 
   const outils = [
-    {
-      id: 'exercices',
-      title: 'Exercices Thérapeutiques',
-      description: 'Bibliothèque complète d\'exercices organisés par région anatomique pour vos patients',
-      icon: Dumbbell,
-      href: '/exercices',
-      gradient: 'from-orange-500 to-red-600',
-      count: '150+ exercices',
-      available: true
-    },
     {
       id: 'communication',
       title: 'Communication',
@@ -34,26 +21,6 @@ export default function OutilsPage() {
       gradient: 'from-blue-500 to-cyan-600',
       count: 'Premium',
       available: true
-    },
-    {
-      id: 'protocoles',
-      title: 'Générateur de Protocoles',
-      description: 'Créez des protocoles de traitement personnalisés en combinant techniques et exercices',
-      icon: FileText,
-      href: '/outils/protocoles',
-      gradient: 'from-purple-500 to-indigo-600',
-      count: 'Bientôt',
-      available: false
-    },
-    {
-      id: 'autres',
-      title: 'Autres Outils',
-      description: 'Fiches d\'anamnèse, planificateurs, et outils pratiques à venir',
-      icon: Wrench,
-      href: '/outils/autres',
-      gradient: 'from-sky-500 to-blue-600',
-      count: 'À venir',
-      available: false
     }
   ]
 
@@ -77,20 +44,8 @@ export default function OutilsPage() {
                 Outils du Praticien
               </h1>
               <p className="text-blue-300/70 text-sm mt-1.5">
-                Exercices thérapeutiques, protocoles personnalisés et outils pratiques pour optimiser votre prise en charge.
+                Documents professionnels, modèles de courriers et outils de communication pour votre cabinet.
               </p>
-
-              {/* Stats row */}
-              <div className="grid grid-cols-2 gap-4 max-w-md mt-6">
-                <div className="bg-white/10 backdrop-blur-sm rounded-xl p-3 border border-white/20">
-                  <div className="text-2xl font-bold text-white">150+</div>
-                  <div className="text-xs text-blue-300/70">Exercices</div>
-                </div>
-                <div className="bg-white/10 backdrop-blur-sm rounded-xl p-3 border border-white/20">
-                  <div className="text-2xl font-bold text-white">4</div>
-                  <div className="text-xs text-blue-300/70">Outils</div>
-                </div>
-              </div>
             </div>
           </div>
 
@@ -115,7 +70,7 @@ export default function OutilsPage() {
                 <h2 className="text-sm font-bold text-slate-800 tracking-wide">Outils Disponibles</h2>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {outils.map((outil) => {
                   const Icon = outil.icon
                   const isDisabled = !outil.available
@@ -162,42 +117,6 @@ export default function OutilsPage() {
                     </button>
                   )
                 })}
-              </div>
-            </section>
-
-            {/* Info Section */}
-            <section>
-              <div className="flex items-center gap-2.5 mb-4">
-                <div className="h-5 w-1 rounded-full bg-gradient-to-b from-blue-500 to-blue-700" />
-                <h2 className="text-sm font-bold text-slate-800 tracking-wide">Module Exercices</h2>
-              </div>
-
-              <div className="rounded-2xl bg-white/85 backdrop-blur-2xl border border-white/70 shadow-xl ring-1 ring-inset ring-white/60 p-6">
-                <div className="flex items-start gap-4">
-                  <div className="p-3 rounded-xl bg-gradient-to-br from-orange-500 to-red-600 shadow-lg flex-shrink-0">
-                    <Sparkles className="h-6 w-6 text-white" />
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-slate-600 mb-4">
-                      Accédez à une bibliothèque complète d'exercices thérapeutiques organisés par région anatomique.
-                      Chaque exercice comprend des instructions détaillées et peut être prescrit à vos patients.
-                    </p>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div className="rounded-xl bg-white/70 border border-white/60 p-3">
-                        <div className="font-semibold text-slate-900 mb-1">150+ exercices</div>
-                        <p className="text-xs text-slate-600">Organisés par région</p>
-                      </div>
-                      <div className="rounded-xl bg-white/70 border border-white/60 p-3">
-                        <div className="font-semibold text-slate-900 mb-1">Niveaux progressifs</div>
-                        <p className="text-xs text-slate-600">Débutant à avancé</p>
-                      </div>
-                      <div className="rounded-xl bg-white/70 border border-white/60 p-3">
-                        <div className="font-semibold text-slate-900 mb-1">Instructions claires</div>
-                        <p className="text-xs text-slate-600">Faciles à prescrire</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
               </div>
             </section>
 
