@@ -364,7 +364,7 @@ export default function Dashboard() {
             <section>
               <div className="flex items-center gap-2.5 mb-4">
                 <div className="h-5 w-1 rounded-full bg-gradient-to-b from-violet-500 to-violet-700" />
-                <h2 className="text-sm font-bold text-slate-800 tracking-wide">Osteoflow — Logiciel de cabinet</h2>
+                <h2 className="text-sm font-bold text-slate-800 tracking-wide">MyOsteoFlow — Logiciel de cabinet</h2>
               </div>
               <div className="rounded-2xl overflow-hidden shadow-xl border border-violet-300/70 bg-violet-100/85 backdrop-blur-2xl ring-1 ring-inset ring-white/60">
                 <div className="bg-gradient-to-r from-violet-600 to-indigo-600 px-5 py-3 flex items-center gap-2">

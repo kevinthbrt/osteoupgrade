@@ -49,7 +49,7 @@ export async function POST(request: Request) {
 
     if (!['premium', 'admin'].includes(profile.role)) {
       return NextResponse.json(
-        { error: 'Un abonnement Premium Osteoupgrade est requis pour utiliser Osteoflow.', code: 'NOT_PREMIUM' },
+        { error: 'Un abonnement Premium Osteoupgrade est requis pour utiliser MyOsteoFlow.', code: 'NOT_PREMIUM' },
         { status: 403, headers: CORS }
       )
     }

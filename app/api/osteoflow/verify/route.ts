@@ -71,7 +71,7 @@ export async function GET(request: Request) {
         return NextResponse.json(
           {
             valid: false,
-            error: "Osteoflow est d\u00e9j\u00e0 actif sur un autre appareil. Fermez l'application sur l'autre appareil et r\u00e9essayez dans 5 minutes.",
+            error: "MyOsteoFlow est d\u00e9j\u00e0 actif sur un autre appareil. Fermez l'application sur l'autre appareil et r\u00e9essayez dans 5 minutes.",
             code: 'CONCURRENT_SESSION',
           },
           { headers: CORS }
