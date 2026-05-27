@@ -1,9 +1,21 @@
 'use client'
 
+import { useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { fetchProfilePayload } from '@/lib/profile-client'
 import AuthLayout from '@/components/AuthLayout'
 import { HeartPulse } from 'lucide-react'
 
 export default function PriseEnChargePage() {
+  const router = useRouter()
+
+  useEffect(() => {
+    fetchProfilePayload().then((payload) => {
+      if (!payload?.user) { router.push('/'); return }
+      if (payload.profile?.role !== 'admin') { router.push('/dashboard'); return }
+    })
+  }, [])
+
   return (
     <AuthLayout>
       <div className="min-h-screen -m-6 md:-m-8">

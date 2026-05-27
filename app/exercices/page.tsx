@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { fetchProfilePayload } from '@/lib/profile-client'
 import AuthLayout from '@/components/AuthLayout'
@@ -67,6 +68,7 @@ const EMPTY_EXERCISE_FORM = {
 }
 
 export default function ExercisesModule() {
+  const router = useRouter()
   const [profile, setProfile] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [accessDenied, setAccessDenied] = useState(false)
@@ -93,11 +95,16 @@ export default function ExercisesModule() {
       try {
         const payload = await fetchProfilePayload()
         if (!payload?.user) {
-          setAccessDenied(true)
+          router.push('/')
           return
         }
 
         const profileData = payload.profile
+
+        if (profileData?.role !== 'admin') {
+          router.push('/dashboard')
+          return
+        }
 
         setProfile(profileData)
 
