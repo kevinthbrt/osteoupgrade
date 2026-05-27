@@ -204,7 +204,15 @@ export default function Navigation() {
     setExpandedGroups(prev => {
       const isOpening = !prev[groupId]
       if (isOpening && navRef.current) {
-        navRef.current.scrollTo({ top: 0, behavior: 'smooth' })
+        const groupEl = navRef.current.querySelector(`[data-group-id="${groupId}"]`)
+        if (groupEl) {
+          const navTop = navRef.current.getBoundingClientRect().top
+          const groupTop = groupEl.getBoundingClientRect().top
+          navRef.current.scrollTo({
+            top: navRef.current.scrollTop + groupTop - navTop,
+            behavior: 'smooth'
+          })
+        }
       }
       return { ...prev, [groupId]: isOpening }
     })
@@ -352,7 +360,7 @@ export default function Navigation() {
                 const isExpanded = expandedGroups[group.id] ?? isGroupActive
 
                 return (
-                  <div key={group.id} className="px-1">
+                  <div key={group.id} data-group-id={group.id} className="px-1">
                     <button
                       type="button"
                       onClick={() => {
@@ -467,7 +475,7 @@ export default function Navigation() {
                   const isExpanded = expandedGroups[group.id] ?? isGroupActive
 
                   return (
-                    <div key={group.id} className="px-1">
+                    <div key={group.id} data-group-id={group.id} className="px-1">
                       <button
                         type="button"
                         onClick={() => toggleGroup(group.id)}

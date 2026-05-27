@@ -934,7 +934,7 @@ export default function CoursPage() {
                             <button
                               type="button"
                               onClick={() => toggleChapterExpansion(chapter.id)}
-                              className="w-full flex items-center justify-between bg-white/70 backdrop-blur-sm rounded-lg px-3 py-2 hover:bg-white/90 transition-colors border border-white/60"
+                              className="w-full flex items-center justify-between text-left bg-white/70 backdrop-blur-sm rounded-lg px-3 py-2 hover:bg-white/90 transition-colors border border-white/60"
                             >
                               <div className="flex items-center gap-2">
                                 <ChevronRight
