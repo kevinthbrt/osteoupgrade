@@ -934,15 +934,15 @@ export default function CoursPage() {
                             <button
                               type="button"
                               onClick={() => toggleChapterExpansion(chapter.id)}
-                              className="w-full flex items-center justify-between bg-white/70 backdrop-blur-sm rounded-lg px-3 py-2 hover:bg-white/90 transition-colors border border-white/60"
+                              className="w-full flex items-center justify-between text-left bg-white/70 backdrop-blur-sm rounded-lg px-3 py-2 hover:bg-white/90 transition-colors border border-white/60"
                             >
                               <div className="flex items-center gap-2">
                                 <ChevronRight
-                                  className={`h-4 w-4 text-sky-600 transition-transform ${
+                                  className={`h-4 w-4 shrink-0 text-sky-600 transition-transform ${
                                     expandedChapters[chapter.id] ? 'rotate-90' : ''
                                   }`}
                                 />
-                                <Layers className="h-4 w-4 text-sky-600" />
+                                <Layers className="h-4 w-4 shrink-0 text-sky-600" />
                                 <span className="font-semibold text-gray-900 text-sm">{chapter.title}</span>
                               </div>
                               <span className="text-xs text-gray-500">{chapter.subparts.length}</span>

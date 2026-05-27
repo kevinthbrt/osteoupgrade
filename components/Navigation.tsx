@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
@@ -198,11 +198,24 @@ export default function Navigation() {
     return initialState
   })
 
+  const navRef = useRef<HTMLElement>(null)
+
   const toggleGroup = (groupId: string) => {
-    setExpandedGroups(prev => ({
-      ...prev,
-      [groupId]: !prev[groupId]
-    }))
+    setExpandedGroups(prev => {
+      const isOpening = !prev[groupId]
+      if (isOpening && navRef.current) {
+        const groupEl = navRef.current.querySelector(`[data-group-id="${groupId}"]`)
+        if (groupEl) {
+          const navTop = navRef.current.getBoundingClientRect().top
+          const groupTop = groupEl.getBoundingClientRect().top
+          navRef.current.scrollTo({
+            top: navRef.current.scrollTop + groupTop - navTop,
+            behavior: 'smooth'
+          })
+        }
+      }
+      return { ...prev, [groupId]: isOpening }
+    })
   }
 
   const getRoleBadge = () => {
@@ -290,7 +303,7 @@ export default function Navigation() {
           </div>
 
           {/* Navigation */}
-          <nav className="flex-1 px-4 py-4 space-y-1 overflow-y-auto">
+          <nav ref={navRef} className="flex-1 px-4 py-4 space-y-1 overflow-y-auto">
             {/* Helper function to render a menu item */}
             {(() => {
               const renderMenuItem = (item: MenuItem) => {
@@ -347,7 +360,7 @@ export default function Navigation() {
                 const isExpanded = expandedGroups[group.id] ?? isGroupActive
 
                 return (
-                  <div key={group.id} className="px-1">
+                  <div key={group.id} data-group-id={group.id} className="px-1">
                     <button
                       type="button"
                       onClick={() => {
@@ -462,7 +475,7 @@ export default function Navigation() {
                   const isExpanded = expandedGroups[group.id] ?? isGroupActive
 
                   return (
-                    <div key={group.id} className="px-1">
+                    <div key={group.id} data-group-id={group.id} className="px-1">
                       <button
                         type="button"
                         onClick={() => toggleGroup(group.id)}
