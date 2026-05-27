@@ -21,11 +21,8 @@ import {
   X,
   Layers,
   FolderOpen,
-  GraduationCap,
-  Stethoscope
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import RelatedContent, { RelatedItem } from '@/components/RelatedContent'
 import FreeContentGate from '@/components/FreeContentGate'
 import FreeUserBanner from '@/components/FreeUserBanner'
 
@@ -1046,42 +1043,6 @@ export default function ImprovedTestsPage() {
             })}
           </div>
         )}
-
-        {/* Related Modules */}
-        <div className="bg-white/85 backdrop-blur-2xl border border-white/70 shadow-xl ring-1 ring-inset ring-white/60 rounded-2xl p-6">
-          <RelatedContent
-            title="📚 Explorer aussi"
-            items={[
-              {
-                id: 'diagnostics',
-                title: 'Diagnostics & Pathologies',
-                description: 'Pathologies par région avec photos, signes cliniques et red flags',
-                module: 'Référence Clinique',
-                href: '/diagnostics',
-                gradient: 'from-rose-500 to-pink-600',
-                icon: Stethoscope
-              },
-              {
-                id: 'topographie',
-                title: 'Topographie',
-                description: 'Guides topographiques pour structurer votre raisonnement clinique',
-                module: 'Référence Clinique',
-                href: '/topographie',
-                gradient: 'from-sky-500 to-blue-600',
-                icon: User
-              },
-              {
-                id: 'elearning',
-                title: 'Retour à E-Learning',
-                description: 'Voir tous les modules de contenu théorique',
-                module: 'Hub',
-                href: '/elearning',
-                gradient: 'from-blue-500 to-cyan-600',
-                icon: GraduationCap
-              }
-            ]}
-          />
-        </div>
           </div>{/* end relative space-y-6 */}
         </div>{/* end light body */}
       </div>{/* end min-h-screen */}

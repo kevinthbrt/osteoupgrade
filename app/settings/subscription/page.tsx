@@ -465,7 +465,7 @@ function SubscriptionContent() {
                 <h3 className="font-semibold text-gray-900 mb-1">Votre programme de parrainage</h3>
                 <p className="text-sm text-gray-600 mb-4">
                   En tant que membre Premium, vous disposez d'un code de parrainage unique. Chaque abonnement annuel
-                  souscrit avec votre code vous rapporte <strong>10% de commission</strong> (24€) directement dans votre cagnotte.
+                  souscrit avec votre code vous rapporte <strong>10% de commission</strong> (29,90€) directement dans votre cagnotte.
                 </p>
                 <Link
                   href="/parrainage"
@@ -502,7 +502,7 @@ function SubscriptionContent() {
                 <div className="space-y-4">
                   <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4">
                     <div className="flex items-baseline gap-2 mb-1">
-                      <span className="text-4xl font-bold">29€</span>
+                      <span className="text-4xl font-bold">35€</span>
                       <span className="text-yellow-900/80">/mois</span>
                     </div>
                     <p className="text-sm text-yellow-900/70">Sans engagement • Annulable à tout moment</p>
@@ -510,12 +510,12 @@ function SubscriptionContent() {
                   <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border-2 border-white/30">
                     <div className="flex items-center justify-between mb-1">
                       <div className="flex items-baseline gap-2">
-                        <span className="text-4xl font-bold">240€</span>
+                        <span className="text-4xl font-bold">299€</span>
                         <span className="text-yellow-900/80">/an</span>
                       </div>
-                      <span className="bg-green-400 text-green-900 text-xs font-bold px-2 py-1 rounded-full">-17%</span>
+                      <span className="bg-green-400 text-green-900 text-xs font-bold px-2 py-1 rounded-full">-29%</span>
                     </div>
-                    <p className="text-sm text-yellow-900/70">Soit 20€/mois • 2 mois offerts + parrainage inclus</p>
+                    <p className="text-sm text-yellow-900/70">Soit 24,90€/mois • 3 mois offerts + parrainage inclus</p>
                   </div>
                 </div>
               </div>
@@ -550,7 +550,7 @@ function SubscriptionContent() {
                   {processingPlan === 'premium_monthly' ? (
                     <><Loader2 className="h-5 w-5 animate-spin" />Redirection...</>
                   ) : (
-                    'Choisir Premium Mensuel (29€/mois)'
+                    'Choisir Premium Mensuel (35€/mois)'
                   )}
                 </button>
                 <button
@@ -561,7 +561,7 @@ function SubscriptionContent() {
                   {processingPlan === 'premium_annual' ? (
                     <><Loader2 className="h-5 w-5 animate-spin" />Redirection...</>
                   ) : (
-                    <><Crown className="h-5 w-5" />Choisir Premium Annuel (240€/an)</>
+                    <><Crown className="h-5 w-5" />Choisir Premium Annuel (299€/an)</>
                   )}
                 </button>
               </div>

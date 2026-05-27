@@ -94,8 +94,8 @@ export default function ReferralsPage() {
   }
 
   const handleRequestPayoutClick = () => {
-    if (!earnings?.summary?.available_amount || earnings.summary.available_amount < 1000) {
-      alert('Vous devez avoir au moins 10€ de gains disponibles pour demander un paiement.')
+    if (!earnings?.summary?.available_amount || earnings.summary.available_amount < 2990) {
+      alert('Vous devez avoir au moins 29,90€ de gains disponibles pour demander un paiement.')
       return
     }
     setShowPayoutModal(true)
@@ -401,12 +401,12 @@ export default function ReferralsPage() {
                 <div>
                   <h3 className="text-lg font-bold text-gray-900 mb-1">Demander un paiement</h3>
                   <p className="text-sm text-gray-600">
-                    Montant minimum : 10€ • Paiement sous 5-10 jours ouvrés par virement bancaire
+                    Montant minimum : 29,90€ (1 parrainage) • Paiement sous 5-10 jours ouvrés par virement bancaire
                   </p>
                 </div>
                 <button
                   onClick={handleRequestPayoutClick}
-                  disabled={requestingPayout || availableAmount < 1000}
+                  disabled={requestingPayout || availableAmount < 2990}
                   className="inline-flex items-center gap-2 bg-emerald-500/90 backdrop-blur-sm border border-emerald-400/30 text-white px-6 py-3 rounded-xl font-semibold hover:bg-emerald-600/90 shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {requestingPayout ? (

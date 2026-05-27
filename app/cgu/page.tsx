@@ -60,7 +60,7 @@ export default function CGUPage() {
                 <li><strong>Utilisateur :</strong> Toute personne accédant à la Plateforme</li>
                 <li><strong>Abonné :</strong> Utilisateur ayant souscrit à une offre Premium</li>
                 <li><strong>Compte Gratuit :</strong> Accès limité au module épaule uniquement</li>
-                <li><strong>Abonnement Premium :</strong> Accès complet à la plateforme numérique, disponible en formule mensuelle (29 €/mois) ou annuelle (240 €/an)</li>
+                <li><strong>Abonnement Premium :</strong> Accès complet à la plateforme numérique, disponible en formule mensuelle (35 €/mois) ou annuelle (299 €/an)</li>
                 <li><strong>Période de facturation :</strong> Durée correspondant à l'intervalle entre deux prélèvements automatiques (mensuel ou annuel selon l'offre choisie)</li>
                 <li><strong>Programme Ambassadeur :</strong> Dispositif de parrainage réservé aux abonnés Premium annuels permettant d'obtenir un crédit sur la plateforme</li>
               </ul>
@@ -100,12 +100,12 @@ export default function CGUPage() {
                   <h4 className="font-bold text-lg text-amber-600 mb-1">Premium</h4>
                   <div className="flex flex-wrap gap-4 mb-2">
                     <div>
-                      <p className="text-2xl font-bold text-gray-900">29 €<span className="text-base text-gray-600 font-normal">/mois</span></p>
+                      <p className="text-2xl font-bold text-gray-900">35 €<span className="text-base text-gray-600 font-normal">/mois</span></p>
                       <p className="text-sm text-gray-500">Formule mensuelle</p>
                     </div>
                     <div>
-                      <p className="text-2xl font-bold text-gray-900">240 €<span className="text-base text-gray-600 font-normal">/an</span></p>
-                      <p className="text-sm text-gray-500">Formule annuelle — soit 20 €/mois (2 mois offerts, −17 %)</p>
+                      <p className="text-2xl font-bold text-gray-900">299 €<span className="text-base text-gray-600 font-normal">/an</span></p>
+                      <p className="text-sm text-gray-500">Formule annuelle — soit 24,90 €/mois (3 mois offerts, −29 %)</p>
                     </div>
                   </div>
                   <ul className="mt-3 space-y-1 text-sm text-gray-700">
@@ -255,7 +255,7 @@ export default function CGUPage() {
               </p>
               <ul className="list-disc list-inside space-y-2 text-gray-700 mt-3 ml-4">
                 <li>La commission est cumulée dans le solde ambassadeur du parrain, visible depuis son espace client</li>
-                <li>Dès que le solde cumulé atteint <strong>50 € minimum</strong>, le parrain peut demander un virement bancaire</li>
+                <li>Dès que le solde cumulé atteint <strong>29,90 € minimum</strong> (équivalent à 1 parrainage), le parrain peut demander un virement bancaire</li>
                 <li>Le virement est effectué sur le compte bancaire renseigné par le parrain dans son espace client</li>
                 <li>La commission est attribuée une seule fois par filleul, sur la première année d'abonnement uniquement</li>
                 <li>La commission est accordée dès lors que le paiement du filleul est confirmé et non contesté</li>
@@ -264,7 +264,7 @@ export default function CGUPage() {
               <h3 className="text-xl font-semibold text-gray-900 mt-6 mb-3">9.3 - Conditions et restrictions</h3>
               <ul className="list-disc list-inside space-y-2 text-gray-700 mt-3 ml-4">
                 <li>L'Abonné ne peut pas se parrainer lui-même</li>
-                <li>Le virement n'est possible qu'à partir de <strong>50 € cumulés</strong> dans le solde ambassadeur</li>
+                <li>Le virement n'est possible qu'à partir de <strong>29,90 € cumulés</strong> (1 parrainage minimum) dans le solde ambassadeur</li>
                 <li>Le solde ambassadeur non réclamé à la résiliation du compte Premium est définitivement perdu</li>
                 <li>Le Programme Ambassadeur ne peut pas être utilisé à des fins de revente ou de commercialisation</li>
                 <li>OsteoUpgrade se réserve le droit de modifier ou de suspendre le Programme Ambassadeur à tout moment, avec un préavis de 30 jours aux abonnés concernés</li>
