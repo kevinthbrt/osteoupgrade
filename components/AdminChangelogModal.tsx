@@ -32,19 +32,19 @@ const CHANGELOG: ChangelogEntry[] = [
       },
       {
         type: 'improvement',
-        text: 'Landing page — refonte complète : section OsteoFlow repositionnée "Inclus avec Premium" avec 6 fonctionnalités détaillées (dont prise de note par IA et objectifs du cabinet). Section tarifs fusionnée avec le comparatif concurrence en un seul bloc transparent (calcul 300+200+250 = 750€/an vs 240€/an). "Notre philosophie" remplace l\'ancienne section preuve sociale.'
+        text: 'Landing page — refonte complète : section MyOsteoFlow repositionnée "Inclus avec Premium" avec 6 fonctionnalités détaillées (dont prise de note par IA et objectifs du cabinet). Section tarifs fusionnée avec le comparatif concurrence en un seul bloc transparent (calcul 300+200+250 = 750€/an vs 240€/an). "Notre philosophie" remplace l\'ancienne section preuve sociale.'
       },
       {
         type: 'fix',
-        text: 'Landing page — corrections de tous les accents manquants, suppression des tirets cadratins, lien "Modules" corrigé en "OsteoFlow" (ancre #osteoflow). "Diagnostics & Pathologies" retiré de la liste des fonctionnalités (module non encore disponible aux utilisateurs).'
+        text: 'Landing page — corrections de tous les accents manquants, suppression des tirets cadratins, lien "Modules" corrigé en "MyOsteoFlow" (ancre #osteoflow). "Diagnostics & Pathologies" retiré de la liste des fonctionnalités (module non encore disponible aux utilisateurs).'
       },
       {
         type: 'improvement',
-        text: 'Footer public — "Séminaires" supprimé de la liste Ressources, lien "Modules" corrigé vers OsteoFlow, accents manquants corrigés dans la description.'
+        text: 'Footer public — "Séminaires" supprimé de la liste Ressources, lien "Modules" corrigé vers MyOsteoFlow, accents manquants corrigés dans la description.'
       },
       {
         type: 'improvement',
-        text: 'Navigation — module Exercices retiré du menu utilisateur (sera intégré à OsteoFlow à terme).'
+        text: 'Navigation — module Exercices retiré du menu utilisateur (sera intégré à MyOsteoFlow à terme).'
       }
     ]
   },
@@ -53,15 +53,15 @@ const CHANGELOG: ChangelogEntry[] = [
     changes: [
       {
         type: 'feature',
-        text: 'Osteoflow — section téléchargement ajoutée dans le dashboard (visible Premium et Admin) : liens Mac Intel, Mac Apple Silicon et Windows pointant dynamiquement vers la dernière release GitHub.'
+        text: 'MyOsteoFlow — section téléchargement ajoutée dans le dashboard (visible Premium et Admin) : liens Mac Intel, Mac Apple Silicon et Windows pointant dynamiquement vers la dernière release GitHub.'
       },
       {
         type: 'feature',
-        text: 'Osteoflow — route API /api/osteoflow/download : redirige automatiquement vers le bon asset de la dernière release GitHub selon la plateforme demandée (mac, mac-arm64, windows).'
+        text: 'MyOsteoFlow — route API /api/osteoflow/download : redirige automatiquement vers le bon asset de la dernière release GitHub selon la plateforme demandée (mac, mac-arm64, windows).'
       },
       {
         type: 'improvement',
-        text: 'Osteoflow — API licence (auth, verify, logout) : ajout des headers CORS et handlers OPTIONS pour permettre les appels depuis l\'app desktop Electron en production.'
+        text: 'MyOsteoFlow — API licence (auth, verify, logout) : ajout des headers CORS et handlers OPTIONS pour permettre les appels depuis l\'app desktop Electron en production.'
       }
     ]
   },

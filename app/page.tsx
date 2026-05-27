@@ -241,7 +241,7 @@ const scrollTo = useCallback((id: string) => {
             <div className="hidden lg:flex items-center gap-8">
               {[
                 { label: 'Fonctionnalites', id: 'features' },
-                { label: 'OsteoFlow', id: 'osteoflow' },
+                { label: 'MyOsteoFlow', id: 'osteoflow' },
                 { label: 'Tarifs', id: 'pricing' },
               ].map((item) => (
                 <button
@@ -284,7 +284,7 @@ const scrollTo = useCallback((id: string) => {
           <div className="lg:hidden bg-white border-t border-slate-100 px-4 py-4 space-y-1">
             {[
               { label: 'Fonctionnalites', id: 'features' },
-              { label: 'OsteoFlow', id: 'osteoflow' },
+              { label: 'MyOsteoFlow', id: 'osteoflow' },
               { label: 'Tarifs', id: 'pricing' },
             ].map((item) => (
               <button
@@ -769,7 +769,7 @@ const scrollTo = useCallback((id: string) => {
         </div>
       </section>
 
-      {/* ─── OSTEOFLOW — INCLUS PREMIUM ─── */}
+      {/* ─── MYOSTEOFLOW — INCLUS PREMIUM ─── */}
       <section id="osteoflow" ref={osteoflow.ref} className="py-20 lg:py-28 px-4 sm:px-6 lg:px-8 bg-slate-50 border-y border-slate-200/50 relative overflow-hidden">
         {/* Sky/blue halos — couleur principale de la section */}
         <div className="absolute top-0 right-0 w-[750px] h-[550px] rounded-full bg-sky-200/55 blur-[160px] pointer-events-none" />
@@ -796,7 +796,7 @@ const scrollTo = useCallback((id: string) => {
                   </span>
                 </h2>
                 <p className="text-lg text-slate-500 mb-8 leading-relaxed">
-                  <span className="font-semibold text-slate-700">OsteoFlow</span> est notre logiciel de gestion cabinet desktop, inclus avec l&apos;abonnement Premium. Toutes vos données restent sur votre machine, sans abonnement supplémentaire.
+                  <span className="font-semibold text-slate-700">MyOsteoFlow</span> est notre logiciel de gestion cabinet desktop, inclus avec l&apos;abonnement Premium. Toutes vos données restent sur votre machine, sans abonnement supplémentaire.
                 </p>
 
                 <div className="grid grid-cols-2 gap-3 mb-8">
@@ -825,7 +825,7 @@ const scrollTo = useCallback((id: string) => {
                   onClick={() => router.push('/auth')}
                   className="group bg-gradient-to-r from-sky-500 to-blue-500 text-white px-7 py-4 rounded-xl font-bold text-base hover:from-sky-400 hover:to-blue-400 transition-all shadow-lg shadow-sky-500/20 inline-flex items-center gap-2"
                 >
-                  Commencer avec OsteoFlow
+                  Commencer avec MyOsteoFlow
                   <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
                 </button>
               </div>
@@ -840,7 +840,7 @@ const scrollTo = useCallback((id: string) => {
                     </div>
                     <div>
                       <div className="text-xs text-sky-300/70 font-medium">Tableau de bord</div>
-                      <div className="text-white font-bold text-lg">OsteoFlow</div>
+                      <div className="text-white font-bold text-lg">MyOsteoFlow</div>
                     </div>
                     <div className="ml-auto px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] font-bold">
                       En ligne
@@ -990,7 +990,7 @@ const scrollTo = useCallback((id: string) => {
               </span>
             </h2>
             <p className="text-lg text-slate-500 max-w-xl mx-auto">
-              OsteoUpgrade et OsteoFlow dans un seul abonnement, pour moins que les alternatives séparées.
+              OsteoUpgrade et MyOsteoFlow dans un seul abonnement, pour moins que les alternatives séparées.
             </p>
           </div>
 
@@ -1022,7 +1022,7 @@ const scrollTo = useCallback((id: string) => {
                     <span className="text-white font-black text-xs">✓</span>
                   </div>
                   <div>
-                    <div className="text-sm font-bold text-slate-900">OsteoFlow inclus</div>
+                    <div className="text-sm font-bold text-slate-900">MyOsteoFlow inclus</div>
                     <div className="text-xs text-slate-600">Dossiers, consultations, IA, comptabilité, factures</div>
                   </div>
                 </div>
@@ -1189,7 +1189,7 @@ const scrollTo = useCallback((id: string) => {
                       'Exercices et exports PDF',
                       'Revue de littérature mensuelle',
                       'Topographie clinique',
-                      'OsteoFlow inclus (logiciel desktop)',
+                      'MyOsteoFlow inclus (logiciel desktop)',
                       'Programme ambassadeur (10% · annuel)',
                     ].map((f, i) => (
                       <li key={i} className="flex items-start gap-3 text-sm text-slate-700">

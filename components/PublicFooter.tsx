@@ -18,7 +18,7 @@ export default function PublicFooter() {
             <ul className="space-y-2.5">
               {[
                 { label: 'Fonctionnalités', href: '/#features' },
-                { label: 'OsteoFlow', href: '/#osteoflow' },
+                { label: 'MyOsteoFlow', href: '/#osteoflow' },
                 { label: 'Tarifs', href: '/#pricing' },
                 { label: 'Essai gratuit', href: '/auth' },
               ].map((link) => (
