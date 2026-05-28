@@ -47,11 +47,7 @@ function formatDate(dateStr?: string): string {
   } catch { return '' }
 }
 
-function buildHeader(
-  practitioner: Practitioner,
-  recipientTitle?: string,
-  recipientName?: string,
-): string {
+function buildHeader(practitioner: Practitioner): string {
   const lines: string[] = []
   lines.push(`${practitioner.first_name} ${practitioner.last_name.toUpperCase()}`)
   lines.push('Ostéopathe D.O.')
@@ -61,17 +57,20 @@ function buildHeader(
   }
   if (practitioner.phone) lines.push(`Tél. : ${practitioner.phone}`)
   if (practitioner.rpps) lines.push(`RPPS : ${practitioner.rpps}`)
-  lines.push('')
+  return lines.join('\n')
+}
+
+function buildClosing(practitioner: Practitioner): string {
   const today = new Date().toLocaleDateString('fr-FR', {
     day: 'numeric', month: 'long', year: 'numeric'
   })
-  lines.push(`${practitioner.city ?? ''}, le ${today}`.trim().replace(/^, /, ''))
-  lines.push('')
-  if (recipientTitle || recipientName) {
-    lines.push([recipientTitle, recipientName].filter(Boolean).join(' '))
-    lines.push('')
-  }
-  return lines.join('\n')
+  const dateLine = practitioner.city ? `${practitioner.city}, le ${today}` : `Le ${today}`
+  const name = `${practitioner.first_name} ${practitioner.last_name.toUpperCase()}`
+  return `${dateLine}\n\n${name}\nOstéopathe D.O.`
+}
+
+function buildRecipient(title?: string, name?: string): string {
+  return [title, name].filter(Boolean).join(' ')
 }
 
 const PROMPTS: Record<string, string> = {
@@ -87,9 +86,9 @@ Objet : Adressage ostéopathique
 [Résumé clinique synthétique : motif, éléments d'anamnèse et d'examen pertinents]
 [Demande explicite : avis, prise en charge, examen complémentaire, autre]
 [Clôture : "Je reste disponible pour tout complément d'information."]
-[Signature : prénom NOM, Ostéopathe D.O.]
 
 IMPORTANT : utilise exactement le placeholder [NOM_PATIENT] pour désigner le patient.
+Ne pas inclure de signature, date ou lieu après la clôture — ils sont ajoutés séparément.
 150-250 mots. Ne jamais inventer d'informations absentes du contexte fourni.`,
 
   attestation_consultation: `Tu rédiges une attestation de consultation ostéopathique en français. Document strictement factuel, sans aucun contenu médical, diagnostic ou mention clinique.
@@ -104,14 +103,13 @@ Je soussigné(e), [prénom NOM du praticien], Ostéopathe D.O., atteste avoir re
 
 [NOM_PATIENT],
 
-le [date de consultation extraite du contexte][ à [heure si disponible, sinon omettre]].
+le [date de consultation extraite du contexte].
 
 La présente attestation est établie à la demande de l'intéressé(e) pour servir et valoir ce que de droit.
 
-[Ville du praticien fournie dans le contexte], le [date du jour]
-[Signature praticien]
-
-IMPORTANT : utilise le placeholder [NOM_PATIENT] pour le patient. Utilise la ville du praticien telle qu'elle est fournie dans le contexte — ne jamais inventer. Aucune mention médicale. Ton formel et neutre.`,
+IMPORTANT : utilise le placeholder [NOM_PATIENT] pour le patient. Aucune mention médicale.
+Ne pas inclure de signature, date ou lieu après cette phrase — ils sont ajoutés séparément.
+Ton formel et neutre.`,
 }
 
 export async function POST(req: Request) {
@@ -191,9 +189,11 @@ export async function POST(req: Request) {
       parsed = { body: content }
     }
 
-    const header = buildHeader(practitioner, recipient_title, recipient_name)
+    const header = buildHeader(practitioner)
+    const closing = buildClosing(practitioner)
+    const recipient_block = buildRecipient(recipient_title, recipient_name)
 
-    return NextResponse.json({ header, body: parsed.body })
+    return NextResponse.json({ header, body: parsed.body, recipient_block, closing })
   } catch (err) {
     console.error('[generate-letter]', err)
     return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
