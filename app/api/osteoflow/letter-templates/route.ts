@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 
 export const dynamic = 'force-dynamic'
 
-export const LETTER_TEMPLATES = [
+const LETTER_TEMPLATES = [
   {
     id: 'referral',
     name: "Courrier d'adressage",
