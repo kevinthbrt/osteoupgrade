@@ -45,9 +45,10 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Anamnèse vide' }, { status: 400 })
     }
 
+    // Use anon key — orthopedic tables have anon SELECT policies (non-sensitive catalog data)
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
     )
 
     const [testsResult, clustersResult] = await Promise.all([
