@@ -14,11 +14,10 @@ interface Practitioner {
   rpps?: string
 }
 
+// Patient pseudonymisé : aucun PII envoyé à l'API Anthropic
 interface Patient {
-  first_name: string
-  last_name: string
-  gender: string
-  date_of_birth?: string
+  gender: string    // 'M' | 'F'
+  age_range?: string // ex. "40-49 ans"
 }
 
 interface ConsultationContext {
@@ -37,14 +36,6 @@ interface GenerateLetterRequest {
   recipient_name?: string
   recipient_title?: string
   custom_instructions?: string
-}
-
-function getAge(dateOfBirth?: string): string {
-  if (!dateOfBirth) return ''
-  const birth = new Date(dateOfBirth)
-  const today = new Date()
-  const age = today.getFullYear() - birth.getFullYear()
-  return `${age} ans`
 }
 
 function formatDate(dateStr?: string): string {
@@ -84,89 +75,43 @@ function buildHeader(
 }
 
 const PROMPTS: Record<string, string> = {
-  referral: `Tu rédiges un courrier d'adressage médical en français, style professionnel et concis.
+  referral: `Tu rédiges un courrier d'adressage ostéopathique en français. Ton neutre, professionnel et factuel. Pas de formules cérémonieuses.
 
 Retourne UNIQUEMENT un objet JSON valide :
-{"body": "Corps complet du courrier (salutation, contenu, formule de politesse, signature)"}
-
-Structure du corps :
-1. "Cher Confrère," (ou "Chers Confrères," si destinataire inconnu)
-2. Présentation du patient (titre, nom, âge si disponible)
-3. Motif de l'adressage et résumé clinique pertinent
-4. Demande explicite (avis, prise en charge, imagerie...)
-5. "En vous remerciant de l'attention portée à ce courrier, je vous adresse, Cher Confrère, mes cordiales salutations."
-6. Signature : nom du praticien + "Ostéopathe D.O."
-
-150-250 mots. Ne jamais inventer d'informations absentes. Adapter si champs manquants.`,
-
-  compte_rendu: `Tu rédiges un compte-rendu de consultation ostéopathique structuré en français.
-
-Retourne UNIQUEMENT un objet JSON valide :
-{"body": "Corps complet du CR avec sections"}
+{"body": "corps complet du courrier"}
 
 Structure :
-OBJET : Compte-rendu de consultation ostéopathique
+Objet : Adressage ostéopathique
 
-**Patient :** [prénom nom, âge si disponible, date de consultation]
+[Identification du patient via [NOM_PATIENT], genre et tranche d'âge si disponibles]
+[Résumé clinique synthétique : motif, éléments d'anamnèse et d'examen pertinents]
+[Demande explicite : avis, prise en charge, examen complémentaire, autre]
+[Clôture : "Je reste disponible pour tout complément d'information."]
+[Signature : prénom NOM, Ostéopathe D.O.]
 
-**Motif :** [motif principal]
+IMPORTANT : utilise exactement le placeholder [NOM_PATIENT] pour désigner le patient.
+150-250 mots. Ne jamais inventer d'informations absentes du contexte fourni.`,
 
-**Anamnèse :**
-[résumé structuré]
-
-**Examen clinique :**
-[éléments clés]
-
-**Traitement effectué :**
-[zones et techniques si mentionnées, sinon "Traitement ostéopathique adapté"]
-
-**Conseils donnés :**
-[conseils post-séance]
-
-**Suivi préconisé :**
-[recommandations]
-
-200-350 mots. Factuel, ne pas inventer.`,
-
-  certificat_suivi: `Tu rédiges une attestation de suivi ostéopathique formelle en français.
+  attestation_consultation: `Tu rédiges une attestation de consultation ostéopathique en français. Document strictement factuel, sans aucun contenu médical, diagnostic ou mention clinique.
 
 Retourne UNIQUEMENT un objet JSON valide :
-{"body": "Corps de l'attestation"}
+{"body": "corps de l'attestation"}
 
-Structure :
-ATTESTATION DE SUIVI OSTÉOPATHIQUE
+Structure exacte :
+ATTESTATION DE CONSULTATION OSTÉOPATHIQUE
 
-Je soussigné(e), [prénom nom], Ostéopathe D.O., certifie avoir pris en charge en consultation ostéopathique :
+Je soussigné(e), [prénom NOM du praticien], Ostéopathe D.O., atteste avoir reçu en consultation :
 
-[titre. Prénom NOM], né(e) le [date si disponible] / [âge si disponible],
+[NOM_PATIENT],
 
-[formulation du suivi : date(s) de consultation si disponible]
+le [date de consultation extraite du contexte][ à [heure si disponible, sinon omettre]].
 
-La présente attestation est délivrée à la demande de l'intéressé(e) pour servir et valoir ce que de droit.
+La présente attestation est établie à la demande de l'intéressé(e) pour servir et valoir ce que de droit.
 
-Date + lieu + signature.
+[Ville], le [date du jour]
+[Signature praticien]
 
-Ton formel et neutre.`,
-
-  recommandation_repos: `Tu rédiges une recommandation de repos sportif en français.
-
-Retourne UNIQUEMENT un objet JSON valide :
-{"body": "Corps de la recommandation"}
-
-Structure :
-RECOMMANDATION DE REPOS SPORTIF
-
-Je soussigné(e), [prénom nom], Ostéopathe D.O., recommande à :
-
-[titre. Prénom NOM][, âge si disponible],
-
-[motif médical concis basé sur l'anamnèse ou l'examen]
-
-Une limitation / un arrêt temporaire de l'activité physique pour une durée de [adapter selon contexte ou "à réévaluer selon l'évolution"].
-
-[Conseils pratiques si pertinents.]
-
-Ton médical, bienveillant, non alarmiste.`,
+IMPORTANT : utilise le placeholder [NOM_PATIENT] pour le patient. Aucune mention médicale. Ton formel et neutre.`,
 }
 
 export async function POST(req: Request) {
@@ -193,17 +138,14 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Clé API non configurée' }, { status: 500 })
     }
 
-    const patientTitle = patient.gender === 'M' ? 'M.' : 'Mme'
-    const patientAge = getAge(patient.date_of_birth)
+    const patientGender = patient.gender === 'M' ? 'homme' : 'femme'
     const consultationDate = formatDate(consultation?.date)
 
     const lines: string[] = [
       `Praticien : ${practitioner.first_name} ${practitioner.last_name}, Ostéopathe D.O.${
         practitioner.rpps ? ` — RPPS ${practitioner.rpps}` : ''
       }`,
-      `Patient : ${patientTitle} ${patient.first_name} ${patient.last_name.toUpperCase()}${
-        patientAge ? ` (${patientAge})` : ''
-      }`,
+      `Patient : ${patientGender}${patient.age_range ? `, ${patient.age_range}` : ''}`,
     ]
     if (consultationDate) lines.push(`Date de consultation : ${consultationDate}`)
     if (consultation?.reason) lines.push(`Motif : ${consultation.reason}`)
@@ -213,7 +155,7 @@ export async function POST(req: Request) {
     if (recipient_name || recipient_title) {
       lines.push(`\nDestinataire : ${[recipient_title, recipient_name].filter(Boolean).join(' ')}`)
     }
-    if (custom_instructions) lines.push(`\nInstructions : ${custom_instructions}`)
+    if (custom_instructions) lines.push(`\nInstructions complémentaires : ${custom_instructions}`)
 
     const res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
