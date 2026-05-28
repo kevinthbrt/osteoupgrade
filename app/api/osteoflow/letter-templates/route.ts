@@ -11,25 +11,11 @@ const LETTER_TEMPLATES = [
     icon: 'send',
   },
   {
-    id: 'compte_rendu',
-    name: 'Compte-rendu de consultation',
-    description: 'CR structuré pour le médecin traitant ou le dossier patient',
-    category: 'consultation',
-    icon: 'file-text',
-  },
-  {
-    id: 'certificat_suivi',
-    name: 'Attestation de suivi ostéopathique',
-    description: "Certifier le suivi ostéopathique d'un patient",
+    id: 'attestation_consultation',
+    name: 'Attestation de consultation',
+    description: 'Attester la présence du patient en consultation, sans contenu médical',
     category: 'attestation',
-    icon: 'award',
-  },
-  {
-    id: 'recommandation_repos',
-    name: 'Recommandation de repos sportif',
-    description: "Recommander une limitation ou un arrêt temporaire d'activité physique",
-    category: 'attestation',
-    icon: 'activity',
+    icon: 'file-check',
   },
 ]
 
