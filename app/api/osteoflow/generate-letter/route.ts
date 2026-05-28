@@ -108,10 +108,10 @@ le [date de consultation extraite du contexte][ à [heure si disponible, sinon o
 
 La présente attestation est établie à la demande de l'intéressé(e) pour servir et valoir ce que de droit.
 
-[Ville], le [date du jour]
+[Ville du praticien fournie dans le contexte], le [date du jour]
 [Signature praticien]
 
-IMPORTANT : utilise le placeholder [NOM_PATIENT] pour le patient. Aucune mention médicale. Ton formel et neutre.`,
+IMPORTANT : utilise le placeholder [NOM_PATIENT] pour le patient. Utilise la ville du praticien telle qu'elle est fournie dans le contexte — ne jamais inventer. Aucune mention médicale. Ton formel et neutre.`,
 }
 
 export async function POST(req: Request) {
@@ -147,6 +147,7 @@ export async function POST(req: Request) {
       }`,
       `Patient : ${patientGender}${patient.age_range ? `, ${patient.age_range}` : ''}`,
     ]
+    if (practitioner.city) lines.push(`Ville du praticien : ${practitioner.city}`)
     if (consultationDate) lines.push(`Date de consultation : ${consultationDate}`)
     if (consultation?.reason) lines.push(`Motif : ${consultation.reason}`)
     if (consultation?.anamnesis) lines.push(`\nAnamnèse :\n${consultation.anamnesis}`)
