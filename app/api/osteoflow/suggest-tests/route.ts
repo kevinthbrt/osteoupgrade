@@ -45,13 +45,19 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Anamnèse vide' }, { status: 400 })
     }
 
-    // Use anon key — orthopedic tables have anon SELECT policies (non-sensitive catalog data)
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    )
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-    const [testsResult, clustersResult] = await Promise.all([
+    if (!supabaseUrl || !supabaseAnonKey) {
+      console.error('[suggest-tests] Missing Supabase env vars:', { hasUrl: !!supabaseUrl, hasKey: !!supabaseAnonKey })
+      return NextResponse.json({ error: 'Configuration serveur manquante' }, { status: 500 })
+    }
+
+    // Use anon key — orthopedic tables have anon SELECT policies (non-sensitive catalog data)
+    const supabase = createClient(supabaseUrl, supabaseAnonKey)
+
+    // Use separate queries to avoid PostgREST embedded-join permission issues
+    const [testsResult, clustersResult, clusterItemsResult] = await Promise.all([
       supabase
         .from('orthopedic_tests')
         .select('id, name, region, category, indications')
@@ -59,22 +65,38 @@ export async function POST(req: Request) {
         .order('name'),
       supabase
         .from('orthopedic_test_clusters')
-        .select('id, name, region, orthopedic_test_cluster_items(test_id)')
-        .order('region'),
+        .select('id, name')
+        .order('name'),
+      supabase
+        .from('orthopedic_test_cluster_items')
+        .select('cluster_id, test_id'),
     ])
 
-    if (testsResult.error) throw testsResult.error
+    if (testsResult.error) {
+      console.error('[suggest-tests] tests query error:', JSON.stringify(testsResult.error))
+      throw testsResult.error
+    }
+    if (clustersResult.error) {
+      console.error('[suggest-tests] clusters query error:', JSON.stringify(clustersResult.error))
+    }
+    if (clusterItemsResult.error) {
+      console.error('[suggest-tests] cluster_items query error:', JSON.stringify(clusterItemsResult.error))
+    }
 
     const tests = testsResult.data ?? []
-    const testToClusterNames: Record<string, string[]> = {}
+    const clusters = clustersResult.data ?? []
+    const clusterItems = clusterItemsResult.data ?? []
 
-    for (const cluster of (clustersResult.data ?? [])) {
-      const items = (cluster as unknown as { orthopedic_test_cluster_items: { test_id: string }[] })
-        .orthopedic_test_cluster_items ?? []
-      for (const item of items) {
-        if (!testToClusterNames[item.test_id]) testToClusterNames[item.test_id] = []
-        testToClusterNames[item.test_id].push(cluster.name)
-      }
+    // Build cluster name map: test_id → cluster names
+    const clusterNameById: Record<string, string> = {}
+    for (const c of clusters) clusterNameById[c.id] = c.name
+
+    const testToClusterNames: Record<string, string[]> = {}
+    for (const item of clusterItems) {
+      const clusterName = clusterNameById[item.cluster_id]
+      if (!clusterName) continue
+      if (!testToClusterNames[item.test_id]) testToClusterNames[item.test_id] = []
+      testToClusterNames[item.test_id].push(clusterName)
     }
 
     const testsCompact = tests.map(t => ({
@@ -88,14 +110,11 @@ export async function POST(req: Request) {
 
     const apiKey = process.env.ANTHROPIC_API_KEY
     if (!apiKey) {
+      console.error('[suggest-tests] Missing ANTHROPIC_API_KEY')
       return NextResponse.json({ error: 'Clé API non configurée' }, { status: 500 })
     }
 
-    const userContent = `Anamnèse :
-${reason ? `Motif : ${reason}\n\n` : ''}${anamnesis}
-
-Tests disponibles (${testsCompact.length}) :
-${JSON.stringify(testsCompact)}`
+    const userContent = `Anamnèse :\n${reason ? `Motif : ${reason}\n\n` : ''}${anamnesis}\n\nTests disponibles (${testsCompact.length}) :\n${JSON.stringify(testsCompact)}`
 
     const res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -115,7 +134,7 @@ ${JSON.stringify(testsCompact)}`
 
     if (!res.ok) {
       const err = await res.text()
-      console.error('[suggest-tests]', res.status, err)
+      console.error('[suggest-tests] Anthropic error:', res.status, err.substring(0, 300))
       return NextResponse.json({ error: `Erreur IA (${res.status})` }, { status: 502 })
     }
 
@@ -127,13 +146,13 @@ ${JSON.stringify(testsCompact)}`
       const json = content.replace(/^```(?:json)?\n?/m, '').replace(/\n?```$/m, '').trim()
       parsed = JSON.parse(json)
     } catch {
-      console.error('[suggest-tests] JSON parse error', content.substring(0, 200))
+      console.error('[suggest-tests] JSON parse error:', content.substring(0, 300))
       return NextResponse.json({ error: 'Réponse IA invalide' }, { status: 500 })
     }
 
     return NextResponse.json(parsed)
   } catch (err) {
-    console.error('[suggest-tests]', err)
+    console.error('[suggest-tests] unhandled error:', JSON.stringify(err), err)
     return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
   }
 }
