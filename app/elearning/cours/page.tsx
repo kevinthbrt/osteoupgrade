@@ -70,6 +70,7 @@ type Formation = {
   is_private?: boolean
   photo_url?: string
   is_free_access?: boolean
+  is_featured_osteoflow?: boolean
   subject_id?: string | null
   chapters: Chapter[]
 }
@@ -195,7 +196,7 @@ export default function CoursPage() {
       const { data, error } = await supabase
         .from('elearning_formations')
         .select(
-          `id, title, description, is_private, photo_url, is_free_access, subject_id,
+          `id, title, description, is_private, photo_url, is_free_access, is_featured_osteoflow, subject_id,
           chapters:elearning_chapters(id, title, order_index,
             subparts:elearning_subparts(id, title, vimeo_url, description_html, order_index,
               progress:elearning_subpart_progress(user_id, completed_at),
@@ -228,6 +229,7 @@ export default function CoursPage() {
           is_private: formation.is_private,
           photo_url: formation.photo_url,
           is_free_access: formation.is_free_access,
+          is_featured_osteoflow: formation.is_featured_osteoflow,
           subject_id: formation.subject_id,
           chapters:
             formation.chapters?.map((chapter: any) => ({
