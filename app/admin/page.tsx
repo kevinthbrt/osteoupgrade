@@ -16,7 +16,8 @@ import {
   FileText,
   ArrowRight,
   Inbox,
-  Tag
+  Tag,
+  LifeBuoy
 } from 'lucide-react'
 
 export default function AdminPage() {
@@ -119,6 +120,13 @@ export default function AdminPage() {
       icon: Tag,
       color: 'from-emerald-500 to-emerald-600',
       href: '/admin/promo'
+    },
+    {
+      title: 'Tickets Support',
+      description: 'Gérer les demandes de support de MyOsteoFlow et OsteoUpgrade',
+      icon: LifeBuoy,
+      color: 'from-indigo-500 to-indigo-600',
+      href: '/admin/support'
     }
   ]
 
