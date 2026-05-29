@@ -2,6 +2,7 @@
 
 import Navigation from '@/components/Navigation'
 import AdminChangelogModal from '@/components/AdminChangelogModal'
+import SupportWidget from '@/components/SupportWidget'
 
 export default function AuthLayout({
   children,
@@ -17,6 +18,7 @@ export default function AuthLayout({
           {children}
         </div>
       </main>
+      <SupportWidget />
     </div>
   )
 }
