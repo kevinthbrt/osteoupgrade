@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
@@ -14,19 +14,17 @@ import {
   Menu,
   X,
   Shield,
-  Users,
   ChevronRight,
   Crown,
-  TestTube,
   Stethoscope,
-  Wrench,
-  Calendar,
-  Mail,
-  GraduationCap,
-  FolderOpen,
   FileText,
   Gift,
-  Tag
+  Map,
+  GraduationCap,
+  Zap,
+  Calendar,
+  Dumbbell,
+  LogIn,
 } from 'lucide-react'
 import AdminNotificationBell from './AdminNotificationBell'
 import UserNotificationBell from './UserNotificationBell'
@@ -82,142 +80,14 @@ export default function Navigation() {
 
   const menuItems: MenuItem[] = [
     { href: '/dashboard', label: 'Dashboard', icon: Home },
-    {
-      href: '/pratique',
-      label: 'Pratique',
-      icon: Stethoscope,
-    },
+    { href: '/elearning/cours', label: 'Cours', icon: BookOpen },
+    { href: '/pratique', label: 'Pratique', icon: Stethoscope },
+    { href: '/elearning/revue-litterature', label: 'Revue de littérature', icon: FileText },
+    { href: '/tests', label: 'Tests ortho', icon: Clipboard },
+    { href: '/topographie', label: 'Topographie', icon: Map },
     { href: '/parrainage', label: 'Parrainage & Cagnotte', icon: Gift },
     { href: '/settings', label: 'Paramètres', icon: Settings },
   ]
-
-  const userGroups: { id: string; label: string; icon: React.ComponentType<React.SVGProps<SVGSVGElement>>; items: MenuItem[]; roles?: string[] }[] = [
-    {
-      id: 'elearning',
-      label: 'E-Learning',
-      icon: GraduationCap,
-      items: [
-        {
-          href: '/elearning/cours',
-          label: 'Cours',
-          icon: BookOpen
-        },
-        {
-          href: '/elearning/revue-litterature',
-          label: 'Revue de littérature',
-          icon: FileText
-        },
-        {
-          href: '/tests',
-          label: 'Tests orthopédiques',
-          icon: Clipboard
-        },
-        {
-          href: '/topographie',
-          label: 'Topographie',
-          icon: BookOpen
-        }
-      ]
-    },
-    {
-      id: 'outils',
-      label: 'Outils',
-      icon: Wrench,
-      items: [
-        {
-          href: '/outils/communication',
-          label: 'Communication',
-          icon: Mail
-        }
-      ]
-    }
-  ]
-
-  const adminOverviewItem: MenuItem = { href: '/admin', label: "Administration", icon: Shield }
-
-  const adminGroups: { id: string; label: string; icon: React.ComponentType<React.SVGProps<SVGSVGElement>>; items: MenuItem[] }[] = [
-    {
-      id: 'elearning',
-      label: 'E-Learning',
-      icon: GraduationCap,
-      items: [
-        {
-          href: '/elearning/cours',
-          label: 'Cours',
-          icon: BookOpen
-        },
-        {
-          href: '/elearning/revue-litterature',
-          label: 'Revue de littérature',
-          icon: FileText,
-          badge: 'Nouveau'
-        }
-      ]
-    },
-    {
-      id: 'tests',
-      label: 'Tests & Diagnostics',
-      icon: Clipboard,
-      items: [
-        {
-          href: '/admin/diagnostics',
-          label: 'Diagnostics (admin)',
-          icon: FolderOpen
-        },
-        {
-          href: '/diagnostics',
-          label: 'Diagnostics (legacy)',
-          icon: Stethoscope,
-          badge: 'Temp'
-        },
-        {
-          href: '/topographie',
-          label: 'Topographie',
-          icon: BookOpen
-        }
-      ]
-    },
-    {
-      id: 'marketing',
-      label: 'Marketing',
-      icon: Mail,
-      items: [
-        {
-          href: '/admin/mailing',
-          label: 'Mailing',
-          icon: Mail
-        }
-      ]
-    }
-  ]
-
-  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>(() => {
-    const initialState: Record<string, boolean> = {}
-    ;[...userGroups, ...adminGroups].forEach(group => {
-      initialState[group.id] = group.items.some(item => item.href === pathname)
-    })
-    return initialState
-  })
-
-  const navRef = useRef<HTMLElement>(null)
-
-  const toggleGroup = (groupId: string) => {
-    setExpandedGroups(prev => {
-      const isOpening = !prev[groupId]
-      if (isOpening && navRef.current) {
-        const groupEl = navRef.current.querySelector(`[data-group-id="${groupId}"]`)
-        if (groupEl) {
-          const navTop = navRef.current.getBoundingClientRect().top
-          const groupTop = groupEl.getBoundingClientRect().top
-          navRef.current.scrollTo({
-            top: navRef.current.scrollTop + groupTop - navTop,
-            behavior: 'smooth'
-          })
-        }
-      }
-      return { ...prev, [groupId]: isOpening }
-    })
-  }
 
   const getRoleBadge = () => {
     if (!profile) return null
@@ -236,6 +106,51 @@ export default function Navigation() {
         {profile.role === 'admin' && <Shield className="h-3 w-3" />}
         {badge.text}
       </span>
+    )
+  }
+
+  const renderMenuItem = (item: MenuItem) => {
+    const Icon = item.icon
+    const isActive = pathname === item.href
+    const isRestricted = item.roles && profile && !item.roles.includes(profile.role)
+    const shouldHide = isRestricted && item.hideWhenRestricted
+
+    if (shouldHide) return null
+    if (item.roles && !profile?.role) return null
+
+    return (
+      <Link
+        key={item.href}
+        href={isRestricted ? '#' : item.href}
+        className={`flex items-center px-3 py-2.5 rounded-xl transition-all group relative ${
+          isActive
+            ? 'bg-sky-500/20 backdrop-blur-sm text-white font-medium shadow-sm border border-sky-400/20 ring-1 ring-inset ring-white/10'
+            : 'text-slate-300 border border-transparent hover:bg-white/10 hover:backdrop-blur-sm hover:border-white/15 hover:shadow-sm hover:text-white'
+        } ${isRestricted ? 'opacity-50 cursor-not-allowed hover:bg-transparent hover:border-transparent hover:shadow-none hover:text-slate-300' : ''}`}
+        onClick={() => {
+          if (!isRestricted) {
+            setIsOpen(false)
+          } else if (profile?.role === 'free') {
+            alert('Cette section est réservée aux membres Premium')
+          } else {
+            alert('Accès réservé aux administrateurs')
+          }
+        }}
+      >
+        <Icon className={`h-5 w-5 mr-3 ${isActive ? 'text-sky-300' : 'text-slate-400 group-hover:text-slate-200'}`} />
+        <span className="flex-1">{item.label}</span>
+        {isActive && <ChevronRight className="h-4 w-4 text-sky-300" />}
+        {item.badge && (
+          <span className="ml-2 px-1.5 py-0.5 bg-white/10 text-slate-200 text-[10px] font-semibold rounded">
+            {item.badge}
+          </span>
+        )}
+        {item.isNew && (
+          <span className="ml-2 px-1.5 py-0.5 bg-emerald-500/20 text-emerald-300 text-[10px] font-semibold rounded">
+            NEW
+          </span>
+        )}
+      </Link>
     )
   }
 
@@ -307,139 +222,8 @@ export default function Navigation() {
           </div>
 
           {/* Navigation */}
-          <nav ref={navRef} className="flex-1 px-4 py-4 space-y-1 overflow-y-auto">
-            {/* Helper function to render a menu item */}
-            {(() => {
-              const renderMenuItem = (item: MenuItem) => {
-                const Icon = item.icon
-                const isActive = pathname === item.href
-                const isRestricted = item.roles && profile && !item.roles.includes(profile.role)
-                const shouldHide = isRestricted && item.hideWhenRestricted
-
-                if (shouldHide) return null
-                if (item.roles && !profile?.role) return null
-
-                return (
-                  <Link
-                    key={item.href}
-                    href={isRestricted ? '#' : item.href}
-                    className={`flex items-center px-3 py-2.5 rounded-xl transition-all group relative ${
-                      isActive
-                        ? 'bg-sky-500/20 backdrop-blur-sm text-white font-medium shadow-sm border border-sky-400/20 ring-1 ring-inset ring-white/10'
-                        : 'text-slate-300 border border-transparent hover:bg-white/10 hover:backdrop-blur-sm hover:border-white/15 hover:shadow-sm hover:text-white'
-                    } ${isRestricted ? 'opacity-50 cursor-not-allowed hover:bg-transparent hover:border-transparent hover:shadow-none hover:text-slate-300' : ''}`}
-                    onClick={() => {
-                      if (!isRestricted) {
-                        setIsOpen(false)
-                      } else if (profile?.role === 'free') {
-                        alert('Cette section est réservée aux membres Premium')
-                      } else {
-                        alert('Accès réservé aux administrateurs')
-                      }
-                    }}
-                  >
-                    <Icon className={`h-5 w-5 mr-3 ${isActive ? 'text-sky-300' : 'text-slate-400 group-hover:text-slate-200'}`} />
-                    <span className="flex-1">{item.label}</span>
-                    {isActive && <ChevronRight className="h-4 w-4 text-sky-300" />}
-                    {item.badge && (
-                      <span className="ml-2 px-1.5 py-0.5 bg-white/10 text-slate-200 text-[10px] font-semibold rounded">
-                        {item.badge}
-                      </span>
-                    )}
-                    {item.isNew && (
-                      <span className="ml-2 px-1.5 py-0.5 bg-emerald-500/20 text-emerald-300 text-[10px] font-semibold rounded">
-                        NEW
-                      </span>
-                    )}
-                  </Link>
-                )
-              }
-
-              const renderUserGroup = (group: typeof userGroups[0]) => {
-                const isRestricted = group.roles && profile && !group.roles.includes(profile.role)
-                if (group.roles && !profile?.role) return null
-
-                const GroupIcon = group.icon
-                const isGroupActive = group.items.some(item => pathname === item.href)
-                const isExpanded = expandedGroups[group.id] ?? isGroupActive
-
-                return (
-                  <div key={group.id} data-group-id={group.id} className="px-1">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (isRestricted) {
-                          alert('Cette section est réservée aux membres Premium')
-                        } else {
-                          toggleGroup(group.id)
-                        }
-                      }}
-                      className={`flex items-center w-full px-2 py-2 rounded-xl transition-all ${
-                        isGroupActive
-                          ? 'bg-sky-500/20 backdrop-blur-sm text-white border border-sky-400/20 ring-1 ring-inset ring-white/10'
-                          : 'text-slate-300 border border-transparent hover:bg-white/10 hover:backdrop-blur-sm hover:border-white/15 hover:shadow-sm hover:text-white'
-                      } ${isRestricted ? 'opacity-50 cursor-not-allowed' : ''}`}
-                    >
-                      <GroupIcon className={`h-5 w-5 mr-3 ${isGroupActive ? 'text-sky-300' : 'text-slate-400'}`} />
-                      <span className="flex-1 text-left text-sm font-medium">{group.label}</span>
-                      <ChevronRight className={`h-4 w-4 transition-transform ${isExpanded && !isRestricted ? 'rotate-90 text-sky-300' : 'text-slate-400'}`} />
-                    </button>
-
-                    {isExpanded && !isRestricted && (
-                      <div className="mt-1 space-y-1 ml-2">
-                        {group.items.map((item) => {
-                          const Icon = item.icon
-                          const isActive = pathname === item.href
-                          return (
-                            <Link
-                              key={item.href}
-                              href={item.href}
-                              className={`flex items-center px-4 py-2 rounded-xl transition-all group ${
-                                isActive
-                                  ? 'bg-sky-500/20 backdrop-blur-sm text-white font-medium border border-sky-400/20 ring-1 ring-inset ring-white/10'
-                                  : 'text-slate-300 border border-transparent hover:bg-white/10 hover:backdrop-blur-sm hover:border-white/15 hover:shadow-sm hover:text-white'
-                              }`}
-                              onClick={() => setIsOpen(false)}
-                            >
-                              <Icon className={`h-4 w-4 mr-3 ${isActive ? 'text-sky-300' : 'text-slate-400 group-hover:text-slate-200'}`} />
-                              <span className="flex-1 text-sm">{item.label}</span>
-                              {item.badge && (
-                                <span className="ml-2 px-1.5 py-0.5 bg-emerald-500/20 text-emerald-300 text-[10px] font-semibold rounded">
-                                  {item.badge}
-                                </span>
-                              )}
-                              {isActive && <ChevronRight className="h-3 w-3 text-sky-300" />}
-                            </Link>
-                          )
-                        })}
-                      </div>
-                    )}
-                  </div>
-                )
-              }
-
-              return (
-                <>
-                  {/* Dashboard */}
-                  {renderMenuItem(menuItems[0])}
-
-                  {/* E-Learning Group */}
-                  {renderUserGroup(userGroups[0])}
-
-                  {/* Pratique */}
-                  {renderMenuItem(menuItems[1])}
-
-                  {/* Outils Group */}
-                  {renderUserGroup(userGroups[1])}
-
-                  {/* Parrainage & Cagnotte */}
-                  {renderMenuItem(menuItems[2])}
-
-                  {/* Paramètres */}
-                  {renderMenuItem(menuItems[3])}
-                </>
-              )
-            })()}
+          <nav className="flex-1 px-4 py-4 space-y-1 overflow-y-auto">
+            {menuItems.map(renderMenuItem)}
 
             {profile?.role === 'admin' && (
               <>
@@ -452,107 +236,18 @@ export default function Navigation() {
                   </div>
                 </div>
 
-                {(() => {
-                  const Icon = adminOverviewItem.icon
-                  const isActive = pathname === adminOverviewItem.href
-                  return (
-                    <Link
-                      key={adminOverviewItem.href}
-                      href={adminOverviewItem.href}
-                      className={`flex items-center px-3 py-2.5 rounded-xl transition-all group ${
-                        isActive
-                          ? 'bg-purple-500/20 backdrop-blur-sm text-white font-medium border border-purple-400/20 ring-1 ring-inset ring-white/10'
-                          : 'text-slate-300 border border-transparent hover:bg-white/10 hover:backdrop-blur-sm hover:border-white/15 hover:shadow-sm hover:text-white'
-                      }`}
-                      onClick={() => setIsOpen(false)}
-                    >
-                      <Icon className={`h-5 w-5 mr-3 ${isActive ? 'text-purple-300' : 'text-slate-400 group-hover:text-slate-200'}`} />
-                      <span className="flex-1">{adminOverviewItem.label}</span>
-                      {isActive && <ChevronRight className="h-4 w-4 text-purple-300" />}
-                    </Link>
-                  )
-                })()}
-
-                {adminGroups.map((group) => {
-                  const GroupIcon = group.icon
-                  const isGroupActive = group.items.some(item => pathname === item.href)
-                  const isExpanded = expandedGroups[group.id] ?? isGroupActive
-
-                  return (
-                    <div key={group.id} data-group-id={group.id} className="px-1">
-                      <button
-                        type="button"
-                        onClick={() => toggleGroup(group.id)}
-                        className={`flex items-center w-full px-2 py-2 rounded-xl transition-all ${
-                          isGroupActive
-                            ? 'bg-purple-500/20 backdrop-blur-sm text-white border border-purple-400/20 ring-1 ring-inset ring-white/10'
-                            : 'text-slate-300 border border-transparent hover:bg-white/10 hover:backdrop-blur-sm hover:border-white/15 hover:shadow-sm hover:text-white'
-                        }`}
-                      >
-                        <GroupIcon className={`h-5 w-5 mr-3 ${isGroupActive ? 'text-purple-300' : 'text-slate-400'}`} />
-                        <span className="flex-1 text-left text-sm font-medium">{group.label}</span>
-                        <ChevronRight className={`h-4 w-4 transition-transform ${isExpanded ? 'rotate-90 text-purple-300' : 'text-slate-400'}`} />
-                      </button>
-
-                      {isExpanded && (
-                        <div className="mt-1 space-y-1 ml-2">
-                          {group.items.map((item) => {
-                            const Icon = item.icon
-                            const isActive = pathname === item.href
-                            return (
-                              <Link
-                                key={item.href}
-                                href={item.href}
-                                className={`flex items-center px-4 py-2 rounded-xl transition-all group ${
-                                  isActive
-                                    ? 'bg-purple-500/20 backdrop-blur-sm text-white font-medium border border-purple-400/20 ring-1 ring-inset ring-white/10'
-                                    : 'text-slate-300 border border-transparent hover:bg-white/10 hover:backdrop-blur-sm hover:border-white/15 hover:shadow-sm hover:text-white'
-                                }`}
-                                onClick={() => setIsOpen(false)}
-                              >
-                                <Icon className={`h-4 w-4 mr-3 ${isActive ? 'text-purple-300' : 'text-slate-400 group-hover:text-slate-200'}`} />
-                                <span className="flex-1 text-sm">{item.label}</span>
-                                {item.badge && (
-                                  <span className="ml-2 px-1.5 py-0.5 bg-emerald-500/20 text-emerald-300 text-[10px] font-semibold rounded">
-                                    {item.badge}
-                                  </span>
-                                )}
-                                {isActive && <ChevronRight className="h-3 w-3 text-purple-300" />}
-                              </Link>
-                            )
-                          })}
-                        </div>
-                      )}
-                    </div>
-                  )
-                })}
-
                 <Link
-                  href="/admin/users"
+                  href="/admin"
                   className={`flex items-center px-3 py-2.5 rounded-xl transition-all group ${
-                    pathname === '/admin/users'
+                    pathname === '/admin' || pathname.startsWith('/admin/')
                       ? 'bg-purple-500/20 backdrop-blur-sm text-white font-medium border border-purple-400/20 ring-1 ring-inset ring-white/10'
                       : 'text-slate-300 border border-transparent hover:bg-white/10 hover:backdrop-blur-sm hover:border-white/15 hover:shadow-sm hover:text-white'
                   }`}
                   onClick={() => setIsOpen(false)}
                 >
-                  <Users className={`h-5 w-5 mr-3 ${pathname === '/admin/users' ? 'text-purple-300' : 'text-slate-400 group-hover:text-slate-200'}`} />
-                  <span className="flex-1">Utilisateurs</span>
-                  {pathname === '/admin/users' && <ChevronRight className="h-4 w-4 text-purple-300" />}
-                </Link>
-
-                <Link
-                  href="/admin/promo"
-                  className={`flex items-center px-3 py-2.5 rounded-xl transition-all group ${
-                    pathname === '/admin/promo'
-                      ? 'bg-purple-500/20 backdrop-blur-sm text-white font-medium border border-purple-400/20 ring-1 ring-inset ring-white/10'
-                      : 'text-slate-300 border border-transparent hover:bg-white/10 hover:backdrop-blur-sm hover:border-white/15 hover:shadow-sm hover:text-white'
-                  }`}
-                  onClick={() => setIsOpen(false)}
-                >
-                  <Tag className={`h-5 w-5 mr-3 ${pathname === '/admin/promo' ? 'text-purple-300' : 'text-slate-400 group-hover:text-slate-200'}`} />
-                  <span className="flex-1">Codes Promo</span>
-                  {pathname === '/admin/promo' && <ChevronRight className="h-4 w-4 text-purple-300" />}
+                  <Shield className={`h-5 w-5 mr-3 ${pathname === '/admin' || pathname.startsWith('/admin/') ? 'text-purple-300' : 'text-slate-400 group-hover:text-slate-200'}`} />
+                  <span className="flex-1">Administration</span>
+                  {(pathname === '/admin' || pathname.startsWith('/admin/')) && <ChevronRight className="h-4 w-4 text-purple-300" />}
                 </Link>
               </>
             )}

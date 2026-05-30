@@ -6,14 +6,10 @@ import { supabase } from '@/lib/supabase'
 import AuthLayout from '@/components/AuthLayout'
 import {
   Users,
-  Clipboard,
-  Activity,
   Shield,
-  Layers,
   Mail,
   DollarSign,
   Send,
-  FileText,
   ArrowRight,
   Inbox,
   Tag,
@@ -54,70 +50,35 @@ export default function AdminPage() {
   const adminSections = [
     {
       title: 'Gestion des Utilisateurs',
-      description: 'Gérer les comptes utilisateurs et les abonnements',
+      description: 'Comptes, abonnements, statut premium, newsletter et demandes de paiement de parrainage',
       icon: Users,
       color: 'from-blue-500 to-blue-600',
       href: '/admin/users'
     },
     {
-      title: 'Paiements de Parrainage',
-      description: 'Gérer les demandes de paiement des commissions',
-      icon: DollarSign,
-      color: 'from-green-500 to-green-600',
-      href: '/admin/referral-payouts'
-    },
-    {
-      title: 'Mailing & Automations',
-      description: 'Campagnes, newsletters et emails automatiques',
+      title: 'Newsletter',
+      description: 'Rédiger et envoyer les newsletters aux abonnés',
       icon: Mail,
       color: 'from-pink-500 to-pink-600',
       href: '/admin/mailing'
     },
     {
-      title: 'Automatisations Email',
+      title: 'Automatisation Email',
       description: 'Configurer les événements et emails automatiques',
       icon: Send,
       color: 'from-purple-500 to-purple-600',
       href: '/admin/automations'
     },
     {
-      title: 'Emails Reçus',
+      title: 'Boite mail',
       description: 'Consulter et gérer les emails reçus',
       icon: Inbox,
       color: 'from-amber-500 to-amber-600',
       href: '/admin/emails'
     },
     {
-      title: 'Tests Orthopédiques',
-      description: 'Gérer les tests organisés par zones anatomiques',
-      icon: Clipboard,
-      color: 'from-orange-500 to-orange-600',
-      href: '/tests'
-    },
-    {
-      title: 'Diagnostics Cliniques',
-      description: 'Créer des dossiers de diagnostics complets',
-      icon: Layers,
-      color: 'from-violet-500 to-violet-600',
-      href: '/admin/diagnostics'
-    },
-    {
-      title: 'Pathologies',
-      description: 'Gérer les pathologies pour les diagnostics',
-      icon: Activity,
-      color: 'from-red-500 to-red-600',
-      href: '/admin/pathologies'
-    },
-    {
-      title: 'Communication',
-      description: 'Modèles de courriers et documents premium',
-      icon: FileText,
-      color: 'from-gray-500 to-gray-600',
-      href: '/outils/communication'
-    },
-    {
-      title: 'Codes Promo Gold',
-      description: 'Générer et gérer les codes de réduction -100€ sur le Gold annuel',
+      title: 'Codes Promo',
+      description: 'Générer et gérer les codes de réduction',
       icon: Tag,
       color: 'from-emerald-500 to-emerald-600',
       href: '/admin/promo'
@@ -135,7 +96,14 @@ export default function AdminPage() {
       icon: Megaphone,
       color: 'from-sky-500 to-cyan-600',
       href: '/admin/broadcasts'
-    }
+    },
+    {
+      title: 'Paiements de Parrainage',
+      description: 'Gérer les demandes de paiement des commissions de parrainage',
+      icon: DollarSign,
+      color: 'from-green-500 to-green-600',
+      href: '/admin/referral-payouts'
+    },
   ]
 
   return (

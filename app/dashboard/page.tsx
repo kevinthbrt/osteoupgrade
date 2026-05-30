@@ -7,7 +7,10 @@ import AuthLayout from '@/components/AuthLayout'
 import {
   Stethoscope,
   GraduationCap,
-  Wrench,
+  BookOpen,
+  FileText,
+  Clipboard,
+  Map,
   Calendar,
   Search,
   Trophy,
@@ -112,9 +115,11 @@ export default function Dashboard() {
   }
 
   const modules = [
+    { id: 'cours', title: 'Cours', description: 'Cours interactifs et formations structurées', icon: BookOpen, href: '/elearning/cours', count: 'Formation continue', gradient: 'from-blue-500 to-cyan-500', emoji: '📚' },
     { id: 'pratique', title: 'Pratique', description: 'Techniques ostéopathiques en vidéo, par région anatomique', icon: Stethoscope, href: '/pratique', count: '150+ vidéos', gradient: 'from-pink-500 to-rose-600', emoji: '🩺' },
-    { id: 'elearning', title: 'E-Learning', description: 'Cours, revue de littérature, tests orthopédiques et topographie', icon: GraduationCap, href: '/elearning', count: '4 modules', gradient: 'from-blue-500 to-cyan-500', emoji: '📚' },
-    { id: 'outils', title: 'Outils', description: 'Documents, courriers et communications professionnels', icon: Wrench, href: '/outils', count: 'Communication', gradient: 'from-orange-500 to-red-500', emoji: '🛠️' },
+    { id: 'revue', title: 'Revue de littérature', description: 'Articles et études scientifiques commentés', icon: FileText, href: '/elearning/revue-litterature', count: 'Recherche', gradient: 'from-violet-500 to-purple-600', emoji: '📖' },
+    { id: 'tests', title: 'Tests orthopédiques', description: 'Référentiel complet des tests cliniques', icon: Clipboard, href: '/tests', count: 'Référentiel', gradient: 'from-orange-500 to-red-500', emoji: '🔬' },
+    { id: 'topographie', title: 'Topographie', description: 'Atlas anatomique interactif', icon: Map, href: '/topographie', count: 'Atlas', gradient: 'from-teal-500 to-green-600', emoji: '🗺️' },
     { id: 'parrainage', title: 'Parrainage', description: 'Parrainez vos collègues et gagnez 10% de commission', icon: Gift, href: '/parrainage', count: '10% cashback', gradient: 'from-amber-400 to-yellow-500', emoji: '🎁' },
   ]
 
@@ -122,7 +127,7 @@ export default function Dashboard() {
   const xpProgress = Math.min((stats.totalXp % xpToNextLevel) / xpToNextLevel * 100, 100)
 
   const weekProgress = [
-    { label: 'E-Learning', value: stats.weekElearning, max: 7, color: 'from-blue-500 to-cyan-500', icon: GraduationCap },
+    { label: 'Cours', value: stats.weekElearning, max: 7, color: 'from-blue-500 to-cyan-500', icon: BookOpen },
     { label: 'Pratique', value: stats.weekPractice, max: 7, color: 'from-pink-500 to-rose-500', icon: Stethoscope },
     { label: 'Tests', value: stats.weekTesting, max: 7, color: 'from-violet-500 to-indigo-500', icon: Zap },
   ]
@@ -295,7 +300,7 @@ export default function Dashboard() {
           <section>
             <div className="flex items-center gap-2.5 mb-4">
               <div className="h-5 w-1 rounded-full bg-gradient-to-b from-blue-500 to-blue-700" />
-              <h2 className="text-sm font-bold text-slate-800 tracking-wide">Modules d'apprentissage</h2>
+              <h2 className="text-sm font-bold text-slate-800 tracking-wide">Hub d'apprentissage</h2>
             </div>
             <div className="rounded-2xl overflow-hidden shadow-xl border border-blue-300/70 bg-blue-100/85 backdrop-blur-2xl ring-1 ring-inset ring-white/60">
               {modules.map((module, i) => {
