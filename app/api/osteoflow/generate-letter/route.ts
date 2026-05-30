@@ -6,12 +6,40 @@ interface Practitioner {
   first_name: string
   last_name: string
   profession?: string
+  specialty?: string
   address?: string
   city?: string
   postal_code?: string
   phone?: string
   email?: string
   rpps?: string
+  rpe?: string
+  rne?: string
+}
+
+const PROFESSION_LABELS: Record<string, string> = {
+  osteopathe: 'Ostéopathe D.O.',
+  etiopathe: 'Étiopathe',
+  chiropracteur: 'Chiropracteur',
+  autre: 'Praticien',
+}
+
+function professionLabel(p: Practitioner): string {
+  const prof = p.profession || 'osteopathe'
+  if (prof === 'autre' && p.specialty?.trim()) return p.specialty.trim()
+  return PROFESSION_LABELS[prof] || PROFESSION_LABELS.osteopathe
+}
+
+function registrationLines(p: Practitioner): string[] {
+  const prof = p.profession || 'osteopathe'
+  const lines: string[] = []
+  if (prof === 'etiopathe') {
+    if (p.rpe?.trim()) lines.push(`RPE : ${p.rpe.trim()}`)
+    if (p.rne?.trim()) lines.push(`RNE : ${p.rne.trim()}`)
+  } else if (p.rpps?.trim()) {
+    lines.push(`RPPS : ${p.rpps.trim()}`)
+  }
+  return lines
 }
 
 // Patient pseudonymisé : aucun PII envoyé à l'API Anthropic
@@ -50,13 +78,13 @@ function formatDate(dateStr?: string): string {
 function buildHeader(practitioner: Practitioner): string {
   const lines: string[] = []
   lines.push(`${practitioner.first_name} ${practitioner.last_name.toUpperCase()}`)
-  lines.push('Ostéopathe D.O.')
+  lines.push(professionLabel(practitioner))
   if (practitioner.address) lines.push(practitioner.address)
   if (practitioner.postal_code || practitioner.city) {
     lines.push([practitioner.postal_code, practitioner.city].filter(Boolean).join(' '))
   }
   if (practitioner.phone) lines.push(`Tél. : ${practitioner.phone}`)
-  if (practitioner.rpps) lines.push(`RPPS : ${practitioner.rpps}`)
+  registrationLines(practitioner).forEach((l) => lines.push(l))
   return lines.join('\n')
 }
 
@@ -66,7 +94,7 @@ function buildClosing(practitioner: Practitioner): string {
   })
   const dateLine = practitioner.city ? `${practitioner.city}, le ${today}` : `Le ${today}`
   const name = `${practitioner.first_name} ${practitioner.last_name.toUpperCase()}`
-  return `${dateLine}\n\n${name}\nOstéopathe D.O.`
+  return `${dateLine}\n\n${name}\n${professionLabel(practitioner)}`
 }
 
 function buildRecipient(title?: string, name?: string): string {
@@ -139,9 +167,10 @@ export async function POST(req: Request) {
     const patientGender = patient.gender === 'M' ? 'homme' : 'femme'
     const consultationDate = formatDate(consultation?.date)
 
+    const regContext = registrationLines(practitioner)
     const lines: string[] = [
-      `Praticien : ${practitioner.first_name} ${practitioner.last_name}, Ostéopathe D.O.${
-        practitioner.rpps ? ` — RPPS ${practitioner.rpps}` : ''
+      `Praticien : ${practitioner.first_name} ${practitioner.last_name}, ${professionLabel(practitioner)}${
+        regContext.length ? ` — ${regContext.join(', ')}` : ''
       }`,
       `Patient : ${patientGender}${patient.age_range ? `, ${patient.age_range}` : ''}`,
     ]
