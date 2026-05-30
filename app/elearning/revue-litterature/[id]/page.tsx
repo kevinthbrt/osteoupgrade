@@ -280,7 +280,7 @@ export default function LiteratureReviewDetailPage() {
                   <h2 className="text-4xl md:text-5xl font-bold text-white mb-4 leading-tight drop-shadow-lg">
                     {review.title}
                   </h2>
-                  <MarkdownContent content={review.summary} className="text-white/90 [&_p]:text-xl [&_p]:leading-relaxed [&_p]:drop-shadow-md [&_strong]:text-white [&_em]:text-white/90" />
+                  <MarkdownContent content={review.summary} className="text-white/90 [&_p]:text-white/90 [&_p]:text-xl [&_p]:leading-relaxed [&_p]:drop-shadow-md [&_strong]:text-white [&_em]:text-white/90" />
                 </div>
               </div>
             </div>
