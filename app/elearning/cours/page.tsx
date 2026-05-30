@@ -430,10 +430,10 @@ export default function CoursPage() {
   }
 
   const handleQuizPassed = async () => {
-    // Reload data to refresh quiz_passed status, preserving the current formation
-    if (profile) {
-      await loadFormationsFromSupabase(profile.id, profile.role, selectedFormationId)
-    }
+    if (!profile || !activeQuiz) return
+    // Auto-mark the subpart as completed when quiz is passed
+    await toggleCompletion(activeQuiz.subpartId, true)
+    await loadFormationsFromSupabase(profile.id, profile.role, selectedFormationId)
   }
 
   // Compute a Set of accessible subpart IDs for the entire formation, propagating locks correctly:
