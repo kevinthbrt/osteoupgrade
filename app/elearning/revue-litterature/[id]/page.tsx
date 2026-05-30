@@ -439,7 +439,7 @@ export default function LiteratureReviewDetailPage() {
                   <ThrustScore
                     score={review.thrust_score}
                     explanation={review.thrust_score_explanation}
-                    size="md"
+                    size="lg"
                   />
                 </section>
               )}

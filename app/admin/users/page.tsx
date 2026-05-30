@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import AuthLayout from '@/components/AuthLayout'
+import AdminBackButton from '@/components/AdminBackButton'
 import {
   Users,
   Search,
@@ -17,7 +18,8 @@ import {
   Trophy,
   ExternalLink,
   X,
-  Mail
+  Mail,
+  Star
 } from 'lucide-react'
 
 // ── helpers ────────────────────────────────────────────────────────────────
@@ -60,6 +62,23 @@ function avatarColor(role: string) {
   return 'bg-slate-400'
 }
 
+function subscriptionStatusBadge(status: string) {
+  const map: Record<string, { label: string; bg: string; color: string }> = {
+    active:             { label: 'Actif',      bg: 'bg-green-100',  color: 'text-green-800'  },
+    canceled:           { label: 'Annulé',     bg: 'bg-red-100',    color: 'text-red-700'    },
+    past_due:           { label: 'Impayé',     bg: 'bg-orange-100', color: 'text-orange-800' },
+    trialing:           { label: 'Essai',      bg: 'bg-blue-100',   color: 'text-blue-700'   },
+    incomplete:         { label: 'Incomplet',  bg: 'bg-yellow-100', color: 'text-yellow-800' },
+    incomplete_expired: { label: 'Expiré',     bg: 'bg-gray-100',   color: 'text-gray-600'   },
+  }
+  const s = map[status] ?? { label: status, bg: 'bg-gray-100', color: 'text-gray-600' }
+  return (
+    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${s.bg} ${s.color}`}>
+      {s.label}
+    </span>
+  )
+}
+
 // ── component ──────────────────────────────────────────────────────────────
 
 export default function UsersManagementPage() {
@@ -77,6 +96,7 @@ export default function UsersManagementPage() {
   const [showDetailModal, setShowDetailModal] = useState(false)
   const [editRole, setEditRole] = useState('')
   const [saving, setSaving] = useState(false)
+  const [savingFounder, setSavingFounder] = useState(false)
 
   useEffect(() => {
     checkAdminAccess()
@@ -229,6 +249,29 @@ export default function UsersManagementPage() {
     }
   }
 
+  const handleToggleFoundingMember = async () => {
+    if (!selectedUser) return
+    setSavingFounder(true)
+    const newValue = !selectedUser.is_founding_member
+    try {
+      const res = await fetch('/api/admin/toggle-founding-member', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: selectedUser.id, is_founding_member: newValue })
+      })
+      if (!res.ok) {
+        const json = await res.json()
+        throw new Error(json.error || 'Erreur inconnue')
+      }
+      setUsers(prev => prev.map(u => u.id === selectedUser.id ? { ...u, is_founding_member: newValue } : u))
+      setSelectedUser((prev: any) => ({ ...prev, is_founding_member: newValue }))
+    } catch (error: any) {
+      alert('Erreur : ' + error.message)
+    } finally {
+      setSavingFounder(false)
+    }
+  }
+
   const exportToCSV = () => {
     const csv = [
       ['Email', 'Nom', 'Rôle', 'Niveau', 'XP', 'Streak', 'Dernière connexion', 'Inscription'].join(','),
@@ -259,7 +302,10 @@ export default function UsersManagementPage() {
     total: users.length,
     free: users.filter(u => u.role === 'free').length,
     premium: users.filter(u => u.role === 'premium').length,
-    admin: users.filter(u => u.role === 'admin').length
+    admin: users.filter(u => u.role === 'admin').length,
+    canceled: users.filter(u => u.subscription_status === 'canceled').length,
+    newsletterOptIn: users.filter(u => u.newsletter_opt_in).length,
+    foundingMembers: users.filter(u => u.is_founding_member).length,
   }
 
   if (loading) {
@@ -282,6 +328,7 @@ export default function UsersManagementPage() {
           <div className="absolute top-1/2 right-0 w-56 h-56 bg-indigo-500/15 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '6s', animationDelay: '2s' }} />
           <div className="absolute bottom-0 right-1/4 w-48 h-48 bg-sky-400/15 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '5s', animationDelay: '1s' }} />
           <div className="relative">
+            <AdminBackButton />
             <div className="bg-white/[0.09] backdrop-blur-xl border border-white/20 ring-1 ring-inset ring-white/15 rounded-3xl shadow-[0_12px_40px_rgba(0,8,30,0.65),inset_0_1px_0_rgba(255,255,255,0.12)] p-6 md:p-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
               <div>
                 <p className="text-sky-300 text-sm font-medium mb-1 tracking-wide flex items-center gap-2">
@@ -329,45 +376,34 @@ export default function UsersManagementPage() {
             </div>
 
             {/* ── Stats Cards ── */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="rounded-2xl bg-white/85 backdrop-blur-2xl border border-white/70 shadow-xl ring-1 ring-inset ring-white/60 p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-slate-500">Total inscrits</p>
-                    <p className="text-2xl font-bold text-slate-800">{stats.total}</p>
-                  </div>
-                  <Users className="h-8 w-8 text-blue-400" />
-                </div>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-4">
+              <div className="rounded-2xl bg-white/85 backdrop-blur-2xl border border-white/70 shadow-xl ring-1 ring-inset ring-white/60 p-5">
+                <p className="text-xs text-slate-500 mb-1">Total inscrits</p>
+                <p className="text-2xl font-bold text-slate-800">{stats.total}</p>
               </div>
-
-              <div className="rounded-2xl bg-white/85 backdrop-blur-2xl border border-white/70 shadow-xl ring-1 ring-inset ring-white/60 p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-slate-500">Gratuits</p>
-                    <p className="text-2xl font-bold text-slate-800">{stats.free}</p>
-                  </div>
-                  <User className="h-8 w-8 text-slate-400" />
-                </div>
+              <div className="rounded-2xl bg-white/85 backdrop-blur-2xl border border-white/70 shadow-xl ring-1 ring-inset ring-white/60 p-5">
+                <p className="text-xs text-slate-500 mb-1">Gratuits</p>
+                <p className="text-2xl font-bold text-slate-600">{stats.free}</p>
               </div>
-
-              <div className="rounded-2xl bg-white/85 backdrop-blur-2xl border border-white/70 shadow-xl ring-1 ring-inset ring-white/60 p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-slate-500">Premium</p>
-                    <p className="text-2xl font-bold text-yellow-600">{stats.premium}</p>
-                  </div>
-                  <Crown className="h-8 w-8 text-yellow-500" />
-                </div>
+              <div className="rounded-2xl bg-white/85 backdrop-blur-2xl border border-white/70 shadow-xl ring-1 ring-inset ring-white/60 p-5">
+                <p className="text-xs text-slate-500 mb-1">Premium</p>
+                <p className="text-2xl font-bold text-yellow-600">{stats.premium}</p>
               </div>
-
-              <div className="rounded-2xl bg-white/85 backdrop-blur-2xl border border-white/70 shadow-xl ring-1 ring-inset ring-white/60 p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-slate-500">Newsletter pré-lancement</p>
-                    <p className="text-2xl font-bold text-teal-600">{newsletterContacts.length || '—'}</p>
-                  </div>
-                  <Mail className="h-8 w-8 text-teal-500" />
-                </div>
+              <div className="rounded-2xl bg-white/85 backdrop-blur-2xl border border-white/70 shadow-xl ring-1 ring-inset ring-white/60 p-5">
+                <p className="text-xs text-slate-500 mb-1">Annulés</p>
+                <p className="text-2xl font-bold text-red-500">{stats.canceled}</p>
+              </div>
+              <div className="rounded-2xl bg-white/85 backdrop-blur-2xl border border-white/70 shadow-xl ring-1 ring-inset ring-white/60 p-5">
+                <p className="text-xs text-slate-500 mb-1">Newsletter</p>
+                <p className="text-2xl font-bold text-teal-600">{stats.newsletterOptIn}</p>
+              </div>
+              <div className="rounded-2xl bg-white/85 backdrop-blur-2xl border border-white/70 shadow-xl ring-1 ring-inset ring-white/60 p-5">
+                <p className="text-xs text-slate-500 mb-1">Admins</p>
+                <p className="text-2xl font-bold text-purple-600">{stats.admin}</p>
+              </div>
+              <div className="rounded-2xl bg-gradient-to-br from-amber-50 to-yellow-50 border border-amber-200/60 shadow-xl ring-1 ring-inset ring-amber-100/60 p-5">
+                <p className="text-xs text-amber-700 mb-1 flex items-center gap-1"><Star className="h-3 w-3" /> Fondateurs</p>
+                <p className="text-2xl font-bold text-amber-600">{stats.foundingMembers}</p>
               </div>
             </div>
 
@@ -487,6 +523,7 @@ export default function UsersManagementPage() {
                     <tr>
                       <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Utilisateur</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Rôle</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Abonnement</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Niveau</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Streak</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Dernière connexion</th>
@@ -508,8 +545,22 @@ export default function UsersManagementPage() {
                                 {(user.full_name || user.email || '?').charAt(0).toUpperCase()}
                               </div>
                               <div className="min-w-0">
-                                <p className="text-sm font-medium text-slate-800 truncate">{user.full_name || 'Sans nom'}</p>
-                                <p className="text-xs text-slate-400 truncate">{user.email}</p>
+                                <div className="flex items-center gap-1.5">
+                                  <p className="text-sm font-medium text-slate-800 truncate">{user.full_name || 'Sans nom'}</p>
+                                  {user.is_founding_member && (
+                                    <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-gradient-to-r from-amber-400 to-yellow-500 text-white shrink-0 shadow-sm">
+                                      <Star className="h-2.5 w-2.5" /> Fondateur
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="flex items-center gap-1.5 mt-0.5">
+                                  <p className="text-xs text-slate-400 truncate">{user.email}</p>
+                                  {user.newsletter_opt_in && (
+                                    <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-teal-100 text-teal-700 shrink-0">
+                                      <Mail className="h-2.5 w-2.5" /> NL
+                                    </span>
+                                  )}
+                                </div>
                               </div>
                             </div>
                           </td>
@@ -517,6 +568,27 @@ export default function UsersManagementPage() {
                           {/* Rôle */}
                           <td className="px-6 py-4 whitespace-nowrap">
                             {roleBadge(user.role)}
+                          </td>
+
+                          {/* Abonnement */}
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            {user.subscription_status ? (
+                              <div>
+                                {subscriptionStatusBadge(user.subscription_status)}
+                                {user.subscription_start_date && (
+                                  <p className="text-xs text-slate-400 mt-1">
+                                    depuis {new Date(user.subscription_start_date).toLocaleDateString('fr-FR')}
+                                  </p>
+                                )}
+                                {user.subscription_end_date && user.subscription_status === 'canceled' && (
+                                  <p className="text-xs text-red-400 mt-0.5">
+                                    fin {new Date(user.subscription_end_date).toLocaleDateString('fr-FR')}
+                                  </p>
+                                )}
+                              </div>
+                            ) : (
+                              <span className="text-slate-300 text-sm">—</span>
+                            )}
                           </td>
 
                           {/* Niveau */}
@@ -567,7 +639,7 @@ export default function UsersManagementPage() {
 
                     {filteredUsers.length === 0 && (
                       <tr>
-                        <td colSpan={7} className="px-6 py-12 text-center text-slate-400 text-sm">
+                        <td colSpan={8} className="px-6 py-12 text-center text-slate-400 text-sm">
                           Aucun utilisateur trouvé.
                         </td>
                       </tr>
@@ -631,11 +703,10 @@ export default function UsersManagementPage() {
                   </div>
                 </div>
 
-                {/* Informations */}
+                {/* Informations générales */}
                 <div>
                   <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Informations</h4>
                   <div className="space-y-3">
-
                     <div>
                       <label className="block text-xs font-medium text-slate-500 mb-1">Rôle</label>
                       <select
@@ -648,33 +719,91 @@ export default function UsersManagementPage() {
                         <option value="admin">Admin</option>
                       </select>
                     </div>
-
                     <div className="flex justify-between text-sm py-1">
                       <span className="text-slate-500">Inscription</span>
                       <span className="text-slate-700 font-medium">{new Date(selectedUser.created_at).toLocaleDateString('fr-FR')}</span>
                     </div>
-
                     <div className="flex justify-between text-sm py-1">
                       <span className="text-slate-500">Dernière connexion</span>
                       <span className="text-slate-700 font-medium">{relativeDate(lastLogin)}</span>
                     </div>
-
-                    {selectedUser.subscription_status && (
-                      <div className="flex justify-between text-sm py-1">
-                        <span className="text-slate-500">Statut abonnement</span>
-                        <span className="text-slate-700 font-medium capitalize">{selectedUser.subscription_status}</span>
-                      </div>
-                    )}
-
-                    {selectedUser.subscription_end_date && (
-                      <div className="flex justify-between text-sm py-1">
-                        <span className="text-slate-500">Fin d&apos;abonnement</span>
-                        <span className="text-slate-700 font-medium">
-                          {new Date(selectedUser.subscription_end_date).toLocaleDateString('fr-FR')}
-                        </span>
-                      </div>
-                    )}
+                    <div className="flex justify-between items-center text-sm py-1">
+                      <span className="text-slate-500 flex items-center gap-1.5"><Mail className="h-3.5 w-3.5" /> Newsletter</span>
+                      {selectedUser.newsletter_opt_in ? (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-teal-100 text-teal-800">Inscrit</span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-500">Non inscrit</span>
+                      )}
+                    </div>
                   </div>
+                </div>
+
+                {/* Abonnement Premium */}
+                {selectedUser.subscription_status && (
+                  <div>
+                    <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Abonnement Premium</h4>
+                    <div className="rounded-xl bg-yellow-50/70 border border-yellow-100 p-4 space-y-2.5">
+                      <div className="flex justify-between items-center text-sm">
+                        <span className="text-slate-500">Statut</span>
+                        {subscriptionStatusBadge(selectedUser.subscription_status)}
+                      </div>
+                      {selectedUser.subscription_start_date && (
+                        <div className="flex justify-between text-sm">
+                          <span className="text-slate-500">Début</span>
+                          <span className="text-slate-700 font-medium">{new Date(selectedUser.subscription_start_date).toLocaleDateString('fr-FR')}</span>
+                        </div>
+                      )}
+                      {selectedUser.subscription_end_date && (
+                        <div className="flex justify-between text-sm">
+                          <span className="text-slate-500">
+                            {selectedUser.subscription_status === 'canceled' ? 'Accès jusqu\'au' : 'Prochain renouvellement'}
+                          </span>
+                          <span className={`font-medium ${selectedUser.subscription_status === 'canceled' ? 'text-red-600' : 'text-slate-700'}`}>
+                            {new Date(selectedUser.subscription_end_date).toLocaleDateString('fr-FR')}
+                          </span>
+                        </div>
+                      )}
+                      {selectedUser.commitment_end_date && (
+                        <div className="flex justify-between text-sm">
+                          <span className="text-slate-500">Fin d&apos;engagement</span>
+                          <span className="text-slate-700 font-medium">{new Date(selectedUser.commitment_end_date).toLocaleDateString('fr-FR')}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Membre Fondateur */}
+                <div>
+                  <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Distinction</h4>
+                  <button
+                    onClick={handleToggleFoundingMember}
+                    disabled={savingFounder}
+                    className={`w-full inline-flex items-center justify-between px-4 py-3.5 rounded-xl border text-sm font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
+                      selectedUser.is_founding_member
+                        ? 'bg-gradient-to-r from-amber-400 to-yellow-500 border-amber-300 text-white shadow-lg shadow-amber-200/50'
+                        : 'bg-white/70 backdrop-blur-sm border-amber-200/60 text-amber-700 hover:bg-amber-50'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <div className={`flex items-center justify-center h-8 w-8 rounded-full ${selectedUser.is_founding_member ? 'bg-white/25' : 'bg-amber-100'}`}>
+                        <Star className={`h-4 w-4 ${selectedUser.is_founding_member ? 'text-white fill-white' : 'text-amber-500'}`} />
+                      </div>
+                      <div className="text-left">
+                        <p className={selectedUser.is_founding_member ? 'text-white' : 'text-amber-800'}>Membre Fondateur</p>
+                        <p className={`text-xs font-normal ${selectedUser.is_founding_member ? 'text-white/70' : 'text-amber-500'}`}>
+                          {selectedUser.is_founding_member ? 'Badge actif — cliquer pour retirer' : 'Cliquer pour attribuer'}
+                        </p>
+                      </div>
+                    </div>
+                    {savingFounder ? (
+                      <div className="h-4 w-4 rounded-full border-2 border-current border-t-transparent animate-spin" />
+                    ) : (
+                      <div className={`h-5 w-9 rounded-full transition-all ${selectedUser.is_founding_member ? 'bg-white/30' : 'bg-amber-200'} relative`}>
+                        <div className={`absolute top-0.5 h-4 w-4 rounded-full transition-all ${selectedUser.is_founding_member ? 'left-4 bg-white' : 'left-0.5 bg-amber-400'}`} />
+                      </div>
+                    )}
+                  </button>
                 </div>
 
                 {/* Actions */}
