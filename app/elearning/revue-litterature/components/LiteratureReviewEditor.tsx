@@ -39,6 +39,8 @@ type LiteratureReview = {
   published_date: string
   is_featured: boolean
   tags: ReviewTag[]
+  thrust_score?: 'A' | 'B' | 'C' | 'D' | 'E' | null
+  thrust_score_explanation?: string | null
 }
 
 type Props = {
@@ -142,6 +144,13 @@ export default function LiteratureReviewEditor({ existingReview, allTags, onClos
   )
   const [pointsCles, setPointsCles] = useState<string[]>(
     existingReview?.content_structured?.points_cles || ['']
+  )
+
+  const [thrustScore, setThrustScore] = useState<'A' | 'B' | 'C' | 'D' | 'E' | ''>(
+    existingReview?.thrust_score || ''
+  )
+  const [thrustScoreExplanation, setThrustScoreExplanation] = useState(
+    existingReview?.thrust_score_explanation || ''
   )
 
   const [saving, setSaving] = useState(false)
@@ -268,6 +277,8 @@ export default function LiteratureReviewEditor({ existingReview, allTags, onClos
         published_date: publishedDate,
         is_featured: isFeatured,
         created_by: user.id,
+        thrust_score: thrustScore || null,
+        thrust_score_explanation: thrustScoreExplanation.trim() || null,
         ...(existingReview ? { id: existingReview.id } : {})
       }
 
@@ -521,6 +532,46 @@ export default function LiteratureReviewEditor({ existingReview, allTags, onClos
                   <Star className="h-4 w-4 text-amber-500" />
                   Article vedette (grand format)
                 </label>
+              </div>
+
+              {/* T(H)rust Score */}
+              <div className="border border-slate-200 rounded-xl p-4 space-y-3">
+                <label className="block text-sm font-semibold text-slate-700">
+                  T(H)rust Score
+                  <span className="text-xs text-slate-500 font-normal ml-2">(indice de confiance de l'étude)</span>
+                </label>
+                <div className="flex gap-2">
+                  {(['A', 'B', 'C', 'D', 'E'] as const).map((letter) => {
+                    const colors: Record<string, string> = {
+                      A: '#2e7d32', B: '#558b2f', C: '#f9a825', D: '#e65100', E: '#c62828'
+                    }
+                    const isSelected = thrustScore === letter
+                    return (
+                      <button
+                        key={letter}
+                        type="button"
+                        onClick={() => setThrustScore(isSelected ? '' : letter)}
+                        className={`flex-1 h-10 rounded-lg font-black text-base transition-all ${isSelected ? 'text-white shadow-md scale-110 ring-2 ring-offset-2' : 'text-white/60'}`}
+                        style={{
+                          backgroundColor: colors[letter],
+                          ringColor: isSelected ? colors[letter] : undefined,
+                          opacity: isSelected ? 1 : 0.45,
+                        }}
+                      >
+                        {letter}
+                      </button>
+                    )
+                  })}
+                </div>
+                {thrustScore && (
+                  <textarea
+                    value={thrustScoreExplanation}
+                    onChange={(e) => setThrustScoreExplanation(e.target.value)}
+                    placeholder="Expliquez votre choix de note (qualité méthodologique, taille de l'échantillon, biais…)"
+                    rows={3}
+                    className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-slate-900"
+                  />
+                )}
               </div>
 
               {/* Tags */}

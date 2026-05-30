@@ -5,6 +5,7 @@ import { useRouter, useParams } from 'next/navigation'
 import AuthLayout from '@/components/AuthLayout'
 import { supabase } from '@/lib/supabase'
 import { MarkdownContent } from '@/components/MarkdownContent'
+import { ThrustScore } from '@/components/ThrustScore'
 import {
   ArrowLeft,
   Calendar,
@@ -47,6 +48,8 @@ type LiteratureReview = {
   published_date: string
   created_at: string
   tags: ReviewTag[]
+  thrust_score?: 'A' | 'B' | 'C' | 'D' | 'E' | null
+  thrust_score_explanation?: string | null
 }
 
 export default function LiteratureReviewDetailPage() {
@@ -105,7 +108,9 @@ export default function LiteratureReviewDetailPage() {
           study_url: data.study_url,
           published_date: data.published_date,
           created_at: data.created_at,
-          tags: (data.tags || []).map((t: any) => t.tag).filter(Boolean)
+          tags: (data.tags || []).map((t: any) => t.tag).filter(Boolean),
+          thrust_score: data.thrust_score,
+          thrust_score_explanation: data.thrust_score_explanation,
         }
 
         setReview(parsed)
@@ -308,24 +313,34 @@ export default function LiteratureReviewDetailPage() {
 
           {/* Article Meta */}
           <div className="px-12 py-6 bg-slate-50 border-b border-slate-200">
-            <div className="max-w-4xl flex flex-wrap items-center gap-6 text-sm text-slate-600">
-              <div className="flex items-center gap-2">
-                <Calendar className="h-4 w-4" />
-                <time dateTime={review.published_date}>
-                  {formatDate(review.published_date)}
-                </time>
+            <div className="max-w-4xl flex flex-wrap items-center justify-between gap-6">
+              <div className="flex flex-wrap items-center gap-6 text-sm text-slate-600">
+                <div className="flex items-center gap-2">
+                  <Calendar className="h-4 w-4" />
+                  <time dateTime={review.published_date}>
+                    {formatDate(review.published_date)}
+                  </time>
+                </div>
+
+                {review.study_url && (
+                  <a
+                    href={review.study_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 text-emerald-600 hover:text-emerald-700 font-medium transition"
+                  >
+                    <ExternalLink className="h-4 w-4" />
+                    Lire l'étude originale
+                  </a>
+                )}
               </div>
 
-              {review.study_url && (
-                <a
-                  href={review.study_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-2 text-emerald-600 hover:text-emerald-700 font-medium transition"
-                >
-                  <ExternalLink className="h-4 w-4" />
-                  Lire l'étude originale
-                </a>
+              {review.thrust_score && (
+                <ThrustScore
+                  score={review.thrust_score}
+                  explanation={review.thrust_score_explanation}
+                  size="sm"
+                />
               )}
             </div>
           </div>
@@ -422,6 +437,20 @@ export default function LiteratureReviewDetailPage() {
                   </h3>
                   <MarkdownContent content={content.conclusion} className="[&_p]:text-lg [&_p]:leading-relaxed [&_p]:text-slate-700" />
                   <ImageBlock images={getImagesByPosition('conclusion')} />
+                </section>
+              )}
+
+              {/* T(H)rust Score block */}
+              {review.thrust_score && (
+                <section className="bg-slate-50 rounded-2xl p-8 border border-slate-200">
+                  <h3 className="text-lg font-bold text-slate-800 mb-5">
+                    Indice de confiance
+                  </h3>
+                  <ThrustScore
+                    score={review.thrust_score}
+                    explanation={review.thrust_score_explanation}
+                    size="md"
+                  />
                 </section>
               )}
 
