@@ -313,34 +313,24 @@ export default function LiteratureReviewDetailPage() {
 
           {/* Article Meta */}
           <div className="px-12 py-6 bg-slate-50 border-b border-slate-200">
-            <div className="max-w-4xl flex flex-wrap items-center justify-between gap-6">
-              <div className="flex flex-wrap items-center gap-6 text-sm text-slate-600">
-                <div className="flex items-center gap-2">
-                  <Calendar className="h-4 w-4" />
-                  <time dateTime={review.published_date}>
-                    {formatDate(review.published_date)}
-                  </time>
-                </div>
-
-                {review.study_url && (
-                  <a
-                    href={review.study_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-2 text-emerald-600 hover:text-emerald-700 font-medium transition"
-                  >
-                    <ExternalLink className="h-4 w-4" />
-                    Lire l'étude originale
-                  </a>
-                )}
+            <div className="max-w-4xl flex flex-wrap items-center gap-6 text-sm text-slate-600">
+              <div className="flex items-center gap-2">
+                <Calendar className="h-4 w-4" />
+                <time dateTime={review.published_date}>
+                  {formatDate(review.published_date)}
+                </time>
               </div>
 
-              {review.thrust_score && (
-                <ThrustScore
-                  score={review.thrust_score}
-                  explanation={review.thrust_score_explanation}
-                  size="sm"
-                />
+              {review.study_url && (
+                <a
+                  href={review.study_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 text-emerald-600 hover:text-emerald-700 font-medium transition"
+                >
+                  <ExternalLink className="h-4 w-4" />
+                  Lire l'étude originale
+                </a>
               )}
             </div>
           </div>

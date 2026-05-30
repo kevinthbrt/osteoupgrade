@@ -50,6 +50,8 @@ type LiteratureReview = {
   is_featured: boolean
   created_at: string
   tags: ReviewTag[]
+  thrust_score?: 'A' | 'B' | 'C' | 'D' | 'E' | null
+  thrust_score_explanation?: string | null
 }
 
 type ReviewTag = {
@@ -138,7 +140,9 @@ export default function RevueLitteraturePage() {
           published_date: review.published_date,
           is_featured: review.is_featured,
           created_at: review.created_at,
-          tags: (review.tags || []).map((t: any) => t.tag).filter(Boolean)
+          tags: (review.tags || []).map((t: any) => t.tag).filter(Boolean),
+          thrust_score: review.thrust_score,
+          thrust_score_explanation: review.thrust_score_explanation,
         }))
 
         setReviews(parsed)
