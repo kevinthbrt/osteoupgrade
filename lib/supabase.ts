@@ -161,6 +161,8 @@ export type Database = {
         title: string
         vimeo_url: string | null
         description_html: string | null
+        pdf_url: string | null
+        pdf_name: string | null
         order_index: number
         created_at: string
         updated_at: string

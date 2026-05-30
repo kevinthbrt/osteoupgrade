@@ -22,6 +22,7 @@ import {
   ChevronRight,
   PlayCircle,
   Plus,
+  FileDown,
   Search,
   Shield,
   Sparkles,
@@ -43,6 +44,8 @@ type Subpart = {
   title: string
   vimeo_url?: string
   description_html?: string
+  pdf_url?: string
+  pdf_name?: string
   order_index?: number
   completed?: boolean
   quiz?: Quiz
@@ -198,7 +201,7 @@ export default function CoursPage() {
         .select(
           `id, title, description, is_private, photo_url, is_free_access, is_featured_osteoflow, subject_id,
           chapters:elearning_chapters(id, title, order_index,
-            subparts:elearning_subparts(id, title, vimeo_url, description_html, order_index,
+            subparts:elearning_subparts(id, title, vimeo_url, description_html, pdf_url, pdf_name, order_index,
               progress:elearning_subpart_progress(user_id, completed_at),
               quiz:elearning_quizzes(id, title, description, passing_score,
                 questions:elearning_quiz_questions(id, question_text, question_type, points, order_index, explanation,
@@ -1075,10 +1078,30 @@ export default function CoursPage() {
                                       title={`Vimeo - ${selectedSubpart.title}`}
                                     />
                                   </div>
-                                ) : (
+                                ) : (!selectedSubpart.pdf_url && !selectedSubpart.description_html) ? (
                                   <div className="rounded-xl border-2 border-dashed border-gray-300/60 p-12 text-center bg-gray-50/60">
                                     <Video className="h-12 w-12 text-gray-400 mx-auto mb-3" />
                                     <p className="text-gray-500">Vidéo à venir</p>
+                                  </div>
+                                ) : null}
+
+                                {/* Downloadable PDF resource */}
+                                {selectedSubpart.pdf_url && (
+                                  <div className="rounded-xl border-2 border-sky-200/60 bg-sky-50/60 p-5">
+                                    <div className="flex items-center gap-3 mb-3">
+                                      <FileDown className="h-5 w-5 text-sky-600" />
+                                      <h4 className="text-base font-bold text-sky-900">Ressources à télécharger</h4>
+                                    </div>
+                                    <a
+                                      href={selectedSubpart.pdf_url}
+                                      download={selectedSubpart.pdf_name || undefined}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-sky-500/90 backdrop-blur-sm text-white text-sm font-semibold border border-sky-400/30 hover:bg-sky-600/90 transition-all shadow-sm"
+                                    >
+                                      <FileDown className="h-5 w-5" />
+                                      {selectedSubpart.pdf_name || 'Télécharger le PDF'}
+                                    </a>
                                   </div>
                                 )}
 
