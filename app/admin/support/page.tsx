@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import AuthLayout from '@/components/AuthLayout'
+import AdminBackButton from '@/components/AdminBackButton'
 import { Clock, Wrench, CheckCircle, Paperclip, Loader2, RefreshCw, Filter, Trash2, Send, MessageSquareReply, X } from 'lucide-react'
 
 interface Ticket {
@@ -132,6 +133,7 @@ export default function AdminSupportPage() {
   return (
     <AuthLayout>
       <div className="max-w-6xl mx-auto">
+        <AdminBackButton light />
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div>

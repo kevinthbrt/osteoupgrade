@@ -29,7 +29,8 @@ import {
   Wallet,
   Lock,
   Laptop,
-  Download
+  Download,
+  Star
 } from 'lucide-react'
 
 export default function Dashboard() {
@@ -160,8 +161,35 @@ export default function Dashboard() {
           <div className="absolute top-0 right-1/4 w-56 h-56 bg-indigo-500/20 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '5s', animationDelay: '2s' }} />
           <div className="absolute bottom-0 right-0 w-72 h-72 bg-sky-400/20 rounded-full blur-3xl animate-pulse translate-x-1/3 translate-y-1/3" style={{ animationDuration: '7s', animationDelay: '0.5s' }} />
           <div className="absolute top-1/3 right-1/3 w-48 h-48 bg-blue-300/15 rounded-full blur-2xl animate-pulse" style={{ animationDuration: '3.5s', animationDelay: '1.5s' }} />
+          {profile?.is_founding_member && (
+            <div className="absolute top-1/2 left-1/2 w-96 h-96 bg-amber-400/20 rounded-full blur-3xl animate-pulse -translate-x-1/2 -translate-y-1/2 pointer-events-none" style={{ animationDuration: '5s', animationDelay: '0.5s' }} />
+          )}
           <div className="relative">
             <div className="bg-white/[0.09] backdrop-blur-xl border border-white/20 ring-1 ring-inset ring-white/15 rounded-3xl p-6 md:p-8 shadow-[0_12px_40px_rgba(0,8,30,0.65),inset_0_1px_0_rgba(255,255,255,0.12)]">
+
+              {/* Founding Member Banner */}
+              {profile?.is_founding_member && (
+                <div className="mb-6 relative group">
+                  <div className="absolute -inset-[1px] bg-gradient-to-r from-amber-500 via-yellow-300 to-amber-500 rounded-2xl opacity-50 blur-[3px] animate-pulse" style={{ animationDuration: '3s' }} />
+                  <div className="relative flex items-center gap-4 px-5 py-4 rounded-2xl bg-gradient-to-r from-amber-950/75 via-yellow-900/60 to-amber-950/75 backdrop-blur-sm border border-amber-400/25">
+                    <div className="shrink-0 relative">
+                      <div className="h-11 w-11 rounded-xl bg-gradient-to-br from-amber-400 to-yellow-500 flex items-center justify-center shadow-[0_0_24px_rgba(251,191,36,0.55)]">
+                        <Star className="h-5 w-5 text-amber-950 fill-amber-950" />
+                      </div>
+                      <div className="absolute -top-1.5 -right-1.5 h-4 w-4 rounded-full bg-yellow-300 flex items-center justify-center border border-amber-950/20">
+                        <span className="text-[8px] font-black text-amber-900">β</span>
+                      </div>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-amber-400/80 text-[10px] font-bold uppercase tracking-[0.18em] mb-0.5">Distinction exclusive</p>
+                      <p className="text-amber-100 font-bold text-base leading-tight">Membre Fondateur</p>
+                      <p className="text-amber-300/55 text-xs mt-0.5">Bêta testeur · Merci d&apos;avoir été là dès le début ✨</p>
+                    </div>
+                    <div className="shrink-0 text-amber-500/20 font-black text-5xl leading-none select-none tracking-tighter">β</div>
+                  </div>
+                </div>
+              )}
+
               <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-5 mb-6">
                 <div>
                   <p className="text-sky-300 text-sm font-medium mb-1 tracking-wide">Bienvenue 👋</p>

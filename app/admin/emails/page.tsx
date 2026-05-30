@@ -7,6 +7,7 @@ import {
   Send, X, Loader2
 } from 'lucide-react'
 import AuthLayout from '@/components/AuthLayout'
+import AdminBackButton from '@/components/AdminBackButton'
 
 interface Email {
   id: string
@@ -206,6 +207,7 @@ export default function AdminEmailsPage() {
             <div className="bg-white/[0.09] backdrop-blur-xl border border-white/20 ring-1 ring-inset ring-white/15 rounded-3xl p-6 md:p-8 shadow-[0_12px_40px_rgba(0,8,30,0.65),inset_0_1px_0_rgba(255,255,255,0.12)] flex flex-col md:flex-row md:items-center md:justify-between gap-4">
               <div>
                 <p className="text-purple-300 text-sm font-medium mb-1 tracking-wide flex items-center gap-2">
+                  <AdminBackButton />
                   <Mail className="h-4 w-4" /> Administration
                 </p>
                 <h1 className="text-3xl md:text-4xl font-bold tracking-tight bg-gradient-to-r from-white via-purple-100 to-indigo-200 bg-clip-text text-transparent">

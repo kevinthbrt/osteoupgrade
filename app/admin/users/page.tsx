@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import AuthLayout from '@/components/AuthLayout'
+import AdminBackButton from '@/components/AdminBackButton'
 import {
   Users,
   Search,
@@ -17,7 +18,8 @@ import {
   Trophy,
   ExternalLink,
   X,
-  Mail
+  Mail,
+  Star
 } from 'lucide-react'
 
 // ── helpers ────────────────────────────────────────────────────────────────
@@ -94,6 +96,7 @@ export default function UsersManagementPage() {
   const [showDetailModal, setShowDetailModal] = useState(false)
   const [editRole, setEditRole] = useState('')
   const [saving, setSaving] = useState(false)
+  const [savingFounder, setSavingFounder] = useState(false)
 
   useEffect(() => {
     checkAdminAccess()
@@ -246,6 +249,29 @@ export default function UsersManagementPage() {
     }
   }
 
+  const handleToggleFoundingMember = async () => {
+    if (!selectedUser) return
+    setSavingFounder(true)
+    const newValue = !selectedUser.is_founding_member
+    try {
+      const res = await fetch('/api/admin/toggle-founding-member', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: selectedUser.id, is_founding_member: newValue })
+      })
+      if (!res.ok) {
+        const json = await res.json()
+        throw new Error(json.error || 'Erreur inconnue')
+      }
+      setUsers(prev => prev.map(u => u.id === selectedUser.id ? { ...u, is_founding_member: newValue } : u))
+      setSelectedUser((prev: any) => ({ ...prev, is_founding_member: newValue }))
+    } catch (error: any) {
+      alert('Erreur : ' + error.message)
+    } finally {
+      setSavingFounder(false)
+    }
+  }
+
   const exportToCSV = () => {
     const csv = [
       ['Email', 'Nom', 'Rôle', 'Niveau', 'XP', 'Streak', 'Dernière connexion', 'Inscription'].join(','),
@@ -279,6 +305,7 @@ export default function UsersManagementPage() {
     admin: users.filter(u => u.role === 'admin').length,
     canceled: users.filter(u => u.subscription_status === 'canceled').length,
     newsletterOptIn: users.filter(u => u.newsletter_opt_in).length,
+    foundingMembers: users.filter(u => u.is_founding_member).length,
   }
 
   if (loading) {
@@ -301,6 +328,7 @@ export default function UsersManagementPage() {
           <div className="absolute top-1/2 right-0 w-56 h-56 bg-indigo-500/15 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '6s', animationDelay: '2s' }} />
           <div className="absolute bottom-0 right-1/4 w-48 h-48 bg-sky-400/15 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '5s', animationDelay: '1s' }} />
           <div className="relative">
+            <AdminBackButton />
             <div className="bg-white/[0.09] backdrop-blur-xl border border-white/20 ring-1 ring-inset ring-white/15 rounded-3xl shadow-[0_12px_40px_rgba(0,8,30,0.65),inset_0_1px_0_rgba(255,255,255,0.12)] p-6 md:p-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
               <div>
                 <p className="text-sky-300 text-sm font-medium mb-1 tracking-wide flex items-center gap-2">
@@ -348,7 +376,7 @@ export default function UsersManagementPage() {
             </div>
 
             {/* ── Stats Cards ── */}
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-4">
               <div className="rounded-2xl bg-white/85 backdrop-blur-2xl border border-white/70 shadow-xl ring-1 ring-inset ring-white/60 p-5">
                 <p className="text-xs text-slate-500 mb-1">Total inscrits</p>
                 <p className="text-2xl font-bold text-slate-800">{stats.total}</p>
@@ -372,6 +400,10 @@ export default function UsersManagementPage() {
               <div className="rounded-2xl bg-white/85 backdrop-blur-2xl border border-white/70 shadow-xl ring-1 ring-inset ring-white/60 p-5">
                 <p className="text-xs text-slate-500 mb-1">Admins</p>
                 <p className="text-2xl font-bold text-purple-600">{stats.admin}</p>
+              </div>
+              <div className="rounded-2xl bg-gradient-to-br from-amber-50 to-yellow-50 border border-amber-200/60 shadow-xl ring-1 ring-inset ring-amber-100/60 p-5">
+                <p className="text-xs text-amber-700 mb-1 flex items-center gap-1"><Star className="h-3 w-3" /> Fondateurs</p>
+                <p className="text-2xl font-bold text-amber-600">{stats.foundingMembers}</p>
               </div>
             </div>
 
@@ -513,7 +545,14 @@ export default function UsersManagementPage() {
                                 {(user.full_name || user.email || '?').charAt(0).toUpperCase()}
                               </div>
                               <div className="min-w-0">
-                                <p className="text-sm font-medium text-slate-800 truncate">{user.full_name || 'Sans nom'}</p>
+                                <div className="flex items-center gap-1.5">
+                                  <p className="text-sm font-medium text-slate-800 truncate">{user.full_name || 'Sans nom'}</p>
+                                  {user.is_founding_member && (
+                                    <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-gradient-to-r from-amber-400 to-yellow-500 text-white shrink-0 shadow-sm">
+                                      <Star className="h-2.5 w-2.5" /> Fondateur
+                                    </span>
+                                  )}
+                                </div>
                                 <div className="flex items-center gap-1.5 mt-0.5">
                                   <p className="text-xs text-slate-400 truncate">{user.email}</p>
                                   {user.newsletter_opt_in && (
@@ -733,6 +772,39 @@ export default function UsersManagementPage() {
                     </div>
                   </div>
                 )}
+
+                {/* Membre Fondateur */}
+                <div>
+                  <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Distinction</h4>
+                  <button
+                    onClick={handleToggleFoundingMember}
+                    disabled={savingFounder}
+                    className={`w-full inline-flex items-center justify-between px-4 py-3.5 rounded-xl border text-sm font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
+                      selectedUser.is_founding_member
+                        ? 'bg-gradient-to-r from-amber-400 to-yellow-500 border-amber-300 text-white shadow-lg shadow-amber-200/50'
+                        : 'bg-white/70 backdrop-blur-sm border-amber-200/60 text-amber-700 hover:bg-amber-50'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <div className={`flex items-center justify-center h-8 w-8 rounded-full ${selectedUser.is_founding_member ? 'bg-white/25' : 'bg-amber-100'}`}>
+                        <Star className={`h-4 w-4 ${selectedUser.is_founding_member ? 'text-white fill-white' : 'text-amber-500'}`} />
+                      </div>
+                      <div className="text-left">
+                        <p className={selectedUser.is_founding_member ? 'text-white' : 'text-amber-800'}>Membre Fondateur</p>
+                        <p className={`text-xs font-normal ${selectedUser.is_founding_member ? 'text-white/70' : 'text-amber-500'}`}>
+                          {selectedUser.is_founding_member ? 'Badge actif — cliquer pour retirer' : 'Cliquer pour attribuer'}
+                        </p>
+                      </div>
+                    </div>
+                    {savingFounder ? (
+                      <div className="h-4 w-4 rounded-full border-2 border-current border-t-transparent animate-spin" />
+                    ) : (
+                      <div className={`h-5 w-9 rounded-full transition-all ${selectedUser.is_founding_member ? 'bg-white/30' : 'bg-amber-200'} relative`}>
+                        <div className={`absolute top-0.5 h-4 w-4 rounded-full transition-all ${selectedUser.is_founding_member ? 'left-4 bg-white' : 'left-0.5 bg-amber-400'}`} />
+                      </div>
+                    )}
+                  </button>
+                </div>
 
                 {/* Actions */}
                 <div>

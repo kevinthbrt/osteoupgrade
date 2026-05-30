@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import AuthLayout from '@/components/AuthLayout'
+import AdminBackButton from '@/components/AdminBackButton'
 import {
   Megaphone,
   Plus,
@@ -157,6 +158,7 @@ export default function AdminBroadcastsPage() {
           <div className="relative">
             <div className="bg-white/[0.09] backdrop-blur-xl border border-white/20 ring-1 ring-inset ring-white/15 rounded-3xl shadow-[0_12px_40px_rgba(0,8,30,0.65)] p-6 md:p-8">
               <p className="text-sky-300 text-sm font-medium mb-1 tracking-wide flex items-center gap-2">
+                <AdminBackButton />
                 <Megaphone className="h-4 w-4" /> Administration
               </p>
               <h1 className="text-3xl md:text-4xl font-bold tracking-tight bg-gradient-to-r from-white via-sky-100 to-blue-200 bg-clip-text text-transparent">

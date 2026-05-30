@@ -28,6 +28,7 @@ import {
   AlertTriangle
 } from 'lucide-react'
 import AuthLayout from '@/components/AuthLayout'
+import AdminBackButton from '@/components/AdminBackButton'
 import { supabase } from '@/lib/supabase'
 
 type Template = {
@@ -1009,6 +1010,7 @@ export default function MailingAdminPage() {
           <div className="absolute top-1/2 right-0 w-56 h-56 bg-indigo-400/10 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '6s', animationDelay: '2s' }} />
           <div className="absolute bottom-0 right-1/4 w-48 h-48 bg-sky-400/15 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '5s', animationDelay: '1s' }} />
           <div className="relative">
+            <AdminBackButton />
             <div className="bg-white/[0.09] backdrop-blur-xl border border-white/20 ring-1 ring-inset ring-white/15 rounded-3xl shadow-[0_12px_40px_rgba(0,8,30,0.65),inset_0_1px_0_rgba(255,255,255,0.12)] p-6 md:p-8">
               <p className="text-purple-300 text-sm font-medium mb-1 tracking-wide flex items-center gap-2"><Mail className="h-4 w-4" /> Admin — Mailing</p>
               <h1 className="text-3xl md:text-4xl font-bold tracking-tight bg-gradient-to-r from-white via-purple-100 to-indigo-200 bg-clip-text text-transparent">Mailing & Automatisations</h1>
