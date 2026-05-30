@@ -2,7 +2,7 @@
 
 import { useState, useEffect, type ChangeEvent } from 'react'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
-import { ArrowDown, ArrowUp, ChevronDown, ChevronUp, Image, Plus, Save, Trash2, X } from 'lucide-react'
+import { ArrowDown, ArrowUp, ChevronDown, ChevronUp, FileText, Image, Plus, Save, Trash2, X } from 'lucide-react'
 
 interface Subpart {
   id?: string
@@ -10,6 +10,8 @@ interface Subpart {
   title: string
   vimeoUrl: string
   descriptionHtml: string
+  pdfUrl: string
+  pdfName: string
   orderIndex: number
 }
 
@@ -49,6 +51,8 @@ interface ExistingFormation {
       title: string
       vimeo_url?: string
       description_html?: string
+      pdf_url?: string
+      pdf_name?: string
       order_index?: number
     }>
   }>
@@ -65,6 +69,7 @@ export default function CourseCreationWizard({ onClose, onSuccess, existingForma
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false)
+  const [uploadingPdfSubpartId, setUploadingPdfSubpartId] = useState<string | null>(null)
 
   const [formation, setFormation] = useState<FormationData>({
     title: '',
@@ -104,6 +109,8 @@ export default function CourseCreationWizard({ onClose, onSuccess, existingForma
                 title: subpart.title,
                 vimeoUrl: subpart.vimeo_url || '',
                 descriptionHtml: subpart.description_html || '',
+                pdfUrl: subpart.pdf_url || '',
+                pdfName: subpart.pdf_name || '',
                 orderIndex: subpart.order_index || 0
               }
             })
@@ -140,6 +147,49 @@ export default function CourseCreationWizard({ onClose, onSuccess, existingForma
     if (!response.ok) throw new Error('Le téléchargement a échoué')
     const data = await response.json()
     return data.url as string
+  }
+
+  const uploadCoursePdf = async (file: File) => {
+    const formData = new FormData()
+    formData.append('file', file)
+    const response = await fetch('/api/course-pdf-upload', { method: 'POST', body: formData })
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({}))
+      throw new Error(data.error || 'Le téléversement du PDF a échoué')
+    }
+    const data = await response.json()
+    return { url: data.url as string, name: data.name as string }
+  }
+
+  const handleSubpartPdfChange = async (
+    chapterTempId: string,
+    subpartTempId: string,
+    event: ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+    setUploadingPdfSubpartId(subpartTempId)
+    try {
+      const { url, name } = await uploadCoursePdf(file)
+      setFormation((prev) => ({
+        ...prev,
+        chapters: prev.chapters.map((c) => {
+          if (c.tempId !== chapterTempId) return c
+          return {
+            ...c,
+            subparts: c.subparts.map((s) =>
+              s.tempId === subpartTempId ? { ...s, pdfUrl: url, pdfName: name } : s
+            )
+          }
+        })
+      }))
+    } catch (err: any) {
+      console.error("Erreur lors de l'upload du PDF de la sous-partie:", err)
+      alert(err?.message || 'Impossible de téléverser le PDF pour le moment. Merci de réessayer plus tard.')
+    } finally {
+      setUploadingPdfSubpartId(null)
+      event.target.value = ''
+    }
   }
 
   const handlePhotoChange = async (event: ChangeEvent<HTMLInputElement>) => {
@@ -189,7 +239,7 @@ export default function CourseCreationWizard({ onClose, onSuccess, existingForma
       ...formation,
       chapters: formation.chapters.map(c => {
         if (c.tempId === chapterTempId) {
-          return { ...c, subparts: [...c.subparts, { tempId, title: '', vimeoUrl: '', descriptionHtml: '', orderIndex: c.subparts.length }] }
+          return { ...c, subparts: [...c.subparts, { tempId, title: '', vimeoUrl: '', descriptionHtml: '', pdfUrl: '', pdfName: '', orderIndex: c.subparts.length }] }
         }
         return c
       })
@@ -311,12 +361,12 @@ export default function CourseCreationWizard({ onClose, onSuccess, existingForma
           for (const subpart of chapter.subparts) {
             if (subpart.id) {
               const { error: subpartError } = await supabase.from('elearning_subparts')
-                .update({ title: subpart.title, vimeo_url: subpart.vimeoUrl || null, description_html: subpart.descriptionHtml || null, order_index: subpart.orderIndex })
+                .update({ title: subpart.title, vimeo_url: subpart.vimeoUrl || null, description_html: subpart.descriptionHtml || null, pdf_url: subpart.pdfUrl || null, pdf_name: subpart.pdfName || null, order_index: subpart.orderIndex })
                 .eq('id', subpart.id)
               if (subpartError) throw subpartError
             } else {
               const { error: subpartError } = await supabase.from('elearning_subparts')
-                .insert({ chapter_id: chapterId, title: subpart.title, vimeo_url: subpart.vimeoUrl || null, description_html: subpart.descriptionHtml || null, order_index: subpart.orderIndex })
+                .insert({ chapter_id: chapterId, title: subpart.title, vimeo_url: subpart.vimeoUrl || null, description_html: subpart.descriptionHtml || null, pdf_url: subpart.pdfUrl || null, pdf_name: subpart.pdfName || null, order_index: subpart.orderIndex })
               if (subpartError) throw subpartError
             }
           }
@@ -354,7 +404,7 @@ export default function CourseCreationWizard({ onClose, onSuccess, existingForma
 
           if (chapter.subparts.length > 0) {
             const { error: subpartsError } = await supabase.from('elearning_subparts')
-              .insert(chapter.subparts.map(s => ({ chapter_id: chapterData.id, title: s.title, vimeo_url: s.vimeoUrl || null, description_html: s.descriptionHtml || null, order_index: s.orderIndex })))
+              .insert(chapter.subparts.map(s => ({ chapter_id: chapterData.id, title: s.title, vimeo_url: s.vimeoUrl || null, description_html: s.descriptionHtml || null, pdf_url: s.pdfUrl || null, pdf_name: s.pdfName || null, order_index: s.orderIndex })))
             if (subpartsError) throw subpartsError
           }
         }
@@ -557,6 +607,45 @@ export default function CourseCreationWizard({ onClose, onSuccess, existingForma
                                 placeholder="Description de la sous-partie..."
                                 className="w-full px-2 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                               />
+                            </div>
+                            <div>
+                              <label className="block text-xs font-medium text-gray-700 mb-1">Document PDF (optionnel)</label>
+                              {subpart.pdfUrl ? (
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <a
+                                    href={subpart.pdfUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center gap-2 px-3 py-1.5 text-sm bg-blue-50 text-blue-700 rounded-md border border-blue-200 hover:bg-blue-100 transition-colors max-w-full"
+                                  >
+                                    <FileText className="w-4 h-4 flex-shrink-0" />
+                                    <span className="truncate max-w-[16rem]">{subpart.pdfName || 'Document PDF'}</span>
+                                  </a>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      updateSubpart(chapter.tempId, subpart.tempId, 'pdfUrl', '')
+                                      updateSubpart(chapter.tempId, subpart.tempId, 'pdfName', '')
+                                    }}
+                                    className="inline-flex items-center gap-1 px-2 py-1.5 text-xs text-red-600 hover:text-red-700 border border-red-200 rounded-md hover:bg-red-50 transition-colors"
+                                  >
+                                    <X className="w-3.5 h-3.5" />
+                                    Supprimer le PDF
+                                  </button>
+                                </div>
+                              ) : (
+                                <label className="inline-flex items-center gap-2 px-3 py-1.5 text-sm bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 cursor-pointer transition-colors border border-gray-300">
+                                  <FileText className="w-4 h-4" />
+                                  <input
+                                    type="file"
+                                    accept=".pdf,application/pdf"
+                                    onChange={(e) => handleSubpartPdfChange(chapter.tempId, subpart.tempId, e)}
+                                    className="hidden"
+                                    disabled={uploadingPdfSubpartId === subpart.tempId}
+                                  />
+                                  {uploadingPdfSubpartId === subpart.tempId ? 'Téléversement...' : 'Téléverser un PDF'}
+                                </label>
+                              )}
                             </div>
                           </div>
                         )}
