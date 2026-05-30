@@ -12,11 +12,13 @@ import {
   FileText,
   Filter,
   Loader2,
+  Pencil,
   Plus,
   Search,
   Shield,
   Sparkles,
   Tag,
+  Trash2,
   X
 } from 'lucide-react'
 import FreeContentGate from '@/components/FreeContentGate'
@@ -78,6 +80,10 @@ export default function RevueLitteraturePage() {
   const [selectedMonth, setSelectedMonth] = useState<string>('')
   const [showEditor, setShowEditor] = useState(false)
   const [reviewToEdit, setReviewToEdit] = useState<LiteratureReview | null>(null)
+  const [showTagManager, setShowTagManager] = useState(false)
+  const [tagForm, setTagForm] = useState({ name: '', color: '#6366f1' })
+  const [editingTag, setEditingTag] = useState<ReviewTag | null>(null)
+  const [savingTag, setSavingTag] = useState(false)
 
   useEffect(() => {
     loadData()
@@ -172,6 +178,28 @@ export default function RevueLitteraturePage() {
   const isAdmin = profile?.role === 'admin'
   const isFree = profile?.role === 'free'
 
+  const handleSaveTag = async () => {
+    if (!tagForm.name.trim()) return
+    setSavingTag(true)
+    try {
+      const slug = tagForm.name.trim().toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
+      if (editingTag) {
+        await supabase.from('literature_review_tags').update({ name: tagForm.name.trim(), color: tagForm.color, slug }).eq('id', editingTag.id)
+      } else {
+        await supabase.from('literature_review_tags').insert({ name: tagForm.name.trim(), color: tagForm.color, slug })
+      }
+      await loadTags()
+      setTagForm({ name: '', color: '#6366f1' })
+      setEditingTag(null)
+    } catch (e) { console.error(e) } finally { setSavingTag(false) }
+  }
+
+  const handleDeleteTag = async (id: string) => {
+    if (!confirm('Supprimer cette thématique ? Les associations avec les articles seront supprimées.')) return
+    await supabase.from('literature_review_tags').delete().eq('id', id)
+    await loadTags()
+  }
+
   const isEpauleReview = (review: LiteratureReview) => {
     const tagNames = review.tags.map((t) => t.name.toLowerCase())
     const tagSlugs = review.tags.map((t) => t.slug.toLowerCase())
@@ -242,6 +270,81 @@ export default function RevueLitteraturePage() {
 
   return (
     <AuthLayout>
+      {/* Tag Manager Modal */}
+      {showTagManager && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-white/95 backdrop-blur-2xl border border-white/70 shadow-2xl rounded-3xl w-full max-w-md">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+              <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                <Tag className="h-5 w-5 text-indigo-500" /> Gérer les thématiques
+              </h2>
+              <button onClick={() => { setShowTagManager(false); setEditingTag(null); setTagForm({ name: '', color: '#6366f1' }) }} className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 transition">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="px-6 py-4 space-y-4">
+              {/* Existing tags */}
+              {allTags.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Thématiques existantes</p>
+                  {allTags.map(tag => (
+                    <div key={tag.id} className="flex items-center gap-3 p-3 rounded-xl border border-slate-100 bg-slate-50">
+                      <div className="h-4 w-4 rounded-full shrink-0" style={{ backgroundColor: tag.color }} />
+                      <span className="flex-1 text-sm font-medium text-slate-800">{tag.name}</span>
+                      <button onClick={() => { setEditingTag(tag); setTagForm({ name: tag.name, color: tag.color }) }} className="p-1.5 rounded-lg hover:bg-white text-slate-400 hover:text-indigo-600 transition">
+                        <Pencil className="h-3.5 w-3.5" />
+                      </button>
+                      <button onClick={() => handleDeleteTag(tag.id)} className="p-1.5 rounded-lg hover:bg-white text-slate-400 hover:text-red-500 transition">
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Create / edit form */}
+              <div className="space-y-3 pt-2 border-t border-slate-100">
+                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                  {editingTag ? 'Modifier la thématique' : 'Nouvelle thématique'}
+                </p>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={tagForm.name}
+                    onChange={e => setTagForm(prev => ({ ...prev, name: e.target.value }))}
+                    onKeyDown={e => e.key === 'Enter' && handleSaveTag()}
+                    placeholder="Nom de la thématique..."
+                    className="flex-1 px-3 py-2 rounded-xl border border-slate-200 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-300"
+                  />
+                  <input
+                    type="color"
+                    value={tagForm.color}
+                    onChange={e => setTagForm(prev => ({ ...prev, color: e.target.value }))}
+                    className="h-[38px] w-10 rounded-xl border border-slate-200 cursor-pointer p-0.5"
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleSaveTag}
+                    disabled={savingTag || !tagForm.name.trim()}
+                    className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-700 disabled:opacity-50 transition-all"
+                  >
+                    {savingTag ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+                    {editingTag ? 'Enregistrer' : 'Créer'}
+                  </button>
+                  {editingTag && (
+                    <button onClick={() => { setEditingTag(null); setTagForm({ name: '', color: '#6366f1' }) }} className="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 text-sm font-medium hover:bg-slate-50 transition-all">
+                      Annuler
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Editor Modal — outside page wrapper */}
       {showEditor && (
         <LiteratureReviewEditor
@@ -309,16 +412,22 @@ export default function RevueLitteraturePage() {
               </div>
 
               {isAdmin && (
-                <button
-                  onClick={() => {
-                    setReviewToEdit(null)
-                    setShowEditor(true)
-                  }}
-                  className="inline-flex items-center gap-2 rounded-xl bg-indigo-500/90 backdrop-blur-sm border border-indigo-400/30 px-4 py-3 text-sm font-semibold text-white shadow-lg hover:bg-indigo-600/90 transition-all"
-                >
-                  <Plus className="h-4 w-4" />
-                  Nouvel article
-                </button>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    onClick={() => setShowTagManager(true)}
+                    className="inline-flex items-center gap-2 rounded-xl bg-white/10 backdrop-blur-sm border border-white/20 px-4 py-3 text-sm font-semibold text-white/80 hover:bg-white/20 hover:text-white transition-all"
+                  >
+                    <Tag className="h-4 w-4" />
+                    Thématiques
+                  </button>
+                  <button
+                    onClick={() => { setReviewToEdit(null); setShowEditor(true) }}
+                    className="inline-flex items-center gap-2 rounded-xl bg-indigo-500/90 backdrop-blur-sm border border-indigo-400/30 px-4 py-3 text-sm font-semibold text-white shadow-lg hover:bg-indigo-600/90 transition-all"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Nouvel article
+                  </button>
+                </div>
               )}
             </div>
           </div>
