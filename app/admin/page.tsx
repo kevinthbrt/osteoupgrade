@@ -7,6 +7,7 @@ import AuthLayout from '@/components/AuthLayout'
 import {
   Users,
   Shield,
+  Layers,
   Mail,
   DollarSign,
   Send,
