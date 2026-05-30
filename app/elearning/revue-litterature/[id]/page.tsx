@@ -5,6 +5,7 @@ import { useRouter, useParams } from 'next/navigation'
 import AuthLayout from '@/components/AuthLayout'
 import { supabase } from '@/lib/supabase'
 import { MarkdownContent } from '@/components/MarkdownContent'
+import { ThrustScore } from '@/components/ThrustScore'
 import {
   ArrowLeft,
   Calendar,
@@ -47,6 +48,8 @@ type LiteratureReview = {
   published_date: string
   created_at: string
   tags: ReviewTag[]
+  thrust_score?: 'A' | 'B' | 'C' | 'D' | 'E' | null
+  thrust_score_explanation?: string | null
 }
 
 export default function LiteratureReviewDetailPage() {
@@ -105,7 +108,9 @@ export default function LiteratureReviewDetailPage() {
           study_url: data.study_url,
           published_date: data.published_date,
           created_at: data.created_at,
-          tags: (data.tags || []).map((t: any) => t.tag).filter(Boolean)
+          tags: (data.tags || []).map((t: any) => t.tag).filter(Boolean),
+          thrust_score: data.thrust_score,
+          thrust_score_explanation: data.thrust_score_explanation,
         }
 
         setReview(parsed)
@@ -422,6 +427,20 @@ export default function LiteratureReviewDetailPage() {
                   </h3>
                   <MarkdownContent content={content.conclusion} className="[&_p]:text-lg [&_p]:leading-relaxed [&_p]:text-slate-700" />
                   <ImageBlock images={getImagesByPosition('conclusion')} />
+                </section>
+              )}
+
+              {/* T(H)rust Score block */}
+              {review.thrust_score && (
+                <section className="bg-slate-50 rounded-2xl p-8 border border-slate-200">
+                  <h3 className="text-lg font-bold text-slate-800 mb-5">
+                    Indice de confiance
+                  </h3>
+                  <ThrustScore
+                    score={review.thrust_score}
+                    explanation={review.thrust_score_explanation}
+                    size="md"
+                  />
                 </section>
               )}
 
