@@ -358,7 +358,7 @@ export default function AdminBroadcastsPage() {
                   <div key={b.id} className="rounded-2xl bg-white/90 backdrop-blur-xl border border-white/70 shadow-lg ring-1 ring-inset ring-white/60 overflow-hidden">
                     {b.image_url && (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img src={b.image_url} alt={b.title} className="w-full h-40 object-cover" />
+                      <img src={b.image_url} alt={b.title} className="w-full max-h-48 object-contain bg-slate-100" />
                     )}
                     <div className="p-5">
                       <div className="flex items-start justify-between gap-4">

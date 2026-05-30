@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import AuthLayout from '@/components/AuthLayout'
 import { supabase } from '@/lib/supabase'
+import { MarkdownContent } from '@/components/MarkdownContent'
 import {
   ArrowLeft,
   Calendar,
@@ -274,9 +275,7 @@ export default function LiteratureReviewDetailPage() {
                   <h2 className="text-4xl md:text-5xl font-bold text-white mb-4 leading-tight drop-shadow-lg">
                     {review.title}
                   </h2>
-                  <p className="text-xl text-white/90 leading-relaxed drop-shadow-md whitespace-pre-line">
-                    {review.summary}
-                  </p>
+                  <MarkdownContent content={review.summary} className="text-white/90 [&_p]:text-xl [&_p]:leading-relaxed [&_p]:drop-shadow-md [&_strong]:text-white [&_em]:text-white/90" />
                 </div>
               </div>
             </div>
@@ -300,9 +299,9 @@ export default function LiteratureReviewDetailPage() {
                 <h2 className="text-4xl md:text-5xl font-bold text-slate-900 mb-6 leading-tight">
                   {review.title}
                 </h2>
-                <p className="text-xl text-slate-700 leading-relaxed border-l-4 border-emerald-500 pl-6 py-2 bg-emerald-50/50 whitespace-pre-line">
-                  {review.summary}
-                </p>
+                <div className="text-xl text-slate-700 leading-relaxed border-l-4 border-emerald-500 pl-6 py-2 bg-emerald-50/50">
+                  <MarkdownContent content={review.summary} />
+                </div>
               </div>
             </div>
           )}
@@ -337,9 +336,7 @@ export default function LiteratureReviewDetailPage() {
               {/* Introduction */}
               {content?.introduction && (
                 <section>
-                  <p className="text-xl leading-relaxed text-slate-800 font-serif whitespace-pre-line first-letter:text-6xl first-letter:font-bold first-letter:text-emerald-600 first-letter:float-left first-letter:mr-3 first-letter:leading-none first-letter:mt-1">
-                    {content.introduction}
-                  </p>
+                  <MarkdownContent content={content.introduction} className="[&_p]:text-xl [&_p]:leading-relaxed [&_p]:text-slate-800 [&_p]:font-serif" />
                   <ImageBlock images={getImagesByPosition('introduction')} />
                 </section>
               )}
@@ -350,9 +347,7 @@ export default function LiteratureReviewDetailPage() {
                   <h3 className="text-2xl font-bold text-slate-900 mb-4 pb-2 border-b-2 border-emerald-500">
                     Contexte
                   </h3>
-                  <p className="text-lg leading-relaxed text-slate-700 whitespace-pre-line">
-                    {content.contexte}
-                  </p>
+                  <MarkdownContent content={content.contexte} className="[&_p]:text-lg [&_p]:leading-relaxed [&_p]:text-slate-700" />
                   <ImageBlock images={getImagesByPosition('contexte')} />
                 </section>
               )}
@@ -366,9 +361,7 @@ export default function LiteratureReviewDetailPage() {
                       Méthodologie
                     </h3>
                   </div>
-                  <p className="text-lg leading-relaxed text-slate-700 whitespace-pre-line">
-                    {content.methodologie}
-                  </p>
+                  <MarkdownContent content={content.methodologie} className="[&_p]:text-lg [&_p]:leading-relaxed [&_p]:text-slate-700" />
                   <ImageBlock images={getImagesByPosition('methodologie')} />
                 </section>
               )}
@@ -379,9 +372,7 @@ export default function LiteratureReviewDetailPage() {
                   <h3 className="text-2xl font-bold text-slate-900 mb-4 pb-2 border-b-2 border-emerald-500">
                     Résultats
                   </h3>
-                  <p className="text-lg leading-relaxed text-slate-700 whitespace-pre-line">
-                    {content.resultats}
-                  </p>
+                  <MarkdownContent content={content.resultats} className="[&_p]:text-lg [&_p]:leading-relaxed [&_p]:text-slate-700" />
                   <ImageBlock images={getImagesByPosition('resultats')} />
                 </section>
               )}
@@ -395,9 +386,7 @@ export default function LiteratureReviewDetailPage() {
                       💡 Implications Cliniques
                     </h3>
                   </div>
-                  <p className="text-lg leading-relaxed text-slate-800 font-medium whitespace-pre-line">
-                    {content.implications}
-                  </p>
+                  <MarkdownContent content={content.implications} className="[&_p]:text-lg [&_p]:leading-relaxed [&_p]:text-slate-800 [&_p]:font-medium" />
                 </section>
               )}
 
@@ -417,7 +406,7 @@ export default function LiteratureReviewDetailPage() {
                           {idx + 1}
                         </span>
                         <span className="text-lg text-slate-700 leading-relaxed pt-0.5">
-                          {point}
+                          <MarkdownContent content={point} className="[&_p]:inline [&_p]:text-lg [&_p]:text-slate-700" />
                         </span>
                       </li>
                     ))}
@@ -431,9 +420,7 @@ export default function LiteratureReviewDetailPage() {
                   <h3 className="text-2xl font-bold text-slate-900 mb-4 pb-2 border-b-2 border-emerald-500">
                     Conclusion
                   </h3>
-                  <p className="text-lg leading-relaxed text-slate-700 whitespace-pre-line">
-                    {content.conclusion}
-                  </p>
+                  <MarkdownContent content={content.conclusion} className="[&_p]:text-lg [&_p]:leading-relaxed [&_p]:text-slate-700" />
                   <ImageBlock images={getImagesByPosition('conclusion')} />
                 </section>
               )}

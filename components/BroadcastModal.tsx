@@ -101,7 +101,7 @@ export default function BroadcastModal() {
         {/* Top image */}
         {current.image_url && !current.video_url && (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={current.image_url} alt={current.title} className="w-full h-52 object-cover" />
+          <img src={current.image_url} alt={current.title} className="w-full max-h-72 object-contain bg-slate-100" />
         )}
 
         {/* Video */}
