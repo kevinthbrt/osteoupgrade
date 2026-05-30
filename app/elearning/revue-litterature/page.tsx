@@ -273,8 +273,8 @@ export default function RevueLitteraturePage() {
       {/* Tag Manager Modal */}
       {showTagManager && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="bg-white/95 backdrop-blur-2xl border border-white/70 shadow-2xl rounded-3xl w-full max-w-md">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+          <div className="bg-white/95 backdrop-blur-2xl border border-white/70 shadow-2xl rounded-3xl w-full max-w-md flex flex-col max-h-[85vh]">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 shrink-0">
               <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
                 <Tag className="h-5 w-5 text-indigo-500" /> Gérer les thématiques
               </h2>
@@ -283,7 +283,7 @@ export default function RevueLitteraturePage() {
               </button>
             </div>
 
-            <div className="px-6 py-4 space-y-4">
+            <div className="px-6 py-4 space-y-4 overflow-y-auto">
               {/* Existing tags */}
               {allTags.length > 0 && (
                 <div className="space-y-2">
