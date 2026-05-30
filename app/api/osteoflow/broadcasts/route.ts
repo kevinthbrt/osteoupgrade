@@ -22,18 +22,6 @@ const supabaseNoStore = createClient(
   }
 )
 
-// Decode a Supabase JWT's payload without verifying — debug only.
-function decodeJwtRef(token: string | undefined): string | null {
-  try {
-    if (!token) return null
-    const payload = token.split('.')[1]
-    const json = JSON.parse(Buffer.from(payload, 'base64').toString('utf8'))
-    return json.ref ?? null
-  } catch {
-    return null
-  }
-}
-
 // GET /api/osteoflow/broadcasts
 // Returns all active broadcasts targeting osteoflow or both.
 // Seen state is tracked locally in Osteoflow's SQLite — not filtered here.
@@ -54,27 +42,6 @@ export async function GET(req: NextRequest) {
   const broadcasts = (data ?? []).filter(
     (b: { target: string }) => b.target === 'osteoflow' || b.target === 'both'
   )
-
-  // Debug: ?debug=1 reveals which Supabase project is actually contacted at
-  // runtime + the raw, unfiltered row list. Remove once the issue is confirmed.
-  if (req.nextUrl.searchParams.get('debug') === '1') {
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL || null
-    const host = url ? new URL(url).host : null
-    return NextResponse.json({
-      debug: {
-        supabase_url_host: host,
-        service_role_project_ref: decodeJwtRef(process.env.SUPABASE_SERVICE_ROLE_KEY),
-        total_rows_in_table: data?.length ?? 0,
-        all_titles: (data ?? []).map((b: { title: string; target: string }) => ({
-          title: b.title,
-          target: b.target,
-        })),
-        returned_after_filter: broadcasts.length,
-        now: new Date().toISOString(),
-      },
-      broadcasts,
-    })
-  }
 
   return NextResponse.json({ broadcasts }, {
     headers: { 'Cache-Control': 'no-store, max-age=0, must-revalidate' },
