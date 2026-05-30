@@ -14,23 +14,17 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
   }
 
-  // Try without filter first to diagnose
-  const { data: all, error: errAll } = await supabaseAdmin
-    .from('admin_broadcasts')
-    .select('id, title, target')
-    .order('created_at', { ascending: false })
-
-  console.log('[proxy/broadcasts] all rows:', JSON.stringify(all), '| error:', errAll?.message)
-
-  const { data: broadcasts, error } = await supabaseAdmin
+  const { data, error } = await supabaseAdmin
     .from('admin_broadcasts')
     .select('*')
-    .in('target', ['osteoflow', 'both'])
     .order('created_at', { ascending: false })
-
-  console.log('[proxy/broadcasts] filtered rows:', JSON.stringify(broadcasts), '| error:', error?.message)
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-  return NextResponse.json({ broadcasts: broadcasts ?? [] })
+  // Filter in JS — avoids any .in() Supabase client quirks
+  const broadcasts = (data ?? []).filter(
+    (b: { target: string }) => b.target === 'osteoflow' || b.target === 'both'
+  )
+
+  return NextResponse.json({ broadcasts })
 }
