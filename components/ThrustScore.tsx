@@ -1,4 +1,5 @@
 import React from 'react'
+import { MarkdownContent } from './MarkdownContent'
 
 type Score = 'A' | 'B' | 'C' | 'D' | 'E'
 
@@ -20,12 +21,18 @@ export function ThrustScore({ score, explanation, size = 'md' }: Props) {
   const barH = size === 'sm' ? 'h-8' : size === 'lg' ? 'h-14' : 'h-11'
   const barText = size === 'sm' ? 'text-sm' : size === 'lg' ? 'text-2xl' : 'text-lg'
   const titleText = size === 'sm' ? 'text-[10px]' : size === 'lg' ? 'text-sm' : 'text-xs'
-  const activeSize = size === 'sm' ? 'h-10 w-10 text-base' : size === 'lg' ? 'h-16 w-16 text-3xl' : 'h-13 w-13 text-xl'
+
+  const activeWidth = size === 'sm' ? 40 : size === 'lg' ? 72 : 60
+  const activeHeight = size === 'sm' ? 40 : size === 'lg' ? 72 : 60
+  const activeFontSize = size === 'sm' ? 18 : size === 'lg' ? 34 : 26
+  const activeMargin = -(size === 'sm' ? 6 : size === 'lg' ? 12 : 10)
+
+  const activeGrade = GRADES.find(g => g.letter === score)
 
   return (
-    <div className="inline-block">
-      {/* Label badge */}
-      <div className="bg-white border-2 border-slate-300 rounded-2xl shadow-md inline-flex flex-col items-stretch overflow-visible px-3 pt-2.5 pb-3 gap-2 min-w-[200px]">
+    <div className="inline-block w-full">
+      {/* Score widget */}
+      <div className="bg-white border-2 border-slate-300 rounded-2xl shadow-md inline-flex flex-col items-stretch overflow-visible px-3 pt-2.5 pb-3 gap-2 min-w-[220px]">
         {/* Title */}
         <p className={`${titleText} font-bold text-slate-600 tracking-widest uppercase text-center`}>
           T(H)rust Score
@@ -37,19 +44,18 @@ export function ThrustScore({ score, explanation, size = 'md' }: Props) {
             const isActive = g.letter === score
             return (
               <div key={g.letter} className="relative flex-1 flex items-center justify-center">
-                {/* Active "pill" raised above */}
                 {isActive ? (
                   <div
-                    className={`flex items-center justify-center rounded-full font-black shadow-lg z-10 ${activeSize}`}
+                    className="flex items-center justify-center rounded-full font-black shadow-lg z-10"
                     style={{
                       backgroundColor: g.bg,
                       color: g.text,
-                      width: size === 'sm' ? 40 : size === 'lg' ? 64 : 52,
-                      height: size === 'sm' ? 40 : size === 'lg' ? 64 : 52,
-                      fontSize: size === 'sm' ? 18 : size === 'lg' ? 30 : 22,
-                      boxShadow: `0 4px 14px 0 ${g.bg}88`,
-                      marginTop: -(size === 'sm' ? 6 : size === 'lg' ? 10 : 8),
-                      marginBottom: -(size === 'sm' ? 6 : size === 'lg' ? 10 : 8),
+                      width: activeWidth,
+                      height: activeHeight,
+                      fontSize: activeFontSize,
+                      boxShadow: `0 4px 18px 0 ${g.bg}99`,
+                      marginTop: activeMargin,
+                      marginBottom: activeMargin,
                     }}
                   >
                     {g.letter}
@@ -77,15 +83,21 @@ export function ThrustScore({ score, explanation, size = 'md' }: Props) {
         </div>
 
         {/* Active grade label */}
-        <p className={`${titleText} font-semibold text-center`} style={{ color: GRADES.find(g => g.letter === score)?.bg }}>
-          {GRADES.find(g => g.letter === score)?.label}
+        <p className={`${titleText} font-semibold text-center`} style={{ color: activeGrade?.bg }}>
+          {activeGrade?.label}
         </p>
       </div>
 
-      {/* Explanation */}
+      {/* Explanation with markdown rendering */}
       {explanation && (
-        <div className="mt-3 text-sm text-slate-600 leading-relaxed italic border-l-4 pl-3 py-1" style={{ borderColor: GRADES.find(g => g.letter === score)?.bg }}>
-          {explanation}
+        <div
+          className="mt-4 rounded-xl p-4 border-l-4"
+          style={{ borderColor: activeGrade?.bg, backgroundColor: `${activeGrade?.bg}10` }}
+        >
+          <MarkdownContent
+            content={explanation}
+            className="[&_p]:text-slate-700 [&_p]:leading-relaxed [&_p]:text-sm [&_h2]:text-slate-800 [&_h3]:text-slate-700 [&_strong]:text-slate-900"
+          />
         </div>
       )}
     </div>

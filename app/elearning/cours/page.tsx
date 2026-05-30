@@ -357,6 +357,21 @@ export default function CoursPage() {
 
   const progress = useMemo(() => computeProgress(selectedFormation), [selectedFormation])
 
+  const downloadPdf = async (url: string, name?: string) => {
+    try {
+      const res = await fetch(url)
+      const blob = await res.blob()
+      const objUrl = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = objUrl
+      a.download = name || 'ressource.pdf'
+      a.click()
+      URL.revokeObjectURL(objUrl)
+    } catch {
+      window.open(url, '_blank')
+    }
+  }
+
   const handleDeleteFormation = async (id: string) => {
     if (!confirm('Êtes-vous sûr de vouloir supprimer cette formation ? Cette action est irréversible.')) {
       return
@@ -1092,16 +1107,13 @@ export default function CoursPage() {
                                       <FileDown className="h-5 w-5 text-sky-600" />
                                       <h4 className="text-base font-bold text-sky-900">Ressources à télécharger</h4>
                                     </div>
-                                    <a
-                                      href={selectedSubpart.pdf_url}
-                                      download={selectedSubpart.pdf_name || undefined}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
+                                    <button
+                                      onClick={() => downloadPdf(selectedSubpart.pdf_url!, selectedSubpart.pdf_name)}
                                       className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-sky-500/90 backdrop-blur-sm text-white text-sm font-semibold border border-sky-400/30 hover:bg-sky-600/90 transition-all shadow-sm"
                                     >
                                       <FileDown className="h-5 w-5" />
                                       {selectedSubpart.pdf_name || 'Télécharger le PDF'}
-                                    </a>
+                                    </button>
                                   </div>
                                 )}
 
