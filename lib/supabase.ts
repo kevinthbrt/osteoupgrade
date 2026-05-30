@@ -13,6 +13,21 @@ type TableDefinition<Row> = {
 export type Database = {
   public: {
     Tables: {
+      admin_broadcasts: TableDefinition<{
+        id: string
+        title: string
+        body: string
+        image_url: string | null
+        video_url: string | null
+        target: 'osteoflow' | 'osteoupgrade' | 'both'
+        created_at: string
+        created_by: string | null
+      }>
+      admin_broadcast_views: TableDefinition<{
+        broadcast_id: string
+        user_email: string
+        viewed_at: string
+      }>
       mail_templates: TableDefinition<{
         id: string
         name: string

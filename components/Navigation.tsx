@@ -29,6 +29,7 @@ import {
   Tag
 } from 'lucide-react'
 import AdminNotificationBell from './AdminNotificationBell'
+import UserNotificationBell from './UserNotificationBell'
 
 type MenuItem = {
   href: string
@@ -292,7 +293,10 @@ export default function Navigation() {
                   </p>
                   <p className="text-xs text-blue-300/70 truncate">{user?.email}</p>
                 </div>
-                {getRoleBadge()}
+                <div className="flex items-center gap-1.5 ml-2 shrink-0">
+                  <UserNotificationBell />
+                  {getRoleBadge()}
+                </div>
               </div>
               {profileError && (
                 <p className="mt-2 text-[11px] text-amber-200">
