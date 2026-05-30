@@ -268,6 +268,8 @@ export default function CoursPage() {
                     title: sub.title,
                     vimeo_url: sub.vimeo_url,
                     description_html: sub.description_html,
+                    pdf_url: sub.pdf_url,
+                    pdf_name: sub.pdf_name,
                     order_index: sub.order_index,
                     completed: (sub.progress || []).some((p: any) => p.user_id === userId),
                     quiz,
