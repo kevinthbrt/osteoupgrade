@@ -624,8 +624,17 @@ export default function CourseCreationWizard({ onClose, onSuccess, existingForma
                                   <button
                                     type="button"
                                     onClick={() => {
-                                      updateSubpart(chapter.tempId, subpart.tempId, 'pdfUrl', '')
-                                      updateSubpart(chapter.tempId, subpart.tempId, 'pdfName', '')
+                                      setFormation(prev => ({
+                                        ...prev,
+                                        chapters: prev.chapters.map(c =>
+                                          c.tempId !== chapter.tempId ? c : {
+                                            ...c,
+                                            subparts: c.subparts.map(s =>
+                                              s.tempId !== subpart.tempId ? s : { ...s, pdfUrl: '', pdfName: '' }
+                                            )
+                                          }
+                                        )
+                                      }))
                                     }}
                                     className="inline-flex items-center gap-1 px-2 py-1.5 text-xs text-red-600 hover:text-red-700 border border-red-200 rounded-md hover:bg-red-50 transition-colors"
                                   >
