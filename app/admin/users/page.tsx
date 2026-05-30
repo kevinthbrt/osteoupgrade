@@ -60,6 +60,23 @@ function avatarColor(role: string) {
   return 'bg-slate-400'
 }
 
+function subscriptionStatusBadge(status: string) {
+  const map: Record<string, { label: string; bg: string; color: string }> = {
+    active:             { label: 'Actif',      bg: 'bg-green-100',  color: 'text-green-800'  },
+    canceled:           { label: 'Annulé',     bg: 'bg-red-100',    color: 'text-red-700'    },
+    past_due:           { label: 'Impayé',     bg: 'bg-orange-100', color: 'text-orange-800' },
+    trialing:           { label: 'Essai',      bg: 'bg-blue-100',   color: 'text-blue-700'   },
+    incomplete:         { label: 'Incomplet',  bg: 'bg-yellow-100', color: 'text-yellow-800' },
+    incomplete_expired: { label: 'Expiré',     bg: 'bg-gray-100',   color: 'text-gray-600'   },
+  }
+  const s = map[status] ?? { label: status, bg: 'bg-gray-100', color: 'text-gray-600' }
+  return (
+    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${s.bg} ${s.color}`}>
+      {s.label}
+    </span>
+  )
+}
+
 // ── component ──────────────────────────────────────────────────────────────
 
 export default function UsersManagementPage() {
@@ -259,7 +276,9 @@ export default function UsersManagementPage() {
     total: users.length,
     free: users.filter(u => u.role === 'free').length,
     premium: users.filter(u => u.role === 'premium').length,
-    admin: users.filter(u => u.role === 'admin').length
+    admin: users.filter(u => u.role === 'admin').length,
+    canceled: users.filter(u => u.subscription_status === 'canceled').length,
+    newsletterOptIn: users.filter(u => u.newsletter_opt_in).length,
   }
 
   if (loading) {
@@ -329,45 +348,30 @@ export default function UsersManagementPage() {
             </div>
 
             {/* ── Stats Cards ── */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="rounded-2xl bg-white/85 backdrop-blur-2xl border border-white/70 shadow-xl ring-1 ring-inset ring-white/60 p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-slate-500">Total inscrits</p>
-                    <p className="text-2xl font-bold text-slate-800">{stats.total}</p>
-                  </div>
-                  <Users className="h-8 w-8 text-blue-400" />
-                </div>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+              <div className="rounded-2xl bg-white/85 backdrop-blur-2xl border border-white/70 shadow-xl ring-1 ring-inset ring-white/60 p-5">
+                <p className="text-xs text-slate-500 mb-1">Total inscrits</p>
+                <p className="text-2xl font-bold text-slate-800">{stats.total}</p>
               </div>
-
-              <div className="rounded-2xl bg-white/85 backdrop-blur-2xl border border-white/70 shadow-xl ring-1 ring-inset ring-white/60 p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-slate-500">Gratuits</p>
-                    <p className="text-2xl font-bold text-slate-800">{stats.free}</p>
-                  </div>
-                  <User className="h-8 w-8 text-slate-400" />
-                </div>
+              <div className="rounded-2xl bg-white/85 backdrop-blur-2xl border border-white/70 shadow-xl ring-1 ring-inset ring-white/60 p-5">
+                <p className="text-xs text-slate-500 mb-1">Gratuits</p>
+                <p className="text-2xl font-bold text-slate-600">{stats.free}</p>
               </div>
-
-              <div className="rounded-2xl bg-white/85 backdrop-blur-2xl border border-white/70 shadow-xl ring-1 ring-inset ring-white/60 p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-slate-500">Premium</p>
-                    <p className="text-2xl font-bold text-yellow-600">{stats.premium}</p>
-                  </div>
-                  <Crown className="h-8 w-8 text-yellow-500" />
-                </div>
+              <div className="rounded-2xl bg-white/85 backdrop-blur-2xl border border-white/70 shadow-xl ring-1 ring-inset ring-white/60 p-5">
+                <p className="text-xs text-slate-500 mb-1">Premium</p>
+                <p className="text-2xl font-bold text-yellow-600">{stats.premium}</p>
               </div>
-
-              <div className="rounded-2xl bg-white/85 backdrop-blur-2xl border border-white/70 shadow-xl ring-1 ring-inset ring-white/60 p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-slate-500">Newsletter pré-lancement</p>
-                    <p className="text-2xl font-bold text-teal-600">{newsletterContacts.length || '—'}</p>
-                  </div>
-                  <Mail className="h-8 w-8 text-teal-500" />
-                </div>
+              <div className="rounded-2xl bg-white/85 backdrop-blur-2xl border border-white/70 shadow-xl ring-1 ring-inset ring-white/60 p-5">
+                <p className="text-xs text-slate-500 mb-1">Annulés</p>
+                <p className="text-2xl font-bold text-red-500">{stats.canceled}</p>
+              </div>
+              <div className="rounded-2xl bg-white/85 backdrop-blur-2xl border border-white/70 shadow-xl ring-1 ring-inset ring-white/60 p-5">
+                <p className="text-xs text-slate-500 mb-1">Newsletter</p>
+                <p className="text-2xl font-bold text-teal-600">{stats.newsletterOptIn}</p>
+              </div>
+              <div className="rounded-2xl bg-white/85 backdrop-blur-2xl border border-white/70 shadow-xl ring-1 ring-inset ring-white/60 p-5">
+                <p className="text-xs text-slate-500 mb-1">Admins</p>
+                <p className="text-2xl font-bold text-purple-600">{stats.admin}</p>
               </div>
             </div>
 
@@ -487,6 +491,7 @@ export default function UsersManagementPage() {
                     <tr>
                       <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Utilisateur</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Rôle</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Abonnement</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Niveau</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Streak</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Dernière connexion</th>
@@ -509,7 +514,14 @@ export default function UsersManagementPage() {
                               </div>
                               <div className="min-w-0">
                                 <p className="text-sm font-medium text-slate-800 truncate">{user.full_name || 'Sans nom'}</p>
-                                <p className="text-xs text-slate-400 truncate">{user.email}</p>
+                                <div className="flex items-center gap-1.5 mt-0.5">
+                                  <p className="text-xs text-slate-400 truncate">{user.email}</p>
+                                  {user.newsletter_opt_in && (
+                                    <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-teal-100 text-teal-700 shrink-0">
+                                      <Mail className="h-2.5 w-2.5" /> NL
+                                    </span>
+                                  )}
+                                </div>
                               </div>
                             </div>
                           </td>
@@ -517,6 +529,27 @@ export default function UsersManagementPage() {
                           {/* Rôle */}
                           <td className="px-6 py-4 whitespace-nowrap">
                             {roleBadge(user.role)}
+                          </td>
+
+                          {/* Abonnement */}
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            {user.subscription_status ? (
+                              <div>
+                                {subscriptionStatusBadge(user.subscription_status)}
+                                {user.subscription_start_date && (
+                                  <p className="text-xs text-slate-400 mt-1">
+                                    depuis {new Date(user.subscription_start_date).toLocaleDateString('fr-FR')}
+                                  </p>
+                                )}
+                                {user.subscription_end_date && user.subscription_status === 'canceled' && (
+                                  <p className="text-xs text-red-400 mt-0.5">
+                                    fin {new Date(user.subscription_end_date).toLocaleDateString('fr-FR')}
+                                  </p>
+                                )}
+                              </div>
+                            ) : (
+                              <span className="text-slate-300 text-sm">—</span>
+                            )}
                           </td>
 
                           {/* Niveau */}
@@ -567,7 +600,7 @@ export default function UsersManagementPage() {
 
                     {filteredUsers.length === 0 && (
                       <tr>
-                        <td colSpan={7} className="px-6 py-12 text-center text-slate-400 text-sm">
+                        <td colSpan={8} className="px-6 py-12 text-center text-slate-400 text-sm">
                           Aucun utilisateur trouvé.
                         </td>
                       </tr>
@@ -631,11 +664,10 @@ export default function UsersManagementPage() {
                   </div>
                 </div>
 
-                {/* Informations */}
+                {/* Informations générales */}
                 <div>
                   <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Informations</h4>
                   <div className="space-y-3">
-
                     <div>
                       <label className="block text-xs font-medium text-slate-500 mb-1">Rôle</label>
                       <select
@@ -648,34 +680,59 @@ export default function UsersManagementPage() {
                         <option value="admin">Admin</option>
                       </select>
                     </div>
-
                     <div className="flex justify-between text-sm py-1">
                       <span className="text-slate-500">Inscription</span>
                       <span className="text-slate-700 font-medium">{new Date(selectedUser.created_at).toLocaleDateString('fr-FR')}</span>
                     </div>
-
                     <div className="flex justify-between text-sm py-1">
                       <span className="text-slate-500">Dernière connexion</span>
                       <span className="text-slate-700 font-medium">{relativeDate(lastLogin)}</span>
                     </div>
-
-                    {selectedUser.subscription_status && (
-                      <div className="flex justify-between text-sm py-1">
-                        <span className="text-slate-500">Statut abonnement</span>
-                        <span className="text-slate-700 font-medium capitalize">{selectedUser.subscription_status}</span>
-                      </div>
-                    )}
-
-                    {selectedUser.subscription_end_date && (
-                      <div className="flex justify-between text-sm py-1">
-                        <span className="text-slate-500">Fin d&apos;abonnement</span>
-                        <span className="text-slate-700 font-medium">
-                          {new Date(selectedUser.subscription_end_date).toLocaleDateString('fr-FR')}
-                        </span>
-                      </div>
-                    )}
+                    <div className="flex justify-between items-center text-sm py-1">
+                      <span className="text-slate-500 flex items-center gap-1.5"><Mail className="h-3.5 w-3.5" /> Newsletter</span>
+                      {selectedUser.newsletter_opt_in ? (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-teal-100 text-teal-800">Inscrit</span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-500">Non inscrit</span>
+                      )}
+                    </div>
                   </div>
                 </div>
+
+                {/* Abonnement Premium */}
+                {selectedUser.subscription_status && (
+                  <div>
+                    <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Abonnement Premium</h4>
+                    <div className="rounded-xl bg-yellow-50/70 border border-yellow-100 p-4 space-y-2.5">
+                      <div className="flex justify-between items-center text-sm">
+                        <span className="text-slate-500">Statut</span>
+                        {subscriptionStatusBadge(selectedUser.subscription_status)}
+                      </div>
+                      {selectedUser.subscription_start_date && (
+                        <div className="flex justify-between text-sm">
+                          <span className="text-slate-500">Début</span>
+                          <span className="text-slate-700 font-medium">{new Date(selectedUser.subscription_start_date).toLocaleDateString('fr-FR')}</span>
+                        </div>
+                      )}
+                      {selectedUser.subscription_end_date && (
+                        <div className="flex justify-between text-sm">
+                          <span className="text-slate-500">
+                            {selectedUser.subscription_status === 'canceled' ? 'Accès jusqu\'au' : 'Prochain renouvellement'}
+                          </span>
+                          <span className={`font-medium ${selectedUser.subscription_status === 'canceled' ? 'text-red-600' : 'text-slate-700'}`}>
+                            {new Date(selectedUser.subscription_end_date).toLocaleDateString('fr-FR')}
+                          </span>
+                        </div>
+                      )}
+                      {selectedUser.commitment_end_date && (
+                        <div className="flex justify-between text-sm">
+                          <span className="text-slate-500">Fin d&apos;engagement</span>
+                          <span className="text-slate-700 font-medium">{new Date(selectedUser.commitment_end_date).toLocaleDateString('fr-FR')}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
 
                 {/* Actions */}
                 <div>
