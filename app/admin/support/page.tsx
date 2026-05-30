@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import AuthLayout from '@/components/AuthLayout'
-import { Clock, Wrench, CheckCircle, Paperclip, Loader2, RefreshCw, Filter } from 'lucide-react'
+import { Clock, Wrench, CheckCircle, Paperclip, Loader2, RefreshCw, Filter, Trash2, Send, MessageSquareReply, X } from 'lucide-react'
 
 interface Ticket {
   id: string
@@ -16,6 +16,8 @@ interface Ticket {
   license_email?: string | null
   attachment_name?: string | null
   attachment_url?: string | null
+  admin_reply?: string | null
+  admin_replied_at?: string | null
   created_at: string
   updated_at: string
 }
@@ -38,14 +40,12 @@ export default function AdminSupportPage() {
   const [statusFilter, setStatusFilter] = useState('all')
   const [selected, setSelected] = useState<Ticket | null>(null)
   const [updatingId, setUpdatingId] = useState<string | null>(null)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [replyText, setReplyText] = useState('')
+  const [sendingReply, setSendingReply] = useState(false)
 
-  useEffect(() => {
-    checkAdmin()
-  }, [])
-
-  useEffect(() => {
-    fetchTickets()
-  }, [statusFilter])
+  useEffect(() => { checkAdmin() }, [])
+  useEffect(() => { fetchTickets() }, [statusFilter])
 
   const checkAdmin = async () => {
     const { data: { user } } = await supabase.auth.getUser()
@@ -59,10 +59,7 @@ export default function AdminSupportPage() {
     try {
       const url = statusFilter === 'all' ? '/api/admin/support' : `/api/admin/support?status=${statusFilter}`
       const res = await fetch(url)
-      if (res.ok) {
-        const data = await res.json()
-        setTickets(data.tickets || [])
-      }
+      if (res.ok) setTickets((await res.json()).tickets || [])
     } finally {
       setLoading(false)
     }
@@ -77,13 +74,53 @@ export default function AdminSupportPage() {
         body: JSON.stringify({ status }),
       })
       if (res.ok) {
-        setTickets(prev => prev.map(t => t.id === id ? { ...t, status: status as Ticket['status'] } : t))
-        if (selected?.id === id) setSelected(prev => prev ? { ...prev, status: status as Ticket['status'] } : null)
+        const updated = (await res.json()).ticket
+        setTickets(prev => prev.map(t => t.id === id ? updated : t))
+        if (selected?.id === id) setSelected(updated)
       }
     } finally {
       setUpdatingId(null)
     }
   }
+
+  const sendReply = async () => {
+    if (!selected || !replyText.trim()) return
+    setSendingReply(true)
+    try {
+      const res = await fetch(`/api/admin/support/${selected.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ admin_reply: replyText.trim() }),
+      })
+      if (res.ok) {
+        const updated = (await res.json()).ticket
+        setTickets(prev => prev.map(t => t.id === selected.id ? updated : t))
+        setSelected(updated)
+        setReplyText('')
+      }
+    } finally {
+      setSendingReply(false)
+    }
+  }
+
+  const deleteTicket = async (id: string) => {
+    if (!confirm('Supprimer ce ticket définitivement ?')) return
+    setDeletingId(id)
+    try {
+      const res = await fetch(`/api/admin/support/${id}`, { method: 'DELETE' })
+      if (res.ok) {
+        setTickets(prev => prev.filter(t => t.id !== id))
+        if (selected?.id === id) setSelected(null)
+      }
+    } finally {
+      setDeletingId(null)
+    }
+  }
+
+  // Sync reply text when selected ticket changes
+  useEffect(() => {
+    setReplyText(selected?.admin_reply || '')
+  }, [selected?.id])
 
   const counts = {
     all: tickets.length,
@@ -117,9 +154,7 @@ export default function AdminSupportPage() {
                 key={s}
                 onClick={() => { setStatusFilter(s); setSelected(null) }}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium border transition-colors ${
-                  statusFilter === s
-                    ? 'bg-indigo-600 text-white border-indigo-600'
-                    : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
+                  statusFilter === s ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
                 }`}
               >
                 <Filter className="w-3.5 h-3.5" />
@@ -132,13 +167,11 @@ export default function AdminSupportPage() {
           })}
         </div>
 
-        <div className={`grid gap-4 ${selected ? 'lg:grid-cols-[1fr_400px]' : 'grid-cols-1'}`}>
+        <div className={`grid gap-4 ${selected ? 'lg:grid-cols-[1fr_420px]' : 'grid-cols-1'}`}>
           {/* Ticket list */}
           <div className="space-y-2">
             {loading ? (
-              <div className="flex justify-center py-12">
-                <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
-              </div>
+              <div className="flex justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-gray-400" /></div>
             ) : tickets.length === 0 ? (
               <div className="text-center py-12 text-gray-400">Aucun ticket</div>
             ) : (
@@ -159,19 +192,30 @@ export default function AdminSupportPage() {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1 flex-wrap">
                           <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border ${cfg.color}`}>
-                            <Icon className="w-3 h-3" />
-                            {cfg.label}
+                            <Icon className="w-3 h-3" />{cfg.label}
                           </span>
                           <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${SOURCE_COLORS[ticket.source] || 'bg-gray-100 text-gray-600 border-gray-200'}`}>
                             {ticket.source === 'osteoflow' ? 'MyOsteoFlow' : 'OsteoUpgrade'}
                           </span>
+                          {ticket.admin_reply && (
+                            <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-700 border border-purple-200">
+                              <MessageSquareReply className="w-3 h-3" />Répondu
+                            </span>
+                          )}
                         </div>
                         <p className="font-medium text-gray-900 text-sm truncate">{ticket.title}</p>
                         <p className="text-xs text-gray-400 mt-0.5">{ticket.user_email} · {new Date(ticket.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
                       </div>
-                      {ticket.attachment_name && (
-                        <Paperclip className="w-4 h-4 text-gray-400 shrink-0 mt-1" />
-                      )}
+                      <div className="flex items-center gap-2 shrink-0">
+                        {ticket.attachment_name && <Paperclip className="w-4 h-4 text-gray-400" />}
+                        <button
+                          onClick={e => { e.stopPropagation(); deleteTicket(ticket.id) }}
+                          disabled={deletingId === ticket.id}
+                          className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors disabled:opacity-50"
+                        >
+                          {deletingId === ticket.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                        </button>
+                      </div>
                     </div>
                   </div>
                 )
@@ -184,7 +228,9 @@ export default function AdminSupportPage() {
             <div className="rounded-2xl border border-gray-200 bg-white p-5 space-y-4 self-start sticky top-4">
               <div className="flex items-start justify-between gap-2">
                 <h2 className="font-semibold text-gray-900 leading-tight">{selected.title}</h2>
-                <button onClick={() => setSelected(null)} className="text-gray-400 hover:text-gray-600 shrink-0">✕</button>
+                <button onClick={() => setSelected(null)} className="text-gray-400 hover:text-gray-600 shrink-0">
+                  <X className="w-4 h-4" />
+                </button>
               </div>
 
               <div className="flex flex-wrap gap-2 text-xs">
@@ -205,21 +251,43 @@ export default function AdminSupportPage() {
                 <p><strong>Le :</strong> {new Date(selected.created_at).toLocaleString('fr-FR')}</p>
               </div>
 
+              {/* Message */}
               <div className="bg-gray-50 rounded-lg p-3 border border-gray-100">
                 <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">{selected.message}</p>
               </div>
 
               {selected.attachment_name && (
-                <a
-                  href={selected.attachment_url || '#'}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-2 text-xs text-indigo-600 hover:underline"
-                >
-                  <Paperclip className="w-3.5 h-3.5" />
-                  {selected.attachment_name}
+                <a href={selected.attachment_url || '#'} target="_blank" rel="noopener noreferrer"
+                  className="flex items-center gap-2 text-xs text-indigo-600 hover:underline">
+                  <Paperclip className="w-3.5 h-3.5" />{selected.attachment_name}
                 </a>
               )}
+
+              {/* Reply section */}
+              <div className="space-y-2">
+                <p className="text-xs font-medium text-gray-500 uppercase tracking-wider flex items-center gap-1.5">
+                  <MessageSquareReply className="w-3.5 h-3.5" />
+                  Réponse à l&apos;utilisateur
+                </p>
+                {selected.admin_replied_at && (
+                  <p className="text-xs text-purple-600">Répondu le {new Date(selected.admin_replied_at).toLocaleString('fr-FR')}</p>
+                )}
+                <textarea
+                  value={replyText}
+                  onChange={e => setReplyText(e.target.value)}
+                  rows={4}
+                  placeholder="Écrivez votre réponse… Un email sera envoyé à l'utilisateur."
+                  className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm text-gray-800 resize-none focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400"
+                />
+                <button
+                  onClick={sendReply}
+                  disabled={sendingReply || !replyText.trim()}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700 disabled:opacity-50 transition-colors"
+                >
+                  {sendingReply ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                  {selected.admin_reply ? 'Mettre à jour la réponse' : 'Envoyer la réponse'}
+                </button>
+              </div>
 
               {/* Status actions */}
               <div className="space-y-2">
@@ -235,9 +303,7 @@ export default function AdminSupportPage() {
                         onClick={() => updateStatus(selected.id, s)}
                         disabled={isActive || updatingId === selected.id}
                         className={`flex flex-col items-center gap-1 p-2 rounded-lg border text-xs font-medium transition-all ${
-                          isActive
-                            ? `${cfg.color} cursor-default`
-                            : 'border-gray-200 text-gray-500 hover:bg-gray-50'
+                          isActive ? `${cfg.color} cursor-default` : 'border-gray-200 text-gray-500 hover:bg-gray-50'
                         }`}
                       >
                         {updatingId === selected.id && !isActive
@@ -250,6 +316,16 @@ export default function AdminSupportPage() {
                   })}
                 </div>
               </div>
+
+              {/* Delete */}
+              <button
+                onClick={() => deleteTicket(selected.id)}
+                disabled={deletingId === selected.id}
+                className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg border border-red-200 text-red-600 text-sm font-medium hover:bg-red-50 disabled:opacity-50 transition-colors"
+              >
+                {deletingId === selected.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                Supprimer ce ticket
+              </button>
             </div>
           )}
         </div>

@@ -141,7 +141,7 @@ export default function UserNotificationBell() {
           <div className="relative z-10 w-full max-w-lg rounded-2xl bg-white shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
             {selected.image_url && !selected.video_url && (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={selected.image_url} alt={selected.title} className="w-full h-52 object-cover" />
+              <img src={selected.image_url} alt={selected.title} className="w-full max-h-72 object-contain bg-slate-100" />
             )}
             {selected.video_url && (
               <video src={selected.video_url} controls className="w-full max-h-56 object-cover bg-black" />
