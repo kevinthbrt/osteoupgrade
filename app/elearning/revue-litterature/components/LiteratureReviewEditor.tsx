@@ -554,7 +554,6 @@ export default function LiteratureReviewEditor({ existingReview, allTags, onClos
                         className={`flex-1 h-10 rounded-lg font-black text-base transition-all ${isSelected ? 'text-white shadow-md scale-110 ring-2 ring-offset-2' : 'text-white/60'}`}
                         style={{
                           backgroundColor: colors[letter],
-                          ringColor: isSelected ? colors[letter] : undefined,
                           opacity: isSelected ? 1 : 0.45,
                         }}
                       >
