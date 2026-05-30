@@ -17,7 +17,8 @@ import {
   ArrowRight,
   Inbox,
   Tag,
-  LifeBuoy
+  LifeBuoy,
+  Megaphone
 } from 'lucide-react'
 
 export default function AdminPage() {
@@ -127,6 +128,13 @@ export default function AdminPage() {
       icon: LifeBuoy,
       color: 'from-indigo-500 to-indigo-600',
       href: '/admin/support'
+    },
+    {
+      title: 'Diffusions',
+      description: 'Envoyer un message à tous les utilisateurs sur MyOsteoFlow et/ou OsteoUpgrade',
+      icon: Megaphone,
+      color: 'from-sky-500 to-cyan-600',
+      href: '/admin/broadcasts'
     }
   ]
 
