@@ -4,12 +4,15 @@ export default function PublicFooter() {
       <div className="max-w-7xl mx-auto">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-10 mb-12">
           <div className="md:col-span-1">
-            <div className="text-xl font-bold text-slate-900 mb-4">
-              Osteo<span className="text-amber-500">Upgrade</span>
+            <div className="text-lg font-bold text-slate-900 mb-4 flex flex-wrap items-center gap-2">
+              <span>Osteo<span className="text-sky-500">Upgrade</span></span>
+              <span className="text-slate-900 font-normal">×</span>
+              <span className="font-display italic flow-text">MyOsteoflow</span>
             </div>
             <p className="text-sm text-slate-500 leading-relaxed">
-              La plateforme de référence pour structurer ton raisonnement clinique.
-              Développée par des ostéopathes, pour des ostéopathes.
+              La plateforme tout-en-un des thérapeutes manuels. MyOsteoflow pour gérer votre
+              cabinet, OsteoUpgrade pour faire progresser votre pratique. Par des cliniciens,
+              pour des cliniciens.
             </p>
           </div>
 
@@ -17,8 +20,8 @@ export default function PublicFooter() {
             <h4 className="text-sm font-semibold text-slate-900 mb-4 uppercase tracking-wider">Produit</h4>
             <ul className="space-y-2.5">
               {[
-                { label: 'Fonctionnalités', href: '/#features' },
-                { label: 'MyOsteoFlow', href: '/#osteoflow' },
+                { label: 'MyOsteoflow', href: '/#myosteoflow' },
+                { label: 'OsteoUpgrade', href: '/#osteoupgrade' },
                 { label: 'Tarifs', href: '/#pricing' },
                 { label: 'Essai gratuit', href: '/auth' },
               ].map((link) => (
@@ -68,7 +71,7 @@ export default function PublicFooter() {
 
         <div className="border-t border-slate-200 pt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="text-sm text-slate-400">
-            &copy; {new Date().getFullYear()} OsteoUpgrade. Tous droits réservés.
+            &copy; {new Date().getFullYear()} OsteoUpgrade × MyOsteoflow. Tous droits réservés.
           </div>
           <div className="text-sm text-slate-400">
             Fait avec rigueur, pour des praticiens exigeants.
