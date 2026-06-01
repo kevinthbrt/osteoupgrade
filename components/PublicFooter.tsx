@@ -6,7 +6,7 @@ export default function PublicFooter() {
           <div className="md:col-span-1">
             <div className="text-lg font-bold text-slate-900 mb-4 flex flex-wrap items-center gap-2">
               <span>Osteo<span className="text-sky-500">Upgrade</span></span>
-              <span className="text-slate-300 font-light">×</span>
+              <span className="text-slate-900 font-normal">×</span>
               <span className="font-display italic flow-text">MyOsteoflow</span>
             </div>
             <p className="text-sm text-slate-500 leading-relaxed">

@@ -8,7 +8,6 @@ import { useRouter } from 'next/navigation'
 import {
   CheckCircle,
   ArrowRight,
-  Stethoscope,
   GraduationCap,
   TestTube2,
   Map,
@@ -21,13 +20,9 @@ import {
   X,
   Crown,
   BookOpen,
-  Trophy,
-  Flame,
   Gift,
   Users,
   Wallet,
-  Award,
-  Zap,
   Target,
   Monitor,
   Video,
@@ -106,7 +101,7 @@ function BrandLockup({ className = '' }: { className?: string }) {
       <span>
         Osteo<span className="text-sky-500">Upgrade</span>
       </span>
-      <span className="text-slate-300 font-light">×</span>
+      <span className="text-slate-900 font-normal">×</span>
       <span className="font-display italic flow-text font-bold">MyOsteoflow</span>
     </span>
   )
@@ -167,7 +162,6 @@ export default function LandingPage() {
   const pillars = useScrollReveal()
   const flow = useScrollReveal()
   const upgrade = useScrollReveal()
-  const gamification = useScrollReveal()
   const pricing = useScrollReveal()
   const cta = useScrollReveal()
 
@@ -295,41 +289,41 @@ export default function LandingPage() {
       icon: Map,
       title: 'Topographie clinique',
       painPoint: 'Un doute sur la douleur d’un patient ?',
-      desc: 'Notre bibliothèque d’aide au diagnostic topographique région par région. Identifiez rapidement les structures impliquées et orientez votre bilan clinique.',
+      desc: 'Notre bibliothèque topographique région par région : repérez les structures susceptibles d’être impliquées et orientez votre bilan clinique.',
       gradient: 'from-sky-500 to-indigo-500',
       screenshot: '/landing/screenshots/topographie.png',
       glow: '99, 102, 241',
-      tags: ['Par région', 'Structures', 'Aide diagnostic', 'Raisonnement'],
+      tags: ['Par région', 'Structures', 'Repères cliniques'],
     },
     {
       icon: GraduationCap,
-      title: 'E-Learning & Revue d’études',
-      painPoint: 'Perdu dans la masse d’études scientifiques ?',
-      desc: 'Cours structurés, revues de littérature mensuelles et quiz interactifs. Chaque mois, les meilleures études EBP passées en revue et synthétisées pour la pratique.',
+      title: 'Cours & E-Learning',
+      painPoint: 'Vous voulez vous former en continu ?',
+      desc: 'Cours structurés et quiz interactifs pour monter en compétence à votre rythme, depuis le fauteuil ou entre deux patients.',
       gradient: 'from-violet-500 to-purple-500',
       screenshot: '/landing/screenshots/elearning.png',
       glow: '139, 92, 246',
-      tags: ['500+ contenus', 'EBP mensuel', 'Quiz', 'Revue littérature'],
+      tags: ['Cours structurés', 'Quiz', 'À votre rythme'],
+    },
+    {
+      icon: FileText,
+      title: 'Revue de littérature',
+      painPoint: 'Perdu dans la masse d’études scientifiques ?',
+      desc: 'Chaque mois, la Revue OsteoUpgrade passe en revue et synthétise les meilleures études EBP, prêtes à appliquer en cabinet.',
+      gradient: 'from-emerald-500 to-teal-500',
+      screenshot: '/landing/screenshots/elearning.png',
+      glow: '16, 185, 129',
+      tags: ['EBP mensuel', 'Synthèses', 'Applicable'],
     },
     {
       icon: Play,
       title: 'Techniques en vidéo',
       painPoint: 'Vous manquez de techniques ?',
-      desc: 'Notre catalogue de 150+ techniques de thérapie manuelle (HVLA, mobilisation, tissulaire) organisées par région anatomique, avec démonstrations vidéo détaillées.',
+      desc: 'Notre catalogue de techniques de thérapie manuelle (HVLA, mobilisation, tissulaire) organisées par région anatomique, avec démonstrations vidéo détaillées.',
       gradient: 'from-orange-500 to-red-500',
       screenshot: '/landing/screenshots/videos.png',
       glow: '249, 115, 22',
-      tags: ['150+ techniques', 'HVLA', 'Mobilisation', 'Tissulaire'],
-    },
-    {
-      icon: FileText,
-      title: 'Outils professionnels',
-      painPoint: 'Vous voulez optimiser votre cabinet ?',
-      desc: 'Modèles de courriers prêts à l’emploi, posters pour salle d’attente et supports de communication. Tout pour optimiser votre cabinet au quotidien.',
-      gradient: 'from-emerald-500 to-teal-500',
-      screenshot: '/landing/screenshots/exercices.png',
-      glow: '16, 185, 129',
-      tags: ['Modèles courriers', 'Posters', 'Communication', 'PDF prêts'],
+      tags: ['Par région', 'HVLA', 'Mobilisation', 'Tissulaire'],
     },
   ]
 
@@ -571,13 +565,19 @@ export default function LandingPage() {
               return (
                 <div
                   key={pain.quote}
-                  className="group relative rounded-2xl bg-white border border-slate-200 p-6 hover:shadow-lg hover:-translate-y-0.5 transition-all"
+                  className="group relative flex flex-col rounded-2xl bg-white border border-slate-200 p-5 hover:shadow-lg hover:-translate-y-0.5 transition-all"
                 >
-                  <Quote className="h-6 w-6 text-slate-200 mb-3" />
-                  <p className="text-base font-semibold text-slate-800 leading-snug mb-5 min-h-[3.5rem]">
+                  <MediaSlot
+                    aspect="aspect-[16/9]"
+                    icon={pain.icon}
+                    label="Illustration"
+                    className="mb-5"
+                  />
+                  <Quote className="h-5 w-5 text-slate-200 mb-2" />
+                  <p className="text-base font-semibold text-slate-800 leading-snug mb-5">
                     « {pain.quote} »
                   </p>
-                  <div className="flex items-center gap-3 pt-4 border-t border-slate-100">
+                  <div className="mt-auto flex items-center gap-3 pt-4 border-t border-slate-100">
                     <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${isFlow ? 'flow-gradient' : 'bg-gradient-to-br from-sky-500 to-blue-500'}`}>
                       <Icon className="h-4 w-4 text-white" />
                     </div>
@@ -632,9 +632,20 @@ export default function LandingPage() {
                 <p className="text-sm text-slate-500 mb-6 leading-relaxed">
                   Le logiciel qui gère les patients, les consultations, la facturation et la compta — pour que vous restiez concentré sur le soin.
                 </p>
-                <ul className="space-y-2.5 mb-7">
-                  {['Dictée vocale par IA pendant la consultation', 'Suivi patient automatisé à J+7', 'Comptabilité, factures & statistiques', 'Données 100% locales, RGPD'].map((f) => (
-                    <li key={f} className="flex items-start gap-3 text-sm text-slate-700">
+                <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2.5 mb-7">
+                  {[
+                    'Dictée vocale par IA',
+                    'Suivi patient automatisé (J+7)',
+                    'Courriers générés par IA',
+                    'Messagerie patients',
+                    'Dossiers patients complets',
+                    'Consultations & anamnèse',
+                    'Comptabilité & factures',
+                    'Objectifs & chiffre d’affaires',
+                    'Statistiques du cabinet',
+                    'Données 100% locales & RGPD',
+                  ].map((f) => (
+                    <li key={f} className="flex items-start gap-2.5 text-sm text-slate-700">
                       <CheckCircle className="h-4 w-4 text-blue-500 flex-shrink-0 mt-0.5" />
                       {f}
                     </li>
@@ -666,9 +677,16 @@ export default function LandingPage() {
                 <p className="text-sm text-slate-500 mb-6 leading-relaxed">
                   La base de connaissances clinique qui lève vos doutes et garde votre pratique alignée sur les dernières preuves scientifiques.
                 </p>
-                <ul className="space-y-2.5 mb-7">
-                  {['200+ tests orthopédiques documentés', 'Topographie & aide au diagnostic', 'E-learning et revue d’études EBP', '150+ techniques en vidéo'].map((f) => (
-                    <li key={f} className="flex items-start gap-3 text-sm text-slate-700">
+                <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2.5 mb-7">
+                  {[
+                    '200+ tests orthopédiques',
+                    'Topographie clinique par région',
+                    'Cours & e-learning',
+                    'Quiz interactifs',
+                    'Revue de littérature mensuelle',
+                    '150+ techniques en vidéo',
+                  ].map((f) => (
+                    <li key={f} className="flex items-start gap-2.5 text-sm text-slate-700">
                       <CheckCircle className="h-4 w-4 text-sky-500 flex-shrink-0 mt-0.5" />
                       {f}
                     </li>
@@ -1038,145 +1056,6 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ─── GAMIFICATION / REWARDS ─── */}
-      <section ref={gamification.ref} className="py-20 lg:py-28 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-white to-slate-50 relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-[750px] h-[550px] rounded-full bg-purple-200/45 blur-[160px] pointer-events-none" />
-        <div className="absolute bottom-0 left-0 w-[550px] h-[420px] rounded-full bg-indigo-100/50 blur-[130px] pointer-events-none" />
-
-        <div className="max-w-7xl mx-auto relative">
-          <div className={`text-center mb-16 transition-all duration-700 ${
-            gamification.isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
-          }`}>
-            <div className="inline-flex items-center gap-2 bg-purple-100 text-purple-700 px-4 py-2 rounded-full text-xs font-semibold mb-6 uppercase tracking-wider">
-              <Trophy className="h-3.5 w-3.5" />
-              Système de récompenses
-            </div>
-            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-slate-900 mb-4 tracking-tight">
-              Progressez. Débloquez.
-              <br />
-              <span className="bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
-                Restez motivé.
-              </span>
-            </h2>
-            <p className="text-lg text-slate-500 max-w-2xl mx-auto">
-              Chaque action sur OsteoUpgrade vous fait gagner de l&apos;XP.
-              Montez en niveau, débloquez des badges et entretenez votre série quotidienne.
-            </p>
-          </div>
-
-          <div className={`grid grid-cols-1 lg:grid-cols-2 gap-12 items-center transition-all duration-700 delay-200 ${
-            gamification.isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
-          }`}>
-            <div className="relative">
-              <div className="rounded-2xl bg-gradient-to-br from-[#1a103d] via-[#1e1145] to-[#15103a] p-6 sm:p-8 shadow-2xl border border-purple-500/10">
-                <div className="flex items-center justify-between mb-6">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center">
-                      <Trophy className="h-5 w-5 text-white" />
-                    </div>
-                    <div>
-                      <div className="text-xs text-purple-300 font-medium">Progression globale</div>
-                      <div className="text-white font-bold text-lg">Niveau 7</div>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-2xl font-bold text-white">3&thinsp;450</div>
-                    <div className="text-[10px] text-purple-300">XP total</div>
-                  </div>
-                </div>
-
-                <div className="mb-6">
-                  <div className="flex justify-between text-[10px] text-purple-300 mb-1.5">
-                    <span>Niveau 7</span>
-                    <span>450/500 XP</span>
-                  </div>
-                  <div className="h-3 w-full rounded-full bg-white/10 overflow-hidden">
-                    <div className="h-full rounded-full bg-gradient-to-r from-sky-400 to-blue-400 w-[90%] transition-all" />
-                  </div>
-                  <div className="text-[10px] text-purple-400 mt-1">Plus que 50 XP pour le niveau 8</div>
-                </div>
-
-                <div className="grid grid-cols-3 gap-3 mb-6">
-                  {[
-                    { icon: Flame, label: 'Série', value: '12 jours', color: 'text-orange-300', bg: 'bg-orange-500/15' },
-                    { icon: Zap, label: 'Semaine', value: '24 actions', color: 'text-cyan-300', bg: 'bg-cyan-500/15' },
-                    { icon: Award, label: 'Badges', value: '8 / 20', color: 'text-emerald-300', bg: 'bg-emerald-500/15' },
-                  ].map((stat) => {
-                    const Icon = stat.icon
-                    return (
-                      <div key={stat.label} className={`rounded-xl ${stat.bg} p-3`}>
-                        <Icon className={`h-4 w-4 ${stat.color} mb-1.5`} />
-                        <div className={`text-sm font-bold ${stat.color}`}>{stat.value}</div>
-                        <div className="text-[10px] text-purple-300">{stat.label}</div>
-                      </div>
-                    )
-                  })}
-                </div>
-
-                <div className="border-t border-white/10 pt-5">
-                  <div className="text-xs font-semibold text-purple-200 mb-3 flex items-center gap-2">
-                    <Award className="h-3.5 w-3.5 text-amber-400" />
-                    Derniers badges débloqués
-                  </div>
-                  <div className="grid grid-cols-3 gap-2">
-                    {[
-                      { name: 'Premier pas', icon: '🎯', color: 'bg-emerald-500/15 border-emerald-500/20' },
-                      { name: 'Assidu', icon: '🔥', color: 'bg-orange-500/15 border-orange-500/20' },
-                      { name: 'Savant', icon: '🧠', color: 'bg-blue-500/15 border-blue-500/20' },
-                    ].map((badge) => (
-                      <div key={badge.name} className={`rounded-lg ${badge.color} border p-2.5 text-center`}>
-                        <div className="text-lg mb-0.5">{badge.icon}</div>
-                        <div className="text-[9px] text-white/70 font-medium">{badge.name}</div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              <div className="absolute -top-3 -right-3 sm:-top-4 sm:-right-4 bg-emerald-500 text-white px-3 py-2 rounded-xl shadow-lg shadow-emerald-500/30 animate-float">
-                <div className="flex items-center gap-1.5">
-                  <Zap className="h-3.5 w-3.5" />
-                  <span className="text-xs font-bold">+25 XP</span>
-                </div>
-                <div className="text-[9px] text-emerald-100">Cours terminé !</div>
-              </div>
-            </div>
-
-            <div className="space-y-8">
-              <div>
-                <h3 className="text-2xl font-bold text-slate-900 mb-3">
-                  Chaque effort compte
-                </h3>
-                <p className="text-slate-500 leading-relaxed">
-                  Compléter un cours, visionner une technique, consulter un test…
-                  Chaque action vous rapporte de l&apos;XP et vous fait progresser, séance après séance.
-                </p>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {[
-                  { icon: Trophy, title: 'Niveaux & XP', desc: 'Gagnez de l’XP à chaque action. Montez en niveau et suivez votre progression globale.', color: 'from-amber-500 to-orange-500' },
-                  { icon: Flame, title: 'Séries quotidiennes', desc: 'Connectez-vous chaque jour pour maintenir votre série et débloquer des bonus.', color: 'from-orange-500 to-red-500' },
-                  { icon: Award, title: 'Badges exclusifs', desc: 'Débloquez des badges en atteignant des objectifs : premier cours, 10 tests, 30 jours…', color: 'from-purple-500 to-indigo-500' },
-                  { icon: Target, title: 'Objectifs hebdo', desc: 'Des objectifs chaque semaine pour rester engagé et progresser régulièrement.', color: 'from-emerald-500 to-teal-500' },
-                ].map((item) => {
-                  const Icon = item.icon
-                  return (
-                    <div key={item.title} className="rounded-xl bg-white border border-slate-200 p-4 hover:shadow-md transition-all">
-                      <div className={`inline-flex items-center justify-center w-9 h-9 rounded-lg bg-gradient-to-br ${item.color} mb-3`}>
-                        <Icon className="h-4 w-4 text-white" />
-                      </div>
-                      <h4 className="text-sm font-bold text-slate-900 mb-1">{item.title}</h4>
-                      <p className="text-xs text-slate-500 leading-relaxed">{item.desc}</p>
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
       {/* ─── PHILOSOPHIE ─── */}
       <section className="py-20 lg:py-24 px-4 sm:px-6 lg:px-8 bg-white">
         <div className="max-w-6xl mx-auto">
@@ -1280,7 +1159,7 @@ export default function LandingPage() {
                   </div>
                   <div>
                     <div className="text-sm font-bold text-slate-800">Logiciel de cabinet</div>
-                    <div className="text-xs text-slate-400 mb-1">avec dictée, suivi & compta</div>
+                    <div className="text-xs text-slate-400 mb-1">gestion seule</div>
                     <div className="text-2xl font-black text-red-400 line-through decoration-red-300">300&euro;/an</div>
                   </div>
                 </div>
