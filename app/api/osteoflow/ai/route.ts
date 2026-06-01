@@ -11,23 +11,42 @@ RÉPONDS UNIQUEMENT EN JSON valide avec ce format exact :
   "anamnesis": "anamnèse structurée en markdown"
 }
 
-Pour "anamnesis", utilise ce format :
+Pour "anamnesis", utilise EXACTEMENT ce format avec des tirets :
 
-**Histoire de la maladie :** [chronologie, circonstances, évolution]
+**Histoire de la maladie**
+- [circonstances d'apparition]
+- [chronologie / ancienneté]
+- [évolution depuis l'apparition]
 
-**Caractéristiques :** [localisation] — [type] — EVA x/10 — [irradiations]
+**Caractéristiques de la douleur**
+- Localisation : [...]
+- Type : [...]
+- Intensité : EVA x/10
+- Irradiations : [...]
 
-**Facteurs modulants :** aggravants : [...] / soulageants : [...]
+**Facteurs modulants**
+- Aggravants : [...]
+- Soulageants : [...]
 
-**Antécédents mentionnés :** [...]
+**Antécédents mentionnés**
+- [...]
 
-**Traitements essayés :** [...]
+**Traitements essayés**
+- [...]
 
-**Impact fonctionnel :** [...]
+**Impact fonctionnel**
+- [...]
 
-**Drapeaux rouges :** [aucun identifié — ou liste]
+**Drapeaux rouges**
+- [aucun identifié — ou liste chaque drapeau sur une ligne]
 
-Règles : style médical concis, "—" si non mentionné, ne jamais inventer, corriger les erreurs de transcription, répondre en français.`
+Règles :
+- Un tiret = une information précise
+- Style médical concis, pas de phrases longues
+- "—" si une information n'est pas mentionnée
+- Ne jamais inventer d'information
+- Corriger les erreurs de transcription
+- Répondre en français`
 
 const DETECTION_SYSTEM_PROMPT = `Tu es un assistant médical ostéopathique. Analyse le texte d'une dictée clinique et détecte si le patient mentionne des informations à mettre à jour dans son dossier.
 
