@@ -639,7 +639,6 @@ export default function LandingPage() {
                     'Courriers générés par IA',
                     'Messagerie patients',
                     'Dossiers patients complets',
-                    'Consultations & anamnèse',
                     'Comptabilité & factures',
                     'Objectifs & chiffre d’affaires',
                     'Statistiques du cabinet',
