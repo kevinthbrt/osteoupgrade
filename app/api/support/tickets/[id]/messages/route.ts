@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
 import { cookies } from 'next/headers'
 import { supabaseAdmin } from '@/lib/supabase-server'
+import { notifyAdmin } from '@/lib/admin-notify'
 
-// Verify the ticket belongs to the authenticated user, returns the ticket or null
 async function getOwnedTicket(id: string, userEmail: string) {
   const { data } = await supabaseAdmin
     .from('support_tickets')
@@ -51,7 +51,10 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-  // Reopen the ticket if it was resolved so the admin sees the new message
+  // Notify admin of new user message in existing ticket
+  await notifyAdmin('other', `[Support] Réponse dans : ${ticket.title}`, `De : ${user.email}`)
+
+  // Reopen the ticket if it was resolved
   if (ticket.status === 'resolved') {
     await supabaseAdmin
       .from('support_tickets')
