@@ -18,7 +18,7 @@ export async function GET(req: NextRequest) {
 
   let query = supabaseAdmin
     .from('support_tickets')
-    .select('*')
+    .select('*, support_messages(id, sender, content, created_at)')
     .order('created_at', { ascending: false })
 
   if (status && status !== 'all') {
@@ -28,5 +28,13 @@ export async function GET(req: NextRequest) {
   const { data: tickets, error } = await query
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-  return NextResponse.json({ tickets })
+  const result = (tickets || []).map((t: any) => ({
+    ...t,
+    messages: (t.support_messages || []).sort((a: any, b: any) =>
+      new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+    ),
+    support_messages: undefined,
+  }))
+
+  return NextResponse.json({ tickets: result })
 }

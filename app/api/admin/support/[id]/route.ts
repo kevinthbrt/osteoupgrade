@@ -16,7 +16,15 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   if (!(await verifyAdmin())) return NextResponse.json({ error: 'Non autorisé' }, { status: 403 })
 
   const body = await req.json()
-  const { status, admin_reply } = body
+  const { status, message: adminMessage } = body
+
+  const { data: ticket, error: fetchError } = await supabaseAdmin
+    .from('support_tickets')
+    .select('*')
+    .eq('id', params.id)
+    .single()
+
+  if (fetchError || !ticket) return NextResponse.json({ error: 'Ticket introuvable' }, { status: 404 })
 
   const updates: Record<string, unknown> = {}
 
@@ -26,39 +34,50 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     updates.status = status
   }
 
-  if (admin_reply !== undefined) {
-    updates.admin_reply = admin_reply?.trim() || null
-    updates.admin_replied_at = admin_reply?.trim() ? new Date().toISOString() : null
-  }
+  let newMessage = null
+  if (adminMessage?.trim()) {
+    const { data: msg, error: msgError } = await supabaseAdmin
+      .from('support_messages')
+      .insert({ ticket_id: params.id, sender: 'admin', content: adminMessage.trim() })
+      .select()
+      .single()
 
-  if (Object.keys(updates).length === 0) {
-    return NextResponse.json({ error: 'Aucune modification' }, { status: 400 })
-  }
+    if (msgError) return NextResponse.json({ error: msgError.message }, { status: 500 })
+    newMessage = msg
 
-  const { data: ticket, error } = await supabaseAdmin
-    .from('support_tickets')
-    .update(updates)
-    .eq('id', params.id)
-    .select()
-    .single()
+    const now = new Date().toISOString()
+    updates.last_admin_message_at = now
+    updates.admin_reply = adminMessage.trim()
+    updates.admin_replied_at = now
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-
-  // Send email notification to user when reply is added
-  if (admin_reply?.trim() && ticket?.user_email) {
-    try {
-      await sendTransactionalEmail({
-        to: ticket.user_email,
-        subject: `Réponse à votre ticket : ${ticket.title}`,
-        html: buildReplyEmailHtml(ticket.title, admin_reply.trim(), ticket.source),
-        skipUnsubscribeFooter: true,
-      })
-    } catch (e) {
-      console.error('Failed to send reply email:', e)
+    if (ticket.user_email) {
+      try {
+        await sendTransactionalEmail({
+          to: ticket.user_email,
+          subject: `Réponse à votre ticket : ${ticket.title}`,
+          html: buildReplyEmailHtml(ticket.title, adminMessage.trim(), ticket.source),
+          skipUnsubscribeFooter: true,
+        })
+      } catch (e) {
+        console.error('Failed to send reply email:', e)
+      }
     }
   }
 
-  return NextResponse.json({ ticket })
+  let updatedTicket = ticket
+  if (Object.keys(updates).length > 0) {
+    const { data: updated, error: updateError } = await supabaseAdmin
+      .from('support_tickets')
+      .update(updates)
+      .eq('id', params.id)
+      .select()
+      .single()
+
+    if (updateError) return NextResponse.json({ error: updateError.message }, { status: 500 })
+    updatedTicket = updated
+  }
+
+  return NextResponse.json({ ticket: updatedTicket, message: newMessage })
 }
 
 export async function DELETE(_: NextRequest, { params }: { params: { id: string } }) {
@@ -84,7 +103,7 @@ function buildReplyEmailHtml(title: string, reply: string, source: string) {
         <p style="margin:0 0 6px;color:#6366f1;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;">Réponse de l'équipe</p>
         <p style="margin:0;white-space:pre-wrap;color:#1e293b;font-size:14px;line-height:1.6;">${reply.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</p>
       </div>
-      <p style="color:#94a3b8;font-size:12px;margin-top:24px;">Pour toute question, contactez-nous via le widget support de l'application.</p>
+      <p style="color:#94a3b8;font-size:12px;margin-top:24px;">Pour répondre, ouvrez le widget support dans ${appName}.</p>
     </div>
   `
 }
