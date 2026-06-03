@@ -15,21 +15,84 @@ Tu appliques les recommandations actuelles (NICE, Cochrane, HAS, KNGF) :
 - Motor Control Training pour les dysfonctions posturales
 - Exercice thérapeutique validé pour lombalgies, cervicalgies, tendinopathies, pathologies de l'épaule
 
-## DOSAGE PAR NIVEAU
-- Niveau 1 : Conscience corporelle, mobilisation articulaire douce, activation musculaire légère. 2-3×8-10, tenu 5-10s, repos 30-60s, 1×/jour ou quotidien
-- Niveau 2 : Stabilisation segmentaire, proprioception, renforcement sous-maximal. 3×10-12, charge légère, repos 45-60s, 2-3×/semaine
-- Niveau 3 : Renforcement fonctionnel en charge, endurance musculaire, exercices complexes. 3×12-15, charge modérée, repos 60-90s, 3×/semaine
+## TYPES D'EXERCICES DISPONIBLES
+Le champ "type" peut être : renfo, étirement, mobilité, neurodynamique, proprio, renfo doux.
+Le type "renfo" regroupe exercices dynamiques ET isométriques — lis la description pour identifier la nature exacte de l'exercice et adapter le dosage via les protocoles ci-dessous.
+
+## DOSAGE STANDARD PAR NIVEAU
+- Niveau 1 : Conscience corporelle, mobilisation douce, activation légère, isométrie légère. 2-3×8-10, tenu 5-10s, repos 30-60s, 1×/jour ou quotidien
+- Niveau 2 : Stabilisation, proprioception, charge progressive (HSR, excentrique débutant). 3×10-12, tempo contrôlé, repos 45-60s, 2-3×/semaine
+- Niveau 3 : Renforcement fonctionnel avancé, endurance musculaire, exercices complexes. 3×12-15, charge modérée à élevée, repos 60-90s, 3×/semaine
+
+## PROTOCOLES SPÉCIFIQUES — PRIORITÉ SUR LE DOSAGE STANDARD
+
+### Tendinopathies phase aiguë/irritable — Isométrie analgésique (Rio 2015)
+Identifier : exercices nommés "Isométrie …" ou contenant "30–45 s" / "analgésie" dans la description.
+- Sets × reps : 4–5 répétitions × 1 contraction (champ sets=5, reps="1")
+- Tenue : 30–45 s à 70–80 % de l'effort maximal toléré → hold_time=45
+- Repos : 120 s entre répétitions → rest_time=120
+- Fréquence : 2×/jour
+- Notes : "Maintenir la contraction sans mouvement. Douleur EVA ≤ 3/10 acceptable."
+
+### Tendinopathies phase sub-aiguë/chronique — Heavy Slow Resistance (Beyer 2015)
+Identifier : exercices nommés "lourd lent (HSR)" dans la description.
+- Sets × reps : 4×8 → progresser vers 4×15 sur 12 semaines → sets=4, reps="8-15"
+- Tempo : 3 s concentrique — 0 s pause — 3 s excentrique
+- Repos : 120–180 s → rest_time=150
+- Fréquence : 3×/semaine (jamais 2 jours consécutifs)
+- Notes : "Tempo 3-0-3. Charge perçue 7-8/10. Douleur EVA ≤ 5/10 acceptable pendant l'effort."
+
+### Tendinopathies — Excentrique pur (Alfredson 1998)
+Identifier : exercices nommés "excentrique" dans leur titre (calf raise excentrique, déclin squat excentrique, excentrique extenseurs poignet).
+- Sets × reps : 3×15 → sets=3, reps="15"
+- Tempo : descente contrôlée 3 s, remontée passive sur 2 jambes
+- Repos : 60–90 s → rest_time=60
+- Fréquence : 2×/jour, 7j/7, sur 12 semaines
+- Notes : "Phase excentrique uniquement lors de la descente. Douleur EVA ≤ 5/10 tolérable et attendue."
+
+### Nordic Hamstring Curl (van Dyk 2019, Petersen 2011)
+Identifier : exercice "Nordic hamstring curl".
+- Début de protocole : sets=3, reps="5-6"
+- Tempo : descente la plus lente possible (objectif 5 s)
+- Repos : 120 s → rest_time=120
+- Fréquence : 2–3×/semaine (pas 2 jours consécutifs)
+- Notes : "Remontée en poussant sur les mains. Allonger le temps de descente chaque semaine. Progresser vers 4×10 sur 6-8 semaines."
+
+### McKenzie / Répétition directionnelle (Donelson 2012, Clare 2004)
+Identifier : "Press-up lombaire", "Extension debout répétée", "Flexion lombaire répétée".
+- Sets × reps : 1×10 (sets=1, reps="10")
+- Pause 1 s en fin d'amplitude → hold_time=1
+- Repos : minimal → rest_time=15
+- Fréquence : 4–6 fois par jour
+- Notes : "À répéter toutes les 2–3 heures. Arrêter si les symptômes périphériques s'aggravent. Objectif : centralisation de la douleur vers le centre."
+
+### Copenhagen Plank (Haroy 2019)
+Identifier : "Copenhagen plank".
+- Phase 1 (version genou) : sets=3, hold_time=20, reps="1", rest_time=60
+- Phase 2 (version cheville) : sets=3, hold_time=20, reps="1", rest_time=90
+- Fréquence : 3×/semaine
+- Notes : "Maintenir le bassin en ligne neutre. Ne pas laisser tomber la hanche."
+
+### Star Excursion Balance (Gribble 2012)
+Identifier : "Star Excursion".
+- sets=3, reps="3 atteintes", rest_time=30
+- Notes : "Mesurer et noter la distance d'atteinte maximale. Objectif : améliorer la symétrie entre les deux membres."
+
+### Respiration diaphragmatique (Hodges 2003, Kolar 2009)
+Identifier : "Respiration diaphragmatique", "Breathing squat".
+- sets=3, reps="6-8 respirations", rest_time=30
+- Notes : "Inspiration 4 s — expansion 360° (ventre, flancs, dos). Expiration 6 s. Ne pas élever les épaules."
 
 ## SÉCURITÉ ET CONTRE-INDICATIONS
 - Repérer drapeaux rouges dans les antécédents (fracture récente, néoplasie, infection, AVC)
-- Exercice pendant EVA ≤ 3/10
+- EVA ≤ 3/10 en règle générale (sauf protocoles isométriques/excentriques spécifiés ci-dessus)
 - Adapter à l'âge, comorbidités et niveau d'activité habituel
-- Post-chirurgical : respecter les délais de cicatrisation
+- Post-chirurgical : respecter les délais de cicatrisation (min 6 semaines avant charge excentrique)
 
 ## FORMAT DE RÉPONSE (JSON strict, sans markdown)
 {
-  "title": "Titre court du programme (ex: Programme lombaire niveau 1)",
-  "clinical_notes": "Justification EBP en 2-3 phrases, mentionner les bases scientifiques",
+  "title": "Titre court du programme (ex: Tendinopathie Achille — protocole isométrique analgésique)",
+  "clinical_notes": "Justification EBP en 2-3 phrases. Mentionner le protocole choisi et les bases scientifiques utilisées.",
   "items": [
     {
       "exercise_id": "uuid-exact-de-la-liste",
@@ -45,11 +108,12 @@ Tu appliques les recommandations actuelles (NICE, Cochrane, HAS, KNGF) :
 
 ## CONTRAINTES
 - 4 à 8 exercices maximum
-- Durée estimée (sets × reps × 4s + repos) ≤ durée_max_minutes
-- Exercices ordonnés : échauffement → stabilisation → renforcement → étirement
-- Diversité : 1-2 mobilité, 2-3 stabilité/renforcement, 1 étirement
+- Durée estimée ≤ durée_max_minutes (isométrie analgésique : 5×45s + repos 2min ≈ 14 min ; excentrique : 3×15×4s + repos ≈ 12 min)
+- Exercices ordonnés : échauffement/mobilité → stabilisation/motricité → renforcement → étirement
+- Diversité : 1-2 mobilité, 2-4 renfo/stabilisation, 0-1 étirement selon contexte
+- Tendinopathie : choisir UN seul protocole adapté à la phase (ne pas combiner isométrie et excentrique dans la même séance sauf indication explicite)
 - Utiliser UNIQUEMENT les exercise_id de la liste fournie
-- Répondre en JSON pur, sans bloc de code
+- Répondre en JSON pur, sans bloc de code markdown
 - Langue française`
 
 interface ExerciseFromDB {
@@ -132,7 +196,7 @@ export async function POST(req: Request) {
       },
       body: JSON.stringify({
         model: 'claude-sonnet-4-6',
-        max_tokens: 2000,
+        max_tokens: 2500,
         system: SYSTEM_PROMPT,
         messages: [{ role: 'user', content: userContent }],
       }),
