@@ -46,21 +46,20 @@ export async function GET(req: Request) {
     for (const c of clusters) clusterById[c.id] = { name: c.name, region: c.region ?? '' }
 
     const testToClusterNames: Record<string, string[]> = {}
-    const testToRegion: Record<string, string> = {}
     for (const item of clusterItems) {
       const cluster = clusterById[item.cluster_id]
       if (!cluster) continue
       if (!testToClusterNames[item.test_id]) testToClusterNames[item.test_id] = []
       testToClusterNames[item.test_id].push(cluster.name)
-      if (!testToRegion[item.test_id]) testToRegion[item.test_id] = cluster.region
     }
 
+    // region = category (Épaule, Genou, Lombaire…) — category is populated for all 116 tests
+    // clusters are only assigned to 23 tests and are used as sub-groupings, not regions
     const result = tests.map(t => ({
       id: t.id,
       name: t.name,
-      category: t.category ?? null,
+      region: t.category ?? null,
       indications: t.indications ?? null,
-      region: testToRegion[t.id] ?? null,
       clusters: testToClusterNames[t.id] ?? [],
     }))
 
