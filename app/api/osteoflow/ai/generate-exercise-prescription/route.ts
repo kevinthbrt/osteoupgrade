@@ -2,6 +2,12 @@ import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase-server'
 
 export const dynamic = 'force-dynamic'
+// The EBP system prompt is large and a full prescription (up to 8 exercises
+// with detailed per-item notes) can take ~35-45s to generate. Without an
+// explicit maxDuration Vercel would kill the function at its default limit,
+// surfacing as a 502 in the Osteoflow proxy. 60s is the safe ceiling on all
+// plans; keep the Anthropic abort below it so we can return a clean error.
+export const maxDuration = 60
 
 const SYSTEM_PROMPT = `Tu es un assistant clinique expert en rééducation ostéopathique et physiothérapeutique. Tu génères des prescriptions d'exercices individualisées et scientifiquement validées pour des ostéopathes francophones.
 
@@ -200,7 +206,9 @@ export async function POST(req: Request) {
         system: SYSTEM_PROMPT,
         messages: [{ role: 'user', content: userContent }],
       }),
-      signal: AbortSignal.timeout(45000),
+      // Stay below maxDuration (60s) so the function returns a clean error
+      // instead of being killed by the platform when generation runs long.
+      signal: AbortSignal.timeout(55000),
     })
 
     if (!aiRes.ok) {
