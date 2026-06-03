@@ -20,17 +20,9 @@ export async function GET(req: Request) {
     const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
     const [testsResult, clustersResult, clusterItemsResult] = await Promise.all([
-      supabase
-        .from('orthopedic_tests')
-        .select('id, name, category, indications')
-        .order('name'),
-      supabase
-        .from('orthopedic_test_clusters')
-        .select('id, name, region')
-        .order('name'),
-      supabase
-        .from('orthopedic_test_cluster_items')
-        .select('cluster_id, test_id'),
+      supabase.from('orthopedic_tests').select('id, name, category, indications').order('name'),
+      supabase.from('orthopedic_test_clusters').select('id, name, region').order('name'),
+      supabase.from('orthopedic_test_cluster_items').select('cluster_id, test_id'),
     ])
 
     if (testsResult.error) {
@@ -42,20 +34,29 @@ export async function GET(req: Request) {
     const clusters = clustersResult.data ?? []
     const clusterItems = clusterItemsResult.data ?? []
 
-    const clusterById: Record<string, { name: string; region: string }> = {}
-    for (const c of clusters) clusterById[c.id] = { name: c.name, region: c.region ?? '' }
+    // Build test lookup by id
+    const testById: Record<string, { id: string; name: string; region: string | null; indications: string | null }> = {}
+    for (const t of tests) {
+      testById[t.id] = { id: t.id, name: t.name, region: t.category ?? null, indications: t.indications ?? null }
+    }
 
+    // Build cluster → test_ids map
+    const clusterToTestIds: Record<string, string[]> = {}
+    for (const item of clusterItems) {
+      if (!clusterToTestIds[item.cluster_id]) clusterToTestIds[item.cluster_id] = []
+      clusterToTestIds[item.cluster_id].push(item.test_id)
+    }
+
+    // Build test → cluster names map (for display in test list)
     const testToClusterNames: Record<string, string[]> = {}
     for (const item of clusterItems) {
-      const cluster = clusterById[item.cluster_id]
+      const cluster = clusters.find(c => c.id === item.cluster_id)
       if (!cluster) continue
       if (!testToClusterNames[item.test_id]) testToClusterNames[item.test_id] = []
       testToClusterNames[item.test_id].push(cluster.name)
     }
 
-    // region = category (Épaule, Genou, Lombaire…) — category is populated for all 116 tests
-    // clusters are only assigned to 23 tests and are used as sub-groupings, not regions
-    const result = tests.map(t => ({
+    const testList = tests.map(t => ({
       id: t.id,
       name: t.name,
       region: t.category ?? null,
@@ -63,7 +64,14 @@ export async function GET(req: Request) {
       clusters: testToClusterNames[t.id] ?? [],
     }))
 
-    return NextResponse.json({ tests: result })
+    const clusterList = clusters.map(c => ({
+      id: c.id,
+      name: c.name,
+      region: c.region ?? null,
+      tests: (clusterToTestIds[c.id] ?? []).map(tid => testById[tid]).filter(Boolean),
+    }))
+
+    return NextResponse.json({ tests: testList, clusters: clusterList })
   } catch (err) {
     console.error('[ortho-tests] unhandled:', err)
     return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
