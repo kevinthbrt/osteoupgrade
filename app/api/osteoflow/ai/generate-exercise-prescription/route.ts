@@ -202,7 +202,11 @@ export async function POST(req: Request) {
       },
       body: JSON.stringify({
         model: 'claude-sonnet-4-6',
-        max_tokens: 2500,
+        // 2500 was too tight: a full prescription (up to 8 exercises with
+        // detailed EBP notes) could exceed it and get truncated mid-JSON,
+        // making JSON.parse fail → 500 "Réponse IA invalide". 4096 gives the
+        // model room to always close the JSON.
+        max_tokens: 4096,
         system: SYSTEM_PROMPT,
         messages: [{ role: 'user', content: userContent }],
       }),
@@ -220,6 +224,12 @@ export async function POST(req: Request) {
     const aiData = await aiRes.json()
     const content = (aiData.content?.[0]?.text ?? '').trim()
 
+    // Surface truncation explicitly: if the model hit the token ceiling the
+    // JSON is incomplete and parsing will fail — log it so it's diagnosable.
+    if (aiData.stop_reason === 'max_tokens') {
+      console.error('[generate-exercise-prescription] response truncated (stop_reason=max_tokens), length:', content.length)
+    }
+
     let parsed: {
       title: string
       clinical_notes: string
@@ -234,7 +244,12 @@ export async function POST(req: Request) {
       }>
     }
     try {
-      const json = content.replace(/^```(?:json)?\n?/m, '').replace(/\n?```$/m, '').trim()
+      // Strip markdown fences first, then fall back to slicing the outermost
+      // JSON object so any leading/trailing prose the model adds is ignored.
+      let json = content.replace(/```(?:json)?/gi, '').trim()
+      const first = json.indexOf('{')
+      const last = json.lastIndexOf('}')
+      if (first !== -1 && last > first) json = json.slice(first, last + 1)
       parsed = JSON.parse(json)
     } catch {
       console.error('[generate-exercise-prescription] JSON parse fail:', content.substring(0, 300))
