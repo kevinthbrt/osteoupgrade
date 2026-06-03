@@ -27,7 +27,7 @@ Le type "renfo" regroupe exercices dynamiques ET isométriques — lis la descri
 ## PROTOCOLES SPÉCIFIQUES — PRIORITÉ SUR LE DOSAGE STANDARD
 
 ### Tendinopathies phase aiguë/irritable — Isométrie analgésique (Rio 2015)
-Identifier : exercices nommés "Isométrie …" ou contenant "30–45 s" / "analgésie" dans la description.
+Identifier : exercices dont le **nom** commence par "Isométrie".
 - Sets × reps : 4–5 répétitions × 1 contraction (champ sets=5, reps="1")
 - Tenue : 30–45 s à 70–80 % de l'effort maximal toléré → hold_time=45
 - Repos : 120 s entre répétitions → rest_time=120
@@ -35,7 +35,7 @@ Identifier : exercices nommés "Isométrie …" ou contenant "30–45 s" / "anal
 - Notes : "Maintenir la contraction sans mouvement. Douleur EVA ≤ 3/10 acceptable."
 
 ### Tendinopathies phase sub-aiguë/chronique — Heavy Slow Resistance (Beyer 2015)
-Identifier : exercices nommés "lourd lent (HSR)" dans la description.
+Identifier : exercices dont le **nom** contient "lourd lent (HSR)" (ex: "Calf raise lourd lent (HSR)").
 - Sets × reps : 4×8 → progresser vers 4×15 sur 12 semaines → sets=4, reps="8-15"
 - Tempo : 3 s concentrique — 0 s pause — 3 s excentrique
 - Repos : 120–180 s → rest_time=150
@@ -43,7 +43,7 @@ Identifier : exercices nommés "lourd lent (HSR)" dans la description.
 - Notes : "Tempo 3-0-3. Charge perçue 7-8/10. Douleur EVA ≤ 5/10 acceptable pendant l'effort."
 
 ### Tendinopathies — Excentrique pur (Alfredson 1998)
-Identifier : exercices nommés "excentrique" dans leur titre (calf raise excentrique, déclin squat excentrique, excentrique extenseurs poignet).
+Identifier : exercices dont le **nom** contient "excentrique" (ex: "Calf raise excentrique", "Déclin squat excentrique", "Excentrique extenseurs poignet").
 - Sets × reps : 3×15 → sets=3, reps="15"
 - Tempo : descente contrôlée 3 s, remontée passive sur 2 jambes
 - Repos : 60–90 s → rest_time=60
@@ -51,7 +51,7 @@ Identifier : exercices nommés "excentrique" dans leur titre (calf raise excentr
 - Notes : "Phase excentrique uniquement lors de la descente. Douleur EVA ≤ 5/10 tolérable et attendue."
 
 ### Nordic Hamstring Curl (van Dyk 2019, Petersen 2011)
-Identifier : exercice "Nordic hamstring curl".
+Identifier : exercice dont le **nom** est "Nordic hamstring curl".
 - Début de protocole : sets=3, reps="5-6"
 - Tempo : descente la plus lente possible (objectif 5 s)
 - Repos : 120 s → rest_time=120
@@ -59,7 +59,7 @@ Identifier : exercice "Nordic hamstring curl".
 - Notes : "Remontée en poussant sur les mains. Allonger le temps de descente chaque semaine. Progresser vers 4×10 sur 6-8 semaines."
 
 ### McKenzie / Répétition directionnelle (Donelson 2012, Clare 2004)
-Identifier : "Press-up lombaire", "Extension debout répétée", "Flexion lombaire répétée".
+Identifier : exercices dont le **nom** contient "Press-up lombaire", "Extension debout répétée" ou "Flexion lombaire répétée".
 - Sets × reps : 1×10 (sets=1, reps="10")
 - Pause 1 s en fin d'amplitude → hold_time=1
 - Repos : minimal → rest_time=15
@@ -67,19 +67,19 @@ Identifier : "Press-up lombaire", "Extension debout répétée", "Flexion lombai
 - Notes : "À répéter toutes les 2–3 heures. Arrêter si les symptômes périphériques s'aggravent. Objectif : centralisation de la douleur vers le centre."
 
 ### Copenhagen Plank (Haroy 2019)
-Identifier : "Copenhagen plank".
+Identifier : exercices dont le **nom** contient "Copenhagen plank".
 - Phase 1 (version genou) : sets=3, hold_time=20, reps="1", rest_time=60
 - Phase 2 (version cheville) : sets=3, hold_time=20, reps="1", rest_time=90
 - Fréquence : 3×/semaine
 - Notes : "Maintenir le bassin en ligne neutre. Ne pas laisser tomber la hanche."
 
 ### Star Excursion Balance (Gribble 2012)
-Identifier : "Star Excursion".
+Identifier : exercices dont le **nom** contient "Star Excursion".
 - sets=3, reps="3 atteintes", rest_time=30
 - Notes : "Mesurer et noter la distance d'atteinte maximale. Objectif : améliorer la symétrie entre les deux membres."
 
 ### Respiration diaphragmatique (Hodges 2003, Kolar 2009)
-Identifier : "Respiration diaphragmatique", "Breathing squat".
+Identifier : exercices dont le **nom** contient "Respiration diaphragmatique" ou "Breathing squat".
 - sets=3, reps="6-8 respirations", rest_time=30
 - Notes : "Inspiration 4 s — expansion 360° (ventre, flancs, dos). Expiration 6 s. Ne pas élever les épaules."
 
@@ -169,7 +169,7 @@ export async function POST(req: Request) {
       region: e.region,
       type: e.type,
       level: e.level,
-      ...(e.description ? { desc: e.description.substring(0, 100) } : {}),
+      ...(e.description ? { desc: e.description.substring(0, 150) } : {}),
     }))
 
     const sections: string[] = [
