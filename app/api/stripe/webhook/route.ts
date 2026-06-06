@@ -262,7 +262,7 @@ async function handleCheckoutCompleted(session: any) {
   }
 
   // 🚀 DÉCLENCHER L'AUTOMATISATION "Passage à Premium"
-  const displayPrice = isAnnual ? '240€' : '29€'
+  const displayPrice = isAnnual ? '299€' : '35€'
   try {
     await fetch(`${process.env.NEXT_PUBLIC_URL || 'http://localhost:3000'}/api/automations/trigger`, {
       method: 'POST',
@@ -287,7 +287,7 @@ async function handleCheckoutCompleted(session: any) {
   }
 
   // 🔔 NOTIF INTERNE admin (cloche)
-  const planLabel = isAnnual ? 'Premium annuel · 240€/an' : 'Premium mensuel · 29€/mois'
+  const planLabel = isAnnual ? 'Premium annuel · 299€/an' : 'Premium mensuel · 35€/mois'
   const notifBody = referralCode
     ? `${profile.email} — ${planLabel} (parrainage : ${referralCode})`
     : `${profile.email} — ${planLabel}`
@@ -297,7 +297,7 @@ async function handleCheckoutCompleted(session: any) {
   const adminEmail = process.env.ADMIN_EMAIL
   if (adminEmail) {
     try {
-      const planLabel = isAnnual ? 'Premium annuel (240€/an)' : 'Premium mensuel (29€/mois)'
+      const planLabel = isAnnual ? 'Premium annuel (299€/an)' : 'Premium mensuel (35€/mois)'
       const referralInfo = referralCode ? `<p style="margin:4px 0;font-size:13px;color:#64748b;">Code parrainage utilisé : <strong>${referralCode}</strong></p>` : ''
       await sendTransactionalEmail({
         to: adminEmail,
