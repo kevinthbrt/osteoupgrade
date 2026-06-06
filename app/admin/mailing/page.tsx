@@ -97,6 +97,8 @@ export default function MailingAdminPage() {
   const [editingTemplateId, setEditingTemplateId] = useState<string | null>(null)
   const [templateSaving, setTemplateSaving] = useState(false)
   const [showHtmlMode, setShowHtmlMode] = useState(false)
+  const [showMainHtmlMode, setShowMainHtmlMode] = useState(false)
+  const [showPreview, setShowPreview] = useState(false)
   const templateEditorRef = useRef<HTMLDivElement>(null)
 
   // Initialize template editor content when modal opens
@@ -441,7 +443,7 @@ export default function MailingAdminPage() {
         body: JSON.stringify({
           to: recipients,
           subject,
-          html: editorRef.current?.innerHTML || html,
+          html: showMainHtmlMode ? html : (editorRef.current?.innerHTML || html),
           audienceMode,
           subscriptionFilter: audienceMode === 'subscription' ? subscriptionFilter : undefined,
           attachments: attachments.length > 0 ? attachments : undefined
@@ -1003,6 +1005,35 @@ export default function MailingAdminPage() {
         )
       })()}
 
+      {/* Preview Modal */}
+      {showPreview && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 flex-shrink-0">
+              <div>
+                <h3 className="text-lg font-bold text-gray-900">Prévisualisation</h3>
+                {subject && <p className="text-sm text-gray-500 mt-0.5">Sujet : <span className="font-medium text-gray-700">{subject}</span></p>}
+              </div>
+              <button
+                onClick={() => setShowPreview(false)}
+                className="w-8 h-8 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition"
+              >
+                <X className="h-4 w-4 text-gray-600" />
+              </button>
+            </div>
+            <div className="flex-1 overflow-hidden">
+              <iframe
+                srcDoc={showMainHtmlMode ? html : (editorRef.current?.innerHTML || html)}
+                className="w-full h-full border-0"
+                sandbox="allow-same-origin"
+                title="Prévisualisation email"
+                style={{ minHeight: '600px' }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="min-h-screen -m-6 md:-m-8">
         {/* Dark Header */}
         <div className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 px-6 md:px-10 pt-8 pb-6">
@@ -1175,7 +1206,39 @@ export default function MailingAdminPage() {
 
             {/* HTML Editor */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Contenu HTML</label>
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-sm font-medium text-gray-700">Contenu HTML</label>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowPreview(true)}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-50 border border-indigo-200 text-indigo-700 text-sm font-semibold hover:bg-indigo-100 transition"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                    Prévisualiser
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (showMainHtmlMode) {
+                        // Switching from HTML textarea to visual: inject into div
+                        if (editorRef.current) {
+                          editorRef.current.innerHTML = html
+                        }
+                      } else {
+                        // Switching from visual to HTML textarea: sync html state
+                        if (editorRef.current) {
+                          setHtml(editorRef.current.innerHTML)
+                        }
+                      }
+                      setShowMainHtmlMode(!showMainHtmlMode)
+                    }}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-100 border border-gray-200 text-gray-700 text-sm font-semibold hover:bg-gray-200 transition"
+                  >
+                    {showMainHtmlMode ? '👁️ Mode visuel' : '📝 Mode HTML'}
+                  </button>
+                </div>
+              </div>
 
               {/* Formatting toolbar */}
               <div className="mb-2 space-y-2">
@@ -1341,20 +1404,32 @@ export default function MailingAdminPage() {
                 </div>
               )}
 
-              <div
-                ref={editorRef}
-                contentEditable
-                onInput={(e) => setHtml(e.currentTarget.innerHTML)}
-                className="w-full min-h-[400px] p-6 bg-white/70 backdrop-blur-sm border border-blue-200/60 rounded-b-xl focus:outline-none overflow-y-auto"
-                suppressContentEditableWarning
-                style={{
-                  fontFamily: 'Inter, sans-serif',
-                  fontSize: '14px',
-                  lineHeight: '1.6'
-                }}
-              />
+              {showMainHtmlMode ? (
+                <textarea
+                  value={html}
+                  onChange={(e) => setHtml(e.target.value)}
+                  rows={20}
+                  className="w-full bg-white/70 backdrop-blur-sm border border-blue-200/60 rounded-b-xl px-4 py-3 focus:ring-2 focus:ring-purple-300 outline-none font-mono text-sm"
+                  placeholder="Collez votre HTML ici..."
+                />
+              ) : (
+                <div
+                  ref={editorRef}
+                  contentEditable
+                  onInput={(e) => setHtml(e.currentTarget.innerHTML)}
+                  className="w-full min-h-[400px] p-6 bg-white/70 backdrop-blur-sm border border-blue-200/60 rounded-b-xl focus:outline-none overflow-y-auto"
+                  suppressContentEditableWarning
+                  style={{
+                    fontFamily: 'Inter, sans-serif',
+                    fontSize: '14px',
+                    lineHeight: '1.6'
+                  }}
+                />
+              )}
               <p className="text-sm text-gray-500 mt-2">
-                💡 Astuce : Vous pouvez directement modifier le HTML ci-dessus ou utiliser les boutons de formatage
+                {showMainHtmlMode
+                  ? '📝 Collez ou éditez votre HTML directement. Cliquez sur "Mode visuel" pour voir le rendu, ou "Prévisualiser" pour un aperçu complet.'
+                  : '💡 Utilisez "Mode HTML" pour coller du code HTML complet, ou éditez directement ici.'}
               </p>
             </div>
 
