@@ -246,8 +246,8 @@ export default function Dashboard() {
                   <Crown className="h-6 w-6 text-amber-900" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-bold text-amber-900">Débloquez tout OsteoUpgrade</p>
-                  <p className="text-amber-800/80 text-sm mt-0.5">150+ vidéos · 500+ contenus · Exercices patients — dès 29€/mois</p>
+                  <p className="font-bold text-amber-900">Débloquez MyOsteoflow + OsteoUpgrade</p>
+                  <p className="text-amber-800/80 text-sm mt-0.5">150+ vidéos · 500+ contenus · Exercices patients — dès 35€/mois ou 299€/an</p>
                 </div>
                 <button onClick={() => router.push('/settings/subscription')} className="flex-shrink-0 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-amber-900 text-amber-100 text-sm font-bold hover:bg-amber-800 transition-colors shadow-md">
                   Passer Premium <ArrowRight className="h-4 w-4" />

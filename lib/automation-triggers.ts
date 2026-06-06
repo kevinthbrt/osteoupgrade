@@ -17,6 +17,7 @@ export type TriggerEvent =
   | 'Renouvellement imminent'
   | 'Renouvellement effectué'
   | 'Abonnement expiré'
+  | 'Paiement échoué'
   | 'Nouveau parrainage'
   | 'Bonus parrainage filleul'
   | 'Demande de paiement parrainage'
