@@ -66,7 +66,7 @@ export async function triggerAutomations(
       // Chercher ou créer le contact par email
       let { data: contact } = await supabaseAdmin
         .from('mail_contacts')
-        .select('id')
+        .select('id, status')
         .eq('email', data.contact_email)
         .single()
 
@@ -78,7 +78,7 @@ export async function triggerAutomations(
             status: 'subscribed',
             metadata: data.metadata || {}
           })
-          .select('id')
+          .select('id, status')
           .single()
 
         if (createError) {
@@ -87,6 +87,19 @@ export async function triggerAutomations(
         }
 
         contact = newContact
+      } else if (contact.status !== 'subscribed' && contact.status !== 'unsubscribed') {
+        // Le contact existait avec un statut « lead » (ex: newsletter_pre_launch).
+        // Une inscription / un passage Premium = consentement aux emails du service :
+        // on le promeut en 'subscribed' pour que le processor n'annule pas les envois.
+        // On respecte cependant un désabonnement explicite ('unsubscribed').
+        const { error: promoteError } = await supabaseAdmin
+          .from('mail_contacts')
+          .update({ status: 'subscribed' })
+          .eq('id', contact.id)
+
+        if (promoteError) {
+          errors.push(`Error promoting contact to subscribed: ${promoteError.message}`)
+        }
       }
 
       contactId = contact?.id

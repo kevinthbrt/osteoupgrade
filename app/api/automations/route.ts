@@ -35,6 +35,7 @@ export async function GET(request: Request) {
         trigger_event,
         active,
         created_at,
+        display_order,
         steps:mail_automation_steps(
           id,
           step_order,
@@ -44,7 +45,9 @@ export async function GET(request: Request) {
           payload
         )
       `)
-      .order('created_at', { ascending: false })
+      // Tri par ordre logique du cycle de vie (display_order), puis par ancienneté
+      .order('display_order', { ascending: true, nullsFirst: false })
+      .order('created_at', { ascending: true })
 
     if (activeOnly) {
       query = query.eq('active', true)
