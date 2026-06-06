@@ -175,6 +175,8 @@ export default function AdminEmailsPage() {
           subject: compose.subject,
           html: compose.body.replace(/\n/g, '<br>'),
           text: compose.body,
+          from: 'OsteoUpgrade <contact@osteo-upgrade.fr>',
+          skipUnsubscribeFooter: true,
           audienceMode: 'manual'
         })
       })

@@ -24,7 +24,7 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json()
-    const { to, subject, html, text, from, tags, attachments, audienceMode, subscriptionFilter } = body
+    const { to, subject, html, text, from, tags, attachments, audienceMode, subscriptionFilter, skipUnsubscribeFooter } = body
 
     let recipients: string[] = []
 
@@ -89,7 +89,8 @@ export async function POST(request: Request) {
           text,
           from,
           tags: tags || ['newsletter'],
-          attachments
+          attachments,
+          skipUnsubscribeFooter: skipUnsubscribeFooter === true
         })
         sent++
       } catch (err: any) {
