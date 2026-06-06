@@ -472,5 +472,40 @@ async function handlePaymentSucceeded(invoice: any) {
 
 // Paiement échoué
 async function handlePaymentFailed(invoice: any) {
-  // Optionnel : alerter l'utilisateur
+  const subscriptionId = invoice.subscription
+  if (!subscriptionId) {
+    return
+  }
+
+  // Trouver l'utilisateur par son stripe_subscription_id
+  const { data: profile, error: profileError } = await supabaseAdmin
+    .from('profiles')
+    .select('id, email')
+    .eq('stripe_subscription_id', subscriptionId)
+    .single()
+
+  if (profileError || !profile) {
+    console.error('Profile not found for payment failed')
+    return
+  }
+
+  // 🚀 DÉCLENCHER L'AUTOMATISATION "Paiement échoué" (relance / dunning)
+  try {
+    await fetch(`${process.env.NEXT_PUBLIC_URL || 'http://localhost:3000'}/api/automations/trigger`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.CRON_SECRET}`
+      },
+      body: JSON.stringify({
+        event: 'Paiement échoué',
+        contact_email: profile.email,
+        metadata: {
+          nom: 'Premium'
+        }
+      })
+    })
+  } catch (err) {
+    console.error('Error triggering payment failed automation')
+  }
 }
