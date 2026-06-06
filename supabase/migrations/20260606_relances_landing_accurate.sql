@@ -218,7 +218,7 @@ UPDATE mail_templates SET
           </tr>
           <tr>
             <td style="padding: 9px 8px; font-size: 13px; color: #374151; border-top: 1px solid #f3f4f6;">🎬 Techniques en vidéo</td>
-            <td style="padding: 9px 8px; text-align: center; font-size: 16px; color: #d1d5db; border-top: 1px solid #f3f4f6;">✗</td>
+            <td style="padding: 9px 8px; text-align: center; font-size: 12px; color: #9ca3af; border-top: 1px solid #f3f4f6;">Épaule</td>
             <td style="padding: 9px 8px; text-align: center; font-size: 14px; color: #7c3aed; background-color: #f5f3ff; font-weight: 600; border-top: 1px solid #e9d5ff;">150+</td>
           </tr>
           <tr>
