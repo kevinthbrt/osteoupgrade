@@ -1,13 +1,23 @@
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
+import path from 'path'
+import fs from 'fs'
 import { NextRequest, NextResponse } from 'next/server'
 import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
 import { cookies } from 'next/headers'
 import { supabaseAdmin } from '@/lib/supabase-server'
 import { renderToBuffer } from '@react-pdf/renderer'
+import { Resvg } from '@resvg/resvg-js'
 import React from 'react'
 import FlashcardCertificate from '@/components/certificates/FlashcardCertificate'
+
+async function svgToPngDataUri(svgPath: string, size = 300): Promise<string> {
+  const svgString = fs.readFileSync(svgPath, 'utf-8')
+  const resvg = new Resvg(svgString, { fitTo: { mode: 'width', value: size } })
+  const png = resvg.render().asPng()
+  return `data:image/png;base64,${png.toString('base64')}`
+}
 
 export async function GET(request: NextRequest) {
   const supabase = createRouteHandlerClient({ cookies })
@@ -39,6 +49,8 @@ export async function GET(request: NextRequest) {
 
   const deck = Array.isArray(cert.deck) ? cert.deck[0] : cert.deck as { title: string; total_cards: number } | null
 
+  const logoSrc = await svgToPngDataUri(path.join(process.cwd(), 'public', 'logo.svg'), 320)
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const element = React.createElement(FlashcardCertificate, {
     recipientName: (profile as any)?.full_name || user.email || 'Praticien',
@@ -47,6 +59,7 @@ export async function GET(request: NextRequest) {
     totalModules,
     certificateNumber: cert.certificate_number,
     issuedAt: cert.issued_at,
+    logoSrc,
   }) as any
 
   const pdfBuffer = await renderToBuffer(element)

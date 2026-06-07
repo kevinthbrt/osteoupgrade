@@ -1,9 +1,5 @@
 import React from 'react'
-import {
-  Document, Page, View, Text, StyleSheet, Font,
-  Svg, Circle, Line,
-  Text as SvgText,
-} from '@react-pdf/renderer'
+import { Document, Page, View, Text, StyleSheet, Font, Image } from '@react-pdf/renderer'
 
 Font.register({
   family: 'GreatVibes',
@@ -24,30 +20,25 @@ const WHITE = '#ffffff'
 const styles = StyleSheet.create({
   page: { backgroundColor: BG, flexDirection: 'column', position: 'relative' },
   watermark: {
-    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-    flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-    opacity: 0.07,
+    position: 'absolute',
+    top: 0, left: 0, right: 0, bottom: 0,
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    opacity: 0.06,
   },
+  watermarkImage: { width: 320, height: 320, objectFit: 'contain' },
   bandTop: { height: 12, backgroundColor: VIOLET_MID, width: '100%' },
   lisereMid: { height: 3, backgroundColor: GOLD, width: '100%' },
   bandBottom: { height: 12, backgroundColor: VIOLET_MID, width: '100%' },
   lisereBottom: { height: 3, backgroundColor: GOLD, width: '100%' },
-  outerBorder: {
-    position: 'absolute', top: 24, left: 24, right: 24, bottom: 24,
-    borderWidth: 1.5, borderColor: INDIGO_MID, borderStyle: 'solid',
-  },
-  innerBorder: {
-    position: 'absolute', top: 30, left: 30, right: 30, bottom: 30,
-    borderWidth: 0.5, borderColor: VIOLET_MID, borderStyle: 'solid',
-  },
+  outerBorder: { position: 'absolute', top: 24, left: 24, right: 24, bottom: 24, borderWidth: 1.5, borderColor: INDIGO_MID, borderStyle: 'solid' },
+  innerBorder: { position: 'absolute', top: 30, left: 30, right: 30, bottom: 30, borderWidth: 0.5, borderColor: VIOLET_MID, borderStyle: 'solid' },
   cornerTL: { position: 'absolute', top: 34, left: 34, width: 22, height: 22, borderTopWidth: 3, borderLeftWidth: 3, borderColor: GOLD, borderStyle: 'solid' },
   cornerTR: { position: 'absolute', top: 34, right: 34, width: 22, height: 22, borderTopWidth: 3, borderRightWidth: 3, borderColor: GOLD, borderStyle: 'solid' },
   cornerBL: { position: 'absolute', bottom: 34, left: 34, width: 22, height: 22, borderBottomWidth: 3, borderLeftWidth: 3, borderColor: GOLD, borderStyle: 'solid' },
   cornerBR: { position: 'absolute', bottom: 34, right: 34, width: 22, height: 22, borderBottomWidth: 3, borderRightWidth: 3, borderColor: GOLD, borderStyle: 'solid' },
-  content: {
-    flex: 1, flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-    paddingHorizontal: 70, paddingVertical: 10,
-  },
+  content: { flex: 1, flexDirection: 'column', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 70, paddingVertical: 10 },
   brandLine: { fontSize: 11, fontFamily: 'Helvetica-Bold', color: VIOLET_MID, letterSpacing: 3, marginBottom: 12, textAlign: 'center' },
   ruleIndigo: { width: 300, height: 0.75, backgroundColor: INDIGO_MID, marginBottom: 14 },
   pill: { backgroundColor: VIOLET_MID, borderRadius: 20, paddingHorizontal: 16, paddingVertical: 5, marginBottom: 14 },
@@ -70,51 +61,6 @@ const styles = StyleSheet.create({
   dateText: { fontSize: 9, fontFamily: 'Helvetica', color: SLATE_500, textAlign: 'right' },
 })
 
-// SVG seal watermark — all text styling via style prop (react-pdf requirement)
-function SealWatermark() {
-  const cx = 140
-  const cy = 140
-  return (
-    <Svg width="280" height="280" viewBox="0 0 280 280">
-      <Circle cx={cx} cy={cy} r={132} stroke={VIOLET_MID} strokeWidth={3} fill="none" />
-      <Circle cx={cx} cy={cy} r={122} stroke={VIOLET_MID} strokeWidth={0.8} fill="none" />
-      <Circle cx={cx} cy={cy} r={127} stroke={GOLD} strokeWidth={1} fill="none" />
-
-      <SvgText
-        x={cx} y={74}
-        textAnchor="middle"
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        style={{ fontSize: 12, fontFamily: 'Helvetica-Bold', fill: VIOLET_MID } as any}
-      >
-        OSTEOUPGRADE
-      </SvgText>
-
-      <SvgText
-        x={cx} y={158}
-        textAnchor="middle"
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        style={{ fontSize: 80, fontFamily: 'Helvetica-Bold', fill: VIOLET_MID } as any}
-      >
-        OU
-      </SvgText>
-
-      <Line x1={60} y1={170} x2={220} y2={170} stroke={GOLD} strokeWidth={1} />
-
-      <SvgText
-        x={cx} y={198}
-        textAnchor="middle"
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        style={{ fontSize: 10, fontFamily: 'Helvetica', fill: INDIGO_MID } as any}
-      >
-        OSTEOFLASH
-      </SvgText>
-
-      <Circle cx={52} cy={140} r={3} fill={GOLD} />
-      <Circle cx={228} cy={140} r={3} fill={GOLD} />
-    </Svg>
-  )
-}
-
 interface Props {
   recipientName: string
   deckTitle: string
@@ -122,10 +68,11 @@ interface Props {
   totalModules: number
   certificateNumber: string
   issuedAt: string
+  logoSrc: string
 }
 
 export default function FlashcardCertificate({
-  recipientName, deckTitle, totalCards, totalModules, certificateNumber, issuedAt,
+  recipientName, deckTitle, totalCards, totalModules, certificateNumber, issuedAt, logoSrc,
 }: Props) {
   const issuedDate = new Date(issuedAt).toLocaleDateString('fr-FR', {
     day: 'numeric', month: 'long', year: 'numeric',
@@ -136,8 +83,9 @@ export default function FlashcardCertificate({
     <Document>
       <Page size="A4" orientation="landscape" style={styles.page}>
 
+        {/* Logo watermark — PNG converted from SVG at runtime */}
         <View style={styles.watermark}>
-          <SealWatermark />
+          <Image src={logoSrc} style={styles.watermarkImage} />
         </View>
 
         <View style={styles.bandTop} />

@@ -3,7 +3,7 @@ const nextConfig = {
   reactStrictMode: true,
   swcMinify: true,
   experimental: {
-    serverComponentsExternalPackages: ['@react-pdf/renderer'],
+    serverComponentsExternalPackages: ['@react-pdf/renderer', '@resvg/resvg-js'],
   },
   async headers() {
     return [
@@ -12,7 +12,7 @@ const nextConfig = {
         headers: [
           {
             key: 'Content-Security-Policy',
-            value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://vercel.live; style-src 'self' 'unsafe-inline' https://vercel.live; img-src 'self' data: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.stripe.com https://api.resend.com wss://vercel.live; font-src 'self' data: https:; frame-src https://js.stripe.com https://player.vimeo.com https://vercel.live https://www.youtube.com https://youtube.com https://www.youtube-nocookie.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+            value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://vercel.live; style-src 'self' 'unsafe-inline' https://vercel.live; img-src 'self' data: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.stripe.com https://api.resend.com wss://vercel.live; font-src 'self' data: https:; frame-src https://js.stripe.com https://player.vimeo.com https://vercel.live https://www.youtube.com https://youtube.com https://www.youtube-nocookie.com https://www.youtube-nocookie.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
           },
           { key: 'Strict-Transport-Security', value: 'max-age=31536000; includeSubDomains; preload' },
           { key: 'X-Frame-Options', value: 'DENY' },
@@ -26,18 +26,9 @@ const nextConfig = {
   images: {
     domains: ['chttutptqainrnrbrljf.supabase.co', 'i.vimeocdn.com', 'f.vimeocdn.com'],
     remotePatterns: [
-      {
-        protocol: 'https',
-        hostname: '**.public.blob.vercel-storage.com',
-      },
-      {
-        protocol: 'https',
-        hostname: 'i.vimeocdn.com',
-      },
-      {
-        protocol: 'https',
-        hostname: 'f.vimeocdn.com',
-      },
+      { protocol: 'https', hostname: '**.public.blob.vercel-storage.com' },
+      { protocol: 'https', hostname: 'i.vimeocdn.com' },
+      { protocol: 'https', hostname: 'f.vimeocdn.com' },
     ],
   },
 }
