@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase-server'
+import { findUserByEmail } from '@/lib/find-user-by-email'
 
 function verifySecret(req: NextRequest) {
   const auth = req.headers.get('authorization') ?? ''
@@ -19,8 +20,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Missing email or deck_id' }, { status: 400 })
   }
 
-  const { data: userList } = await supabaseAdmin.auth.admin.listUsers()
-  const user = userList?.users?.find((u) => u.email === email)
+  const user = await findUserByEmail(email)
   if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 })
 
   const [cardsResult, progressResult] = await Promise.all([
