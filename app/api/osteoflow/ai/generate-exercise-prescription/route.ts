@@ -30,13 +30,13 @@ Le type "renfo" regroupe exercices dynamiques ET isométriques — lis la descri
 ### Tendinopathies phase aiguë/irritable — Isométrie analgésique (Rio 2015)
 Identifier : exercices dont le **nom** commence par "Isométrie".
 - Sets × reps : 4–5 répétitions × 1 contraction (champ sets=5, reps="1")
-- Tenue : 30–45 s à 70–80 % de l'effort maximal toléré → hold_time=45
+- Tenue : 30–45 s à 70–80 % de l'effort maximal toléré → hold_time=45
 - Repos : 120 s entre répétitions → rest_time=120
 - Fréquence : 2×/jour
 - Notes : "Maintenir la contraction sans mouvement. Douleur EVA ≤ 3/10 acceptable."
 
 ### Tendinopathies phase sub-aiguë/chronique — Heavy Slow Resistance (Beyer 2015)
-Identifier : exercices dont le **nom** contient "lourd lent (HSR)" (ex: "Calf raise lourd lent (HSR)").
+Identifier : exercices dont le **nom** contient "lourd lent (HSR)".
 - Sets × reps : 4×8 → progresser vers 4×15 sur 12 semaines → sets=4, reps="8-15"
 - Tempo : 3 s concentrique — 0 s pause — 3 s excentrique
 - Repos : 120–180 s → rest_time=150
@@ -44,7 +44,7 @@ Identifier : exercices dont le **nom** contient "lourd lent (HSR)" (ex: "Calf ra
 - Notes : "Tempo 3-0-3. Charge perçue 7-8/10. Douleur EVA ≤ 5/10 acceptable pendant l'effort."
 
 ### Tendinopathies — Excentrique pur (Alfredson 1998)
-Identifier : exercices dont le **nom** contient "excentrique" (ex: "Calf raise excentrique", "Déclin squat excentrique", "Excentrique extenseurs poignet").
+Identifier : exercices dont le **nom** contient "excentrique".
 - Sets × reps : 3×15 → sets=3, reps="15"
 - Tempo : descente contrôlée 3 s, remontée passive sur 2 jambes
 - Repos : 60–90 s → rest_time=60
@@ -94,12 +94,12 @@ Identifier : exercices dont le **nom** contient "Respiration diaphragmatique" ou
 {
   "title": "Titre court du programme (ex: Tendinopathie Achille — protocole isométrique analgésique)",
   "clinical_notes": "Justification EBP en 2-3 phrases pour le PRATICIEN. Mentionner le protocole choisi et les bases scientifiques utilisées. Langage clinique.",
-  "patient_intro": "Message d'introduction POUR LE PATIENT (2-3 phrases). Expliquer avec bienveillance POURQUOI ces exercices l'aideront, en langage simple et encourageant. Conserver la logique thérapeutique mais sans jargon clinique.",
+  "patient_intro": "Message d'introduction POUR LE PATIENT (2-3 phrases). Expliquer avec bienveillance POURQUOI ces exercices l'aideront, en langage simple et encourageant.",
   "vigilance_points": "Points de vigilance pour le patient. Liste de 3-5 signes qui doivent l'amener à stopper l'exercice ou contacter son praticien. Chaque item sur une nouvelle ligne commençant par '• '. Langage simple.",
   "weekly_routine": "Description courte de la routine hebdomadaire recommandée. Ex: '3 fois par semaine, avec au moins 1 jour de repos entre chaque séance. Durée estimée : 25 minutes.' Langage patient.",
   "items": [
     {
-      "exercise_id": "uuid-exact-de-la-liste",
+      "exercise_idx": 0,
       "sets": 3,
       "reps": "10",
       "hold_time": null,
@@ -112,11 +112,11 @@ Identifier : exercices dont le **nom** contient "Respiration diaphragmatique" ou
 
 ## CONTRAINTES
 - 4 à 8 exercices maximum
-- Durée estimée ≤ durée_max_minutes (isométrie analgésique : 5×45s + repos 2min ≈ 14 min ; excentrique : 3×15×4s + repos ≈ 12 min)
+- Durée estimée ≤ durée_max_minutes
 - Exercices ordonnés : échauffement/mobilité → stabilisation/motricité → renforcement → étirement
 - Diversité : 1-2 mobilité, 2-4 renfo/stabilisation, 0-1 étirement selon contexte
-- Tendinopathie : choisir UN seul protocole adapté à la phase (ne pas combiner isométrie et excentrique dans la même séance sauf indication explicite)
-- Utiliser UNIQUEMENT les exercise_id de la liste fournie
+- Tendinopathie : choisir UN seul protocole adapté à la phase
+- Utiliser UNIQUEMENT les exercise_idx de la liste fournie (entier, pas une chaîne)
 - Répondre en JSON pur, sans bloc de code markdown
 - Langue française`
 
@@ -167,19 +167,13 @@ export async function POST(req: Request) {
     if (include_factors?.medical && patient?.medical_history) patientCtx.push(`Antécédents médicaux : ${patient.medical_history}`)
     if (include_factors?.surgical && patient?.surgical_history) patientCtx.push(`Antécédents chirurgicaux : ${patient.surgical_history}`)
 
-    const exercisesCompact = exerciseList.map(e => ({
-      id: e.id,
-      name: e.name,
-      region: e.region,
-      type: e.type,
-      level: e.level,
-      ...(e.description ? { desc: e.description.substring(0, 150) } : {}),
-    }))
+    // CSV format with sequential index instead of JSON with UUIDs
+    // Saves ~60% of exercise list tokens (no repeated keys, no UUIDs, no descriptions)
+    const exerciseLines = exerciseList
+      .map((e, i) => `${i},${e.name},${e.region},${e.type},${e.level}`)
+      .join('\n')
+    const exerciseBlock = `## EXERCICES DISPONIBLES (${exerciseList.length})\nFormat: idx,nom,région,type,niveau\n${exerciseLines}`
 
-    // Exercise list block: stable for a given level → benefits from prompt caching
-    const exerciseBlock = `## EXERCICES DISPONIBLES (${exercisesCompact.length})\n${JSON.stringify(exercisesCompact)}`
-
-    // Consultation block: varies per patient → not cached
     const consultationSections: string[] = [
       `## PATIENT\n${patientCtx.length > 0 ? patientCtx.join('\n') : 'Données non renseignées'}`,
     ]
@@ -252,7 +246,7 @@ export async function POST(req: Request) {
       vigilance_points?: string | null
       weekly_routine?: string | null
       items: Array<{
-        exercise_id: string
+        exercise_idx: number
         sets?: number | null
         reps?: string | null
         hold_time?: number | null
@@ -272,10 +266,10 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Réponse IA invalide' }, { status: 500 })
     }
 
-    const exerciseById = new Map(exerciseList.map(e => [e.id, e]))
+    // Map index back to exercise
     const enrichedItems = (parsed.items || [])
       .map(item => {
-        const exercise = exerciseById.get(item.exercise_id)
+        const exercise = exerciseList[item.exercise_idx]
         if (!exercise) return null
         return {
           exercise: {
