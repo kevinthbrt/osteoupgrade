@@ -4,6 +4,12 @@ import { supabaseAdmin } from '@/lib/supabase-server'
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
 
+const VIGILANCE_POINTS = `• Douleur qui s'intensifie fortement pendant ou après l'exercice (EVA > 5/10)
+• Apparition de vertiges, nausées ou malaises
+• Fourmillements, engourdissements ou faiblesse dans un membre
+• Douleur thoracique ou essoufflement inhabituel
+• Symptômes qui irradient ou s'aggravent dans un nouveau territoire`
+
 const SYSTEM_PROMPT = `Tu es un assistant clinique expert en rééducation ostéopathique et physiothérapeutique. Tu génères des prescriptions d'exercices individualisées et scientifiquement validées pour des ostéopathes francophones.
 
 ## PRINCIPES EBP
@@ -30,7 +36,7 @@ Le type "renfo" regroupe exercices dynamiques ET isométriques — lis la descri
 ### Tendinopathies phase aiguë/irritable — Isométrie analgésique (Rio 2015)
 Identifier : exercices dont le **nom** commence par "Isométrie".
 - Sets × reps : 4–5 répétitions × 1 contraction (champ sets=5, reps="1")
-- Tenue : 30–45 s à 70–80 % de l'effort maximal toléré → hold_time=45
+- Tenue : 30–45 s à 70–80 % de l'effort maximal toléré → hold_time=45
 - Repos : 120 s entre répétitions → rest_time=120
 - Fréquence : 2×/jour
 - Notes : "Maintenir la contraction sans mouvement. Douleur EVA ≤ 3/10 acceptable."
@@ -95,11 +101,10 @@ Identifier : exercices dont le **nom** contient "Respiration diaphragmatique" ou
   "title": "Titre court du programme (ex: Tendinopathie Achille — protocole isométrique analgésique)",
   "clinical_notes": "Justification EBP en 2-3 phrases pour le PRATICIEN. Mentionner le protocole choisi et les bases scientifiques utilisées. Langage clinique.",
   "patient_intro": "Message d'introduction POUR LE PATIENT (2-3 phrases). Expliquer avec bienveillance POURQUOI ces exercices l'aideront, en langage simple et encourageant. Conserver la logique thérapeutique mais sans jargon clinique.",
-  "vigilance_points": "Points de vigilance pour le patient. Liste de 3-5 signes qui doivent l'amener à stopper l'exercice ou contacter son praticien. Chaque item sur une nouvelle ligne commençant par '• '. Langage simple.",
   "weekly_routine": "Description courte de la routine hebdomadaire recommandée. Ex: '3 fois par semaine, avec au moins 1 jour de repos entre chaque séance. Durée estimée : 25 minutes.' Langage patient.",
   "items": [
     {
-      "exercise_id": "uuid-exact-de-la-liste",
+      "exercise_idx": 0,
       "sets": 3,
       "reps": "10",
       "hold_time": null,
@@ -116,7 +121,7 @@ Identifier : exercices dont le **nom** contient "Respiration diaphragmatique" ou
 - Exercices ordonnés : échauffement/mobilité → stabilisation/motricité → renforcement → étirement
 - Diversité : 1-2 mobilité, 2-4 renfo/stabilisation, 0-1 étirement selon contexte
 - Tendinopathie : choisir UN seul protocole adapté à la phase (ne pas combiner isométrie et excentrique dans la même séance sauf indication explicite)
-- Utiliser UNIQUEMENT les exercise_id de la liste fournie
+- Utiliser UNIQUEMENT les exercise_idx de la liste fournie (entier, colonne idx du CSV)
 - Répondre en JSON pur, sans bloc de code markdown
 - Langue française`
 
@@ -167,19 +172,11 @@ export async function POST(req: Request) {
     if (include_factors?.medical && patient?.medical_history) patientCtx.push(`Antécédents médicaux : ${patient.medical_history}`)
     if (include_factors?.surgical && patient?.surgical_history) patientCtx.push(`Antécédents chirurgicaux : ${patient.surgical_history}`)
 
-    const exercisesCompact = exerciseList.map(e => ({
-      id: e.id,
-      name: e.name,
-      region: e.region,
-      type: e.type,
-      level: e.level,
-      ...(e.description ? { desc: e.description.substring(0, 150) } : {}),
-    }))
+    const exerciseLines = exerciseList
+      .map((e, i) => `${i},${e.name},${e.region},${e.type},${e.level}`)
+      .join('\n')
+    const exerciseBlock = `## EXERCICES DISPONIBLES (${exerciseList.length})\nFormat: idx,nom,région,type,niveau\n${exerciseLines}`
 
-    // Exercise list block: stable for a given level → benefits from prompt caching
-    const exerciseBlock = `## EXERCICES DISPONIBLES (${exercisesCompact.length})\n${JSON.stringify(exercisesCompact)}`
-
-    // Consultation block: varies per patient → not cached
     const consultationSections: string[] = [
       `## PATIENT\n${patientCtx.length > 0 ? patientCtx.join('\n') : 'Données non renseignées'}`,
     ]
@@ -214,13 +211,11 @@ export async function POST(req: Request) {
           {
             role: 'user',
             content: [
-              // Exercise list first (stable for a given level) → cache hit across patients
               {
                 type: 'text',
                 text: exerciseBlock,
                 cache_control: { type: 'ephemeral' },
               },
-              // Patient-specific data (varies) → always fresh
               {
                 type: 'text',
                 text: consultationSections.join('\n\n'),
@@ -249,10 +244,9 @@ export async function POST(req: Request) {
       title: string
       clinical_notes: string
       patient_intro?: string | null
-      vigilance_points?: string | null
       weekly_routine?: string | null
       items: Array<{
-        exercise_id: string
+        exercise_idx: number
         sets?: number | null
         reps?: string | null
         hold_time?: number | null
@@ -272,10 +266,9 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Réponse IA invalide' }, { status: 500 })
     }
 
-    const exerciseById = new Map(exerciseList.map(e => [e.id, e]))
     const enrichedItems = (parsed.items || [])
       .map(item => {
-        const exercise = exerciseById.get(item.exercise_id)
+        const exercise = exerciseList[item.exercise_idx]
         if (!exercise) return null
         return {
           exercise: {
@@ -303,7 +296,7 @@ export async function POST(req: Request) {
       title: parsed.title,
       clinical_notes: parsed.clinical_notes,
       patient_intro: parsed.patient_intro ?? null,
-      vigilance_points: parsed.vigilance_points ?? null,
+      vigilance_points: VIGILANCE_POINTS,
       weekly_routine: parsed.weekly_routine ?? null,
       items: enrichedItems,
     })
