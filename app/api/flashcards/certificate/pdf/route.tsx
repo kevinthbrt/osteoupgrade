@@ -27,6 +27,17 @@ export async function GET(request: NextRequest) {
   const { data: profile } = await supabaseAdmin
     .from('profiles').select('full_name').eq('id', user.id).single()
 
+  // Count distinct modules in this deck
+  const { data: moduleData } = await supabaseAdmin
+    .from('flashcards')
+    .select('module_name')
+    .eq('deck_id', deckId)
+    .not('module_name', 'is', null)
+
+  const totalModules = moduleData
+    ? new Set(moduleData.map((r: { module_name: string }) => r.module_name)).size || 1
+    : 1
+
   const deck = Array.isArray(cert.deck) ? cert.deck[0] : cert.deck as { title: string; total_cards: number } | null
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -34,6 +45,7 @@ export async function GET(request: NextRequest) {
     recipientName: (profile as any)?.full_name || user.email || 'Praticien',
     deckTitle: deck?.title || 'Lombalgie',
     totalCards: deck?.total_cards || 115,
+    totalModules,
     certificateNumber: cert.certificate_number,
     issuedAt: cert.issued_at,
   }) as any

@@ -1,5 +1,10 @@
 import React from 'react'
-import { Document, Page, View, Text, StyleSheet } from '@react-pdf/renderer'
+import { Document, Page, View, Text, StyleSheet, Font } from '@react-pdf/renderer'
+
+Font.register({
+  family: 'GreatVibes',
+  src: 'https://raw.githubusercontent.com/google/fonts/main/ofl/greatvibes/GreatVibes-Regular.ttf',
+})
 
 const VIOLET_MID = '#7c3aed'
 const INDIGO = '#3730a3'
@@ -10,7 +15,6 @@ const VIOLET_BG = '#ede9fe'
 const SLATE_900 = '#0f172a'
 const SLATE_700 = '#334155'
 const SLATE_500 = '#64748b'
-const SLATE_200 = '#e2e8f0'
 const WHITE = '#ffffff'
 
 const styles = StyleSheet.create({
@@ -19,112 +23,91 @@ const styles = StyleSheet.create({
     flexDirection: 'column',
     position: 'relative',
   },
-  bandTop: {
-    height: 10,
-    backgroundColor: VIOLET_MID,
-    width: '100%',
+  // Watermark
+  watermark: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    opacity: 0.04,
   },
-  lisereMid: {
-    height: 2.5,
-    backgroundColor: GOLD,
-    width: '100%',
+  watermarkText: {
+    fontSize: 96,
+    fontFamily: 'Helvetica-Bold',
+    color: VIOLET_MID,
+    textAlign: 'center',
+    letterSpacing: 4,
   },
-  bandBottom: {
-    height: 10,
-    backgroundColor: VIOLET_MID,
-    width: '100%',
+  watermarkSub: {
+    fontSize: 32,
+    fontFamily: 'Helvetica',
+    color: VIOLET_MID,
+    textAlign: 'center',
+    letterSpacing: 8,
+    marginTop: 4,
   },
-  lisereBottom: {
-    height: 2.5,
-    backgroundColor: GOLD,
-    width: '100%',
-  },
+  bandTop: { height: 12, backgroundColor: VIOLET_MID, width: '100%' },
+  lisereMid: { height: 3, backgroundColor: GOLD, width: '100%' },
+  bandBottom: { height: 12, backgroundColor: VIOLET_MID, width: '100%' },
+  lisereBottom: { height: 3, backgroundColor: GOLD, width: '100%' },
   outerBorder: {
     position: 'absolute',
-    top: 20,
-    left: 20,
-    right: 20,
-    bottom: 20,
+    top: 24,
+    left: 24,
+    right: 24,
+    bottom: 24,
     borderWidth: 1.5,
     borderColor: INDIGO_MID,
     borderStyle: 'solid',
   },
   innerBorder: {
     position: 'absolute',
-    top: 26,
-    left: 26,
-    right: 26,
-    bottom: 26,
+    top: 30,
+    left: 30,
+    right: 30,
+    bottom: 30,
     borderWidth: 0.5,
     borderColor: VIOLET_MID,
     borderStyle: 'solid',
   },
-  // Corner ornaments
   cornerTL: {
-    position: 'absolute',
-    top: 30,
-    left: 30,
-    width: 18,
-    height: 18,
-    borderTopWidth: 2.5,
-    borderLeftWidth: 2.5,
-    borderColor: GOLD,
-    borderStyle: 'solid',
+    position: 'absolute', top: 34, left: 34, width: 22, height: 22,
+    borderTopWidth: 3, borderLeftWidth: 3, borderColor: GOLD, borderStyle: 'solid',
   },
   cornerTR: {
-    position: 'absolute',
-    top: 30,
-    right: 30,
-    width: 18,
-    height: 18,
-    borderTopWidth: 2.5,
-    borderRightWidth: 2.5,
-    borderColor: GOLD,
-    borderStyle: 'solid',
+    position: 'absolute', top: 34, right: 34, width: 22, height: 22,
+    borderTopWidth: 3, borderRightWidth: 3, borderColor: GOLD, borderStyle: 'solid',
   },
   cornerBL: {
-    position: 'absolute',
-    bottom: 30,
-    left: 30,
-    width: 18,
-    height: 18,
-    borderBottomWidth: 2.5,
-    borderLeftWidth: 2.5,
-    borderColor: GOLD,
-    borderStyle: 'solid',
+    position: 'absolute', bottom: 34, left: 34, width: 22, height: 22,
+    borderBottomWidth: 3, borderLeftWidth: 3, borderColor: GOLD, borderStyle: 'solid',
   },
   cornerBR: {
-    position: 'absolute',
-    bottom: 30,
-    right: 30,
-    width: 18,
-    height: 18,
-    borderBottomWidth: 2.5,
-    borderRightWidth: 2.5,
-    borderColor: GOLD,
-    borderStyle: 'solid',
+    position: 'absolute', bottom: 34, right: 34, width: 22, height: 22,
+    borderBottomWidth: 3, borderRightWidth: 3, borderColor: GOLD, borderStyle: 'solid',
   },
   content: {
     flex: 1,
     flexDirection: 'column',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 60,
-    paddingVertical: 20,
+    paddingHorizontal: 70,
+    paddingVertical: 16,
   },
   brandLine: {
-    fontSize: 9.5,
+    fontSize: 11,
     fontFamily: 'Helvetica-Bold',
     color: VIOLET_MID,
-    letterSpacing: 2.5,
-    marginBottom: 10,
+    letterSpacing: 3,
+    marginBottom: 12,
     textAlign: 'center',
   },
-  brandGold: {
-    color: GOLD,
-  },
   ruleIndigo: {
-    width: 260,
+    width: 300,
     height: 0.75,
     backgroundColor: INDIGO_MID,
     marginBottom: 14,
@@ -132,79 +115,79 @@ const styles = StyleSheet.create({
   pill: {
     backgroundColor: VIOLET_MID,
     borderRadius: 20,
-    paddingHorizontal: 14,
-    paddingVertical: 4,
+    paddingHorizontal: 16,
+    paddingVertical: 5,
     marginBottom: 14,
   },
   pillText: {
     color: WHITE,
-    fontSize: 8,
+    fontSize: 9,
     fontFamily: 'Helvetica-Bold',
-    letterSpacing: 3,
+    letterSpacing: 4,
   },
   titleMain: {
-    fontSize: 30,
+    fontSize: 36,
     fontFamily: 'Times-Roman',
     color: SLATE_900,
     textAlign: 'center',
     marginBottom: 6,
   },
   subtitleFormation: {
-    fontSize: 10,
-    fontFamily: 'Helvetica',
-    color: SLATE_500,
-    letterSpacing: 1.5,
-    textAlign: 'center',
-    marginBottom: 14,
-  },
-  ruleGold: {
-    width: 80,
-    height: 1,
-    backgroundColor: GOLD,
-    marginBottom: 16,
-  },
-  decerneLabel: {
-    fontSize: 9,
+    fontSize: 11,
     fontFamily: 'Helvetica',
     color: SLATE_500,
     letterSpacing: 2,
     textAlign: 'center',
+    marginBottom: 14,
+  },
+  ruleGold: {
+    width: 100,
+    height: 1.5,
+    backgroundColor: GOLD,
+    marginBottom: 16,
+  },
+  decerneLabel: {
+    fontSize: 10,
+    fontFamily: 'Helvetica',
+    color: SLATE_500,
+    letterSpacing: 3,
+    textAlign: 'center',
     marginBottom: 8,
   },
   recipientName: {
-    fontSize: 34,
-    fontFamily: 'Times-Bold',
+    fontSize: 52,
+    fontFamily: 'GreatVibes',
     color: INDIGO,
     textAlign: 'center',
-    marginBottom: 14,
+    marginBottom: 16,
   },
   praticienPour: {
-    fontSize: 10.5,
+    fontSize: 12,
     fontFamily: 'Helvetica',
     color: SLATE_700,
     textAlign: 'center',
-    marginBottom: 6,
-    paddingHorizontal: 40,
+    marginBottom: 8,
+    paddingHorizontal: 30,
   },
   deckTitle: {
-    fontSize: 22,
+    fontSize: 26,
     fontFamily: 'Times-BoldItalic',
     color: GOLD,
     textAlign: 'center',
-    marginBottom: 8,
+    marginBottom: 10,
   },
   cardsLine: {
-    fontSize: 9,
+    fontSize: 11,
     fontFamily: 'Helvetica',
     color: SLATE_500,
     textAlign: 'center',
     marginBottom: 16,
   },
   ruleIndigoBottom: {
-    width: 260,
+    width: 300,
     height: 0.75,
     backgroundColor: INDIGO_MID,
-    marginBottom: 16,
+    marginBottom: 14,
   },
   footer: {
     flexDirection: 'row',
@@ -220,23 +203,23 @@ const styles = StyleSheet.create({
     borderColor: VIOLET_MID,
     borderStyle: 'solid',
     borderRadius: 4,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
   },
   certLabel: {
-    fontSize: 6.5,
+    fontSize: 7,
     fontFamily: 'Helvetica',
     color: SLATE_500,
-    letterSpacing: 1,
+    letterSpacing: 1.5,
     marginBottom: 2,
   },
   certNumber: {
-    fontSize: 8.5,
+    fontSize: 9.5,
     fontFamily: 'Helvetica-Bold',
     color: VIOLET_MID,
   },
   dateText: {
-    fontSize: 9,
+    fontSize: 10,
     fontFamily: 'Helvetica',
     color: SLATE_500,
   },
@@ -246,20 +229,29 @@ interface Props {
   recipientName: string
   deckTitle: string
   totalCards: number
+  totalModules: number
   certificateNumber: string
   issuedAt: string
 }
 
-export default function FlashcardCertificate({ recipientName, deckTitle, totalCards, certificateNumber, issuedAt }: Props) {
+export default function FlashcardCertificate({ recipientName, deckTitle, totalCards, totalModules, certificateNumber, issuedAt }: Props) {
   const issuedDate = new Date(issuedAt).toLocaleDateString('fr-FR', {
     day: 'numeric',
     month: 'long',
     year: 'numeric',
   })
 
+  const moduleLabel = totalModules > 1 ? `${totalModules} thèmes` : `${totalModules} thème`
+
   return (
     <Document>
       <Page size="A4" orientation="landscape" style={styles.page}>
+        {/* Watermark behind everything */}
+        <View style={styles.watermark}>
+          <Text style={styles.watermarkText}>OsteoUpgrade</Text>
+          <Text style={styles.watermarkSub}>OSTEOFLASH</Text>
+        </View>
+
         {/* Top band */}
         <View style={styles.bandTop} />
         <View style={styles.lisereMid} />
@@ -276,48 +268,38 @@ export default function FlashcardCertificate({ recipientName, deckTitle, totalCa
 
         {/* Content */}
         <View style={styles.content}>
-          {/* Brand line */}
           <Text style={styles.brandLine}>
             OSTEOUPGRADE{' '}
             <Text style={{ color: GOLD }}>×</Text>
             {' '}MYOSTEOFLOW
           </Text>
 
-          {/* Rule */}
           <View style={styles.ruleIndigo} />
 
-          {/* Pill badge */}
           <View style={styles.pill}>
             <Text style={styles.pillText}>OSTEOFLASH</Text>
           </View>
 
-          {/* Main title */}
           <Text style={styles.titleMain}>Certificat d&apos;Excellence</Text>
 
-          {/* Subtitle */}
-          <Text style={styles.subtitleFormation}>FORMATION CLINIQUE PAR CARTES RECTO-VERSO</Text>
+          <Text style={styles.subtitleFormation}>FORMATION CLINIQUE</Text>
 
-          {/* Gold rule */}
           <View style={styles.ruleGold} />
 
-          {/* Decerné à */}
           <Text style={styles.decerneLabel}>DÉCERNÉ À</Text>
 
-          {/* Recipient name */}
           <Text style={styles.recipientName}>{recipientName}</Text>
 
-          {/* Pour avoir maîtrisé */}
           <Text style={styles.praticienPour}>
-            Pour avoir maîtrisé avec excellence l&apos;intégralité des cartes cliniques du thème
+            Pour avoir maîtrisé avec excellence l&apos;intégralité du thème
           </Text>
 
-          {/* Deck title */}
           <Text style={styles.deckTitle}>« {deckTitle} »</Text>
 
-          {/* Cards line */}
-          <Text style={styles.cardsLine}>{totalCards} cartes · Progression adaptée validée</Text>
+          <Text style={styles.cardsLine}>
+            {totalCards} éléments validés en {moduleLabel}
+          </Text>
 
-          {/* Bottom rule */}
           <View style={styles.ruleIndigoBottom} />
         </View>
 
@@ -330,7 +312,6 @@ export default function FlashcardCertificate({ recipientName, deckTitle, totalCa
           <Text style={styles.dateText}>{issuedDate}</Text>
         </View>
 
-        {/* Bottom liseré + band */}
         <View style={{ height: 14 }} />
         <View style={styles.lisereBottom} />
         <View style={styles.bandBottom} />
