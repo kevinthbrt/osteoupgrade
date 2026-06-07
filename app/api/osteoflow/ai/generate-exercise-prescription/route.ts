@@ -98,7 +98,10 @@ Identifier : exercices dont le **nom** contient "Respiration diaphragmatique" ou
 ## FORMAT DE RÉPONSE (JSON strict, sans markdown)
 {
   "title": "Titre court du programme (ex: Tendinopathie Achille — protocole isométrique analgésique)",
-  "clinical_notes": "Justification EBP en 2-3 phrases. Mentionner le protocole choisi et les bases scientifiques utilisées.",
+  "clinical_notes": "Justification EBP en 2-3 phrases pour le PRATICIEN. Mentionner le protocole choisi et les bases scientifiques utilisées. Langage clinique.",
+  "patient_intro": "Message d'introduction POUR LE PATIENT (2-3 phrases). Expliquer avec bienveillance POURQUOI ces exercices l'aideront, en langage simple et encourageant. Conserver la logique thérapeutique mais sans jargon clinique.",
+  "vigilance_points": "Points de vigilance pour le patient. Liste de 3-5 signes qui doivent l'amener à stopper l'exercice ou contacter son praticien. Chaque item sur une nouvelle ligne commençant par '• '. Langage simple.",
+  "weekly_routine": "Description courte de la routine hebdomadaire recommandée. Ex: '3 fois par semaine, avec au moins 1 jour de repos entre chaque séance. Durée estimée : 25 minutes.' Langage patient.",
   "items": [
     {
       "exercise_id": "uuid-exact-de-la-liste",
@@ -206,7 +209,7 @@ export async function POST(req: Request) {
         // detailed EBP notes) could exceed it and get truncated mid-JSON,
         // making JSON.parse fail → 500 "Réponse IA invalide". 4096 gives the
         // model room to always close the JSON.
-        max_tokens: 4096,
+        max_tokens: 5500,
         system: SYSTEM_PROMPT,
         messages: [{ role: 'user', content: userContent }],
       }),
@@ -233,6 +236,9 @@ export async function POST(req: Request) {
     let parsed: {
       title: string
       clinical_notes: string
+      patient_intro?: string | null
+      vigilance_points?: string | null
+      weekly_routine?: string | null
       items: Array<{
         exercise_id: string
         sets?: number | null
@@ -286,6 +292,9 @@ export async function POST(req: Request) {
     return NextResponse.json({
       title: parsed.title,
       clinical_notes: parsed.clinical_notes,
+      patient_intro: parsed.patient_intro ?? null,
+      vigilance_points: parsed.vigilance_points ?? null,
+      weekly_routine: parsed.weekly_routine ?? null,
       items: enrichedItems,
     })
   } catch (err) {
