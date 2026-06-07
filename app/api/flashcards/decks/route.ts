@@ -12,6 +12,15 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    const { data: profile } = await supabaseAdmin
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single()
+    if (!['premium', 'admin'].includes(profile?.role ?? '')) {
+      return NextResponse.json({ error: 'Un abonnement Premium est requis pour accéder à OsteoFlash.', code: 'NOT_PREMIUM' }, { status: 403 })
+    }
+
     const { data: decks, error } = await supabaseAdmin
       .from('flashcard_decks')
       .select('*')
