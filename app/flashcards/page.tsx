@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import AuthLayout from '@/components/AuthLayout'
-import { Brain, ChevronRight, RotateCcw, CheckCircle2, XCircle, AlertCircle, Smile, RotateCw } from 'lucide-react'
+import { Brain, ChevronRight, RotateCcw, CheckCircle2, XCircle, AlertCircle, Smile, RotateCw, Award, Download } from 'lucide-react'
 
 interface FlashcardDeck {
   id: string
@@ -52,6 +52,8 @@ export default function OsteoFlashPage() {
   const [sessionDone, setSessionDone] = useState(false)
   const [rating, setRating] = useState<number | null>(null)
   const [loadingCards, setLoadingCards] = useState(false)
+  const [certificate, setCertificate] = useState<{ number: string; isNew: boolean } | null>(null)
+  const [certLoading, setCertLoading] = useState(false)
 
   useEffect(() => {
     fetch('/api/flashcards/decks')
@@ -64,6 +66,7 @@ export default function OsteoFlashPage() {
     setLoadingCards(true)
     setActiveDeck(deck)
     setRequeuCount({})
+    setCertificate(null)
     try {
       const res = await fetch(`/api/flashcards/${deck.id}/cards`)
       const data = await res.json()
@@ -124,8 +127,27 @@ export default function OsteoFlashPage() {
     setSessionDone(false)
     setFlipped(false)
     setRating(null)
+    setCertificate(null)
     fetch('/api/flashcards/decks').then((r) => r.json()).then((data) => setDecks(data.decks ?? []))
   }, [])
+
+  useEffect(() => {
+    if (!sessionDone || !activeDeck) return
+    setCertLoading(true)
+    fetch('/api/flashcards/certificate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ deck_id: activeDeck.id }),
+    })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (data?.certificate_number) {
+          setCertificate({ number: data.certificate_number, isNew: !data.already_existed })
+        }
+      })
+      .catch(() => {})
+      .finally(() => setCertLoading(false))
+  }, [sessionDone, activeDeck?.id])
 
   const currentCard = sessionCards[currentIndex]
   const isDone = sessionDone || (sessionCards.length > 0 && currentIndex >= sessionCards.length)
@@ -150,8 +172,36 @@ export default function OsteoFlashPage() {
             <div className="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-6">
               <CheckCircle2 className="w-10 h-10 text-green-600" />
             </div>
-            <h2 className="text-2xl font-bold text-slate-900 mb-2">Session terminée !</h2>
+            <h2 className="text-2xl font-bold text-slate-900 mb-2">Session terminée !</h2>
             <p className="text-slate-500 mb-8">{reviewed} carte{reviewed > 1 ? 's' : ''} révisée{reviewed > 1 ? 's' : ''}</p>
+
+            {certLoading && (
+              <p className="text-sm text-slate-400 mb-4 animate-pulse">Vérification du niveau…</p>
+            )}
+            {certificate && (
+              <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-violet-600 to-indigo-700 p-6 text-center mb-6 shadow-lg">
+                <div className="absolute top-0 left-0 w-32 h-32 bg-white/5 rounded-full blur-2xl -translate-x-1/2 -translate-y-1/2" />
+                <div className="relative">
+                  {certificate.isNew && (
+                    <p className="text-violet-200 text-xs font-bold uppercase tracking-widest mb-2">
+                      🎓 Thème maîtrisé à 100 %
+                    </p>
+                  )}
+                  <Award className="w-10 h-10 text-yellow-300 mx-auto mb-2" />
+                  <p className="text-white font-bold text-lg mb-1">Certificat d&apos;Excellence</p>
+                  <p className="text-violet-300 text-xs mb-4 font-mono">{certificate.number}</p>
+                  <a
+                    href={`/api/flashcards/certificate/pdf?deck_id=${activeDeck?.id}`}
+                    download
+                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white text-violet-700 font-semibold text-sm hover:bg-violet-50 transition-colors shadow"
+                  >
+                    <Download className="w-4 h-4" />
+                    Télécharger mon certificat PDF
+                  </a>
+                </div>
+              </div>
+            )}
+
             <button
               onClick={exitSession}
               className="w-full py-3 rounded-xl bg-violet-600 text-white font-semibold hover:bg-violet-700 transition-colors"
