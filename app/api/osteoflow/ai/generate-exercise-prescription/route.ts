@@ -2,11 +2,6 @@ import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase-server'
 
 export const dynamic = 'force-dynamic'
-// The EBP system prompt is large and a full prescription (up to 8 exercises
-// with detailed per-item notes) can take ~35-45s to generate. Without an
-// explicit maxDuration Vercel would kill the function at its default limit,
-// surfacing as a 502 in the Osteoflow proxy. 60s is the safe ceiling on all
-// plans; keep the Anthropic abort below it so we can return a clean error.
 export const maxDuration = 60
 
 const SYSTEM_PROMPT = `Tu es un assistant clinique expert en rééducation ostéopathique et physiothérapeutique. Tu génères des prescriptions d'exercices individualisées et scientifiquement validées pour des ostéopathes francophones.
@@ -35,7 +30,7 @@ Le type "renfo" regroupe exercices dynamiques ET isométriques — lis la descri
 ### Tendinopathies phase aiguë/irritable — Isométrie analgésique (Rio 2015)
 Identifier : exercices dont le **nom** commence par "Isométrie".
 - Sets × reps : 4–5 répétitions × 1 contraction (champ sets=5, reps="1")
-- Tenue : 30–45 s à 70–80 % de l'effort maximal toléré → hold_time=45
+- Tenue : 30–45 s à 70–80 % de l'effort maximal toléré → hold_time=45
 - Repos : 120 s entre répétitions → rest_time=120
 - Fréquence : 2×/jour
 - Notes : "Maintenir la contraction sans mouvement. Douleur EVA ≤ 3/10 acceptable."
@@ -92,7 +87,7 @@ Identifier : exercices dont le **nom** contient "Respiration diaphragmatique" ou
 ## SÉCURITÉ ET CONTRE-INDICATIONS
 - Repérer drapeaux rouges dans les antécédents (fracture récente, néoplasie, infection, AVC)
 - EVA ≤ 3/10 en règle générale (sauf protocoles isométriques/excentriques spécifiés ci-dessus)
-- Adapter à l'âge, comorbidités et niveau d'activité habituel
+- Adapter à l'âge, comorbiditiés et niveau d'activité habituel
 - Post-chirurgical : respecter les délais de cicatrisation (min 6 semaines avant charge excentrique)
 
 ## FORMAT DE RÉPONSE (JSON strict, sans markdown)
@@ -181,17 +176,18 @@ export async function POST(req: Request) {
       ...(e.description ? { desc: e.description.substring(0, 150) } : {}),
     }))
 
-    const sections: string[] = [
+    // Exercise list block: stable for a given level → benefits from prompt caching
+    const exerciseBlock = `## EXERCICES DISPONIBLES (${exercisesCompact.length})\n${JSON.stringify(exercisesCompact)}`
+
+    // Consultation block: varies per patient → not cached
+    const consultationSections: string[] = [
       `## PATIENT\n${patientCtx.length > 0 ? patientCtx.join('\n') : 'Données non renseignées'}`,
     ]
-    if (consultation?.reason) sections.push(`## MOTIF\n${consultation.reason}`)
-    if (consultation?.anamnesis) sections.push(`## ANAMNÈSE\n${consultation.anamnesis}`)
-    if (consultation?.examination) sections.push(`## EXAMEN CLINIQUE\n${consultation.examination}`)
-    sections.push(`## DIAGNOSTIC DU PRATICIEN\n${diagnostic}`)
-    sections.push(`## PARAMÈTRES\nNiveau : ${level}/3\nDurée max séance : ${max_duration_minutes} minutes`)
-    sections.push(`## EXERCICES DISPONIBLES (${exercisesCompact.length})\n${JSON.stringify(exercisesCompact)}`)
-
-    const userContent = sections.join('\n\n')
+    if (consultation?.reason) consultationSections.push(`## MOTIF\n${consultation.reason}`)
+    if (consultation?.anamnesis) consultationSections.push(`## ANAMNÈSE\n${consultation.anamnesis}`)
+    if (consultation?.examination) consultationSections.push(`## EXAMEN CLINIQUE\n${consultation.examination}`)
+    consultationSections.push(`## DIAGNOSTIC DU PRATICIEN\n${diagnostic}`)
+    consultationSections.push(`## PARAMÈTRES\nNiveau : ${level}/3\nDurée max séance : ${max_duration_minutes} minutes`)
 
     const apiKey = process.env.ANTHROPIC_API_KEY
     if (!apiKey) return NextResponse.json({ error: 'Clé API non configurée' }, { status: 500 })
@@ -202,19 +198,37 @@ export async function POST(req: Request) {
         'Content-Type': 'application/json',
         'x-api-key': apiKey,
         'anthropic-version': '2023-06-01',
+        'anthropic-beta': 'prompt-caching-2024-07-31',
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
-        // 2500 was too tight: a full prescription (up to 8 exercises with
-        // detailed EBP notes) could exceed it and get truncated mid-JSON,
-        // making JSON.parse fail → 500 "Réponse IA invalide". 4096 gives the
-        // model room to always close the JSON.
-        max_tokens: 5500,
-        system: SYSTEM_PROMPT,
-        messages: [{ role: 'user', content: userContent }],
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 3000,
+        system: [
+          {
+            type: 'text',
+            text: SYSTEM_PROMPT,
+            cache_control: { type: 'ephemeral' },
+          },
+        ],
+        messages: [
+          {
+            role: 'user',
+            content: [
+              // Exercise list first (stable for a given level) → cache hit across patients
+              {
+                type: 'text',
+                text: exerciseBlock,
+                cache_control: { type: 'ephemeral' },
+              },
+              // Patient-specific data (varies) → always fresh
+              {
+                type: 'text',
+                text: consultationSections.join('\n\n'),
+              },
+            ],
+          },
+        ],
       }),
-      // Stay below maxDuration (60s) so the function returns a clean error
-      // instead of being killed by the platform when generation runs long.
       signal: AbortSignal.timeout(55000),
     })
 
@@ -227,8 +241,6 @@ export async function POST(req: Request) {
     const aiData = await aiRes.json()
     const content = (aiData.content?.[0]?.text ?? '').trim()
 
-    // Surface truncation explicitly: if the model hit the token ceiling the
-    // JSON is incomplete and parsing will fail — log it so it's diagnosable.
     if (aiData.stop_reason === 'max_tokens') {
       console.error('[generate-exercise-prescription] response truncated (stop_reason=max_tokens), length:', content.length)
     }
@@ -250,8 +262,6 @@ export async function POST(req: Request) {
       }>
     }
     try {
-      // Strip markdown fences first, then fall back to slicing the outermost
-      // JSON object so any leading/trailing prose the model adds is ignored.
       let json = content.replace(/```(?:json)?/gi, '').trim()
       const first = json.indexOf('{')
       const last = json.lastIndexOf('}')
