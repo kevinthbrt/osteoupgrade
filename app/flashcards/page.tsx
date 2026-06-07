@@ -1,7 +1,10 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import AuthLayout from '@/components/AuthLayout'
+import FreeContentGate from '@/components/FreeContentGate'
+import { fetchProfilePayload } from '@/lib/profile-client'
 import { Brain, ChevronRight, RotateCcw, CheckCircle2, XCircle, AlertCircle, Smile, RotateCw, Award, Download, ChevronDown, Eye, ThumbsUp, Zap } from 'lucide-react'
 
 interface FlashcardDeck {
@@ -135,6 +138,8 @@ function HowItWorks() {
 }
 
 export default function OsteoFlashPage() {
+  const router = useRouter()
+  const [role, setRole] = useState<string | null>(null)
   const [decks, setDecks] = useState<FlashcardDeck[]>([])
   const [loading, setLoading] = useState(true)
   const [activeDeck, setActiveDeck] = useState<FlashcardDeck | null>(null)
@@ -148,12 +153,22 @@ export default function OsteoFlashPage() {
   const [certificate, setCertificate] = useState<{ number: string; isNew: boolean } | null>(null)
   const [certLoading, setCertLoading] = useState(false)
 
+  const isFree = role !== null && !['premium', 'admin'].includes(role)
+
   useEffect(() => {
+    fetchProfilePayload().then((payload) => {
+      if (!payload?.user) { router.push('/'); return }
+      setRole(payload.profile?.role || 'free')
+    })
+  }, [router])
+
+  useEffect(() => {
+    if (!role || isFree) return
     fetch('/api/flashcards/decks')
       .then((r) => r.json())
       .then((data) => { setDecks(data.decks ?? []); setLoading(false) })
       .catch(() => setLoading(false))
-  }, [])
+  }, [role, isFree])
 
   const startDeck = useCallback(async (deck: FlashcardDeck) => {
     setLoadingCards(true)
@@ -394,6 +409,7 @@ export default function OsteoFlashPage() {
   // ── Deck list view ────────────────────────────────────────────
   return (
     <AuthLayout>
+      <FreeContentGate isLocked={isFree}>
       <div className="min-h-screen -m-6 md:-m-8">
         <div className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-violet-950 to-slate-900 px-6 md:px-10 pt-8 pb-6">
           <div className="absolute top-0 left-0 w-72 h-72 bg-violet-500/20 rounded-full blur-3xl animate-pulse -translate-x-1/2 -translate-y-1/4" style={{ animationDuration: '4s' }} />
@@ -495,6 +511,7 @@ export default function OsteoFlashPage() {
           )}
         </div>
       </div>
+      </FreeContentGate>
     </AuthLayout>
   )
 }

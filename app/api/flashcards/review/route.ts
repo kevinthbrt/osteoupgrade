@@ -74,6 +74,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    const { data: profile } = await supabaseAdmin
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single()
+    if (!['premium', 'admin'].includes(profile?.role ?? '')) {
+      return NextResponse.json({ error: 'Un abonnement Premium est requis pour accéder à OsteoFlash.', code: 'NOT_PREMIUM' }, { status: 403 })
+    }
+
     const body = await request.json()
     const parsed = postSchema.safeParse(body)
     if (!parsed.success) {
