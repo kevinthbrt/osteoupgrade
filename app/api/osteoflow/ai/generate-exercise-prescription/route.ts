@@ -199,7 +199,7 @@ export async function POST(req: Request) {
         'anthropic-beta': 'prompt-caching-2024-07-31',
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
+        model: 'claude-haiku-4-5-20251001',
         max_tokens: 3000,
         system: [
           {
@@ -212,11 +212,13 @@ export async function POST(req: Request) {
           {
             role: 'user',
             content: [
+              // Exercise list first (stable for a given level) → cache hit across patients
               {
                 type: 'text',
                 text: exerciseBlock,
                 cache_control: { type: 'ephemeral' },
               },
+              // Patient-specific data (varies) → always fresh
               {
                 type: 'text',
                 text: consultationSections.join('\n\n'),
@@ -267,6 +269,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Réponse IA invalide' }, { status: 500 })
     }
 
+    // Map index back to exercise
     const enrichedItems = (parsed.items || [])
       .map(item => {
         const exercise = exerciseList[item.exercise_idx]
