@@ -9,12 +9,40 @@ function verifySecret(req: NextRequest) {
   return auth === `Bearer ${secret}`
 }
 
-function sm2(rating: number, repetition: number, ease: number, interval: number) {
-  if (rating < 3) return { repetition: 0, ease: Math.max(1.3, ease - 0.2), interval: 1 }
-  const newEase = rating === 4 ? Math.min(2.5, ease + 0.15) : rating === 2 ? Math.max(1.3, ease - 0.2) : ease
-  let newInterval = repetition === 0 ? 1 : repetition === 1 ? 6 : Math.round(interval * newEase)
-  if (rating === 4 && repetition > 1) newInterval = Math.round(newInterval * 1.3)
-  return { repetition: repetition + 1, ease: newEase, interval: newInterval }
+function sm2(
+  rating: number,
+  repetition: number,
+  ease: number,
+  interval: number
+): { repetition: number; ease: number; interval: number } {
+  let newRepetition = repetition
+  let newEase = ease
+  let newInterval = interval
+
+  if (rating === 1) {
+    newRepetition = 0
+    newEase = Math.max(1.3, ease - 0.2)
+    newInterval = 1
+  } else if (rating === 2) {
+    newEase = Math.max(1.3, ease - 0.15)
+    newInterval = 1
+  } else {
+    if (rating === 4) newEase = Math.min(2.5, ease + 0.15)
+    if (repetition === 0) newInterval = 1
+    else if (repetition === 1) newInterval = 6
+    else {
+      newInterval = Math.round(interval * newEase)
+      if (rating === 4) newInterval = Math.round(newInterval * 1.3)
+    }
+    newRepetition = repetition + 1
+  }
+
+  if (newInterval > 1) {
+    const fuzz = 1 + (Math.random() - 0.5) * 0.1
+    newInterval = Math.max(2, Math.round(newInterval * fuzz))
+  }
+
+  return { repetition: newRepetition, ease: newEase, interval: newInterval }
 }
 
 const postSchema = z.object({
@@ -49,7 +77,12 @@ export async function POST(request: NextRequest) {
     .single()
 
   const prev = existing as { repetition: number; ease_factor: number; interval_days: number } | null
-  const { repetition, ease, interval } = sm2(rating, prev?.repetition ?? 0, prev?.ease_factor ?? 2.5, prev?.interval_days ?? 1)
+  const { repetition, ease, interval } = sm2(
+    rating,
+    prev?.repetition ?? 0,
+    prev?.ease_factor ?? 2.5,
+    prev?.interval_days ?? 1
+  )
 
   const nextReview = new Date()
   nextReview.setDate(nextReview.getDate() + interval)
@@ -61,5 +94,10 @@ export async function POST(request: NextRequest) {
     last_rating: rating, reviewed_at: new Date().toISOString(),
   }, { onConflict: 'user_id,card_id' })
 
-  return NextResponse.json({ repetition, ease_factor: ease, interval_days: interval, next_review_at: nextReview.toISOString() })
+  return NextResponse.json({
+    repetition,
+    ease_factor: ease,
+    interval_days: interval,
+    next_review_at: nextReview.toISOString(),
+  })
 }

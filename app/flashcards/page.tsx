@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import AuthLayout from '@/components/AuthLayout'
-import { Brain, ChevronRight, RotateCcw, CheckCircle2, XCircle, AlertCircle, Smile } from 'lucide-react'
+import { Brain, ChevronRight, RotateCcw, CheckCircle2, XCircle, AlertCircle, Smile, RotateCw } from 'lucide-react'
 
 interface FlashcardDeck {
   id: string
@@ -38,11 +38,15 @@ const RATINGS = [
   { value: 4, label: 'Facile', color: 'bg-green-500 hover:bg-green-600', icon: Smile },
 ]
 
+// Max fois qu'une carte "Oublié" peut être re-ajoutée dans la session
+const MAX_REQUEUE = 2
+
 export default function OsteoFlashPage() {
   const [decks, setDecks] = useState<FlashcardDeck[]>([])
   const [loading, setLoading] = useState(true)
   const [activeDeck, setActiveDeck] = useState<FlashcardDeck | null>(null)
   const [sessionCards, setSessionCards] = useState<Flashcard[]>([])
+  const [requeueCount, setRequeuCount] = useState<Record<string, number>>({})
   const [currentIndex, setCurrentIndex] = useState(0)
   const [flipped, setFlipped] = useState(false)
   const [sessionDone, setSessionDone] = useState(false)
@@ -59,15 +63,13 @@ export default function OsteoFlashPage() {
   const startDeck = useCallback(async (deck: FlashcardDeck) => {
     setLoadingCards(true)
     setActiveDeck(deck)
+    setRequeuCount({})
     try {
       const res = await fetch(`/api/flashcards/${deck.id}/cards`)
       const data = await res.json()
       const allCards: Flashcard[] = data.cards ?? []
-
       const now = new Date().toISOString()
-      const due = allCards.filter(
-        (c) => !c.progress || c.progress.next_review_at <= now
-      )
+      const due = allCards.filter((c) => !c.progress || c.progress.next_review_at <= now)
       const toReview = due.length > 0 ? due : allCards.slice(0, 20)
       setSessionCards([...toReview].sort(() => Math.random() - 0.5))
       setCurrentIndex(0)
@@ -91,19 +93,34 @@ export default function OsteoFlashPage() {
     })
 
     setTimeout(() => {
-      if (currentIndex + 1 >= sessionCards.length) {
-        setSessionDone(true)
-      } else {
-        setCurrentIndex((i) => i + 1)
-        setFlipped(false)
-        setRating(null)
+      const nextIndex = currentIndex + 1
+
+      if (ratingValue === 1) {
+        // Re-queue si pas encore atteint la limite
+        const count = requeueCount[card.id] ?? 0
+        if (count < MAX_REQUEUE) {
+          setSessionCards((prev) => [...prev, card])
+          setRequeuCount((prev) => ({ ...prev, [card.id]: count + 1 }))
+        }
       }
+
+      // Utilise la longueur courante (avant le setState async)
+      setSessionCards((prev) => {
+        const willBeDone = nextIndex >= prev.length
+        if (willBeDone) setSessionDone(true)
+        return prev
+      })
+
+      setCurrentIndex(nextIndex)
+      setFlipped(false)
+      setRating(null)
     }, 300)
-  }, [sessionCards, currentIndex])
+  }, [sessionCards, currentIndex, requeueCount])
 
   const exitSession = useCallback(() => {
     setActiveDeck(null)
     setSessionCards([])
+    setRequeuCount({})
     setSessionDone(false)
     setFlipped(false)
     setRating(null)
@@ -111,6 +128,7 @@ export default function OsteoFlashPage() {
   }, [])
 
   const currentCard = sessionCards[currentIndex]
+  const isDone = sessionDone || (sessionCards.length > 0 && currentIndex >= sessionCards.length)
 
   // ── Session view ──────────────────────────────────────────────
   if (activeDeck) {
@@ -124,7 +142,7 @@ export default function OsteoFlashPage() {
       )
     }
 
-    if (sessionDone) {
+    if (isDone) {
       const reviewed = sessionCards.length
       return (
         <AuthLayout>
@@ -132,7 +150,7 @@ export default function OsteoFlashPage() {
             <div className="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-6">
               <CheckCircle2 className="w-10 h-10 text-green-600" />
             </div>
-            <h2 className="text-2xl font-bold text-slate-900 mb-2">Session terminée !</h2>
+            <h2 className="text-2xl font-bold text-slate-900 mb-2">Session terminée !</h2>
             <p className="text-slate-500 mb-8">{reviewed} carte{reviewed > 1 ? 's' : ''} révisée{reviewed > 1 ? 's' : ''}</p>
             <button
               onClick={exitSession}
@@ -144,6 +162,8 @@ export default function OsteoFlashPage() {
         </AuthLayout>
       )
     }
+
+    const requeuedCount = requeueCount[currentCard?.id ?? ''] ?? 0
 
     return (
       <AuthLayout>
@@ -162,13 +182,20 @@ export default function OsteoFlashPage() {
           <div className="w-full bg-slate-200 rounded-full h-1.5 mb-6">
             <div
               className="bg-violet-600 h-1.5 rounded-full transition-all duration-300"
-              style={{ width: `${((currentIndex) / sessionCards.length) * 100}%` }}
+              style={{ width: `${(currentIndex / sessionCards.length) * 100}%` }}
             />
           </div>
 
           {/* Module badge */}
           {currentCard?.module_name && (
-            <p className="text-xs text-violet-600 font-medium mb-3 text-center">{currentCard.module_name}</p>
+            <div className="flex items-center justify-center gap-2 mb-3">
+              <p className="text-xs text-violet-600 font-medium">{currentCard.module_name}</p>
+              {requeuedCount > 0 && (
+                <span className="flex items-center gap-0.5 text-xs text-orange-500 font-medium">
+                  <RotateCw className="w-3 h-3" /> À revoir
+                </span>
+              )}
+            </div>
           )}
 
           {/* Card front */}
@@ -218,6 +245,13 @@ export default function OsteoFlashPage() {
               })}
             </div>
           )}
+
+          {/* Hint under buttons */}
+          {flipped && (
+            <p className="text-xs text-center text-slate-400 mt-3">
+              Oublié = la carte revient dans cette session
+            </p>
+          )}
         </div>
       </AuthLayout>
     )
@@ -227,11 +261,9 @@ export default function OsteoFlashPage() {
   return (
     <AuthLayout>
       <div className="min-h-screen -m-6 md:-m-8">
-        {/* Header */}
         <div className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-violet-950 to-slate-900 px-6 md:px-10 pt-8 pb-6">
           <div className="absolute top-0 left-0 w-72 h-72 bg-violet-500/20 rounded-full blur-3xl animate-pulse -translate-x-1/2 -translate-y-1/4" style={{ animationDuration: '4s' }} />
           <div className="absolute bottom-0 right-0 w-56 h-56 bg-indigo-500/15 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '6s' }} />
-
           <div className="relative">
             <div className="bg-white/[0.09] backdrop-blur-xl border border-white/20 ring-1 ring-inset ring-white/15 rounded-3xl shadow-[0_12px_40px_rgba(0,8,30,0.65),inset_0_1px_0_rgba(255,255,255,0.12)] p-6 md:p-8">
               <p className="text-violet-300 text-sm font-medium mb-1 tracking-wide flex items-center gap-2">
@@ -245,11 +277,9 @@ export default function OsteoFlashPage() {
               </p>
             </div>
           </div>
-
           <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-violet-400/40 to-transparent" />
         </div>
 
-        {/* Body */}
         <div className="relative bg-gradient-to-br from-violet-50 via-white to-indigo-50 px-6 md:px-10 pt-8 pb-10">
           {loading ? (
             <div className="flex items-center justify-center py-20">
@@ -261,8 +291,6 @@ export default function OsteoFlashPage() {
                 const pct = deck.total_cards > 0
                   ? Math.round((deck.user_reviewed / deck.total_cards) * 100)
                   : 0
-                const hasDue = deck.user_due > 0
-
                 return (
                   <button
                     key={deck.id}
@@ -273,17 +301,14 @@ export default function OsteoFlashPage() {
                       <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center shadow-md group-hover:scale-110 transition-transform">
                         <Brain className="w-6 h-6 text-white" />
                       </div>
-                      {hasDue && (
+                      {deck.user_due > 0 && (
                         <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-orange-100 text-orange-700">
                           {deck.user_due} à réviser
                         </span>
                       )}
                     </div>
-
                     <h3 className="text-lg font-bold text-slate-900 mb-1">{deck.title}</h3>
                     <p className="text-sm text-slate-500 leading-relaxed mb-4 line-clamp-2">{deck.description}</p>
-
-                    {/* Progress bar */}
                     <div className="mb-1 flex items-center justify-between text-xs text-slate-500">
                       <span>{deck.user_reviewed} / {deck.total_cards} cartes maîtrisées</span>
                       <span className="font-semibold text-violet-700">{pct}%</span>
@@ -294,7 +319,6 @@ export default function OsteoFlashPage() {
                         style={{ width: `${pct}%` }}
                       />
                     </div>
-
                     <div className="mt-4 flex items-center gap-1 text-violet-600 text-sm font-semibold">
                       Commencer <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                     </div>

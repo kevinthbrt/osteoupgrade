@@ -4,36 +4,59 @@ import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
 import { supabaseAdmin } from '@/lib/supabase-server'
 import { z } from 'zod'
 
-// SM-2 algorithm
-// rating: 1=Oublié, 2=Difficile, 3=Bien, 4=Facile
+/**
+ * SM-2 algorithm — full implementation
+ *
+ * Ratings:
+ *   1 = Oublié   → reset complet, re-queue en session
+ *   2 = Difficile → garde la progression, pénalise l'ease, revient demain
+ *   3 = Bien      → progression normale
+ *   4 = Facile    → progression boostée
+ *
+ * Fuzz ±5% sur les intervalles > 1 pour éviter le clustering.
+ */
 function sm2(
   rating: number,
   repetition: number,
   ease: number,
   interval: number
 ): { repetition: number; ease: number; interval: number } {
-  if (rating < 3) {
-    // Failed — reset
-    return { repetition: 0, ease: Math.max(1.3, ease - 0.2), interval: 1 }
-  }
+  let newRepetition = repetition
+  let newEase = ease
+  let newInterval = interval
 
-  const newEase = rating === 4
-    ? Math.min(2.5, ease + 0.15)
-    : rating === 2
-    ? Math.max(1.3, ease - 0.2)
-    : ease
-
-  let newInterval: number
-  if (repetition === 0) {
+  if (rating === 1) {
+    // Oublié — reset total
+    newRepetition = 0
+    newEase = Math.max(1.3, ease - 0.2)
     newInterval = 1
-  } else if (repetition === 1) {
-    newInterval = 6
+  } else if (rating === 2) {
+    // Difficile — garde la progression mais pénalise l'ease, repasse demain
+    newEase = Math.max(1.3, ease - 0.15)
+    newInterval = 1
+    // repetition inchangé
   } else {
-    newInterval = Math.round(interval * newEase)
-    if (rating === 4) newInterval = Math.round(newInterval * 1.3)
+    // Bien (3) ou Facile (4)
+    if (rating === 4) newEase = Math.min(2.5, ease + 0.15)
+
+    if (repetition === 0) {
+      newInterval = 1
+    } else if (repetition === 1) {
+      newInterval = 6
+    } else {
+      newInterval = Math.round(interval * newEase)
+      if (rating === 4) newInterval = Math.round(newInterval * 1.3)
+    }
+    newRepetition = repetition + 1
   }
 
-  return { repetition: repetition + 1, ease: newEase, interval: newInterval }
+  // Fuzz ±5% pour éviter le clustering (seulement sur intervalles > 1)
+  if (newInterval > 1) {
+    const fuzz = 1 + (Math.random() - 0.5) * 0.1
+    newInterval = Math.max(2, Math.round(newInterval * fuzz))
+  }
+
+  return { repetition: newRepetition, ease: newEase, interval: newInterval }
 }
 
 const postSchema = z.object({
@@ -59,7 +82,6 @@ export async function POST(request: NextRequest) {
 
     const { card_id, deck_id, rating } = parsed.data
 
-    // Get existing progress
     const { data: existing } = await supabaseAdmin
       .from('flashcard_progress')
       .select('*')
@@ -83,21 +105,19 @@ export async function POST(request: NextRequest) {
     const nextReview = new Date()
     nextReview.setDate(nextReview.getDate() + interval)
 
-    const upsertData = {
-      user_id: user.id,
-      card_id,
-      deck_id,
-      repetition,
-      ease_factor: ease,
-      interval_days: interval,
-      next_review_at: nextReview.toISOString(),
-      last_rating: rating,
-      reviewed_at: new Date().toISOString(),
-    }
-
     const { error } = await supabaseAdmin
       .from('flashcard_progress')
-      .upsert(upsertData, { onConflict: 'user_id,card_id' })
+      .upsert({
+        user_id: user.id,
+        card_id,
+        deck_id,
+        repetition,
+        ease_factor: ease,
+        interval_days: interval,
+        next_review_at: nextReview.toISOString(),
+        last_rating: rating,
+        reviewed_at: new Date().toISOString(),
+      }, { onConflict: 'user_id,card_id' })
 
     if (error) {
       return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
