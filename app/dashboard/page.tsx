@@ -30,7 +30,8 @@ import {
   Lock,
   Laptop,
   Download,
-  Star
+  Star,
+  Brain
 } from 'lucide-react'
 
 export default function Dashboard() {
@@ -49,7 +50,7 @@ export default function Dashboard() {
   })
 
   const badgeIconMap: Record<string, ComponentType<{ className?: string }>> = {
-    GraduationCap, Zap, Calendar, Dumbbell, Flame, LogIn
+    GraduationCap, Zap, Calendar, Dumbbell, Flame, LogIn, Brain
   }
 
   useEffect(() => { loadDashboardData(); trackDailyLogin() }, [])
@@ -328,7 +329,7 @@ export default function Dashboard() {
           <section>
             <div className="flex items-center gap-2.5 mb-4">
               <div className="h-5 w-1 rounded-full bg-gradient-to-b from-blue-500 to-blue-700" />
-              <h2 className="text-sm font-bold text-slate-800 tracking-wide">Hub d'apprentissage</h2>
+              <h2 className="text-sm font-bold text-slate-800 tracking-wide">Hub d&apos;apprentissage</h2>
             </div>
             <div className="rounded-2xl overflow-hidden shadow-xl border border-blue-300/70 bg-blue-100/85 backdrop-blur-2xl ring-1 ring-inset ring-white/60">
               {modules.map((module, i) => {

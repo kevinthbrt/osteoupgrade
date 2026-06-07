@@ -20,11 +20,7 @@ import {
   FileText,
   Gift,
   Map,
-  GraduationCap,
-  Zap,
-  Calendar,
-  Dumbbell,
-  LogIn,
+  Brain,
 } from 'lucide-react'
 import AdminNotificationBell from './AdminNotificationBell'
 import UserNotificationBell from './UserNotificationBell'
@@ -84,6 +80,7 @@ export default function Navigation() {
     { href: '/pratique', label: 'Pratique', icon: Stethoscope },
     { href: '/elearning/revue-litterature', label: 'Revue OsteoUpgrade', icon: FileText },
     { href: '/tests', label: 'Tests ortho', icon: Clipboard },
+    { href: '/flashcards', label: 'OsteoFlash', icon: Brain, isNew: true },
     { href: '/topographie', label: 'Topographie', icon: Map },
     { href: '/parrainage', label: 'Parrainage & Cagnotte', icon: Gift },
     { href: '/settings', label: 'Paramètres', icon: Settings },
@@ -111,9 +108,10 @@ export default function Navigation() {
 
   const renderMenuItem = (item: MenuItem) => {
     const Icon = item.icon
-    const isActive = pathname === item.href
+    const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
     const isRestricted = item.roles && profile && !item.roles.includes(profile.role)
     const shouldHide = isRestricted && item.hideWhenRestricted
+    const isFlashcards = item.href === '/flashcards'
 
     if (shouldHide) return null
     if (item.roles && !profile?.role) return null
@@ -124,7 +122,9 @@ export default function Navigation() {
         href={isRestricted ? '#' : item.href}
         className={`flex items-center px-3 py-2.5 rounded-xl transition-all group relative ${
           isActive
-            ? 'bg-sky-500/20 backdrop-blur-sm text-white font-medium shadow-sm border border-sky-400/20 ring-1 ring-inset ring-white/10'
+            ? isFlashcards
+              ? 'bg-violet-500/20 backdrop-blur-sm text-white font-medium shadow-sm border border-violet-400/20 ring-1 ring-inset ring-white/10'
+              : 'bg-sky-500/20 backdrop-blur-sm text-white font-medium shadow-sm border border-sky-400/20 ring-1 ring-inset ring-white/10'
             : 'text-slate-300 border border-transparent hover:bg-white/10 hover:backdrop-blur-sm hover:border-white/15 hover:shadow-sm hover:text-white'
         } ${isRestricted ? 'opacity-50 cursor-not-allowed hover:bg-transparent hover:border-transparent hover:shadow-none hover:text-slate-300' : ''}`}
         onClick={() => {
@@ -137,16 +137,20 @@ export default function Navigation() {
           }
         }}
       >
-        <Icon className={`h-5 w-5 mr-3 ${isActive ? 'text-sky-300' : 'text-slate-400 group-hover:text-slate-200'}`} />
+        <Icon className={`h-5 w-5 mr-3 ${
+          isActive
+            ? isFlashcards ? 'text-violet-300' : 'text-sky-300'
+            : 'text-slate-400 group-hover:text-slate-200'
+        }`} />
         <span className="flex-1">{item.label}</span>
-        {isActive && <ChevronRight className="h-4 w-4 text-sky-300" />}
+        {isActive && <ChevronRight className={`h-4 w-4 ${isFlashcards ? 'text-violet-300' : 'text-sky-300'}`} />}
         {item.badge && (
           <span className="ml-2 px-1.5 py-0.5 bg-white/10 text-slate-200 text-[10px] font-semibold rounded">
             {item.badge}
           </span>
         )}
         {item.isNew && (
-          <span className="ml-2 px-1.5 py-0.5 bg-emerald-500/20 text-emerald-300 text-[10px] font-semibold rounded">
+          <span className="ml-2 px-1.5 py-0.5 bg-violet-500/20 text-violet-300 text-[10px] font-semibold rounded">
             NEW
           </span>
         )}
@@ -268,7 +272,7 @@ export default function Navigation() {
             </div>
           )}
 
-          {/* Logout button + Legal links */}
+          {/* Logout + Legal */}
           <div className="p-4 border-t border-blue-900/50 space-y-3">
             <button
               onClick={handleLogout}
