@@ -44,8 +44,9 @@ export async function GET(request: NextRequest) {
     if (row.next_review_at <= now) progressByDeck[row.deck_id].due++
   }
 
-  const result = (decks ?? []).map((deck: { id: string; total_cards: number; [key: string]: unknown }) => ({
+  const result = (decks ?? []).map((deck: { id: string; title: string; total_cards: number; [key: string]: unknown }) => ({
     ...deck,
+    name: deck.title,
     user_reviewed: progressByDeck[deck.id]?.reviewed ?? 0,
     user_due: progressByDeck[deck.id]?.due ?? 0,
   }))
