@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import AuthLayout from '@/components/AuthLayout'
-import { Brain, ChevronRight, RotateCcw, CheckCircle2, XCircle, AlertCircle, Smile, RotateCw, Award, Download } from 'lucide-react'
+import { Brain, ChevronRight, RotateCcw, CheckCircle2, XCircle, AlertCircle, Smile, RotateCw, Award, Download, ChevronDown, Eye, ThumbsUp, Zap } from 'lucide-react'
 
 interface FlashcardDeck {
   id: string
@@ -39,6 +39,100 @@ const RATINGS = [
 ]
 
 const MAX_REQUEUE = 2
+
+function HowItWorks() {
+  const [open, setOpen] = useState(false)
+
+  return (
+    <div className="max-w-4xl mb-6">
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="w-full flex items-center justify-between px-5 py-3.5 rounded-2xl bg-white border border-violet-100 shadow-sm hover:shadow-md transition-all text-left"
+      >
+        <div className="flex items-center gap-2.5">
+          <div className="w-7 h-7 rounded-lg bg-violet-100 flex items-center justify-center">
+            <Brain className="w-4 h-4 text-violet-600" />
+          </div>
+          <span className="text-sm font-semibold text-slate-700">Comment fonctionne OsteoFlash ?</span>
+        </div>
+        <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
+      </button>
+
+      {open && (
+        <div className="mt-2 rounded-2xl bg-white border border-violet-100 shadow-sm overflow-hidden">
+          {/* Steps */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-slate-100">
+            <div className="flex items-start gap-3 px-5 py-4">
+              <div className="w-8 h-8 rounded-xl bg-violet-100 flex items-center justify-center shrink-0 mt-0.5">
+                <Eye className="w-4 h-4 text-violet-600" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-slate-800 mb-0.5">1. Lisez la question</p>
+                <p className="text-xs text-slate-500 leading-relaxed">Chaque carte affiche une question clinique. Réfléchissez avant de révéler la réponse.</p>
+              </div>
+            </div>
+            <div className="flex items-start gap-3 px-5 py-4">
+              <div className="w-8 h-8 rounded-xl bg-indigo-100 flex items-center justify-center shrink-0 mt-0.5">
+                <ThumbsUp className="w-4 h-4 text-indigo-600" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-slate-800 mb-0.5">2. Évaluez-vous</p>
+                <p className="text-xs text-slate-500 leading-relaxed">Après avoir vu la réponse, notez votre niveau de mémorisation avec l&apos;un des 4 boutons.</p>
+              </div>
+            </div>
+            <div className="flex items-start gap-3 px-5 py-4">
+              <div className="w-8 h-8 rounded-xl bg-emerald-100 flex items-center justify-center shrink-0 mt-0.5">
+                <Zap className="w-4 h-4 text-emerald-600" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-slate-800 mb-0.5">3. La répétition s&apos;adapte</p>
+                <p className="text-xs text-slate-500 leading-relaxed">L&apos;algorithme planifie automatiquement la prochaine révision au moment optimal pour ancrer la mémoire.</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Ratings legend */}
+          <div className="border-t border-slate-100 px-5 py-4">
+            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Les 4 niveaux de réponse</p>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              <div className="flex items-center gap-2 p-2.5 rounded-xl bg-red-50 border border-red-100">
+                <XCircle className="w-4 h-4 text-red-500 shrink-0" />
+                <div>
+                  <p className="text-xs font-bold text-red-700">Oublié</p>
+                  <p className="text-[11px] text-red-400 leading-tight">La carte revient immédiatement dans la session</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 p-2.5 rounded-xl bg-orange-50 border border-orange-100">
+                <AlertCircle className="w-4 h-4 text-orange-500 shrink-0" />
+                <div>
+                  <p className="text-xs font-bold text-orange-700">Difficile</p>
+                  <p className="text-[11px] text-orange-400 leading-tight">Intervalle court, révision rapprochée</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 p-2.5 rounded-xl bg-blue-50 border border-blue-100">
+                <CheckCircle2 className="w-4 h-4 text-blue-500 shrink-0" />
+                <div>
+                  <p className="text-xs font-bold text-blue-700">Bien</p>
+                  <p className="text-[11px] text-blue-400 leading-tight">Intervalle standard, progression normale</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 p-2.5 rounded-xl bg-green-50 border border-green-100">
+                <Smile className="w-4 h-4 text-green-500 shrink-0" />
+                <div>
+                  <p className="text-xs font-bold text-green-700">Facile</p>
+                  <p className="text-[11px] text-green-400 leading-tight">Intervalle long, carte bien ancrée</p>
+                </div>
+              </div>
+            </div>
+            <p className="text-[11px] text-slate-400 mt-3">
+              ℹ️ Une carte est considérée <strong>maîtrisée</strong> dès qu&apos;elle est répondue <strong>Bien</strong> ou <strong>Facile</strong> au moins une fois. Atteindre 100 % sur un thème débloque un <strong>certificat PDF</strong> téléchargeable.
+            </p>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
 
 export default function OsteoFlashPage() {
   const [decks, setDecks] = useState<FlashcardDeck[]>([])
@@ -149,7 +243,7 @@ export default function OsteoFlashPage() {
   const currentCard = sessionCards[currentIndex]
   const isDone = sessionDone || (sessionCards.length > 0 && currentIndex >= sessionCards.length)
 
-  // ── Session view ──────────────────────────────────────────────
+  // ── Session view ─────────────────────────────────────────────
   if (activeDeck) {
     if (loadingCards) {
       return (
@@ -169,7 +263,7 @@ export default function OsteoFlashPage() {
             <div className="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-6">
               <CheckCircle2 className="w-10 h-10 text-green-600" />
             </div>
-            <h2 className="text-2xl font-bold text-slate-900 mb-2">Session terminée !</h2>
+            <h2 className="text-2xl font-bold text-slate-900 mb-2">Session terminée !</h2>
             <p className="text-slate-500 mb-8">{reviewed} carte{reviewed > 1 ? 's' : ''} révisée{reviewed > 1 ? 's' : ''}</p>
 
             {certLoading && (
@@ -181,7 +275,7 @@ export default function OsteoFlashPage() {
                 <div className="relative">
                   {certificate.isNew && (
                     <p className="text-violet-200 text-xs font-bold uppercase tracking-widest mb-2">
-                      🎓 Thème maîtrisé à 100 %
+                      🎓 Thème maîtrisé à 100 %
                     </p>
                   )}
                   <Award className="w-10 h-10 text-yellow-300 mx-auto mb-2" />
@@ -321,6 +415,8 @@ export default function OsteoFlashPage() {
         </div>
 
         <div className="relative bg-gradient-to-br from-violet-50 via-white to-indigo-50 px-6 md:px-10 pt-8 pb-10">
+          <HowItWorks />
+
           {loading ? (
             <div className="flex items-center justify-center py-20">
               <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-violet-600" />
