@@ -29,15 +29,16 @@ export async function GET(request: NextRequest) {
 
   const deck = Array.isArray(cert.deck) ? cert.deck[0] : cert.deck as { title: string; total_cards: number } | null
 
-  const pdfBuffer = await renderToBuffer(
-    React.createElement(FlashcardCertificate, {
-      recipientName: (profile as any)?.full_name || user.email || 'Praticien',
-      deckTitle: deck?.title || 'Lombalgie',
-      totalCards: deck?.total_cards || 115,
-      certificateNumber: cert.certificate_number,
-      issuedAt: cert.issued_at,
-    })
-  )
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const element = React.createElement(FlashcardCertificate, {
+    recipientName: (profile as any)?.full_name || user.email || 'Praticien',
+    deckTitle: deck?.title || 'Lombalgie',
+    totalCards: deck?.total_cards || 115,
+    certificateNumber: cert.certificate_number,
+    issuedAt: cert.issued_at,
+  }) as any
+
+  const pdfBuffer = await renderToBuffer(element)
 
   return new NextResponse(pdfBuffer as unknown as BodyInit, {
     headers: {
