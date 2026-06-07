@@ -4,6 +4,12 @@ import { supabaseAdmin } from '@/lib/supabase-server'
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
 
+const VIGILANCE_POINTS = `• Douleur qui s'intensifie fortement pendant ou après l'exercice (EVA > 5/10)
+• Apparition de vertiges, nausées ou malaises
+• Fourmillements, engourdissements ou faiblesse dans un membre
+• Douleur thoracique ou essoufflement inhabituel
+• Symptômes qui irradient ou s'aggravent dans un nouveau territoire`
+
 const SYSTEM_PROMPT = `Tu es un assistant clinique expert en rééducation ostéopathique et physiothérapeutique. Tu génères des prescriptions d'exercices individualisées et scientifiquement validées pour des ostéopathes francophones.
 
 ## PRINCIPES EBP
@@ -95,7 +101,6 @@ Identifier : exercices dont le **nom** contient "Respiration diaphragmatique" ou
   "title": "Titre court du programme (ex: Tendinopathie Achille — protocole isométrique analgésique)",
   "clinical_notes": "Justification EBP en 2-3 phrases pour le PRATICIEN. Mentionner le protocole choisi et les bases scientifiques utilisées. Langage clinique.",
   "patient_intro": "Message d'introduction POUR LE PATIENT (2-3 phrases). Expliquer avec bienveillance POURQUOI ces exercices l'aideront, en langage simple et encourageant.",
-  "vigilance_points": "Points de vigilance pour le patient. Liste de 3-5 signes qui doivent l'amener à stopper l'exercice ou contacter son praticien. Chaque item sur une nouvelle ligne commençant par '• '. Langage simple.",
   "weekly_routine": "Description courte de la routine hebdomadaire recommandée. Ex: '3 fois par semaine, avec au moins 1 jour de repos entre chaque séance. Durée estimée : 25 minutes.' Langage patient.",
   "items": [
     {
@@ -167,8 +172,7 @@ export async function POST(req: Request) {
     if (include_factors?.medical && patient?.medical_history) patientCtx.push(`Antécédents médicaux : ${patient.medical_history}`)
     if (include_factors?.surgical && patient?.surgical_history) patientCtx.push(`Antécédents chirurgicaux : ${patient.surgical_history}`)
 
-    // CSV format with sequential index instead of JSON with UUIDs
-    // Saves ~60% of exercise list tokens (no repeated keys, no UUIDs, no descriptions)
+    // CSV format with sequential index — saves ~60% of exercise list tokens vs JSON
     const exerciseLines = exerciseList
       .map((e, i) => `${i},${e.name},${e.region},${e.type},${e.level}`)
       .join('\n')
@@ -208,13 +212,11 @@ export async function POST(req: Request) {
           {
             role: 'user',
             content: [
-              // Exercise list first (stable for a given level) → cache hit across patients
               {
                 type: 'text',
                 text: exerciseBlock,
                 cache_control: { type: 'ephemeral' },
               },
-              // Patient-specific data (varies) → always fresh
               {
                 type: 'text',
                 text: consultationSections.join('\n\n'),
@@ -243,7 +245,6 @@ export async function POST(req: Request) {
       title: string
       clinical_notes: string
       patient_intro?: string | null
-      vigilance_points?: string | null
       weekly_routine?: string | null
       items: Array<{
         exercise_idx: number
@@ -266,7 +267,6 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Réponse IA invalide' }, { status: 500 })
     }
 
-    // Map index back to exercise
     const enrichedItems = (parsed.items || [])
       .map(item => {
         const exercise = exerciseList[item.exercise_idx]
@@ -297,7 +297,7 @@ export async function POST(req: Request) {
       title: parsed.title,
       clinical_notes: parsed.clinical_notes,
       patient_intro: parsed.patient_intro ?? null,
-      vigilance_points: parsed.vigilance_points ?? null,
+      vigilance_points: VIGILANCE_POINTS,
       weekly_routine: parsed.weekly_routine ?? null,
       items: enrichedItems,
     })
