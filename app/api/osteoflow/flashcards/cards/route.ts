@@ -28,15 +28,25 @@ export async function GET(request: NextRequest) {
     supabaseAdmin.from('flashcard_progress').select('*').eq('user_id', user.id).eq('deck_id', deckId),
   ])
 
-  const progressMap: Record<string, unknown> = {}
+  const progressMap: Record<string, { repetition: number; ease_factor: number; interval_days: number; next_review_at: string }> = {}
   for (const p of (progressResult.data ?? [])) {
-    progressMap[(p as { card_id: string }).card_id] = p
+    progressMap[(p as { card_id: string }).card_id] = p as { repetition: number; ease_factor: number; interval_days: number; next_review_at: string }
   }
 
-  const cards = (cardsResult.data ?? []).map((card: { id: string; [key: string]: unknown }) => ({
-    ...card,
-    progress: progressMap[card.id] ?? null,
-  }))
+  const now = new Date().toISOString()
+  const cards = (cardsResult.data ?? []).map((card: { id: string; question: string; answer: string; explanation?: string; [key: string]: unknown }) => {
+    const progress = progressMap[card.id] ?? null
+    return {
+      ...card,
+      front: card.question,
+      back: card.answer,
+      repetition: progress?.repetition ?? 0,
+      ease: progress?.ease_factor ?? 2.5,
+      interval: progress?.interval_days ?? 1,
+      due_date: progress?.next_review_at ?? now,
+      progress,
+    }
+  })
 
   return NextResponse.json({ cards })
 }
