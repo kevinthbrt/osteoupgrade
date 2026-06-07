@@ -100,7 +100,7 @@ Identifier : exercices dont le **nom** contient "Respiration diaphragmatique" ou
 {
   "title": "Titre court du programme (ex: Tendinopathie Achille — protocole isométrique analgésique)",
   "clinical_notes": "Justification EBP en 2-3 phrases pour le PRATICIEN. Mentionner le protocole choisi et les bases scientifiques utilisées. Langage clinique.",
-  "patient_intro": "Message d'introduction POUR LE PATIENT (2-3 phrases). Expliquer avec bienveillance POURQUOI ces exercices l'aideront, en langage simple et encourageant. Conserver la logique thérapeutique mais sans jargon clinique.",
+  "patient_intro": "Message d'introduction POUR LE PATIENT (2-3 phrases). Expliquer avec bienveillance POURQUOI ces exercices l'aideront, en langage simple et encourageant.",
   "weekly_routine": "Description courte de la routine hebdomadaire recommandée. Ex: '3 fois par semaine, avec au moins 1 jour de repos entre chaque séance. Durée estimée : 25 minutes.' Langage patient.",
   "items": [
     {
@@ -120,8 +120,8 @@ Identifier : exercices dont le **nom** contient "Respiration diaphragmatique" ou
 - Durée estimée ≤ durée_max_minutes
 - Exercices ordonnés : échauffement/mobilité → stabilisation/motricité → renforcement → étirement
 - Diversité : 1-2 mobilité, 2-4 renfo/stabilisation, 0-1 étirement selon contexte
-- Tendinopathie : choisir UN seul protocole adapté à la phase (ne pas combiner isométrie et excentrique dans la même séance sauf indication explicite)
-- Utiliser UNIQUEMENT les exercise_idx de la liste fournie (entier, colonne idx du CSV)
+- Tendinopathie : choisir UN seul protocole adapté à la phase
+- Utiliser UNIQUEMENT les exercise_idx de la liste fournie (entier, pas une chaîne)
 - Répondre en JSON pur, sans bloc de code markdown
 - Langue française`
 
@@ -212,11 +212,13 @@ export async function POST(req: Request) {
           {
             role: 'user',
             content: [
+              // Exercise list first (stable for a given level) → cache hit across patients
               {
                 type: 'text',
                 text: exerciseBlock,
                 cache_control: { type: 'ephemeral' },
               },
+              // Patient-specific data (varies) → always fresh
               {
                 type: 'text',
                 text: consultationSections.join('\n\n'),
@@ -267,6 +269,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Réponse IA invalide' }, { status: 500 })
     }
 
+    // Map index back to exercise
     const enrichedItems = (parsed.items || [])
       .map(item => {
         const exercise = exerciseList[item.exercise_idx]
