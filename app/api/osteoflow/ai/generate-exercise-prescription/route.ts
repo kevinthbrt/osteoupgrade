@@ -42,7 +42,7 @@ Identifier : exercices dont le **nom** commence par "Isométrie".
 - Notes : "Maintenir la contraction sans mouvement. Douleur EVA ≤ 3/10 acceptable."
 
 ### Tendinopathies phase sub-aiguë/chronique — Heavy Slow Resistance (Beyer 2015)
-Identifier : exercices dont le **nom** contient "lourd lent (HSR)" (ex: "Calf raise lourd lent (HSR)").
+Identifier : exercices dont le **nom** contient "lourd lent (HSR)".
 - Sets × reps : 4×8 → progresser vers 4×15 sur 12 semaines → sets=4, reps="8-15"
 - Tempo : 3 s concentrique — 0 s pause — 3 s excentrique
 - Repos : 120–180 s → rest_time=150
@@ -50,7 +50,7 @@ Identifier : exercices dont le **nom** contient "lourd lent (HSR)" (ex: "Calf ra
 - Notes : "Tempo 3-0-3. Charge perçue 7-8/10. Douleur EVA ≤ 5/10 acceptable pendant l'effort."
 
 ### Tendinopathies — Excentrique pur (Alfredson 1998)
-Identifier : exercices dont le **nom** contient "excentrique" (ex: "Calf raise excentrique", "Déclin squat excentrique", "Excentrique extenseurs poignet").
+Identifier : exercices dont le **nom** contient "excentrique".
 - Sets × reps : 3×15 → sets=3, reps="15"
 - Tempo : descente contrôlée 3 s, remontée passive sur 2 jambes
 - Repos : 60–90 s → rest_time=60
@@ -100,7 +100,7 @@ Identifier : exercices dont le **nom** contient "Respiration diaphragmatique" ou
 {
   "title": "Titre court du programme (ex: Tendinopathie Achille — protocole isométrique analgésique)",
   "clinical_notes": "Justification EBP en 2-3 phrases pour le PRATICIEN. Mentionner le protocole choisi et les bases scientifiques utilisées. Langage clinique.",
-  "patient_intro": "Message d'introduction POUR LE PATIENT (2-3 phrases). Expliquer avec bienveillance POURQUOI ces exercices l'aideront, en langage simple et encourageant. Conserver la logique thérapeutique mais sans jargon clinique.",
+  "patient_intro": "Message d'introduction POUR LE PATIENT (2-3 phrases). Expliquer avec bienveillance POURQUOI ces exercices l'aideront, en langage simple et encourageant.",
   "weekly_routine": "Description courte de la routine hebdomadaire recommandée. Ex: '3 fois par semaine, avec au moins 1 jour de repos entre chaque séance. Durée estimée : 25 minutes.' Langage patient.",
   "items": [
     {
@@ -117,11 +117,11 @@ Identifier : exercices dont le **nom** contient "Respiration diaphragmatique" ou
 
 ## CONTRAINTES
 - 4 à 8 exercices maximum
-- Durée estimée ≤ durée_max_minutes (isométrie analgésique : 5×45s + repos 2min ≈ 14 min ; excentrique : 3×15×4s + repos ≈ 12 min)
+- Durée estimée ≤ durée_max_minutes
 - Exercices ordonnés : échauffement/mobilité → stabilisation/motricité → renforcement → étirement
 - Diversité : 1-2 mobilité, 2-4 renfo/stabilisation, 0-1 étirement selon contexte
-- Tendinopathie : choisir UN seul protocole adapté à la phase (ne pas combiner isométrie et excentrique dans la même séance sauf indication explicite)
-- Utiliser UNIQUEMENT les exercise_idx de la liste fournie (entier, colonne idx du CSV)
+- Tendinopathie : choisir UN seul protocole adapté à la phase
+- Utiliser UNIQUEMENT les exercise_idx de la liste fournie (entier, pas une chaîne)
 - Répondre en JSON pur, sans bloc de code markdown
 - Langue française`
 
@@ -172,6 +172,7 @@ export async function POST(req: Request) {
     if (include_factors?.medical && patient?.medical_history) patientCtx.push(`Antécédents médicaux : ${patient.medical_history}`)
     if (include_factors?.surgical && patient?.surgical_history) patientCtx.push(`Antécédents chirurgicaux : ${patient.surgical_history}`)
 
+    // CSV format with sequential index — saves ~60% of exercise list tokens vs JSON
     const exerciseLines = exerciseList
       .map((e, i) => `${i},${e.name},${e.region},${e.type},${e.level}`)
       .join('\n')
@@ -211,11 +212,13 @@ export async function POST(req: Request) {
           {
             role: 'user',
             content: [
+              // Exercise list first (stable for a given level) → cache hit across patients
               {
                 type: 'text',
                 text: exerciseBlock,
                 cache_control: { type: 'ephemeral' },
               },
+              // Patient-specific data (varies) → always fresh
               {
                 type: 'text',
                 text: consultationSections.join('\n\n'),
@@ -266,6 +269,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Réponse IA invalide' }, { status: 500 })
     }
 
+    // Map index back to exercise
     const enrichedItems = (parsed.items || [])
       .map(item => {
         const exercise = exerciseList[item.exercise_idx]
