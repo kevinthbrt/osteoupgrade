@@ -12,7 +12,7 @@ import { Resvg } from '@resvg/resvg-js'
 import React from 'react'
 import FlashcardCertificate from '@/components/certificates/FlashcardCertificate'
 
-async function svgToPngDataUri(svgPath: string, size = 300): Promise<string> {
+async function svgToPngDataUri(svgPath: string, size = 640): Promise<string> {
   const svgString = fs.readFileSync(svgPath, 'utf-8')
   const resvg = new Resvg(svgString, { fitTo: { mode: 'width', value: size } })
   const png = resvg.render().asPng()
@@ -49,7 +49,7 @@ export async function GET(request: NextRequest) {
 
   const deck = Array.isArray(cert.deck) ? cert.deck[0] : cert.deck as { title: string; total_cards: number } | null
 
-  const logoSrc = await svgToPngDataUri(path.join(process.cwd(), 'public', 'logo.svg'), 320)
+  const logoSrc = await svgToPngDataUri(path.join(process.cwd(), 'public', 'logo.svg'), 640)
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const element = React.createElement(FlashcardCertificate, {

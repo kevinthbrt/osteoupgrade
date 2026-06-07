@@ -27,7 +27,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     opacity: 0.06,
   },
-  watermarkImage: { width: 320, height: 320, objectFit: 'contain' },
+  watermarkImage: { width: 640, height: 640, objectFit: 'contain' },
   bandTop: { height: 12, backgroundColor: VIOLET_MID, width: '100%' },
   lisereMid: { height: 3, backgroundColor: GOLD, width: '100%' },
   bandBottom: { height: 12, backgroundColor: VIOLET_MID, width: '100%' },
@@ -83,7 +83,6 @@ export default function FlashcardCertificate({
     <Document>
       <Page size="A4" orientation="landscape" style={styles.page}>
 
-        {/* Logo watermark — PNG converted from SVG at runtime */}
         <View style={styles.watermark}>
           <Image src={logoSrc} style={styles.watermarkImage} />
         </View>
