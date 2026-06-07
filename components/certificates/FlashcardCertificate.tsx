@@ -1,7 +1,7 @@
 import React from 'react'
 import {
   Document, Page, View, Text, StyleSheet, Font,
-  Svg, Circle, Line, Rect, G,
+  Svg, Circle, Line,
   Text as SvgText,
 } from '@react-pdf/renderer'
 
@@ -22,20 +22,10 @@ const SLATE_500 = '#64748b'
 const WHITE = '#ffffff'
 
 const styles = StyleSheet.create({
-  page: {
-    backgroundColor: BG,
-    flexDirection: 'column',
-    position: 'relative',
-  },
+  page: { backgroundColor: BG, flexDirection: 'column', position: 'relative' },
   watermark: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
+    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+    flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
     opacity: 0.07,
   },
   bandTop: { height: 12, backgroundColor: VIOLET_MID, width: '100%' },
@@ -50,141 +40,75 @@ const styles = StyleSheet.create({
     position: 'absolute', top: 30, left: 30, right: 30, bottom: 30,
     borderWidth: 0.5, borderColor: VIOLET_MID, borderStyle: 'solid',
   },
-  cornerTL: {
-    position: 'absolute', top: 34, left: 34, width: 22, height: 22,
-    borderTopWidth: 3, borderLeftWidth: 3, borderColor: GOLD, borderStyle: 'solid',
-  },
-  cornerTR: {
-    position: 'absolute', top: 34, right: 34, width: 22, height: 22,
-    borderTopWidth: 3, borderRightWidth: 3, borderColor: GOLD, borderStyle: 'solid',
-  },
-  cornerBL: {
-    position: 'absolute', bottom: 34, left: 34, width: 22, height: 22,
-    borderBottomWidth: 3, borderLeftWidth: 3, borderColor: GOLD, borderStyle: 'solid',
-  },
-  cornerBR: {
-    position: 'absolute', bottom: 34, right: 34, width: 22, height: 22,
-    borderBottomWidth: 3, borderRightWidth: 3, borderColor: GOLD, borderStyle: 'solid',
-  },
+  cornerTL: { position: 'absolute', top: 34, left: 34, width: 22, height: 22, borderTopWidth: 3, borderLeftWidth: 3, borderColor: GOLD, borderStyle: 'solid' },
+  cornerTR: { position: 'absolute', top: 34, right: 34, width: 22, height: 22, borderTopWidth: 3, borderRightWidth: 3, borderColor: GOLD, borderStyle: 'solid' },
+  cornerBL: { position: 'absolute', bottom: 34, left: 34, width: 22, height: 22, borderBottomWidth: 3, borderLeftWidth: 3, borderColor: GOLD, borderStyle: 'solid' },
+  cornerBR: { position: 'absolute', bottom: 34, right: 34, width: 22, height: 22, borderBottomWidth: 3, borderRightWidth: 3, borderColor: GOLD, borderStyle: 'solid' },
   content: {
-    flex: 1,
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 70,
-    paddingVertical: 10,
+    flex: 1, flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+    paddingHorizontal: 70, paddingVertical: 10,
   },
-  brandLine: {
-    fontSize: 11, fontFamily: 'Helvetica-Bold', color: VIOLET_MID,
-    letterSpacing: 3, marginBottom: 12, textAlign: 'center',
-  },
+  brandLine: { fontSize: 11, fontFamily: 'Helvetica-Bold', color: VIOLET_MID, letterSpacing: 3, marginBottom: 12, textAlign: 'center' },
   ruleIndigo: { width: 300, height: 0.75, backgroundColor: INDIGO_MID, marginBottom: 14 },
-  pill: {
-    backgroundColor: VIOLET_MID, borderRadius: 20,
-    paddingHorizontal: 16, paddingVertical: 5, marginBottom: 14,
-  },
+  pill: { backgroundColor: VIOLET_MID, borderRadius: 20, paddingHorizontal: 16, paddingVertical: 5, marginBottom: 14 },
   pillText: { color: WHITE, fontSize: 9, fontFamily: 'Helvetica-Bold', letterSpacing: 4 },
-  titleMain: {
-    fontSize: 36, fontFamily: 'Times-Roman', color: SLATE_900,
-    textAlign: 'center', marginBottom: 6,
-  },
-  subtitleFormation: {
-    fontSize: 11, fontFamily: 'Helvetica', color: SLATE_500,
-    letterSpacing: 2, textAlign: 'center', marginBottom: 14,
-  },
+  titleMain: { fontSize: 36, fontFamily: 'Times-Roman', color: SLATE_900, textAlign: 'center', marginBottom: 6 },
+  subtitleFormation: { fontSize: 11, fontFamily: 'Helvetica', color: SLATE_500, letterSpacing: 2, textAlign: 'center', marginBottom: 14 },
   ruleGold: { width: 100, height: 1.5, backgroundColor: GOLD, marginBottom: 16 },
-  decerneLabel: {
-    fontSize: 10, fontFamily: 'Helvetica', color: SLATE_500,
-    letterSpacing: 3, textAlign: 'center', marginBottom: 8,
-  },
-  recipientName: {
-    fontSize: 52, fontFamily: 'GreatVibes', color: INDIGO,
-    textAlign: 'center', marginBottom: 16,
-  },
-  praticienPour: {
-    fontSize: 12, fontFamily: 'Helvetica', color: SLATE_700,
-    textAlign: 'center', marginBottom: 8, paddingHorizontal: 30,
-  },
-  deckTitle: {
-    fontSize: 26, fontFamily: 'Times-BoldItalic', color: GOLD,
-    textAlign: 'center', marginBottom: 10,
-  },
-  cardsLine: {
-    fontSize: 11, fontFamily: 'Helvetica', color: SLATE_500,
-    textAlign: 'center', marginBottom: 16,
-  },
+  decerneLabel: { fontSize: 10, fontFamily: 'Helvetica', color: SLATE_500, letterSpacing: 3, textAlign: 'center', marginBottom: 8 },
+  recipientName: { fontSize: 52, fontFamily: 'GreatVibes', color: INDIGO, textAlign: 'center', marginBottom: 16 },
+  praticienPour: { fontSize: 12, fontFamily: 'Helvetica', color: SLATE_700, textAlign: 'center', marginBottom: 8, paddingHorizontal: 30 },
+  deckTitle: { fontSize: 26, fontFamily: 'Times-BoldItalic', color: GOLD, textAlign: 'center', marginBottom: 10 },
+  cardsLine: { fontSize: 11, fontFamily: 'Helvetica', color: SLATE_500, textAlign: 'center', marginBottom: 16 },
   ruleIndigoBottom: { width: 300, height: 0.75, backgroundColor: INDIGO_MID, marginBottom: 12 },
-  footer: {
-    flexDirection: 'row', alignItems: 'center',
-    width: '100%', paddingHorizontal: 50, marginBottom: 4,
-  },
+  footer: { flexDirection: 'row', alignItems: 'center', width: '100%', paddingHorizontal: 50, marginBottom: 4 },
   footerSide: { flex: 1 },
   footerCenter: { flex: 2, flexDirection: 'column', alignItems: 'center' },
-  certLabel: {
-    fontSize: 7, fontFamily: 'Helvetica', color: SLATE_500,
-    letterSpacing: 1.5, textAlign: 'center', marginBottom: 3,
-  },
-  certBox: {
-    backgroundColor: VIOLET_BG, borderWidth: 0.75,
-    borderColor: VIOLET_MID, borderStyle: 'solid',
-    borderRadius: 4, paddingHorizontal: 14, paddingVertical: 6,
-    alignItems: 'center',
-  },
+  certLabel: { fontSize: 7, fontFamily: 'Helvetica', color: SLATE_500, letterSpacing: 1.5, textAlign: 'center', marginBottom: 3 },
+  certBox: { backgroundColor: VIOLET_BG, borderWidth: 0.75, borderColor: VIOLET_MID, borderStyle: 'solid', borderRadius: 4, paddingHorizontal: 14, paddingVertical: 6, alignItems: 'center' },
   certNumber: { fontSize: 9.5, fontFamily: 'Helvetica-Bold', color: VIOLET_MID, textAlign: 'center' },
   dateText: { fontSize: 9, fontFamily: 'Helvetica', color: SLATE_500, textAlign: 'right' },
 })
 
-// SVG seal watermark — drawn inline so react-pdf can render it
+// SVG seal watermark — all text styling via style prop (react-pdf requirement)
 function SealWatermark() {
   const cx = 140
   const cy = 140
   return (
     <Svg width="280" height="280" viewBox="0 0 280 280">
-      {/* Outer circles */}
       <Circle cx={cx} cy={cy} r={132} stroke={VIOLET_MID} strokeWidth={3} fill="none" />
       <Circle cx={cx} cy={cy} r={122} stroke={VIOLET_MID} strokeWidth={0.8} fill="none" />
-      {/* Gold ring accent */}
       <Circle cx={cx} cy={cy} r={127} stroke={GOLD} strokeWidth={1} fill="none" />
 
-      {/* "OSTEOUPGRADE" top label */}
       <SvgText
-        x={cx} y={72}
+        x={cx} y={74}
         textAnchor="middle"
-        fontSize={12}
-        fontFamily="Helvetica-Bold"
-        fill={VIOLET_MID}
-        letterSpacing={3}
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        style={{ fontSize: 12, fontFamily: 'Helvetica-Bold', fill: VIOLET_MID } as any}
       >
         OSTEOUPGRADE
       </SvgText>
 
-      {/* Large "OU" monogram */}
       <SvgText
         x={cx} y={158}
         textAnchor="middle"
-        fontSize={80}
-        fontFamily="Helvetica-Bold"
-        fill={VIOLET_MID}
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        style={{ fontSize: 80, fontFamily: 'Helvetica-Bold', fill: VIOLET_MID } as any}
       >
         OU
       </SvgText>
 
-      {/* Horizontal divider */}
       <Line x1={60} y1={170} x2={220} y2={170} stroke={GOLD} strokeWidth={1} />
 
-      {/* "OSTEOFLASH" bottom label */}
       <SvgText
         x={cx} y={198}
         textAnchor="middle"
-        fontSize={10}
-        fontFamily="Helvetica"
-        fill={INDIGO_MID}
-        letterSpacing={4}
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        style={{ fontSize: 10, fontFamily: 'Helvetica', fill: INDIGO_MID } as any}
       >
         OSTEOFLASH
       </SvgText>
 
-      {/* Decorative dots */}
       <Circle cx={52} cy={140} r={3} fill={GOLD} />
       <Circle cx={228} cy={140} r={3} fill={GOLD} />
     </Svg>
@@ -201,8 +125,7 @@ interface Props {
 }
 
 export default function FlashcardCertificate({
-  recipientName, deckTitle, totalCards, totalModules,
-  certificateNumber, issuedAt,
+  recipientName, deckTitle, totalCards, totalModules, certificateNumber, issuedAt,
 }: Props) {
   const issuedDate = new Date(issuedAt).toLocaleDateString('fr-FR', {
     day: 'numeric', month: 'long', year: 'numeric',
@@ -213,17 +136,14 @@ export default function FlashcardCertificate({
     <Document>
       <Page size="A4" orientation="landscape" style={styles.page}>
 
-        {/* SVG seal watermark */}
         <View style={styles.watermark}>
           <SealWatermark />
         </View>
 
         <View style={styles.bandTop} />
         <View style={styles.lisereMid} />
-
         <View style={styles.outerBorder} />
         <View style={styles.innerBorder} />
-
         <View style={styles.cornerTL} />
         <View style={styles.cornerTR} />
         <View style={styles.cornerBL} />
@@ -231,35 +151,24 @@ export default function FlashcardCertificate({
 
         <View style={styles.content}>
           <Text style={styles.brandLine}>
-            OSTEOUPGRADE{' '}
-            <Text style={{ color: GOLD }}>{'×'}</Text>
-            {' '}MYOSTEOFLOW
+            OSTEOUPGRADE{' '}<Text style={{ color: GOLD }}>{'×'}</Text>{' '}MYOSTEOFLOW
           </Text>
-
           <View style={styles.ruleIndigo} />
-
           <View style={styles.pill}>
             <Text style={styles.pillText}>OSTEOFLASH</Text>
           </View>
-
           <Text style={styles.titleMain}>Certificat d&apos;Excellence</Text>
           <Text style={styles.subtitleFormation}>FORMATION CLINIQUE</Text>
-
           <View style={styles.ruleGold} />
-
           <Text style={styles.decerneLabel}>D{'É'}CERN{'É'} {'À'}</Text>
           <Text style={styles.recipientName}>{recipientName}</Text>
-
           <Text style={styles.praticienPour}>
             Pour avoir ma{'î'}tris{'é'} avec excellence l&apos;int{'é'}gralit{'é'} du th{'è'}me
           </Text>
-
           <Text style={styles.deckTitle}>{'«'} {deckTitle} {'»'}</Text>
-
           <Text style={styles.cardsLine}>
             {totalCards} {'é'}l{'é'}ments valid{'é'}s en {moduleLabel}
           </Text>
-
           <View style={styles.ruleIndigoBottom} />
         </View>
 
