@@ -1,5 +1,5 @@
 import React from 'react'
-import { Document, Page, View, Text, StyleSheet, Font } from '@react-pdf/renderer'
+import { Document, Page, View, Text, StyleSheet, Font, Image } from '@react-pdf/renderer'
 
 Font.register({
   family: 'GreatVibes',
@@ -23,7 +23,6 @@ const styles = StyleSheet.create({
     flexDirection: 'column',
     position: 'relative',
   },
-  // Watermark
   watermark: {
     position: 'absolute',
     top: 0,
@@ -33,22 +32,12 @@ const styles = StyleSheet.create({
     flexDirection: 'column',
     alignItems: 'center',
     justifyContent: 'center',
-    opacity: 0.04,
+    opacity: 0.06,
   },
-  watermarkText: {
-    fontSize: 96,
-    fontFamily: 'Helvetica-Bold',
-    color: VIOLET_MID,
-    textAlign: 'center',
-    letterSpacing: 4,
-  },
-  watermarkSub: {
-    fontSize: 32,
-    fontFamily: 'Helvetica',
-    color: VIOLET_MID,
-    textAlign: 'center',
-    letterSpacing: 8,
-    marginTop: 4,
+  watermarkImage: {
+    width: 320,
+    height: 320,
+    objectFit: 'contain',
   },
   bandTop: { height: 12, backgroundColor: VIOLET_MID, width: '100%' },
   lisereMid: { height: 3, backgroundColor: GOLD, width: '100%' },
@@ -96,7 +85,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 70,
-    paddingVertical: 16,
+    paddingVertical: 10,
   },
   brandLine: {
     fontSize: 11,
@@ -187,15 +176,31 @@ const styles = StyleSheet.create({
     width: 300,
     height: 0.75,
     backgroundColor: INDIGO_MID,
-    marginBottom: 14,
+    marginBottom: 12,
   },
+  // Footer: 3-column layout for balanced centering
   footer: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
     width: '100%',
-    paddingHorizontal: 60,
-    marginTop: 4,
+    paddingHorizontal: 50,
+    marginBottom: 4,
+  },
+  footerSide: {
+    flex: 1,
+  },
+  footerCenter: {
+    flex: 2,
+    flexDirection: 'column',
+    alignItems: 'center',
+  },
+  certLabel: {
+    fontSize: 7,
+    fontFamily: 'Helvetica',
+    color: SLATE_500,
+    letterSpacing: 1.5,
+    textAlign: 'center',
+    marginBottom: 3,
   },
   certBox: {
     backgroundColor: VIOLET_BG,
@@ -203,25 +208,21 @@ const styles = StyleSheet.create({
     borderColor: VIOLET_MID,
     borderStyle: 'solid',
     borderRadius: 4,
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-  },
-  certLabel: {
-    fontSize: 7,
-    fontFamily: 'Helvetica',
-    color: SLATE_500,
-    letterSpacing: 1.5,
-    marginBottom: 2,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    alignItems: 'center',
   },
   certNumber: {
     fontSize: 9.5,
     fontFamily: 'Helvetica-Bold',
     color: VIOLET_MID,
+    textAlign: 'center',
   },
   dateText: {
-    fontSize: 10,
+    fontSize: 9,
     fontFamily: 'Helvetica',
     color: SLATE_500,
+    textAlign: 'right',
   },
 })
 
@@ -232,24 +233,25 @@ interface Props {
   totalModules: number
   certificateNumber: string
   issuedAt: string
+  logoSrc: string
 }
 
-export default function FlashcardCertificate({ recipientName, deckTitle, totalCards, totalModules, certificateNumber, issuedAt }: Props) {
+export default function FlashcardCertificate({
+  recipientName, deckTitle, totalCards, totalModules,
+  certificateNumber, issuedAt, logoSrc,
+}: Props) {
   const issuedDate = new Date(issuedAt).toLocaleDateString('fr-FR', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
+    day: 'numeric', month: 'long', year: 'numeric',
   })
-
   const moduleLabel = totalModules > 1 ? `${totalModules} thèmes` : `${totalModules} thème`
 
   return (
     <Document>
       <Page size="A4" orientation="landscape" style={styles.page}>
-        {/* Watermark behind everything */}
+
+        {/* Logo watermark */}
         <View style={styles.watermark}>
-          <Text style={styles.watermarkText}>OsteoUpgrade</Text>
-          <Text style={styles.watermarkSub}>OSTEOFLASH</Text>
+          <Image src={logoSrc} style={styles.watermarkImage} />
         </View>
 
         {/* Top band */}
@@ -260,13 +262,13 @@ export default function FlashcardCertificate({ recipientName, deckTitle, totalCa
         <View style={styles.outerBorder} />
         <View style={styles.innerBorder} />
 
-        {/* Corner ornaments */}
+        {/* Corners */}
         <View style={styles.cornerTL} />
         <View style={styles.cornerTR} />
         <View style={styles.cornerBL} />
         <View style={styles.cornerBR} />
 
-        {/* Content */}
+        {/* Main content */}
         <View style={styles.content}>
           <Text style={styles.brandLine}>
             OSTEOUPGRADE{' '}
@@ -281,13 +283,11 @@ export default function FlashcardCertificate({ recipientName, deckTitle, totalCa
           </View>
 
           <Text style={styles.titleMain}>Certificat d&apos;Excellence</Text>
-
           <Text style={styles.subtitleFormation}>FORMATION CLINIQUE</Text>
 
           <View style={styles.ruleGold} />
 
           <Text style={styles.decerneLabel}>DÉCERNÉ À</Text>
-
           <Text style={styles.recipientName}>{recipientName}</Text>
 
           <Text style={styles.praticienPour}>
@@ -303,16 +303,21 @@ export default function FlashcardCertificate({ recipientName, deckTitle, totalCa
           <View style={styles.ruleIndigoBottom} />
         </View>
 
-        {/* Footer */}
+        {/* Footer — cert number centered, date right */}
         <View style={styles.footer}>
-          <View style={styles.certBox}>
+          <View style={styles.footerSide} />
+          <View style={styles.footerCenter}>
             <Text style={styles.certLabel}>NUMÉRO DE CERTIFICAT</Text>
-            <Text style={styles.certNumber}>{certificateNumber}</Text>
+            <View style={styles.certBox}>
+              <Text style={styles.certNumber}>{certificateNumber}</Text>
+            </View>
           </View>
-          <Text style={styles.dateText}>{issuedDate}</Text>
+          <View style={[styles.footerSide, { alignItems: 'flex-end' }]}>
+            <Text style={styles.dateText}>{issuedDate}</Text>
+          </View>
         </View>
 
-        <View style={{ height: 14 }} />
+        <View style={{ height: 12 }} />
         <View style={styles.lisereBottom} />
         <View style={styles.bandBottom} />
       </Page>

@@ -1,6 +1,7 @@
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
+import path from 'path'
 import { NextRequest, NextResponse } from 'next/server'
 import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
 import { cookies } from 'next/headers'
@@ -27,7 +28,6 @@ export async function GET(request: NextRequest) {
   const { data: profile } = await supabaseAdmin
     .from('profiles').select('full_name').eq('id', user.id).single()
 
-  // Count distinct modules in this deck
   const { data: moduleData } = await supabaseAdmin
     .from('flashcards')
     .select('module_name')
@@ -40,6 +40,8 @@ export async function GET(request: NextRequest) {
 
   const deck = Array.isArray(cert.deck) ? cert.deck[0] : cert.deck as { title: string; total_cards: number } | null
 
+  const logoSrc = path.join(process.cwd(), 'public', 'logo.svg')
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const element = React.createElement(FlashcardCertificate, {
     recipientName: (profile as any)?.full_name || user.email || 'Praticien',
@@ -48,6 +50,7 @@ export async function GET(request: NextRequest) {
     totalModules,
     certificateNumber: cert.certificate_number,
     issuedAt: cert.issued_at,
+    logoSrc,
   }) as any
 
   const pdfBuffer = await renderToBuffer(element)
