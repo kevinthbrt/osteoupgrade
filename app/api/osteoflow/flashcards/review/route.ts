@@ -69,6 +69,15 @@ export async function POST(request: NextRequest) {
   const user = await findUserByEmail(email)
   if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 })
 
+  const { data: profile } = await supabaseAdmin
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .single()
+  if (!['premium', 'admin'].includes(profile?.role ?? '')) {
+    return NextResponse.json({ error: 'Un abonnement Premium Osteoupgrade est requis pour utiliser OsteoFlash.', code: 'NOT_PREMIUM' }, { status: 403 })
+  }
+
   const { data: existing } = await supabaseAdmin
     .from('flashcard_progress')
     .select('*')
