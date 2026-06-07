@@ -38,7 +38,6 @@ const RATINGS = [
   { value: 4, label: 'Facile', color: 'bg-green-500 hover:bg-green-600', icon: Smile },
 ]
 
-// Max fois qu'une carte "Oublié" peut être re-ajoutée dans la session
 const MAX_REQUEUE = 2
 
 export default function OsteoFlashPage() {
@@ -99,7 +98,6 @@ export default function OsteoFlashPage() {
       const nextIndex = currentIndex + 1
 
       if (ratingValue === 1) {
-        // Re-queue si pas encore atteint la limite
         const count = requeueCount[card.id] ?? 0
         if (count < MAX_REQUEUE) {
           setSessionCards((prev) => [...prev, card])
@@ -107,7 +105,6 @@ export default function OsteoFlashPage() {
         }
       }
 
-      // Utilise la longueur courante (avant le setState async)
       setSessionCards((prev) => {
         const willBeDone = nextIndex >= prev.length
         if (willBeDone) setSessionDone(true)
@@ -218,7 +215,6 @@ export default function OsteoFlashPage() {
     return (
       <AuthLayout>
         <div className="max-w-2xl mx-auto px-4 py-6">
-          {/* Header */}
           <div className="flex items-center justify-between mb-6">
             <button onClick={exitSession} className="text-sm text-slate-500 hover:text-slate-700 flex items-center gap-1">
               <RotateCcw className="w-4 h-4" /> Quitter
@@ -228,7 +224,6 @@ export default function OsteoFlashPage() {
             </span>
           </div>
 
-          {/* Progress bar */}
           <div className="w-full bg-slate-200 rounded-full h-1.5 mb-6">
             <div
               className="bg-violet-600 h-1.5 rounded-full transition-all duration-300"
@@ -236,7 +231,6 @@ export default function OsteoFlashPage() {
             />
           </div>
 
-          {/* Module badge */}
           {currentCard?.module_name && (
             <div className="flex items-center justify-center gap-2 mb-3">
               <p className="text-xs text-violet-600 font-medium">{currentCard.module_name}</p>
@@ -248,7 +242,6 @@ export default function OsteoFlashPage() {
             </div>
           )}
 
-          {/* Card front */}
           <div
             className={`cursor-pointer select-none rounded-2xl border border-slate-200 bg-white shadow-lg p-8 min-h-[200px] flex flex-col items-center justify-center text-center transition-all duration-200 ${flipped ? 'opacity-0 h-0 overflow-hidden p-0 min-h-0' : ''}`}
             onClick={() => !flipped && setFlipped(true)}
@@ -260,7 +253,6 @@ export default function OsteoFlashPage() {
             )}
           </div>
 
-          {/* Card back */}
           {flipped && (
             <div className="rounded-2xl border border-violet-200 bg-violet-50 shadow-lg p-8 min-h-[200px] flex flex-col">
               <p className="text-xs uppercase tracking-widest text-violet-500 mb-3">Réponse</p>
@@ -274,7 +266,6 @@ export default function OsteoFlashPage() {
             </div>
           )}
 
-          {/* Rating buttons */}
           {flipped && (
             <div className="mt-6 grid grid-cols-4 gap-3">
               {RATINGS.map((r) => {
@@ -296,7 +287,6 @@ export default function OsteoFlashPage() {
             </div>
           )}
 
-          {/* Hint under buttons */}
           {flipped && (
             <p className="text-xs text-center text-slate-400 mt-3">
               Oublié = la carte revient dans cette session
@@ -341,38 +331,68 @@ export default function OsteoFlashPage() {
                 const pct = deck.total_cards > 0
                   ? Math.round((deck.user_reviewed / deck.total_cards) * 100)
                   : 0
+                const mastered = pct === 100
                 return (
-                  <button
+                  <div
                     key={deck.id}
                     onClick={() => startDeck(deck)}
-                    className="group rounded-2xl bg-white border border-slate-200 shadow-md hover:shadow-xl p-6 text-left transition-all duration-200 hover:-translate-y-0.5"
+                    className="group rounded-2xl bg-white border border-slate-200 shadow-md hover:shadow-xl p-6 text-left transition-all duration-200 hover:-translate-y-0.5 cursor-pointer"
                   >
                     <div className="flex items-start justify-between mb-4">
-                      <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center shadow-md group-hover:scale-110 transition-transform">
-                        <Brain className="w-6 h-6 text-white" />
+                      <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shadow-md group-hover:scale-110 transition-transform ${
+                        mastered
+                          ? 'bg-gradient-to-br from-amber-400 to-yellow-500'
+                          : 'bg-gradient-to-br from-violet-500 to-indigo-600'
+                      }`}>
+                        {mastered ? <Award className="w-6 h-6 text-white" /> : <Brain className="w-6 h-6 text-white" />}
                       </div>
-                      {deck.user_due > 0 && (
-                        <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-orange-100 text-orange-700">
-                          {deck.user_due} à réviser
-                        </span>
-                      )}
+                      <div className="flex items-center gap-2">
+                        {mastered && (
+                          <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-700">
+                            100% ✓
+                          </span>
+                        )}
+                        {!mastered && deck.user_due > 0 && (
+                          <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-orange-100 text-orange-700">
+                            {deck.user_due} à réviser
+                          </span>
+                        )}
+                      </div>
                     </div>
                     <h3 className="text-lg font-bold text-slate-900 mb-1">{deck.title}</h3>
                     <p className="text-sm text-slate-500 leading-relaxed mb-4 line-clamp-2">{deck.description}</p>
                     <div className="mb-1 flex items-center justify-between text-xs text-slate-500">
                       <span>{deck.user_reviewed} / {deck.total_cards} cartes maîtrisées</span>
-                      <span className="font-semibold text-violet-700">{pct}%</span>
+                      <span className={`font-semibold ${mastered ? 'text-amber-600' : 'text-violet-700'}`}>{pct}%</span>
                     </div>
-                    <div className="w-full bg-slate-100 rounded-full h-2">
+                    <div className="w-full bg-slate-100 rounded-full h-2 mb-4">
                       <div
-                        className="bg-gradient-to-r from-violet-500 to-indigo-500 h-2 rounded-full transition-all duration-500"
+                        className={`h-2 rounded-full transition-all duration-500 ${
+                          mastered
+                            ? 'bg-gradient-to-r from-amber-400 to-yellow-500'
+                            : 'bg-gradient-to-r from-violet-500 to-indigo-500'
+                        }`}
                         style={{ width: `${pct}%` }}
                       />
                     </div>
-                    <div className="mt-4 flex items-center gap-1 text-violet-600 text-sm font-semibold">
-                      Commencer <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1 text-violet-600 text-sm font-semibold">
+                        {mastered ? 'Réviser' : 'Commencer'}
+                        <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                      </div>
+                      {mastered && (
+                        <a
+                          href={`/api/flashcards/certificate/pdf?deck_id=${deck.id}`}
+                          download
+                          onClick={e => e.stopPropagation()}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-violet-600 text-white text-xs font-semibold hover:bg-violet-700 transition-colors shadow-sm"
+                        >
+                          <Download className="w-3.5 h-3.5" />
+                          Certificat PDF
+                        </a>
+                      )}
                     </div>
-                  </button>
+                  </div>
                 )
               })}
             </div>
