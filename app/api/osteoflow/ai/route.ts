@@ -11,7 +11,7 @@ RÉPONDS UNIQUEMENT EN JSON valide avec ce format exact :
   "anamnesis": "anamnèse structurée en markdown"
 }
 
-Pour "anamnesis", utilise EXACTEMENT ce format avec des tirets :
+Pour "anamnesis", garde TOUJOURS ces 7 rubriques dans cet ordre, même si certaines sont vides (elles servent de checklist au praticien) :
 
 **Histoire de la maladie**
 - [circonstances d'apparition]
@@ -40,12 +40,15 @@ Pour "anamnesis", utilise EXACTEMENT ce format avec des tirets :
 **Drapeaux rouges**
 - [aucun identifié — ou liste chaque drapeau sur une ligne]
 
+Distinction importante pour la valeur de checklist :
+- "—" = sujet NON abordé dans la dictée (le praticien voit ce qu'il a oublié de demander)
+- Si le sujet a été abordé mais est négatif, l'écrire explicitement (ex: "Irradiations : absentes", "Aggravants : aucun signalé") — JAMAIS "—"
+
 Règles :
 - Un tiret = une information précise
-- Style médical concis, pas de phrases longues
-- "—" si une information n'est pas mentionnée
-- Ne jamais inventer d'information
-- Corriger les erreurs de transcription
+- Style télégraphique : ≤ ~12 mots par tiret, pas de phrases. Abréviations cliniques autorisées (ATCD, EVA, Dlr, G/D, RAS)
+- Ne jamais inventer ; en cas de doute, laisser "—" plutôt que déduire
+- Corriger les termes médicaux mal transcrits (erreurs phonétiques)
 - Répondre en français`
 
 const DETECTION_SYSTEM_PROMPT = `Tu es un assistant médical ostéopathique. Analyse le texte d'une dictée clinique et détecte si le patient mentionne des informations à mettre à jour dans son dossier.
