@@ -78,10 +78,10 @@ export default function Navigation() {
     { href: '/dashboard', label: 'Dashboard', icon: Home },
     { href: '/elearning/cours', label: 'Cours', icon: BookOpen },
     { href: '/pratique', label: 'Pratique', icon: Stethoscope },
-    { href: '/elearning/revue-litterature', label: 'Revue OsteoUpgrade', icon: FileText },
     { href: '/tests', label: 'Tests ortho', icon: Clipboard },
-    { href: '/flashcards', label: 'OsteoFlash', icon: Brain, isNew: true },
     { href: '/topographie', label: 'Topographie', icon: Map },
+    { href: '/flashcards', label: 'OsteoFlash', icon: Brain, isNew: true },
+    { href: '/elearning/revue-litterature', label: 'Revue OsteoUpgrade', icon: FileText },
     { href: '/parrainage', label: 'Parrainage & Cagnotte', icon: Gift },
     { href: '/settings', label: 'Paramètres', icon: Settings },
   ]
