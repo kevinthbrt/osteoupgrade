@@ -779,39 +779,19 @@ export default function ImprovedTestsPage() {
                                 >
                                   <div className="flex items-center justify-between">
                                     <div className="flex-1">
-                                      <h3 className="font-semibold text-gray-900">
-                                        {cluster.name}
-                                      </h3>
-                                      {cluster.indications && (
-                                        <p className="text-xs text-gray-500 mt-1">
-                                          <span className="font-medium">Indications :</span>{' '}
-                                          {cluster.indications}
-                                        </p>
-                                      )}
-                                      <p className="text-sm text-gray-600 mt-1 whitespace-pre-line">
-                                      {cluster.description}
-                                      </p>
-                                      {/* Sensibilité / Spécificité */}
-                                      {(cluster.sensitivity || cluster.specificity) && (
-                                        <div className="flex items-center gap-3 mt-2">
-                                          {cluster.sensitivity && (
-                                            <div className="flex items-center gap-1">
-                                              <span className="text-xs text-gray-500">Se:</span>
-                                              {getStatBadge(cluster.sensitivity, 'sensitivity')}
-                                            </div>
-                                          )}
-                                          {cluster.specificity && (
-                                            <div className="flex items-center gap-1">
-                                              <span className="text-xs text-gray-500">Sp:</span>
-                                              {getStatBadge(cluster.specificity, 'specificity')}
-                                            </div>
-                                          )}
-                                        </div>
-                                      )}
-
+                                      <div className="flex items-center gap-2">
+                                        <h3 className="font-semibold text-gray-900">
+                                          {cluster.name}
+                                        </h3>
+                                        {(cluster.sensitivity || cluster.specificity) && (
+                                          <div className="flex items-center gap-2">
+                                            {cluster.sensitivity && getStatBadge(cluster.sensitivity, 'sensitivity')}
+                                            {cluster.specificity && getStatBadge(cluster.specificity, 'specificity')}
+                                          </div>
+                                        )}
+                                      </div>
                                       {cluster.tests && cluster.tests.length > 0 && (
-                                        <p className="text-xs text-gray-500 mt-1">
-                                          <span className="font-medium">Inclut :</span>{' '}
+                                        <p className="text-xs text-gray-400 mt-0.5">
                                           {cluster.tests.map((t: any) => t?.name).join(', ')}
                                         </p>
                                       )}
@@ -976,17 +956,6 @@ export default function ImprovedTestsPage() {
                                           <PlayCircle className="h-4 w-4 text-primary-600" />
                                         )}
                                       </div>
-
-                                      {test.indications && (
-                                        <p className="text-xs text-gray-500 mt-1">
-                                          <span className="font-medium">Indications :</span>{' '}
-                                          {test.indications}
-                                        </p>
-                                      )}
-
-                                      <p className="text-sm text-gray-600 mt-1">
-                                        {test.description}
-                                      </p>
                                     </div>
 
                                     <div className="flex items-center space-x-4 ml-4">
