@@ -352,11 +352,11 @@ export default function OsteoFlashPage() {
           )}
 
           <div
-            className={`cursor-pointer select-none rounded-2xl border border-slate-200 bg-white shadow-lg p-8 min-h-[200px] flex flex-col items-center justify-center text-center transition-all duration-200 ${flipped ? 'opacity-0 h-0 overflow-hidden p-0 min-h-0' : ''}`}
+            className={`cursor-pointer select-none rounded-2xl border border-slate-200 bg-white shadow-lg text-center transition-all duration-200 ${flipped ? 'px-6 py-4' : 'p-8 min-h-[200px] flex flex-col items-center justify-center'}`}
             onClick={() => !flipped && setFlipped(true)}
           >
-            <p className="text-xs uppercase tracking-widest text-slate-400 mb-4">Question</p>
-            <p className="text-lg font-semibold text-slate-900 leading-relaxed">{currentCard?.question}</p>
+            <p className="text-xs uppercase tracking-widest text-slate-400 mb-2">Question</p>
+            <p className={`font-semibold text-slate-900 leading-relaxed ${flipped ? 'text-sm' : 'text-lg'}`}>{currentCard?.question}</p>
             {!flipped && (
               <p className="text-xs text-slate-400 mt-6">Appuyez pour révéler la réponse</p>
             )}
