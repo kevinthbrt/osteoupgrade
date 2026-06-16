@@ -48,13 +48,9 @@ export async function POST(request: Request) {
       )
     }
 
-    // Validate referral code only for annual plans
+    // Valider le code de parrainage (applicable à l'offre unique)
     let referrerUserId = null
-    const shouldProcessReferral = Boolean(referralCode && plan.isAnnual)
-
-    if (referralCode && !plan.isAnnual) {
-      console.warn('⚠️ Referral code ignored for non-annual plan:', planType)
-    }
+    const shouldProcessReferral = Boolean(referralCode)
 
     if (shouldProcessReferral) {
       const { supabaseAdmin } = await import('@/lib/supabase-server')

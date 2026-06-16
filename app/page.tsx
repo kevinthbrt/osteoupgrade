@@ -1131,7 +1131,7 @@ export default function LandingPage() {
               Les deux outils.
               <br />
               <span className="bg-gradient-to-r from-amber-500 to-orange-500 bg-clip-text text-transparent">
-                Dès 35&euro;/mois ou 299&euro;/an.
+                49,99&euro;/mois, sans engagement.
               </span>
             </h2>
             <p className="text-lg text-slate-500 max-w-xl mx-auto">
@@ -1233,8 +1233,8 @@ export default function LandingPage() {
                     <span className="text-white font-black text-xs">✓</span>
                   </div>
                   <div>
-                    <div className="text-sm font-bold text-slate-900">10% de commission par filleul</div>
-                    <div className="text-xs text-slate-600">10 filleuls = abonnement entièrement remboursé</div>
+                    <div className="text-sm font-bold text-slate-900">1 mois offert par filleul</div>
+                    <div className="text-xs text-slate-600">Parrain et filleul gagnants à chaque parrainage</div>
                   </div>
                 </div>
               </div>
@@ -1250,8 +1250,8 @@ export default function LandingPage() {
                 <div className="px-8 py-7 bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-between">
                   <div>
                     <div className="text-xs font-bold text-white/70 uppercase tracking-wider mb-1">Premium tout inclus</div>
-                    <div className="text-4xl font-black text-white">299&euro;/an</div>
-                    <div className="text-sm text-white/80 mt-1">soit 24,90&euro;/mois · 3 mois offerts</div>
+                    <div className="text-4xl font-black text-white">49,99&euro;/mois</div>
+                    <div className="text-sm text-white/80 mt-1">sans engagement · annulable à tout moment</div>
                   </div>
                   <button
                     onClick={() => router.push('/auth')}
@@ -1311,19 +1311,16 @@ export default function LandingPage() {
                   <div className="mb-7">
                     <div className="text-sm font-semibold text-amber-600 uppercase tracking-wider mb-2">Premium</div>
                     <div className="flex items-baseline gap-1 mb-1">
-                      <span className="text-5xl font-bold text-slate-900">35&euro;</span>
+                      <span className="text-5xl font-bold text-slate-900">49,99&euro;</span>
                       <span className="text-slate-400 text-sm">/mois</span>
                     </div>
-                    <p className="text-xs text-slate-400 mb-4">Sans engagement · Annulable à tout moment</p>
+                    <p className="text-xs text-slate-400 mb-4">Sans engagement · Prélevé chaque mois · Annulable à tout moment</p>
                     <div className="rounded-xl bg-amber-50 border border-amber-200 p-3">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <span className="text-lg font-bold text-slate-900">299&euro;</span>
-                          <span className="text-slate-400 text-xs">/an</span>
-                        </div>
-                        <span className="bg-emerald-100 text-emerald-700 text-[10px] font-bold px-2 py-0.5 rounded-full">-29%</span>
+                      <div className="flex items-center gap-2">
+                        <Gift className="h-4 w-4 text-amber-600 flex-shrink-0" />
+                        <span className="text-sm font-bold text-slate-900">Parrainage : 1 mois offert</span>
                       </div>
-                      <p className="text-[11px] text-amber-700 mt-0.5">Soit 24,90&euro;/mois · 3 mois offerts + parrainage</p>
+                      <p className="text-[11px] text-amber-700 mt-0.5">Pour vous et votre filleul à chaque parrainage validé</p>
                     </div>
                   </div>
                   <ul className="space-y-2.5 mb-7">
@@ -1335,7 +1332,7 @@ export default function LandingPage() {
                       'E-learning complet et quiz',
                       'Revue de littérature mensuelle',
                       'Topographie clinique',
-                      'Programme ambassadeur (10% · annuel)',
+                      'Parrainage : 1 mois offert (parrain & filleul)',
                     ].map((f, i) => (
                       <li key={i} className="flex items-start gap-3 text-sm text-slate-700">
                         <CheckCircle className="h-4 w-4 text-amber-500 flex-shrink-0 mt-0.5" />
@@ -1348,13 +1345,7 @@ export default function LandingPage() {
                       onClick={() => router.push('/auth')}
                       className="w-full py-3.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-400 text-slate-900 font-bold text-sm hover:from-amber-400 hover:to-amber-300 transition-all shadow-lg shadow-amber-500/20"
                     >
-                      Premium mensuel · 35&euro;/mois
-                    </button>
-                    <button
-                      onClick={() => router.push('/auth')}
-                      className="w-full py-3.5 rounded-xl border-2 border-amber-500 text-amber-700 font-semibold text-sm hover:bg-amber-500 hover:text-slate-900 transition-all"
-                    >
-                      Premium annuel · 299&euro;/an
+                      Choisir Premium · 49,99&euro;/mois
                     </button>
                   </div>
                 </div>
@@ -1363,7 +1354,7 @@ export default function LandingPage() {
 
             <div className="mt-8 text-center">
               <p className="text-xs text-slate-400">
-                Mensuel ou annuel, sans engagement. Annulable à tout moment depuis votre compte.
+                49,99&euro;/mois, sans engagement. Annulable à tout moment depuis votre compte.
               </p>
             </div>
           </div>
@@ -1388,7 +1379,7 @@ export default function LandingPage() {
           </h2>
           <p className="text-lg text-slate-400 mb-4 max-w-lg mx-auto">
             MyOsteoflow pour gérer, OsteoUpgrade pour progresser.
-            Le tout pour 35&euro;/mois ou 299&euro;/an.
+            Le tout pour 49,99&euro;/mois, sans engagement.
           </p>
           <p className="text-sm text-slate-500 mb-10 max-w-md mx-auto">
             Commencez gratuitement avec le module épaule. Sans carte bancaire.

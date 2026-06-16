@@ -60,9 +60,9 @@ export default function CGUPage() {
                 <li><strong>Utilisateur :</strong> Toute personne accédant à la Plateforme</li>
                 <li><strong>Abonné :</strong> Utilisateur ayant souscrit à une offre Premium</li>
                 <li><strong>Compte Gratuit :</strong> Accès limité au module épaule uniquement</li>
-                <li><strong>Abonnement Premium :</strong> Accès complet à la plateforme numérique, disponible en formule mensuelle (35 €/mois) ou annuelle (299 €/an)</li>
-                <li><strong>Période de facturation :</strong> Durée correspondant à l'intervalle entre deux prélèvements automatiques (mensuel ou annuel selon l'offre choisie)</li>
-                <li><strong>Programme Ambassadeur :</strong> Dispositif de parrainage réservé aux abonnés Premium annuels permettant d'obtenir un crédit sur la plateforme</li>
+                <li><strong>Abonnement Premium :</strong> Accès complet à la plateforme numérique, au tarif de 49,99 €/mois, sans engagement, prélevé automatiquement chaque mois jusqu'à résiliation</li>
+                <li><strong>Période de facturation :</strong> Période mensuelle correspondant à l'intervalle entre deux prélèvements automatiques</li>
+                <li><strong>Programme Ambassadeur :</strong> Dispositif de parrainage réservé aux abonnés Premium permettant au parrain et au filleul d'obtenir chacun un mois d'abonnement offert</li>
               </ul>
             </section>
 
@@ -100,12 +100,8 @@ export default function CGUPage() {
                   <h4 className="font-bold text-lg text-amber-600 mb-1">Premium</h4>
                   <div className="flex flex-wrap gap-4 mb-2">
                     <div>
-                      <p className="text-2xl font-bold text-gray-900">35 €<span className="text-base text-gray-600 font-normal">/mois</span></p>
-                      <p className="text-sm text-gray-500">Formule mensuelle</p>
-                    </div>
-                    <div>
-                      <p className="text-2xl font-bold text-gray-900">299 €<span className="text-base text-gray-600 font-normal">/an</span></p>
-                      <p className="text-sm text-gray-500">Formule annuelle — soit 24,90 €/mois (3 mois offerts, −29 %)</p>
+                      <p className="text-2xl font-bold text-gray-900">49,99 €<span className="text-base text-gray-600 font-normal">/mois</span></p>
+                      <p className="text-sm text-gray-500">Sans engagement — prélevé automatiquement chaque mois, résiliable à tout moment</p>
                     </div>
                   </div>
                   <ul className="mt-3 space-y-1 text-sm text-gray-700">
@@ -118,7 +114,7 @@ export default function CGUPage() {
                     <li>✓ Bibliothèque complète de tests diagnostiques</li>
                     <li>✓ Quiz complet</li>
                     <li>✓ Revue de littérature</li>
-                    <li>✓ Programme Ambassadeur (10 % de commission · abonnement annuel uniquement)</li>
+                    <li>✓ Programme Ambassadeur (1 mois offert pour le parrain et le filleul à chaque parrainage)</li>
                   </ul>
                 </div>
               </div>
@@ -132,19 +128,16 @@ export default function CGUPage() {
               <div className="bg-blue-50 border-l-4 border-blue-500 p-6 rounded-r-lg mb-4">
                 <p className="font-bold text-blue-900 mb-2">✅ Sans engagement — résiliable à tout moment</p>
                 <p className="text-gray-700 leading-relaxed">
-                  Les abonnements OsteoUpgrade ne comportent <strong>aucun engagement de durée minimale</strong>.
-                  Ils se renouvellent automatiquement à l'issue de chaque période de facturation (mensuelle ou annuelle)
-                  et peuvent être résiliés à tout moment avant la prochaine date de renouvellement.
+                  L'abonnement OsteoUpgrade ne comporte <strong>aucun engagement de durée minimale</strong>.
+                  Il se renouvelle automatiquement à l'issue de chaque période de facturation mensuelle
+                  et peut être résilié à tout moment avant la prochaine date de renouvellement.
                 </p>
               </div>
 
               <p className="text-gray-700 leading-relaxed">
-                Le premier prélèvement intervient à la date de souscription. Les prélèvements suivants ont lieu :
+                Le premier prélèvement intervient à la date de souscription. Les prélèvements suivants ont lieu
+                <strong> chaque mois, à la même date que la souscription initiale</strong>, jusqu'à résiliation.
               </p>
-              <ul className="list-disc list-inside space-y-2 text-gray-700 mt-3 ml-4">
-                <li><strong>Premium mensuel :</strong> chaque mois, à la même date que la souscription initiale</li>
-                <li><strong>Premium annuel :</strong> chaque année, à la même date que la souscription initiale</li>
-              </ul>
 
               <p className="text-gray-700 leading-relaxed mt-4">
                 <strong>L'Abonné est notifié par email 7 jours avant chaque renouvellement</strong>, lui permettant
@@ -174,8 +167,7 @@ export default function CGUPage() {
                 La résiliation prend effet à la date de fin de la période de facturation en cours :
               </p>
               <ul className="list-disc list-inside space-y-2 text-gray-700 mt-3 ml-4">
-                <li><strong>Premium mensuel :</strong> l'accès Premium reste actif jusqu'à la fin du mois payé en cours ; aucun nouveau prélèvement n'est effectué</li>
-                <li><strong>Premium annuel :</strong> l'accès Premium reste actif jusqu'à la fin de l'année payée en cours ; aucun renouvellement n'est effectué ; <strong>aucun remboursement au prorata</strong> n'est réalisé pour les mois non consommés de la période annuelle en cours</li>
+                <li>L'accès Premium reste actif jusqu'à la fin du mois payé en cours ; aucun nouveau prélèvement n'est effectué pour les périodes suivantes</li>
               </ul>
 
               <h3 className="text-xl font-semibold text-gray-900 mt-6 mb-3">6.2 - Résiliation à l'initiative d'OsteoUpgrade</h3>
@@ -243,32 +235,29 @@ export default function CGUPage() {
               <p className="text-gray-700 leading-relaxed">
                 Le Programme Ambassadeur est réservé exclusivement aux abonnés ayant souscrit à l'offre
                 <strong> Premium</strong> en cours de validité. Il permet à l'Abonné Premium de parrainer
-                de nouveaux utilisateurs et d'obtenir en contrepartie un crédit sur la plateforme OsteoUpgrade.
+                de nouveaux utilisateurs et d'obtenir, comme son filleul, un mois d'abonnement offert.
               </p>
 
               <h3 className="text-xl font-semibold text-gray-900 mt-6 mb-3">9.2 - Fonctionnement</h3>
               <p className="text-gray-700 leading-relaxed">
                 Chaque Abonné Premium dispose d'un lien de parrainage personnel. Lorsqu'un nouveau client souscrit
-                un abonnement annuel Premium OsteoUpgrade en utilisant ce lien, l'Abonné parrain
-                accumule une commission équivalente à <strong>10 % du montant de la première année</strong> d'abonnement
-                du filleul.
+                un abonnement Premium OsteoUpgrade en utilisant ce lien, le parrain <strong>et</strong> le filleul
+                bénéficient chacun d'<strong>un mois d'abonnement offert</strong> (valeur 49,99 €).
               </p>
               <ul className="list-disc list-inside space-y-2 text-gray-700 mt-3 ml-4">
-                <li>La commission est cumulée dans le solde ambassadeur du parrain, visible depuis son espace client</li>
-                <li>Dès que le solde cumulé atteint <strong>29,90 € minimum</strong> (équivalent à 1 parrainage), le parrain peut demander un virement bancaire</li>
-                <li>Le virement est effectué sur le compte bancaire renseigné par le parrain dans son espace client</li>
-                <li>La commission est attribuée une seule fois par filleul, sur la première année d'abonnement uniquement</li>
-                <li>La commission est accordée dès lors que le paiement du filleul est confirmé et non contesté</li>
+                <li>Le mois offert est crédité automatiquement sur le compte de paiement (Stripe) de chaque bénéficiaire et déduit de la prochaine échéance mensuelle</li>
+                <li>Le bénéfice est accordé dès lors que le paiement du filleul est confirmé et non contesté</li>
+                <li>Un même utilisateur ne peut être parrainé qu'une seule fois au total</li>
+                <li>Le nombre de parrainages est illimité : chaque parrainage validé ajoute un mois offert supplémentaire (cumulables)</li>
               </ul>
 
               <h3 className="text-xl font-semibold text-gray-900 mt-6 mb-3">9.3 - Conditions et restrictions</h3>
               <ul className="list-disc list-inside space-y-2 text-gray-700 mt-3 ml-4">
                 <li>L'Abonné ne peut pas se parrainer lui-même</li>
-                <li>Le virement n'est possible qu'à partir de <strong>29,90 € cumulés</strong> (1 parrainage minimum) dans le solde ambassadeur</li>
-                <li>Le solde ambassadeur non réclamé à la résiliation du compte Premium est définitivement perdu</li>
+                <li>Les mois offerts non consommés à la résiliation du compte Premium sont définitivement perdus et ne donnent lieu à aucun remboursement</li>
                 <li>Le Programme Ambassadeur ne peut pas être utilisé à des fins de revente ou de commercialisation</li>
                 <li>OsteoUpgrade se réserve le droit de modifier ou de suspendre le Programme Ambassadeur à tout moment, avec un préavis de 30 jours aux abonnés concernés</li>
-                <li>Tout abus, fraude ou tentative de contournement des règles entraîne la perte définitive des commissions accumulées et peut conduire à la résiliation du compte</li>
+                <li>Tout abus, fraude ou tentative de contournement des règles entraîne la perte définitive des avantages accumulés et peut conduire à la résiliation du compte</li>
               </ul>
             </section>
 

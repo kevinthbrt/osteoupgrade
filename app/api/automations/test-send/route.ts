@@ -54,13 +54,13 @@ export async function POST(req: NextRequest) {
     // Metadata de test pour les variables {{...}}
     const testMetadata: Record<string, string> = {
       nom: 'Premium',
-      prix: '299€',
-      interval: 'annuel',
+      prix: '49,99€',
+      interval: 'mensuel',
       date_fact: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString('fr-FR'),
-      date_renouv: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toLocaleDateString('fr-FR'),
+      date_renouv: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString('fr-FR'),
       jours: '7',
-      commission: '24',
-      amount: '24€',
+      recompense: '1 mois offert',
+      amount: '49,99€',
       user_name: 'Testeur Admin',
       code_parrainage: 'TEST123',
       cycle: '1',

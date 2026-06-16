@@ -115,7 +115,7 @@ export default function AdminPage() {
     },
     {
       title: 'Paiements de Parrainage',
-      description: 'Valider les demandes de commission',
+      description: 'Historique des demandes (système hérité — le parrainage offre désormais 1 mois)',
       icon: DollarSign,
       iconColor: 'text-green-600',
       iconBg: 'bg-green-100',

@@ -3,8 +3,8 @@ import { supabase } from '../lib/supabase'
 /**
  * Script pour créer les 6 automatisations d'emails avec leurs templates
  * Variables courtes utilisées :
- * - {{nom}} : nom du plan (Premium Silver / Premium Gold)
- * - {{prix}} : prix de l'abonnement (29€/mois, 240€/an, 499€/an)
+ * - {{nom}} : nom du plan (Premium)
+ * - {{prix}} : prix de l'abonnement (49,99€/mois)
  * - {{date_fact}} : date de prochaine facturation
  * - {{date_renouv}} : date de prochain renouvellement automatique
  * - {{cycle}} : numéro de renouvellement
@@ -640,8 +640,8 @@ async function createAutomations() {
 
   console.log('\n✅ Toutes les automatisations ont été créées !')
   console.log('\n📋 Variables courtes disponibles dans les templates :')
-  console.log('   - {{nom}} : nom du plan (Premium Silver / Premium Gold)')
-  console.log('   - {{prix}} : prix de l\'abonnement (29€/mois, 240€/an, 499€/an)')
+  console.log('   - {{nom}} : nom du plan (Premium)')
+  console.log('   - {{prix}} : prix de l\'abonnement (49,99€/mois)')
   console.log('   - {{date_fact}} : date de prochaine facturation')
   console.log('   - {{date_renouv}} : date de prochain renouvellement automatique')
   console.log('   - {{cycle}} : numéro de renouvellement')
