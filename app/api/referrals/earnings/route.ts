@@ -70,17 +70,6 @@ export async function GET(request: Request) {
       console.error('Error fetching transactions:', transactionsError)
     }
 
-    // Récupérer l'historique des paiements
-    const { data: payouts, error: payoutsError } = await supabaseAdmin
-      .from('referral_payouts')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('requested_at', { ascending: false })
-
-    if (payoutsError) {
-      console.error('Error fetching payouts:', payoutsError)
-    }
-
     return NextResponse.json({
       summary: summary || {
         referrer_id: user.id,
@@ -91,8 +80,7 @@ export async function GET(request: Request) {
         paid_amount: 0,
         total_earned: 0
       },
-      transactions: transactions || [],
-      payouts: payouts || []
+      transactions: transactions || []
     })
   } catch (error: any) {
     console.error('Error fetching referral earnings:', error)

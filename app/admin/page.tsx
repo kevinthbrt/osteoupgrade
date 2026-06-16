@@ -9,7 +9,6 @@ import {
   Shield,
   Layers,
   Mail,
-  DollarSign,
   Send,
   ArrowRight,
   Inbox,
@@ -18,11 +17,11 @@ import {
   Megaphone,
 } from 'lucide-react'
 
-type Counts = { tickets: number; emails: number; payouts: number }
+type Counts = { tickets: number; emails: number }
 
 export default function AdminPage() {
   const router = useRouter()
-  const [counts, setCounts] = useState<Counts>({ tickets: 0, emails: 0, payouts: 0 })
+  const [counts, setCounts] = useState<Counts>({ tickets: 0, emails: 0 })
 
   useEffect(() => {
     checkAdminAccess()
@@ -42,13 +41,12 @@ export default function AdminPage() {
 
   const fetchCounts = async () => {
     try {
-      const [ticketsRes, emailsRes, payoutsRes] = await Promise.all([
+      const [ticketsRes, emailsRes] = await Promise.all([
         fetch('/api/admin/support'),
         fetch('/api/emails/list?is_read=false&is_archived=false&limit=100'),
-        fetch('/api/admin/referral-payouts'),
       ])
 
-      const newCounts: Counts = { tickets: 0, emails: 0, payouts: 0 }
+      const newCounts: Counts = { tickets: 0, emails: 0 }
 
       if (ticketsRes.ok) {
         const d = await ticketsRes.json()
@@ -57,11 +55,6 @@ export default function AdminPage() {
       if (emailsRes.ok) {
         const d = await emailsRes.json()
         newCounts.emails = d.emails?.length ?? 0
-      }
-      if (payoutsRes.ok) {
-        const d = await payoutsRes.json()
-        const list = d.payouts ?? d ?? []
-        newCounts.payouts = Array.isArray(list) ? list.filter((p: any) => p.payout_status === 'pending').length : 0
       }
 
       setCounts(newCounts)
@@ -81,7 +74,7 @@ export default function AdminPage() {
   const sections: Section[] = [
     {
       title: 'Gestion des Utilisateurs',
-      description: 'Comptes, abonnements premium, newsletter et paiements parrainage',
+      description: 'Comptes, abonnements premium et newsletter',
       icon: Users,
       iconColor: 'text-blue-600',
       iconBg: 'bg-blue-100',
@@ -114,15 +107,6 @@ export default function AdminPage() {
       href: '/admin/broadcasts',
     },
     {
-      title: 'Paiements de Parrainage',
-      description: 'Historique des demandes (système hérité — le parrainage offre désormais 1 mois)',
-      icon: DollarSign,
-      iconColor: 'text-green-600',
-      iconBg: 'bg-green-100',
-      href: '/admin/referral-payouts',
-      badgeKey: 'payouts',
-    },
-    {
       title: 'Newsletter',
       description: 'Rédiger et envoyer les newsletters',
       icon: Mail,
@@ -148,7 +132,7 @@ export default function AdminPage() {
     },
   ]
 
-  const totalAlerts = counts.tickets + counts.emails + counts.payouts
+  const totalAlerts = counts.tickets + counts.emails
 
   return (
     <AuthLayout>

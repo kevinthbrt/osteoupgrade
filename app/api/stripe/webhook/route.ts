@@ -183,8 +183,7 @@ async function handleCheckoutCompleted(session: any) {
             event: 'Nouveau parrainage',
             contact_email: referrerProfile.email,
             metadata: {
-              recompense: '1 mois offert',
-              referred_user: profile.email,
+              referred_name: profile.email,
               plan: 'Premium'
             }
           })
@@ -207,7 +206,6 @@ async function handleCheckoutCompleted(session: any) {
             event: 'Bonus parrainage filleul',
             contact_email: profile.email,
             metadata: {
-              recompense: '1 mois offert',
               plan: 'Premium'
             }
           })
