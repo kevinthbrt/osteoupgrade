@@ -12,7 +12,6 @@ import {
   Check,
   Loader2,
   ArrowRight,
-  Wallet,
   Users,
   TrendingUp,
   Share2,
@@ -66,7 +65,6 @@ export default function ParrainagePage() {
   )
 
   const isPremium = profile?.role === 'premium' || profile?.role === 'admin'
-  const availableAmount = earnings?.summary?.available_amount || 0
   const totalReferrals = earnings?.summary?.total_referrals || 0
   const referralLink = referralCode
     ? `${typeof window !== 'undefined' ? window.location.origin : ''}/settings/subscription?ref=${referralCode}`
@@ -91,14 +89,14 @@ export default function ParrainagePage() {
                   Parrainage
                 </h1>
                 <p className="text-blue-300/70 text-sm mt-1.5">
-                  Recommandez OsteoUpgrade et gagnez <strong className="text-amber-300">10% de commission</strong> sur chaque abonnement annuel
+                  Recommandez OsteoUpgrade : <strong className="text-amber-300">1 mois offert</strong> pour vous et votre filleul à chaque parrainage
                 </p>
               </div>
-              {isPremium && availableAmount > 0 && (
+              {isPremium && totalReferrals > 0 && (
                 <div className="flex-shrink-0 flex items-center gap-2 bg-amber-400/20 backdrop-blur-sm border border-amber-300/30 rounded-2xl px-5 py-3">
-                  <Wallet className="h-5 w-5 text-amber-300" />
-                  <span className="font-bold text-xl text-white">{(availableAmount / 100).toFixed(2)}€</span>
-                  <span className="text-amber-200/70 text-xs">disponibles</span>
+                  <Gift className="h-5 w-5 text-amber-300" />
+                  <span className="font-bold text-xl text-white">{totalReferrals}</span>
+                  <span className="text-amber-200/70 text-xs">mois offerts</span>
                 </div>
               )}
             </div>
@@ -125,8 +123,8 @@ export default function ParrainagePage() {
                 <div className="grid gap-6 sm:grid-cols-3 mb-6">
                   {[
                     { num: '1', title: 'Partagez votre code', text: 'En tant que membre Premium, vous disposez d\'un code unique à partager avec vos collègues ostéopathes.' },
-                    { num: '2', title: 'Votre filleul s\'abonne', text: 'Il saisit votre code lors de son inscription et souscrit à un abonnement annuel Premium (299€).' },
-                    { num: '3', title: 'Vous gagnez 10%', text: 'La commission est créditée immédiatement dans votre cagnotte. Demandez un virement dès 29,90€ (1 parrainage) accumulés.' },
+                    { num: '2', title: 'Votre filleul s\'abonne', text: 'Il saisit votre code lors de son inscription et souscrit à l\'abonnement Premium (49,99€/mois).' },
+                    { num: '3', title: 'Un mois offert chacun', text: 'Dès la validation du paiement, votre prochain mois ET celui de votre filleul sont automatiquement offerts.' },
                   ].map(({ num, title, text }) => (
                     <div key={num} className="flex flex-col items-center text-center">
                       <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-amber-400 to-yellow-500 flex items-center justify-center mb-4 text-2xl font-bold text-white shadow-md">
@@ -142,9 +140,9 @@ export default function ParrainagePage() {
                     <TrendingUp className="h-5 w-5 text-white" />
                   </div>
                   <div>
-                    <p className="font-semibold text-amber-900 text-sm">Premium annuel parrainé</p>
-                    <p className="text-2xl font-bold text-amber-700">+29,90€</p>
-                    <p className="text-xs text-amber-600">10% de 299€</p>
+                    <p className="font-semibold text-amber-900 text-sm">Chaque parrainage validé</p>
+                    <p className="text-2xl font-bold text-amber-700">+1 mois offert</p>
+                    <p className="text-xs text-amber-600">pour vous et votre filleul</p>
                   </div>
                 </div>
               </div>
@@ -217,9 +215,9 @@ export default function ParrainagePage() {
                   </div>
                   <div className="grid gap-4 sm:grid-cols-3">
                     {[
-                      { label: 'Disponible', value: `${(availableAmount / 100).toFixed(2)}€`, sub: 'Prêt à être retiré', gradient: 'from-emerald-500 to-teal-600', Icon: Wallet },
-                      { label: 'Total gagné', value: `${((earnings?.summary?.total_earned || 0) / 100).toFixed(2)}€`, sub: 'Depuis le début', gradient: 'from-blue-500 to-cyan-600', Icon: TrendingUp },
-                      { label: 'Parrainages', value: String(totalReferrals), sub: 'Personnes parrainées', gradient: 'from-violet-500 to-purple-600', Icon: Users },
+                      { label: 'Mois offerts', value: String(totalReferrals), sub: 'Crédités sur votre abonnement', gradient: 'from-emerald-500 to-teal-600', Icon: Gift },
+                      { label: 'Filleuls', value: String(totalReferrals), sub: 'Personnes parrainées', gradient: 'from-violet-500 to-purple-600', Icon: Users },
+                      { label: 'Économies', value: `${((totalReferrals * 4999) / 100).toFixed(2)}€`, sub: 'Valeur des mois offerts', gradient: 'from-blue-500 to-cyan-600', Icon: TrendingUp },
                     ].map(({ label, value, sub, gradient, Icon }) => (
                       <div key={label} className="rounded-2xl bg-white/85 backdrop-blur-2xl border border-white/70 shadow-xl ring-1 ring-inset ring-white/60 p-5">
                         <div className="flex items-center gap-3 mb-3">
@@ -242,11 +240,11 @@ export default function ParrainagePage() {
                 >
                   <div className="flex items-center gap-4">
                     <div className="p-3 bg-gradient-to-br from-amber-400 to-yellow-500 rounded-xl shadow-sm">
-                      <Wallet className="h-6 w-6 text-white" />
+                      <Gift className="h-6 w-6 text-white" />
                     </div>
                     <div>
-                      <p className="font-semibold text-slate-900">Gérer ma cagnotte & demander un virement</p>
-                      <p className="text-sm text-slate-500">Historique complet, demande de paiement, suivi des transactions</p>
+                      <p className="font-semibold text-slate-900">Suivre mes parrainages & mois offerts</p>
+                      <p className="text-sm text-slate-500">Historique complet de vos filleuls et des mois crédités</p>
                     </div>
                   </div>
                   <ChevronRight className="h-5 w-5 text-slate-400 group-hover:text-amber-600 transition-colors flex-shrink-0" />
@@ -290,11 +288,11 @@ export default function ParrainagePage() {
                 <div className="grid gap-4 sm:grid-cols-2">
                   {[
                     { title: 'Qui peut parrainer ?', text: 'Tous les membres Premium actifs. Le code est automatiquement généré à l\'activation de votre abonnement.' },
-                    { title: 'Quels abonnements sont éligibles ?', text: 'Seuls les abonnements annuels génèrent une commission : Premium 299€/an → +29,90€ de commission.' },
-                    { title: 'Combien de fois peut-on être parrainé ?', text: 'Un utilisateur ne peut être parrainé qu\'une seule fois au total, peu importe l\'abonnement choisi.' },
-                    { title: 'Quand est crédité la commission ?', text: 'Immédiatement après la validation du paiement de votre filleul. Pas de délai de carence.' },
-                    { title: 'Comment retirer ma cagnotte ?', text: 'Depuis la page "Gérer ma cagnotte", dès 29,90€ (1 parrainage) accumulés, en fournissant votre RIB. Virement sous 5-10 jours ouvrés.' },
-                    { title: 'Y a-t-il une limite de parrainages ?', text: 'Non, vous pouvez parrainer autant de personnes que vous souhaitez et cumuler vos commissions sans limite.' }
+                    { title: 'Quelle est la récompense ?', text: 'À chaque parrainage validé, vous ET votre filleul recevez chacun 1 mois d\'abonnement offert (49,99€).' },
+                    { title: 'Combien de fois peut-on être parrainé ?', text: 'Un utilisateur ne peut être parrainé qu\'une seule fois au total.' },
+                    { title: 'Quand le mois est-il offert ?', text: 'Immédiatement après la validation du paiement de votre filleul : le crédit s\'applique sur votre prochaine échéance mensuelle.' },
+                    { title: 'Comment est appliqué le mois offert ?', text: 'Automatiquement, via un crédit sur votre compte Stripe. Aucune démarche : votre prochaine facture est déduite d\'un mois.' },
+                    { title: 'Y a-t-il une limite de parrainages ?', text: 'Non. Chaque parrainage supplémentaire ajoute un mois offert : 3 filleuls = 3 mois offerts cumulés.' }
                   ].map((faq) => (
                     <div key={faq.title} className="bg-white/70 backdrop-blur-sm rounded-xl p-4 border border-blue-100/60">
                       <p className="font-semibold text-slate-900 mb-1 text-sm">{faq.title}</p>

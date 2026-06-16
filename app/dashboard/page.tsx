@@ -122,7 +122,7 @@ export default function Dashboard() {
     { id: 'revue', title: 'Revue de littérature', description: 'Articles et études scientifiques commentés', icon: FileText, href: '/elearning/revue-litterature', count: 'Recherche', gradient: 'from-violet-500 to-purple-600', emoji: '📖' },
     { id: 'tests', title: 'Tests orthopédiques', description: 'Référentiel complet des tests cliniques', icon: Clipboard, href: '/tests', count: 'Référentiel', gradient: 'from-orange-500 to-red-500', emoji: '🔬' },
     { id: 'topographie', title: 'Topographie', description: 'Atlas anatomique interactif', icon: Map, href: '/topographie', count: 'Atlas', gradient: 'from-teal-500 to-green-600', emoji: '🗺️' },
-    { id: 'parrainage', title: 'Parrainage', description: 'Parrainez vos collègues et gagnez 10% de commission', icon: Gift, href: '/parrainage', count: '10% cashback', gradient: 'from-amber-400 to-yellow-500', emoji: '🎁' },
+    { id: 'parrainage', title: 'Parrainage', description: 'Parrainez vos collègues : 1 mois offert pour vous deux', icon: Gift, href: '/parrainage', count: '1 mois offert', gradient: 'from-amber-400 to-yellow-500', emoji: '🎁' },
   ]
 
   const xpToNextLevel = 500
@@ -248,7 +248,7 @@ export default function Dashboard() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="font-bold text-amber-900">Débloquez MyOsteoflow + OsteoUpgrade</p>
-                  <p className="text-amber-800/80 text-sm mt-0.5">150+ vidéos · 500+ contenus · Exercices patients — dès 35€/mois ou 299€/an</p>
+                  <p className="text-amber-800/80 text-sm mt-0.5">150+ vidéos · 500+ contenus · Exercices patients — 49,99€/mois, sans engagement</p>
                 </div>
                 <button onClick={() => router.push('/settings/subscription')} className="flex-shrink-0 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-amber-900 text-amber-100 text-sm font-bold hover:bg-amber-800 transition-colors shadow-md">
                   Passer Premium <ArrowRight className="h-4 w-4" />
@@ -363,7 +363,7 @@ export default function Dashboard() {
               <div className="rounded-2xl overflow-hidden shadow-xl border border-amber-300/75 bg-amber-100/85 backdrop-blur-2xl ring-1 ring-inset ring-white/60">
                 <div className="bg-gradient-to-r from-amber-400 to-yellow-500 px-5 py-3 flex items-center gap-2">
                   <Crown className="h-4 w-4 text-amber-900" />
-                  <p className="text-sm font-semibold text-amber-900">10% de commission sur chaque abonnement annuel parrainé</p>
+                  <p className="text-sm font-semibold text-amber-900">1 mois offert pour vous et votre filleul à chaque parrainage</p>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-amber-200/50">
                   <div className="px-5 py-4">
@@ -382,8 +382,8 @@ export default function Dashboard() {
                   </div>
                   <div className="px-5 py-4 flex items-center justify-between">
                     <div>
-                      <p className="text-xs text-slate-500 mb-1.5">Cagnotte</p>
-                      <p className="text-2xl font-bold text-slate-900">{((referralData.available_earnings || 0) / 100).toFixed(2)}€</p>
+                      <p className="text-xs text-slate-500 mb-1.5">Mois offerts</p>
+                      <p className="text-2xl font-bold text-slate-900">{referralData.referrals_count}<span className="text-sm font-normal text-slate-400 ml-1">gagnés</span></p>
                     </div>
                     <button onClick={() => router.push('/settings/referrals')} className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-sm font-semibold transition-colors">
                       Gérer <ArrowRight className="h-3.5 w-3.5" />

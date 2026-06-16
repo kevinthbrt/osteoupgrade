@@ -25,24 +25,24 @@ export async function POST(request: Request) {
 
     const discountAmount = amountOff ?? 10000 // 100€ par défaut en centimes
 
-    const annualPriceId = process.env.STRIPE_PRICE_PREMIUM_ANNUAL
+    const premiumPriceId = process.env.STRIPE_PRICE_PREMIUM_MONTHLY
 
-    // Crée le coupon Stripe — restreint au plan annuel premium uniquement
+    // Crée le coupon Stripe — restreint à l'offre Premium mensuelle
     const couponParams: any = {
       amount_off: discountAmount,
       currency: 'eur',
       duration: 'once',
       max_redemptions: maxRedemptions,
-      name: `Premium Annuel -${discountAmount / 100}€`,
+      name: `Premium -${discountAmount / 100}€`,
       metadata: {
         created_by: admin.id,
         purpose: 'gold_promo',
-        plan: 'annual'
+        plan: 'monthly'
       }
     }
-    // Restreindre au prix annuel si le price ID est configuré
-    if (annualPriceId) {
-      couponParams.applies_to = { prices: [annualPriceId] }
+    // Restreindre au prix Premium si le price ID est configuré
+    if (premiumPriceId) {
+      couponParams.applies_to = { prices: [premiumPriceId] }
     }
 
     const coupon = await stripe.coupons.create(couponParams)

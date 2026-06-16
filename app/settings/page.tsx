@@ -90,7 +90,7 @@ export default function SettingsPage() {
     if (!user?.id || !email) { alert('Veuillez vous reconnecter.'); return }
     setSaving(true)
     try {
-      const response = await fetch('/api/stripe/checkout', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: user.id, email }) })
+      const response = await fetch('/api/stripe/checkout', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ planType: 'premium_monthly', userId: user.id, email }) })
       const data = await response.json()
       if (!response.ok) throw new Error(data?.error || 'Impossible de démarrer le paiement Stripe')
       if (data?.url) window.location.href = data.url
@@ -279,7 +279,7 @@ export default function SettingsPage() {
                           <Crown className="h-8 w-8 text-amber-500 flex-shrink-0" />
                           <div className="flex-1">
                             <h3 className="font-semibold text-slate-900 mb-1">Passez à Premium</h3>
-                            <p className="text-slate-600 text-sm mb-4">Débloquez MyOsteoflow + OsteoUpgrade pour 35€/mois ou 299€/an</p>
+                            <p className="text-slate-600 text-sm mb-4">Débloquez MyOsteoflow + OsteoUpgrade pour 49,99€/mois, sans engagement</p>
                             <div className="grid sm:grid-cols-2 gap-2 mb-4">
                               {premiumFeatures.map((f, i) => (
                                 <div key={i} className="flex items-center gap-2">
@@ -307,7 +307,7 @@ export default function SettingsPage() {
                           <Crown className="h-8 w-8 text-emerald-600 flex-shrink-0" />
                           <div>
                             <h3 className="font-semibold text-slate-900">Abonnement Premium actif</h3>
-                            <p className="text-slate-600 text-sm mt-1">35€/mois ou 299€/an</p>
+                            <p className="text-slate-600 text-sm mt-1">49,99€/mois, sans engagement</p>
                             {profile.subscription_end_date && (
                               <p className="text-sm text-slate-500 mt-1.5 flex items-center gap-1.5">
                                 <Calendar className="h-4 w-4" />

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { headers } from 'next/headers'
-import { stripe } from '@/lib/stripe'
+import { stripe, REFERRAL_FREE_MONTH_AMOUNT } from '@/lib/stripe'
 import { supabaseAdmin } from '@/lib/supabase-server'
 import { sendTransactionalEmail } from '@/lib/mailing'
 import { notifyAdmin } from '@/lib/admin-notify'
@@ -62,8 +62,6 @@ export async function POST(request: Request) {
 async function handleCheckoutCompleted(session: any) {
   const userId = session.client_reference_id || session.metadata?.userId
   const planType = session.metadata?.planType
-  const isAnnual = session.metadata?.is_annual === 'true'
-  const billingInterval = session.metadata?.billing_interval || (isAnnual ? 'year' : 'month')
   const referralCode = session.metadata?.referral_code
   const referrerUserId = session.metadata?.referrer_user_id
 
@@ -109,116 +107,111 @@ async function handleCheckoutCompleted(session: any) {
     return
   }
 
-  // 💰 GÉRER LA COMMISSION DE PARRAINAGE (UNIQUEMENT POUR LES ABONNEMENTS ANNUELS)
-  if (referrerUserId && referralCode && isAnnual) {
-    // Utiliser le montant réellement payé (après code promo éventuel)
-    // session.amount_total est le montant total facturé en centimes (après réductions)
-    let subscriptionAmount = session.amount_total || 0
-    if (subscriptionAmount === 0) {
-      // Fallback : récupérer le prix de base depuis la souscription
+  // 🎁 GÉRER LE PARRAINAGE : 1 mois offert pour LE PARRAIN ET LE FILLEUL
+  // Mécanisme : on crédite la valeur d'un mois d'abonnement sur le solde Stripe
+  // (customer balance) de chaque partie → leur prochaine facture est offerte.
+  if (referrerUserId && referralCode) {
+    const freeMonthAmount = REFERRAL_FREE_MONTH_AMOUNT
+
+    // Récupérer le parrain (customer Stripe + email pour la notification)
+    const { data: referrerProfile } = await supabaseAdmin
+      .from('profiles')
+      .select('email, full_name, stripe_customer_id')
+      .eq('id', referrerUserId)
+      .single()
+
+    // 1️⃣ Créditer LE FILLEUL (mois suivant offert)
+    let referredCredited = false
+    try {
+      if (session.customer) {
+        await stripe.customers.createBalanceTransaction(session.customer, {
+          amount: -freeMonthAmount, // montant négatif = crédit en faveur du client
+          currency: 'eur',
+          description: `Parrainage ${referralCode.toUpperCase()} — 1 mois offert (filleul)`
+        })
+        referredCredited = true
+      }
+    } catch (err) {
+      console.error('Error crediting referred user free month')
+    }
+
+    // 2️⃣ Créditer LE PARRAIN (mois suivant offert)
+    let referrerCredited = false
+    try {
+      if (referrerProfile?.stripe_customer_id) {
+        await stripe.customers.createBalanceTransaction(referrerProfile.stripe_customer_id, {
+          amount: -freeMonthAmount,
+          currency: 'eur',
+          description: `Parrainage ${referralCode.toUpperCase()} — 1 mois offert (parrain)`
+        })
+        referrerCredited = true
+      }
+    } catch (err) {
+      console.error('Error crediting referrer free month')
+    }
+
+    // 3️⃣ Historiser le parrainage côté parrain (1 ligne = 1 mois offert gagné)
+    const { error: referralError } = await supabaseAdmin
+      .from('referral_transactions')
+      .insert({
+        referrer_id: referrerUserId,
+        referred_user_id: userId,
+        referral_code: referralCode.toUpperCase(),
+        subscription_type: planType,
+        subscription_plan: 'monthly',
+        subscription_amount: freeMonthAmount,
+        // On stocke la valeur du mois offert (sert d'historique de la récompense)
+        commission_amount: freeMonthAmount,
+        commission_status: referrerCredited ? 'available' : 'pending',
+        stripe_subscription_id: session.subscription
+      })
+
+    if (referralError) {
+      console.error('Error recording referral transaction')
+    }
+
+    // 4️⃣ Notifier le parrain (mois offert)
+    if (referrerProfile?.email) {
       try {
-        const subscription = await stripe.subscriptions.retrieve(session.subscription)
-        subscriptionAmount = subscription.items.data[0]?.price?.unit_amount || 0
+        await fetch(`${process.env.NEXT_PUBLIC_URL || 'http://localhost:3000'}/api/automations/trigger`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${process.env.CRON_SECRET}`
+          },
+          body: JSON.stringify({
+            event: 'Nouveau parrainage',
+            contact_email: referrerProfile.email,
+            metadata: {
+              referred_name: profile.email,
+              plan: 'Premium'
+            }
+          })
+        })
       } catch (err) {
-        console.error('Error retrieving subscription amount')
+        console.error('Error sending referrer notification')
       }
     }
 
-    if (subscriptionAmount > 0) {
-      // Calculer la commission (10%)
-      const commissionAmount = Math.floor(subscriptionAmount * 0.10)
-
-      // 1️⃣ Créer la transaction de parrainage pour LE PARRAIN
-      const { error: referrerError } = await supabaseAdmin
-        .from('referral_transactions')
-        .insert({
-          referrer_id: referrerUserId,
-          referred_user_id: userId,
-          referral_code: referralCode.toUpperCase(),
-          subscription_type: planType,
-          subscription_plan: 'annual',
-          subscription_amount: subscriptionAmount,
-          commission_amount: commissionAmount,
-          commission_status: 'available', // Immédiatement disponible
-          stripe_subscription_id: session.subscription
-        })
-        .select()
-        .single()
-
-      if (referrerError) {
-        console.error('Error creating referrer transaction')
-      } else {
-        // Notifier le parrain par email
-        try {
-          const { data: referrerProfile } = await supabaseAdmin
-            .from('profiles')
-            .select('email, full_name')
-            .eq('id', referrerUserId)
-            .single()
-
-          if (referrerProfile) {
-            await fetch(`${process.env.NEXT_PUBLIC_URL || 'http://localhost:3000'}/api/automations/trigger`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${process.env.CRON_SECRET}`
-              },
-              body: JSON.stringify({
-                event: 'Nouveau parrainage',
-                contact_email: referrerProfile.email,
-                metadata: {
-                  commission: `${(commissionAmount / 100).toFixed(2)}€`,
-                  referred_user: profile.email,
-                  plan: 'Premium'
-                }
-              })
-            })
-          }
-        } catch (err) {
-          console.error('Error sending referrer notification')
-        }
-      }
-
-      // 2️⃣ Créer AUSSI une transaction de parrainage pour LE FILLEUL (10% de son propre achat)
-      const { error: referredError } = await supabaseAdmin
-        .from('referral_transactions')
-        .insert({
-          referrer_id: userId, // Le filleul reçoit la commission dans son propre compte
-          referred_user_id: userId, // C'est son propre achat
-          referral_code: referralCode.toUpperCase(),
-          subscription_type: planType,
-          subscription_plan: 'annual',
-          subscription_amount: subscriptionAmount,
-          commission_amount: commissionAmount, // Même montant : 10%
-          commission_status: 'available', // Immédiatement disponible
-          stripe_subscription_id: session.subscription
-        })
-        .select()
-        .single()
-
-      if (referredError) {
-        console.error('Error creating referred user transaction')
-      } else {
-        // Notifier le filleul qu'il a gagné 10% sur son propre achat
-        try {
-          await fetch(`${process.env.NEXT_PUBLIC_URL || 'http://localhost:3000'}/api/automations/trigger`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${process.env.CRON_SECRET}`
-            },
-            body: JSON.stringify({
-              event: 'Bonus parrainage filleul',
-              contact_email: profile.email,
-              metadata: {
-                commission: `${(commissionAmount / 100).toFixed(2)}€`,
-                plan: 'Premium'
-              }
-            })
+    // 5️⃣ Notifier le filleul (mois offert de bienvenue)
+    if (referredCredited) {
+      try {
+        await fetch(`${process.env.NEXT_PUBLIC_URL || 'http://localhost:3000'}/api/automations/trigger`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${process.env.CRON_SECRET}`
+          },
+          body: JSON.stringify({
+            event: 'Bonus parrainage filleul',
+            contact_email: profile.email,
+            metadata: {
+              plan: 'Premium'
+            }
           })
-        } catch (err) {
-          console.error('Error sending referred user notification')
-        }
+        })
+      } catch (err) {
+        console.error('Error sending referred user notification')
       }
     }
   }
@@ -262,7 +255,7 @@ async function handleCheckoutCompleted(session: any) {
   }
 
   // 🚀 DÉCLENCHER L'AUTOMATISATION "Passage à Premium"
-  const displayPrice = isAnnual ? '299€' : '35€'
+  const displayPrice = '49,99€'
   try {
     await fetch(`${process.env.NEXT_PUBLIC_URL || 'http://localhost:3000'}/api/automations/trigger`, {
       method: 'POST',
@@ -276,7 +269,7 @@ async function handleCheckoutCompleted(session: any) {
         metadata: {
           nom: 'Premium',
           prix: displayPrice,
-          interval: isAnnual ? 'annuel' : 'mensuel',
+          interval: 'mensuel',
           date_fact: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString('fr-FR'),
           code_parrainage: userReferralCode
         }
@@ -287,7 +280,7 @@ async function handleCheckoutCompleted(session: any) {
   }
 
   // 🔔 NOTIF INTERNE admin (cloche)
-  const planLabel = isAnnual ? 'Premium annuel · 299€/an' : 'Premium mensuel · 35€/mois'
+  const planLabel = 'Premium · 49,99€/mois'
   const notifBody = referralCode
     ? `${profile.email} — ${planLabel} (parrainage : ${referralCode})`
     : `${profile.email} — ${planLabel}`
@@ -297,7 +290,7 @@ async function handleCheckoutCompleted(session: any) {
   const adminEmail = process.env.ADMIN_EMAIL
   if (adminEmail) {
     try {
-      const planLabel = isAnnual ? 'Premium annuel (299€/an)' : 'Premium mensuel (35€/mois)'
+      const planLabel = 'Premium (49,99€/mois)'
       const referralInfo = referralCode ? `<p style="margin:4px 0;font-size:13px;color:#64748b;">Code parrainage utilisé : <strong>${referralCode}</strong></p>` : ''
       await sendTransactionalEmail({
         to: adminEmail,

@@ -4,7 +4,7 @@ import { useEffect, useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import AuthLayout from '@/components/AuthLayout'
-import { Crown, Check, Sparkles, Loader2, ArrowLeft, ExternalLink, Gift, Shield, Calendar, TrendingUp, Wallet, ChevronRight } from 'lucide-react'
+import { Crown, Check, Sparkles, Loader2, ArrowLeft, ExternalLink, Gift, Shield, Calendar, ChevronRight } from 'lucide-react'
 import Link from 'next/link'
 
 function SubscriptionContent() {
@@ -130,7 +130,8 @@ function SubscriptionContent() {
     }
   }
 
-  const isReferralEligiblePlan = (planType: string) => planType !== 'premium_monthly'
+  // Le parrainage s'applique à l'offre unique
+  const isReferralEligiblePlan = (_planType: string) => true
 
   const handleUpgrade = (planType: string) => {
     if (profile?.role === 'premium') {
@@ -211,8 +212,8 @@ function SubscriptionContent() {
                 </h3>
                 <p className="text-sm text-gray-600 mt-1">
                   {pendingPlanSupportsReferral
-                    ? "Avant de passer sur Stripe, renseignez votre code si vous en possédez un pour profiter des avantages du parrainage. Vous pouvez aussi continuer sans code."
-                    : "Le parrainage s'applique uniquement sur les abonnements annuels. Cette offre mensuelle ne permet pas d'appliquer un code parrainage."}
+                    ? "Avant de passer sur Stripe, renseignez votre code si vous en possédez un : vous et votre parrain bénéficierez chacun d'un mois offert. Vous pouvez aussi continuer sans code."
+                    : "Vous pouvez continuer sans code de parrainage."}
                 </p>
               </div>
             </div>
@@ -402,14 +403,14 @@ function SubscriptionContent() {
                 </h3>
                 <p className="text-sm text-gray-600 mb-4">
                   Un collègue membre <strong>Premium</strong> vous a partagé son code ? Entrez-le ici — il sera
-                  automatiquement appliqué à votre commande et votre parrain recevra une commission de 10%.
+                  automatiquement appliqué à votre commande : <strong>vous et votre parrain recevrez chacun un mois offert</strong>.
                 </p>
 
                 {/* Bénéfice programme */}
                 <div className="bg-white border border-yellow-200 rounded-lg p-3 mb-4 flex items-center gap-3">
-                  <TrendingUp className="h-5 w-5 text-yellow-600 flex-shrink-0" />
+                  <Gift className="h-5 w-5 text-yellow-600 flex-shrink-0" />
                   <p className="text-sm text-yellow-900">
-                    En utilisant un code, vous soutenez directement un confrère tout en rejoignant une communauté
+                    Un mois d'abonnement offert pour vous comme pour votre parrain — tout en rejoignant une communauté
                     d'entraide entre praticiens.
                   </p>
                 </div>
@@ -464,8 +465,8 @@ function SubscriptionContent() {
               <div className="flex-1">
                 <h3 className="font-semibold text-gray-900 mb-1">Votre programme de parrainage</h3>
                 <p className="text-sm text-gray-600 mb-4">
-                  En tant que membre Premium, vous disposez d'un code de parrainage unique. Chaque abonnement annuel
-                  souscrit avec votre code vous rapporte <strong>10% de commission</strong> (29,90€) directement dans votre cagnotte.
+                  En tant que membre Premium, vous disposez d'un code de parrainage unique. Pour chaque collègue qui
+                  s'abonne avec votre code, <strong>vous et votre filleul recevez chacun un mois offert</strong>.
                 </p>
                 <Link
                   href="/parrainage"
@@ -502,20 +503,14 @@ function SubscriptionContent() {
                 <div className="space-y-4">
                   <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4">
                     <div className="flex items-baseline gap-2 mb-1">
-                      <span className="text-4xl font-bold">35€</span>
+                      <span className="text-4xl font-bold">49,99€</span>
                       <span className="text-yellow-900/80">/mois</span>
                     </div>
-                    <p className="text-sm text-yellow-900/70">Sans engagement • Annulable à tout moment</p>
+                    <p className="text-sm text-yellow-900/70">Sans engagement • Prélevé chaque mois • Annulable à tout moment</p>
                   </div>
-                  <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border-2 border-white/30">
-                    <div className="flex items-center justify-between mb-1">
-                      <div className="flex items-baseline gap-2">
-                        <span className="text-4xl font-bold">299€</span>
-                        <span className="text-yellow-900/80">/an</span>
-                      </div>
-                      <span className="bg-green-400 text-green-900 text-xs font-bold px-2 py-1 rounded-full">-29%</span>
-                    </div>
-                    <p className="text-sm text-yellow-900/70">Soit 24,90€/mois • 3 mois offerts + parrainage inclus</p>
+                  <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border-2 border-white/30 flex items-center gap-3">
+                    <Gift className="h-5 w-5 flex-shrink-0" />
+                    <p className="text-sm text-yellow-900/80">Parrainez un collègue : <strong>1 mois offert</strong> pour vous deux.</p>
                   </div>
                 </div>
               </div>
@@ -531,7 +526,7 @@ function SubscriptionContent() {
                     { title: 'Module pratique', desc: 'Techniques articulaires, musculaires, mobilisations, palpations.' },
                     { title: 'Créateur de fiches d\'exercices', desc: 'Personnalisation + export PDF pour tes patients.' },
                     { title: 'Topographies des pathologies', desc: 'Cartes symptomatiques détaillées + explications cliniques.' },
-                    { title: 'Programme de parrainage', desc: '10% de commission sur chaque abonnement annuel parrainé (annuel uniquement).' },
+                    { title: 'Programme de parrainage', desc: 'Un mois offert pour vous et votre filleul à chaque parrainage.' },
                   ].map((item) => (
                     <div key={item.title} className="flex items-start gap-3">
                       <Check className="h-5 w-5 text-yellow-600 flex-shrink-0 mt-0.5" />
@@ -545,23 +540,12 @@ function SubscriptionContent() {
                 <button
                   onClick={() => handleUpgrade('premium_monthly')}
                   disabled={processingPlan !== null}
-                  className="w-full bg-yellow-500 text-yellow-900 py-4 px-6 rounded-lg font-semibold hover:bg-yellow-600 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  className="w-full bg-gradient-to-r from-yellow-500 to-yellow-600 text-yellow-900 py-4 px-6 rounded-lg font-bold hover:from-yellow-600 hover:to-yellow-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 border-2 border-yellow-400 shadow-lg"
                 >
                   {processingPlan === 'premium_monthly' ? (
                     <><Loader2 className="h-5 w-5 animate-spin" />Redirection...</>
                   ) : (
-                    'Choisir Premium Mensuel (35€/mois)'
-                  )}
-                </button>
-                <button
-                  onClick={() => handleUpgrade('premium_annual')}
-                  disabled={processingPlan !== null}
-                  className="w-full bg-gradient-to-r from-yellow-500 to-yellow-600 text-yellow-900 py-4 px-6 rounded-lg font-bold hover:from-yellow-600 hover:to-yellow-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 border-2 border-yellow-400 shadow-lg"
-                >
-                  {processingPlan === 'premium_annual' ? (
-                    <><Loader2 className="h-5 w-5 animate-spin" />Redirection...</>
-                  ) : (
-                    <><Crown className="h-5 w-5" />Choisir Premium Annuel (299€/an)</>
+                    <><Crown className="h-5 w-5" />Choisir Premium (49,99€/mois)</>
                   )}
                 </button>
               </div>
@@ -574,12 +558,12 @@ function SubscriptionContent() {
           <h3 className="font-semibold text-gray-900 mb-3">💡 Bon à savoir</h3>
           <div className="space-y-2 text-sm text-gray-700">
             <p>✅ Paiement sécurisé via Stripe</p>
-            <p>✅ <strong>Sans engagement</strong> : annulation possible à tout moment</p>
+            <p>✅ <strong>49,99€/mois, sans engagement</strong> : prélevé automatiquement chaque mois, annulable à tout moment</p>
             <p>✅ Renouvellement automatique (désactivable depuis votre compte)</p>
             <p>✅ Notification par email 7 jours avant chaque renouvellement</p>
             <p>✅ Accès immédiat à tous les contenus après validation du paiement</p>
             <p>✅ Droit de rétractation de 14 jours</p>
-            <p>✅ <strong>Abonnement annuel :</strong> code de parrainage avec 10% de commission sur les abonnements annuels parrainés</p>
+            <p>✅ <strong>Parrainage :</strong> 1 mois offert pour le parrain et le filleul à chaque parrainage validé</p>
             {!isPremium && (
               <p className="text-xs text-blue-700 mt-3 pt-3 border-t border-gray-300 flex items-center gap-1">
                 💡 <span>Vous avez reçu un code d'un collègue Premium ? Saisissez-le ci-dessus pour que votre parrain soit crédité.</span>
