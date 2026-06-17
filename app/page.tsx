@@ -189,13 +189,15 @@ export default function LandingPage() {
       pillarColor: 'flow',
       solution: 'Factures, paiements et compta automatisés',
       icon: Wallet,
+      image: '/landing/compta.png',
     },
     {
       quote: 'Je prends mes notes pendant la séance, au détriment du patient.',
       pillar: 'MyOsteoflow',
       pillarColor: 'flow',
-      solution: 'Dictée vocale : l’IA rédige pour vous',
+      solution: 'Dictée vocale : l’IA rédige pour vous',
       icon: Mic,
+      image: '/landing/notes.png',
     },
     {
       quote: 'Mes patients ne reviennent pas et je n’ai aucun suivi.',
@@ -203,6 +205,7 @@ export default function LandingPage() {
       pillarColor: 'flow',
       solution: 'Suivi automatique 7 jours après la séance',
       icon: Activity,
+      image: '/landing/suivi.png',
     },
     {
       quote: 'Un doute sur le bon test ou le diagnostic différentiel.',
@@ -210,6 +213,7 @@ export default function LandingPage() {
       pillarColor: 'sky',
       solution: '200+ tests et aide au raisonnement clinique',
       icon: TestTube2,
+      image: '/landing/tests.png',
     },
     {
       quote: 'Je n’arrive pas à suivre la littérature scientifique.',
@@ -217,6 +221,7 @@ export default function LandingPage() {
       pillarColor: 'sky',
       solution: 'Revue d’études EBP synthétisée chaque mois',
       icon: GraduationCap,
+      image: '/landing/ebp.png',
     },
     {
       quote: 'Je manque de techniques concrètes et à jour.',
@@ -224,6 +229,7 @@ export default function LandingPage() {
       pillarColor: 'sky',
       solution: '150+ techniques en vidéo, par région',
       icon: Play,
+      image: '/landing/techniques.png',
     },
   ]
 
@@ -567,12 +573,15 @@ export default function LandingPage() {
                   key={pain.quote}
                   className="group relative flex flex-col rounded-2xl bg-white border border-slate-200 p-5 hover:shadow-lg hover:-translate-y-0.5 transition-all"
                 >
-                  <MediaSlot
-                    aspect="aspect-[16/9]"
-                    icon={pain.icon}
-                    label="Illustration"
-                    className="mb-5"
-                  />
+                  <div className="relative w-full aspect-[16/9] rounded-xl overflow-hidden mb-5 bg-slate-100">
+                    <Image
+                      src={pain.image}
+                      alt={pain.quote}
+                      fill
+                      className="object-cover"
+                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                    />
+                  </div>
                   <Quote className="h-5 w-5 text-slate-200 mb-2" />
                   <p className="text-base font-semibold text-slate-800 leading-snug mb-5">
                     « {pain.quote} »
