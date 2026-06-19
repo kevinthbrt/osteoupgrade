@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { createClient } from '@supabase/supabase-js';
+import { createClient, processLock } from '@supabase/supabase-js';
 import 'react-native-url-polyfill/auto';
 
 import type { Database } from '@/lib/database.types';
@@ -18,6 +18,9 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
     storage: AsyncStorage,
     autoRefreshToken: true,
     persistSession: true,
+    // Sérialise les refresh de token concurrents (recommandé en React Native)
+    // pour éviter les déconnexions sporadiques au réveil de l'app.
+    lock: processLock,
     // Pas de détection de session via l'URL côté natif (pas de redirection navigateur)
     detectSessionInUrl: false,
   },
