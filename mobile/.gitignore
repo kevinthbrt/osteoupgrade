@@ -32,15 +32,9 @@ yarn-error.*
 
 # local env files
 .env*.local
-# La clé anon Supabase est publique (protégée par RLS) : on versionne .env
-# pour que l'app tourne sans config manuelle. On annule la règle `.env` héritée
-# du .gitignore racine du repo.
-!.env
 
 # typescript
 *.tsbuildinfo
-
-example
 
 # generated native folders
 /ios
