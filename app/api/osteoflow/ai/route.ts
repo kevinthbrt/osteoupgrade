@@ -10,12 +10,12 @@ RÉPONDS UNIQUEMENT EN JSON valide avec ce format exact :
   "reason": "motif principal en 1 ligne courte",
   "anamnesis": "anamnèse structurée en markdown",
   "sections": [
-    { "id": "history", "label": "Histoire", "icon": "⚡", "color": "red", "items": ["..."] },
-    { "id": "pain", "label": "Douleur", "icon": "📍", "color": "red", "items": ["..."] },
-    { "id": "modulating", "label": "Modulants", "icon": "↕️", "color": "amber", "items": ["..."] },
-    { "id": "history_past", "label": "Antécédents", "icon": "📋", "color": "blue", "items": ["..."] },
-    { "id": "treatment", "label": "Traitements", "icon": "💊", "color": "amber", "items": ["..."] },
-    { "id": "functional", "label": "Impact fonctionnel", "icon": "🚶", "color": "purple", "items": ["..."] },
+    { "id": "history", "label": "Histoire", "icon": "⚡", "color": "slate", "items": ["..."] },
+    { "id": "pain", "label": "Douleur", "icon": "📍", "color": "sky", "items": ["..."] },
+    { "id": "modulating", "label": "Modulants", "icon": "↕️", "color": "teal", "items": ["..."] },
+    { "id": "history_past", "label": "Antécédents", "icon": "📋", "color": "indigo", "items": ["..."] },
+    { "id": "treatment", "label": "Traitements", "icon": "💊", "color": "stone", "items": ["..."] },
+    { "id": "functional", "label": "Impact fonctionnel", "icon": "🚶", "color": "slate", "items": ["..."] },
     { "id": "red_flags", "label": "Drapeaux rouges", "icon": "🚩", "color": "green", "items": ["..."], "allClear": true }
   ]
 }
