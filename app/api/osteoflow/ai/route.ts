@@ -8,7 +8,16 @@ Tu reçois la transcription brute d'une anamnèse et tu dois la structurer.
 RÉPONDS UNIQUEMENT EN JSON valide avec ce format exact :
 {
   "reason": "motif principal en 1 ligne courte",
-  "anamnesis": "anamnèse structurée en markdown"
+  "anamnesis": "anamnèse structurée en markdown",
+  "sections": [
+    { "id": "history", "label": "Histoire", "icon": "⚡", "color": "red", "items": ["..."] },
+    { "id": "pain", "label": "Douleur", "icon": "📍", "color": "red", "items": ["..."] },
+    { "id": "modulating", "label": "Modulants", "icon": "↕️", "color": "amber", "items": ["..."] },
+    { "id": "history_past", "label": "Antécédents", "icon": "📋", "color": "blue", "items": ["..."] },
+    { "id": "treatment", "label": "Traitements", "icon": "💊", "color": "amber", "items": ["..."] },
+    { "id": "functional", "label": "Impact fonctionnel", "icon": "🚶", "color": "purple", "items": ["..."] },
+    { "id": "red_flags", "label": "Drapeaux rouges", "icon": "🚩", "color": "green", "items": ["..."], "allClear": true }
+  ]
 }
 
 Pour "anamnesis", garde TOUJOURS ces 7 rubriques dans cet ordre, même si certaines sont vides (elles servent de checklist au praticien) :
@@ -39,6 +48,15 @@ Pour "anamnesis", garde TOUJOURS ces 7 rubriques dans cet ordre, même si certai
 
 **Drapeaux rouges**
 - [aucun identifié — ou liste chaque drapeau sur une ligne]
+
+Pour "sections", remplis chaque section avec les mêmes informations que dans "anamnesis", en format tableau d'items courts (style télégraphique, ≤ ~12 mots par item) :
+- "history" → items de "Histoire de la maladie"
+- "pain" → items de "Caractéristiques de la douleur"
+- "modulating" → items de "Facteurs modulants" (préfixe ⬆️ pour aggravants, ⬇️ pour soulageants)
+- "history_past" → items de "Antécédents mentionnés"
+- "treatment" → items de "Traitements essayés"
+- "functional" → items de "Impact fonctionnel"
+- "red_flags" → items de "Drapeaux rouges", avec "allClear": true si aucun drapeau rouge identifié, false sinon
 
 Distinction importante pour la valeur de checklist :
 - "—" = sujet NON abordé dans la dictée (le praticien voit ce qu'il a oublié de demander)
