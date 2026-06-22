@@ -16,6 +16,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { WebView } from 'react-native-webview';
 
 import { GlassCard } from '@/components/GlassCard';
+import { HtmlView } from '@/components/HtmlView';
 import { useAuth } from '@/lib/auth';
 import type { Tables } from '@/lib/database.types';
 import { supabase } from '@/lib/supabase';
@@ -44,10 +45,11 @@ export default function SubpartScreen() {
     const uid = session.user.id;
     Promise.all([
       supabase.from('elearning_subparts').select('*').eq('id', id).maybeSingle(),
-      supabase.from('elearning_subpart_progress').select('completed').eq('subpart_id', id).eq('user_id', uid).maybeSingle(),
+      supabase.from('elearning_subpart_progress').select('id').eq('subpart_id', id).eq('user_id', uid).maybeSingle(),
     ]).then(([sp, prog]) => {
       setSubpart(sp.data);
-      setCompleted(prog.data?.completed ?? false);
+      // Présence d'une ligne = terminé (modèle identique au site web)
+      setCompleted(!!prog.data);
       setLoading(false);
     });
   }, [id, session]);
@@ -57,10 +59,20 @@ export default function SubpartScreen() {
     setMarking(true);
     const uid = session.user.id;
     const next = !completed;
-    await supabase.from('elearning_subpart_progress').upsert(
-      { user_id: uid, subpart_id: subpart.id, completed: next, completed_at: next ? new Date().toISOString() : null },
-      { onConflict: 'user_id,subpart_id' }
-    );
+    if (next) {
+      // Terminé = on insère/conserve une ligne (comme le site web)
+      await supabase.from('elearning_subpart_progress').upsert(
+        { user_id: uid, subpart_id: subpart.id, completed_at: new Date().toISOString() },
+        { onConflict: 'subpart_id,user_id' }
+      );
+    } else {
+      // Annuler = on supprime la ligne
+      await supabase
+        .from('elearning_subpart_progress')
+        .delete()
+        .eq('subpart_id', subpart.id)
+        .eq('user_id', uid);
+    }
     setCompleted(next);
     setMarking(false);
   };
@@ -125,9 +137,7 @@ export default function SubpartScreen() {
             {subpart?.description_html ? (
               <GlassCard style={s.descCard}>
                 <Text style={[s.descTitle, { color: C.text }]}>Description</Text>
-                <Text style={[s.descText, { color: C.textSecondary }]}>
-                  {subpart.description_html.replace(/<[^>]*>/g, '')}
-                </Text>
+                <HtmlView html={subpart.description_html} />
               </GlassCard>
             ) : null}
 

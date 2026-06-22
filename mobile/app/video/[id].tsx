@@ -55,7 +55,7 @@ export default function VideoScreen() {
       // Track view
       if (data && session?.user) {
         supabase.from('user_practice_progress').upsert(
-          { user_id: session.user.id, practice_video_id: data.id, viewed_at: new Date().toISOString(), completed: false },
+          { user_id: session.user.id, practice_video_id: data.id, viewed_at: new Date().toISOString() },
           { onConflict: 'user_id,practice_video_id' }
         ).then(() => {});
       }

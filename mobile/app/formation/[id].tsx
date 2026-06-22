@@ -45,19 +45,19 @@ export default function FormationScreen() {
       supabase.from('elearning_formations').select('*').eq('id', id).maybeSingle(),
       supabase.from('elearning_chapters').select('*').eq('formation_id', id).order('order_index'),
       supabase.from('elearning_subparts').select('*').order('order_index'),
-      supabase.from('elearning_subpart_progress').select('subpart_id, completed').eq('user_id', uid),
+      supabase.from('elearning_subpart_progress').select('subpart_id').eq('user_id', uid),
     ]);
 
     setFormation(fRes.data);
 
-    const progressMap = new Map<string, boolean>();
-    for (const p of progRes.data ?? []) progressMap.set(p.subpart_id, p.completed);
+    // Le suivi e-learning est basé sur la présence d'une ligne (cf. site web)
+    const completedSet = new Set<string>((progRes.data ?? []).map((p) => p.subpart_id));
 
     const built: ChapterWithSubparts[] = (cRes.data ?? []).map((ch) => ({
       ...ch,
       subparts: (spRes.data ?? [])
         .filter((sp) => sp.chapter_id === ch.id)
-        .map((sp) => ({ ...sp, completed: progressMap.get(sp.id) ?? false })),
+        .map((sp) => ({ ...sp, completed: completedSet.has(sp.id) })),
     }));
 
     setChapters(built);

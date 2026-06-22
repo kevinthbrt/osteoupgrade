@@ -59,10 +59,7 @@ export type Database = {
         id: string;
         subpart_id: string;
         user_id: string;
-        completed: boolean;
         completed_at: string | null;
-        created_at: string;
-        updated_at: string;
       }>;
       flashcard_decks: TableDef<{
         id: string;
