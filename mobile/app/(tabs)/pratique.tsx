@@ -62,18 +62,11 @@ function getEmbedUrl(v: Video): string | null {
 // ── Slide plein écran avec player inline ────────────────────────────────────
 function VideoSlide({ video, active }: { video: Video; active: boolean }) {
   const embedUrl = getEmbedUrl(video);
-  const [playing, setPlaying] = useState(false);
-
-  // Réinitialise l'état play quand on quitte la slide
-  // (active passe à false → on réaffiche la vignette)
-  const wasActive = useRef(false);
-  if (!active && wasActive.current) { setPlaying(false); }
-  wasActive.current = active;
 
   return (
     <View style={sl.slide}>
-      {playing && embedUrl ? (
-        // Player Vimeo inline — chargé seulement quand l'utilisateur tape play
+      {/* Player Vimeo — monté automatiquement dès que la slide est active */}
+      {active && embedUrl ? (
         <WebView
           source={{ uri: embedUrl }}
           style={StyleSheet.absoluteFill}
@@ -84,30 +77,26 @@ function VideoSlide({ video, active }: { video: Video; active: boolean }) {
         />
       ) : (
         <>
-          {/* Vignette */}
+          {/* Vignette (slide inactive ou pas d'URL) */}
           {video.thumbnail_url ? (
             <Image source={video.thumbnail_url} style={StyleSheet.absoluteFill} contentFit="cover" />
           ) : (
             <LinearGradient colors={GRADIENTS.orange} style={StyleSheet.absoluteFill} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />
           )}
 
-          {/* Overlay dégradé bas */}
           <LinearGradient
             colors={['transparent', 'rgba(0,0,0,0.78)']}
             style={sl.overlay}
             start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }}
           />
 
-          {/* Bouton Play central */}
-          {embedUrl && (
-            <Pressable style={sl.playWrap} onPress={() => setPlaying(true)}>
-              <View style={[sl.playBtn, active && sl.playBtnActive]}>
-                <Ionicons name="play" size={38} color="#fff" />
-              </View>
-            </Pressable>
-          )}
+          {/* Icône play (slides non actives) */}
+          <View style={sl.playWrap} pointerEvents="none">
+            <View style={sl.playBtn}>
+              <Ionicons name="play" size={32} color="#fff" />
+            </View>
+          </View>
 
-          {/* Infos bas */}
           <View style={sl.info}>
             <View style={sl.regionPill}>
               <Text style={sl.regionPillText}>{regionLabel(video.region)}</Text>
