@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server'
 
 export const dynamic = 'force-dynamic'
-// Long anamneses (max_tokens 2000 on Sonnet) can take well over the default
+// Long anamneses (max_tokens 3000 on Sonnet) can take well over the default
 // Vercel function ceiling. Without this the function is killed mid-call and the
 // caller sees a generic 500 even though the AbortSignals below never fired.
+// Hobby caps at 60s; raise once on Pro.
 export const maxDuration = 60
 
 const SYSTEM_PROMPT = `Tu es un assistant clinique pour ostéopathes francophones.
@@ -34,7 +35,7 @@ Pour "anamnesis", garde TOUJOURS ces 7 rubriques dans cet ordre, même si certai
 **Caractéristiques de la douleur**
 - Localisation : [...]
 - Type : [...]
-- Intensité : EVA x/10
+- Intensité : EVA /10 (si chiffrée, sinon —)
 - Irradiations : [...]
 
 **Facteurs modulants**
@@ -85,7 +86,8 @@ Règles :
 - Style télégraphique : ≤ ~12 mots par tiret, pas de phrases. Abréviations cliniques autorisées (ATCD, EVA, Dlr, G/D, RAS)
 - Ne jamais inventer de faits non énoncés ; en cas de doute sur un fait, laisser "—" plutôt que déduire
 - EXCEPTION drapeaux rouges : tu DOIS au contraire signaler tout signe d'alerte présent dans la dictée même s'il faut le déduire d'un recoupement (ex: douleur nocturne + amaigrissement). Mieux vaut signaler par excès que manquer un drapeau rouge.
-- Corriger les termes médicaux mal transcrits (erreurs phonétiques)
+- Ne jamais perdre une information : un élément clinique ne rentrant dans aucune rubrique va dans la rubrique la plus proche, jamais omis
+- Corriger les termes médicaux mal transcrits (erreurs phonétiques) sans altérer le sens ; marquer "[?]" si un terme reste incertain
 - Répondre en français`
 
 const DETECTION_SYSTEM_PROMPT = `Tu es un assistant médical ostéopathique. Analyse le texte d'une dictée clinique et détecte si le patient mentionne des informations à mettre à jour dans son dossier.
@@ -209,7 +211,10 @@ export async function POST(req: Request) {
       },
       body: JSON.stringify({
         model: 'claude-sonnet-4-6',
-        max_tokens: 2000,
+        // Output now carries both the markdown anamnesis AND the sections array,
+        // so a long consultation can overflow 2000 tokens and truncate the JSON
+        // (which then falls back to a card-less response). 3000 gives headroom.
+        max_tokens: 3000,
         system: [
           {
             type: 'text',
@@ -217,7 +222,12 @@ export async function POST(req: Request) {
             cache_control: { type: 'ephemeral' },
           },
         ],
-        messages: [{ role: 'user', content: `Transcription :\n\n${transcript}` }],
+        messages: [
+          { role: 'user', content: `Transcription :\n\n${transcript}` },
+          // Prefill the reply with "{" so the model emits raw JSON (no prose, no
+          // markdown fences) — removes the main cause of parse failures.
+          { role: 'assistant', content: '{' },
+        ],
       }),
       // Kept below maxDuration (60s) so a slow Anthropic response aborts cleanly
       // with our own error rather than the function being hard-killed by Vercel.
@@ -245,9 +255,16 @@ export async function POST(req: Request) {
     const data = await res.json()
     const content = data.content?.[0]?.text ?? ''
 
+    // The model was prefilled with "{", so the returned text is the rest of the
+    // JSON object; re-attach the opening brace before parsing.
+    const raw = '{' + content
+    if (data.stop_reason === 'max_tokens') {
+      console.warn('[AI proxy] structure response hit max_tokens — JSON may be truncated')
+    }
+
     let parsed: { reason: string; anamnesis: string }
     try {
-      const json = content.replace(/^```(?:json)?\n?/m, '').replace(/\n?```$/m, '').trim()
+      const json = raw.replace(/^```(?:json)?\n?/m, '').replace(/\n?```$/m, '').trim()
       parsed = JSON.parse(json)
     } catch {
       parsed = { reason: '', anamnesis: content }
