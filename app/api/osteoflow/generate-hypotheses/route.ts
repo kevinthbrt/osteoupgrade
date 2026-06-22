@@ -132,11 +132,7 @@ export async function POST(req: Request) {
         model: 'claude-sonnet-4-6',
         max_tokens: 1500,
         system: [{ type: 'text', text: SYSTEM_PROMPT, cache_control: { type: 'ephemeral' } }],
-        messages: [
-          { role: 'user', content: userContent },
-          // Prefill "{" so the model returns raw JSON (no prose, no fences).
-          { role: 'assistant', content: '{' },
-        ],
+        messages: [{ role: 'user', content: userContent }],
       }),
       signal: AbortSignal.timeout(45000),
     })
@@ -148,7 +144,8 @@ export async function POST(req: Request) {
     }
 
     const data = await res.json()
-    const content = '{' + (data.content?.[0]?.text ?? '')
+    // Pas de prefill assistant — rejeté (400) par les modèles Claude 4.6.
+    const content = (data.content?.[0]?.text ?? '').trim()
 
     let parsed: { hypotheses?: Hypothesis[]; tests?: HypothesisTest[] }
     try {
