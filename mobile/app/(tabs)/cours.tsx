@@ -23,6 +23,10 @@ import { BRAND, GRADIENTS, usePaletteFor } from '@/lib/theme';
 
 type Formation = Tables<'elearning_formations'>;
 
+function stripHtml(html: string): string {
+  return html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
 export default function CoursScreen() {
   const scheme = useColorScheme();
   const C = usePaletteFor(scheme);
@@ -80,7 +84,7 @@ export default function CoursScreen() {
                     <View style={s.body}>
                       <Text style={[s.cardTitle, { color: C.text }]} numberOfLines={2}>{item.title}</Text>
                       {item.description ? (
-                        <Text style={[s.cardDesc, { color: C.textSecondary }]} numberOfLines={2}>{item.description}</Text>
+                        <Text style={[s.cardDesc, { color: C.textSecondary }]} numberOfLines={2}>{stripHtml(item.description)}</Text>
                       ) : null}
                       {item.is_free_access ? (
                         <View style={s.badge}>
