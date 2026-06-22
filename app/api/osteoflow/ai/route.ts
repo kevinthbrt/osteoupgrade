@@ -1,6 +1,10 @@
 import { NextResponse } from 'next/server'
 
 export const dynamic = 'force-dynamic'
+// Long anamneses (max_tokens 2000 on Sonnet) can take well over the default
+// Vercel function ceiling. Without this the function is killed mid-call and the
+// caller sees a generic 500 even though the AbortSignals below never fired.
+export const maxDuration = 60
 
 const SYSTEM_PROMPT = `Tu es un assistant clinique pour ostéopathes francophones.
 Tu reçois la transcription brute d'une anamnèse et tu dois la structurer.
@@ -215,7 +219,9 @@ export async function POST(req: Request) {
         ],
         messages: [{ role: 'user', content: `Transcription :\n\n${transcript}` }],
       }),
-      signal: AbortSignal.timeout(30000),
+      // Kept below maxDuration (60s) so a slow Anthropic response aborts cleanly
+      // with our own error rather than the function being hard-killed by Vercel.
+      signal: AbortSignal.timeout(45000),
     })
 
     const detectionCall = patientContext
