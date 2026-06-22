@@ -175,7 +175,9 @@ export async function POST(req: Request) {
       },
       body: JSON.stringify({
         model: 'claude-sonnet-4-6',
-        max_tokens: 1500,
+        // Output now carries hypotheses + tests + interactive questions, so give
+        // it headroom — a truncated JSON would fail to parse and 500.
+        max_tokens: 2500,
         system: [{ type: 'text', text: SYSTEM_PROMPT, cache_control: { type: 'ephemeral' } }],
         messages: [{ role: 'user', content: userContent }],
       }),
@@ -189,15 +191,22 @@ export async function POST(req: Request) {
     }
 
     const data = await res.json()
-    // Pas de prefill assistant — rejeté (400) par les modèles Claude 4.6.
     const content = (data.content?.[0]?.text ?? '').trim()
+    if (data.stop_reason === 'max_tokens') {
+      console.warn('[hypotheses] response hit max_tokens — JSON may be truncated')
+    }
+
+    // Pas de prefill possible (rejeté en 400 sur Claude 4.6) : on extrait l'objet
+    // JSON même si le modèle ajoute du texte autour (1er "{" → dernier "}").
+    const start = content.indexOf('{')
+    const end = content.lastIndexOf('}')
+    const jsonStr = start >= 0 && end > start ? content.slice(start, end + 1) : content
 
     let parsed: { hypotheses?: Hypothesis[]; tests?: HypothesisTest[]; questions?: unknown[] }
     try {
-      const json = content.replace(/^```(?:json)?\n?/m, '').replace(/\n?```$/m, '').trim()
-      parsed = JSON.parse(json)
+      parsed = JSON.parse(jsonStr)
     } catch {
-      console.error('[hypotheses] JSON parse fail:', content.substring(0, 200))
+      console.error('[hypotheses] JSON parse fail:', content.substring(0, 300))
       return NextResponse.json({ error: 'Réponse IA invalide' }, { status: 500 })
     }
 
