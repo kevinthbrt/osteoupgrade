@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
+import { router } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -67,7 +68,7 @@ export default function CoursScreen() {
               </Text>
             ) : (
               formations.map((item) => (
-                <Pressable key={item.id}>
+                <Pressable key={item.id} onPress={() => router.push(`/formation/${item.id}`)}>
                   <GlassCard style={s.card}>
                     {item.photo_url ? (
                       <Image source={item.photo_url} style={s.thumb} contentFit="cover" />

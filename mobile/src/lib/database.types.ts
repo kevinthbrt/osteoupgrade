@@ -138,6 +138,19 @@ export type Database = {
         created_at: string;
         updated_at: string;
       }>;
+      user_practice_progress: TableDef<{
+        id: string;
+        user_id: string;
+        practice_video_id: string;
+        viewed_at: string | null;
+        completed: boolean;
+      }>;
+      practice_categories: TableDef<{
+        id: string;
+        name: string;
+        slug: string | null;
+        created_at: string;
+      }>;
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;
