@@ -64,7 +64,7 @@ Règles :
 - Ne jamais inventer de faits non énoncés ; en cas de doute sur un fait, laisser "—" plutôt que déduire
 - EXCEPTION drapeaux rouges : tu DOIS au contraire signaler tout signe d'alerte présent dans la dictée même s'il faut le déduire d'un recoupement (ex: douleur nocturne + amaigrissement). Mieux vaut signaler par excès que manquer un drapeau rouge.
 - Ne jamais perdre une information : un élément clinique ne rentrant dans aucune rubrique va dans la rubrique la plus proche, jamais omis
-- Si un contexte patient est fourni (âge, sexe, profession, ATCD), prends-le en compte — surtout pour le DÉPISTAGE des drapeaux rouges (ex: ATCD néoplasique, âge extrême, grossesse, immunodépression). N'invente rien à partir de ce contexte ; sers-t'en seulement pour pondérer la vigilance.
+- Si un contexte patient est fourni (âge, sexe, profession, activité sportive, ATCD), prends-le en compte — surtout pour le DÉPISTAGE des drapeaux rouges (ex: ATCD néoplasique, âge extrême, grossesse, immunodépression). N'invente rien à partir de ce contexte ; sers-t'en seulement pour pondérer la vigilance.
 - Corriger les termes médicaux mal transcrits (erreurs phonétiques) sans altérer le sens ; marquer "[?]" si un terme reste incertain
 - Répondre en français`
 
