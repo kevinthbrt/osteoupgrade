@@ -159,22 +159,64 @@ const fc = StyleSheet.create({
   ratingLabel: { fontSize: 10, fontWeight: '600' },
 });
 
-// ── Algo SM-2 simplifié ─────────────────────────────────────────────────────
+// ── Algo SM-2 ───────────────────────────────────────────────────────────────
+// IMPORTANT : implémentation identique au backend web
+// (app/api/flashcards/review/route.ts) pour garantir une progression cohérente
+// entre l'app mobile et le site, qui partagent la même table flashcard_progress.
+//
+// Notation :
+//   1 = Oublié    → reset complet
+//   2 = Difficile → garde la progression, pénalise l'ease, repasse demain
+//   3 = Bien      → progression normale
+//   4 = Facile    → progression boostée
 function sm2Next(p: Partial<Progress> | null, rating: 1 | 2 | 3 | 4) {
-  const q = rating - 1; // 0..3
-  let ef = Math.max(1.3, (p?.ease_factor ?? 2.5) + (0.1 - (3 - q) * (0.08 + (3 - q) * 0.02)));
-  let rep = (p?.repetition ?? 0);
-  let interval = 1;
-  if (q < 2) { rep = 0; interval = 1; }
-  else {
-    rep += 1;
-    if (rep === 1) interval = 1;
-    else if (rep === 2) interval = 6;
-    else interval = Math.round((p?.interval_days ?? 6) * ef);
+  const repetition = p?.repetition ?? 0;
+  const ease = p?.ease_factor ?? 2.5;
+  const interval = p?.interval_days ?? 1;
+
+  let newRepetition = repetition;
+  let newEase = ease;
+  let newInterval = interval;
+
+  if (rating === 1) {
+    // Oublié — reset total
+    newRepetition = 0;
+    newEase = Math.max(1.3, ease - 0.2);
+    newInterval = 1;
+  } else if (rating === 2) {
+    // Difficile — garde la progression mais pénalise l'ease, repasse demain
+    newEase = Math.max(1.3, ease - 0.15);
+    newInterval = 1;
+    // repetition inchangé
+  } else {
+    // Bien (3) ou Facile (4)
+    if (rating === 4) newEase = Math.min(2.5, ease + 0.15);
+
+    if (repetition === 0) {
+      newInterval = 1;
+    } else if (repetition === 1) {
+      newInterval = 6;
+    } else {
+      newInterval = Math.round(interval * newEase);
+      if (rating === 4) newInterval = Math.round(newInterval * 1.3);
+    }
+    newRepetition = repetition + 1;
   }
+
+  // Fuzz ±5% pour éviter le clustering (seulement sur intervalles > 1)
+  if (newInterval > 1) {
+    const fuzz = 1 + (Math.random() - 0.5) * 0.1;
+    newInterval = Math.max(2, Math.round(newInterval * fuzz));
+  }
+
   const next = new Date();
-  next.setDate(next.getDate() + interval);
-  return { repetition: rep, ease_factor: ef, interval_days: interval, next_review_at: next.toISOString() };
+  next.setDate(next.getDate() + newInterval);
+  return {
+    repetition: newRepetition,
+    ease_factor: newEase,
+    interval_days: newInterval,
+    next_review_at: next.toISOString(),
+  };
 }
 
 // ── Écran principal ──────────────────────────────────────────────────────────
