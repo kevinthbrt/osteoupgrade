@@ -95,6 +95,34 @@ export type Database = {
         reviewed_at: string | null;
         created_at: string;
       }>;
+      user_gamification_stats: TableDef<{
+        user_id: string;
+        level: number;
+        total_xp: number;
+        current_streak: number;
+        best_streak: number;
+        last_login_date: string | null;
+        total_logins: number;
+        total_elearning_completed: number;
+        total_practice_viewed: number;
+        total_testing_viewed: number;
+        week_logins: number;
+        week_elearning: number;
+        week_practice: number;
+        week_testing: number;
+        week_reset_date: string | null;
+        elearning_progress: number;
+        practice_progress: number;
+        testing_progress: number;
+        created_at: string;
+        updated_at: string;
+      }>;
+      literature_reviews: TableDef<{
+        id: string;
+        title: string;
+        summary: string | null;
+        created_at: string;
+      }>;
       practice_videos: TableDef<{
         id: string;
         region: string;

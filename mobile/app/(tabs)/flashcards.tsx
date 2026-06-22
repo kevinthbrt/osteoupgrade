@@ -19,7 +19,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '@/lib/auth';
 import type { Tables } from '@/lib/database.types';
 import { supabase } from '@/lib/supabase';
-import { BRAND, PALETTE } from './_layout';
+import { BRAND, PALETTE } from '@/lib/theme';
 
 type Deck = Tables<'flashcard_decks'>;
 type Card = Tables<'flashcards'>;
@@ -29,11 +29,11 @@ const { width, height } = Dimensions.get('window');
 
 // ── Couleurs par thème de deck ──────────────────────────────────────────────
 const DECK_GRADIENTS: Record<string, [string, string]> = {
-  anatomie: ['#208AEF', '#0055CC'],
-  pathologie: ['#FF6B35', '#FF3B00'],
-  technique: ['#AF52DE', '#7B2FBE'],
-  physiologie: ['#34C759', '#1A8C3A'],
-  default: ['#636366', '#48484A'],
+  anatomie: ['#2563eb', '#1d4ed8'],
+  pathologie: ['#f97316', '#ea580c'],
+  technique: ['#8b5cf6', '#6d28d9'],
+  physiologie: ['#22c55e', '#16a34a'],
+  default: ['#64748b', '#475569'],
 };
 
 function deckGradient(theme: string | null): [string, string] {

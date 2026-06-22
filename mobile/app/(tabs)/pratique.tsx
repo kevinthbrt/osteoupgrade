@@ -1,20 +1,34 @@
 import { Ionicons } from '@expo/vector-icons';
-import { StyleSheet, Text, View } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { StyleSheet, Text, useColorScheme, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+
+import { GRADIENTS, usePaletteFor } from '@/lib/theme';
 
 export default function PratiqueScreen() {
+  const scheme = useColorScheme();
+  const C = usePaletteFor(scheme);
   return (
-    <View style={styles.container}>
-      <Ionicons name="fitness-outline" size={48} color="#208AEF" />
-      <Text style={styles.title}>Pratique</Text>
-      <Text style={styles.muted}>
-        Vidéos de techniques par région — écran à construire prochainement.
-      </Text>
-    </View>
+    <LinearGradient colors={C.bgGradient} style={s.fill} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
+      <SafeAreaView style={s.fill} edges={['top']}>
+        <View style={s.container}>
+          <LinearGradient colors={GRADIENTS.orange} style={s.icon} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
+            <Ionicons name="fitness" size={40} color="#fff" />
+          </LinearGradient>
+          <Text style={[s.title, { color: C.text }]}>Pratique</Text>
+          <Text style={[s.muted, { color: C.textSecondary }]}>
+            Vidéos de techniques par région — bientôt disponible.
+          </Text>
+        </View>
+      </SafeAreaView>
+    </LinearGradient>
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32, gap: 12 },
-  title: { fontSize: 22, fontWeight: '700', color: '#11181C' },
-  muted: { color: '#60646C', textAlign: 'center' },
+const s = StyleSheet.create({
+  fill: { flex: 1 },
+  container: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32, gap: 14 },
+  icon: { width: 80, height: 80, borderRadius: 24, alignItems: 'center', justifyContent: 'center' },
+  title: { fontSize: 24, fontWeight: '800' },
+  muted: { textAlign: 'center', fontSize: 14 },
 });

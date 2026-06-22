@@ -1,13 +1,15 @@
 import { Ionicons } from '@expo/vector-icons';
-import { BlurView } from 'expo-blur';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import {
+  ActivityIndicator,
   Dimensions,
   Platform,
   Pressable,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -16,14 +18,13 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { GlassCard } from '@/components/GlassCard';
 import { useAuth } from '@/lib/auth';
 import { supabase } from '@/lib/supabase';
-import { BRAND, PALETTE } from './_layout';
+import { BRAND, GRADIENTS, usePaletteFor } from '@/lib/theme';
 
 const { width } = Dimensions.get('window');
-const CARD_W = (width - 48) / 2;
-
-type Stats = { formations: number; completed: number; total: number };
+const TILE_W = (width - 40 - 12) / 2;
 
 function getGreeting() {
   const h = new Date().getHours();
@@ -32,206 +33,208 @@ function getGreeting() {
   return 'Bonsoir';
 }
 
-// Carte liquid glass — blur + gradient overlay
-function GlassCard({
-  children,
-  style,
-  onPress,
-}: {
-  children: React.ReactNode;
-  style?: object;
-  onPress?: () => void;
-}) {
-  const scheme = useColorScheme();
-  const dark = scheme === 'dark';
-  return (
-    <Pressable onPress={onPress} style={[s.glassWrap, style]}>
-      <BlurView
-        intensity={dark ? 40 : 60}
-        tint={dark ? 'dark' : 'light'}
-        style={StyleSheet.absoluteFill}
-      />
-      <View
-        style={[
-          StyleSheet.absoluteFill,
-          { backgroundColor: dark ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.45)' },
-        ]}
-      />
-      {children}
-    </Pressable>
-  );
+// XP nécessaire pour le prochain niveau (palier simple de 500 XP/niveau)
+function levelProgress(level: number, xp: number) {
+  const perLevel = 500;
+  const base = (level - 1) * perLevel;
+  const into = Math.max(0, xp - base);
+  return Math.min(1, into / perLevel);
 }
 
-// Tuile de raccourci rapide
-function QuickTile({
-  icon,
-  label,
-  gradient,
-  onPress,
-}: {
-  icon: keyof typeof Ionicons.glyphMap;
-  label: string;
-  gradient: [string, string];
-  onPress: () => void;
-}) {
-  return (
-    <Pressable onPress={onPress} style={s.tile}>
-      <LinearGradient colors={gradient} style={s.tileGradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
-        <Ionicons name={icon} size={28} color="#fff" />
-      </LinearGradient>
-      <Text style={s.tileLabel}>{label}</Text>
-    </Pressable>
-  );
-}
+type Dash = {
+  firstName: string;
+  level: number;
+  xp: number;
+  streak: number;
+  bestStreak: number;
+  formationsCount: number;
+  lessonsDone: number;
+  lessonsTotal: number;
+  dueFlashcards: number;
+  recent: { id: string; title: string; photo_url: string | null } | null;
+};
+
+const EMPTY: Dash = {
+  firstName: '',
+  level: 1,
+  xp: 0,
+  streak: 0,
+  bestStreak: 0,
+  formationsCount: 0,
+  lessonsDone: 0,
+  lessonsTotal: 0,
+  dueFlashcards: 0,
+  recent: null,
+};
 
 export default function DashboardScreen() {
   const { session } = useAuth();
   const router = useRouter();
   const scheme = useColorScheme();
   const dark = scheme === 'dark';
-  const C = PALETTE[dark ? 'dark' : 'light'];
+  const C = usePaletteFor(scheme);
 
-  const [stats, setStats] = useState<Stats>({ formations: 0, completed: 0, total: 0 });
-  const [firstName, setFirstName] = useState('');
-  const [recentFormation, setRecentFormation] = useState<{ title: string; photo_url: string | null } | null>(null);
+  const [d, setD] = useState<Dash>(EMPTY);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(() => {
+  const load = useCallback(async () => {
     if (!session?.user) return;
     const uid = session.user.id;
+    const now = new Date().toISOString();
 
-    // Prénom
-    supabase.from('profiles').select('full_name').eq('id', uid).maybeSingle().then(({ data }) => {
-      if (data?.full_name) setFirstName(data.full_name.split(' ')[0]);
+    const [profile, gam, formations, progressDone, progressTotal, dueCards] = await Promise.all([
+      supabase.from('profiles').select('full_name').eq('id', uid).maybeSingle(),
+      supabase.from('user_gamification_stats').select('*').eq('user_id', uid).maybeSingle(),
+      supabase.from('elearning_formations').select('id, title, photo_url', { count: 'exact' }).order('created_at', { ascending: false }),
+      supabase.from('elearning_subpart_progress').select('id', { count: 'exact', head: true }).eq('user_id', uid).eq('completed', true),
+      supabase.from('elearning_subpart_progress').select('id', { count: 'exact', head: true }).eq('user_id', uid),
+      supabase.from('flashcard_progress').select('id', { count: 'exact', head: true }).eq('user_id', uid).lte('next_review_at', now),
+    ]);
+
+    setD({
+      firstName: profile.data?.full_name?.split(' ')[0] ?? '',
+      level: gam.data?.level ?? 1,
+      xp: gam.data?.total_xp ?? 0,
+      streak: gam.data?.current_streak ?? 0,
+      bestStreak: gam.data?.best_streak ?? 0,
+      formationsCount: formations.count ?? 0,
+      lessonsDone: progressDone.count ?? 0,
+      lessonsTotal: progressTotal.count ?? 0,
+      dueFlashcards: dueCards.count ?? 0,
+      recent: formations.data?.[0] ?? null,
     });
-
-    // Stats formations
-    supabase.from('elearning_formations').select('id, title, photo_url', { count: 'exact' })
-      .order('created_at', { ascending: false })
-      .then(({ data, count }) => {
-        setStats((s) => ({ ...s, formations: count ?? 0 }));
-        if (data?.[0]) setRecentFormation({ title: data[0].title, photo_url: data[0].photo_url });
-      });
-
-    // Progression
-    supabase.from('elearning_subpart_progress').select('completed', { count: 'exact' })
-      .eq('user_id', uid)
-      .then(({ count }) => {
-        const total = count ?? 0;
-        supabase.from('elearning_subpart_progress').select('id', { count: 'exact' })
-          .eq('user_id', uid).eq('completed', true)
-          .then(({ count: done }) => {
-            setStats((s) => ({ ...s, completed: done ?? 0, total }));
-          });
-      });
+    setLoading(false);
   }, [session]);
 
-  const progress = stats.total > 0 ? stats.completed / stats.total : 0;
+  useFocusEffect(useCallback(() => { load(); }, [load]));
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await load();
+    setRefreshing(false);
+  }, [load]);
+
+  if (loading) {
+    return (
+      <LinearGradient colors={C.bgGradient} style={s.fill}>
+        <View style={s.center}><ActivityIndicator size="large" color={BRAND} /></View>
+      </LinearGradient>
+    );
+  }
+
+  const lessonPct = d.lessonsTotal > 0 ? d.lessonsDone / d.lessonsTotal : 0;
+  const lvlPct = levelProgress(d.level, d.xp);
 
   return (
-    <LinearGradient
-      colors={dark ? ['#0A0A0F', '#0D1117', '#111827'] : ['#E8F4FD', '#F0F8FF', '#F8FAFF']}
-      style={{ flex: 1 }}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}>
-      <SafeAreaView style={{ flex: 1 }} edges={['top']}>
+    <LinearGradient colors={C.bgGradient} style={s.fill} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
+      <SafeAreaView style={s.fill} edges={['top']}>
         <ScrollView
           contentContainerStyle={[s.scroll, { paddingBottom: Platform.OS === 'ios' ? 100 : 80 }]}
-          showsVerticalScrollIndicator={false}>
+          showsVerticalScrollIndicator={false}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={BRAND} />}>
 
-          {/* ── Hero ── */}
-          <View style={s.hero}>
-            <View>
+          {/* ── En-tête ── */}
+          <View style={s.header}>
+            <View style={{ flex: 1 }}>
               <Text style={[s.greeting, { color: C.textSecondary }]}>{getGreeting()},</Text>
-              <Text style={[s.name, { color: C.text }]}>{firstName || 'Ostéopathe'} 👋</Text>
+              <Text style={[s.name, { color: C.text }]}>{d.firstName || 'Ostéopathe'} 👋</Text>
             </View>
-            <GlassCard style={s.notifBtn}>
-              <Ionicons name="notifications-outline" size={20} color={BRAND} style={{ margin: 10 }} />
-            </GlassCard>
+            <Pressable onPress={() => router.push('/profil')}>
+              <LinearGradient colors={GRADIENTS.brand} style={s.avatar} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
+                <Text style={s.avatarText}>
+                  {(d.firstName || session?.user?.email || '?').charAt(0).toUpperCase()}
+                </Text>
+              </LinearGradient>
+            </Pressable>
           </View>
 
-          {/* ── Carte de progression ── */}
+          {/* ── Carte niveau / XP / streak (dégradé signature) ── */}
+          <View style={s.heroCard}>
+            <LinearGradient colors={GRADIENTS.brand} style={StyleSheet.absoluteFill} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />
+            <View style={s.heroTop}>
+              <View>
+                <Text style={s.heroLabel}>NIVEAU {d.level}</Text>
+                <Text style={s.heroXp}>{d.xp.toLocaleString('fr-FR')} XP</Text>
+              </View>
+              <View style={s.streakBox}>
+                <Ionicons name="flame" size={20} color="#FFD60A" />
+                <Text style={s.streakNum}>{d.streak}</Text>
+                <Text style={s.streakLabel}>jours</Text>
+              </View>
+            </View>
+            <View style={s.heroBarBg}>
+              <View style={[s.heroBarFill, { width: `${Math.round(lvlPct * 100)}%` }]} />
+            </View>
+            <Text style={s.heroBarText}>
+              {Math.round(lvlPct * 100)} % vers le niveau {d.level + 1} · record {d.bestStreak} j 🔥
+            </Text>
+          </View>
+
+          {/* ── CTA Flashcards à réviser ── */}
+          {d.dueFlashcards > 0 && (
+            <Pressable onPress={() => router.push('/flashcards')}>
+              <GlassCard style={s.dueCard}>
+                <LinearGradient colors={GRADIENTS.violet} style={s.dueIcon} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
+                  <Ionicons name="albums" size={22} color="#fff" />
+                </LinearGradient>
+                <View style={{ flex: 1 }}>
+                  <Text style={[s.dueTitle, { color: C.text }]}>{d.dueFlashcards} carte{d.dueFlashcards > 1 ? 's' : ''} à réviser</Text>
+                  <Text style={[s.dueSub, { color: C.textSecondary }]}>C'est le moment de réviser !</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={20} color={C.textMuted} />
+              </GlassCard>
+            </Pressable>
+          )}
+
+          {/* ── Progression e-learning ── */}
           <GlassCard style={s.progressCard}>
-            <LinearGradient
-              colors={['#208AEF22', '#208AEF08']}
-              style={StyleSheet.absoluteFill}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-            />
-            <Text style={[s.progressTitle, { color: C.text }]}>Ma progression</Text>
-            <View style={s.progressBarBg}>
-              <LinearGradient
-                colors={['#208AEF', '#5CB8FF']}
-                style={[s.progressBarFill, { width: `${Math.round(progress * 100)}%` }]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-              />
+            <View style={s.progressHead}>
+              <Text style={[s.cardTitle, { color: C.text }]}>Ma progression</Text>
+              <Text style={[s.progressPct, { color: BRAND }]}>{Math.round(lessonPct * 100)} %</Text>
             </View>
-            <View style={s.progressRow}>
-              <Text style={[s.progressSub, { color: C.textSecondary }]}>
-                {stats.completed} / {stats.total} leçons complétées
-              </Text>
-              <Text style={[s.progressPct, { color: BRAND }]}>
-                {Math.round(progress * 100)} %
-              </Text>
+            <View style={[s.barBg, { backgroundColor: dark ? 'rgba(255,255,255,0.1)' : 'rgba(37,99,235,0.12)' }]}>
+              <LinearGradient colors={GRADIENTS.blue} style={[s.barFill, { width: `${Math.round(lessonPct * 100)}%` }]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} />
             </View>
+            <Text style={[s.progressSub, { color: C.textSecondary }]}>
+              {d.lessonsDone} / {d.lessonsTotal || '—'} leçons complétées
+            </Text>
           </GlassCard>
 
           {/* ── Stats rapides ── */}
           <View style={s.statsRow}>
-            <GlassCard style={s.statCard}>
-              <LinearGradient colors={['#208AEF', '#0066CC']} style={s.statIcon} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
-                <Ionicons name="school" size={18} color="#fff" />
-              </LinearGradient>
-              <Text style={[s.statValue, { color: C.text }]}>{stats.formations}</Text>
-              <Text style={[s.statLabel, { color: C.textSecondary }]}>Formations</Text>
-            </GlassCard>
-            <GlassCard style={s.statCard}>
-              <LinearGradient colors={['#34C759', '#20A040']} style={s.statIcon} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
-                <Ionicons name="checkmark-circle" size={18} color="#fff" />
-              </LinearGradient>
-              <Text style={[s.statValue, { color: C.text }]}>{stats.completed}</Text>
-              <Text style={[s.statLabel, { color: C.textSecondary }]}>Complétées</Text>
-            </GlassCard>
-            <GlassCard style={s.statCard}>
-              <LinearGradient colors={['#FF9500', '#FF6B00']} style={s.statIcon} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
-                <Ionicons name="flame" size={18} color="#fff" />
-              </LinearGradient>
-              <Text style={[s.statValue, { color: C.text }]}>
-                {stats.total - stats.completed}
-              </Text>
-              <Text style={[s.statLabel, { color: C.textSecondary }]}>Restantes</Text>
-            </GlassCard>
+            <StatCard color={GRADIENTS.blue} icon="school" value={d.formationsCount} label="Formations" C={C} />
+            <StatCard color={GRADIENTS.green} icon="checkmark-done" value={d.lessonsDone} label="Complétées" C={C} />
+            <StatCard color={GRADIENTS.orange} icon="flame" value={d.streak} label="Série" C={C} />
           </View>
 
-          {/* ── Raccourcis ── */}
+          {/* ── Accès rapide ── */}
           <Text style={[s.section, { color: C.text }]}>Accès rapide</Text>
           <View style={s.tiles}>
-            <QuickTile icon="school-outline" label="Mes cours" gradient={['#208AEF', '#0055CC']} onPress={() => router.push('/cours')} />
-            <QuickTile icon="albums-outline" label="Flashcards" gradient={['#AF52DE', '#7B2FBE']} onPress={() => router.push('/flashcards')} />
-            <QuickTile icon="fitness-outline" label="Pratique" gradient={['#FF6B35', '#FF3B00']} onPress={() => router.push('/pratique')} />
-            <QuickTile icon="flask-outline" label="Tests ortho" gradient={['#34C759', '#1A8C3A']} onPress={() => router.push('/pratique')} />
+            <Tile icon="school" label="Mes cours" sub="Formations vidéo" gradient={GRADIENTS.blue} onPress={() => router.push('/cours')} />
+            <Tile icon="albums" label="Flashcards" sub={`${d.dueFlashcards} à réviser`} gradient={GRADIENTS.violet} onPress={() => router.push('/flashcards')} />
+            <Tile icon="fitness" label="Pratique" sub="Techniques" gradient={GRADIENTS.orange} onPress={() => router.push('/pratique')} />
+            <Tile icon="flask" label="Tests ortho" sub="Examen clinique" gradient={GRADIENTS.green} onPress={() => router.push('/pratique')} />
           </View>
 
-          {/* ── Reprendre là où tu t'es arrêté ── */}
-          {recentFormation && (
+          {/* ── Continuer ── */}
+          {d.recent && (
             <>
               <Text style={[s.section, { color: C.text }]}>Continuer</Text>
-              <Pressable onPress={() => router.push('/cours')} style={s.resumeWrap}>
+              <Pressable onPress={() => router.push('/cours')}>
                 <GlassCard style={s.resumeCard}>
-                  {recentFormation.photo_url ? (
-                    <Image source={recentFormation.photo_url} style={s.resumeThumb} contentFit="cover" />
+                  {d.recent.photo_url ? (
+                    <Image source={d.recent.photo_url} style={s.resumeThumb} contentFit="cover" />
                   ) : (
-                    <LinearGradient colors={['#208AEF', '#0055CC']} style={s.resumeThumb} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
+                    <LinearGradient colors={GRADIENTS.brand} style={s.resumeThumb} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
                       <Ionicons name="play" size={28} color="#fff" />
                     </LinearGradient>
                   )}
                   <View style={s.resumeBody}>
-                    <Text style={[s.resumeTitle, { color: C.text }]} numberOfLines={2}>
-                      {recentFormation.title}
-                    </Text>
+                    <Text style={[s.resumeTitle, { color: C.text }]} numberOfLines={2}>{d.recent.title}</Text>
                     <View style={s.resumeBtn}>
                       <Ionicons name="play-circle" size={16} color={BRAND} />
-                      <Text style={[s.resumeBtnText, { color: BRAND }]}>Continuer</Text>
+                      <Text style={[s.resumeBtnText, { color: BRAND }]}>Reprendre</Text>
                     </View>
                   </View>
                 </GlassCard>
@@ -245,62 +248,90 @@ export default function DashboardScreen() {
   );
 }
 
+function StatCard({ color, icon, value, label, C }: { color: [string, string]; icon: keyof typeof Ionicons.glyphMap; value: number; label: string; C: ReturnType<typeof usePaletteFor> }) {
+  return (
+    <GlassCard style={s.statCard}>
+      <LinearGradient colors={color} style={s.statIcon} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
+        <Ionicons name={icon} size={18} color="#fff" />
+      </LinearGradient>
+      <Text style={[s.statValue, { color: C.text }]}>{value}</Text>
+      <Text style={[s.statLabel, { color: C.textSecondary }]}>{label}</Text>
+    </GlassCard>
+  );
+}
+
+function Tile({ icon, label, sub, gradient, onPress }: { icon: keyof typeof Ionicons.glyphMap; label: string; sub: string; gradient: [string, string]; onPress: () => void }) {
+  const scheme = useColorScheme();
+  const C = usePaletteFor(scheme);
+  return (
+    <Pressable onPress={onPress}>
+      <GlassCard style={s.tile}>
+        <LinearGradient colors={gradient} style={s.tileIcon} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
+          <Ionicons name={icon} size={24} color="#fff" />
+        </LinearGradient>
+        <Text style={[s.tileLabel, { color: C.text }]}>{label}</Text>
+        <Text style={[s.tileSub, { color: C.textSecondary }]} numberOfLines={1}>{sub}</Text>
+      </GlassCard>
+    </Pressable>
+  );
+}
+
 const s = StyleSheet.create({
+  fill: { flex: 1 },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   scroll: { paddingHorizontal: 20, paddingTop: 8, gap: 16 },
 
-  // Hero
-  hero: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 },
-  greeting: { fontSize: 15, fontWeight: '400' },
+  header: { flexDirection: 'row', alignItems: 'center', marginBottom: 2 },
+  greeting: { fontSize: 15 },
   name: { fontSize: 26, fontWeight: '800', letterSpacing: -0.5 },
-  notifBtn: { borderRadius: 16, overflow: 'hidden' },
+  avatar: { width: 46, height: 46, borderRadius: 23, alignItems: 'center', justifyContent: 'center' },
+  avatarText: { color: '#fff', fontSize: 20, fontWeight: '700' },
 
-  // Glass card
-  glassWrap: {
-    borderRadius: 20,
-    overflow: 'hidden',
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(255,255,255,0.3)',
-  },
+  // Hero (niveau/XP)
+  heroCard: { borderRadius: 24, overflow: 'hidden', padding: 20, gap: 12 },
+  heroTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
+  heroLabel: { color: 'rgba(255,255,255,0.85)', fontSize: 12, fontWeight: '700', letterSpacing: 1 },
+  heroXp: { color: '#fff', fontSize: 28, fontWeight: '800', marginTop: 2 },
+  streakBox: { alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.18)', borderRadius: 16, paddingHorizontal: 14, paddingVertical: 8 },
+  streakNum: { color: '#fff', fontSize: 20, fontWeight: '800' },
+  streakLabel: { color: 'rgba(255,255,255,0.8)', fontSize: 10 },
+  heroBarBg: { height: 8, borderRadius: 4, backgroundColor: 'rgba(255,255,255,0.25)', overflow: 'hidden' },
+  heroBarFill: { height: 8, borderRadius: 4, backgroundColor: '#fff' },
+  heroBarText: { color: 'rgba(255,255,255,0.9)', fontSize: 12 },
 
-  // Progress
-  progressCard: { padding: 20, gap: 10 },
-  progressTitle: { fontSize: 16, fontWeight: '700' },
-  progressBarBg: {
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: 'rgba(32,138,239,0.15)',
-    overflow: 'hidden',
-  },
-  progressBarFill: { height: 8, borderRadius: 4 },
-  progressRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  // Due flashcards CTA
+  dueCard: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14 },
+  dueIcon: { width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  dueTitle: { fontSize: 15, fontWeight: '700' },
+  dueSub: { fontSize: 12, marginTop: 2 },
+
+  // Progression
+  progressCard: { padding: 18, gap: 10 },
+  progressHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  cardTitle: { fontSize: 16, fontWeight: '700' },
+  progressPct: { fontSize: 16, fontWeight: '800' },
+  barBg: { height: 8, borderRadius: 4, overflow: 'hidden' },
+  barFill: { height: 8, borderRadius: 4 },
   progressSub: { fontSize: 12 },
-  progressPct: { fontSize: 14, fontWeight: '700' },
 
-  // Stats row
+  // Stats
   statsRow: { flexDirection: 'row', gap: 10 },
   statCard: { flex: 1, padding: 14, gap: 6, alignItems: 'center' },
   statIcon: { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
   statValue: { fontSize: 20, fontWeight: '800' },
   statLabel: { fontSize: 11, fontWeight: '500', textAlign: 'center' },
 
-  // Section title
   section: { fontSize: 18, fontWeight: '700', marginTop: 4, marginBottom: -4 },
 
   // Tiles
   tiles: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
-  tile: { width: CARD_W, alignItems: 'center', gap: 8 },
-  tileGradient: {
-    width: CARD_W,
-    height: CARD_W * 0.6,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  tileLabel: { fontSize: 13, fontWeight: '600', color: '#11181C', textAlign: 'center' },
+  tile: { width: TILE_W, padding: 16, gap: 8 },
+  tileIcon: { width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  tileLabel: { fontSize: 15, fontWeight: '700' },
+  tileSub: { fontSize: 12 },
 
   // Resume
-  resumeWrap: {},
-  resumeCard: { flexDirection: 'row', overflow: 'hidden', gap: 0 },
+  resumeCard: { flexDirection: 'row', overflow: 'hidden' },
   resumeThumb: { width: 100, height: 100, alignItems: 'center', justifyContent: 'center' },
   resumeBody: { flex: 1, padding: 14, justifyContent: 'space-between' },
   resumeTitle: { fontSize: 15, fontWeight: '700', lineHeight: 20 },
