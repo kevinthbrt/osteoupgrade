@@ -8,12 +8,11 @@ export const dynamic = 'force-dynamic'
 export const maxDuration = 60
 
 const SYSTEM_PROMPT = `Tu es un assistant clinique pour ostéopathes francophones.
-Tu reçois la transcription brute d'une anamnèse et tu dois la structurer.
+Tu reçois la transcription brute d'une anamnèse et tu dois la structurer en cartes.
 
 RÉPONDS UNIQUEMENT EN JSON valide avec ce format exact :
 {
   "reason": "motif principal en 1 ligne courte",
-  "anamnesis": "anamnèse structurée en markdown",
   "sections": [
     { "id": "history", "label": "Histoire", "icon": "⚡", "color": "slate", "items": ["..."] },
     { "id": "pain", "label": "Douleur", "icon": "📍", "color": "sky", "items": ["..."] },
@@ -25,36 +24,23 @@ RÉPONDS UNIQUEMENT EN JSON valide avec ce format exact :
   ]
 }
 
-Pour "anamnesis", garde TOUJOURS ces 7 rubriques dans cet ordre, même si certaines sont vides (elles servent de checklist au praticien) :
+Inclus TOUJOURS les 7 sections dans cet ordre, même si certaines sont vides (elles
+servent de checklist au praticien). Garde les "id", "label", "icon" et "color"
+exactement comme ci-dessus. Chaque "items" est un tableau d'items courts en style
+télégraphique (≤ ~12 mots, un item = une information précise).
 
-**Histoire de la maladie**
-- [circonstances d'apparition]
-- [chronologie / ancienneté]
-- [évolution depuis l'apparition]
+Contenu attendu par section :
+- "history" (Histoire de la maladie) : circonstances d'apparition, chronologie/ancienneté, évolution
+- "pain" (Caractéristiques de la douleur) : "Localisation : …", "Type : …", "Intensité : EVA /10 (si chiffrée, sinon —)", "Irradiations : …"
+- "modulating" (Facteurs modulants) : aggravants préfixés ⬆️, soulageants préfixés ⬇️
+- "history_past" (Antécédents mentionnés)
+- "treatment" (Traitements essayés)
+- "functional" (Impact fonctionnel)
+- "red_flags" (Drapeaux rouges) — voir DÉPISTAGE ACTIF ci-dessous
 
-**Caractéristiques de la douleur**
-- Localisation : [...]
-- Type : [...]
-- Intensité : EVA /10 (si chiffrée, sinon —)
-- Irradiations : [...]
-
-**Facteurs modulants**
-- Aggravants : [...]
-- Soulageants : [...]
-
-**Antécédents mentionnés**
-- [...]
-
-**Traitements essayés**
-- [...]
-
-**Impact fonctionnel**
-- [...]
-
-**Drapeaux rouges** — DÉPISTAGE ACTIF
-Pour cette rubrique UNIQUEMENT, tu dois raisonner cliniquement et signaler tout
-élément de la dictée correspondant à un signal d'alerte, même implicite. Passe en
-revue systématiquement :
+DÉPISTAGE ACTIF des drapeaux rouges — pour la section "red_flags" UNIQUEMENT, tu dois
+raisonner cliniquement et signaler tout élément de la dictée correspondant à un signal
+d'alerte, même implicite. Passe en revue systématiquement :
 - Douleur nocturne non mécanique / non soulagée par le repos / réveils douloureux
 - Amaigrissement inexpliqué, fièvre, sueurs nocturnes, AEG
 - ATCD ou suspicion de cancer (douleur récente chez patient avec ATCD néoplasique)
@@ -65,25 +51,16 @@ revue systématiquement :
 - Céphalée brutale « en coup de tonnerre », troubles visuels, vertiges, dysarthrie
 - Signes infectieux, immunodépression, toxicomanie IV
 - Âge < 20 ou > 55 ans avec douleur rachidienne d'apparition récente
-**Drapeaux rouges**
-- [aucun identifié — ou liste chaque drapeau repéré sur une ligne, avec le signe en cause]
-
-Pour "sections", remplis chaque section avec les mêmes informations que dans "anamnesis", en format tableau d'items courts (style télégraphique, ≤ ~12 mots par item) :
-- "history" → items de "Histoire de la maladie"
-- "pain" → items de "Caractéristiques de la douleur"
-- "modulating" → items de "Facteurs modulants" (préfixe ⬆️ pour aggravants, ⬇️ pour soulageants)
-- "history_past" → items de "Antécédents mentionnés"
-- "treatment" → items de "Traitements essayés"
-- "functional" → items de "Impact fonctionnel"
-- "red_flags" → items de "Drapeaux rouges". "allClear": true UNIQUEMENT si le dépistage actif ci-dessus ne remonte rien ; dès qu'un signe est présent ou douteux, "allClear": false et liste-le
+"allClear": true UNIQUEMENT si le dépistage ne remonte rien (items vide ou []) ; dès
+qu'un signe est présent ou douteux, "allClear": false et liste chaque drapeau dans
+"items" avec le signe en cause.
 
 Distinction importante pour la valeur de checklist :
 - "—" = sujet NON abordé dans la dictée (le praticien voit ce qu'il a oublié de demander)
 - Si le sujet a été abordé mais est négatif, l'écrire explicitement (ex: "Irradiations : absentes", "Aggravants : aucun signalé") — JAMAIS "—"
 
 Règles :
-- Un tiret = une information précise
-- Style télégraphique : ≤ ~12 mots par tiret, pas de phrases. Abréviations cliniques autorisées (ATCD, EVA, Dlr, G/D, RAS)
+- Un item = une information précise, style télégraphique (≤ ~12 mots, pas de phrases). Abréviations cliniques autorisées (ATCD, EVA, Dlr, G/D, RAS)
 - Ne jamais inventer de faits non énoncés ; en cas de doute sur un fait, laisser "—" plutôt que déduire
 - EXCEPTION drapeaux rouges : tu DOIS au contraire signaler tout signe d'alerte présent dans la dictée même s'il faut le déduire d'un recoupement (ex: douleur nocturne + amaigrissement). Mieux vaut signaler par excès que manquer un drapeau rouge.
 - Ne jamais perdre une information : un élément clinique ne rentrant dans aucune rubrique va dans la rubrique la plus proche, jamais omis
@@ -262,7 +239,9 @@ export async function POST(req: Request) {
       console.warn('[AI proxy] structure response hit max_tokens — JSON may be truncated')
     }
 
-    let parsed: { reason: string; anamnesis: string }
+    // Cartes (sections) = source unique. "anamnesis" n'est renvoyé qu'en repli
+    // (échec de parsing) pour que le client ait au moins le texte brut.
+    let parsed: { reason?: string; sections?: unknown[]; anamnesis?: string }
     try {
       const json = raw.replace(/^```(?:json)?\n?/m, '').replace(/\n?```$/m, '').trim()
       parsed = JSON.parse(json)
