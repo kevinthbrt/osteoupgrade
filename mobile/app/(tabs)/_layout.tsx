@@ -42,7 +42,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="flashcards"
         options={{
-          title: 'Flashcards',
+          title: 'OsteoFlash',
           tabBarIcon: ({ color, size }) => <Ionicons name="albums" color={color} size={size} />,
         }}
       />

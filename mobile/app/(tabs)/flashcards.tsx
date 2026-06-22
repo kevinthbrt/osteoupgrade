@@ -25,6 +25,8 @@ type Deck = Tables<'flashcard_decks'>;
 type Card = Tables<'flashcards'>;
 type Progress = Tables<'flashcard_progress'>;
 
+type DeckWithStats = Deck & { reviewed: number; due: number };
+
 const { width, height } = Dimensions.get('window');
 
 // ── Couleurs par thème de deck ──────────────────────────────────────────────
@@ -229,7 +231,7 @@ export default function FlashcardsScreen() {
   const C = PALETTE[dark ? 'dark' : 'light'];
 
   const [mode, setMode] = useState<Mode>('decks');
-  const [decks, setDecks] = useState<Deck[]>([]);
+  const [decks, setDecks] = useState<DeckWithStats[]>([]);
   const [loadingDecks, setLoadingDecks] = useState(true);
 
   // Session
@@ -237,30 +239,43 @@ export default function FlashcardsScreen() {
   const [cards, setCards] = useState<Card[]>([]);
   const [cardIndex, setCardIndex] = useState(0);
   const [sessionLoading, setSessionLoading] = useState(false);
-  const [dueCount, setDueCount] = useState<Record<string, number>>({});
   const [done, setDone] = useState(false);
 
-  // Chargement des decks
-  useEffect(() => {
-    supabase.from('flashcard_decks').select('*').order('created_at').then(({ data }) => {
-      setDecks(data ?? []);
-      setLoadingDecks(false);
-    });
-  }, []);
+  // Chargement des decks + stats de progression (même logique que le backend web)
+  const loadDecks = useCallback(async () => {
+    if (!session?.user) return;
+    const uid = session.user.id;
 
-  // Calcul des cartes à revoir par deck
-  useEffect(() => {
-    if (!session?.user || decks.length === 0) return;
+    const { data: rawDecks } = await supabase
+      .from('flashcard_decks')
+      .select('*')
+      .order('created_at');
+
+    if (!rawDecks) { setLoadingDecks(false); return; }
+
+    const deckIds = rawDecks.map((d) => d.id);
     const now = new Date().toISOString();
-    decks.forEach((deck) => {
-      supabase.from('flashcard_progress')
-        .select('id', { count: 'exact' })
-        .eq('user_id', session.user.id)
-        .eq('deck_id', deck.id)
-        .lte('next_review_at', now)
-        .then(({ count }) => setDueCount((d) => ({ ...d, [deck.id]: count ?? 0 })));
-    });
-  }, [decks, session]);
+
+    const { data: progRows } = await supabase
+      .from('flashcard_progress')
+      .select('deck_id, repetition, next_review_at')
+      .eq('user_id', uid)
+      .in('deck_id', deckIds);
+
+    // Agréger reviewed/due par deck (identique au backend web)
+    const statsMap: Record<string, { reviewed: number; due: number }> = {};
+    for (const id of deckIds) statsMap[id] = { reviewed: 0, due: 0 };
+    for (const row of progRows ?? []) {
+      if (!statsMap[row.deck_id]) continue;
+      if ((row.repetition ?? 0) > 0) statsMap[row.deck_id].reviewed++;
+      if (row.next_review_at && row.next_review_at <= now) statsMap[row.deck_id].due++;
+    }
+
+    setDecks(rawDecks.map((d) => ({ ...d, reviewed: statsMap[d.id]?.reviewed ?? 0, due: statsMap[d.id]?.due ?? 0 })));
+    setLoadingDecks(false);
+  }, [session]);
+
+  useEffect(() => { loadDecks(); }, [loadDecks]);
 
   const startSession = useCallback(async (deck: Deck) => {
     if (!session?.user) return;
@@ -313,10 +328,11 @@ export default function FlashcardsScreen() {
 
     if (cardIndex + 1 >= cards.length) {
       setDone(true);
+      loadDecks(); // rafraîchit la progression après la session
     } else {
       setCardIndex((i) => i + 1);
     }
-  }, [session, sessionDeck, cards, cardIndex]);
+  }, [session, sessionDeck, cards, cardIndex, loadDecks]);
 
   // ── Vue : liste des decks ──────────────────────────────────────────────────
   if (mode === 'decks') {
@@ -324,8 +340,8 @@ export default function FlashcardsScreen() {
       <LinearGradient colors={dark ? ['#0A0A0F', '#0D1117'] : ['#F5EFFE', '#F8FAFF']} style={{ flex: 1 }} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
         <SafeAreaView style={{ flex: 1 }} edges={['top']}>
           <View style={dl.header}>
-            <Text style={[dl.title, { color: C.text }]}>Flashcards</Text>
-            <Text style={[dl.sub, { color: C.textSecondary }]}>Répétition espacée (SM-2)</Text>
+            <Text style={[dl.title, { color: C.text }]}>OsteoFlash</Text>
+            <Text style={[dl.sub, { color: C.textSecondary }]}>Répétition espacée · SM-2</Text>
           </View>
           {loadingDecks ? (
             <View style={dl.centered}><ActivityIndicator size="large" color={BRAND} /></View>
@@ -333,7 +349,8 @@ export default function FlashcardsScreen() {
             <ScrollView contentContainerStyle={[dl.scroll, { paddingBottom: Platform.OS === 'ios' ? 100 : 80 }]} showsVerticalScrollIndicator={false}>
               {decks.map((deck) => {
                 const grad = deckGradient(deck.theme);
-                const due = dueCount[deck.id] ?? 0;
+                const pct = deck.total_cards > 0 ? Math.round((deck.reviewed / deck.total_cards) * 100) : 0;
+                const allDone = pct === 100;
                 return (
                   <Pressable key={deck.id} onPress={() => startSession(deck)} style={dl.deckWrap}>
                     <View style={dl.deckCard}>
@@ -342,14 +359,29 @@ export default function FlashcardsScreen() {
                       <LinearGradient colors={grad} style={dl.deckIcon} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
                         <Ionicons name="albums" size={26} color="#fff" />
                       </LinearGradient>
-                      <View style={{ flex: 1 }}>
+                      <View style={{ flex: 1, gap: 5 }}>
                         <Text style={[dl.deckTitle, { color: C.text }]} numberOfLines={1}>{deck.title}</Text>
-                        <Text style={[dl.deckSub, { color: C.textSecondary }]}>{deck.total_cards} cartes</Text>
-                        {deck.description ? <Text style={[dl.deckDesc, { color: C.textSecondary }]} numberOfLines={1}>{deck.description}</Text> : null}
+                        {/* Barre de progression */}
+                        <View style={[dl.progressBg, { backgroundColor: dark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)' }]}>
+                          <LinearGradient
+                            colors={allDone ? ['#22c55e', '#16a34a'] : grad}
+                            style={[dl.progressFill, { width: `${pct}%` }]}
+                            start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+                          />
+                        </View>
+                        <Text style={[dl.deckSub, { color: C.textSecondary }]}>
+                          {deck.reviewed}/{deck.total_cards} cartes · {pct}%
+                        </Text>
                       </View>
-                      <View style={[dl.dueBadge, { backgroundColor: due > 0 ? BRAND : C.border }]}>
-                        <Text style={[dl.dueText, { color: due > 0 ? '#fff' : C.textSecondary }]}>{due > 0 ? `${due} à revoir` : '✓'}</Text>
-                      </View>
+                      {deck.due > 0 ? (
+                        <View style={[dl.dueBadge, { backgroundColor: BRAND }]}>
+                          <Text style={dl.dueText}>{deck.due} à revoir</Text>
+                        </View>
+                      ) : allDone ? (
+                        <View style={[dl.dueBadge, { backgroundColor: '#22c55e' }]}>
+                          <Ionicons name="checkmark" size={13} color="#fff" />
+                        </View>
+                      ) : null}
                     </View>
                   </Pressable>
                 );
@@ -437,10 +469,11 @@ const dl = StyleSheet.create({
   },
   deckIcon: { width: 52, height: 52, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
   deckTitle: { fontSize: 16, fontWeight: '700' },
-  deckSub: { fontSize: 12, marginTop: 2 },
-  deckDesc: { fontSize: 12, marginTop: 2 },
-  dueBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10 },
-  dueText: { fontSize: 11, fontWeight: '700' },
+  progressBg: { height: 5, borderRadius: 3, overflow: 'hidden' },
+  progressFill: { height: 5, borderRadius: 3 },
+  deckSub: { fontSize: 11 },
+  dueBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  dueText: { fontSize: 11, fontWeight: '700', color: '#fff' },
 });
 
 const sv = StyleSheet.create({
