@@ -46,8 +46,22 @@ Pour "anamnesis", garde TOUJOURS ces 7 rubriques dans cet ordre, même si certai
 **Impact fonctionnel**
 - [...]
 
+**Drapeaux rouges** — DÉPISTAGE ACTIF
+Pour cette rubrique UNIQUEMENT, tu dois raisonner cliniquement et signaler tout
+élément de la dictée correspondant à un signal d'alerte, même implicite. Passe en
+revue systématiquement :
+- Douleur nocturne non mécanique / non soulagée par le repos / réveils douloureux
+- Amaigrissement inexpliqué, fièvre, sueurs nocturnes, AEG
+- ATCD ou suspicion de cancer (douleur récente chez patient avec ATCD néoplasique)
+- Déficit neurologique : faiblesse motrice, anesthésie, paresthésies progressives
+- Troubles sphinctériens (vésico-anaux), anesthésie en selle → urgence cauda equina
+- Traumatisme à haute énergie / suspicion de fracture, ostéoporose, corticothérapie
+- Douleur thoracique, dyspnée, palpitations, signes cardiovasculaires
+- Céphalée brutale « en coup de tonnerre », troubles visuels, vertiges, dysarthrie
+- Signes infectieux, immunodépression, toxicomanie IV
+- Âge < 20 ou > 55 ans avec douleur rachidienne d'apparition récente
 **Drapeaux rouges**
-- [aucun identifié — ou liste chaque drapeau sur une ligne]
+- [aucun identifié — ou liste chaque drapeau repéré sur une ligne, avec le signe en cause]
 
 Pour "sections", remplis chaque section avec les mêmes informations que dans "anamnesis", en format tableau d'items courts (style télégraphique, ≤ ~12 mots par item) :
 - "history" → items de "Histoire de la maladie"
@@ -56,7 +70,7 @@ Pour "sections", remplis chaque section avec les mêmes informations que dans "a
 - "history_past" → items de "Antécédents mentionnés"
 - "treatment" → items de "Traitements essayés"
 - "functional" → items de "Impact fonctionnel"
-- "red_flags" → items de "Drapeaux rouges", avec "allClear": true si aucun drapeau rouge identifié, false sinon
+- "red_flags" → items de "Drapeaux rouges". "allClear": true UNIQUEMENT si le dépistage actif ci-dessus ne remonte rien ; dès qu'un signe est présent ou douteux, "allClear": false et liste-le
 
 Distinction importante pour la valeur de checklist :
 - "—" = sujet NON abordé dans la dictée (le praticien voit ce qu'il a oublié de demander)
@@ -65,7 +79,8 @@ Distinction importante pour la valeur de checklist :
 Règles :
 - Un tiret = une information précise
 - Style télégraphique : ≤ ~12 mots par tiret, pas de phrases. Abréviations cliniques autorisées (ATCD, EVA, Dlr, G/D, RAS)
-- Ne jamais inventer ; en cas de doute, laisser "—" plutôt que déduire
+- Ne jamais inventer de faits non énoncés ; en cas de doute sur un fait, laisser "—" plutôt que déduire
+- EXCEPTION drapeaux rouges : tu DOIS au contraire signaler tout signe d'alerte présent dans la dictée même s'il faut le déduire d'un recoupement (ex: douleur nocturne + amaigrissement). Mieux vaut signaler par excès que manquer un drapeau rouge.
 - Corriger les termes médicaux mal transcrits (erreurs phonétiques)
 - Répondre en français`
 
