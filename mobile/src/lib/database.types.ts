@@ -1,19 +1,19 @@
 /**
- * Représentation minimaliste du schéma Supabase, alignée sur l'app web
- * (cf. lib/supabase.ts du projet Next.js). On ne déclare ici que les tables
- * utilisées par l'app mobile, à compléter au fil des écrans.
+ * Schéma Supabase pour l'app mobile.
+ * Format exact attendu par @supabase/supabase-js v2 pour l'inférence de types.
  */
 
-type TableDefinition<Row> = {
+type TableDef<Row extends Record<string, unknown>> = {
   Row: Row;
   Insert: Partial<Row>;
   Update: Partial<Row>;
+  Relationships: [];
 };
 
 export type Database = {
   public: {
     Tables: {
-      profiles: TableDefinition<{
+      profiles: TableDef<{
         id: string;
         email: string;
         full_name: string | null;
@@ -24,7 +24,7 @@ export type Database = {
         created_at: string;
         updated_at: string;
       }>;
-      elearning_formations: TableDefinition<{
+      elearning_formations: TableDef<{
         id: string;
         title: string;
         description: string | null;
@@ -35,7 +35,7 @@ export type Database = {
         updated_at: string;
         is_free_access: boolean | null;
       }>;
-      elearning_chapters: TableDefinition<{
+      elearning_chapters: TableDef<{
         id: string;
         formation_id: string;
         title: string;
@@ -43,7 +43,7 @@ export type Database = {
         created_at: string;
         updated_at: string;
       }>;
-      elearning_subparts: TableDefinition<{
+      elearning_subparts: TableDef<{
         id: string;
         chapter_id: string;
         title: string;
@@ -55,7 +55,7 @@ export type Database = {
         created_at: string;
         updated_at: string;
       }>;
-      elearning_subpart_progress: TableDefinition<{
+      elearning_subpart_progress: TableDef<{
         id: string;
         subpart_id: string;
         user_id: string;
@@ -64,7 +64,38 @@ export type Database = {
         created_at: string;
         updated_at: string;
       }>;
-      practice_videos: TableDefinition<{
+      flashcard_decks: TableDef<{
+        id: string;
+        title: string;
+        description: string | null;
+        theme: string | null;
+        total_cards: number;
+        created_at: string;
+      }>;
+      flashcards: TableDef<{
+        id: string;
+        deck_id: string;
+        question: string;
+        answer: string;
+        explanation: string | null;
+        module_name: string | null;
+        position: number;
+        created_at: string;
+      }>;
+      flashcard_progress: TableDef<{
+        id: string;
+        user_id: string;
+        card_id: string;
+        deck_id: string;
+        repetition: number;
+        ease_factor: number;
+        interval_days: number;
+        next_review_at: string | null;
+        last_rating: number | null;
+        reviewed_at: string | null;
+        created_at: string;
+      }>;
+      practice_videos: TableDef<{
         id: string;
         region: string;
         title: string;
@@ -80,6 +111,10 @@ export type Database = {
         updated_at: string;
       }>;
     };
+    Views: Record<string, never>;
+    Functions: Record<string, never>;
+    Enums: Record<string, never>;
+    CompositeTypes: Record<string, never>;
   };
 };
 
