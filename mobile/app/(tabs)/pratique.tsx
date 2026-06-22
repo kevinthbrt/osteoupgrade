@@ -2,62 +2,124 @@ import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Dimensions,
+  FlatList,
   Platform,
   Pressable,
-  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
   useColorScheme,
   View,
+  ViewToken,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { GlassCard } from '@/components/GlassCard';
 import type { Tables } from '@/lib/database.types';
 import { supabase } from '@/lib/supabase';
 import { BRAND, GRADIENTS, usePaletteFor } from '@/lib/theme';
 
 type Video = Tables<'practice_videos'>;
 
-type RegionGroup = {
-  region: string;
-  videos: Video[];
+const { height: SCREEN_H, width: SCREEN_W } = Dimensions.get('window');
+
+// Correspondance slug DB → label affiché (identique au site web)
+const REGION_LABELS: Record<string, string> = {
+  cervical: 'Cervicales',
+  thoracique: 'Thoracique',
+  lombaire: 'Lombaires',
+  epaule: 'Épaule',
+  coude: 'Coude',
+  poignet: 'Poignet + main',
+  bassin: 'Bassin',
+  hanche: 'Hanche',
+  genou: 'Genou',
+  pied_cheville: 'Pied & Cheville',
 };
+
+const REGION_ORDER = Object.keys(REGION_LABELS);
+
+function regionLabel(slug: string): string {
+  return REGION_LABELS[slug] ?? slug;
+}
 
 function formatDuration(secs: number | null): string {
   if (!secs) return '';
-  const m = Math.floor(secs / 60);
-  const s = secs % 60;
-  return `${m}:${String(s).padStart(2, '0')}`;
+  return `${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, '0')}`;
 }
 
-const REGION_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
-  default: 'body',
-  cervical: 'fitness',
-  thoracique: 'fitness',
-  lombaire: 'fitness',
-  sacrum: 'fitness',
-  crâne: 'skull',
-  membre: 'hand-left',
-  viscéral: 'heart',
-};
+// ── Carte vidéo plein écran (style TikTok) ─────────────────────────────────
+function VideoSlide({ video, active }: { video: Video; active: boolean }) {
+  const scheme = useColorScheme();
+  const C = usePaletteFor(scheme);
+  const TAB_H = Platform.OS === 'ios' ? 83 : 60;
+  const SLIDE_H = SCREEN_H - TAB_H;
 
-function regionIcon(region: string): keyof typeof Ionicons.glyphMap {
-  const key = Object.keys(REGION_ICONS).find((k) => region.toLowerCase().includes(k));
-  return key ? REGION_ICONS[key] : 'body';
+  return (
+    <Pressable onPress={() => router.push(`/video/${video.id}`)} style={[s.slide, { height: SLIDE_H }]}>
+      {/* Vignette / fond */}
+      {video.thumbnail_url ? (
+        <Image source={video.thumbnail_url} style={StyleSheet.absoluteFill} contentFit="cover" />
+      ) : (
+        <LinearGradient colors={GRADIENTS.orange} style={StyleSheet.absoluteFill} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />
+      )}
+
+      {/* Dégradé overlay bas */}
+      <LinearGradient
+        colors={['transparent', 'rgba(0,0,0,0.72)']}
+        style={s.overlay}
+        start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }}
+      />
+
+      {/* Bouton play centré */}
+      <View style={s.playWrap}>
+        <View style={[s.playBtn, active && s.playBtnActive]}>
+          <Ionicons name="play" size={active ? 36 : 28} color="#fff" />
+        </View>
+      </View>
+
+      {/* Infos bas */}
+      <View style={s.info}>
+        <View style={s.regionPill}>
+          <Text style={s.regionPillText}>{regionLabel(video.region)}</Text>
+        </View>
+        <Text style={s.videoTitle} numberOfLines={2}>{video.title}</Text>
+        {video.description ? (
+          <Text style={s.videoDesc} numberOfLines={2}>{video.description}</Text>
+        ) : null}
+        <View style={s.meta}>
+          {video.duration_seconds ? (
+            <View style={s.metaItem}>
+              <Ionicons name="time-outline" size={13} color="rgba(255,255,255,0.7)" />
+              <Text style={s.metaText}>{formatDuration(video.duration_seconds)}</Text>
+            </View>
+          ) : null}
+        </View>
+      </View>
+
+      {/* Actions droite */}
+      <View style={s.actions}>
+        <Pressable style={s.actionBtn} onPress={() => router.push(`/video/${video.id}`)}>
+          <Ionicons name="play-circle" size={32} color="#fff" />
+          <Text style={s.actionLabel}>Voir</Text>
+        </Pressable>
+      </View>
+    </Pressable>
+  );
 }
 
 export default function PratiqueScreen() {
   const scheme = useColorScheme();
   const C = usePaletteFor(scheme);
-  const [groups, setGroups] = useState<RegionGroup[]>([]);
+
+  const [videos, setVideos] = useState<Video[]>([]);
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const [selectedRegion, setSelectedRegion] = useState<string | null>(null);
+  const [visibleIndex, setVisibleIndex] = useState(0);
+  const listRef = useRef<FlatList>(null);
 
   const load = useCallback(async () => {
     const { data } = await supabase
@@ -66,117 +128,129 @@ export default function PratiqueScreen() {
       .eq('is_active', true)
       .order('region')
       .order('order_index', { nullsFirst: false });
-
-    const map = new Map<string, Video[]>();
-    for (const v of data ?? []) {
-      if (!map.has(v.region)) map.set(v.region, []);
-      map.get(v.region)!.push(v);
-    }
-    const built: RegionGroup[] = Array.from(map.entries()).map(([region, videos]) => ({ region, videos }));
-    setGroups(built);
-    if (built.length > 0) setExpanded(new Set([built[0].region]));
+    setVideos(data ?? []);
     setLoading(false);
-    setRefreshing(false);
   }, []);
 
   useEffect(() => { load(); }, [load]);
 
-  const toggle = (region: string) =>
-    setExpanded((prev) => {
-      const next = new Set(prev);
-      next.has(region) ? next.delete(region) : next.add(region);
-      return next;
-    });
+  const filtered = selectedRegion
+    ? videos.filter((v) => v.region === selectedRegion)
+    : videos;
 
-  const totalVideos = groups.reduce((a, g) => a + g.videos.length, 0);
+  // Régions disponibles dans l'ordre du site web
+  const availableRegions = REGION_ORDER.filter((r) => videos.some((v) => v.region === r));
+
+  const onViewableItemsChanged = useRef(({ viewableItems }: { viewableItems: ViewToken[] }) => {
+    if (viewableItems.length > 0) setVisibleIndex(viewableItems[0].index ?? 0);
+  }).current;
+
+  const TAB_H = Platform.OS === 'ios' ? 83 : 60;
+  const SLIDE_H = SCREEN_H - TAB_H;
 
   return (
-    <LinearGradient colors={C.bgGradient} style={s.fill} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
-      <SafeAreaView style={s.fill} edges={['top']}>
-        <View style={s.header}>
-          <Text style={[s.title, { color: C.text }]}>Pratique</Text>
-          <Text style={[s.sub, { color: C.textSecondary }]}>
-            {totalVideos} vidéo{totalVideos > 1 ? 's' : ''} · {groups.length} régions
-          </Text>
-        </View>
+    <View style={s.root}>
+      {loading ? (
+        <View style={s.center}><ActivityIndicator size="large" color={BRAND} /></View>
+      ) : (
+        <>
+          {/* Filtre régions (overlay en haut) */}
+          <SafeAreaView style={s.filterBar} edges={['top']} pointerEvents="box-none">
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.filterRow}>
+              <Pressable
+                style={[s.filterChip, !selectedRegion && s.filterChipActive]}
+                onPress={() => { setSelectedRegion(null); listRef.current?.scrollToOffset({ offset: 0, animated: true }); }}>
+                <Text style={[s.filterChipText, !selectedRegion && s.filterChipTextActive]}>Tout</Text>
+              </Pressable>
+              {availableRegions.map((r) => (
+                <Pressable
+                  key={r}
+                  style={[s.filterChip, selectedRegion === r && s.filterChipActive]}
+                  onPress={() => { setSelectedRegion(r); listRef.current?.scrollToOffset({ offset: 0, animated: true }); }}>
+                  <Text style={[s.filterChipText, selectedRegion === r && s.filterChipTextActive]}>
+                    {regionLabel(r)}
+                  </Text>
+                </Pressable>
+              ))}
+            </ScrollView>
+          </SafeAreaView>
 
-        {loading ? (
-          <View style={s.center}><ActivityIndicator size="large" color={BRAND} /></View>
-        ) : (
-          <ScrollView
-            contentContainerStyle={[s.scroll, { paddingBottom: Platform.OS === 'ios' ? 100 : 80 }]}
+          {/* Compteur */}
+          <View style={s.counter} pointerEvents="none">
+            <Text style={s.counterText}>{visibleIndex + 1} / {filtered.length}</Text>
+          </View>
+
+          {/* Feed vertical TikTok */}
+          <FlatList
+            ref={listRef}
+            data={filtered}
+            keyExtractor={(v) => v.id}
+            renderItem={({ item, index }) => (
+              <VideoSlide video={item} active={index === visibleIndex} />
+            )}
+            pagingEnabled
+            snapToInterval={SLIDE_H}
+            snapToAlignment="start"
+            decelerationRate="fast"
             showsVerticalScrollIndicator={false}
-            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); load(); }} tintColor={BRAND} />}>
-            {groups.map((g) => {
-              const open = expanded.has(g.region);
-              return (
-                <View key={g.region}>
-                  <Pressable onPress={() => toggle(g.region)}>
-                    <GlassCard style={s.regionHeader}>
-                      <LinearGradient colors={GRADIENTS.orange} style={s.regionIcon} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
-                        <Ionicons name={regionIcon(g.region)} size={18} color="#fff" />
-                      </LinearGradient>
-                      <View style={{ flex: 1 }}>
-                        <Text style={[s.regionName, { color: C.text }]}>{g.region}</Text>
-                        <Text style={[s.regionCount, { color: C.textSecondary }]}>{g.videos.length} vidéo{g.videos.length > 1 ? 's' : ''}</Text>
-                      </View>
-                      <Ionicons name={open ? 'chevron-up' : 'chevron-down'} size={18} color={C.textMuted} />
-                    </GlassCard>
-                  </Pressable>
-
-                  {open && (
-                    <View style={s.videoList}>
-                      {g.videos.map((v) => (
-                        <Pressable key={v.id} onPress={() => router.push(`/video/${v.id}`)}>
-                          <GlassCard style={s.videoCard}>
-                            {v.thumbnail_url ? (
-                              <Image source={v.thumbnail_url} style={s.thumb} contentFit="cover" />
-                            ) : (
-                              <LinearGradient colors={GRADIENTS.orange} style={s.thumb} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
-                                <Ionicons name="play" size={22} color="#fff" />
-                              </LinearGradient>
-                            )}
-                            <View style={s.videoBody}>
-                              <Text style={[s.videoTitle, { color: C.text }]} numberOfLines={2}>{v.title}</Text>
-                              {v.duration_seconds ? (
-                                <Text style={[s.videoDuration, { color: C.textSecondary }]}>
-                                  <Ionicons name="time-outline" size={12} /> {formatDuration(v.duration_seconds)}
-                                </Text>
-                              ) : null}
-                            </View>
-                            <Ionicons name="play-circle" size={28} color={BRAND} style={{ alignSelf: 'center', marginRight: 8 }} />
-                          </GlassCard>
-                        </Pressable>
-                      ))}
-                    </View>
-                  )}
-                </View>
-              );
-            })}
-          </ScrollView>
-        )}
-      </SafeAreaView>
-    </LinearGradient>
+            onViewableItemsChanged={onViewableItemsChanged}
+            viewabilityConfig={{ itemVisiblePercentThreshold: 60 }}
+            getItemLayout={(_, index) => ({ length: SLIDE_H, offset: SLIDE_H * index, index })}
+          />
+        </>
+      )}
+    </View>
   );
 }
 
 const s = StyleSheet.create({
-  fill: { flex: 1 },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  header: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 8 },
-  title: { fontSize: 28, fontWeight: '800' },
-  sub: { fontSize: 13, marginTop: 2 },
-  scroll: { padding: 16, gap: 8 },
+  root: { flex: 1, backgroundColor: '#000' },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#000' },
 
-  regionHeader: { flexDirection: 'row', alignItems: 'center', padding: 14, gap: 12 },
-  regionIcon: { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  regionName: { fontSize: 16, fontWeight: '700' },
-  regionCount: { fontSize: 12, marginTop: 1 },
+  slide: { width: SCREEN_W, backgroundColor: '#111', overflow: 'hidden' },
+  overlay: { ...StyleSheet.absoluteFillObject, top: '40%' },
 
-  videoList: { paddingLeft: 12, gap: 6, marginBottom: 4 },
-  videoCard: { flexDirection: 'row', overflow: 'hidden' },
-  thumb: { width: 80, height: 72, alignItems: 'center', justifyContent: 'center' },
-  videoBody: { flex: 1, padding: 10, gap: 4, justifyContent: 'center' },
-  videoTitle: { fontSize: 14, fontWeight: '600' },
-  videoDuration: { fontSize: 12 },
+  playWrap: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center' },
+  playBtn: {
+    width: 64, height: 64, borderRadius: 32,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    alignItems: 'center', justifyContent: 'center',
+    borderWidth: 2, borderColor: 'rgba(255,255,255,0.5)',
+  },
+  playBtnActive: { backgroundColor: 'rgba(37,99,235,0.6)', borderColor: BRAND },
+
+  info: { position: 'absolute', bottom: 20, left: 16, right: 70 },
+  regionPill: {
+    alignSelf: 'flex-start', backgroundColor: BRAND,
+    paddingHorizontal: 10, paddingVertical: 3, borderRadius: 12, marginBottom: 8,
+  },
+  regionPillText: { color: '#fff', fontSize: 11, fontWeight: '700' },
+  videoTitle: { color: '#fff', fontSize: 17, fontWeight: '700', lineHeight: 22, marginBottom: 4 },
+  videoDesc: { color: 'rgba(255,255,255,0.75)', fontSize: 13, lineHeight: 18, marginBottom: 6 },
+  meta: { flexDirection: 'row', gap: 12 },
+  metaItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  metaText: { color: 'rgba(255,255,255,0.7)', fontSize: 12 },
+
+  actions: { position: 'absolute', right: 12, bottom: 80, gap: 20 },
+  actionBtn: { alignItems: 'center', gap: 4 },
+  actionLabel: { color: '#fff', fontSize: 10, fontWeight: '600' },
+
+  filterBar: {
+    position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10,
+    paddingBottom: 8,
+  },
+  filterRow: {
+    flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingTop: 4, paddingBottom: 4,
+  },
+  filterChip: {
+    paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)',
+  },
+  filterChipActive: { backgroundColor: BRAND, borderColor: BRAND },
+  filterChipText: { color: 'rgba(255,255,255,0.85)', fontSize: 12, fontWeight: '600' },
+  filterChipTextActive: { color: '#fff' },
+
+  counter: { position: 'absolute', top: 100, right: 16, zIndex: 10 },
+  counterText: { color: 'rgba(255,255,255,0.6)', fontSize: 12, fontWeight: '600' },
 });
