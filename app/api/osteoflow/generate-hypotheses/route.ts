@@ -22,7 +22,13 @@ RÉPONDS UNIQUEMENT EN JSON valide avec ce format exact :
       "targetId": 1, "deltaPositive": 20, "deltaNegative": -15,
       "rationale": "ce que le test confirme/infirme, 1 phrase" }
   ],
-  "missing_questions": ["question courte à poser au patient", "..."]
+  "questions": [
+    { "id": "q1", "text": "question courte à poser au patient",
+      "answers": [
+        { "label": "Oui", "targetId": 1, "delta": 15 },
+        { "label": "Non", "targetId": 1, "delta": -10 }
+      ] }
+  ]
 }
 
 Règles pour "hypotheses" :
@@ -38,11 +44,14 @@ Règles pour "tests" :
   (positif = en faveur, négatif = en défaveur). deltaPositive > 0, deltaNegative < 0.
 - Privilégie les tests qui font vraiment basculer une hypothèse plutôt que des tests peu discriminants
 
-Règles pour "missing_questions" :
+Règles pour "questions" :
 - 0 à 3 questions MAXIMUM — uniquement les informations vraiment manquantes qui feraient le plus
   basculer le raisonnement (drapeau rouge à éliminer, élément discriminant entre les hypothèses)
-- Pas de questions de confort : si l'anamnèse suffit, renvoie une liste vide []
-- Questions courtes, directes, prêtes à poser au patient
+- Pas de questions de confort : si l'anamnèse suffit, renvoie []
+- Chaque question : "id" court unique (q1, q2…), "text" court et direct, et 2 à 3 "answers" possibles
+- Chaque réponse porte un effet indicatif : "targetId" = hypothèse concernée, "delta" = points de %
+  (arrondi à un multiple de 5, borné entre -25 et +25 ; positif = en faveur, négatif = en défaveur)
+- Les réponses doivent réellement faire bouger le classement, sinon ne pose pas la question
 
 Si un contexte patient est fourni (âge, sexe, profession, activité sportive, ATCD), prends-le en
 compte dans les probabilités et le dépistage (ex: gestes sportifs répétés, ATCD néoplasique, âge, grossesse).
@@ -183,7 +192,7 @@ export async function POST(req: Request) {
     // Pas de prefill assistant — rejeté (400) par les modèles Claude 4.6.
     const content = (data.content?.[0]?.text ?? '').trim()
 
-    let parsed: { hypotheses?: Hypothesis[]; tests?: HypothesisTest[]; missing_questions?: string[] }
+    let parsed: { hypotheses?: Hypothesis[]; tests?: HypothesisTest[]; questions?: unknown[] }
     try {
       const json = content.replace(/^```(?:json)?\n?/m, '').replace(/\n?```$/m, '').trim()
       parsed = JSON.parse(json)
