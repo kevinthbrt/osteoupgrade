@@ -44,8 +44,8 @@ Règles pour "missing_questions" :
 - Pas de questions de confort : si l'anamnèse suffit, renvoie une liste vide []
 - Questions courtes, directes, prêtes à poser au patient
 
-Si un contexte patient est fourni (âge, sexe, profession, ATCD), prends-le en compte dans les
-probabilités et le dépistage (ex: ATCD néoplasique, âge extrême, grossesse).
+Si un contexte patient est fourni (âge, sexe, profession, activité sportive, ATCD), prends-le en
+compte dans les probabilités et le dépistage (ex: gestes sportifs répétés, ATCD néoplasique, âge, grossesse).
 
 Ne jamais inventer de test absent de la liste. Réponds en français.`
 
