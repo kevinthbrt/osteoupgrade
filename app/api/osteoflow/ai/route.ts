@@ -199,12 +199,7 @@ export async function POST(req: Request) {
             cache_control: { type: 'ephemeral' },
           },
         ],
-        messages: [
-          { role: 'user', content: `Transcription :\n\n${transcript}` },
-          // Prefill the reply with "{" so the model emits raw JSON (no prose, no
-          // markdown fences) — removes the main cause of parse failures.
-          { role: 'assistant', content: '{' },
-        ],
+        messages: [{ role: 'user', content: `Transcription :\n\n${transcript}` }],
       }),
       // Kept below maxDuration (60s) so a slow Anthropic response aborts cleanly
       // with our own error rather than the function being hard-killed by Vercel.
@@ -232,18 +227,16 @@ export async function POST(req: Request) {
     const data = await res.json()
     const content = data.content?.[0]?.text ?? ''
 
-    // The model was prefilled with "{", so the returned text is the rest of the
-    // JSON object; re-attach the opening brace before parsing.
-    const raw = '{' + content
     if (data.stop_reason === 'max_tokens') {
       console.warn('[AI proxy] structure response hit max_tokens — JSON may be truncated')
     }
 
     // Cartes (sections) = source unique. "anamnesis" n'est renvoyé qu'en repli
     // (échec de parsing) pour que le client ait au moins le texte brut.
+    // NB: pas de prefill assistant — rejeté (400) par les modèles Claude 4.6.
     let parsed: { reason?: string; sections?: unknown[]; anamnesis?: string }
     try {
-      const json = raw.replace(/^```(?:json)?\n?/m, '').replace(/\n?```$/m, '').trim()
+      const json = content.replace(/^```(?:json)?\n?/m, '').replace(/\n?```$/m, '').trim()
       parsed = JSON.parse(json)
     } catch {
       parsed = { reason: '', anamnesis: content }
