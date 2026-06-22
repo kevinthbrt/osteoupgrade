@@ -64,6 +64,7 @@ Règles :
 - Ne jamais inventer de faits non énoncés ; en cas de doute sur un fait, laisser "—" plutôt que déduire
 - EXCEPTION drapeaux rouges : tu DOIS au contraire signaler tout signe d'alerte présent dans la dictée même s'il faut le déduire d'un recoupement (ex: douleur nocturne + amaigrissement). Mieux vaut signaler par excès que manquer un drapeau rouge.
 - Ne jamais perdre une information : un élément clinique ne rentrant dans aucune rubrique va dans la rubrique la plus proche, jamais omis
+- Si un contexte patient est fourni (âge, sexe, profession, ATCD), prends-le en compte — surtout pour le DÉPISTAGE des drapeaux rouges (ex: ATCD néoplasique, âge extrême, grossesse, immunodépression). N'invente rien à partir de ce contexte ; sers-t'en seulement pour pondérer la vigilance.
 - Corriger les termes médicaux mal transcrits (erreurs phonétiques) sans altérer le sens ; marquer "[?]" si un terme reste incertain
 - Répondre en français`
 
@@ -88,6 +89,8 @@ Règles strictes :
 - Pour pregnancy_due_date, approximer au 1er du mois si seul le mois est précisé`
 
 interface PatientContext {
+  age?: number | null
+  sex?: string | null
   profession?: string | null
   sport_activity?: string | null
   primary_physician?: string | null
@@ -107,6 +110,21 @@ interface PatientFields {
   trauma_history?: string
   medical_history?: string
   family_history?: string
+}
+
+/** Lignes de contexte patient lisibles, partagées structuration / hypothèses. */
+function buildContextLines(c: PatientContext): string[] {
+  const lines: string[] = []
+  if (c.age != null) lines.push(`- Âge : ${c.age} ans`)
+  if (c.sex) lines.push(`- Sexe : ${c.sex}`)
+  if (c.profession) lines.push(`- Profession : ${c.profession}`)
+  if (c.sport_activity) lines.push(`- Sport : ${c.sport_activity}`)
+  if (c.surgical_history) lines.push(`- ATCD chirurgicaux : ${c.surgical_history}`)
+  if (c.trauma_history) lines.push(`- ATCD traumatiques : ${c.trauma_history}`)
+  if (c.medical_history) lines.push(`- ATCD médicaux : ${c.medical_history}`)
+  if (c.family_history) lines.push(`- ATCD familiaux : ${c.family_history}`)
+  if (c.pregnancy_due_date) lines.push(`- Grossesse en cours, terme : ${c.pregnancy_due_date}`)
+  return lines
 }
 
 function buildDetectionUserMessage(transcript: string, ctx: PatientContext): string {
@@ -178,6 +196,11 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Clé API non configurée' }, { status: 500 })
     }
 
+    const ctxLines = patientContext ? buildContextLines(patientContext) : []
+    const structureUserContent = ctxLines.length
+      ? `Contexte patient :\n${ctxLines.join('\n')}\n\nTranscription :\n\n${transcript}`
+      : `Transcription :\n\n${transcript}`
+
     const structureCall = fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
@@ -199,7 +222,7 @@ export async function POST(req: Request) {
             cache_control: { type: 'ephemeral' },
           },
         ],
-        messages: [{ role: 'user', content: `Transcription :\n\n${transcript}` }],
+        messages: [{ role: 'user', content: structureUserContent }],
       }),
       // Kept below maxDuration (60s) so a slow Anthropic response aborts cleanly
       // with our own error rather than the function being hard-killed by Vercel.
