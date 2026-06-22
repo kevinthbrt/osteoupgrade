@@ -257,10 +257,14 @@ export async function POST(req: Request) {
     // Cartes (sections) = source unique. "anamnesis" n'est renvoyé qu'en repli
     // (échec de parsing) pour que le client ait au moins le texte brut.
     // NB: pas de prefill assistant — rejeté (400) par les modèles Claude 4.6.
+    // On extrait l'objet JSON même si le modèle ajoute du texte autour.
+    const start = content.indexOf('{')
+    const end = content.lastIndexOf('}')
+    const jsonStr = start >= 0 && end > start ? content.slice(start, end + 1) : content
+
     let parsed: { reason?: string; sections?: unknown[]; anamnesis?: string }
     try {
-      const json = content.replace(/^```(?:json)?\n?/m, '').replace(/\n?```$/m, '').trim()
-      parsed = JSON.parse(json)
+      parsed = JSON.parse(jsonStr)
     } catch {
       parsed = { reason: '', anamnesis: content }
     }
