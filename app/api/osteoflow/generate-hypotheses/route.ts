@@ -21,7 +21,8 @@ RÉPONDS UNIQUEMENT EN JSON valide avec ce format exact :
     { "test_id": "uuid-exact-du-test", "name": "Nom exact du test", "region": "Région",
       "targetId": 1, "deltaPositive": 20, "deltaNegative": -15,
       "rationale": "ce que le test confirme/infirme, 1 phrase" }
-  ]
+  ],
+  "missing_questions": ["question courte à poser au patient", "..."]
 }
 
 Règles pour "hypotheses" :
@@ -36,6 +37,15 @@ Règles pour "tests" :
   exprimé en points de pourcentage ARRONDIS à un multiple de 5, bornés entre -25 et +25
   (positif = en faveur, négatif = en défaveur). deltaPositive > 0, deltaNegative < 0.
 - Privilégie les tests qui font vraiment basculer une hypothèse plutôt que des tests peu discriminants
+
+Règles pour "missing_questions" :
+- 0 à 3 questions MAXIMUM — uniquement les informations vraiment manquantes qui feraient le plus
+  basculer le raisonnement (drapeau rouge à éliminer, élément discriminant entre les hypothèses)
+- Pas de questions de confort : si l'anamnèse suffit, renvoie une liste vide []
+- Questions courtes, directes, prêtes à poser au patient
+
+Si un contexte patient est fourni (âge, sexe, profession, ATCD), prends-le en compte dans les
+probabilités et le dépistage (ex: ATCD néoplasique, âge extrême, grossesse).
 
 Ne jamais inventer de test absent de la liste. Réponds en français.`
 
@@ -56,6 +66,30 @@ interface HypothesisTest {
   rationale: string
 }
 
+interface PatientContext {
+  age?: number | null
+  sex?: string | null
+  profession?: string | null
+  sport_activity?: string | null
+  surgical_history?: string | null
+  trauma_history?: string | null
+  medical_history?: string | null
+  family_history?: string | null
+}
+
+function buildContextLines(c: PatientContext): string[] {
+  const lines: string[] = []
+  if (c.age != null) lines.push(`- Âge : ${c.age} ans`)
+  if (c.sex) lines.push(`- Sexe : ${c.sex}`)
+  if (c.profession) lines.push(`- Profession : ${c.profession}`)
+  if (c.sport_activity) lines.push(`- Sport : ${c.sport_activity}`)
+  if (c.surgical_history) lines.push(`- ATCD chirurgicaux : ${c.surgical_history}`)
+  if (c.trauma_history) lines.push(`- ATCD traumatiques : ${c.trauma_history}`)
+  if (c.medical_history) lines.push(`- ATCD médicaux : ${c.medical_history}`)
+  if (c.family_history) lines.push(`- ATCD familiaux : ${c.family_history}`)
+  return lines
+}
+
 export async function POST(req: Request) {
   try {
     const authHeader = req.headers.get('x-osteoflow-secret')
@@ -64,8 +98,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
     }
 
-    const body = await req.json() as { anamnesis: string; reason?: string }
-    const { anamnesis, reason } = body
+    const body = await req.json() as { anamnesis: string; reason?: string; patientContext?: PatientContext }
+    const { anamnesis, reason, patientContext } = body
 
     if (!anamnesis?.trim()) {
       return NextResponse.json({ error: 'Anamnèse vide' }, { status: 400 })
@@ -118,7 +152,9 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Clé API non configurée' }, { status: 500 })
     }
 
-    const userContent = `Anamnèse :\n${reason ? `Motif : ${reason}\n\n` : ''}${anamnesis}\n\nTests disponibles (${testsCompact.length}) :\n${JSON.stringify(testsCompact)}`
+    const ctxLines = patientContext ? buildContextLines(patientContext) : []
+    const ctxBlock = ctxLines.length ? `Contexte patient :\n${ctxLines.join('\n')}\n\n` : ''
+    const userContent = `${ctxBlock}Anamnèse :\n${reason ? `Motif : ${reason}\n\n` : ''}${anamnesis}\n\nTests disponibles (${testsCompact.length}) :\n${JSON.stringify(testsCompact)}`
 
     const res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -147,7 +183,7 @@ export async function POST(req: Request) {
     // Pas de prefill assistant — rejeté (400) par les modèles Claude 4.6.
     const content = (data.content?.[0]?.text ?? '').trim()
 
-    let parsed: { hypotheses?: Hypothesis[]; tests?: HypothesisTest[] }
+    let parsed: { hypotheses?: Hypothesis[]; tests?: HypothesisTest[]; missing_questions?: string[] }
     try {
       const json = content.replace(/^```(?:json)?\n?/m, '').replace(/\n?```$/m, '').trim()
       parsed = JSON.parse(json)
