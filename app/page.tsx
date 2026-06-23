@@ -496,15 +496,15 @@ export default function LandingPage() {
                       </div>
                     </div>
                   </div>
-                  {/* Media slot */}
-                  <MediaSlot
-                    dark
-                    aspect="aspect-[14/9]"
-                    icon={Play}
-                    label="Votre démo en vidéo"
-                    hint="Une vidéo de vous utilisant MyOsteoflow & OsteoUpgrade prendra place ici."
-                    className="!rounded-none !border-0"
-                  />
+                  {/* Hero video */}
+                  <div className="aspect-[14/9] w-full">
+                    <iframe
+                      src="https://player.vimeo.com/video/1203912445?autoplay=1&muted=1&loop=1&background=1"
+                      allow="autoplay; fullscreen; picture-in-picture"
+                      className="w-full h-full"
+                      style={{ border: 0 }}
+                    />
+                  </div>
                 </div>
 
                 {/* Floating badges */}
@@ -773,12 +773,14 @@ export default function LandingPage() {
                   </li>
                 ))}
               </ul>
-              <MediaSlot
-                aspect="aspect-[16/7]"
-                icon={Video}
-                label="La dictée vocale en situation"
-                hint="Une courte vidéo de vous dictant une consultation viendra ici."
-              />
+              <div className="aspect-[16/7] w-full rounded-xl overflow-hidden">
+                <iframe
+                  src="https://player.vimeo.com/video/1203912444?title=0&byline=0&portrait=0"
+                  allow="autoplay; fullscreen; picture-in-picture"
+                  className="w-full h-full"
+                  style={{ border: 0 }}
+                />
+              </div>
             </div>
 
             {/* AI dictation mock */}
