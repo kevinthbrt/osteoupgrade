@@ -8,16 +8,24 @@ export default function PolitiqueConfidentialitePage() {
         <header className="space-y-3">
           <h1 className="text-3xl font-bold text-slate-900">Politique de confidentialité</h1>
           <p className="text-slate-600">
-            Dernière mise à jour : <strong>28 février 2026</strong>
+            Dernière mise à jour : <strong>23 juin 2026</strong>
           </p>
         </header>
 
         <section className="space-y-4">
           <h2 className="text-xl font-semibold text-slate-900">1. Responsable du traitement</h2>
           <p className="text-slate-700">
-            <strong>OsteoUpgrade</strong> — [Raison sociale], [Adresse], [SIRET].
+            <strong>SAS OsteoUpgrade</strong>
             <br />
-            Contact : <a className="text-sky-600 underline" href="mailto:privacy@osteo-upgrade.fr">privacy@osteo-upgrade.fr</a>
+            57 bis route nationale, résidence coté parc, bât A, 06440 Blausasc
+            <br />
+            SIRET : en cours d&apos;immatriculation
+            <br />
+            Co-gérants : Kevin Thubert et Gerald Stoppini
+            <br />
+            Téléphone : 06 63 24 42 80
+            <br />
+            Contact : <a className="text-sky-600 underline" href="mailto:contact@osteo-upgrade.fr">contact@osteo-upgrade.fr</a>
           </p>
         </section>
 
