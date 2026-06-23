@@ -273,9 +273,15 @@ export default function LandingPage() {
       desc: 'Antécédents, anamnèse, historique de soins, topographie de la douleur. Tout le dossier, avec recherche instantanée.',
     },
     {
+      icon: Brain,
+      title: ‘Assistance au raisonnement clinique’,
+      desc: ‘En cas de doute clinique, l’IA suggère les tests orthopédiques les plus pertinents selon le tableau clinique. Votre raisonnement reste au centre, l’IA vous appuie.’,
+      badge: ‘Innovation’,
+    },
+    {
       icon: Lock,
-      title: '100% local & RGPD',
-      desc: 'Vos données restent sur votre machine, sans cloud imposé. Export et suppression RGPD en un clic, journal d’audit complet.',
+      title: ‘100% local & RGPD’,
+      desc: ‘Vos données restent sur votre machine, sans cloud imposé. Export et suppression RGPD en un clic, journal d’audit complet.’,
     },
   ]
 
@@ -313,11 +319,11 @@ export default function LandingPage() {
     },
     {
       icon: FileText,
-      title: 'Revue de littérature',
-      painPoint: 'Perdu dans la masse d’études scientifiques ?',
-      desc: 'Chaque mois, la Revue OsteoUpgrade passe en revue et synthétise les meilleures études EBP, prêtes à appliquer en cabinet.',
-      gradient: 'from-emerald-500 to-teal-500',
-      screenshot: '/landing/screenshots/elearning.png',
+      title: ‘Revue de littérature’,
+      painPoint: ‘Perdu dans la masse d’études scientifiques ?’,
+      desc: ‘Chaque mois, la Revue OsteoUpgrade passe en revue et synthétise les meilleures études EBP, prêtes à appliquer en cabinet.’,
+      gradient: ‘from-emerald-500 to-teal-500’,
+      screenshot: ‘/landing/screenshots/revue.png’,
       glow: '16, 185, 129',
       tags: ['EBP mensuel', 'Synthèses', 'Applicable'],
     },
@@ -617,7 +623,7 @@ export default function LandingPage() {
               Une plateforme, deux piliers.
             </h2>
             <p className="text-lg text-slate-500 max-w-2xl mx-auto">
-              Tout ce qu&apos;il faut pour faire tourner votre cabinet — et tout ce qu&apos;il faut pour devenir meilleur clinicien.
+              Tout ce qu&apos;il faut pour faire tourner votre cabinet, et tout ce qu&apos;il faut pour devenir meilleur clinicien.
             </p>
           </div>
 
@@ -639,19 +645,20 @@ export default function LandingPage() {
                 </div>
                 <h3 className="text-2xl font-bold text-slate-900 mb-2">Votre cabinet, fluidifié.</h3>
                 <p className="text-sm text-slate-500 mb-6 leading-relaxed">
-                  Le logiciel qui gère les patients, les consultations, la facturation et la compta — pour que vous restiez concentré sur le soin.
+                  Le logiciel qui gère les patients, les consultations, la facturation et la compta, pour que vous restiez concentré sur le soin.
                 </p>
                 <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2.5 mb-7">
                   {[
-                    'Dictée vocale par IA',
-                    'Suivi patient automatisé (J+7)',
-                    'Courriers générés par IA',
-                    'Messagerie patients',
-                    'Dossiers patients complets',
-                    'Comptabilité & factures',
-                    'Objectifs & chiffre d’affaires',
-                    'Statistiques du cabinet',
-                    'Données 100% locales & RGPD',
+                    ‘Dictée vocale par IA’,
+                    ‘Suivi patient automatisé (J+7)’,
+                    ‘Courriers générés par IA’,
+                    ‘Messagerie patients’,
+                    ‘Dossiers patients complets’,
+                    ‘Comptabilité & factures’,
+                    ‘Objectifs & chiffre d’affaires’,
+                    ‘Statistiques du cabinet’,
+                    ‘Aide au raisonnement clinique’,
+                    ‘Données 100% locales & RGPD’,
                   ].map((f) => (
                     <li key={f} className="flex items-start gap-2.5 text-sm text-slate-700">
                       <CheckCircle className="h-4 w-4 text-blue-500 flex-shrink-0 mt-0.5" />
@@ -688,6 +695,8 @@ export default function LandingPage() {
                 <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2.5 mb-7">
                   {[
                     '200+ tests orthopédiques',
+                    'Aide au raisonnement clinique',
+                    'OsteoFlash - Flashcards',
                     'Topographie clinique par région',
                     'Cours & e-learning',
                     'Quiz interactifs',
@@ -757,7 +766,6 @@ export default function LandingPage() {
                 {[
                   'Transcription vocale en français, en temps réel',
                   'Extraction automatique des champs du dossier',
-                  'Fonctionne même en cas de coupure réseau',
                 ].map((f) => (
                   <li key={f} className="flex items-start gap-3 text-sm text-slate-700">
                     <CheckCircle className="h-4 w-4 text-blue-500 flex-shrink-0 mt-0.5" />
@@ -1123,156 +1131,34 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ─── TARIFS ET COMPARAISON ─── */}
+      {/* ─── TARIFS ─── */}
       <section id="pricing" ref={pricing.ref} className="py-20 lg:py-28 px-4 sm:px-6 lg:px-8 bg-slate-50 relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-[700px] h-[500px] rounded-full bg-amber-200/40 blur-[160px] pointer-events-none" />
-        <div className="absolute bottom-0 left-0 w-[500px] h-[400px] rounded-full bg-sky-100/40 blur-[130px] pointer-events-none" />
+        <div className="absolute top-0 right-0 w-[700px] h-[500px] rounded-full bg-sky-200/40 blur-[160px] pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-[500px] h-[400px] rounded-full bg-blue-100/40 blur-[130px] pointer-events-none" />
 
         <div className="relative max-w-6xl mx-auto">
           <div className={`text-center mb-14 transition-all duration-700 ${
             pricing.isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
           }`}>
-            <div className="inline-flex items-center gap-2 bg-amber-100 text-amber-700 border border-amber-200 px-4 py-2 rounded-full text-sm font-bold mb-6 uppercase tracking-wider">
+            <div className="inline-flex items-center gap-2 bg-sky-100 text-sky-700 border border-sky-200 px-4 py-2 rounded-full text-sm font-bold mb-6 uppercase tracking-wider">
               <Crown className="h-4 w-4" />
               Tarifs
             </div>
             <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-slate-900 mb-4 tracking-tight">
               Les deux outils.
               <br />
-              <span className="bg-gradient-to-r from-amber-500 to-orange-500 bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-sky-500 to-blue-600 bg-clip-text text-transparent">
                 49,99&euro;/mois, sans engagement.
               </span>
             </h2>
             <p className="text-lg text-slate-500 max-w-xl mx-auto">
-              MyOsteoflow et OsteoUpgrade dans un seul abonnement, pour moins que les alternatives séparées.
+              MyOsteoflow et OsteoUpgrade dans un seul abonnement.
             </p>
           </div>
 
           <div className={`transition-all duration-700 delay-100 ${
             pricing.isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
           }`}>
-            {/* Comparatif */}
-            <div className="rounded-3xl overflow-hidden border border-slate-200 shadow-xl mb-10 bg-white">
-              <div className="grid grid-cols-2 bg-slate-100">
-                <div className="px-8 py-5 text-sm font-bold text-slate-500 uppercase tracking-wider">Alternatives séparées</div>
-                <div className="px-8 py-5 bg-gradient-to-r from-amber-500 to-orange-500 text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
-                  <Crown className="h-4 w-4" /> Premium tout inclus
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 border-t border-slate-200">
-                <div className="px-8 py-6 bg-white flex items-center gap-5">
-                  <div className="w-11 h-11 rounded-2xl bg-red-50 flex items-center justify-center flex-shrink-0">
-                    <Monitor className="h-5 w-5 text-red-400" />
-                  </div>
-                  <div>
-                    <div className="text-sm font-bold text-slate-800">Logiciel de cabinet</div>
-                    <div className="text-xs text-slate-400 mb-1">gestion seule</div>
-                    <div className="text-2xl font-black text-red-400 line-through decoration-red-300">300&euro;/an</div>
-                  </div>
-                </div>
-                <div className="px-8 py-6 bg-amber-50 flex items-center gap-4">
-                  <div className="w-7 h-7 rounded-full bg-amber-500 flex items-center justify-center flex-shrink-0">
-                    <span className="text-white font-black text-xs">✓</span>
-                  </div>
-                  <div>
-                    <div className="text-sm font-bold text-slate-900">MyOsteoflow inclus</div>
-                    <div className="text-xs text-slate-600">Dictée IA, suivi J+7, compta, factures, stats</div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 border-t border-slate-200">
-                <div className="px-8 py-6 bg-white flex items-center gap-5">
-                  <div className="w-11 h-11 rounded-2xl bg-red-50 flex items-center justify-center flex-shrink-0">
-                    <Play className="h-5 w-5 text-red-400" />
-                  </div>
-                  <div>
-                    <div className="text-sm font-bold text-slate-800">Formations techniques vidéo</div>
-                    <div className="text-xs text-slate-400 mb-1">plateformes de formation ostéo</div>
-                    <div className="text-2xl font-black text-red-400 line-through decoration-red-300">200&euro;/an</div>
-                  </div>
-                </div>
-                <div className="px-8 py-6 bg-amber-50 flex items-center gap-4">
-                  <div className="w-7 h-7 rounded-full bg-amber-500 flex items-center justify-center flex-shrink-0">
-                    <span className="text-white font-black text-xs">✓</span>
-                  </div>
-                  <div>
-                    <div className="text-sm font-bold text-slate-900">150+ techniques incluses</div>
-                    <div className="text-xs text-slate-600">HVLA, mobilisation, tissulaire, par région</div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 border-t border-slate-200">
-                <div className="px-8 py-6 bg-white flex items-center gap-5">
-                  <div className="w-11 h-11 rounded-2xl bg-red-50 flex items-center justify-center flex-shrink-0">
-                    <GraduationCap className="h-5 w-5 text-red-400" />
-                  </div>
-                  <div>
-                    <div className="text-sm font-bold text-slate-800">Plateforme e-learning EBP</div>
-                    <div className="text-xs text-slate-400 mb-1">accès limité, sans revue mensuelle</div>
-                    <div className="text-2xl font-black text-red-400 line-through decoration-red-300">250&euro;/an</div>
-                  </div>
-                </div>
-                <div className="px-8 py-6 bg-amber-50 flex items-center gap-4">
-                  <div className="w-7 h-7 rounded-full bg-amber-500 flex items-center justify-center flex-shrink-0">
-                    <span className="text-white font-black text-xs">✓</span>
-                  </div>
-                  <div>
-                    <div className="text-sm font-bold text-slate-900">E-learning illimité inclus</div>
-                    <div className="text-xs text-slate-600">Cours, quiz et revue de littérature mensuelle</div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 border-t border-slate-200">
-                <div className="px-8 py-6 bg-white flex items-center gap-5">
-                  <div className="w-11 h-11 rounded-2xl bg-slate-100 flex items-center justify-center flex-shrink-0">
-                    <Gift className="h-5 w-5 text-slate-300" />
-                  </div>
-                  <div>
-                    <div className="text-sm font-bold text-slate-800">Programme ambassadeur</div>
-                    <div className="text-xs text-slate-400">inexistant chez les concurrents</div>
-                    <div className="text-2xl font-black text-slate-300 mt-1">n/a</div>
-                  </div>
-                </div>
-                <div className="px-8 py-6 bg-amber-50 flex items-center gap-4">
-                  <div className="w-7 h-7 rounded-full bg-emerald-500 flex items-center justify-center flex-shrink-0">
-                    <span className="text-white font-black text-xs">✓</span>
-                  </div>
-                  <div>
-                    <div className="text-sm font-bold text-slate-900">1 mois offert par filleul</div>
-                    <div className="text-xs text-slate-600">Parrain et filleul gagnants à chaque parrainage</div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 border-t-2 border-slate-300">
-                <div className="px-8 py-7 bg-slate-900 flex items-center">
-                  <div>
-                    <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Total alternatives séparées</div>
-                    <div className="text-xs text-slate-500 mb-2">300 + 200 + 250 = 750&euro; minimum</div>
-                    <div className="text-4xl font-black text-red-400 line-through decoration-red-400">750&euro;+/an</div>
-                  </div>
-                </div>
-                <div className="px-8 py-7 bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-between">
-                  <div>
-                    <div className="text-xs font-bold text-white/70 uppercase tracking-wider mb-1">Premium tout inclus</div>
-                    <div className="text-4xl font-black text-white">49,99&euro;/mois</div>
-                    <div className="text-sm text-white/80 mt-1">sans engagement · annulable à tout moment</div>
-                  </div>
-                  <button
-                    onClick={() => router.push('/auth')}
-                    className="group bg-white text-amber-600 px-5 py-3.5 rounded-2xl font-black text-sm hover:bg-amber-50 transition-all shadow-lg inline-flex items-center gap-2 flex-shrink-0"
-                  >
-                    Je démarre
-                    <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-                  </button>
-                </div>
-              </div>
-            </div>
-
             {/* Pricing cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-3xl mx-auto">
               {/* Free */}
@@ -1308,43 +1194,46 @@ export default function LandingPage() {
 
               {/* Premium */}
               <div className="rounded-2xl relative overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-br from-amber-400 via-amber-500 to-orange-500 rounded-2xl" />
+                <div className="absolute inset-0 bg-gradient-to-br from-sky-400 via-sky-500 to-blue-600 rounded-2xl" />
                 <div className="absolute inset-[2px] bg-white rounded-[14px]" />
                 <div className="relative p-8">
                   <div className="absolute top-6 right-6">
-                    <div className="flex items-center gap-1 bg-amber-50 text-amber-700 px-2.5 py-1 rounded-lg text-xs font-bold">
+                    <div className="flex items-center gap-1 bg-sky-50 text-sky-700 px-2.5 py-1 rounded-lg text-xs font-bold">
                       <Crown className="h-3.5 w-3.5" />
                       Recommandé
                     </div>
                   </div>
                   <div className="mb-7">
-                    <div className="text-sm font-semibold text-amber-600 uppercase tracking-wider mb-2">Premium</div>
+                    <div className="text-sm font-semibold text-sky-600 uppercase tracking-wider mb-2">Premium</div>
                     <div className="flex items-baseline gap-1 mb-1">
                       <span className="text-5xl font-bold text-slate-900">49,99&euro;</span>
                       <span className="text-slate-400 text-sm">/mois</span>
                     </div>
-                    <p className="text-xs text-slate-400 mb-4">Sans engagement · Prélevé chaque mois · Annulable à tout moment</p>
-                    <div className="rounded-xl bg-amber-50 border border-amber-200 p-3">
+                    <p className="text-xs text-slate-400 mb-2">Sans engagement · Prélevé chaque mois · Annulable à tout moment</p>
+                    <p className="text-xs text-emerald-600 font-semibold mb-4">Déductible des frais professionnels</p>
+                    <div className="rounded-xl bg-sky-50 border border-sky-200 p-3">
                       <div className="flex items-center gap-2">
-                        <Gift className="h-4 w-4 text-amber-600 flex-shrink-0" />
+                        <Gift className="h-4 w-4 text-sky-600 flex-shrink-0" />
                         <span className="text-sm font-bold text-slate-900">Parrainage : 1 mois offert</span>
                       </div>
-                      <p className="text-[11px] text-amber-700 mt-0.5">Pour vous et votre filleul à chaque parrainage validé</p>
+                      <p className="text-[11px] text-sky-700 mt-0.5">Pour vous et votre filleul à chaque parrainage validé</p>
                     </div>
                   </div>
                   <ul className="space-y-2.5 mb-7">
                     {[
                       'MyOsteoflow : logiciel de cabinet complet',
                       'Dictée vocale IA & suivi patient automatisé',
+                      'Aide au raisonnement clinique avec proposition de tests ortho',
                       'Toutes les régions anatomiques',
                       'Bibliothèque complète de tests',
+                      'OsteoFlash - Flashcards',
                       'E-learning complet et quiz',
                       'Revue de littérature mensuelle',
                       'Topographie clinique',
                       'Parrainage : 1 mois offert (parrain & filleul)',
                     ].map((f, i) => (
                       <li key={i} className="flex items-start gap-3 text-sm text-slate-700">
-                        <CheckCircle className="h-4 w-4 text-amber-500 flex-shrink-0 mt-0.5" />
+                        <CheckCircle className="h-4 w-4 text-sky-500 flex-shrink-0 mt-0.5" />
                         <span className="font-medium">{f}</span>
                       </li>
                     ))}
@@ -1352,7 +1241,7 @@ export default function LandingPage() {
                   <div className="space-y-2.5">
                     <button
                       onClick={() => router.push('/auth')}
-                      className="w-full py-3.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-400 text-slate-900 font-bold text-sm hover:from-amber-400 hover:to-amber-300 transition-all shadow-lg shadow-amber-500/20"
+                      className="w-full py-3.5 rounded-xl bg-gradient-to-r from-sky-500 to-blue-600 text-white font-bold text-sm hover:from-sky-400 hover:to-blue-500 transition-all shadow-lg shadow-sky-500/20"
                     >
                       Choisir Premium · 49,99&euro;/mois
                     </button>
@@ -1363,7 +1252,7 @@ export default function LandingPage() {
 
             <div className="mt-8 text-center">
               <p className="text-xs text-slate-400">
-                49,99&euro;/mois, sans engagement. Annulable à tout moment depuis votre compte.
+                49,99&euro;/mois, sans engagement. Annulable à tout moment depuis votre compte. Déductible des frais professionnels.
               </p>
             </div>
           </div>
