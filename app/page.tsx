@@ -200,7 +200,7 @@ export default function LandingPage() {
       image: '/landing/notes.png',
     },
     {
-      quote: 'Mes patients ne reviennent pas et je n’ai aucun suivi.',
+      quote: "Mes patients ne reviennent pas et je n'ai aucun suivi.",
       pillar: 'MyOsteoflow',
       pillarColor: 'flow',
       solution: 'Suivi automatique 7 jours après la séance',
@@ -216,10 +216,10 @@ export default function LandingPage() {
       image: '/landing/tests.png',
     },
     {
-      quote: 'Je n’arrive pas à suivre la littérature scientifique.',
+      quote: "Je n'arrive pas à suivre la littérature scientifique.",
       pillar: 'OsteoUpgrade',
       pillarColor: 'sky',
-      solution: 'Revue d’études EBP synthétisée chaque mois',
+      solution: "Revue d'études EBP synthétisée chaque mois",
       icon: GraduationCap,
       image: '/landing/ebp.png',
     },
@@ -238,23 +238,23 @@ export default function LandingPage() {
     {
       icon: Activity,
       title: 'Suivi patient automatisé',
-      desc: 'Un email envoyé automatiquement 7 jours après la séance. Mesurez l’évolution de la douleur (EVA), la mobilité et la satisfaction, sans y penser.',
+      desc: "Un email envoyé automatiquement 7 jours après la séance. Mesurez l'évolution de la douleur (EVA), la mobilité et la satisfaction, sans y penser.",
       badge: 'Innovation',
     },
     {
       icon: Send,
       title: 'Courriers générés par IA',
-      desc: 'Courrier d’adressage à un confrère ou attestation de consultation, rédigés par l’IA à partir du dossier, en quelques secondes.',
+      desc: "Courrier d'adressage à un confrère ou attestation de consultation, rédigés par l'IA à partir du dossier, en quelques secondes.",
       badge: 'Innovation',
     },
     {
       icon: MessageSquare,
       title: 'Messagerie patients',
-      desc: 'Échangez avec vos patients depuis l’application, avec modèles de réponses, pièces jointes et historique par dossier.',
+      desc: "Échangez avec vos patients depuis l'application, avec modèles de réponses, pièces jointes et historique par dossier.",
     },
     {
       icon: Target,
-      title: 'Objectifs & chiffre d’affaires',
+      title: "Objectifs & chiffre d'affaires",
       desc: 'Fixez vos objectifs annuels de CA et suivez votre progression jour, semaine, mois. Vos cibles converties en nombre de consultations.',
     },
     {
@@ -265,7 +265,7 @@ export default function LandingPage() {
     {
       icon: BarChart3,
       title: 'Statistiques du cabinet',
-      desc: 'Démographie patients, motifs de consultation, jours de pointe, sources d’adressage. Pilotez votre activité d’un coup d’œil.',
+      desc: "Démographie patients, motifs de consultation, jours de pointe, sources d'adressage. Pilotez votre activité d'un coup d'œil.",
     },
     {
       icon: Users,
@@ -274,14 +274,14 @@ export default function LandingPage() {
     },
     {
       icon: Brain,
-      title: ‘Assistance au raisonnement clinique’,
-      desc: "En cas de doute clinique, l’IA suggère les tests orthopédiques les plus pertinents selon le tableau clinique. Votre raisonnement reste au centre, l’IA vous appuie.",
-      badge: ‘Innovation’,
+      title: "Assistance au raisonnement clinique",
+      desc: "En cas de doute clinique, l'IA suggère les tests orthopédiques les plus pertinents selon le tableau clinique. Votre raisonnement reste au centre, l'IA vous appuie.",
+      badge: "Innovation",
     },
     {
       icon: Lock,
-      title: ‘100% local & RGPD’,
-      desc: ‘Vos données restent sur votre machine, sans cloud imposé. Export et suppression RGPD en un clic, journal d’audit complet.’,
+      title: "100% local & RGPD",
+      desc: "Vos données restent sur votre machine, sans cloud imposé. Export et suppression RGPD en un clic, journal d'audit complet.",
     },
   ]
 
@@ -300,8 +300,8 @@ export default function LandingPage() {
     {
       icon: Map,
       title: 'Topographie clinique',
-      painPoint: 'Un doute sur la douleur d’un patient ?',
-      desc: 'Notre bibliothèque topographique région par région : repérez les structures susceptibles d’être impliquées et orientez votre bilan clinique.',
+      painPoint: "Un doute sur la douleur d'un patient ?",
+      desc: "Notre bibliothèque topographique région par région : repérez les structures susceptibles d'être impliquées et orientez votre bilan clinique.",
       gradient: 'from-sky-500 to-indigo-500',
       screenshot: '/landing/screenshots/topographie.png',
       glow: '99, 102, 241',
@@ -319,11 +319,11 @@ export default function LandingPage() {
     },
     {
       icon: FileText,
-      title: ‘Revue de littérature’,
-      painPoint: ‘Perdu dans la masse d’études scientifiques ?’,
-      desc: ‘Chaque mois, la Revue OsteoUpgrade passe en revue et synthétise les meilleures études EBP, prêtes à appliquer en cabinet.’,
-      gradient: ‘from-emerald-500 to-teal-500’,
-      screenshot: ‘/landing/screenshots/revue.png’,
+      title: "Revue de littérature",
+      painPoint: "Perdu dans la masse d'études scientifiques ?",
+      desc: "Chaque mois, la Revue OsteoUpgrade passe en revue et synthétise les meilleures études EBP, prêtes à appliquer en cabinet.",
+      gradient: "from-emerald-500 to-teal-500",
+      screenshot: "/landing/screenshots/revue.png",
       glow: '16, 185, 129',
       tags: ['EBP mensuel', 'Synthèses', 'Applicable'],
     },
@@ -649,16 +649,16 @@ export default function LandingPage() {
                 </p>
                 <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2.5 mb-7">
                   {[
-                    ‘Dictée vocale par IA’,
-                    ‘Suivi patient automatisé (J+7)’,
-                    ‘Courriers générés par IA’,
-                    ‘Messagerie patients’,
-                    ‘Dossiers patients complets’,
-                    ‘Comptabilité & factures’,
-                    ‘Objectifs & chiffre d’affaires’,
-                    ‘Statistiques du cabinet’,
-                    ‘Aide au raisonnement clinique’,
-                    ‘Données 100% locales & RGPD’,
+                    "Dictée vocale par IA",
+                    "Suivi patient automatisé (J+7)",
+                    "Courriers générés par IA",
+                    "Messagerie patients",
+                    "Dossiers patients complets",
+                    "Comptabilité & factures",
+                    "Objectifs & chiffre d'affaires",
+                    "Statistiques du cabinet",
+                    "Aide au raisonnement clinique",
+                    "Données 100% locales & RGPD",
                   ].map((f) => (
                     <li key={f} className="flex items-start gap-2.5 text-sm text-slate-700">
                       <CheckCircle className="h-4 w-4 text-blue-500 flex-shrink-0 mt-0.5" />
@@ -1094,7 +1094,7 @@ export default function LandingPage() {
               {
                 icon: Clock,
                 title: 'Vous rend du temps',
-                desc: 'Dictée vocale, factures, suivi patient et compta automatisés. MyOsteoflow gère l’intendance pour que vous restiez sur le soin.',
+                desc: "Dictée vocale, factures, suivi patient et compta automatisés. MyOsteoflow gère l'intendance pour que vous restiez sur le soin.",
                 accent: 'from-blue-500 to-violet-600',
                 bg: 'bg-blue-50',
                 border: 'border-blue-100',
@@ -1102,7 +1102,7 @@ export default function LandingPage() {
               {
                 icon: Brain,
                 title: 'Ancré dans la science',
-                desc: 'Chaque test, pathologie et protocole est documenté avec sa sensibilité, sa spécificité et ses références EBP. Pas d’opinion, que des preuves.',
+                desc: "Chaque test, pathologie et protocole est documenté avec sa sensibilité, sa spécificité et ses références EBP. Pas d'opinion, que des preuves.",
                 accent: 'from-sky-500 to-blue-600',
                 bg: 'bg-sky-50',
                 border: 'border-sky-100',
