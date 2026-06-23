@@ -15,6 +15,7 @@ import {
   Tag,
   LifeBuoy,
   Megaphone,
+  Database,
 } from 'lucide-react'
 
 type Counts = { tickets: number; emails: number }
@@ -129,6 +130,14 @@ export default function AdminPage() {
       iconColor: 'text-emerald-600',
       iconBg: 'bg-emerald-100',
       href: '/admin/promo',
+    },
+    {
+      title: 'Cache IA',
+      description: 'Suivi du cache Anthropic — hit rate et économies (7j)',
+      icon: Database,
+      iconColor: 'text-violet-600',
+      iconBg: 'bg-violet-100',
+      href: '/admin/ai-cache',
     },
   ]
 

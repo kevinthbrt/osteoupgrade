@@ -220,6 +220,20 @@ export async function POST(req: Request) {
       console.warn('[hypotheses] response hit max_tokens — JSON may be truncated')
     }
 
+    // Log cache usage (fire-and-forget — never block the response on analytics).
+    {
+      const u = data.usage ?? {}
+      supabase.from('ai_cache_logs').insert({
+        endpoint: 'generate-hypotheses',
+        model: 'claude-sonnet-4-6',
+        input_tokens: u.input_tokens ?? 0,
+        output_tokens: u.output_tokens ?? 0,
+        cache_creation_tokens: u.cache_creation_input_tokens ?? 0,
+        cache_read_tokens: u.cache_read_input_tokens ?? 0,
+        stop_reason: data.stop_reason ?? null,
+      }).then(({ error }) => { if (error) console.warn('[hypotheses] cache log:', error.message) })
+    }
+
     // Pas de prefill possible (rejeté en 400 sur Claude 4.6) : on extrait l'objet
     // JSON même si le modèle ajoute du texte autour (1er "{" → dernier "}").
     const start = content.indexOf('{')
