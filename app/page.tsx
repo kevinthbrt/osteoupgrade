@@ -1,7 +1,7 @@
 /* eslint-disable react/no-unescaped-entities */
 'use client'
 
-import { useState, useEffect, useRef, useCallback } from 'react'
+import React, { useState, useEffect, useRef, useCallback } from 'react'
 import Image from 'next/image'
 import PublicFooter from '@/components/PublicFooter'
 import { useRouter } from 'next/navigation'
@@ -37,6 +37,8 @@ import {
   Clock,
   Activity,
   Quote,
+  Volume2,
+  VolumeX,
 } from 'lucide-react'
 
 // Hook for scroll-triggered animations
@@ -104,6 +106,31 @@ function BrandLockup({ className = '' }: { className?: string }) {
       <span className="text-slate-900 font-normal">×</span>
       <span className="font-display italic flow-text font-bold">MyOsteoflow</span>
     </span>
+  )
+}
+
+function HeroVideo() {
+  const [muted, setMuted] = React.useState(true)
+  const src = muted
+    ? 'https://player.vimeo.com/video/1203912445?autoplay=1&muted=1&loop=1&background=1'
+    : 'https://player.vimeo.com/video/1203912445?autoplay=1&muted=0&loop=1&background=1'
+  return (
+    <div className="aspect-[14/9] w-full relative">
+      <iframe
+        key={src}
+        src={src}
+        allow="autoplay; fullscreen; picture-in-picture"
+        className="w-full h-full"
+        style={{ border: 0 }}
+      />
+      <button
+        onClick={() => setMuted(m => !m)}
+        className="absolute bottom-3 right-3 p-2 rounded-full bg-black/50 hover:bg-black/70 transition text-white backdrop-blur-sm"
+        aria-label={muted ? 'Activer le son' : 'Couper le son'}
+      >
+        {muted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+      </button>
+    </div>
   )
 }
 
@@ -497,14 +524,7 @@ export default function LandingPage() {
                     </div>
                   </div>
                   {/* Hero video */}
-                  <div className="aspect-[14/9] w-full">
-                    <iframe
-                      src="https://player.vimeo.com/video/1203912445?autoplay=1&muted=1&loop=1&background=1"
-                      allow="autoplay; fullscreen; picture-in-picture"
-                      className="w-full h-full"
-                      style={{ border: 0 }}
-                    />
-                  </div>
+                  <HeroVideo />
                 </div>
 
                 {/* Floating badges */}
