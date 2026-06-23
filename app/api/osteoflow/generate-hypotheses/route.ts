@@ -18,8 +18,7 @@ RÉPONDS UNIQUEMENT EN JSON valide avec ce format exact :
     { "id": 3, "label": "...", "prior": 20, "rationale": "..." }
   ],
   "tests": [
-    { "test_id": "uuid-exact-du-test", "name": "Nom exact du test", "region": "Région",
-      "targetId": 1, "deltaPositive": 20, "deltaNegative": -15,
+    { "i": 12, "targetId": 1, "deltaPositive": 20, "deltaNegative": -15,
       "rationale": "ce que le test confirme/infirme, 1 phrase" }
   ],
   "questions": [
@@ -37,12 +36,14 @@ Règles pour "hypotheses" :
 - "prior" = probabilité estimée en % d'après l'interrogatoire seul (estimation indicative)
 
 Règles pour "tests" :
-- 3 à 6 tests maximum, choisis UNIQUEMENT dans la liste fournie (utilise le test_id exact)
+- 3 à 6 tests maximum, choisis UNIQUEMENT dans la liste fournie ; réfère chaque test par son
+  numéro "i" exact (le champ "i" de la liste). Ne renvoie NI le nom NI d'UUID, seulement "i".
 - "targetId" = l'id de l'hypothèse que le test discrimine le mieux
 - "deltaPositive" / "deltaNegative" = effet indicatif du test sur la probabilité de l'hypothèse ciblée,
   exprimé en points de pourcentage ARRONDIS à un multiple de 5, bornés entre -25 et +25
   (positif = en faveur, négatif = en défaveur). deltaPositive > 0, deltaNegative < 0.
 - Privilégie les tests qui font vraiment basculer une hypothèse plutôt que des tests peu discriminants
+- Ne jamais référencer un "i" absent de la liste fournie
 
 Règles pour "questions" :
 - 0 à 3 questions MAXIMUM — uniquement les informations vraiment manquantes qui feraient le plus
@@ -148,11 +149,22 @@ export async function POST(req: Request) {
       if (cluster && !testToRegion[item.test_id]) testToRegion[item.test_id] = cluster.region
     }
 
+    // Catalogue de référence (index 1-based) : sert à la fois à construire la liste
+    // envoyée au modèle ET à reconstituer côté serveur les tests qu'il choisit.
     const testsCompact = tests.map(t => ({
-      id: t.id,
-      name: t.name,
+      id: t.id as string,
+      name: t.name as string,
       region: testToRegion[t.id] ?? '',
       ...(t.indications ? { indications: (t.indications as string).substring(0, 100) } : {}),
+    }))
+
+    // Liste compacte pour le modèle : numéro "i" court au lieu de l'UUID (36 car.),
+    // ce qui allège fortement l'entrée et la sortie. Le serveur retraduit ensuite.
+    const catalogForModel = testsCompact.map((t, idx) => ({
+      i: idx + 1,
+      name: t.name,
+      region: t.region,
+      ...('indications' in t && t.indications ? { ind: t.indications } : {}),
     }))
 
     const apiKey = process.env.ANTHROPIC_API_KEY
@@ -163,7 +175,15 @@ export async function POST(req: Request) {
 
     const ctxLines = patientContext ? buildContextLines(patientContext) : []
     const ctxBlock = ctxLines.length ? `Contexte patient :\n${ctxLines.join('\n')}\n\n` : ''
-    const userContent = `${ctxBlock}Anamnèse :\n${reason ? `Motif : ${reason}\n\n` : ''}${anamnesis}\n\nTests disponibles (${testsCompact.length}) :\n${JSON.stringify(testsCompact)}`
+    // Anamnèse + contexte (variable) seulement : le catalogue passe dans le préfixe caché.
+    const userContent = `${ctxBlock}Anamnèse :\n${reason ? `Motif : ${reason}\n\n` : ''}${anamnesis}`
+
+    // Le catalogue est identique d'un patient à l'autre : on le place dans le préfixe
+    // système mis en cache (prompt caching). Le point de césure sur ce dernier bloc
+    // couvre aussi le SYSTEM_PROMPT qui le précède. TTL 1h : le cache survit entre deux
+    // patients espacés (1 par créneau), donc dès la 2e hypothèse de l'heure le catalogue
+    // est relu à 0,1× au lieu d'être réécrit. (5 min expirerait entre les patients.)
+    const catalogText = `Liste des tests orthopédiques disponibles (${catalogForModel.length}), chacun avec son numéro "i" :\n${JSON.stringify(catalogForModel)}`
 
     const res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -171,14 +191,18 @@ export async function POST(req: Request) {
         'Content-Type': 'application/json',
         'x-api-key': apiKey,
         'anthropic-version': '2023-06-01',
-        'anthropic-beta': 'prompt-caching-2024-07-31',
+        // extended-cache-ttl active le TTL 1h sur cache_control.
+        'anthropic-beta': 'prompt-caching-2024-07-31,extended-cache-ttl-2025-04-11',
       },
       body: JSON.stringify({
         model: 'claude-sonnet-4-6',
         // Output now carries hypotheses + tests + interactive questions, so give
         // it headroom — a truncated JSON would fail to parse and 500.
         max_tokens: 2500,
-        system: [{ type: 'text', text: SYSTEM_PROMPT, cache_control: { type: 'ephemeral' } }],
+        system: [
+          { type: 'text', text: SYSTEM_PROMPT },
+          { type: 'text', text: catalogText, cache_control: { type: 'ephemeral', ttl: '1h' } },
+        ],
         messages: [{ role: 'user', content: userContent }],
       }),
       signal: AbortSignal.timeout(45000),
@@ -196,13 +220,30 @@ export async function POST(req: Request) {
       console.warn('[hypotheses] response hit max_tokens — JSON may be truncated')
     }
 
+    // Log cache usage (fire-and-forget — never block the response on analytics).
+    {
+      const u = data.usage ?? {}
+      supabase.from('ai_cache_logs').insert({
+        endpoint: 'generate-hypotheses',
+        model: 'claude-sonnet-4-6',
+        input_tokens: u.input_tokens ?? 0,
+        output_tokens: u.output_tokens ?? 0,
+        cache_creation_tokens: u.cache_creation_input_tokens ?? 0,
+        cache_read_tokens: u.cache_read_input_tokens ?? 0,
+        stop_reason: data.stop_reason ?? null,
+      }).then(({ error }) => { if (error) console.warn('[hypotheses] cache log:', error.message) })
+    }
+
     // Pas de prefill possible (rejeté en 400 sur Claude 4.6) : on extrait l'objet
     // JSON même si le modèle ajoute du texte autour (1er "{" → dernier "}").
     const start = content.indexOf('{')
     const end = content.lastIndexOf('}')
     const jsonStr = start >= 0 && end > start ? content.slice(start, end + 1) : content
 
-    let parsed: { hypotheses?: Hypothesis[]; tests?: HypothesisTest[]; questions?: unknown[] }
+    // Le modèle ne renvoie qu'un numéro "i" par test (allège entrée + sortie) ; on
+    // reconstitue ici le test complet (UUID, nom, région) attendu par le client.
+    interface RawTest { i?: number; test_id?: string; targetId: number; deltaPositive: number; deltaNegative: number; rationale: string }
+    let parsed: { hypotheses?: Hypothesis[]; tests?: RawTest[]; questions?: unknown[] }
     try {
       parsed = JSON.parse(jsonStr)
     } catch {
@@ -210,7 +251,22 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Réponse IA invalide' }, { status: 500 })
     }
 
-    return NextResponse.json(parsed)
+    const resolvedTests: HypothesisTest[] = []
+    for (const t of parsed.tests ?? []) {
+      const src = t.i != null ? testsCompact[t.i - 1] : undefined
+      if (!src) continue // index hors liste ou absent → on ignore le test
+      resolvedTests.push({
+        test_id: src.id,
+        name: src.name,
+        region: src.region,
+        targetId: t.targetId,
+        deltaPositive: t.deltaPositive,
+        deltaNegative: t.deltaNegative,
+        rationale: t.rationale,
+      })
+    }
+
+    return NextResponse.json({ ...parsed, tests: resolvedTests })
   } catch (err) {
     console.error('[hypotheses] unhandled:', err)
     return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })

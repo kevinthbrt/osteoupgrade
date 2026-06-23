@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { createClient } from '@supabase/supabase-js'
 
 export const dynamic = 'force-dynamic'
 // Long anamneses (max_tokens 3000 on Sonnet) can take well over the default
@@ -252,6 +253,25 @@ export async function POST(req: Request) {
 
     if (data.stop_reason === 'max_tokens') {
       console.warn('[AI proxy] structure response hit max_tokens — JSON may be truncated')
+    }
+
+    // Log cache usage (fire-and-forget).
+    {
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+      const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+      if (supabaseUrl && supabaseAnonKey) {
+        const sb = createClient(supabaseUrl, supabaseAnonKey)
+        const u = data.usage ?? {}
+        sb.from('ai_cache_logs').insert({
+          endpoint: 'structure-anamnesis',
+          model: 'claude-sonnet-4-6',
+          input_tokens: u.input_tokens ?? 0,
+          output_tokens: u.output_tokens ?? 0,
+          cache_creation_tokens: u.cache_creation_input_tokens ?? 0,
+          cache_read_tokens: u.cache_read_input_tokens ?? 0,
+          stop_reason: data.stop_reason ?? null,
+        }).then(({ error }) => { if (error) console.warn('[ai] cache log:', error.message) })
+      }
     }
 
     // Cartes (sections) = source unique. "anamnesis" n'est renvoyé qu'en repli
