@@ -275,7 +275,7 @@ export default function LandingPage() {
     {
       icon: Brain,
       title: ‘Assistance au raisonnement clinique’,
-      desc: ‘En cas de doute clinique, l’IA suggère les tests orthopédiques les plus pertinents selon le tableau clinique. Votre raisonnement reste au centre, l’IA vous appuie.’,
+      desc: "En cas de doute clinique, l’IA suggère les tests orthopédiques les plus pertinents selon le tableau clinique. Votre raisonnement reste au centre, l’IA vous appuie.",
       badge: ‘Innovation’,
     },
     {
