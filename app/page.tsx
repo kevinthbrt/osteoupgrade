@@ -110,21 +110,29 @@ function BrandLockup({ className = '' }: { className?: string }) {
 }
 
 function HeroVideo() {
+  const iframeRef = useRef<HTMLIFrameElement>(null)
   const [muted, setMuted] = React.useState(true)
-  const src = muted
-    ? 'https://player.vimeo.com/video/1203912445?autoplay=1&muted=1&loop=1&background=1'
-    : 'https://player.vimeo.com/video/1203912445?autoplay=1&muted=0&loop=1&background=1'
+
+  const toggleMute = () => {
+    const newMuted = !muted
+    setMuted(newMuted)
+    iframeRef.current?.contentWindow?.postMessage(
+      JSON.stringify({ method: 'setMuted', value: newMuted }),
+      'https://player.vimeo.com'
+    )
+  }
+
   return (
     <div className="aspect-[14/9] w-full relative">
       <iframe
-        key={src}
-        src={src}
+        ref={iframeRef}
+        src="https://player.vimeo.com/video/1203912445?autoplay=1&muted=1&loop=1&controls=0&autopause=0"
         allow="autoplay; fullscreen; picture-in-picture"
         className="w-full h-full"
         style={{ border: 0 }}
       />
       <button
-        onClick={() => setMuted(m => !m)}
+        onClick={toggleMute}
         className="absolute bottom-3 right-3 p-2 rounded-full bg-black/50 hover:bg-black/70 transition text-white backdrop-blur-sm"
         aria-label={muted ? 'Activer le son' : 'Couper le son'}
       >
