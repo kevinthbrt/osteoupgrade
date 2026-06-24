@@ -1320,7 +1320,7 @@ export default function MailingAdminPage() {
                       <div className="flex flex-wrap gap-2">
                         {[
                           { var: '{{nom}}', desc: 'Nom du plan (Premium)' },
-                          { var: '{{prix}}', desc: 'Prix mensuel (29,99€ / 49,99€)' },
+                          { var: '{{prix}}', desc: 'Prix de l’abonnement (49,99€/mois)' },
                           { var: '{{date_fact}}', desc: 'Date de prochaine facturation' },
                           { var: '{{date_renouv}}', desc: 'Date de renouvellement' },
                           { var: '{{cycle}}', desc: 'Numéro du cycle' },
