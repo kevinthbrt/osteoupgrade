@@ -1,18 +1,21 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { getOsteoflowSessionUser } from '@/lib/osteoflow-auth'
 
 export const dynamic = 'force-dynamic'
 
 export async function POST(req: Request) {
   try {
+    const tokenUser = await getOsteoflowSessionUser(req)
     const authHeader = req.headers.get('x-osteoflow-secret')
     const expectedSecret = process.env.OSTEOFLOW_PROXY_SECRET
-    if (!expectedSecret || authHeader !== expectedSecret) {
+    if (!tokenUser && (!expectedSecret || authHeader !== expectedSecret)) {
       return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
     }
 
     const body = await req.json()
-    const { email, quiz_id, score, total_questions, correct_answers, passed, answers_data } = body
+    const { quiz_id, score, total_questions, correct_answers, passed, answers_data } = body
+    const email = tokenUser?.email ?? body.email
 
     if (!email || !quiz_id || typeof score !== 'number' || typeof passed !== 'boolean') {
       return NextResponse.json({ error: 'Paramètres manquants' }, { status: 400 })
