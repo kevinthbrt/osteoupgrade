@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { verifyAdmin } from '@/lib/api-guards'
 
 /**
  * GET /api/emails/[id]/attachments/[attachmentId]
@@ -12,6 +13,10 @@ export async function GET(
   { params }: { params: { id: string; attachmentId: string } }
 ) {
   try {
+    if (!(await verifyAdmin())) {
+      return NextResponse.json({ error: 'Non autorisé' }, { status: 403 })
+    }
+
     const { id, attachmentId } = params
 
     if (!id || !attachmentId) {
