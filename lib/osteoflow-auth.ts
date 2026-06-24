@@ -47,6 +47,10 @@ export async function getOsteoflowSessionUser(
         () => {}
       )
 
+    // Repère temporaire (CF2) : permet de confirmer dans les logs que le chemin
+    // "jeton" est bien emprunté pendant la transition. À retirer à l'étape 3.
+    console.log('[osteoflow-auth] mode=token user=%s', profile.email)
+
     return { userId: session.user_id, email: profile.email, role: profile.role }
   } catch {
     return null
