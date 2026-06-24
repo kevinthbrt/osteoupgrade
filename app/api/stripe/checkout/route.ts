@@ -95,8 +95,20 @@ export async function POST(request: Request) {
           { status: 400 }
         )
       } else {
-        referrerUserId = referralData.user_id
-        console.log('✅ Valid referral code:', referralCode, 'Referrer:', referrerUserId)
+        // Vérifier que le parrain est toujours un membre Premium/Admin actif
+        const { data: referrerProfile } = await supabaseAdmin
+          .from('profiles')
+          .select('role')
+          .eq('id', referralData.user_id)
+          .single()
+
+        if (!referrerProfile || !['premium', 'admin'].includes(referrerProfile.role)) {
+          console.warn('⚠️ Referrer is no longer Premium, ignoring referral code:', referralCode)
+          // Ne pas bloquer le checkout : on ignore simplement le parrainage
+        } else {
+          referrerUserId = referralData.user_id
+          console.log('✅ Valid referral code:', referralCode, 'Referrer:', referrerUserId)
+        }
       }
     }
 
