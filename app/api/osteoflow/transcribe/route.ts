@@ -12,7 +12,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
     }
 
-    const formData = await req.formData()
+    const formData = await req.formData() as unknown as FormData
     const file = formData.get('file')
     if (!file || !(file instanceof File)) {
       return NextResponse.json({ error: 'Fichier audio manquant' }, { status: 400 })

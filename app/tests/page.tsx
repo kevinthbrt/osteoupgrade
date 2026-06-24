@@ -482,14 +482,6 @@ export default function ImprovedTestsPage() {
               {profile?.role === 'admin' && (
                 <div className="flex flex-wrap gap-2">
                   <button
-                    onClick={() => router.push('/diagnostics')}
-                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-500/90 backdrop-blur-sm border border-emerald-400/30 text-white font-semibold hover:bg-emerald-600/90 shadow-sm transition-all"
-                    title="Gérer les diagnostics"
-                  >
-                    <FolderOpen className="h-4 w-4" />
-                    <span>Diagnostics</span>
-                  </button>
-                  <button
                     onClick={() => router.push('/admin/tests/new')}
                     className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-500/90 backdrop-blur-sm border border-emerald-400/30 text-white font-semibold hover:bg-emerald-600/90 shadow-sm transition-all"
                   >

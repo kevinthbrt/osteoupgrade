@@ -10,7 +10,7 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const formData = await req.formData()
+    const formData = await req.formData() as unknown as FormData
     const email = (formData.get('email') as string | null)?.trim()
     const file = formData.get('file') as File | null
 

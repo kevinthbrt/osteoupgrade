@@ -170,21 +170,7 @@ function SearchPageContent() {
         })
       }
 
-      // Search pathologies
-      if (pathologies.length > 0) {
-        pathologies.forEach((p: { id: string; name: string; description: string | null; region: string | null }) => {
-          allResults.push({
-            id: p.id,
-            title: p.name,
-            description: p.description || `Région: ${p.region}`,
-            type: 'pathologie',
-            href: '/diagnostics',
-            module: 'Diagnostics',
-            gradient: 'from-rose-500 to-pink-600',
-            icon: Stethoscope
-          })
-        })
-      }
+      // Module Diagnostics retiré : les pathologies ne sont plus exposées dans la recherche.
 
       // Search orthopedic tests
       if (tests.length > 0) {

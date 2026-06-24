@@ -17,7 +17,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Non autorisé' }, { status: 403 })
   }
 
-  const formData = await request.formData()
+  const formData = await request.formData() as unknown as FormData
   const file = formData.get('file') as File | null
   if (!file) return NextResponse.json({ error: 'Aucun fichier fourni' }, { status: 400 })
 
