@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { put } from '@vercel/blob'
 
 export async function POST(request: Request) {
-  const formData = await request.formData()
+  const formData = await request.formData() as unknown as FormData
   const file = formData.get('file') as File | null
   const exerciseId = formData.get('exerciseId') as string | null
 

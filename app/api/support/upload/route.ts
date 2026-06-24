@@ -9,7 +9,7 @@ export async function POST(req: NextRequest) {
   if (!user) return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
 
   try {
-    const formData = await req.formData()
+    const formData = await req.formData() as unknown as FormData
     const file = formData.get('file') as File | null
     if (!file) return NextResponse.json({ error: 'Fichier requis' }, { status: 400 })
     if (file.size > 10 * 1024 * 1024) return NextResponse.json({ error: 'Fichier trop volumineux (max 10 Mo)' }, { status: 400 })

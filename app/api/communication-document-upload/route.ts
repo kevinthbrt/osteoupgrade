@@ -27,7 +27,7 @@ export async function POST(request: Request) {
       }, { status: 403 })
     }
 
-    const formData = await request.formData()
+    const formData = await request.formData() as unknown as FormData
     const file = formData.get('file') as File | null
 
     if (!file) {
