@@ -1,12 +1,15 @@
 import { NextResponse } from 'next/server'
 import { processAutomations } from '@/lib/automation-processor'
+import { isAdminOrCron } from '@/lib/api-guards'
 
-// Cette route sera appelée par un cron job toutes les minutes
-// Pour Vercel: configurez dans vercel.json
-// Pour d'autres services: utilisez un service comme Uptime Robot ou Cron-job.org
+// Cette route est appelée soit par un cron (Bearer CRON_SECRET),
+// soit manuellement depuis l'UI admin (cookie de session admin).
 
 export async function POST(request: Request) {
   try {
+    if (!(await isAdminOrCron(request))) {
+      return NextResponse.json({ error: 'Non autorisé' }, { status: 403 })
+    }
     console.log('🔄 Processing automations...')
     const result = await processAutomations()
 
@@ -28,9 +31,12 @@ export async function POST(request: Request) {
   }
 }
 
-// Pour tester manuellement (à supprimer en production)
+// Test manuel (admin uniquement)
 export async function GET(request: Request) {
   try {
+    if (!(await isAdminOrCron(request))) {
+      return NextResponse.json({ error: 'Non autorisé' }, { status: 403 })
+    }
     console.log('🧪 Manual automation processing triggered')
     const result = await processAutomations()
 
