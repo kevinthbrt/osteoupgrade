@@ -783,7 +783,7 @@ export default function LandingPage() {
               </ul>
               <div className="aspect-[16/7] w-full rounded-xl overflow-hidden">
                 <iframe
-                  src="https://player.vimeo.com/video/1203912444?title=0&byline=0&portrait=0"
+                  src="https://player.vimeo.com/video/1204615744?title=0&byline=0&portrait=0"
                   allow="autoplay; fullscreen; picture-in-picture"
                   className="w-full h-full"
                   style={{ border: 0 }}
