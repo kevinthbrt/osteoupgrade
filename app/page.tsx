@@ -110,34 +110,14 @@ function BrandLockup({ className = '' }: { className?: string }) {
 }
 
 function HeroVideo() {
-  const iframeRef = useRef<HTMLIFrameElement>(null)
-  const [muted, setMuted] = React.useState(true)
-
-  const toggleMute = () => {
-    const newMuted = !muted
-    setMuted(newMuted)
-    iframeRef.current?.contentWindow?.postMessage(
-      JSON.stringify({ method: 'setMuted', value: newMuted }),
-      'https://player.vimeo.com'
-    )
-  }
-
   return (
-    <div className="aspect-[14/9] w-full relative">
+    <div className="aspect-[14/9] w-full">
       <iframe
-        ref={iframeRef}
-        src="https://player.vimeo.com/video/1203912445?autoplay=1&muted=1&loop=1&controls=0&autopause=0"
+        src="https://player.vimeo.com/video/1204554379?title=0&byline=0&portrait=0"
         allow="autoplay; fullscreen; picture-in-picture"
         className="w-full h-full"
         style={{ border: 0 }}
       />
-      <button
-        onClick={toggleMute}
-        className="absolute bottom-3 right-3 p-2 rounded-full bg-black/50 hover:bg-black/70 transition text-white backdrop-blur-sm"
-        aria-label={muted ? 'Activer le son' : 'Couper le son'}
-      >
-        {muted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
-      </button>
     </div>
   )
 }
@@ -516,7 +496,7 @@ export default function LandingPage() {
 
             {/* Right: Hero media slot (browser/app frame) */}
             <div className={`transition-all duration-1000 delay-300 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'}`}>
-              <div className="relative w-full max-w-xl mx-auto animate-float-slow">
+              <div className="relative w-full max-w-xl mx-auto">
                 <div className="rounded-2xl overflow-hidden shadow-2xl shadow-black/40 border border-white/10 bg-[#0c1222]">
                   {/* Title bar */}
                   <div className="flex items-center gap-2 px-4 py-3 bg-[#0a0e1a] border-b border-white/5">
