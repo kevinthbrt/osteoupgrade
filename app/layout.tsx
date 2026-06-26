@@ -12,6 +12,8 @@ const playfair = Playfair_Display({
   variable: '--font-playfair',
 })
 
+const baseUrl = 'https://www.osteo-upgrade.fr'
+
 export const metadata: Metadata = {
   title: 'OsteoUpgrade × MyOsteoflow — Gérez votre cabinet, élevez votre pratique',
   description: 'La plateforme tout-en-un des ostéopathes, étiopathes et chiropracteurs : MyOsteoflow pour gérer votre cabinet (dictée IA, suivi patient, compta) et OsteoUpgrade pour faire progresser votre pratique (tests, EBP, e-learning).',
@@ -19,6 +21,28 @@ export const metadata: Metadata = {
     icon: '/favicon.svg',
     shortcut: '/favicon.svg',
     apple: '/favicon.svg',
+  },
+  openGraph: {
+    type: 'website',
+    url: baseUrl,
+    siteName: 'OsteoUpgrade',
+    title: 'OsteoUpgrade × MyOsteoflow — Gérez votre cabinet, élevez votre pratique',
+    description: 'La plateforme tout-en-un des ostéopathes, étiopathes et chiropracteurs : MyOsteoflow pour gérer votre cabinet (dictée IA, suivi patient, compta) et OsteoUpgrade pour faire progresser votre pratique (tests, EBP, e-learning).',
+    images: [
+      {
+        url: `${baseUrl}/landing/screenshots/hero.png`,
+        width: 1200,
+        height: 630,
+        alt: 'OsteoUpgrade — Plateforme pour ostéopathes',
+      },
+    ],
+    locale: 'fr_FR',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'OsteoUpgrade × MyOsteoflow — Gérez votre cabinet, élevez votre pratique',
+    description: 'La plateforme tout-en-un des ostéopathes, étiopathes et chiropracteurs.',
+    images: [`${baseUrl}/landing/screenshots/hero.png`],
   },
 }
 
