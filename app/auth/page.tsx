@@ -39,7 +39,7 @@ const features = [
   },
   {
     icon: FileText,
-    label: 'Dictée vocale — l'IA rédige vos CR',
+    label: "Dictée vocale — l'IA rédige vos CR",
     pillar: 'MyOsteoflow',
     color: 'text-blue-300',
   },
