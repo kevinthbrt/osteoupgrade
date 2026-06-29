@@ -210,7 +210,7 @@ export default function LandingPage() {
       quote: 'Je prends mes notes pendant la séance, au détriment du patient.',
       pillar: 'MyOsteoflow',
       pillarColor: 'flow',
-      solution: 'Dictée vocale : l’IA rédige pour vous',
+      solution: 'Dictée vocale : l\'IA rédige pour vous',
       icon: Mic,
       image: '/landing/notes.png',
     },
@@ -600,15 +600,17 @@ export default function LandingPage() {
                   <p className="text-base font-semibold text-slate-800 leading-snug mb-5">
                     « {pain.quote} »
                   </p>
-                  <div className="mt-auto flex items-center gap-3 pt-4 border-t border-slate-100">
-                    <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${isFlow ? 'flow-gradient' : 'bg-gradient-to-br from-sky-500 to-blue-500'}`}>
-                      <Icon className="h-4 w-4 text-white" />
-                    </div>
-                    <div className="min-w-0">
-                      <div className={`text-[10px] font-bold uppercase tracking-wider ${isFlow ? 'text-blue-600' : 'text-sky-600'} ${isFlow ? 'font-display not-italic' : ''}`}>
-                        {pain.pillar}
+                  <div className={`mt-auto rounded-xl p-3 ${isFlow ? 'bg-blue-50' : 'bg-sky-50'}`}>
+                    <div className="flex items-center gap-3">
+                      <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${isFlow ? 'flow-gradient' : 'bg-gradient-to-br from-sky-500 to-blue-500'}`}>
+                        <Icon className="h-4 w-4 text-white" />
                       </div>
-                      <div className="text-xs text-slate-600 font-medium leading-tight">{pain.solution}</div>
+                      <div className="min-w-0">
+                        <div className={`text-[10px] font-bold uppercase tracking-wider ${isFlow ? 'text-blue-600' : 'text-sky-600'} ${isFlow ? 'font-display not-italic' : ''}`}>
+                          {pain.pillar}
+                        </div>
+                        <div className="text-sm font-semibold text-slate-800 leading-snug">{pain.solution}</div>
+                      </div>
                     </div>
                   </div>
                 </div>
