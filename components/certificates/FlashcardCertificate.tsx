@@ -104,8 +104,8 @@ export default function FlashcardCertificate({
           <View style={styles.pill}>
             <Text style={styles.pillText}>OSTEOFLASH</Text>
           </View>
-          <Text style={styles.titleMain}>Certificat d&apos;Excellence</Text>
-          <Text style={styles.subtitleFormation}>FORMATION CLINIQUE</Text>
+          <Text style={styles.titleMain}>Attestation de compl{'é'}tion</Text>
+          <Text style={styles.subtitleFormation}>PARCOURS D&apos;ENTRA{'Î'}NEMENT CLINIQUE</Text>
           <View style={styles.ruleGold} />
           <Text style={styles.decerneLabel}>D{'É'}CERN{'É'} {'À'}</Text>
           <Text style={styles.recipientName}>{recipientName}</Text>
@@ -122,7 +122,7 @@ export default function FlashcardCertificate({
         <View style={styles.footer}>
           <View style={styles.footerSide} />
           <View style={styles.footerCenter}>
-            <Text style={styles.certLabel}>NUM{'É'}RO DE CERTIFICAT</Text>
+            <Text style={styles.certLabel}>NUM{'É'}RO D&apos;ATTESTATION</Text>
             <View style={styles.certBox}>
               <Text style={styles.certNumber}>{certificateNumber}</Text>
             </View>

@@ -294,7 +294,7 @@ export default function OsteoFlashPage() {
                     </p>
                   )}
                   <Award className="w-10 h-10 text-yellow-300 mx-auto mb-2" />
-                  <p className="text-white font-bold text-lg mb-1">Certificat d&apos;Excellence</p>
+                  <p className="text-white font-bold text-lg mb-1">Attestation de compl&eacute;tion</p>
                   <p className="text-violet-300 text-xs mb-4 font-mono">{certificate.number}</p>
                   <a
                     href={`/api/flashcards/certificate/pdf?deck_id=${activeDeck?.id}`}
