@@ -52,7 +52,8 @@ export async function GET(request: NextRequest) {
         .in('chapter_id', chapterIds)
     : { count: 0 }
 
-  const subject = Array.isArray(formation?.subject) ? formation?.subject[0] : formation?.subject as { name: string } | null
+  const rawSubject = formation?.subject as { name: string } | { name: string }[] | null | undefined
+  const subject = Array.isArray(rawSubject) ? rawSubject[0] : rawSubject
 
   const logoSrc = await svgToPngDataUri(path.join(process.cwd(), 'public', 'logo.svg'), 640)
 
