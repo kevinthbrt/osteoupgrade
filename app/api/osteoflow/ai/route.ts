@@ -22,6 +22,9 @@ RÉPONDS UNIQUEMENT EN JSON valide avec ce format exact :
     { "id": "treatment", "label": "Traitements", "icon": "💊", "color": "stone", "items": ["..."] },
     { "id": "functional", "label": "Impact fonctionnel", "icon": "🚶", "color": "slate", "items": ["..."] },
     { "id": "red_flags", "label": "Drapeaux rouges", "icon": "🚩", "color": "green", "items": ["..."], "allClear": true }
+  ],
+  "pain_points": [
+    { "id": "identifiant-court-unique", "kind": "point", "view": "front", "coords": [{ "x": 50, "y": 30 }], "label": "Épaule droite", "detail": "Type, intensité EVA, irradiations" }
   ]
 }
 
@@ -29,6 +32,26 @@ Inclus TOUJOURS les 7 sections dans cet ordre, même si certaines sont vides (el
 servent de checklist au praticien). Garde les "id", "label", "icon" et "color"
 exactement comme ci-dessus. Chaque "items" est un tableau d'items courts en style
 télégraphique (≤ ~12 mots, un item = une information précise).
+
+"pain_points" — un marqueur par zone douloureuse distincte mentionnée dans la dictée,
+à positionner sur un schéma corporel (silhouette humaine simplifiée, face et dos) :
+- "kind" : "point" pour une douleur ponctuelle, "zone" pour une région étendue (2 à 6
+  "coords" délimitant un polygone approximatif), "path" pour un trajet/irradiation
+  (2 à 5 "coords" le long du trajet, dans l'ordre)
+- "view" : "front" (face) ou "back" (dos) selon la région anatomique concernée
+- "coords" : liste de { "x", "y" } en pourcentage (0–100) de la silhouette, où x=50
+  est l'axe médian, y=0 le sommet du crâne et y=100 la plante des pieds (repères
+  approximatifs : épaules y≈20, taille y≈45, hanches y≈55, genoux y≈78, chevilles
+  y≈95). Place les régions latérales (épaule, bras, hanche, genou droit/gauche) en
+  miroir correct selon x < 50 (côté droit du patient, à gauche sur un schéma de face)
+  ou x > 50 (côté gauche du patient) — sois cohérent entre "droit"/"gauche" mentionné
+  et la position horizontale, en tenant compte de l'inversion face/dos.
+- "label" : région courte (ex. "Lombaire", "Épaule droite", "Trajet sciatique G")
+- "detail" : reprend en une phrase concise le type de douleur, l'intensité (EVA si
+  chiffrée) et les irradiations propres à ce point (même information que la section
+  "pain", éclatée par localisation)
+- Ne crée un point QUE si une localisation de douleur précise est mentionnée ; si
+  aucune douleur localisable n'est décrite, renvoie "pain_points": []
 
 Contenu attendu par section :
 - "history" (Histoire de la maladie) : circonstances d'apparition, chronologie/ancienneté, évolution
@@ -215,7 +238,8 @@ export async function POST(req: Request) {
         // Output now carries both the markdown anamnesis AND the sections array,
         // so a long consultation can overflow 2000 tokens and truncate the JSON
         // (which then falls back to a card-less response). 3000 gives headroom.
-        max_tokens: 3000,
+        // pain_points s'ajoute désormais à sections/anamnesis dans la même réponse.
+        max_tokens: 3800,
         system: [
           {
             type: 'text',
@@ -282,7 +306,7 @@ export async function POST(req: Request) {
     const end = content.lastIndexOf('}')
     const jsonStr = start >= 0 && end > start ? content.slice(start, end + 1) : content
 
-    let parsed: { reason?: string; sections?: unknown[]; anamnesis?: string }
+    let parsed: { reason?: string; sections?: unknown[]; pain_points?: unknown[]; anamnesis?: string }
     try {
       parsed = JSON.parse(jsonStr)
     } catch {
