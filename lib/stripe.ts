@@ -23,6 +23,20 @@ export const STRIPE_PLANS = {
     currency: 'eur',
     interval: 'month',
     isAnnual: false
+  },
+  // Offre réservée aux membres fondateurs (is_founding_member = true) : -50% à vie
+  // sur le tarif annuel équivalent (49,99€ x 12 x 50% = 299,94€/an), payable annuellement
+  // uniquement. Le prix doit correspondre au Price Stripe (STRIPE_PRICE_PREMIUM_ANNUAL_FOUNDER).
+  premium_annual_founder: {
+    name: 'Premium Fondateur',
+    planType: 'premium',
+    priceId: process.env.STRIPE_PRICE_PREMIUM_ANNUAL_FOUNDER || '',
+    amount: 29994, // 299,94€/an (-50% à vie)
+    displayPrice: '299,94€',
+    displayInterval: 'an',
+    currency: 'eur',
+    interval: 'year',
+    isAnnual: true
   }
 }
 

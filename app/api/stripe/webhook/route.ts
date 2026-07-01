@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { headers } from 'next/headers'
-import { stripe, REFERRAL_FREE_MONTH_AMOUNT } from '@/lib/stripe'
+import { stripe, REFERRAL_FREE_MONTH_AMOUNT, STRIPE_PLANS } from '@/lib/stripe'
 import { supabaseAdmin } from '@/lib/supabase-server'
 import { sendTransactionalEmail } from '@/lib/mailing'
 import { notifyAdmin } from '@/lib/admin-notify'
@@ -69,6 +69,11 @@ async function handleCheckoutCompleted(session: any) {
     console.error('Checkout completed: missing userId or planType')
     return
   }
+
+  // Retrouver le plan souscrit (mensuel standard ou annuel fondateur -50%) pour
+  // afficher le bon prix/intervalle dans les emails et notifications.
+  const planKey = session.metadata?.plan_key as keyof typeof STRIPE_PLANS | undefined
+  const subscribedPlan = (planKey && STRIPE_PLANS[planKey]) || STRIPE_PLANS.premium_monthly
 
   // Mettre à jour le profil utilisateur (sans engagement)
   const subscriptionStartDate = new Date()
@@ -255,7 +260,8 @@ async function handleCheckoutCompleted(session: any) {
   }
 
   // 🚀 DÉCLENCHER L'AUTOMATISATION "Passage à Premium"
-  const displayPrice = '49,99€'
+  const displayPrice = subscribedPlan.displayPrice
+  const nextBillingDelayMs = subscribedPlan.isAnnual ? 365 * 24 * 60 * 60 * 1000 : 30 * 24 * 60 * 60 * 1000
   try {
     await fetch(`${process.env.NEXT_PUBLIC_URL || 'http://localhost:3000'}/api/automations/trigger`, {
       method: 'POST',
@@ -267,10 +273,10 @@ async function handleCheckoutCompleted(session: any) {
         event: 'Passage à Premium',
         contact_email: profile.email,
         metadata: {
-          nom: 'Premium',
+          nom: subscribedPlan.name,
           prix: displayPrice,
-          interval: 'mensuel',
-          date_fact: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString('fr-FR'),
+          interval: subscribedPlan.isAnnual ? 'annuel' : 'mensuel',
+          date_fact: new Date(Date.now() + nextBillingDelayMs).toLocaleDateString('fr-FR'),
           code_parrainage: userReferralCode
         }
       })
@@ -280,7 +286,7 @@ async function handleCheckoutCompleted(session: any) {
   }
 
   // 🔔 NOTIF INTERNE admin (cloche)
-  const planLabel = 'Premium · 49,99€/mois'
+  const planLabel = `${subscribedPlan.name} · ${subscribedPlan.displayPrice}/${subscribedPlan.displayInterval}`
   const notifBody = referralCode
     ? `${profile.email} — ${planLabel} (parrainage : ${referralCode})`
     : `${profile.email} — ${planLabel}`
@@ -290,7 +296,6 @@ async function handleCheckoutCompleted(session: any) {
   const adminEmail = process.env.ADMIN_EMAIL
   if (adminEmail) {
     try {
-      const planLabel = 'Premium (49,99€/mois)'
       const referralInfo = referralCode ? `<p style="margin:4px 0;font-size:13px;color:#64748b;">Code parrainage utilisé : <strong>${referralCode}</strong></p>` : ''
       await sendTransactionalEmail({
         to: adminEmail,
