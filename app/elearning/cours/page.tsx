@@ -122,6 +122,8 @@ export default function CoursPage() {
   const [formationToEdit, setFormationToEdit] = useState<Formation | null>(null)
   const [activeQuiz, setActiveQuiz] = useState<{ quiz: Quiz; subpartId: string } | null>(null)
   const [quizManager, setQuizManager] = useState<{ subpartId: string; subpartTitle: string; quiz?: Quiz } | null>(null)
+  const [courseCertificate, setCourseCertificate] = useState<{ number: string; isNew: boolean } | null>(null)
+  const [courseCertLoading, setCourseCertLoading] = useState(false)
 
   useEffect(() => {
     loadData()
@@ -355,6 +357,25 @@ export default function CoursPage() {
   }
 
   const progress = useMemo(() => computeProgress(selectedFormation), [selectedFormation])
+
+  useEffect(() => {
+    setCourseCertificate(null)
+    if (!selectedFormation || progress.percent !== 100) return
+    setCourseCertLoading(true)
+    fetch('/api/elearning/certificate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ formation_id: selectedFormation.id }),
+    })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (data?.certificate_number) {
+          setCourseCertificate({ number: data.certificate_number, isNew: !data.already_existed })
+        }
+      })
+      .catch(() => {})
+      .finally(() => setCourseCertLoading(false))
+  }, [selectedFormation?.id, progress.percent])
 
   const downloadPdf = async (url: string, name?: string) => {
     try {
@@ -913,6 +934,16 @@ export default function CoursPage() {
                         />
                       </div>
                       <span className="text-xs text-gray-600 font-semibold">{progress.percent}%</span>
+                      {progress.percent === 100 && (
+                        <a
+                          href={`/api/elearning/certificate/pdf?formation_id=${selectedFormation.id}`}
+                          download
+                          className={`inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-gradient-to-r from-sky-500 to-indigo-600 text-white font-semibold text-sm shadow-sm hover:opacity-90 transition-all ${!courseCertificate ? 'pointer-events-none opacity-60' : ''}`}
+                        >
+                          <FileDown className="h-4 w-4" />
+                          {courseCertLoading ? 'Préparation…' : 'Télécharger mon attestation'}
+                        </a>
+                      )}
                       <div className="flex gap-2">
                         {isAdmin && (
                           <>
