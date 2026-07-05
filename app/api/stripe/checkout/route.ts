@@ -48,6 +48,29 @@ export async function POST(request: Request) {
       )
     }
 
+    // 🌟 L'offre Fondateur (-50% à vie, facturation annuelle) est réservée aux
+    // profils marqués is_founding_member par un admin. On revérifie côté serveur
+    // pour empêcher un utilisateur de la sélectionner en falsifiant la requête.
+    if (planType === 'premium_annual_founder') {
+      const { supabaseAdmin } = await import('@/lib/supabase-server')
+      const { data: callerProfile } = await supabaseAdmin
+        .from('profiles')
+        .select('is_founding_member')
+        .eq('id', userId)
+        .single()
+
+      if (!callerProfile?.is_founding_member) {
+        console.warn('⚠️ Non-founding user attempted to use founder plan:', userId)
+        return NextResponse.json(
+          {
+            error: 'Offre réservée aux membres fondateurs',
+            details: 'Ce tarif préférentiel est réservé aux membres ayant le statut fondateur.'
+          },
+          { status: 403 }
+        )
+      }
+    }
+
     // Valider le code de parrainage (applicable à l'offre unique)
     let referrerUserId = null
     const shouldProcessReferral = Boolean(referralCode)
@@ -139,6 +162,7 @@ export async function POST(request: Request) {
       metadata: {
         userId,
         planType: plan.planType || planType,
+        plan_key: planType,
         billing_interval: plan.interval,
         is_annual: plan.isAnnual ? 'true' : 'false',
         referral_code: shouldProcessReferral ? referralCode || '' : '',
@@ -148,6 +172,7 @@ export async function POST(request: Request) {
         metadata: {
           userId,
           planType: plan.planType || planType,
+          plan_key: planType,
           billing_interval: plan.interval,
           is_annual: plan.isAnnual ? 'true' : 'false',
           referral_code: shouldProcessReferral ? referralCode || '' : '',

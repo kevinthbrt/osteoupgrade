@@ -4,7 +4,7 @@ import { useEffect, useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import AuthLayout from '@/components/AuthLayout'
-import { Crown, Check, Sparkles, Loader2, ArrowLeft, ExternalLink, Gift, Shield, Calendar, ChevronRight } from 'lucide-react'
+import { Crown, Check, Sparkles, Loader2, ArrowLeft, ExternalLink, Gift, Shield, Calendar, ChevronRight, Star } from 'lucide-react'
 import Link from 'next/link'
 
 function SubscriptionContent() {
@@ -193,6 +193,7 @@ function SubscriptionContent() {
   }
 
   const isPremium = profile?.role === 'premium' || profile?.role === 'admin'
+  const isFoundingMember = Boolean(profile?.is_founding_member)
   const pendingPlanSupportsReferral = pendingPlanType ? isReferralEligiblePlan(pendingPlanType) : false
 
   return (
@@ -477,6 +478,58 @@ function SubscriptionContent() {
                   <ChevronRight className="h-4 w-4" />
                 </Link>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* Offre exclusive Membres Fondateurs : -50% à vie, facturation annuelle */}
+        {!isPremium && isFoundingMember && (
+          <div className="relative bg-white border-4 border-amber-400 rounded-2xl shadow-2xl overflow-hidden max-w-2xl">
+            <div className="absolute top-6 right-6 z-10">
+              <div className="bg-gradient-to-r from-amber-400 to-yellow-500 text-amber-900 px-4 py-2 rounded-full text-sm font-bold shadow-lg flex items-center gap-2">
+                <Star className="h-4 w-4" />
+                -50% à vie
+              </div>
+            </div>
+
+            <div className="bg-gradient-to-r from-amber-500 to-yellow-600 p-6 text-amber-900">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="p-2 bg-amber-900/20 rounded-lg">
+                  <Star className="h-6 w-6" />
+                </div>
+                <h2 className="text-2xl font-bold">Premium Fondateur</h2>
+              </div>
+              <p className="text-amber-900/90">Votre tarif préférentiel de membre fondateur, garanti à vie</p>
+              <div className="mt-6">
+                <div className="space-y-4">
+                  <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4">
+                    <div className="flex items-baseline gap-2 mb-1">
+                      <span className="text-4xl font-bold">299,94€</span>
+                      <span className="text-amber-900/80">/an</span>
+                    </div>
+                    <p className="text-sm text-amber-900/70">
+                      Soit -50% à vie sur le tarif Premium (au lieu de 599,88€/an) • Facturation annuelle • Renouvelable chaque année
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-6 space-y-6">
+              <button
+                onClick={() => handleUpgrade('premium_annual_founder')}
+                disabled={processingPlan !== null}
+                className="w-full bg-gradient-to-r from-amber-500 to-yellow-600 text-amber-900 py-4 px-6 rounded-lg font-bold hover:from-amber-600 hover:to-yellow-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 border-2 border-amber-400 shadow-lg"
+              >
+                {processingPlan === 'premium_annual_founder' ? (
+                  <><Loader2 className="h-5 w-5 animate-spin" />Redirection...</>
+                ) : (
+                  <><Star className="h-5 w-5" />Choisir Premium Fondateur (299,94€/an)</>
+                )}
+              </button>
+              <p className="text-xs text-gray-500 text-center">
+                Réservé aux membres fondateurs. Cette offre remplace l'abonnement mensuel standard ci-dessous.
+              </p>
             </div>
           </div>
         )}
