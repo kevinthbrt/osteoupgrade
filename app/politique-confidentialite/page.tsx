@@ -71,7 +71,7 @@ export default function PolitiqueConfidentialitePage() {
             <li>Transcription vocale (dictée) : Groq (États-Unis).</li>
           </ul>
           <p className="text-sm text-slate-500">
-            Anthropic et Groq, basés aux États-Unis, ne traitent que le contenu transmis via les fonctionnalités d’intelligence artificielle d’OsteoUpgrade et de MyOsteoflow (structuration d’anamnèses, aide au raisonnement clinique, transcription vocale).
+            Anthropic et Groq, basés aux États-Unis, ne traitent que le contenu transmis via les fonctionnalités d’intelligence artificielle d’OsteoUpgrade et de MyOsteoflow (structuration d’anamnèses, aide au raisonnement clinique, transcription vocale). Le transfert de données vers ces deux sous-traitants est encadré par leurs Data Processing Addendum respectifs, qui intègrent les clauses contractuelles types de la Commission européenne.
           </p>
         </section>
 
