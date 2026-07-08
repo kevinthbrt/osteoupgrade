@@ -4,17 +4,13 @@ import { getOsteoflowSessionUser } from '@/lib/osteoflow-auth'
 
 export const dynamic = 'force-dynamic'
 
-const EXPECTED_SECRET = process.env.OSTEOFLOW_PROXY_SECRET
-
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   const tokenUser = await getOsteoflowSessionUser(req)
-  const authHeader = req.headers.get('x-osteoflow-secret')
-  if (!tokenUser && (!EXPECTED_SECRET || authHeader !== EXPECTED_SECRET)) {
+  if (!tokenUser) {
     return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
   }
 
-  const body = await req.json()
-  const email = tokenUser?.email ?? body.email
+  const email = tokenUser.email
   if (!email) return NextResponse.json({ error: 'email requis' }, { status: 400 })
 
   const { error } = await supabaseAdmin
