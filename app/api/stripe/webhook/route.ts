@@ -254,6 +254,17 @@ async function handleCheckoutCompleted(session: any) {
     console.error('Could not fetch referral code for automation')
   }
 
+  // Récupérer le lien de la facture Stripe du premier paiement (pour l'email de bienvenue)
+  let factureUrl = ''
+  try {
+    if (session.invoice) {
+      const firstInvoice = await stripe.invoices.retrieve(session.invoice)
+      factureUrl = firstInvoice.hosted_invoice_url || firstInvoice.invoice_pdf || ''
+    }
+  } catch (err) {
+    console.error('Error retrieving first invoice for confirmation email')
+  }
+
   // 🚀 DÉCLENCHER L'AUTOMATISATION "Passage à Premium"
   const displayPrice = '49,99€'
   try {
@@ -271,7 +282,8 @@ async function handleCheckoutCompleted(session: any) {
           prix: displayPrice,
           interval: 'mensuel',
           date_fact: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString('fr-FR'),
-          code_parrainage: userReferralCode
+          code_parrainage: userReferralCode,
+          facture_url: factureUrl
         }
       })
     })
@@ -454,7 +466,8 @@ async function handlePaymentSucceeded(invoice: any) {
         contact_email: profile.email,
         metadata: {
           nom: 'Premium',
-          date_fact: new Date().toLocaleDateString('fr-FR')
+          date_fact: new Date().toLocaleDateString('fr-FR'),
+          facture_url: invoice.hosted_invoice_url || invoice.invoice_pdf || ''
         }
       })
     })
