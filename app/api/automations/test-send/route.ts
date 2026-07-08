@@ -64,6 +64,7 @@ export async function POST(req: NextRequest) {
       user_name: 'Testeur Admin',
       code_parrainage: 'TEST123',
       cycle: '1',
+      facture_url: 'https://invoice.stripe.com/test-facture-exemple',
     }
 
     const applyVars = (str: string): string => {

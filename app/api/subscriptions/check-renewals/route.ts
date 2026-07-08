@@ -27,7 +27,7 @@ export async function GET(request: Request) {
     // Récupérer tous les utilisateurs Premium actifs avec un stripe_subscription_id
     const { data: premiumUsers, error: usersError } = await supabaseAdmin
       .from('profiles')
-      .select('id, email, role, stripe_subscription_id, stripe_customer_id, renewal_reminder_sent_at')
+      .select('id, email, full_name, role, stripe_subscription_id, stripe_customer_id, renewal_reminder_sent_at')
       .eq('subscription_status', 'active')
       .eq('role', 'premium')
       .not('stripe_subscription_id', 'is', null)
@@ -74,6 +74,7 @@ export async function GET(request: Request) {
             body: JSON.stringify({
               event: 'Renouvellement imminent',
               contact_email: user.email,
+              full_name: user.full_name,
               metadata: {
                 date_renouv: periodEndDate.toLocaleDateString('fr-FR', {
                   day: 'numeric',

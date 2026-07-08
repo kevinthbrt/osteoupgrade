@@ -144,6 +144,7 @@ export default function AuthPage() {
                 body: JSON.stringify({
                   event: 'Inscription',
                   contact_email: email,
+                  full_name: fullName,
                   metadata: { full_name: fullName },
                 }),
               }),
@@ -153,6 +154,7 @@ export default function AuthPage() {
                 body: JSON.stringify({
                   event: 'user_registered',
                   contact_email: email,
+                  full_name: fullName,
                   metadata: { full_name: fullName },
                 }),
               }),
