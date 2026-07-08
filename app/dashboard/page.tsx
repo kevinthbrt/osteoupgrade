@@ -92,7 +92,7 @@ export default function Dashboard() {
         ).filter(Boolean))
       }
 
-      if (profileData?.role === 'premium' || profileData?.role === 'admin') {
+      if ((profileData?.role === 'premium' || profileData?.role === 'admin') && !profileData?.is_founding_member) {
         try {
           const [codeRes, earningsRes] = await Promise.all([fetch('/api/referrals/my-code'), fetch('/api/referrals/earnings')])
           const referralCode = codeRes.ok ? (await codeRes.json()).referralCode : null
