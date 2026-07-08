@@ -1,18 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase-server'
+import { getOsteoflowSessionUser } from '@/lib/osteoflow-auth'
 import { put } from '@vercel/blob'
 
-const OSTEOFLOW_SECRET = process.env.OSTEOFLOW_PROXY_SECRET
-
-function checkSecret(req: NextRequest) {
-  return req.headers.get('x-osteoflow-secret') === OSTEOFLOW_SECRET
-}
-
 export async function POST(req: NextRequest) {
-  if (!checkSecret(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const tokenUser = await getOsteoflowSessionUser(req)
+  if (!tokenUser) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   try {
-    const { title, message, user_email, license_email, attachment_b64, attachment_name, attachment_type, attachment_size } = await req.json()
+    const { title, message, attachment_b64, attachment_name, attachment_type, attachment_size } = await req.json()
+    const user_email = tokenUser.email
+    const license_email = tokenUser.email
 
     if (!title?.trim() || !message?.trim() || !user_email?.trim()) {
       return NextResponse.json({ error: 'Champs requis manquants' }, { status: 400 })
@@ -62,27 +60,17 @@ export async function POST(req: NextRequest) {
 }
 
 export async function GET(req: NextRequest) {
-  if (!checkSecret(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const tokenUser = await getOsteoflowSessionUser(req)
+  if (!tokenUser) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const licenseEmail = req.nextUrl.searchParams.get('license_email')
-  const userEmail = req.nextUrl.searchParams.get('user_email')
+  const email = tokenUser.email
 
-  if (!licenseEmail && !userEmail) {
-    return NextResponse.json({ error: 'Email requis' }, { status: 400 })
-  }
-
-  let query = supabaseAdmin
+  const { data: tickets, error } = await supabaseAdmin
     .from('support_tickets')
     .select('id, title, message, status, created_at, attachment_name, last_admin_message_at, admin_reply, admin_replied_at')
+    .or(`license_email.eq.${email},user_email.eq.${email}`)
     .order('created_at', { ascending: false })
 
-  if (licenseEmail) {
-    query = query.eq('license_email', licenseEmail)
-  } else {
-    query = query.eq('user_email', userEmail!)
-  }
-
-  const { data: tickets, error } = await query
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
   return NextResponse.json({ tickets: tickets || [] })
