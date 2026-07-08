@@ -15,13 +15,13 @@ export default function PolitiqueConfidentialitePage() {
         <section className="space-y-4">
           <h2 className="text-xl font-semibold text-slate-900">1. Responsable du traitement</h2>
           <p className="text-slate-700">
-            <strong>SAS OsteoUpgrade</strong>
+            <strong>SAS OsteoUpgrade</strong>, au capital de 1 000 €
             <br />
             57 bis route nationale, résidence coté parc, bât A, 06440 Blausasc
             <br />
-            SIRET : en cours d&apos;immatriculation
+            RCS Nice : 106 919 715
             <br />
-            Co-gérants : Kevin Thubert et Gerald Stoppini
+            Président : Gerald Stoppini — Directeur général : Kevin Thubert
             <br />
             Téléphone : 06 63 24 42 80
             <br />

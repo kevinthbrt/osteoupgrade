@@ -17,11 +17,11 @@ export default function MentionsLegalesPage() {
           <p className="text-slate-700">
             <strong>OsteoUpgrade</strong>
             <br />
-            SAS
+            Société par actions simplifiée (SAS) au capital de 1 000 €
             <br />
             57 bis route nationale, résidence coté parc, bât A, 06440 Blausasc
             <br />
-            SIRET : [en cours d&apos;immatriculation]
+            RCS Nice : 106 919 715
             <br />
             Téléphone : 06 63 24 42 80
             <br />
@@ -32,7 +32,7 @@ export default function MentionsLegalesPage() {
         <section className="space-y-3">
           <h2 className="text-xl font-semibold text-slate-900">Directeur de la publication</h2>
           <p className="text-slate-700">
-            Kevin Thubert et Gerald Stoppini, co-gérants de la SAS OsteoUpgrade.
+            Gerald Stoppini, Président, et Kevin Thubert, Directeur général, de la SAS OsteoUpgrade.
           </p>
           <p className="text-sm text-slate-500">
             Le directeur de la publication est la personne physique ou morale qui a la responsabilité éditoriale du site internet, c&apos;est-à-dire qui décide des contenus publiés et en assume la responsabilité légale.

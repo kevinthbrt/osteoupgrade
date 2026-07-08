@@ -43,12 +43,12 @@ export default function CGUPage() {
               <div className="bg-blue-50 border-l-4 border-blue-500 p-6 rounded-r-lg">
                 <p className="text-gray-700 font-medium mb-2">OsteoUpgrade SAS</p>
                 <p className="text-gray-600 text-sm">
-                  Forme juridique : SAS (Société par Actions Simplifiée)<br />
+                  Forme juridique : SAS (Société par Actions Simplifiée) au capital de 1 000 €<br />
                   Siège social : 57 bis route nationale, résidence coté parc, bât A, 06440 Blausasc<br />
-                  SIRET : en cours d&apos;immatriculation<br />
+                  RCS Nice : 106 919 715<br />
                   Téléphone : 06 63 24 42 80<br />
                   Email : contact@osteo-upgrade.fr<br />
-                  Co-gérants : Kevin Thubert et Gerald Stoppini<br />
+                  Président : Gerald Stoppini — Directeur général : Kevin Thubert<br />
                   Hébergeur : Vercel Inc., 440 N Barranca Ave #4133, Covina, CA 91723, USA
                 </p>
               </div>
