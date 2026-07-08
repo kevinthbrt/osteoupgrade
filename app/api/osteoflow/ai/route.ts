@@ -5,8 +5,8 @@ export const dynamic = 'force-dynamic'
 // Long anamneses (max_tokens 3000 on Sonnet) can take well over the default
 // Vercel function ceiling. Without this the function is killed mid-call and the
 // caller sees a generic 500 even though the AbortSignals below never fired.
-// Hobby caps at 60s; raise once on Pro.
-export const maxDuration = 60
+// Plan Pro (jusqu'à 300s) — relevé de 60s.
+export const maxDuration = 120
 
 const SYSTEM_PROMPT = `Tu es un assistant clinique pour ostéopathes francophones.
 Tu reçois la transcription brute d'une anamnèse et tu dois la structurer en cartes.
@@ -225,9 +225,9 @@ export async function POST(req: Request) {
         ],
         messages: [{ role: 'user', content: structureUserContent }],
       }),
-      // Kept below maxDuration (60s) so a slow Anthropic response aborts cleanly
+      // Kept below maxDuration (120s) so a slow Anthropic response aborts cleanly
       // with our own error rather than the function being hard-killed by Vercel.
-      signal: AbortSignal.timeout(45000),
+      signal: AbortSignal.timeout(90000),
     })
 
     const detectionCall = patientContext

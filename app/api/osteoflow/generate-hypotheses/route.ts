@@ -3,8 +3,9 @@ import { createClient } from '@supabase/supabase-js'
 
 export const dynamic = 'force-dynamic'
 // Clinical reasoning over the anamnesis can take a while on Sonnet; keep the
-// function alive past the default Vercel ceiling. Hobby caps at 60s.
-export const maxDuration = 60
+// function alive past the default Vercel ceiling. Plan Pro (jusqu'à 300s) —
+// relevé de 60s.
+export const maxDuration = 120
 
 const SYSTEM_PROMPT = `Tu es un assistant clinique pour ostéopathes francophones.
 À partir de l'anamnèse SEULE (interrogatoire, sans examen physique) et d'une liste de tests
@@ -205,7 +206,7 @@ export async function POST(req: Request) {
         ],
         messages: [{ role: 'user', content: userContent }],
       }),
-      signal: AbortSignal.timeout(45000),
+      signal: AbortSignal.timeout(90000),
     })
 
     if (!res.ok) {
