@@ -52,6 +52,12 @@ export default function ReferralsPage() {
         return
       }
 
+      // Founding Members ne participent pas au programme de parrainage
+      // (offre déjà à -50% à vie, pas de crédit supplémentaire applicable)
+      if (profileData?.is_founding_member) {
+        return
+      }
+
       // Load referral code
       const codeResponse = await fetch('/api/referrals/my-code')
       if (codeResponse.ok) {
@@ -131,6 +137,17 @@ export default function ReferralsPage() {
           <div className="pointer-events-none absolute bottom-0 left-0 w-72 h-72 bg-indigo-400/20 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '7s', animationDelay: '1s' }} />
           <div className="relative space-y-6">
 
+            {profile?.is_founding_member ? (
+              <div className="bg-white/85 backdrop-blur-2xl border border-white/70 shadow-xl ring-1 ring-inset ring-white/60 rounded-2xl p-8 text-center">
+                <Crown className="h-10 w-10 text-yellow-600 mx-auto mb-3" />
+                <h2 className="text-xl font-bold text-gray-900 mb-2">Parrainage non disponible</h2>
+                <p className="text-gray-600 max-w-xl mx-auto">
+                  En tant que <strong>Membre Fondateur</strong>, vous bénéficiez déjà de -50% à vie sur votre
+                  abonnement. Le programme de parrainage n'est donc pas applicable à votre offre.
+                </p>
+              </div>
+            ) : (
+            <>
             {/* Referral Code Card */}
             <div className="bg-white/85 backdrop-blur-2xl border border-white/70 shadow-xl ring-1 ring-inset ring-white/60 rounded-2xl p-6">
               <div className="flex items-center gap-2 mb-4">
@@ -289,6 +306,8 @@ export default function ReferralsPage() {
                 </div>
               )}
             </div>
+            </>
+            )}
 
           </div>
         </div>
