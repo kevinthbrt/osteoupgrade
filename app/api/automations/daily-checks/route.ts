@@ -23,7 +23,7 @@ export async function POST(request: Request) {
 
       const { data: profiles } = await supabaseAdmin
         .from('profiles')
-        .select('id, email, created_at')
+        .select('id, email, full_name, created_at')
         .lt('created_at', thirtyDaysAgo.toISOString())
         .not('email', 'is', null)
 
@@ -41,6 +41,7 @@ export async function POST(request: Request) {
               body: JSON.stringify({
                 event: 'Inactif depuis 30 jours',
                 contact_email: profile.email,
+                full_name: profile.full_name,
                 metadata: {
                   user_id: profile.id,
                   check_date: new Date().toISOString()
@@ -67,7 +68,7 @@ export async function POST(request: Request) {
 
       const { data: freeProfiles } = await supabaseAdmin
         .from('profiles')
-        .select('id, email, created_at')
+        .select('id, email, full_name, created_at')
         .eq('role', 'free')
         .lt('created_at', fourteenDaysAgo.toISOString())
         .gt('created_at', fifteenDaysAgo.toISOString())
@@ -87,6 +88,7 @@ export async function POST(request: Request) {
               body: JSON.stringify({
                 event: 'Sur free depuis 14 jours',
                 contact_email: profile.email,
+                full_name: profile.full_name,
                 metadata: {
                   user_id: profile.id,
                   account_age_days: 14,

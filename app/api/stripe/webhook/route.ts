@@ -98,7 +98,7 @@ async function handleCheckoutCompleted(session: any) {
   // Récupérer l'email du user
   const { data: profile } = await supabaseAdmin
     .from('profiles')
-    .select('email')
+    .select('email, full_name')
     .eq('id', userId)
     .single()
 
@@ -182,6 +182,7 @@ async function handleCheckoutCompleted(session: any) {
           body: JSON.stringify({
             event: 'Nouveau parrainage',
             contact_email: referrerProfile.email,
+            full_name: referrerProfile.full_name,
             metadata: {
               referred_name: profile.email,
               plan: 'Premium'
@@ -205,6 +206,7 @@ async function handleCheckoutCompleted(session: any) {
           body: JSON.stringify({
             event: 'Bonus parrainage filleul',
             contact_email: profile.email,
+            full_name: profile.full_name,
             metadata: {
               plan: 'Premium'
             }
@@ -277,6 +279,7 @@ async function handleCheckoutCompleted(session: any) {
       body: JSON.stringify({
         event: 'Passage à Premium',
         contact_email: profile.email,
+        full_name: profile.full_name,
         metadata: {
           nom: 'Premium',
           prix: displayPrice,
@@ -366,7 +369,7 @@ async function handleSubscriptionDeleted(subscription: any) {
   // Trouver l'utilisateur par son stripe_customer_id
   const { data: profile, error: profileError } = await supabaseAdmin
     .from('profiles')
-    .select('id, email')
+    .select('id, email, full_name')
     .eq('stripe_customer_id', customerId)
     .single()
 
@@ -403,6 +406,7 @@ async function handleSubscriptionDeleted(subscription: any) {
       body: JSON.stringify({
         event: 'Abonnement expiré',
         contact_email: profile.email,
+        full_name: profile.full_name,
         metadata: {
           cancellation_date: new Date().toISOString()
         }
@@ -432,7 +436,7 @@ async function handlePaymentSucceeded(invoice: any) {
   // Trouver l'utilisateur par son stripe_subscription_id
   const { data: profile, error: profileError } = await supabaseAdmin
     .from('profiles')
-    .select('id, email, role')
+    .select('id, email, role, full_name')
     .eq('stripe_subscription_id', subscriptionId)
     .single()
 
@@ -464,6 +468,7 @@ async function handlePaymentSucceeded(invoice: any) {
       body: JSON.stringify({
         event: 'Renouvellement effectué',
         contact_email: profile.email,
+        full_name: profile.full_name,
         metadata: {
           nom: 'Premium',
           date_fact: new Date().toLocaleDateString('fr-FR'),
@@ -486,7 +491,7 @@ async function handlePaymentFailed(invoice: any) {
   // Trouver l'utilisateur par son stripe_subscription_id
   const { data: profile, error: profileError } = await supabaseAdmin
     .from('profiles')
-    .select('id, email')
+    .select('id, email, full_name')
     .eq('stripe_subscription_id', subscriptionId)
     .single()
 
@@ -506,6 +511,7 @@ async function handlePaymentFailed(invoice: any) {
       body: JSON.stringify({
         event: 'Paiement échoué',
         contact_email: profile.email,
+        full_name: profile.full_name,
         metadata: {
           nom: 'Premium'
         }
