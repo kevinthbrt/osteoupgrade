@@ -49,7 +49,7 @@ export default function SettingsPage() {
       const { data: profileData } = await supabase.from('profiles').select('*').eq('id', user.id).single()
       setProfile(profileData)
       setFullName(profileData?.full_name || '')
-      setNotifications(prev => ({ ...prev, newsletter: profileData?.newsletter_opt_in ?? true }))
+      setNotifications(prev => ({ ...prev, newsletter: profileData?.newsletter_opt_in ?? false }))
     } catch (error) {
       console.error('Error loading user data:', error)
     } finally { setLoading(false) }

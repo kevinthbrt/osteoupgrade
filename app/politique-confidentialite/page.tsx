@@ -8,20 +8,20 @@ export default function PolitiqueConfidentialitePage() {
         <header className="space-y-3">
           <h1 className="text-3xl font-bold text-slate-900">Politique de confidentialité</h1>
           <p className="text-slate-600">
-            Dernière mise à jour : <strong>23 juin 2026</strong>
+            Dernière mise à jour : <strong>8 juillet 2026</strong>
           </p>
         </header>
 
         <section className="space-y-4">
           <h2 className="text-xl font-semibold text-slate-900">1. Responsable du traitement</h2>
           <p className="text-slate-700">
-            <strong>SAS OsteoUpgrade</strong>
+            <strong>SAS OsteoUpgrade</strong>, au capital de 1 000 €
             <br />
             57 bis route nationale, résidence coté parc, bât A, 06440 Blausasc
             <br />
-            SIRET : en cours d&apos;immatriculation
+            RCS Nice : 106 919 715
             <br />
-            Co-gérants : Kevin Thubert et Gerald Stoppini
+            Président : Gerald Stoppini — Directeur général : Kevin Thubert
             <br />
             Téléphone : 06 63 24 42 80
             <br />
@@ -67,7 +67,12 @@ export default function PolitiqueConfidentialitePage() {
             <li>Base de données & Auth : Supabase (UE).</li>
             <li>Paiement : Stripe.</li>
             <li>Email : Resend.</li>
+            <li>Intelligence artificielle (aide au raisonnement clinique, structuration d’anamnèses) : Anthropic (États-Unis).</li>
+            <li>Transcription vocale (dictée) : Groq (États-Unis).</li>
           </ul>
+          <p className="text-sm text-slate-500">
+            Anthropic et Groq, basés aux États-Unis, ne traitent que le contenu transmis via les fonctionnalités d’intelligence artificielle d’OsteoUpgrade et de MyOsteoflow (structuration d’anamnèses, aide au raisonnement clinique, transcription vocale). Le transfert de données vers ces deux sous-traitants est encadré par leurs Data Processing Addendum respectifs, qui intègrent les clauses contractuelles types de la Commission européenne.
+          </p>
         </section>
 
         <section className="space-y-4">
@@ -77,6 +82,13 @@ export default function PolitiqueConfidentialitePage() {
             limitation et portabilité. Pour exercer vos droits :
             <a className="text-sky-600 underline ml-1" href="mailto:privacy@osteo-upgrade.fr">
               privacy@osteo-upgrade.fr
+            </a>.
+          </p>
+          <p className="text-slate-700">
+            Vous disposez également du droit d’introduire une réclamation auprès de la Commission
+            Nationale de l’Informatique et des Libertés (CNIL) :{' '}
+            <a className="text-sky-600 underline" href="https://www.cnil.fr" target="_blank" rel="noreferrer">
+              www.cnil.fr
             </a>.
           </p>
         </section>

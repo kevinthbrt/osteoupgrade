@@ -5,7 +5,7 @@ export const dynamic = 'force-dynamic'
 export const fetchCache = 'force-no-store'
 export const revalidate = 0
 
-const EXPECTED_SECRET = process.env.OSTEOFLOW_PROXY_SECRET || 'a8c0fcc6aa558582564131768fd6aa6b0628b84ac0abe494948b088f086be1a6'
+const EXPECTED_SECRET = process.env.OSTEOFLOW_PROXY_SECRET
 
 // Dedicated admin client whose underlying fetch always bypasses the Next.js
 // Data Cache. Without this, supabase-js's internal fetch can be cached by Next,

@@ -4,7 +4,7 @@ import { getOsteoflowSessionUser } from '@/lib/osteoflow-auth'
 
 export const dynamic = 'force-dynamic'
 
-const EXPECTED_SECRET = process.env.OSTEOFLOW_PROXY_SECRET || 'a8c0fcc6aa558582564131768fd6aa6b0628b84ac0abe494948b088f086be1a6'
+const EXPECTED_SECRET = process.env.OSTEOFLOW_PROXY_SECRET
 
 // GET /api/osteoflow/literature-review/[id]
 // Returns a single literature review with its full structured content, so

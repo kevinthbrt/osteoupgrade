@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase-server'
 import { put } from '@vercel/blob'
 
-const OSTEOFLOW_SECRET = process.env.OSTEOFLOW_PROXY_SECRET || 'a8c0fcc6aa558582564131768fd6aa6b0628b84ac0abe494948b088f086be1a6'
+const OSTEOFLOW_SECRET = process.env.OSTEOFLOW_PROXY_SECRET
 
 function checkSecret(req: NextRequest) {
   return req.headers.get('x-osteoflow-secret') === OSTEOFLOW_SECRET
