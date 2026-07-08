@@ -48,6 +48,23 @@ export async function POST(request: Request) {
       )
     }
 
+    // L'offre Fondateur est réservée aux comptes marqués comme tels — revérifié
+    // ici pour qu'elle ne soit jamais accessible en appelant l'API directement.
+    if (planType === 'founding_annual') {
+      const { data: founderProfile } = await supabase
+        .from('profiles')
+        .select('is_founding_member')
+        .eq('id', userId)
+        .single()
+
+      if (!founderProfile?.is_founding_member) {
+        return NextResponse.json(
+          { error: 'Cette offre est réservée aux membres fondateurs.' },
+          { status: 403 }
+        )
+      }
+    }
+
     // Valider le code de parrainage (applicable à l'offre unique)
     let referrerUserId = null
     const shouldProcessReferral = Boolean(referralCode)
