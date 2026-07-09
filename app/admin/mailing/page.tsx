@@ -456,7 +456,30 @@ export default function MailingAdminPage() {
         throw new Error(data.error || 'Erreur lors de l\'envoi')
       }
 
-      setResult({ type: 'success', message: `Email envoyé à ${data.sent} destinataire(s) !` })
+      if (data.mode === 'broadcast') {
+        const syncFailures = data.syncErrors?.length || 0
+        const syncedMsg = syncFailures > 0
+          ? `${data.synced}/${data.totalContacts} contacts synchronisés (${syncFailures} échec(s) de synchronisation — voir la console pour le détail)`
+          : `${data.synced} contacts synchronisés`
+        setResult({
+          type: 'success',
+          message: `Campagne envoyée via Resend Broadcasts à ${data.totalContacts} destinataire(s). ${syncedMsg}.`
+        })
+        if (syncFailures > 0) {
+          console.error('Échecs de synchronisation des contacts Resend :', data.syncErrors)
+        }
+      } else {
+        const failures = data.total - data.sent
+        setResult({
+          type: 'success',
+          message: failures > 0
+            ? `Email envoyé à ${data.sent}/${data.total} destinataire(s) — ${failures} échec(s), voir la console pour le détail.`
+            : `Email envoyé à ${data.sent} destinataire(s) !`
+        })
+        if (failures > 0) {
+          console.error('Échecs d\'envoi :', data.errors)
+        }
+      }
       setToInput('')
     } catch (error: any) {
       setResult({ type: 'error', message: error.message })

@@ -3,6 +3,9 @@ import { supabaseAdmin } from '@/lib/supabase-server'
 
 /**
  * GET /api/mailing/unsubscribe?token=<base64-encoded-email>
+ * GET /api/mailing/unsubscribe?email=<email>  (utilisé par les campagnes Resend
+ *   Broadcasts, où le lien est résolu par le merge tag {{{contact.email}}} —
+ *   Resend ne peut pas produire un token base64 côté serveur)
  * Unsubscribe a user from marketing emails (newsletter).
  * Updates both mail_contacts.status and profiles.newsletter_opt_in.
  */
@@ -10,18 +13,21 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url)
     const token = searchParams.get('token')
-
-    if (!token) {
-      return new Response(renderUnsubscribePage('error', 'Lien de désinscription invalide.'), {
-        status: 400,
-        headers: { 'Content-Type': 'text/html; charset=utf-8' }
-      })
-    }
+    const rawEmail = searchParams.get('email')
 
     let email: string
-    try {
-      email = Buffer.from(token, 'base64').toString('utf-8')
-    } catch {
+    if (rawEmail) {
+      email = rawEmail
+    } else if (token) {
+      try {
+        email = Buffer.from(token, 'base64').toString('utf-8')
+      } catch {
+        return new Response(renderUnsubscribePage('error', 'Lien de désinscription invalide.'), {
+          status: 400,
+          headers: { 'Content-Type': 'text/html; charset=utf-8' }
+        })
+      }
+    } else {
       return new Response(renderUnsubscribePage('error', 'Lien de désinscription invalide.'), {
         status: 400,
         headers: { 'Content-Type': 'text/html; charset=utf-8' }

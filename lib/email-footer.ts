@@ -52,3 +52,32 @@ export function getUnsubscribeHeaders(email: string): Record<string, string> {
     'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click'
   }
 }
+
+/**
+ * Footer pour les campagnes envoyées via l'API Marketing de Resend (broadcasts).
+ * Un seul HTML est fourni à Resend pour tout le segment — le lien de désinscription
+ * doit donc être personnalisé via le merge tag {{{contact.email}}}, résolu par
+ * Resend au moment de l'envoi à chaque destinataire, plutôt qu'un token précalculé.
+ */
+export function getBroadcastFooterHtml(): string {
+  const unsubscribeUrl = `${BASE_URL}/api/mailing/unsubscribe?email={{{contact.email}}}`
+
+  return `
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin-top: 20px;">
+      <tr>
+        <td style="padding: 20px; text-align: center; border-top: 1px solid #e5e7eb;">
+          <p style="margin: 0 0 8px; font-size: 12px; color: #9ca3af;">
+            Vous recevez cet email car vous êtes inscrit(e) sur OsteoUpgrade.
+          </p>
+          <p style="margin: 0; font-size: 12px; color: #9ca3af;">
+            <a href="${unsubscribeUrl}" style="color: #6b7280; text-decoration: underline;">Se désinscrire de la newsletter</a>
+            &nbsp;|&nbsp;
+            <a href="${BASE_URL}/politique-confidentialite" style="color: #6b7280; text-decoration: underline;">Politique de confidentialité</a>
+          </p>
+          <p style="margin: 12px 0 0; font-size: 11px; color: #d1d5db;">
+            OsteoUpgrade - Plateforme d'aide au diagnostic ostéopathique
+          </p>
+        </td>
+      </tr>
+    </table>`
+}
