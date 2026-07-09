@@ -16,6 +16,7 @@ import {
   LifeBuoy,
   Megaphone,
   Database,
+  BarChart3,
 } from 'lucide-react'
 
 type Counts = { tickets: number; emails: number }
@@ -73,6 +74,14 @@ export default function AdminPage() {
   }
 
   const sections: Section[] = [
+    {
+      title: 'Statistiques',
+      description: 'Évolution des inscriptions et indicateurs clés',
+      icon: BarChart3,
+      iconColor: 'text-sky-600',
+      iconBg: 'bg-sky-100',
+      href: '/admin/stats',
+    },
     {
       title: 'Gestion des Utilisateurs',
       description: 'Comptes, abonnements premium et newsletter',
