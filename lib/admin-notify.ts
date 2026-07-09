@@ -1,6 +1,6 @@
 import { supabaseAdmin } from './supabase-server'
 
-type NotifType = 'bug_report' | 'new_subscription' | 'referral' | 'other'
+type NotifType = 'bug_report' | 'new_subscription' | 'referral' | 'signup' | 'other'
 
 export async function notifyAdmin(type: NotifType, title: string, body?: string) {
   try {
