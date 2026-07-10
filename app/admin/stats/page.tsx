@@ -59,7 +59,7 @@ type Stats = {
     adoption: number
     platforms: { name: string; count: number }[]
     installsMonthly: { month: string; count: number }[]
-    recentDevices: { platform: string; last_active_at: string | null; created_at: string | null }[]
+    recentDevices: { platform: string; full_name: string | null; email: string | null; role: string | null; last_active_at: string | null; created_at: string | null }[]
   }
   ai: {
     calls30d: number
@@ -89,6 +89,10 @@ type Stats = {
 
 function fmtDay(d: string): string {
   return new Date(d + 'T00:00:00').toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' })
+}
+function fmtDateTime(dateStr: string | null): string {
+  if (!dateStr) return '—'
+  return new Date(dateStr).toLocaleString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
 }
 function fmtTokens(n: number): string {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`
@@ -145,6 +149,15 @@ function GrowthChart({ data }: { data: { date: string; total: number }[] }) {
       })}
       <polygon points={areaPts} fill="url(#growthFill)" />
       <polyline points={linePts} fill="none" stroke="#2563eb" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />
+      {/* Transparent hover columns: reveal the exact date + total anywhere along the curve */}
+      {data.map((d, i) => (
+        <g key={`h${i}`} className="group">
+          <rect x={x(i) - iw / (data.length - 1) / 2} y={PAD_T} width={iw / (data.length - 1)} height={ih} fill="transparent">
+            <title>{`${fmtDay(d.date)} : ${d.total} compte${d.total > 1 ? 's' : ''}`}</title>
+          </rect>
+          <circle cx={x(i)} cy={y(d.total)} r="3" fill="#2563eb" className="opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+        </g>
+      ))}
       {xIdx.map(i => (
         <text key={i} x={x(i)} y={H - 8} textAnchor="middle" fontSize="10" fill="#94a3b8">{fmtDay(data[i].date)}</text>
       ))}
@@ -241,23 +254,29 @@ function SectionCard({ title, accent, icon: Icon, subtitle, children }: {
 }
 
 // ── Horizontal bar list ──────────────────────────────────────────────────────
-function HBars({ rows, color }: { rows: { label: string; value: number; hint?: string }[]; color: string }) {
+function HBars({ rows, color, total }: { rows: { label: string; value: number; hint?: string; title?: string }[]; color: string; total?: boolean }) {
   const max = Math.max(...rows.map(r => r.value), 1)
+  const sum = rows.reduce((s, r) => s + r.value, 0)
   if (!rows.length) return <p className="text-sm text-slate-400">Aucune donnée.</p>
   return (
     <div className="space-y-2.5">
-      {rows.map((r, i) => (
-        <div key={i} className="flex items-center gap-3">
-          <div className="w-32 shrink-0 text-xs font-medium text-slate-600 truncate" title={r.label}>{r.label}</div>
-          <div className="flex-1 h-6 rounded-lg bg-slate-100 overflow-hidden relative">
-            <div className={`h-full rounded-lg ${color}`} style={{ width: `${(r.value / max) * 100}%`, minWidth: r.value > 0 ? '6px' : 0 }} />
+      {rows.map((r, i) => {
+        const share = sum > 0 ? Math.round((r.value / sum) * 100) : 0
+        const tip = r.title || `${r.label} : ${r.value.toLocaleString('fr-FR')}${r.hint ? ` · ${r.hint}` : ''}${total ? ` (${share}%)` : ''}`
+        return (
+          <div key={i} className="flex items-center gap-3 group cursor-default" title={tip}>
+            <div className="w-32 shrink-0 text-xs font-medium text-slate-600 truncate">{r.label}</div>
+            <div className="flex-1 h-6 rounded-lg bg-slate-100 overflow-hidden relative">
+              <div className={`h-full rounded-lg ${color} transition-all group-hover:brightness-110`} style={{ width: `${(r.value / max) * 100}%`, minWidth: r.value > 0 ? '6px' : 0 }} />
+            </div>
+            <div className="w-28 shrink-0 text-right text-xs font-semibold text-slate-700 tabular-nums">
+              {r.value.toLocaleString('fr-FR')}
+              {total && sum > 0 && <span className="text-slate-400 font-normal"> · {share}%</span>}
+              {!total && r.hint && <span className="text-slate-400 font-normal"> · {r.hint}</span>}
+            </div>
           </div>
-          <div className="w-24 shrink-0 text-right text-xs font-semibold text-slate-700 tabular-nums">
-            {r.value.toLocaleString('fr-FR')}
-            {r.hint && <span className="text-slate-400 font-normal"> · {r.hint}</span>}
-          </div>
-        </div>
-      ))}
+        )
+      })}
     </div>
   )
 }
@@ -406,8 +425,8 @@ export default function AdminStatsPage() {
 
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     <SectionCard title="Répartition par plateforme" subtitle="appareils connectés" accent="from-indigo-400 to-indigo-600">
-                      <HBars color="bg-gradient-to-r from-indigo-400 to-indigo-600"
-                        rows={stats.osteoflow.platforms.map(p => ({ label: p.name, value: p.count }))} />
+                      <HBars color="bg-gradient-to-r from-indigo-400 to-indigo-600" total
+                        rows={stats.osteoflow.platforms.map(p => ({ label: p.name, value: p.count, title: `${p.name} : ${p.count} appareil${p.count > 1 ? 's' : ''} connecté${p.count > 1 ? 's' : ''}` }))} />
                     </SectionCard>
                     <SectionCard title="Nouvelles installations par mois" subtitle="premières connexions d'un appareil" accent="from-blue-400 to-blue-600">
                       {stats.osteoflow.installsMonthly.length ? (
@@ -418,23 +437,39 @@ export default function AdminStatsPage() {
                     </SectionCard>
                   </div>
 
-                  <SectionCard title="Appareils récemment actifs" accent="from-violet-400 to-violet-600">
+                  <SectionCard title="Appareils récemment actifs" subtitle="utilisateur, plateforme et dernière activité" accent="from-violet-400 to-violet-600">
                     {stats.osteoflow.recentDevices.length === 0 ? (
                       <p className="text-sm text-slate-400">Aucun appareil.</p>
                     ) : (
                       <div className="divide-y divide-slate-100">
-                        {stats.osteoflow.recentDevices.map((d, i) => (
-                          <div key={i} className="flex items-center gap-3 py-2.5">
-                            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-100 text-indigo-600">
-                              <Laptop className="h-4 w-4" />
+                        {stats.osteoflow.recentDevices.map((d, i) => {
+                          const name = d.full_name || d.email || 'Utilisateur inconnu'
+                          const initial = name.charAt(0).toUpperCase()
+                          const avatarBg = d.role === 'premium' ? 'bg-yellow-500' : d.role === 'admin' ? 'bg-purple-600' : 'bg-slate-400'
+                          return (
+                            <div
+                              key={i}
+                              className="flex items-center gap-3 py-2.5"
+                              title={`${name}${d.email ? ` (${d.email})` : ''}\nPlateforme : ${d.platform}\nInstallé le ${fmtDateTime(d.created_at)}\nDernière activité : ${fmtDateTime(d.last_active_at)}`}
+                            >
+                              <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-white text-xs font-bold ${avatarBg}`}>
+                                {initial}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-1.5">
+                                  <p className="text-sm font-semibold text-slate-800 truncate">{name}</p>
+                                  {d.role && <RoleBadge role={d.role} />}
+                                </div>
+                                <p className="text-xs text-slate-400 truncate">
+                                  {d.email && d.full_name ? `${d.email} · ` : ''}
+                                  <span className="inline-flex items-center gap-1"><Laptop className="h-3 w-3" />{d.platform}</span>
+                                  {' · installé '}{relativeDate(d.created_at)}
+                                </p>
+                              </div>
+                              <span className="text-xs text-slate-400 shrink-0">actif {relativeDate(d.last_active_at)}</span>
                             </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm font-semibold text-slate-800">{d.platform}</p>
-                              <p className="text-xs text-slate-400">Installé {relativeDate(d.created_at)}</p>
-                            </div>
-                            <span className="text-xs text-slate-400 shrink-0">actif {relativeDate(d.last_active_at)}</span>
-                          </div>
-                        ))}
+                          )
+                        })}
                       </div>
                     )}
                   </SectionCard>
@@ -461,6 +496,7 @@ export default function AdminStatsPage() {
                           label: aiLabel(e.endpoint),
                           value: e.calls,
                           hint: `${fmtTokens(e.inTok + e.outTok)} tok`,
+                          title: `${aiLabel(e.endpoint)}\n${e.calls} appels\n${e.inTok.toLocaleString('fr-FR')} tokens en entrée\n${e.outTok.toLocaleString('fr-FR')} tokens en sortie\n${e.cacheRead.toLocaleString('fr-FR')} tokens lus depuis le cache`,
                         }))} />
                     </SectionCard>
                     <SectionCard title="Appels IA par jour" subtitle="30 derniers jours" accent="from-purple-400 to-purple-600">
@@ -489,12 +525,13 @@ export default function AdminStatsPage() {
                           label: f.label,
                           value: f.actions,
                           hint: `${f.users} util.`,
+                          title: `${f.label}\n${f.actions} actions sur 30 jours\n${f.users} utilisateur${f.users > 1 ? 's' : ''} actif${f.users > 1 ? 's' : ''}\n${f.total.toLocaleString('fr-FR')} au total (historique)`,
                         }))} />
                     </SectionCard>
                     <SectionCard title="Répartition des niveaux" subtitle="gamification" accent="from-amber-400 to-orange-600">
                       {stats.engagement.levelDistribution.length ? (
-                        <HBars color="bg-gradient-to-r from-amber-400 to-orange-600"
-                          rows={stats.engagement.levelDistribution.map(l => ({ label: `Niveau ${l.level}`, value: l.count }))} />
+                        <HBars color="bg-gradient-to-r from-amber-400 to-orange-600" total
+                          rows={stats.engagement.levelDistribution.map(l => ({ label: `Niveau ${l.level}`, value: l.count, title: `Niveau ${l.level} : ${l.count} utilisateur${l.count > 1 ? 's' : ''}` }))} />
                       ) : <p className="text-sm text-slate-400">Aucune donnée.</p>}
                     </SectionCard>
                   </div>
@@ -546,6 +583,16 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
     <h2 className="text-xs font-bold uppercase tracking-widest text-slate-500 px-1">{children}</h2>
   )
+}
+
+function RoleBadge({ role }: { role: string }) {
+  const map: Record<string, { label: string; cls: string }> = {
+    premium: { label: 'Premium', cls: 'bg-yellow-100 text-yellow-700' },
+    admin: { label: 'Admin', cls: 'bg-purple-100 text-purple-700' },
+    free: { label: 'Gratuit', cls: 'bg-slate-100 text-slate-500' },
+  }
+  const b = map[role] || { label: role, cls: 'bg-slate-100 text-slate-500' }
+  return <span className={`shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${b.cls}`}>{b.label}</span>
 }
 
 function aiLabel(endpoint: string): string {

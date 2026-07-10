@@ -172,10 +172,22 @@ export async function GET() {
   }
   const ofPlatforms = [...platformCounts].map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count)
   const ofInstallsMonthly = [...ofMonthly].sort((a, b) => a[0].localeCompare(b[0])).map(([month, count]) => ({ month, count }))
+  // Nominative device list (admin-only page): who uses each installed device.
+  const profileById = new Map(profiles.map(p => [p.id, p]))
   const recentDevices = [...osteoflow]
     .sort((a, b) => new Date(b.last_active_at || 0).getTime() - new Date(a.last_active_at || 0).getTime())
-    .slice(0, 8)
-    .map(s => ({ platform: normalizePlatform(s.device_name), last_active_at: s.last_active_at, created_at: s.created_at }))
+    .slice(0, 12)
+    .map(s => {
+      const p = profileById.get(s.user_id)
+      return {
+        platform: normalizePlatform(s.device_name),
+        full_name: p?.full_name ?? null,
+        email: p?.email ?? null,
+        role: p?.role ?? null,
+        last_active_at: s.last_active_at,
+        created_at: s.created_at,
+      }
+    })
   const ofAdoption = premium + free > 0 ? Math.round((ofUsers.size / (premium + free)) * 1000) / 10 : 0
 
   // ── AI usage ──────────────────────────────────────────────────────────────
