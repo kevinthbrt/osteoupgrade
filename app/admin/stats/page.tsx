@@ -15,7 +15,19 @@ import {
   TrendingDown,
   UserPlus,
   ArrowRight,
+  Activity,
+  Zap,
+  Sparkles,
+  Cpu,
+  Laptop,
+  MonitorSmartphone,
+  GraduationCap,
+  Flame,
+  LifeBuoy,
+  Coins,
 } from 'lucide-react'
+
+type Series = { date: string; count: number }[]
 
 type Stats = {
   kpis: {
@@ -30,9 +42,47 @@ type Stats = {
     signups30d: number
     prevSignups30d: number
     conversionRate: number
+    dau: number
+    wau: number
+    mau: number
+    stickiness: number
+    activationRate: number
   }
-  daily: { date: string; count: number }[]
+  daily: Series
   cumulative: { date: string; total: number }[]
+  activeDaily: Series
+  osteoflow: {
+    users: number
+    devices: number
+    active30d: number
+    active7d: number
+    adoption: number
+    platforms: { name: string; count: number }[]
+    installsMonthly: { month: string; count: number }[]
+    recentDevices: { platform: string; last_active_at: string | null; created_at: string | null }[]
+  }
+  ai: {
+    calls30d: number
+    callsTotal: number
+    inputTokens: number
+    outputTokens: number
+    cacheReadTokens: number
+    cacheEfficiency: number
+    estCostEur: number
+    byEndpoint: { endpoint: string; calls: number; inTok: number; outTok: number; cacheRead: number }[]
+    daily: Series
+  }
+  engagement: {
+    features: { key: string; label: string; users: number; actions: number; total: number }[]
+    quizPassRate: number
+    quizPassed: number
+    quizTotal: number
+    levelDistribution: { level: number; count: number }[]
+    avgStreak: number
+    bestStreak: number
+    gamifiedUsers: number
+  }
+  support: { open: number; last30d: number; total: number }
   recent: { id: string; email: string | null; full_name: string | null; role: string | null; created_at: string | null }[]
   generatedAt: string
 }
@@ -40,7 +90,11 @@ type Stats = {
 function fmtDay(d: string): string {
   return new Date(d + 'T00:00:00').toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' })
 }
-
+function fmtTokens(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}k`
+  return String(n)
+}
 function relativeDate(dateStr: string | null): string {
   if (!dateStr) return '—'
   const diff = Date.now() - new Date(dateStr).getTime()
@@ -98,8 +152,8 @@ function GrowthChart({ data }: { data: { date: string; total: number }[] }) {
   )
 }
 
-// ── Daily signups (bars) ─────────────────────────────────────────────────────
-function DailyBars({ data }: { data: { date: string; count: number }[] }) {
+// ── Generic daily bars ───────────────────────────────────────────────────────
+function DailyBars({ data, color = '#38bdf8', unitLabel = 'inscription' }: { data: Series; color?: string; unitLabel?: string }) {
   const W = 720, H = 200, PAD_L = 32, PAD_R = 12, PAD_T = 12, PAD_B = 26
   if (!data.length) return null
   const max = Math.max(...data.map(d => d.count), 1)
@@ -111,7 +165,7 @@ function DailyBars({ data }: { data: { date: string; count: number }[] }) {
   const labelEvery = Math.ceil(data.length / 8)
 
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-auto" role="img" aria-label="Inscriptions par jour">
+    <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-auto" role="img" aria-label="Série journalière">
       {ticks.map((t, i) => {
         const yy = PAD_T + ih - (t / max) * ih
         return (
@@ -127,8 +181,8 @@ function DailyBars({ data }: { data: { date: string; count: number }[] }) {
         const yy = PAD_T + ih - h
         return (
           <g key={d.date}>
-            <rect x={xx + bw * 0.15} y={yy} width={bw * 0.7} height={Math.max(h, d.count > 0 ? 2 : 0)} rx="2" fill="#38bdf8">
-              <title>{`${fmtDay(d.date)} : ${d.count} inscription${d.count > 1 ? 's' : ''}`}</title>
+            <rect x={xx + bw * 0.15} y={yy} width={bw * 0.7} height={Math.max(h, d.count > 0 ? 2 : 0)} rx="2" fill={color}>
+              <title>{`${fmtDay(d.date)} : ${d.count} ${unitLabel}${d.count > 1 ? 's' : ''}`}</title>
             </rect>
             {i % labelEvery === 0 && (
               <text x={xx + bw / 2} y={H - 8} textAnchor="middle" fontSize="9" fill="#94a3b8">{fmtDay(d.date)}</text>
@@ -160,6 +214,50 @@ function KpiCard({ icon: Icon, label, value, sub, iconColor, iconBg }: {
         </div>
       </div>
       {sub && <div className="mt-2 text-xs">{sub}</div>}
+    </div>
+  )
+}
+
+function SectionCard({ title, accent, icon: Icon, subtitle, children }: {
+  title: string
+  accent: string
+  icon?: React.ComponentType<{ className?: string }>
+  subtitle?: string
+  children: React.ReactNode
+}) {
+  return (
+    <div className="rounded-2xl bg-white/85 backdrop-blur-2xl border border-white/70 shadow-xl ring-1 ring-inset ring-white/60 p-5">
+      <div className="flex items-center gap-2.5 mb-4">
+        <div className={`h-5 w-1 rounded-full bg-gradient-to-b ${accent}`} />
+        {Icon && <Icon className="h-4 w-4 text-slate-500" />}
+        <div>
+          <h2 className="text-sm font-bold text-slate-800 tracking-wide">{title}</h2>
+          {subtitle && <p className="text-[11px] text-slate-400">{subtitle}</p>}
+        </div>
+      </div>
+      {children}
+    </div>
+  )
+}
+
+// ── Horizontal bar list ──────────────────────────────────────────────────────
+function HBars({ rows, color }: { rows: { label: string; value: number; hint?: string }[]; color: string }) {
+  const max = Math.max(...rows.map(r => r.value), 1)
+  if (!rows.length) return <p className="text-sm text-slate-400">Aucune donnée.</p>
+  return (
+    <div className="space-y-2.5">
+      {rows.map((r, i) => (
+        <div key={i} className="flex items-center gap-3">
+          <div className="w-32 shrink-0 text-xs font-medium text-slate-600 truncate" title={r.label}>{r.label}</div>
+          <div className="flex-1 h-6 rounded-lg bg-slate-100 overflow-hidden relative">
+            <div className={`h-full rounded-lg ${color}`} style={{ width: `${(r.value / max) * 100}%`, minWidth: r.value > 0 ? '6px' : 0 }} />
+          </div>
+          <div className="w-24 shrink-0 text-right text-xs font-semibold text-slate-700 tabular-nums">
+            {r.value.toLocaleString('fr-FR')}
+            {r.hint && <span className="text-slate-400 font-normal"> · {r.hint}</span>}
+          </div>
+        </div>
+      ))}
     </div>
   )
 }
@@ -199,6 +297,7 @@ export default function AdminStatsPage() {
   }, [stats])
 
   const dailyLast30 = useMemo(() => stats ? stats.daily.slice(-30) : [], [stats])
+  const activeLast30 = useMemo(() => stats ? stats.activeDaily.slice(-30) : [], [stats])
 
   return (
     <AuthLayout>
@@ -218,7 +317,7 @@ export default function AdminStatsPage() {
                 Tableau de bord
               </h1>
               <p className="text-blue-300/70 text-sm mt-1.5">
-                Évolution des inscriptions et indicateurs clés d&apos;OsteoUpgrade
+                Croissance, activité, adoption OsteoFlow, usage IA et engagement produit
               </p>
             </div>
           </div>
@@ -230,7 +329,7 @@ export default function AdminStatsPage() {
           <div className="pointer-events-none absolute top-0 left-1/4 w-96 h-96 bg-blue-400/40 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '6s' }} />
           <div className="pointer-events-none absolute bottom-0 left-0 w-72 h-72 bg-indigo-400/30 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '7s', animationDelay: '1s' }} />
 
-          <div className="relative space-y-6">
+          <div className="relative space-y-8">
             {loading && (
               <div className="py-24 text-center text-slate-500 text-sm">Chargement des statistiques…</div>
             )}
@@ -240,45 +339,168 @@ export default function AdminStatsPage() {
 
             {stats && !loading && (
               <>
-                {/* KPIs */}
-                <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
-                  <KpiCard icon={Users} label="Utilisateurs" value={stats.kpis.total} iconColor="text-blue-600" iconBg="bg-blue-100"
-                    sub={<span className="text-slate-400">{stats.kpis.free} gratuits · {stats.kpis.premium} premium</span>} />
-                  <KpiCard icon={UserPlus} label="Inscrits (30j)" value={stats.kpis.signups30d} iconColor="text-sky-600" iconBg="bg-sky-100"
-                    sub={trend !== null && (
-                      <span className={`inline-flex items-center gap-1 font-medium ${trend >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
-                        {trend >= 0 ? <TrendingUp className="h-3.5 w-3.5" /> : <TrendingDown className="h-3.5 w-3.5" />}
-                        {trend >= 0 ? '+' : ''}{trend}% vs 30j préc.
-                      </span>
-                    )} />
-                  <KpiCard icon={UserPlus} label="Inscrits (7j)" value={stats.kpis.signups7d} iconColor="text-indigo-600" iconBg="bg-indigo-100"
-                    sub={<span className="text-slate-400">dont {stats.kpis.signupsToday} aujourd&apos;hui</span>} />
-                  <KpiCard icon={Crown} label="Premium" value={stats.kpis.premium} iconColor="text-yellow-600" iconBg="bg-yellow-100"
-                    sub={<span className="text-slate-400">{stats.kpis.conversionRate}% de conversion</span>} />
-                  <KpiCard icon={Star} label="Membres fondateurs" value={stats.kpis.foundingMembers} iconColor="text-amber-600" iconBg="bg-amber-100" />
-                  <KpiCard icon={Mail} label="Opt-in newsletter" value={stats.kpis.newsletterOptIn} iconColor="text-pink-600" iconBg="bg-pink-100"
-                    sub={<span className="text-slate-400">{stats.kpis.total > 0 ? Math.round((stats.kpis.newsletterOptIn / stats.kpis.total) * 100) : 0}% des comptes</span>} />
-                </div>
-
-                {/* Growth chart */}
-                <div className="rounded-2xl bg-white/85 backdrop-blur-2xl border border-white/70 shadow-xl ring-1 ring-inset ring-white/60 p-5">
-                  <div className="flex items-center gap-2.5 mb-4">
-                    <div className="h-5 w-1 rounded-full bg-gradient-to-b from-blue-500 to-blue-700" />
-                    <h2 className="text-sm font-bold text-slate-800 tracking-wide">Croissance cumulée des comptes (90 jours)</h2>
+                {/* ═══ ACCOUNTS ═══ */}
+                <section className="space-y-3">
+                  <SectionLabel>Comptes &amp; inscriptions</SectionLabel>
+                  <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
+                    <KpiCard icon={Users} label="Utilisateurs" value={stats.kpis.total} iconColor="text-blue-600" iconBg="bg-blue-100"
+                      sub={<span className="text-slate-400">{stats.kpis.free} gratuits · {stats.kpis.premium} premium</span>} />
+                    <KpiCard icon={UserPlus} label="Inscrits (30j)" value={stats.kpis.signups30d} iconColor="text-sky-600" iconBg="bg-sky-100"
+                      sub={trend !== null && (
+                        <span className={`inline-flex items-center gap-1 font-medium ${trend >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
+                          {trend >= 0 ? <TrendingUp className="h-3.5 w-3.5" /> : <TrendingDown className="h-3.5 w-3.5" />}
+                          {trend >= 0 ? '+' : ''}{trend}% vs 30j préc.
+                        </span>
+                      )} />
+                    <KpiCard icon={UserPlus} label="Inscrits (7j)" value={stats.kpis.signups7d} iconColor="text-indigo-600" iconBg="bg-indigo-100"
+                      sub={<span className="text-slate-400">dont {stats.kpis.signupsToday} aujourd&apos;hui</span>} />
+                    <KpiCard icon={Crown} label="Premium" value={stats.kpis.premium} iconColor="text-yellow-600" iconBg="bg-yellow-100"
+                      sub={<span className="text-slate-400">{stats.kpis.conversionRate}% de conversion</span>} />
+                    <KpiCard icon={Star} label="Membres fondateurs" value={stats.kpis.foundingMembers} iconColor="text-amber-600" iconBg="bg-amber-100" />
+                    <KpiCard icon={Mail} label="Opt-in newsletter" value={stats.kpis.newsletterOptIn} iconColor="text-pink-600" iconBg="bg-pink-100"
+                      sub={<span className="text-slate-400">{stats.kpis.total > 0 ? Math.round((stats.kpis.newsletterOptIn / stats.kpis.total) * 100) : 0}% des comptes</span>} />
                   </div>
-                  <GrowthChart data={stats.cumulative} />
-                </div>
+                </section>
 
-                {/* Daily bars */}
-                <div className="rounded-2xl bg-white/85 backdrop-blur-2xl border border-white/70 shadow-xl ring-1 ring-inset ring-white/60 p-5">
-                  <div className="flex items-center gap-2.5 mb-4">
-                    <div className="h-5 w-1 rounded-full bg-gradient-to-b from-sky-400 to-sky-600" />
-                    <h2 className="text-sm font-bold text-slate-800 tracking-wide">Inscriptions par jour (30 derniers jours)</h2>
+                {/* ═══ ACTIVITY ═══ */}
+                <section className="space-y-3">
+                  <SectionLabel>Activité &amp; rétention</SectionLabel>
+                  <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
+                    <KpiCard icon={Activity} label="Actifs aujourd'hui" value={stats.kpis.dau} iconColor="text-emerald-600" iconBg="bg-emerald-100" />
+                    <KpiCard icon={Activity} label="Actifs 7j (WAU)" value={stats.kpis.wau} iconColor="text-teal-600" iconBg="bg-teal-100" />
+                    <KpiCard icon={Activity} label="Actifs 30j (MAU)" value={stats.kpis.mau} iconColor="text-cyan-600" iconBg="bg-cyan-100" />
+                    <KpiCard icon={Zap} label="Stickiness" value={`${stats.kpis.stickiness}%`} iconColor="text-orange-600" iconBg="bg-orange-100"
+                      sub={<span className="text-slate-400">DAU / MAU</span>} />
+                    <KpiCard icon={TrendingUp} label="Taux d'activation" value={`${stats.kpis.activationRate}%`} iconColor="text-violet-600" iconBg="bg-violet-100"
+                      sub={<span className="text-slate-400">actifs 30j / comptes</span>} />
+                    <KpiCard icon={LifeBuoy} label="Support ouvert" value={stats.support.open} iconColor="text-rose-600" iconBg="bg-rose-100"
+                      sub={<span className="text-slate-400">{stats.support.last30d} tickets / 30j</span>} />
                   </div>
-                  <DailyBars data={dailyLast30} />
-                </div>
 
-                {/* Recent signups */}
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <SectionCard title="Croissance cumulée des comptes" subtitle="90 derniers jours" accent="from-blue-500 to-blue-700">
+                      <GrowthChart data={stats.cumulative} />
+                    </SectionCard>
+                    <SectionCard title="Utilisateurs actifs par jour" subtitle="connexions quotidiennes · 30 derniers jours" accent="from-emerald-400 to-emerald-600">
+                      <DailyBars data={activeLast30} color="#10b981" unitLabel="actif" />
+                    </SectionCard>
+                  </div>
+
+                  <SectionCard title="Inscriptions par jour" subtitle="30 derniers jours" accent="from-sky-400 to-sky-600">
+                    <DailyBars data={dailyLast30} color="#38bdf8" unitLabel="inscription" />
+                  </SectionCard>
+                </section>
+
+                {/* ═══ OSTEOFLOW ═══ */}
+                <section className="space-y-3">
+                  <SectionLabel>OsteoFlow — application cabinet</SectionLabel>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <KpiCard icon={Laptop} label="Utilisateurs OsteoFlow" value={stats.osteoflow.users} iconColor="text-indigo-600" iconBg="bg-indigo-100"
+                      sub={<span className="text-slate-400">{stats.osteoflow.adoption}% des comptes</span>} />
+                    <KpiCard icon={MonitorSmartphone} label="Appareils installés" value={stats.osteoflow.devices} iconColor="text-blue-600" iconBg="bg-blue-100" />
+                    <KpiCard icon={Activity} label="Actifs 30j" value={stats.osteoflow.active30d} iconColor="text-emerald-600" iconBg="bg-emerald-100"
+                      sub={<span className="text-slate-400">{stats.osteoflow.active7d} actifs 7j</span>} />
+                    <KpiCard icon={Crown} label="Adoption premium" value={`${stats.osteoflow.adoption}%`} iconColor="text-amber-600" iconBg="bg-amber-100"
+                      sub={<span className="text-slate-400">des comptes utilisent OsteoFlow</span>} />
+                  </div>
+
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <SectionCard title="Répartition par plateforme" subtitle="appareils connectés" accent="from-indigo-400 to-indigo-600">
+                      <HBars color="bg-gradient-to-r from-indigo-400 to-indigo-600"
+                        rows={stats.osteoflow.platforms.map(p => ({ label: p.name, value: p.count }))} />
+                    </SectionCard>
+                    <SectionCard title="Nouvelles installations par mois" subtitle="premières connexions d'un appareil" accent="from-blue-400 to-blue-600">
+                      {stats.osteoflow.installsMonthly.length ? (
+                        <DailyBars
+                          data={stats.osteoflow.installsMonthly.map(m => ({ date: m.month + '-01', count: m.count }))}
+                          color="#6366f1" unitLabel="installation" />
+                      ) : <p className="text-sm text-slate-400">Aucune donnée.</p>}
+                    </SectionCard>
+                  </div>
+
+                  <SectionCard title="Appareils récemment actifs" accent="from-violet-400 to-violet-600">
+                    {stats.osteoflow.recentDevices.length === 0 ? (
+                      <p className="text-sm text-slate-400">Aucun appareil.</p>
+                    ) : (
+                      <div className="divide-y divide-slate-100">
+                        {stats.osteoflow.recentDevices.map((d, i) => (
+                          <div key={i} className="flex items-center gap-3 py-2.5">
+                            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-100 text-indigo-600">
+                              <Laptop className="h-4 w-4" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-semibold text-slate-800">{d.platform}</p>
+                              <p className="text-xs text-slate-400">Installé {relativeDate(d.created_at)}</p>
+                            </div>
+                            <span className="text-xs text-slate-400 shrink-0">actif {relativeDate(d.last_active_at)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </SectionCard>
+                </section>
+
+                {/* ═══ AI ═══ */}
+                <section className="space-y-3">
+                  <SectionLabel>Intelligence artificielle</SectionLabel>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <KpiCard icon={Sparkles} label="Appels IA (30j)" value={stats.ai.calls30d} iconColor="text-fuchsia-600" iconBg="bg-fuchsia-100"
+                      sub={<span className="text-slate-400">{stats.ai.callsTotal} au total</span>} />
+                    <KpiCard icon={Cpu} label="Tokens (30j)" value={fmtTokens(stats.ai.inputTokens + stats.ai.outputTokens)} iconColor="text-purple-600" iconBg="bg-purple-100"
+                      sub={<span className="text-slate-400">{fmtTokens(stats.ai.inputTokens)} in · {fmtTokens(stats.ai.outputTokens)} out</span>} />
+                    <KpiCard icon={Zap} label="Efficacité cache" value={`${stats.ai.cacheEfficiency}%`} iconColor="text-teal-600" iconBg="bg-teal-100"
+                      sub={<span className="text-slate-400">tokens lus depuis le cache</span>} />
+                    <KpiCard icon={Coins} label="Coût estimé (30j)" value={`${stats.ai.estCostEur} €`} iconColor="text-emerald-600" iconBg="bg-emerald-100"
+                      sub={<span className="text-slate-400">basé sur tarifs Claude</span>} />
+                  </div>
+
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <SectionCard title="Usage par fonctionnalité IA" subtitle="nombre d'appels par endpoint" accent="from-fuchsia-400 to-fuchsia-600">
+                      <HBars color="bg-gradient-to-r from-fuchsia-400 to-fuchsia-600"
+                        rows={stats.ai.byEndpoint.map(e => ({
+                          label: aiLabel(e.endpoint),
+                          value: e.calls,
+                          hint: `${fmtTokens(e.inTok + e.outTok)} tok`,
+                        }))} />
+                    </SectionCard>
+                    <SectionCard title="Appels IA par jour" subtitle="30 derniers jours" accent="from-purple-400 to-purple-600">
+                      <DailyBars data={stats.ai.daily.slice(-30)} color="#a855f7" unitLabel="appel" />
+                    </SectionCard>
+                  </div>
+                </section>
+
+                {/* ═══ ENGAGEMENT ═══ */}
+                <section className="space-y-3">
+                  <SectionLabel>Adoption des fonctionnalités &amp; engagement</SectionLabel>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <KpiCard icon={GraduationCap} label="Réussite quiz" value={`${stats.engagement.quizPassRate}%`} iconColor="text-blue-600" iconBg="bg-blue-100"
+                      sub={<span className="text-slate-400">{stats.engagement.quizPassed}/{stats.engagement.quizTotal} tentatives</span>} />
+                    <KpiCard icon={Flame} label="Streak moyen" value={`${stats.engagement.avgStreak} j`} iconColor="text-orange-600" iconBg="bg-orange-100"
+                      sub={<span className="text-slate-400">record : {stats.engagement.bestStreak} j</span>} />
+                    <KpiCard icon={Users} label="Utilisateurs gamifiés" value={stats.engagement.gamifiedUsers} iconColor="text-violet-600" iconBg="bg-violet-100" />
+                    <KpiCard icon={Zap} label="Fonctionnalité n°1" value={stats.engagement.features[0]?.label ?? '—'} iconColor="text-amber-600" iconBg="bg-amber-100"
+                      sub={<span className="text-slate-400">{stats.engagement.features[0]?.actions ?? 0} actions / 30j</span>} />
+                  </div>
+
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <SectionCard title="Actions par fonctionnalité" subtitle="activité sur 30 jours" accent="from-blue-400 to-indigo-600">
+                      <HBars color="bg-gradient-to-r from-blue-400 to-indigo-600"
+                        rows={stats.engagement.features.map(f => ({
+                          label: f.label,
+                          value: f.actions,
+                          hint: `${f.users} util.`,
+                        }))} />
+                    </SectionCard>
+                    <SectionCard title="Répartition des niveaux" subtitle="gamification" accent="from-amber-400 to-orange-600">
+                      {stats.engagement.levelDistribution.length ? (
+                        <HBars color="bg-gradient-to-r from-amber-400 to-orange-600"
+                          rows={stats.engagement.levelDistribution.map(l => ({ label: `Niveau ${l.level}`, value: l.count }))} />
+                      ) : <p className="text-sm text-slate-400">Aucune donnée.</p>}
+                    </SectionCard>
+                  </div>
+                </section>
+
+                {/* ═══ RECENT SIGNUPS ═══ */}
                 <div className="rounded-2xl bg-white/85 backdrop-blur-2xl border border-white/70 shadow-xl ring-1 ring-inset ring-white/60 overflow-hidden">
                   <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100/80">
                     <div className="flex items-center gap-2.5">
@@ -306,6 +528,10 @@ export default function AdminStatsPage() {
                     ))}
                   </div>
                 </div>
+
+                <p className="text-center text-[11px] text-slate-400">
+                  Généré le {new Date(stats.generatedAt).toLocaleString('fr-FR')}
+                </p>
               </>
             )}
           </div>
@@ -314,4 +540,20 @@ export default function AdminStatsPage() {
       </div>
     </AuthLayout>
   )
+}
+
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <h2 className="text-xs font-bold uppercase tracking-widest text-slate-500 px-1">{children}</h2>
+  )
+}
+
+function aiLabel(endpoint: string): string {
+  const map: Record<string, string> = {
+    'structure-anamnesis': 'Structuration anamnèse',
+    'generate-hypotheses': 'Génération hypothèses',
+    'generate-exercise-prescription': 'Prescription exercices',
+    'suggest-tests': 'Suggestion de tests',
+  }
+  return map[endpoint] || endpoint
 }
