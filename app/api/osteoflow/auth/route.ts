@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase-server'
 import { createClient } from '@supabase/supabase-js'
+import { rateLimit } from '@/lib/rate-limit'
 import crypto from 'crypto'
 
 const SESSION_DURATION_MS = 30 * 24 * 60 * 60 * 1000
@@ -17,10 +18,22 @@ export async function OPTIONS() {
 
 export async function POST(request: Request) {
   try {
+    // Rate limiting anti brute-force : par IP et par email
+    const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown'
     const { email, password, device_id, device_name } = await request.json()
 
     if (!email || !password || !device_id) {
       return NextResponse.json({ error: 'Param\u00e8tres manquants' }, { status: 400, headers: CORS })
+    }
+
+    const ipLimit = rateLimit(`osteoflow-auth-ip:${ip}`, { limit: 10, windowSeconds: 60 })
+    const emailLimit = rateLimit(`osteoflow-auth-email:${String(email).toLowerCase()}`, { limit: 5, windowSeconds: 300 })
+    if (!ipLimit.allowed || !emailLimit.allowed) {
+      const retryAfter = Math.max(ipLimit.retryAfter ?? 0, emailLimit.retryAfter ?? 0)
+      return NextResponse.json(
+        { error: 'Trop de tentatives de connexion. R\u00e9essayez plus tard.' },
+        { status: 429, headers: { ...CORS, 'Retry-After': String(retryAfter) } }
+      )
     }
 
     const anonClient = createClient(

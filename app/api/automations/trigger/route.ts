@@ -24,7 +24,7 @@ export async function POST(request: Request) {
     const hasCronToken = cronSecret && authHeader === `Bearer ${cronSecret}`
 
     const body = await request.json()
-    const { event, contact_id, contact_email, tag, subscription_type, metadata } = body
+    const { event, contact_id, contact_email, full_name, tag, subscription_type, metadata } = body
 
     if (!event) {
       return NextResponse.json(
@@ -47,6 +47,7 @@ export async function POST(request: Request) {
     const result = await triggerAutomations(event as TriggerEvent, {
       contact_id,
       contact_email,
+      full_name,
       tag,
       subscription_type,
       metadata

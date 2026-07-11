@@ -1,14 +1,19 @@
 import { NextResponse } from 'next/server'
+import { createClient } from '@supabase/supabase-js'
 
 export const dynamic = 'force-dynamic'
+// Long anamneses (max_tokens 3000 on Sonnet) can take well over the default
+// Vercel function ceiling. Without this the function is killed mid-call and the
+// caller sees a generic 500 even though the AbortSignals below never fired.
+// Plan Pro (jusqu'à 300s) — relevé de 60s.
+export const maxDuration = 120
 
 const SYSTEM_PROMPT = `Tu es un assistant clinique pour ostéopathes francophones.
-Tu reçois la transcription brute d'une anamnèse et tu dois la structurer.
+Tu reçois la transcription brute d'une anamnèse et tu dois la structurer en cartes.
 
 RÉPONDS UNIQUEMENT EN JSON valide avec ce format exact :
 {
   "reason": "motif principal en 1 ligne courte",
-  "anamnesis": "anamnèse structurée en markdown",
   "sections": [
     { "id": "history", "label": "Histoire", "icon": "⚡", "color": "slate", "items": ["..."] },
     { "id": "pain", "label": "Douleur", "icon": "📍", "color": "sky", "items": ["..."] },
@@ -20,53 +25,48 @@ RÉPONDS UNIQUEMENT EN JSON valide avec ce format exact :
   ]
 }
 
-Pour "anamnesis", garde TOUJOURS ces 7 rubriques dans cet ordre, même si certaines sont vides (elles servent de checklist au praticien) :
+Inclus TOUJOURS les 7 sections dans cet ordre, même si certaines sont vides (elles
+servent de checklist au praticien). Garde les "id", "label", "icon" et "color"
+exactement comme ci-dessus. Chaque "items" est un tableau d'items courts en style
+télégraphique (≤ ~12 mots, un item = une information précise).
 
-**Histoire de la maladie**
-- [circonstances d'apparition]
-- [chronologie / ancienneté]
-- [évolution depuis l'apparition]
+Contenu attendu par section :
+- "history" (Histoire de la maladie) : circonstances d'apparition, chronologie/ancienneté, évolution
+- "pain" (Caractéristiques de la douleur) : "Localisation : …", "Type : …", "Intensité : EVA /10 (si chiffrée, sinon —)", "Irradiations : …"
+- "modulating" (Facteurs modulants) : aggravants préfixés ⬆️, soulageants préfixés ⬇️
+- "history_past" (Antécédents mentionnés)
+- "treatment" (Traitements essayés)
+- "functional" (Impact fonctionnel)
+- "red_flags" (Drapeaux rouges) — voir DÉPISTAGE ACTIF ci-dessous
 
-**Caractéristiques de la douleur**
-- Localisation : [...]
-- Type : [...]
-- Intensité : EVA x/10
-- Irradiations : [...]
-
-**Facteurs modulants**
-- Aggravants : [...]
-- Soulageants : [...]
-
-**Antécédents mentionnés**
-- [...]
-
-**Traitements essayés**
-- [...]
-
-**Impact fonctionnel**
-- [...]
-
-**Drapeaux rouges**
-- [aucun identifié — ou liste chaque drapeau sur une ligne]
-
-Pour "sections", remplis chaque section avec les mêmes informations que dans "anamnesis", en format tableau d'items courts (style télégraphique, ≤ ~12 mots par item) :
-- "history" → items de "Histoire de la maladie"
-- "pain" → items de "Caractéristiques de la douleur"
-- "modulating" → items de "Facteurs modulants" (préfixe ⬆️ pour aggravants, ⬇️ pour soulageants)
-- "history_past" → items de "Antécédents mentionnés"
-- "treatment" → items de "Traitements essayés"
-- "functional" → items de "Impact fonctionnel"
-- "red_flags" → items de "Drapeaux rouges", avec "allClear": true si aucun drapeau rouge identifié, false sinon
+DÉPISTAGE ACTIF des drapeaux rouges — pour la section "red_flags" UNIQUEMENT, tu dois
+raisonner cliniquement et signaler tout élément de la dictée correspondant à un signal
+d'alerte, même implicite. Passe en revue systématiquement :
+- Douleur nocturne non mécanique / non soulagée par le repos / réveils douloureux
+- Amaigrissement inexpliqué, fièvre, sueurs nocturnes, AEG
+- ATCD ou suspicion de cancer (douleur récente chez patient avec ATCD néoplasique)
+- Déficit neurologique : faiblesse motrice, anesthésie, paresthésies progressives
+- Troubles sphinctériens (vésico-anaux), anesthésie en selle → urgence cauda equina
+- Traumatisme à haute énergie / suspicion de fracture, ostéoporose, corticothérapie
+- Douleur thoracique, dyspnée, palpitations, signes cardiovasculaires
+- Céphalée brutale « en coup de tonnerre », troubles visuels, vertiges, dysarthrie
+- Signes infectieux, immunodépression, toxicomanie IV
+- Âge < 20 ou > 55 ans avec douleur rachidienne d'apparition récente
+"allClear": true UNIQUEMENT si le dépistage ne remonte rien (items vide ou []) ; dès
+qu'un signe est présent ou douteux, "allClear": false et liste chaque drapeau dans
+"items" avec le signe en cause.
 
 Distinction importante pour la valeur de checklist :
 - "—" = sujet NON abordé dans la dictée (le praticien voit ce qu'il a oublié de demander)
 - Si le sujet a été abordé mais est négatif, l'écrire explicitement (ex: "Irradiations : absentes", "Aggravants : aucun signalé") — JAMAIS "—"
 
 Règles :
-- Un tiret = une information précise
-- Style télégraphique : ≤ ~12 mots par tiret, pas de phrases. Abréviations cliniques autorisées (ATCD, EVA, Dlr, G/D, RAS)
-- Ne jamais inventer ; en cas de doute, laisser "—" plutôt que déduire
-- Corriger les termes médicaux mal transcrits (erreurs phonétiques)
+- Un item = une information précise, style télégraphique (≤ ~12 mots, pas de phrases). Abréviations cliniques autorisées (ATCD, EVA, Dlr, G/D, RAS)
+- Ne jamais inventer de faits non énoncés ; en cas de doute sur un fait, laisser "—" plutôt que déduire
+- EXCEPTION drapeaux rouges : tu DOIS au contraire signaler tout signe d'alerte présent dans la dictée même s'il faut le déduire d'un recoupement (ex: douleur nocturne + amaigrissement). Mieux vaut signaler par excès que manquer un drapeau rouge.
+- Ne jamais perdre une information : un élément clinique ne rentrant dans aucune rubrique va dans la rubrique la plus proche, jamais omis
+- Si un contexte patient est fourni (âge, sexe, profession, activité sportive, ATCD), prends-le en compte — surtout pour le DÉPISTAGE des drapeaux rouges (ex: ATCD néoplasique, âge extrême, grossesse, immunodépression). N'invente rien à partir de ce contexte ; sers-t'en seulement pour pondérer la vigilance.
+- Corriger les termes médicaux mal transcrits (erreurs phonétiques) sans altérer le sens ; marquer "[?]" si un terme reste incertain
 - Répondre en français`
 
 const DETECTION_SYSTEM_PROMPT = `Tu es un assistant médical ostéopathique. Analyse le texte d'une dictée clinique et détecte si le patient mentionne des informations à mettre à jour dans son dossier.
@@ -90,6 +90,8 @@ Règles strictes :
 - Pour pregnancy_due_date, approximer au 1er du mois si seul le mois est précisé`
 
 interface PatientContext {
+  age?: number | null
+  sex?: string | null
   profession?: string | null
   sport_activity?: string | null
   primary_physician?: string | null
@@ -109,6 +111,21 @@ interface PatientFields {
   trauma_history?: string
   medical_history?: string
   family_history?: string
+}
+
+/** Lignes de contexte patient lisibles, partagées structuration / hypothèses. */
+function buildContextLines(c: PatientContext): string[] {
+  const lines: string[] = []
+  if (c.age != null) lines.push(`- Âge : ${c.age} ans`)
+  if (c.sex) lines.push(`- Sexe : ${c.sex}`)
+  if (c.profession) lines.push(`- Profession : ${c.profession}`)
+  if (c.sport_activity) lines.push(`- Sport : ${c.sport_activity}`)
+  if (c.surgical_history) lines.push(`- ATCD chirurgicaux : ${c.surgical_history}`)
+  if (c.trauma_history) lines.push(`- ATCD traumatiques : ${c.trauma_history}`)
+  if (c.medical_history) lines.push(`- ATCD médicaux : ${c.medical_history}`)
+  if (c.family_history) lines.push(`- ATCD familiaux : ${c.family_history}`)
+  if (c.pregnancy_due_date) lines.push(`- Grossesse en cours, terme : ${c.pregnancy_due_date}`)
+  return lines
 }
 
 function buildDetectionUserMessage(transcript: string, ctx: PatientContext): string {
@@ -180,6 +197,11 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Clé API non configurée' }, { status: 500 })
     }
 
+    const ctxLines = patientContext ? buildContextLines(patientContext) : []
+    const structureUserContent = ctxLines.length
+      ? `Contexte patient :\n${ctxLines.join('\n')}\n\nTranscription :\n\n${transcript}`
+      : `Transcription :\n\n${transcript}`
+
     const structureCall = fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
@@ -190,7 +212,10 @@ export async function POST(req: Request) {
       },
       body: JSON.stringify({
         model: 'claude-sonnet-4-6',
-        max_tokens: 2000,
+        // Output now carries both the markdown anamnesis AND the sections array,
+        // so a long consultation can overflow 2000 tokens and truncate the JSON
+        // (which then falls back to a card-less response). 3000 gives headroom.
+        max_tokens: 3000,
         system: [
           {
             type: 'text',
@@ -198,9 +223,11 @@ export async function POST(req: Request) {
             cache_control: { type: 'ephemeral' },
           },
         ],
-        messages: [{ role: 'user', content: `Transcription :\n\n${transcript}` }],
+        messages: [{ role: 'user', content: structureUserContent }],
       }),
-      signal: AbortSignal.timeout(30000),
+      // Kept below maxDuration (120s) so a slow Anthropic response aborts cleanly
+      // with our own error rather than the function being hard-killed by Vercel.
+      signal: AbortSignal.timeout(90000),
     })
 
     const detectionCall = patientContext
@@ -224,10 +251,40 @@ export async function POST(req: Request) {
     const data = await res.json()
     const content = data.content?.[0]?.text ?? ''
 
-    let parsed: { reason: string; anamnesis: string }
+    if (data.stop_reason === 'max_tokens') {
+      console.warn('[AI proxy] structure response hit max_tokens — JSON may be truncated')
+    }
+
+    // Log cache usage (fire-and-forget).
+    {
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+      const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+      if (supabaseUrl && supabaseAnonKey) {
+        const sb = createClient(supabaseUrl, supabaseAnonKey)
+        const u = data.usage ?? {}
+        sb.from('ai_cache_logs').insert({
+          endpoint: 'structure-anamnesis',
+          model: 'claude-sonnet-4-6',
+          input_tokens: u.input_tokens ?? 0,
+          output_tokens: u.output_tokens ?? 0,
+          cache_creation_tokens: u.cache_creation_input_tokens ?? 0,
+          cache_read_tokens: u.cache_read_input_tokens ?? 0,
+          stop_reason: data.stop_reason ?? null,
+        }).then(({ error }) => { if (error) console.warn('[ai] cache log:', error.message) })
+      }
+    }
+
+    // Cartes (sections) = source unique. "anamnesis" n'est renvoyé qu'en repli
+    // (échec de parsing) pour que le client ait au moins le texte brut.
+    // NB: pas de prefill assistant — rejeté (400) par les modèles Claude 4.6.
+    // On extrait l'objet JSON même si le modèle ajoute du texte autour.
+    const start = content.indexOf('{')
+    const end = content.lastIndexOf('}')
+    const jsonStr = start >= 0 && end > start ? content.slice(start, end + 1) : content
+
+    let parsed: { reason?: string; sections?: unknown[]; anamnesis?: string }
     try {
-      const json = content.replace(/^```(?:json)?\n?/m, '').replace(/\n?```$/m, '').trim()
-      parsed = JSON.parse(json)
+      parsed = JSON.parse(jsonStr)
     } catch {
       parsed = { reason: '', anamnesis: content }
     }

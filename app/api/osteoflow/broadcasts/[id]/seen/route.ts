@@ -1,17 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase-server'
+import { getOsteoflowSessionUser } from '@/lib/osteoflow-auth'
 
 export const dynamic = 'force-dynamic'
 
-const EXPECTED_SECRET = process.env.OSTEOFLOW_PROXY_SECRET
-
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
-  const authHeader = req.headers.get('x-osteoflow-secret')
-  if (!EXPECTED_SECRET || authHeader !== EXPECTED_SECRET) {
+  const tokenUser = await getOsteoflowSessionUser(req)
+  if (!tokenUser) {
     return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
   }
 
-  const { email } = await req.json()
+  const email = tokenUser.email
   if (!email) return NextResponse.json({ error: 'email requis' }, { status: 400 })
 
   const { error } = await supabaseAdmin

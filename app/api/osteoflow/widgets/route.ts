@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { supabaseAdmin } from '@/lib/supabase-server'
 
 export const dynamic = 'force-dynamic'
 
@@ -11,13 +11,10 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
     }
 
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-    if (!supabaseUrl || !supabaseAnonKey) {
-      return NextResponse.json({ review: null, featured_formation: null })
-    }
-
-    const supabase = createClient(supabaseUrl, supabaseAnonKey)
+    // Client admin (service role) : literature_reviews et elearning_formations
+    // sont en RLS "authenticated only", or cette route sert un widget public
+    // sans session utilisateur — la clé anon ne verrait donc jamais de lignes.
+    const supabase = supabaseAdmin
 
     // Get a random literature review via count + offset
     const { count: reviewCount } = await supabase

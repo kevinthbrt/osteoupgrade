@@ -1,9 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { sendTransactionalEmail } from '@/lib/mailing'
 import { notifyAdmin } from '@/lib/admin-notify'
+import { rateLimit } from '@/lib/rate-limit'
 
 export async function POST(req: NextRequest) {
   try {
+    // Anti-spam : 5 signalements / 5 min / IP
+    const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown'
+    const { allowed, retryAfter } = rateLimit(`bug-report:${ip}`, { limit: 5, windowSeconds: 300 })
+    if (!allowed) {
+      return NextResponse.json(
+        { error: 'Trop de signalements. Réessayez plus tard.' },
+        { status: 429, headers: { 'Retry-After': String(retryAfter) } }
+      )
+    }
+
     const { email, message } = await req.json()
 
     if (!message?.trim()) {

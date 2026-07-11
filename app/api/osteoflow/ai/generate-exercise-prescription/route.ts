@@ -2,7 +2,8 @@ import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase-server'
 
 export const dynamic = 'force-dynamic'
-export const maxDuration = 60
+// Plan Pro (jusqu'à 300s) — relevé de 60s.
+export const maxDuration = 120
 
 const VIGILANCE_POINTS = `• Douleur qui s'intensifie fortement pendant ou après l'exercice (EVA > 5/10)
 • Apparition de vertiges, nausées ou malaises
@@ -227,7 +228,7 @@ export async function POST(req: Request) {
           },
         ],
       }),
-      signal: AbortSignal.timeout(55000),
+      signal: AbortSignal.timeout(90000),
     })
 
     if (!aiRes.ok) {

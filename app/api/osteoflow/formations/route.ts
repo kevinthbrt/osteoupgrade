@@ -1,32 +1,23 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { supabaseAdmin } from '@/lib/supabase-server'
+import { getOsteoflowSessionUser } from '@/lib/osteoflow-auth'
 
 export const dynamic = 'force-dynamic'
 
 export async function GET(req: Request) {
   try {
-    const authHeader = req.headers.get('x-osteoflow-secret')
-    const expectedSecret = process.env.OSTEOFLOW_PROXY_SECRET
-    if (!expectedSecret || authHeader !== expectedSecret) {
+    const tokenUser = await getOsteoflowSessionUser(req)
+    if (!tokenUser) {
       return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
     }
 
-    const { searchParams } = new URL(req.url)
-    const email = searchParams.get('email')
+    const email = tokenUser.email
 
     if (!email) {
       return NextResponse.json({ error: 'email requis' }, { status: 400 })
     }
 
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-    if (!supabaseUrl || !supabaseAnonKey) {
-      return NextResponse.json({ error: 'Configuration Supabase manquante' }, { status: 500 })
-    }
-
-    const supabase = createClient(supabaseUrl, supabaseAnonKey)
-
-    const { data, error } = await supabase.rpc('get_all_formations_with_progress', {
+    const { data, error } = await supabaseAdmin.rpc('get_all_formations_with_progress', {
       p_email: email,
     })
 

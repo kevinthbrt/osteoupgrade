@@ -2,7 +2,9 @@ import { NextResponse } from 'next/server'
 import Groq from 'groq-sdk'
 
 export const dynamic = 'force-dynamic'
-export const maxDuration = 30
+// Plan Pro (jusqu'à 300s) — relevé de 30s pour couvrir la transcription
+// d'anamnèses plus longues (limite d'enregistrement portée à 13 min).
+export const maxDuration = 100
 
 export async function POST(req: Request) {
   try {
@@ -12,7 +14,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
     }
 
-    const formData = await req.formData()
+    const formData = await req.formData() as unknown as FormData
     const file = formData.get('file')
     if (!file || !(file instanceof File)) {
       return NextResponse.json({ error: 'Fichier audio manquant' }, { status: 400 })

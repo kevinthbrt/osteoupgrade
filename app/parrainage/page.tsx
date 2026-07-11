@@ -65,6 +65,7 @@ export default function ParrainagePage() {
   )
 
   const isPremium = profile?.role === 'premium' || profile?.role === 'admin'
+  const isFoundingMember = Boolean(profile?.is_founding_member)
   const totalReferrals = earnings?.summary?.total_referrals || 0
   const referralLink = referralCode
     ? `${typeof window !== 'undefined' ? window.location.origin : ''}/settings/subscription?ref=${referralCode}`
@@ -148,8 +149,20 @@ export default function ParrainagePage() {
               </div>
             </div>
 
+            {/* Section Membre Fondateur */}
+            {isPremium && isFoundingMember && (
+              <div className="rounded-2xl bg-white/85 backdrop-blur-2xl border border-white/70 shadow-xl ring-1 ring-inset ring-white/60 p-8 text-center">
+                <Crown className="h-10 w-10 text-yellow-600 mx-auto mb-3" />
+                <h2 className="text-xl font-bold text-slate-900 mb-2">Parrainage non disponible</h2>
+                <p className="text-slate-600 max-w-xl mx-auto">
+                  En tant que <strong>Membre Fondateur</strong>, vous bénéficiez déjà de -50% à vie sur votre
+                  abonnement. Le programme de parrainage n'est donc pas applicable à votre offre.
+                </p>
+              </div>
+            )}
+
             {/* Section Premium */}
-            {isPremium && (
+            {isPremium && !isFoundingMember && (
               <>
                 {/* Code de parrainage */}
                 <div>

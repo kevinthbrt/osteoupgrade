@@ -1,20 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase-server'
 import { findUserByEmail } from '@/lib/find-user-by-email'
-
-function verifySecret(req: NextRequest) {
-  const auth = req.headers.get('authorization') ?? ''
-  const secret = process.env.OSTEOFLOW_PROXY_SECRET
-  if (!secret) return false
-  return auth === `Bearer ${secret}`
-}
+import { getOsteoflowSessionUser } from '@/lib/osteoflow-auth'
 
 export async function GET(request: NextRequest) {
-  if (!verifySecret(request)) {
+  const tokenUser = await getOsteoflowSessionUser(request)
+  if (!tokenUser) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const email = request.nextUrl.searchParams.get('email')
+  const email = tokenUser.email
   const deckId = request.nextUrl.searchParams.get('deck_id')
   if (!email || !deckId) {
     return NextResponse.json({ error: 'Missing email or deck_id' }, { status: 400 })

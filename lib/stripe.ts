@@ -23,6 +23,21 @@ export const STRIPE_PLANS = {
     currency: 'eur',
     interval: 'month',
     isAnnual: false
+  },
+  // Offre "Membre Fondateur" (-50% à vie, facturation annuelle) réservée aux
+  // comptes profiles.is_founding_member = true, revérifié côté serveur dans
+  // /api/stripe/checkout — jamais un simple code que quelqu'un pourrait
+  // transmettre, l'accès à ce plan dépend uniquement du compte connecté.
+  founding_annual: {
+    name: 'Premium Fondateur',
+    planType: 'premium',
+    priceId: process.env.STRIPE_PRICE_FOUNDING_ANNUAL || '',
+    amount: 29994, // 299,94€/an (-50% vs 49,99€/mois)
+    displayPrice: '299,94€',
+    displayInterval: 'an',
+    currency: 'eur',
+    interval: 'year',
+    isAnnual: true
   }
 }
 

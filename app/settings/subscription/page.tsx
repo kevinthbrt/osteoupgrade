@@ -130,8 +130,8 @@ function SubscriptionContent() {
     }
   }
 
-  // Le parrainage s'applique à l'offre unique
-  const isReferralEligiblePlan = (_planType: string) => true
+  // Le parrainage ne s'applique pas à l'offre Fondateur, déjà à -50%
+  const isReferralEligiblePlan = (planType: string) => planType !== 'founding_annual'
 
   const handleUpgrade = (planType: string) => {
     if (profile?.role === 'premium') {
@@ -537,6 +537,24 @@ function SubscriptionContent() {
               </div>
 
               <div className="space-y-3">
+                {profile?.is_founding_member && (
+                  <div className="rounded-lg border-2 border-amber-400 bg-amber-50 p-4 space-y-3">
+                    <p className="text-sm font-semibold text-amber-900">
+                      🌟 Offre Membre Fondateur : -50% à vie, 299,94€/an au lieu de 599,88€
+                    </p>
+                    <button
+                      onClick={() => handleUpgrade('founding_annual')}
+                      disabled={processingPlan !== null}
+                      className="w-full bg-gradient-to-r from-amber-500 to-amber-600 text-amber-950 py-4 px-6 rounded-lg font-bold hover:from-amber-600 hover:to-amber-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 border-2 border-amber-400 shadow-lg"
+                    >
+                      {processingPlan === 'founding_annual' ? (
+                        <><Loader2 className="h-5 w-5 animate-spin" />Redirection...</>
+                      ) : (
+                        <><Crown className="h-5 w-5" />Choisir l&apos;offre Fondateur (299,94€/an)</>
+                      )}
+                    </button>
+                  </div>
+                )}
                 <button
                   onClick={() => handleUpgrade('premium_monthly')}
                   disabled={processingPlan !== null}

@@ -48,6 +48,23 @@ export async function POST(request: Request) {
       )
     }
 
+    // L'offre Fondateur est réservée aux comptes marqués comme tels — revérifié
+    // ici pour qu'elle ne soit jamais accessible en appelant l'API directement.
+    if (planType === 'founding_annual') {
+      const { data: founderProfile } = await supabase
+        .from('profiles')
+        .select('is_founding_member')
+        .eq('id', userId)
+        .single()
+
+      if (!founderProfile?.is_founding_member) {
+        return NextResponse.json(
+          { error: 'Cette offre est réservée aux membres fondateurs.' },
+          { status: 403 }
+        )
+      }
+    }
+
     // Valider le code de parrainage (applicable à l'offre unique)
     let referrerUserId = null
     const shouldProcessReferral = Boolean(referralCode)
@@ -95,8 +112,20 @@ export async function POST(request: Request) {
           { status: 400 }
         )
       } else {
-        referrerUserId = referralData.user_id
-        console.log('✅ Valid referral code:', referralCode, 'Referrer:', referrerUserId)
+        // Vérifier que le parrain est toujours un membre Premium/Admin actif
+        const { data: referrerProfile } = await supabaseAdmin
+          .from('profiles')
+          .select('role')
+          .eq('id', referralData.user_id)
+          .single()
+
+        if (!referrerProfile || !['premium', 'admin'].includes(referrerProfile.role)) {
+          console.warn('⚠️ Referrer is no longer Premium, ignoring referral code:', referralCode)
+          // Ne pas bloquer le checkout : on ignore simplement le parrainage
+        } else {
+          referrerUserId = referralData.user_id
+          console.log('✅ Valid referral code:', referralCode, 'Referrer:', referrerUserId)
+        }
       }
     }
 

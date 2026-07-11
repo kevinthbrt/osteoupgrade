@@ -1,27 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase-server'
+import { getOsteoflowSessionUser } from '@/lib/osteoflow-auth'
 import { notifyAdmin } from '@/lib/admin-notify'
 
-const OSTEOFLOW_SECRET = process.env.OSTEOFLOW_PROXY_SECRET || 'a8c0fcc6aa558582564131768fd6aa6b0628b84ac0abe494948b088f086be1a6'
-
-function verifySecret(req: NextRequest) {
-  return req.headers.get('x-osteoflow-secret') === OSTEOFLOW_SECRET
-}
-
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
-  if (!verifySecret(req)) return NextResponse.json({ error: 'Non autorisé' }, { status: 403 })
+  const tokenUser = await getOsteoflowSessionUser(req)
+  if (!tokenUser) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
 
-  const url = new URL(req.url)
-  const licenseEmail = url.searchParams.get('license_email')
+  const email = tokenUser.email
 
-  const query = supabaseAdmin
+  const { data: ticket } = await supabaseAdmin
     .from('support_tickets')
     .select('id, user_email, license_email')
     .eq('id', params.id)
+    .or(`license_email.eq.${email},user_email.eq.${email}`)
+    .single()
 
-  if (licenseEmail) query.eq('license_email', licenseEmail)
-
-  const { data: ticket } = await query.single()
   if (!ticket) return NextResponse.json({ error: 'Ticket introuvable' }, { status: 404 })
 
   const { data: messages, error } = await supabaseAdmin
@@ -35,21 +29,22 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 }
 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
-  if (!verifySecret(req)) return NextResponse.json({ error: 'Non autorisé' }, { status: 403 })
+  const tokenUser = await getOsteoflowSessionUser(req)
+  if (!tokenUser) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
 
+  const email = tokenUser.email
   const body = await req.json()
-  const { content, license_email } = body
+  const { content } = body
 
   if (!content?.trim()) return NextResponse.json({ error: 'Message vide' }, { status: 400 })
 
-  const query = supabaseAdmin
+  const { data: ticket } = await supabaseAdmin
     .from('support_tickets')
     .select('*')
     .eq('id', params.id)
+    .or(`license_email.eq.${email},user_email.eq.${email}`)
+    .single()
 
-  if (license_email) query.eq('license_email', license_email)
-
-  const { data: ticket } = await query.single()
   if (!ticket) return NextResponse.json({ error: 'Ticket introuvable' }, { status: 404 })
 
   const { data: msg, error } = await supabaseAdmin

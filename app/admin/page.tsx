@@ -15,6 +15,8 @@ import {
   Tag,
   LifeBuoy,
   Megaphone,
+  Database,
+  BarChart3,
 } from 'lucide-react'
 
 type Counts = { tickets: number; emails: number }
@@ -73,6 +75,14 @@ export default function AdminPage() {
 
   const sections: Section[] = [
     {
+      title: 'Statistiques',
+      description: 'Évolution des inscriptions et indicateurs clés',
+      icon: BarChart3,
+      iconColor: 'text-sky-600',
+      iconBg: 'bg-sky-100',
+      href: '/admin/stats',
+    },
+    {
       title: 'Gestion des Utilisateurs',
       description: 'Comptes, abonnements premium et newsletter',
       icon: Users,
@@ -129,6 +139,14 @@ export default function AdminPage() {
       iconColor: 'text-emerald-600',
       iconBg: 'bg-emerald-100',
       href: '/admin/promo',
+    },
+    {
+      title: 'Cache IA',
+      description: 'Suivi du cache Anthropic — hit rate et économies (7j)',
+      icon: Database,
+      iconColor: 'text-violet-600',
+      iconBg: 'bg-violet-100',
+      href: '/admin/ai-cache',
     },
   ]
 

@@ -1,8 +1,13 @@
 import { NextResponse } from 'next/server'
 import { put } from '@vercel/blob'
+import { verifyAdmin, validateImageUpload, safeImageExt } from '@/lib/api-guards'
 
 export async function POST(request: Request) {
-  const formData = await request.formData()
+  if (!(await verifyAdmin())) {
+    return NextResponse.json({ error: 'Non autorisé' }, { status: 403 })
+  }
+
+  const formData = await request.formData() as unknown as FormData
   const file = formData.get('file') as File | null
   const viewId = formData.get('viewId') as string | null
 
@@ -10,7 +15,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Missing file or viewId' }, { status: 400 })
   }
 
-  const ext = file.name.split('.').pop() || 'jpg'
+  const validationError = validateImageUpload(file)
+  if (validationError) {
+    return NextResponse.json({ error: validationError }, { status: 400 })
+  }
+
+  const ext = safeImageExt(file)
   const objectName = `topographic-views/${viewId}-${Date.now()}.${ext}`
 
   const blob = await put(objectName, file, {

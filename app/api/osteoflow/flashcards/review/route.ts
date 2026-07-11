@@ -1,14 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase-server'
 import { findUserByEmail } from '@/lib/find-user-by-email'
+import { getOsteoflowSessionUser } from '@/lib/osteoflow-auth'
 import { z } from 'zod'
-
-function verifySecret(req: NextRequest) {
-  const auth = req.headers.get('authorization') ?? ''
-  const secret = process.env.OSTEOFLOW_PROXY_SECRET
-  if (!secret) return false
-  return auth === `Bearer ${secret}`
-}
 
 function sm2(
   rating: number,
@@ -54,7 +48,8 @@ const postSchema = z.object({
 })
 
 export async function POST(request: NextRequest) {
-  if (!verifySecret(request)) {
+  const tokenUser = await getOsteoflowSessionUser(request)
+  if (!tokenUser) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
@@ -64,7 +59,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Invalid request' }, { status: 400 })
   }
 
-  const { email, card_id, deck_id, rating } = parsed.data
+  const { card_id, deck_id, rating } = parsed.data
+  const email = tokenUser.email
 
   const user = await findUserByEmail(email)
   if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 })
