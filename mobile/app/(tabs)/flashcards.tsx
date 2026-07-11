@@ -8,6 +8,7 @@ import {
   Dimensions,
   Platform,
   Pressable,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -16,8 +17,10 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { EmptyState } from '@/components/EmptyState';
 import { useAuth } from '@/lib/auth';
 import type { Tables } from '@/lib/database.types';
+import * as haptics from '@/lib/haptics';
 import { supabase } from '@/lib/supabase';
 import { BRAND, PALETTE } from '@/lib/theme';
 
@@ -60,6 +63,7 @@ function FlipCard({
 
   const flip = () => {
     if (flipped) return;
+    haptics.tap();
     Animated.spring(anim, { toValue: 1, useNativeDriver: true, tension: 60, friction: 8 }).start();
     setFlipped(true);
   };
@@ -233,6 +237,7 @@ export default function FlashcardsScreen() {
   const [mode, setMode] = useState<Mode>('decks');
   const [decks, setDecks] = useState<DeckWithStats[]>([]);
   const [loadingDecks, setLoadingDecks] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
   // Session
   const [sessionDeck, setSessionDeck] = useState<Deck | null>(null);
@@ -251,7 +256,7 @@ export default function FlashcardsScreen() {
       .select('*')
       .order('created_at');
 
-    if (!rawDecks) { setLoadingDecks(false); return; }
+    if (!rawDecks) { setLoadingDecks(false); setRefreshing(false); return; }
 
     const deckIds = rawDecks.map((d) => d.id);
     const now = new Date().toISOString();
@@ -273,6 +278,7 @@ export default function FlashcardsScreen() {
 
     setDecks(rawDecks.map((d) => ({ ...d, reviewed: statsMap[d.id]?.reviewed ?? 0, due: statsMap[d.id]?.due ?? 0 })));
     setLoadingDecks(false);
+    setRefreshing(false);
   }, [session]);
 
   useEffect(() => { loadDecks(); }, [loadDecks]);
@@ -312,6 +318,7 @@ export default function FlashcardsScreen() {
 
   const handleRate = useCallback(async (rating: 1 | 2 | 3 | 4) => {
     if (!session?.user || !sessionDeck) return;
+    rating >= 3 ? haptics.success() : haptics.warning();
     const card = cards[cardIndex];
 
     // Charger la progression actuelle
@@ -346,8 +353,14 @@ export default function FlashcardsScreen() {
           {loadingDecks ? (
             <View style={dl.centered}><ActivityIndicator size="large" color={BRAND} /></View>
           ) : (
-            <ScrollView contentContainerStyle={[dl.scroll, { paddingBottom: Platform.OS === 'ios' ? 100 : 80 }]} showsVerticalScrollIndicator={false}>
-              {decks.map((deck) => {
+            <ScrollView
+              contentContainerStyle={[dl.scroll, { paddingBottom: Platform.OS === 'ios' ? 100 : 80 }, decks.length === 0 && { flexGrow: 1 }]}
+              showsVerticalScrollIndicator={false}
+              refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); loadDecks(); }} tintColor={BRAND} />}>
+              {decks.length === 0 ? (
+                <EmptyState icon="albums-outline" title="Aucun deck"
+                  message="Les paquets de flashcards apparaîtront ici." />
+              ) : decks.map((deck) => {
                 const grad = deckGradient(deck.theme);
                 const pct = deck.total_cards > 0 ? Math.round((deck.reviewed / deck.total_cards) * 100) : 0;
                 const allDone = pct === 100;

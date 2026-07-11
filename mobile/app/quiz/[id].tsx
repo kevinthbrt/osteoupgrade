@@ -15,6 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { GlassCard } from '@/components/GlassCard';
 import { useAuth } from '@/lib/auth';
+import * as haptics from '@/lib/haptics';
 import type { Tables } from '@/lib/database.types';
 import { supabase } from '@/lib/supabase';
 import { BRAND, GRADIENTS, usePaletteFor } from '@/lib/theme';
@@ -78,6 +79,7 @@ export default function QuizScreen() {
 
   const toggleAnswer = (answerId: string) => {
     if (!current) return;
+    haptics.selection();
     const isMulti = current.question_type === 'multiple_answer';
     setAnswers((prev) => {
       const cur = prev[current.id] ?? [];
@@ -108,6 +110,7 @@ export default function QuizScreen() {
     const finalScore = total > 0 ? Math.round((correctCount / total) * 100) : 0;
     const passed = finalScore >= quiz.passing_score;
 
+    passed ? haptics.success() : haptics.warning();
     setScore(finalScore);
     setShowResults(true);
 

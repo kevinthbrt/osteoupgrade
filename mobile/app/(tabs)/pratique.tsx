@@ -20,6 +20,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { WebView } from 'react-native-webview';
 
+import { EmptyState } from '@/components/EmptyState';
 import { GlassCard } from '@/components/GlassCard';
 import type { Tables } from '@/lib/database.types';
 import { supabase } from '@/lib/supabase';
@@ -177,7 +178,7 @@ function VideoSlide({ video, active }: { video: Video; active: boolean }) {
 }
 
 // ── Vue Catégories (accordéon) ───────────────────────────────────────────────
-function CategoriesView({ videos, C }: { videos: Video[]; C: ReturnType<typeof usePaletteFor> }) {
+function CategoriesView({ videos, C, refreshing, onRefresh }: { videos: Video[]; C: ReturnType<typeof usePaletteFor>; refreshing: boolean; onRefresh: () => void }) {
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const availableRegions = REGION_ORDER.filter((r) => videos.some((v) => v.region === r));
 
@@ -188,8 +189,13 @@ function CategoriesView({ videos, C }: { videos: Video[]; C: ReturnType<typeof u
   });
 
   return (
-    <ScrollView contentContainerStyle={[cv.scroll, { paddingBottom: TAB_H + 16 }]} showsVerticalScrollIndicator={false}>
-      {availableRegions.map((r) => {
+    <ScrollView
+      contentContainerStyle={[cv.scroll, { paddingBottom: TAB_H + 16 }, availableRegions.length === 0 && { flexGrow: 1 }]}
+      showsVerticalScrollIndicator={false}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={BRAND} />}>
+      {availableRegions.length === 0 ? (
+        <EmptyState icon="fitness-outline" title="Aucune vidéo" message="Les techniques de pratique apparaîtront ici." />
+      ) : availableRegions.map((r) => {
         const regionVideos = videos.filter((v) => v.region === r);
         const open = expanded.has(r);
         return (
@@ -241,6 +247,7 @@ export default function PratiqueScreen() {
 
   const [videos, setVideos] = useState<Video[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>('categories');
   const [selectedRegion, setSelectedRegion] = useState<string | null>(null);
   const [visibleIndex, setVisibleIndex] = useState(0);
@@ -255,6 +262,7 @@ export default function PratiqueScreen() {
       .order('order_index', { nullsFirst: false });
     setVideos(data ?? []);
     setLoading(false);
+    setRefreshing(false);
   }, []);
 
   useEffect(() => { load(); }, [load]);
@@ -308,7 +316,7 @@ export default function PratiqueScreen() {
             <ActivityIndicator size="large" color={BRAND} />
           </View>
         ) : viewMode === 'categories' ? (
-          <CategoriesView videos={videos} C={C} />
+          <CategoriesView videos={videos} C={C} refreshing={refreshing} onRefresh={() => { setRefreshing(true); load(); }} />
         ) : (
           // ── Mode Scroll TikTok ──
           <View style={{ flex: 1 }}>

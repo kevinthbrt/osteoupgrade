@@ -16,7 +16,9 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { EmptyState } from '@/components/EmptyState';
 import { GlassCard } from '@/components/GlassCard';
+import { ListCardSkeleton } from '@/components/Skeleton';
 import type { Tables } from '@/lib/database.types';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/auth';
@@ -67,16 +69,24 @@ export default function CoursScreen() {
         </View>
 
         {loading ? (
-          <View style={s.center}><ActivityIndicator size="large" color={BRAND} /></View>
+          <View style={[s.scroll, { paddingTop: 8 }]}>
+            {[0, 1, 2, 3, 4].map((i) => (
+              <GlassCard key={i} style={{ padding: 0 }}><ListCardSkeleton /></GlassCard>
+            ))}
+          </View>
         ) : (
           <ScrollView
             contentContainerStyle={[s.scroll, { paddingBottom: Platform.OS === 'ios' ? 100 : 80 }]}
             showsVerticalScrollIndicator={false}
             refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); load(); }} tintColor={BRAND} />}>
             {formations.length === 0 ? (
-              <Text style={[s.muted, { color: C.textSecondary }]}>
-                {error ? `Erreur : ${error}` : 'Aucune formation disponible.'}
-              </Text>
+              error ? (
+                <EmptyState variant="error" icon="cloud-offline-outline" title="Impossible de charger les cours"
+                  message={error} actionLabel="Réessayer" onAction={() => { setRefreshing(true); load(); }} />
+              ) : (
+                <EmptyState icon="school-outline" title="Aucune formation"
+                  message="Les formations apparaîtront ici dès qu'elles seront disponibles." />
+              )
             ) : (
               formations.map((item) => {
                 const locked = !canAccessFormation(role, item.is_private, item.is_free_access);

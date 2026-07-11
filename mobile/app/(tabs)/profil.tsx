@@ -1,10 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Platform,
   Pressable,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -33,35 +34,41 @@ export default function ProfilScreen() {
   const [gam, setGam] = useState<Gam | null>(null);
   const [certs, setCerts] = useState<Cert[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(() => {
+  const load = useCallback(async () => {
     if (!session?.user) return;
     const uid = session.user.id;
-    Promise.all([
+    const [p, g, cc, fc] = await Promise.all([
       supabase.from('profiles').select('*').eq('id', uid).maybeSingle(),
       supabase.from('user_gamification_stats').select('*').eq('user_id', uid).maybeSingle(),
       supabase.from('course_certificates').select('certificate_number, issued_at, elearning_formations(title)').eq('user_id', uid),
       supabase.from('flashcard_certificates').select('certificate_number, issued_at, flashcard_decks(title)').eq('user_id', uid),
-    ]).then(([p, g, cc, fc]) => {
-      setProfile(p.data);
-      setGam(g.data);
-      const list: Cert[] = [];
-      for (const c of (cc.data ?? []) as any[])
-        list.push({ number: c.certificate_number, label: c.elearning_formations?.title ?? 'Formation', date: c.issued_at, kind: 'course' });
-      for (const c of (fc.data ?? []) as any[])
-        list.push({ number: c.certificate_number, label: c.flashcard_decks?.title ?? 'Deck', date: c.issued_at, kind: 'flashcard' });
-      list.sort((a, b) => (a.date < b.date ? 1 : -1));
-      setCerts(list);
-      setLoading(false);
-    });
+    ]);
+    setProfile(p.data);
+    setGam(g.data);
+    const list: Cert[] = [];
+    for (const c of (cc.data ?? []) as any[])
+      list.push({ number: c.certificate_number, label: c.elearning_formations?.title ?? 'Formation', date: c.issued_at, kind: 'course' });
+    for (const c of (fc.data ?? []) as any[])
+      list.push({ number: c.certificate_number, label: c.flashcard_decks?.title ?? 'Deck', date: c.issued_at, kind: 'flashcard' });
+    list.sort((a, b) => (a.date < b.date ? 1 : -1));
+    setCerts(list);
+    setLoading(false);
+    setRefreshing(false);
   }, [session]);
+
+  useEffect(() => { load(); }, [load]);
 
   const initial = (profile?.full_name ?? session?.user?.email ?? '?').charAt(0).toUpperCase();
 
   return (
     <LinearGradient colors={C.bgGradient} style={s.fill} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
       <SafeAreaView style={s.fill} edges={['top']}>
-        <ScrollView contentContainerStyle={[s.scroll, { paddingBottom: Platform.OS === 'ios' ? 100 : 80 }]} showsVerticalScrollIndicator={false}>
+        <ScrollView
+          contentContainerStyle={[s.scroll, { paddingBottom: Platform.OS === 'ios' ? 100 : 80 }]}
+          showsVerticalScrollIndicator={false}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); load(); }} tintColor={BRAND} />}>
 
           {/* En-tête profil */}
           <View style={s.head}>

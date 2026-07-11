@@ -18,6 +18,7 @@ import { WebView } from 'react-native-webview';
 import { GlassCard } from '@/components/GlassCard';
 import { HtmlView } from '@/components/HtmlView';
 import { useAuth } from '@/lib/auth';
+import * as haptics from '@/lib/haptics';
 import { saveRecent } from '@/lib/recent';
 import type { Tables } from '@/lib/database.types';
 import { supabase } from '@/lib/supabase';
@@ -76,6 +77,7 @@ export default function SubpartScreen() {
     setMarking(true);
     const uid = session.user.id;
     const next = !completed;
+    if (next) haptics.success();
     if (next) {
       // Terminé = on insère/conserve une ligne (comme le site web)
       await supabase.from('elearning_subpart_progress').upsert(
