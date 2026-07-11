@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { router, useLocalSearchParams } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
   Linking,
@@ -37,22 +37,37 @@ export default function SubpartScreen() {
 
   const [subpart, setSubpart] = useState<Subpart | null>(null);
   const [completed, setCompleted] = useState(false);
+  const [quizId, setQuizId] = useState<string | null>(null);
+  const [quizPassed, setQuizPassed] = useState(false);
   const [loading, setLoading] = useState(true);
   const [marking, setMarking] = useState(false);
 
-  useEffect(() => {
+  const loadSubpart = useCallback(async () => {
     if (!id || !session?.user) return;
     const uid = session.user.id;
-    Promise.all([
+    const [sp, prog, quiz] = await Promise.all([
       supabase.from('elearning_subparts').select('*').eq('id', id).maybeSingle(),
       supabase.from('elearning_subpart_progress').select('id').eq('subpart_id', id).eq('user_id', uid).maybeSingle(),
-    ]).then(([sp, prog]) => {
-      setSubpart(sp.data);
-      // Présence d'une ligne = terminé (modèle identique au site web)
-      setCompleted(!!prog.data);
-      setLoading(false);
-    });
+      supabase.from('elearning_quizzes').select('id').eq('subpart_id', id).eq('is_active', true).maybeSingle(),
+    ]);
+    setSubpart(sp.data);
+    setCompleted(!!prog.data); // présence d'une ligne = terminé (identique au web)
+
+    const qId = quiz.data?.id ?? null;
+    setQuizId(qId);
+    if (qId) {
+      const { data: att } = await supabase
+        .from('elearning_quiz_attempts')
+        .select('id').eq('quiz_id', qId).eq('user_id', uid).eq('passed', true).limit(1);
+      setQuizPassed((att?.length ?? 0) > 0);
+    } else {
+      setQuizPassed(false);
+    }
+    setLoading(false);
   }, [id, session]);
+
+  // Recharge au focus pour refléter le quiz réussi au retour de l'écran quiz
+  useFocusEffect(useCallback(() => { loadSubpart(); }, [loadSubpart]));
 
   const toggleComplete = async () => {
     if (!subpart || !session?.user || marking) return;
@@ -141,24 +156,39 @@ export default function SubpartScreen() {
               </GlassCard>
             ) : null}
 
-            {/* Mark complete */}
-            <Pressable onPress={toggleComplete} disabled={marking}>
-              <LinearGradient
-                colors={completed ? GRADIENTS.green : GRADIENTS.brand}
-                style={s.completeBtn}
-                start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
-                {marking ? (
-                  <ActivityIndicator color="#fff" />
-                ) : (
-                  <>
-                    <Ionicons name={completed ? 'checkmark-circle' : 'ellipse-outline'} size={20} color="#fff" />
-                    <Text style={s.completeBtnText}>
-                      {completed ? 'Terminé ✓' : 'Marquer comme terminé'}
-                    </Text>
-                  </>
-                )}
-              </LinearGradient>
-            </Pressable>
+            {quizId ? (
+              /* La leçon a un quiz : c'est lui qui valide la progression */
+              <Pressable onPress={() => router.push(`/quiz/${quizId}`)}>
+                <LinearGradient
+                  colors={quizPassed ? GRADIENTS.green : GRADIENTS.violet}
+                  style={s.completeBtn}
+                  start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
+                  <Ionicons name={quizPassed ? 'trophy' : 'help-circle'} size={20} color="#fff" />
+                  <Text style={s.completeBtnText}>
+                    {quizPassed ? 'Quiz validé — Refaire' : 'Passer le quiz pour valider'}
+                  </Text>
+                </LinearGradient>
+              </Pressable>
+            ) : (
+              /* Pas de quiz : validation manuelle */
+              <Pressable onPress={toggleComplete} disabled={marking}>
+                <LinearGradient
+                  colors={completed ? GRADIENTS.green : GRADIENTS.brand}
+                  style={s.completeBtn}
+                  start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
+                  {marking ? (
+                    <ActivityIndicator color="#fff" />
+                  ) : (
+                    <>
+                      <Ionicons name={completed ? 'checkmark-circle' : 'ellipse-outline'} size={20} color="#fff" />
+                      <Text style={s.completeBtnText}>
+                        {completed ? 'Terminé ✓' : 'Marquer comme terminé'}
+                      </Text>
+                    </>
+                  )}
+                </LinearGradient>
+              </Pressable>
+            )}
           </ScrollView>
         )}
       </SafeAreaView>

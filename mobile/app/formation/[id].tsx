@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { router, useLocalSearchParams } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -14,6 +14,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { GlassCard } from '@/components/GlassCard';
+import { canAccessFormation, type Role } from '@/lib/access';
 import { useAuth } from '@/lib/auth';
 import type { Tables } from '@/lib/database.types';
 import { supabase } from '@/lib/supabase';
@@ -23,7 +24,12 @@ type Formation = Tables<'elearning_formations'>;
 type Chapter = Tables<'elearning_chapters'>;
 type Subpart = Tables<'elearning_subparts'>;
 
-type SubpartWithProgress = Subpart & { completed: boolean };
+type SubpartWithProgress = Subpart & {
+  completed: boolean;
+  quizId: string | null;
+  quizPassed: boolean;
+  locked: boolean;
+};
 type ChapterWithSubparts = Chapter & { subparts: SubpartWithProgress[] };
 
 export default function FormationScreen() {
@@ -34,6 +40,7 @@ export default function FormationScreen() {
 
   const [formation, setFormation] = useState<Formation | null>(null);
   const [chapters, setChapters] = useState<ChapterWithSubparts[]>([]);
+  const [role, setRole] = useState<Role>(null);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
@@ -41,23 +48,64 @@ export default function FormationScreen() {
     if (!id || !session?.user) return;
     const uid = session.user.id;
 
-    const [fRes, cRes, spRes, progRes] = await Promise.all([
+    const [fRes, cRes, progRes, pRes] = await Promise.all([
       supabase.from('elearning_formations').select('*').eq('id', id).maybeSingle(),
       supabase.from('elearning_chapters').select('*').eq('formation_id', id).order('order_index'),
-      supabase.from('elearning_subparts').select('*').order('order_index'),
       supabase.from('elearning_subpart_progress').select('subpart_id').eq('user_id', uid),
+      supabase.from('profiles').select('role').eq('id', uid).maybeSingle(),
     ]);
 
     setFormation(fRes.data);
+    setRole((pRes.data?.role ?? null) as Role);
 
-    // Le suivi e-learning est basé sur la présence d'une ligne (cf. site web)
+    const chapterIds = (cRes.data ?? []).map((c) => c.id);
+    const { data: spData } = chapterIds.length
+      ? await supabase.from('elearning_subparts').select('*').in('chapter_id', chapterIds).order('order_index')
+      : { data: [] as Subpart[] };
+
+    const subpartIds = (spData ?? []).map((sp) => sp.id);
+
+    // Quiz actifs par sous-partie + tentatives réussies de l'utilisateur
+    const [quizRes, attemptRes] = await Promise.all([
+      subpartIds.length
+        ? supabase.from('elearning_quizzes').select('id, subpart_id, passing_score').eq('is_active', true).in('subpart_id', subpartIds)
+        : Promise.resolve({ data: [] as { id: string; subpart_id: string; passing_score: number }[] }),
+      supabase.from('elearning_quiz_attempts').select('quiz_id, passed').eq('user_id', uid).eq('passed', true),
+    ]);
+
+    const quizBySubpart = new Map<string, string>(); // subpart_id -> quiz_id
+    for (const q of quizRes.data ?? []) quizBySubpart.set(q.subpart_id, q.id);
+    const passedQuizIds = new Set<string>((attemptRes.data ?? []).map((a) => a.quiz_id));
+
+    // Suivi e-learning = présence d'une ligne (cf. site web)
     const completedSet = new Set<string>((progRes.data ?? []).map((p) => p.subpart_id));
+
+    // Calcul de l'accessibilité : une sous-partie est accessible si la précédente
+    // (sur toute la formation aplatie) est accessible ET son quiz est réussi (ou absent).
+    const flat = (cRes.data ?? []).flatMap((ch) => (spData ?? []).filter((sp) => sp.chapter_id === ch.id));
+    const accessible = new Set<string>();
+    for (let i = 0; i < flat.length; i++) {
+      if (i === 0) { accessible.add(flat[i].id); continue; }
+      const prev = flat[i - 1];
+      const prevQuizId = quizBySubpart.get(prev.id) ?? null;
+      const prevQuizPassed = !prevQuizId || passedQuizIds.has(prevQuizId);
+      if (accessible.has(prev.id) && prevQuizPassed) accessible.add(flat[i].id);
+    }
 
     const built: ChapterWithSubparts[] = (cRes.data ?? []).map((ch) => ({
       ...ch,
-      subparts: (spRes.data ?? [])
+      subparts: (spData ?? [])
         .filter((sp) => sp.chapter_id === ch.id)
-        .map((sp) => ({ ...sp, completed: completedSet.has(sp.id) })),
+        .map((sp) => {
+          const quizId = quizBySubpart.get(sp.id) ?? null;
+          return {
+            ...sp,
+            completed: completedSet.has(sp.id),
+            quizId,
+            quizPassed: quizId ? passedQuizIds.has(quizId) : true,
+            locked: !accessible.has(sp.id),
+          };
+        }),
     }));
 
     setChapters(built);
@@ -65,7 +113,8 @@ export default function FormationScreen() {
     setLoading(false);
   }, [id, session]);
 
-  useEffect(() => { load(); }, [load]);
+  // Recharge à chaque focus pour refléter un quiz réussi / une leçon validée au retour
+  useFocusEffect(useCallback(() => { load(); }, [load]));
 
   const toggleChapter = (chId: string) =>
     setExpanded((prev) => {
@@ -77,6 +126,32 @@ export default function FormationScreen() {
   const totalSubparts = chapters.reduce((acc, ch) => acc + ch.subparts.length, 0);
   const completedSubparts = chapters.reduce((acc, ch) => acc + ch.subparts.filter((s) => s.completed).length, 0);
   const progress = totalSubparts > 0 ? completedSubparts / totalSubparts : 0;
+
+  const accessDenied = !loading && formation != null && !canAccessFormation(role, formation.is_private, formation.is_free_access);
+
+  if (accessDenied) {
+    return (
+      <LinearGradient colors={C.bgGradient} style={s.fill} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
+        <SafeAreaView style={s.fill} edges={['top']}>
+          <View style={s.header}>
+            <Pressable onPress={() => router.back()} style={s.back}>
+              <Ionicons name="arrow-back" size={22} color={C.text} />
+            </Pressable>
+            <Text style={[s.headerTitle, { color: C.text }]} numberOfLines={1}>{formation?.title ?? 'Formation'}</Text>
+          </View>
+          <View style={s.gateWrap}>
+            <LinearGradient colors={['#f59e0b', '#d97706']} style={s.gateIcon} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
+              <Ionicons name="star" size={40} color="#fff" />
+            </LinearGradient>
+            <Text style={[s.gateTitle, { color: C.text }]}>Contenu Premium</Text>
+            <Text style={[s.gateSub, { color: C.textSecondary }]}>
+              Cette formation est réservée aux abonnés Premium. Passe à l'offre Premium sur le site OsteoUpgrade pour y accéder.
+            </Text>
+          </View>
+        </SafeAreaView>
+      </LinearGradient>
+    );
+  }
 
   return (
     <LinearGradient colors={C.bgGradient} style={s.fill} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
@@ -147,8 +222,8 @@ export default function FormationScreen() {
                   {open && ch.subparts.map((sp) => (
                     <Pressable
                       key={sp.id}
-                      onPress={() => router.push(`/subpart/${sp.id}`)}
-                      style={s.subpartRow}>
+                      onPress={() => { if (!sp.locked) router.push(`/subpart/${sp.id}`); }}
+                      style={[s.subpartRow, sp.locked && { opacity: 0.55 }]}>
                       <View style={[s.subpartCheck, sp.completed && s.subpartCheckDone]}>
                         {sp.completed && <Ionicons name="checkmark" size={12} color="#fff" />}
                       </View>
@@ -157,11 +232,27 @@ export default function FormationScreen() {
                         <View style={s.subpartMeta}>
                           {sp.vimeo_url && <Ionicons name="play-circle" size={13} color={C.textMuted} />}
                           {sp.pdf_url && <Ionicons name="document-text" size={13} color={C.textMuted} />}
+                          {sp.quizId && (
+                            <View style={[s.quizTag, sp.quizPassed ? s.quizTagDone : s.quizTagTodo]}>
+                              <Ionicons name={sp.quizPassed ? 'checkmark-circle' : 'help-circle'} size={11} color={sp.quizPassed ? '#16a34a' : BRAND} />
+                              <Text style={[s.quizTagText, { color: sp.quizPassed ? '#16a34a' : BRAND }]}>Quiz</Text>
+                            </View>
+                          )}
                         </View>
                       </View>
-                      <Ionicons name="chevron-forward" size={16} color={C.textMuted} />
+                      {sp.locked ? (
+                        <Ionicons name="lock-closed" size={15} color={C.textMuted} />
+                      ) : (
+                        <Ionicons name="chevron-forward" size={16} color={C.textMuted} />
+                      )}
                     </Pressable>
                   ))}
+                  {/* Message d'aide si une leçon est bloquée par un quiz */}
+                  {open && ch.subparts.some((sp) => sp.locked) && (
+                    <Text style={[s.lockHint, { color: C.textMuted }]}>
+                      Réussis le quiz de la leçon précédente pour débloquer la suite.
+                    </Text>
+                  )}
                 </View>
               );
             })}
@@ -197,5 +288,15 @@ const s = StyleSheet.create({
   subpartCheck: { width: 22, height: 22, borderRadius: 11, borderWidth: 2, borderColor: BRAND, alignItems: 'center', justifyContent: 'center' },
   subpartCheckDone: { backgroundColor: BRAND, borderColor: BRAND },
   subpartTitle: { fontSize: 14, fontWeight: '500' },
-  subpartMeta: { flexDirection: 'row', gap: 6, marginTop: 3 },
+  subpartMeta: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 3 },
+  quizTag: { flexDirection: 'row', alignItems: 'center', gap: 3, paddingHorizontal: 6, paddingVertical: 1, borderRadius: 6 },
+  quizTagTodo: { backgroundColor: 'rgba(37,99,235,0.1)' },
+  quizTagDone: { backgroundColor: 'rgba(34,197,94,0.12)' },
+  quizTagText: { fontSize: 10, fontWeight: '700' },
+  lockHint: { fontSize: 12, fontStyle: 'italic', paddingHorizontal: 20, paddingVertical: 8 },
+
+  gateWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32, gap: 14 },
+  gateIcon: { width: 88, height: 88, borderRadius: 26, alignItems: 'center', justifyContent: 'center' },
+  gateTitle: { fontSize: 22, fontWeight: '800' },
+  gateSub: { fontSize: 14, textAlign: 'center', lineHeight: 20 },
 });

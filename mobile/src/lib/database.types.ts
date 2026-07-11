@@ -135,6 +135,47 @@ export type Database = {
         created_at: string;
         updated_at: string;
       }>;
+      elearning_quizzes: TableDef<{
+        id: string;
+        subpart_id: string;
+        title: string;
+        description: string | null;
+        passing_score: number;
+        is_active: boolean;
+        created_at: string;
+        updated_at: string;
+      }>;
+      elearning_quiz_questions: TableDef<{
+        id: string;
+        quiz_id: string;
+        question_text: string;
+        question_type: string;
+        points: number;
+        order_index: number;
+        explanation: string | null;
+        created_at: string;
+        updated_at: string;
+      }>;
+      elearning_quiz_answers: TableDef<{
+        id: string;
+        question_id: string;
+        answer_text: string;
+        is_correct: boolean;
+        order_index: number;
+        created_at: string;
+      }>;
+      elearning_quiz_attempts: TableDef<{
+        id: string;
+        quiz_id: string;
+        user_id: string;
+        score: number;
+        total_questions: number | null;
+        correct_answers: number | null;
+        passed: boolean | null;
+        answers_data: unknown | null;
+        started_at: string | null;
+        completed_at: string | null;
+      }>;
       user_practice_progress: TableDef<{
         id: string;
         user_id: string;

@@ -19,6 +19,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { GlassCard } from '@/components/GlassCard';
 import type { Tables } from '@/lib/database.types';
 import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/lib/auth';
+import { canAccessFormation, type Role } from '@/lib/access';
 import { BRAND, GRADIENTS, usePaletteFor } from '@/lib/theme';
 
 type Formation = Tables<'elearning_formations'>;
@@ -30,22 +32,27 @@ function stripHtml(html: string): string {
 export default function CoursScreen() {
   const scheme = useColorScheme();
   const C = usePaletteFor(scheme);
+  const { session } = useAuth();
   const [formations, setFormations] = useState<Formation[]>([]);
+  const [role, setRole] = useState<Role>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setError(null);
-    const { data, error } = await supabase
-      .from('elearning_formations')
-      .select('*')
-      .order('created_at', { ascending: false });
-    if (error) setError(error.message);
-    else setFormations(data ?? []);
+    const [fRes, pRes] = await Promise.all([
+      supabase.from('elearning_formations').select('*').order('created_at', { ascending: false }),
+      session?.user
+        ? supabase.from('profiles').select('role').eq('id', session.user.id).maybeSingle()
+        : Promise.resolve({ data: null }),
+    ]);
+    if (fRes.error) setError(fRes.error.message);
+    else setFormations(fRes.data ?? []);
+    setRole((pRes.data?.role ?? null) as Role);
     setLoading(false);
     setRefreshing(false);
-  }, []);
+  }, [session]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -71,8 +78,12 @@ export default function CoursScreen() {
                 {error ? `Erreur : ${error}` : 'Aucune formation disponible.'}
               </Text>
             ) : (
-              formations.map((item) => (
-                <Pressable key={item.id} onPress={() => router.push(`/formation/${item.id}`)}>
+              formations.map((item) => {
+                const locked = !canAccessFormation(role, item.is_private, item.is_free_access);
+                return (
+                <Pressable
+                  key={item.id}
+                  onPress={() => { if (!locked) router.push(`/formation/${item.id}`); }}>
                   <GlassCard style={s.card}>
                     {item.photo_url ? (
                       <Image source={item.photo_url} style={s.thumb} contentFit="cover" />
@@ -86,16 +97,27 @@ export default function CoursScreen() {
                       {item.description ? (
                         <Text style={[s.cardDesc, { color: C.textSecondary }]} numberOfLines={2}>{stripHtml(item.description)}</Text>
                       ) : null}
-                      {item.is_free_access ? (
+                      {locked ? (
+                        <View style={[s.badge, s.badgePremium]}>
+                          <Ionicons name="star" size={10} color="#a16207" />
+                          <Text style={[s.badgeText, { color: '#a16207' }]}>Premium</Text>
+                        </View>
+                      ) : item.is_free_access ? (
                         <View style={s.badge}>
                           <Text style={s.badgeText}>Accès gratuit</Text>
                         </View>
                       ) : null}
                     </View>
-                    <Ionicons name="chevron-forward" size={18} color={C.textMuted} style={{ alignSelf: 'center', marginRight: 10 }} />
+                    <Ionicons
+                      name={locked ? 'lock-closed' : 'chevron-forward'}
+                      size={locked ? 16 : 18}
+                      color={C.textMuted}
+                      style={{ alignSelf: 'center', marginRight: 10 }}
+                    />
                   </GlassCard>
                 </Pressable>
-              ))
+                );
+              })
             )}
           </ScrollView>
         )}
@@ -117,6 +139,7 @@ const s = StyleSheet.create({
   body: { flex: 1, padding: 12, gap: 4, justifyContent: 'center' },
   cardTitle: { fontSize: 16, fontWeight: '700' },
   cardDesc: { fontSize: 13 },
-  badge: { alignSelf: 'flex-start', marginTop: 4, backgroundColor: 'rgba(37,99,235,0.12)', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6 },
+  badge: { flexDirection: 'row', alignItems: 'center', gap: 3, alignSelf: 'flex-start', marginTop: 4, backgroundColor: 'rgba(37,99,235,0.12)', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6 },
+  badgePremium: { backgroundColor: 'rgba(234,179,8,0.15)' },
   badgeText: { color: BRAND, fontSize: 11, fontWeight: '600' },
 });
