@@ -41,6 +41,8 @@ export default function FormationScreen() {
   const [formation, setFormation] = useState<Formation | null>(null);
   const [chapters, setChapters] = useState<ChapterWithSubparts[]>([]);
   const [role, setRole] = useState<Role>(null);
+  const [certNumber, setCertNumber] = useState<string | null>(null);
+  const [generatingCert, setGeneratingCert] = useState(false);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
@@ -48,15 +50,17 @@ export default function FormationScreen() {
     if (!id || !session?.user) return;
     const uid = session.user.id;
 
-    const [fRes, cRes, progRes, pRes] = await Promise.all([
+    const [fRes, cRes, progRes, pRes, certRes] = await Promise.all([
       supabase.from('elearning_formations').select('*').eq('id', id).maybeSingle(),
       supabase.from('elearning_chapters').select('*').eq('formation_id', id).order('order_index'),
       supabase.from('elearning_subpart_progress').select('subpart_id').eq('user_id', uid),
       supabase.from('profiles').select('role').eq('id', uid).maybeSingle(),
+      supabase.from('course_certificates').select('certificate_number').eq('user_id', uid).eq('formation_id', id).maybeSingle(),
     ]);
 
     setFormation(fRes.data);
     setRole((pRes.data?.role ?? null) as Role);
+    setCertNumber(certRes.data?.certificate_number ?? null);
 
     const chapterIds = (cRes.data ?? []).map((c) => c.id);
     const { data: spData } = chapterIds.length
@@ -126,6 +130,23 @@ export default function FormationScreen() {
   const totalSubparts = chapters.reduce((acc, ch) => acc + ch.subparts.length, 0);
   const completedSubparts = chapters.reduce((acc, ch) => acc + ch.subparts.filter((s) => s.completed).length, 0);
   const progress = totalSubparts > 0 ? completedSubparts / totalSubparts : 0;
+  const allDone = totalSubparts > 0 && completedSubparts === totalSubparts;
+
+  const generateCertificate = async () => {
+    if (!session?.user || !id || generatingCert || certNumber) return;
+    setGeneratingCert(true);
+    // Numéro de certificat séquentiel (même RPC que le web) puis insertion
+    const { data: num, error: rpcErr } = await supabase.rpc('next_course_certificate_number');
+    if (!rpcErr && num) {
+      const { error: insErr } = await supabase.from('course_certificates').insert({
+        user_id: session.user.id,
+        formation_id: id,
+        certificate_number: num as string,
+      });
+      if (!insErr) setCertNumber(num as string);
+    }
+    setGeneratingCert(false);
+  };
 
   const accessDenied = !loading && formation != null && !canAccessFormation(role, formation.is_private, formation.is_free_access);
 
@@ -190,6 +211,32 @@ export default function FormationScreen() {
                 </View>
               </GlassCard>
             )}
+
+            {/* Certificat — formation terminée à 100% */}
+            {certNumber ? (
+              <GlassCard style={s.certCard}>
+                <LinearGradient colors={GRADIENTS.green} style={s.certIcon} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
+                  <Ionicons name="ribbon" size={24} color="#fff" />
+                </LinearGradient>
+                <View style={{ flex: 1 }}>
+                  <Text style={[s.certTitle, { color: C.text }]}>Certificat obtenu 🎉</Text>
+                  <Text style={[s.certNum, { color: C.textSecondary }]}>N° {certNumber}</Text>
+                </View>
+              </GlassCard>
+            ) : allDone ? (
+              <Pressable onPress={generateCertificate} disabled={generatingCert}>
+                <LinearGradient colors={GRADIENTS.green} style={s.certBtn} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
+                  {generatingCert ? (
+                    <ActivityIndicator color="#fff" />
+                  ) : (
+                    <>
+                      <Ionicons name="ribbon" size={20} color="#fff" />
+                      <Text style={s.certBtnText}>Obtenir mon certificat</Text>
+                    </>
+                  )}
+                </LinearGradient>
+              </Pressable>
+            ) : null}
 
             {/* Chapters */}
             {chapters.map((ch) => {
@@ -294,6 +341,13 @@ const s = StyleSheet.create({
   quizTagDone: { backgroundColor: 'rgba(34,197,94,0.12)' },
   quizTagText: { fontSize: 10, fontWeight: '700' },
   lockHint: { fontSize: 12, fontStyle: 'italic', paddingHorizontal: 20, paddingVertical: 8 },
+
+  certCard: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14 },
+  certIcon: { width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  certTitle: { fontSize: 15, fontWeight: '700' },
+  certNum: { fontSize: 12, marginTop: 2 },
+  certBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 15, borderRadius: 14 },
+  certBtnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
 
   gateWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32, gap: 14 },
   gateIcon: { width: 88, height: 88, borderRadius: 26, alignItems: 'center', justifyContent: 'center' },

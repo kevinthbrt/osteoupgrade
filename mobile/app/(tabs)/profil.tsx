@@ -21,6 +21,7 @@ import { BRAND, GRADIENTS, usePaletteFor } from '@/lib/theme';
 
 type Profile = Tables<'profiles'>;
 type Gam = Tables<'user_gamification_stats'>;
+type Cert = { number: string; label: string; date: string; kind: 'course' | 'flashcard' };
 
 const ROLE_LABEL: Record<string, string> = { free: 'Gratuit', premium: 'Premium', admin: 'Admin' };
 
@@ -30,6 +31,7 @@ export default function ProfilScreen() {
   const C = usePaletteFor(scheme);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [gam, setGam] = useState<Gam | null>(null);
+  const [certs, setCerts] = useState<Cert[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -38,9 +40,18 @@ export default function ProfilScreen() {
     Promise.all([
       supabase.from('profiles').select('*').eq('id', uid).maybeSingle(),
       supabase.from('user_gamification_stats').select('*').eq('user_id', uid).maybeSingle(),
-    ]).then(([p, g]) => {
+      supabase.from('course_certificates').select('certificate_number, issued_at, elearning_formations(title)').eq('user_id', uid),
+      supabase.from('flashcard_certificates').select('certificate_number, issued_at, flashcard_decks(title)').eq('user_id', uid),
+    ]).then(([p, g, cc, fc]) => {
       setProfile(p.data);
       setGam(g.data);
+      const list: Cert[] = [];
+      for (const c of (cc.data ?? []) as any[])
+        list.push({ number: c.certificate_number, label: c.elearning_formations?.title ?? 'Formation', date: c.issued_at, kind: 'course' });
+      for (const c of (fc.data ?? []) as any[])
+        list.push({ number: c.certificate_number, label: c.flashcard_decks?.title ?? 'Deck', date: c.issued_at, kind: 'flashcard' });
+      list.sort((a, b) => (a.date < b.date ? 1 : -1));
+      setCerts(list);
       setLoading(false);
     });
   }, [session]);
@@ -102,6 +113,24 @@ export default function ProfilScreen() {
             </GlassCard>
           )}
 
+          {/* Certificats obtenus */}
+          {certs.length > 0 && (
+            <GlassCard style={s.activity}>
+              <Text style={[s.cardTitle, { color: C.text }]}>Mes certificats</Text>
+              {certs.map((c) => (
+                <View key={c.number} style={s.row}>
+                  <LinearGradient colors={c.kind === 'course' ? GRADIENTS.green : GRADIENTS.violet} style={s.rowIcon} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
+                    <Ionicons name="ribbon" size={16} color="#fff" />
+                  </LinearGradient>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[s.rowLabel, { color: C.text }]} numberOfLines={1}>{c.label}</Text>
+                    <Text style={[s.certNum, { color: C.textSecondary }]}>N° {c.number}</Text>
+                  </View>
+                </View>
+              ))}
+            </GlassCard>
+          )}
+
           <Pressable style={s.signOut} onPress={signOut}>
             <Ionicons name="log-out-outline" size={18} color="#dc2626" />
             <Text style={s.signOutText}>Se déconnecter</Text>
@@ -147,6 +176,7 @@ const s = StyleSheet.create({
   rowIcon: { width: 32, height: 32, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
   rowLabel: { flex: 1, fontSize: 14, fontWeight: '500' },
   rowValue: { fontSize: 15, fontWeight: '700' },
+  certNum: { fontSize: 12, marginTop: 1 },
 
   signOut: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: 'rgba(220,38,38,0.1)', paddingVertical: 15, borderRadius: 14, marginTop: 4 },
   signOutText: { color: '#dc2626', fontWeight: '700', fontSize: 16 },

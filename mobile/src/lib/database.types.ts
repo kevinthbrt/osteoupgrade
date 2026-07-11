@@ -135,6 +135,20 @@ export type Database = {
         created_at: string;
         updated_at: string;
       }>;
+      course_certificates: TableDef<{
+        id: string;
+        user_id: string;
+        formation_id: string;
+        certificate_number: string;
+        issued_at: string;
+      }>;
+      flashcard_certificates: TableDef<{
+        id: string;
+        user_id: string;
+        deck_id: string;
+        certificate_number: string;
+        issued_at: string;
+      }>;
       elearning_quizzes: TableDef<{
         id: string;
         subpart_id: string;
@@ -195,6 +209,10 @@ export type Database = {
       record_user_login: {
         Args: { p_user_id: string };
         Returns: undefined;
+      };
+      next_course_certificate_number: {
+        Args: Record<string, never>;
+        Returns: string;
       };
     };
     Enums: Record<string, never>;
