@@ -30,6 +30,17 @@ export async function GET(request: Request) {
   }
 
   const { searchParams } = new URL(request.url)
+
+  // Sonde : quel compte possède le token ?
+  if (searchParams.get('check') === 'me') {
+    const me = await fetch('https://api.vimeo.com/me?fields=uri,name,account', {
+      headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.vimeo.*+json;version=3.4' },
+      cache: 'no-store',
+    })
+    const body = await me.json().catch(() => ({}))
+    return NextResponse.json({ status: me.status, me: body }, { headers: CORS })
+  }
+
   const id = searchParams.get('id') // vimeo_id (numérique)
   if (!id || !/^\d+$/.test(id)) {
     return NextResponse.json({ error: 'id invalide' }, { status: 400, headers: CORS })
