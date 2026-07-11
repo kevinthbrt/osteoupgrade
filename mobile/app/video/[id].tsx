@@ -16,6 +16,7 @@ import { WebView } from 'react-native-webview';
 
 import { GlassCard } from '@/components/GlassCard';
 import { useAuth } from '@/lib/auth';
+import { saveRecent } from '@/lib/recent';
 import type { Tables } from '@/lib/database.types';
 import { supabase } from '@/lib/supabase';
 import { BRAND, GRADIENTS, usePaletteFor } from '@/lib/theme';
@@ -58,6 +59,7 @@ export default function VideoScreen() {
           { user_id: session.user.id, practice_video_id: data.id, viewed_at: new Date().toISOString() },
           { onConflict: 'user_id,practice_video_id' }
         ).then(() => {});
+        saveRecent(session.user.id, { kind: 'video', id: data.id, title: data.title, subtitle: 'Vidéo de pratique', thumb: data.thumbnail_url });
       }
     });
   }, [id, session]);

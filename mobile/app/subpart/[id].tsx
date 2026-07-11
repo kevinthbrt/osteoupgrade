@@ -18,6 +18,7 @@ import { WebView } from 'react-native-webview';
 import { GlassCard } from '@/components/GlassCard';
 import { HtmlView } from '@/components/HtmlView';
 import { useAuth } from '@/lib/auth';
+import { saveRecent } from '@/lib/recent';
 import type { Tables } from '@/lib/database.types';
 import { supabase } from '@/lib/supabase';
 import { BRAND, GRADIENTS, usePaletteFor } from '@/lib/theme';
@@ -52,6 +53,7 @@ export default function SubpartScreen() {
     ]);
     setSubpart(sp.data);
     setCompleted(!!prog.data); // présence d'une ligne = terminé (identique au web)
+    if (sp.data) saveRecent(uid, { kind: 'subpart', id: sp.data.id, title: sp.data.title, subtitle: 'Leçon e-learning' });
 
     const qId = quiz.data?.id ?? null;
     setQuizId(qId);

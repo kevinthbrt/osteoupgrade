@@ -20,6 +20,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { GlassCard } from '@/components/GlassCard';
 import { useAuth } from '@/lib/auth';
+import { getRecent, type RecentItem } from '@/lib/recent';
 import { supabase } from '@/lib/supabase';
 import { BRAND, GRADIENTS, usePaletteFor } from '@/lib/theme';
 
@@ -51,7 +52,7 @@ type Dash = {
   lessonsDone: number;
   lessonsTotal: number;
   dueFlashcards: number;
-  recent: { id: string; title: string; photo_url: string | null } | null;
+  recent: RecentItem | null;
 };
 
 const EMPTY: Dash = {
@@ -83,13 +84,15 @@ export default function DashboardScreen() {
     const uid = session.user.id;
     const now = new Date().toISOString();
 
-    const [profile, gam, formations, progressDone, progressTotal, dueCards] = await Promise.all([
+    const [profile, gam, formations, lessonsDoneRes, subpartsTotalRes, dueCards, recent] = await Promise.all([
       supabase.from('profiles').select('full_name').eq('id', uid).maybeSingle(),
       supabase.from('user_gamification_stats').select('*').eq('user_id', uid).maybeSingle(),
-      supabase.from('elearning_formations').select('id, title, photo_url', { count: 'exact' }).order('created_at', { ascending: false }),
-      supabase.from('elearning_subpart_progress').select('id', { count: 'exact', head: true }).eq('user_id', uid).eq('completed', true),
+      supabase.from('elearning_formations').select('id', { count: 'exact', head: true }),
+      // Suivi = présence d'une ligne (pas de colonne "completed")
       supabase.from('elearning_subpart_progress').select('id', { count: 'exact', head: true }).eq('user_id', uid),
+      supabase.from('elearning_subparts').select('id', { count: 'exact', head: true }),
       supabase.from('flashcard_progress').select('id', { count: 'exact', head: true }).eq('user_id', uid).lte('next_review_at', now),
+      getRecent(uid),
     ]);
 
     setD({
@@ -99,10 +102,10 @@ export default function DashboardScreen() {
       streak: gam.data?.current_streak ?? 0,
       bestStreak: gam.data?.best_streak ?? 0,
       formationsCount: formations.count ?? 0,
-      lessonsDone: progressDone.count ?? 0,
-      lessonsTotal: progressTotal.count ?? 0,
+      lessonsDone: lessonsDoneRes.count ?? 0,
+      lessonsTotal: subpartsTotalRes.count ?? 0,
       dueFlashcards: dueCards.count ?? 0,
-      recent: formations.data?.[0] ?? null,
+      recent,
     });
     setLoading(false);
   }, [session]);
@@ -140,6 +143,9 @@ export default function DashboardScreen() {
               <Text style={[s.greeting, { color: C.textSecondary }]}>{getGreeting()},</Text>
               <Text style={[s.name, { color: C.text }]}>{d.firstName || 'Ostéopathe'} 👋</Text>
             </View>
+            <Pressable onPress={() => router.push('/search')} style={[s.searchBtn, { backgroundColor: C.card, borderColor: C.border }]}>
+              <Ionicons name="search" size={20} color={C.text} />
+            </Pressable>
             <Pressable onPress={() => router.push('/profil')}>
               <LinearGradient colors={GRADIENTS.brand} style={s.avatar} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
                 <Text style={s.avatarText}>
@@ -217,20 +223,21 @@ export default function DashboardScreen() {
             <Tile icon="flask" label="Tests ortho" sub="Examen clinique" gradient={GRADIENTS.green} onPress={() => router.push('/pratique')} />
           </View>
 
-          {/* ── Continuer ── */}
+          {/* ── Reprendre (dernière leçon / vidéo ouverte) ── */}
           {d.recent && (
             <>
-              <Text style={[s.section, { color: C.text }]}>Continuer</Text>
-              <Pressable onPress={() => router.push('/cours')}>
+              <Text style={[s.section, { color: C.text }]}>Reprendre</Text>
+              <Pressable onPress={() => router.push((d.recent!.kind === 'video' ? `/video/${d.recent!.id}` : `/subpart/${d.recent!.id}`) as never)}>
                 <GlassCard style={s.resumeCard}>
-                  {d.recent.photo_url ? (
-                    <Image source={d.recent.photo_url} style={s.resumeThumb} contentFit="cover" />
+                  {d.recent.thumb ? (
+                    <Image source={d.recent.thumb} style={s.resumeThumb} contentFit="cover" />
                   ) : (
-                    <LinearGradient colors={GRADIENTS.brand} style={s.resumeThumb} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
-                      <Ionicons name="play" size={28} color="#fff" />
+                    <LinearGradient colors={d.recent.kind === 'video' ? GRADIENTS.orange : GRADIENTS.brand} style={s.resumeThumb} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
+                      <Ionicons name={d.recent.kind === 'video' ? 'fitness' : 'play'} size={28} color="#fff" />
                     </LinearGradient>
                   )}
                   <View style={s.resumeBody}>
+                    <Text style={[s.resumeTag, { color: C.textSecondary }]}>{d.recent.subtitle ?? ''}</Text>
                     <Text style={[s.resumeTitle, { color: C.text }]} numberOfLines={2}>{d.recent.title}</Text>
                     <View style={s.resumeBtn}>
                       <Ionicons name="play-circle" size={16} color={BRAND} />
@@ -281,7 +288,8 @@ const s = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   scroll: { paddingHorizontal: 20, paddingTop: 8, gap: 16 },
 
-  header: { flexDirection: 'row', alignItems: 'center', marginBottom: 2 },
+  header: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 2 },
+  searchBtn: { width: 46, height: 46, borderRadius: 23, alignItems: 'center', justifyContent: 'center', borderWidth: StyleSheet.hairlineWidth },
   greeting: { fontSize: 15 },
   name: { fontSize: 26, fontWeight: '800', letterSpacing: -0.5 },
   avatar: { width: 46, height: 46, borderRadius: 23, alignItems: 'center', justifyContent: 'center' },
@@ -333,7 +341,8 @@ const s = StyleSheet.create({
   // Resume
   resumeCard: { flexDirection: 'row', overflow: 'hidden' },
   resumeThumb: { width: 100, height: 100, alignItems: 'center', justifyContent: 'center' },
-  resumeBody: { flex: 1, padding: 14, justifyContent: 'space-between' },
+  resumeBody: { flex: 1, padding: 14, justifyContent: 'center', gap: 2 },
+  resumeTag: { fontSize: 11, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5 },
   resumeTitle: { fontSize: 15, fontWeight: '700', lineHeight: 20 },
   resumeBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8 },
   resumeBtnText: { fontSize: 14, fontWeight: '600' },
