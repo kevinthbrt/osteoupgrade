@@ -30,17 +30,6 @@ export async function GET(request: Request) {
   }
 
   const { searchParams } = new URL(request.url)
-
-  // Sonde : quel compte possède le token ?
-  if (searchParams.get('check') === 'me') {
-    const me = await fetch('https://api.vimeo.com/me?fields=uri,name,account', {
-      headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.vimeo.*+json;version=3.4' },
-      cache: 'no-store',
-    })
-    const body = await me.json().catch(() => ({}))
-    return NextResponse.json({ status: me.status, me: body }, { headers: CORS })
-  }
-
   const id = searchParams.get('id') // vimeo_id (numérique)
   if (!id || !/^\d+$/.test(id)) {
     return NextResponse.json({ error: 'id invalide' }, { status: 400, headers: CORS })
@@ -60,41 +49,22 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Vidéo introuvable' }, { status: 404, headers: CORS })
     }
 
-    // Récupère les fichiers de lecture via l'API Vimeo
-    const res = await fetch(
-      `https://api.vimeo.com/videos/${id}?fields=uri,name,privacy,is_playable,play,files,download,user.uri`,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: 'application/vnd.vimeo.*+json;version=3.4',
-        },
-        cache: 'no-store',
+    // Récupère les fichiers de lecture via l'API Vimeo.
+    // NB : nécessite un plan Vimeo Advanced+ ; en Starter, `play` ne contient
+    // que `status` (pas de liens directs) et l'endpoint renverra 404.
+    const res = await fetch(`https://api.vimeo.com/videos/${id}?fields=play,files`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: 'application/vnd.vimeo.*+json;version=3.4',
       },
-    )
+      cache: 'no-store',
+    })
 
     if (!res.ok) {
-      const body = await res.text()
-      return NextResponse.json({ error: 'Vimeo API error', status: res.status, body: body.slice(0, 400) }, { status: 502, headers: CORS })
+      return NextResponse.json({ error: 'Vimeo API error', status: res.status }, { status: 502, headers: CORS })
     }
 
     const data = await res.json()
-
-    // Mode debug : renvoie la structure brute pour diagnostiquer
-    if (searchParams.get('debug') === '1') {
-      return NextResponse.json({
-        uri: data?.uri,
-        user_uri: data?.user?.uri,
-        privacy: data?.privacy,
-        is_playable: data?.is_playable,
-        has_play: !!data?.play,
-        play_status: data?.play?.status,
-        play_keys: data?.play ? Object.keys(data.play) : [],
-        progressive_count: (data?.play?.progressive ?? data?.files ?? []).length,
-        hls: data?.play?.hls?.link ? 'yes' : 'no',
-        download_count: Array.isArray(data?.download) ? data.download.length : 'n/a',
-        files_count: Array.isArray(data?.files) ? data.files.length : 'n/a',
-      }, { headers: CORS })
-    }
 
     // 1) HLS (adaptatif, idéal mobile) via le champ `play`
     const hls: string | undefined = data?.play?.hls?.link

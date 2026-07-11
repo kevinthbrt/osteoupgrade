@@ -23,7 +23,7 @@ import { WebView } from 'react-native-webview';
 import { GlassCard } from '@/components/GlassCard';
 import type { Tables } from '@/lib/database.types';
 import { supabase } from '@/lib/supabase';
-import { getNativeVimeoUrl, vimeoIdFrom } from '@/lib/vimeo';
+import { getNativeVimeoUrl, NATIVE_VIMEO_ENABLED, vimeoIdFrom } from '@/lib/vimeo';
 import { BRAND, GRADIENTS, usePaletteFor } from '@/lib/theme';
 
 type Video = Tables<'practice_videos'>;
@@ -113,7 +113,7 @@ function VideoSlide({ video, active }: { video: Video; active: boolean }) {
 
   // Quand la slide devient active, tente de récupérer une URL native (une fois)
   useEffect(() => {
-    if (!active || triedRef.current) return;
+    if (!NATIVE_VIMEO_ENABLED || !active || triedRef.current) return;
     triedRef.current = true;
     const vid = vimeoIdFrom(video.vimeo_id, video.vimeo_url);
     if (!vid) return;

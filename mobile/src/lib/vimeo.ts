@@ -5,7 +5,15 @@
  */
 const API_BASE = process.env.EXPO_PUBLIC_API_BASE ?? 'https://osteoupgrade.vercel.app';
 
+/**
+ * Lecture native désactivée par défaut : le plan Vimeo actuel (Starter)
+ * n'expose pas les flux directs via l'API. Passe EXPO_PUBLIC_VIMEO_NATIVE=1
+ * si tu montes en plan Advanced+ pour réactiver expo-video (repli WebView sinon).
+ */
+export const NATIVE_VIMEO_ENABLED = process.env.EXPO_PUBLIC_VIMEO_NATIVE === '1';
+
 export async function getNativeVimeoUrl(vimeoId: string): Promise<string | null> {
+  if (!NATIVE_VIMEO_ENABLED) return null;
   try {
     const res = await fetch(`${API_BASE}/api/vimeo-play?id=${encodeURIComponent(vimeoId)}`);
     if (!res.ok) return null;
