@@ -50,19 +50,37 @@ export async function GET(request: Request) {
     }
 
     // Récupère les fichiers de lecture via l'API Vimeo
-    const res = await fetch(`https://api.vimeo.com/videos/${id}?fields=play,files`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        Accept: 'application/vnd.vimeo.*+json;version=3.4',
+    const res = await fetch(
+      `https://api.vimeo.com/videos/${id}?fields=uri,name,privacy,is_playable,play,files,user.uri`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: 'application/vnd.vimeo.*+json;version=3.4',
+        },
+        cache: 'no-store',
       },
-      cache: 'no-store',
-    })
+    )
 
     if (!res.ok) {
-      return NextResponse.json({ error: 'Vimeo API error', status: res.status }, { status: 502, headers: CORS })
+      const body = await res.text()
+      return NextResponse.json({ error: 'Vimeo API error', status: res.status, body: body.slice(0, 400) }, { status: 502, headers: CORS })
     }
 
     const data = await res.json()
+
+    // Mode debug : renvoie la structure brute pour diagnostiquer
+    if (searchParams.get('debug') === '1') {
+      return NextResponse.json({
+        uri: data?.uri,
+        user_uri: data?.user?.uri,
+        privacy: data?.privacy,
+        is_playable: data?.is_playable,
+        has_play: !!data?.play,
+        play_keys: data?.play ? Object.keys(data.play) : [],
+        progressive_count: (data?.play?.progressive ?? data?.files ?? []).length,
+        hls: data?.play?.hls?.link ? 'yes' : 'no',
+      }, { headers: CORS })
+    }
 
     // 1) HLS (adaptatif, idéal mobile) via le champ `play`
     const hls: string | undefined = data?.play?.hls?.link
