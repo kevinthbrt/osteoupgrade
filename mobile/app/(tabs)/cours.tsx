@@ -1,3 +1,4 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -27,6 +28,8 @@ import { BRAND, GRADIENTS, usePaletteFor } from '@/lib/theme';
 
 type Formation = Tables<'elearning_formations'>;
 
+const CACHE_KEY = 'cache:formations';
+
 function stripHtml(html: string): string {
   return html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
 }
@@ -49,12 +52,30 @@ export default function CoursScreen() {
         ? supabase.from('profiles').select('role').eq('id', session.user.id).maybeSingle()
         : Promise.resolve({ data: null }),
     ]);
-    if (fRes.error) setError(fRes.error.message);
-    else setFormations(fRes.data ?? []);
+    if (fRes.error) {
+      setError(fRes.error.message);
+    } else {
+      setFormations(fRes.data ?? []);
+      // Met en cache pour un affichage instantané / hors-ligne au prochain lancement
+      AsyncStorage.setItem(CACHE_KEY, JSON.stringify(fRes.data ?? [])).catch(() => {});
+    }
     setRole((pRes.data?.role ?? null) as Role);
     setLoading(false);
     setRefreshing(false);
   }, [session]);
+
+  // Affiche d'abord le cache (instantané / hors-ligne), puis rafraîchit
+  useEffect(() => {
+    AsyncStorage.getItem(CACHE_KEY).then((raw) => {
+      if (raw) {
+        try {
+          const cached = JSON.parse(raw) as Formation[];
+          setFormations(cached);
+          setLoading(false);
+        } catch {}
+      }
+    });
+  }, []);
 
   useEffect(() => { load(); }, [load]);
 
