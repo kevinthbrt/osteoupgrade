@@ -51,7 +51,7 @@ export async function GET(request: Request) {
 
     // Récupère les fichiers de lecture via l'API Vimeo
     const res = await fetch(
-      `https://api.vimeo.com/videos/${id}?fields=uri,name,privacy,is_playable,play,files,user.uri`,
+      `https://api.vimeo.com/videos/${id}?fields=uri,name,privacy,is_playable,play,files,download,user.uri`,
       {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -76,9 +76,12 @@ export async function GET(request: Request) {
         privacy: data?.privacy,
         is_playable: data?.is_playable,
         has_play: !!data?.play,
+        play_status: data?.play?.status,
         play_keys: data?.play ? Object.keys(data.play) : [],
         progressive_count: (data?.play?.progressive ?? data?.files ?? []).length,
         hls: data?.play?.hls?.link ? 'yes' : 'no',
+        download_count: Array.isArray(data?.download) ? data.download.length : 'n/a',
+        files_count: Array.isArray(data?.files) ? data.files.length : 'n/a',
       }, { headers: CORS })
     }
 
