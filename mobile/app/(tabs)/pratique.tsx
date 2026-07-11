@@ -17,11 +17,13 @@ import {
   ViewToken,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useVideoPlayer, VideoView } from 'expo-video';
 import { WebView } from 'react-native-webview';
 
 import { GlassCard } from '@/components/GlassCard';
 import type { Tables } from '@/lib/database.types';
 import { supabase } from '@/lib/supabase';
+import { getNativeVimeoUrl, vimeoIdFrom } from '@/lib/vimeo';
 import { BRAND, GRADIENTS, usePaletteFor } from '@/lib/theme';
 
 type Video = Tables<'practice_videos'>;
@@ -59,14 +61,106 @@ function getEmbedUrl(v: Video): string | null {
   return null;
 }
 
+// Overlay d'infos réutilisé (titre, région, durée) — non bloquant
+function SlideInfo({ video }: { video: Video }) {
+  return (
+    <View style={sl.info} pointerEvents="none">
+      <View style={sl.regionPill}>
+        <Text style={sl.regionPillText}>{regionLabel(video.region)}</Text>
+      </View>
+      <Text style={sl.title} numberOfLines={2}>{video.title}</Text>
+      {video.description ? (
+        <Text style={sl.desc} numberOfLines={2}>{video.description}</Text>
+      ) : null}
+      {video.duration_seconds ? (
+        <View style={sl.metaRow}>
+          <Ionicons name="time-outline" size={13} color="rgba(255,255,255,0.7)" />
+          <Text style={sl.metaText}>{formatDuration(video.duration_seconds)}</Text>
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
+// Lecteur natif expo-video (monté seulement quand on a une URL directe)
+function NativeVideo({ url, video }: { url: string; video: Video }) {
+  const player = useVideoPlayer(url, (p) => {
+    p.loop = true;
+    p.muted = false;
+    p.play();
+  });
+  return (
+    <>
+      <VideoView
+        player={player}
+        style={StyleSheet.absoluteFill}
+        contentFit="cover"
+        nativeControls
+        allowsFullscreen
+      />
+      <LinearGradient colors={['transparent', 'rgba(0,0,0,0.6)']} style={sl.overlay} start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }} pointerEvents="none" />
+      <SlideInfo video={video} />
+    </>
+  );
+}
+
 // ── Slide plein écran avec player inline ────────────────────────────────────
 function VideoSlide({ video, active }: { video: Video; active: boolean }) {
   const embedUrl = getEmbedUrl(video);
+  const [nativeUrl, setNativeUrl] = useState<string | null>(null);
+  const [resolving, setResolving] = useState(false);
+  const triedRef = useRef(false);
 
+  // Quand la slide devient active, tente de récupérer une URL native (une fois)
+  useEffect(() => {
+    if (!active || triedRef.current) return;
+    triedRef.current = true;
+    const vid = vimeoIdFrom(video.vimeo_id, video.vimeo_url);
+    if (!vid) return;
+    setResolving(true);
+    getNativeVimeoUrl(vid).then((u) => {
+      setNativeUrl(u);
+      setResolving(false);
+    });
+  }, [active, video]);
+
+  // Slide inactive → vignette + infos
+  if (!active) {
+    return (
+      <View style={sl.slide}>
+        {video.thumbnail_url ? (
+          <Image source={video.thumbnail_url} style={StyleSheet.absoluteFill} contentFit="cover" />
+        ) : (
+          <LinearGradient colors={GRADIENTS.orange} style={StyleSheet.absoluteFill} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />
+        )}
+        <LinearGradient colors={['transparent', 'rgba(0,0,0,0.78)']} style={sl.overlay} start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }} />
+        <View style={sl.playWrap} pointerEvents="none">
+          <View style={sl.playBtn}><Ionicons name="play" size={32} color="#fff" /></View>
+        </View>
+        <SlideInfo video={video} />
+      </View>
+    );
+  }
+
+  // Slide active
   return (
     <View style={sl.slide}>
-      {/* Player Vimeo — monté automatiquement dès que la slide est active */}
-      {active && embedUrl ? (
+      {nativeUrl ? (
+        // Lecteur natif (Vimeo Pro → URL directe)
+        <NativeVideo url={nativeUrl} video={video} />
+      ) : resolving ? (
+        // En attente de l'URL directe : vignette + spinner
+        <>
+          {video.thumbnail_url ? (
+            <Image source={video.thumbnail_url} style={StyleSheet.absoluteFill} contentFit="cover" />
+          ) : (
+            <LinearGradient colors={GRADIENTS.orange} style={StyleSheet.absoluteFill} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />
+          )}
+          <View style={sl.playWrap}><ActivityIndicator size="large" color="#fff" /></View>
+          <SlideInfo video={video} />
+        </>
+      ) : embedUrl ? (
+        // Repli : WebView Vimeo (si l'URL native a échoué / non configurée)
         <WebView
           source={{ uri: embedUrl }}
           style={StyleSheet.absoluteFill}
@@ -76,43 +170,7 @@ function VideoSlide({ video, active }: { video: Video; active: boolean }) {
           javaScriptEnabled
         />
       ) : (
-        <>
-          {/* Vignette (slide inactive ou pas d'URL) */}
-          {video.thumbnail_url ? (
-            <Image source={video.thumbnail_url} style={StyleSheet.absoluteFill} contentFit="cover" />
-          ) : (
-            <LinearGradient colors={GRADIENTS.orange} style={StyleSheet.absoluteFill} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />
-          )}
-
-          <LinearGradient
-            colors={['transparent', 'rgba(0,0,0,0.78)']}
-            style={sl.overlay}
-            start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }}
-          />
-
-          {/* Icône play (slides non actives) */}
-          <View style={sl.playWrap} pointerEvents="none">
-            <View style={sl.playBtn}>
-              <Ionicons name="play" size={32} color="#fff" />
-            </View>
-          </View>
-
-          <View style={sl.info}>
-            <View style={sl.regionPill}>
-              <Text style={sl.regionPillText}>{regionLabel(video.region)}</Text>
-            </View>
-            <Text style={sl.title} numberOfLines={2}>{video.title}</Text>
-            {video.description ? (
-              <Text style={sl.desc} numberOfLines={2}>{video.description}</Text>
-            ) : null}
-            {video.duration_seconds ? (
-              <View style={sl.metaRow}>
-                <Ionicons name="time-outline" size={13} color="rgba(255,255,255,0.7)" />
-                <Text style={sl.metaText}>{formatDuration(video.duration_seconds)}</Text>
-              </View>
-            ) : null}
-          </View>
-        </>
+        <LinearGradient colors={GRADIENTS.orange} style={StyleSheet.absoluteFill} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />
       )}
     </View>
   );
