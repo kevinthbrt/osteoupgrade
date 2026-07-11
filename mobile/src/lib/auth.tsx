@@ -4,6 +4,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type PropsWithChildren,
 } from 'react';
@@ -32,6 +33,8 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 export function AuthProvider({ children }: PropsWithChildren) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  // Évite d'enregistrer plusieurs connexions par session d'app
+  const loggedUserRef = useRef<string | null>(null);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -45,6 +48,17 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
     return () => subscription.subscription.unsubscribe();
   }, []);
+
+  // Enregistre la connexion du jour (streaks + XP via trigger DB), comme le web.
+  // record_user_login est idempotent (ON CONFLICT (user_id, login_date) DO NOTHING).
+  useEffect(() => {
+    const uid = session?.user?.id;
+    if (!uid || loggedUserRef.current === uid) return;
+    loggedUserRef.current = uid;
+    supabase.rpc('record_user_login', { p_user_id: uid }).then(({ error }) => {
+      if (error) loggedUserRef.current = null; // retry au prochain rendu si échec
+    });
+  }, [session]);
 
   const value = useMemo<AuthContextValue>(
     () => ({
