@@ -17,23 +17,11 @@ import { WebView } from 'react-native-webview';
 import { GlassCard } from '@/components/GlassCard';
 import { useAuth } from '@/lib/auth';
 import type { Tables } from '@/lib/database.types';
+import { metricColor, pctValue as pct, testEmbedUrl } from '@/lib/ortho';
 import { supabase } from '@/lib/supabase';
 import { BRAND, GRADIENTS, usePaletteFor } from '@/lib/theme';
 
 type Test = Tables<'orthopedic_tests'>;
-
-function vimeoEmbed(url: string | null): string | null {
-  if (!url) return null;
-  const m = url.match(/vimeo\.com\/(?:video\/)?(\d+)/);
-  return m ? `https://player.vimeo.com/video/${m[1]}?color=4169F6` : null;
-}
-function metricColor(v: number | null): string {
-  if (v == null) return '#94a3b8';
-  if (v >= 0.8) return '#16a34a';
-  if (v >= 0.6) return '#f59e0b';
-  return '#ef4444';
-}
-const pct = (v: number | null) => (v == null ? '—' : `${Math.round(v * 100)}%`);
 
 export default function OrthoTestScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -59,7 +47,7 @@ export default function OrthoTestScreen() {
     });
   }, [id, session]);
 
-  const embed = test ? vimeoEmbed(test.video_url) : null;
+  const embed = test ? testEmbedUrl(test.video_url) : null;
 
   return (
     <LinearGradient colors={C.bgGradient} style={s.fill} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>

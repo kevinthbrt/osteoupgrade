@@ -55,9 +55,6 @@ export default function TestsScreen() {
     <LinearGradient colors={C.bgGradient} style={s.fill} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
       <SafeAreaView style={s.fill} edges={['top']}>
         <View style={s.header}>
-          <Pressable onPress={() => router.back()} style={s.back}>
-            <Ionicons name="arrow-back" size={22} color={C.text} />
-          </Pressable>
           <View style={{ flex: 1 }}>
             <Text style={[s.title, { color: C.text }]}>Tests orthopédiques</Text>
             <Text style={[s.sub, { color: C.textSecondary }]}>Touche une région du corps</Text>

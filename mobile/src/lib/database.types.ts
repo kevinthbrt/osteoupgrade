@@ -207,6 +207,27 @@ export type Database = {
         created_at: string;
         updated_at: string;
       }>;
+      orthopedic_test_clusters: TableDef<{
+        id: string;
+        name: string;
+        region: string | null;
+        description: string | null;
+        indications: string | null;
+        interest: string | null;
+        sources: string | null;
+        sensitivity: number | null;
+        specificity: number | null;
+        rv_positive: number | null;
+        rv_negative: number | null;
+        created_at: string;
+      }>;
+      orthopedic_test_cluster_items: TableDef<{
+        id: string;
+        cluster_id: string;
+        test_id: string;
+        order_index: number | null;
+        created_at: string;
+      }>;
       user_testing_progress: TableDef<{
         id: string;
         user_id: string;
