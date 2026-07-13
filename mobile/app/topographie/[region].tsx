@@ -5,6 +5,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
+  Modal,
   Platform,
   Pressable,
   ScrollView,
@@ -42,6 +43,7 @@ export default function TopographieRegionScreen() {
   const [role, setRole] = useState<Role>(null);
   const [loading, setLoading] = useState(true);
   const [viewerIndex, setViewerIndex] = useState<number | null>(null);
+  const [infoView, setInfoView] = useState<TopoView | null>(null);
 
   const load = useCallback(async () => {
     if (!region) return;
@@ -126,11 +128,33 @@ export default function TopographieRegionScreen() {
             return (
               <View style={s.viewerFooter}>
                 <Text style={s.viewerTitle}>{v.name}</Text>
-                {desc ? <Text style={s.viewerDesc} numberOfLines={4}>{desc}</Text> : null}
+                {desc ? (
+                  <Pressable onPress={() => setInfoView(v)} style={s.descBtn}>
+                    <Ionicons name="document-text-outline" size={14} color="#fff" />
+                    <Text style={s.descBtnText}>Voir la description</Text>
+                  </Pressable>
+                ) : null}
               </View>
             );
           }}
         />
+
+        {/* Fiche description complète (non tronquée, scrollable) */}
+        <Modal visible={!!infoView} animationType="slide" transparent onRequestClose={() => setInfoView(null)}>
+          <View style={s.infoBackdrop}>
+            <View style={[s.infoSheet, { backgroundColor: C.cardSolid }]}>
+              <View style={s.infoHead}>
+                <Text style={[s.infoTitle, { color: C.text }]} numberOfLines={2}>{infoView?.name}</Text>
+                <Pressable onPress={() => setInfoView(null)} style={s.infoClose}>
+                  <Ionicons name="close" size={20} color={C.textSecondary} />
+                </Pressable>
+              </View>
+              <ScrollView style={s.infoScroll} showsVerticalScrollIndicator>
+                <Text style={[s.infoBody, { color: C.textSecondary }]}>{stripHtml(infoView?.description ?? null)}</Text>
+              </ScrollView>
+            </View>
+          </View>
+        </Modal>
       </SafeAreaView>
     </LinearGradient>
   );
@@ -150,7 +174,16 @@ const s = StyleSheet.create({
   thumb: { width: '100%', height: 120, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   lockOverlay: { position: 'absolute', top: 8, left: 8, right: 8, height: 120, borderRadius: 12, backgroundColor: 'rgba(0,0,0,0.35)', alignItems: 'center', justifyContent: 'center' },
   cardTitle: { fontSize: 13, fontWeight: '600', paddingHorizontal: 4, paddingBottom: 4 },
-  viewerFooter: { padding: 20, paddingBottom: 40, gap: 6 },
+  viewerFooter: { padding: 20, paddingBottom: 40, gap: 10 },
   viewerTitle: { color: '#fff', fontSize: 17, fontWeight: '700' },
-  viewerDesc: { color: 'rgba(255,255,255,0.8)', fontSize: 13, lineHeight: 19 },
+  descBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start', backgroundColor: 'rgba(255,255,255,0.15)', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12 },
+  descBtnText: { color: '#fff', fontSize: 13, fontWeight: '600' },
+
+  infoBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
+  infoSheet: { borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, maxHeight: '70%' },
+  infoHead: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, marginBottom: 14 },
+  infoTitle: { flex: 1, fontSize: 18, fontWeight: '800' },
+  infoClose: { width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.06)' },
+  infoScroll: { marginBottom: 8 },
+  infoBody: { fontSize: 14, lineHeight: 22, paddingBottom: 24 },
 });
