@@ -190,6 +190,33 @@ export type Database = {
         started_at: string | null;
         completed_at: string | null;
       }>;
+      support_tickets: TableDef<{
+        id: string;
+        title: string;
+        message: string;
+        status: 'pending' | 'in_progress' | 'resolved';
+        source: 'osteoflow' | 'osteoupgrade';
+        user_email: string;
+        license_email: string | null;
+        attachment_name: string | null;
+        attachment_url: string | null;
+        last_admin_message_at: string | null;
+        created_at: string;
+        updated_at: string;
+      }>;
+      support_messages: TableDef<{
+        id: string;
+        ticket_id: string;
+        sender: 'user' | 'admin';
+        content: string;
+        created_at: string;
+      }>;
+      user_login_tracking: TableDef<{
+        id: string;
+        user_id: string;
+        login_date: string;
+        created_at: string;
+      }>;
       elearning_topographic_views: TableDef<{
         id: string;
         region: string;
