@@ -17,22 +17,7 @@ export function parseVideo(url: string | null): VideoSource {
   return null;
 }
 
-/**
- * HTML d'un lecteur YouTube embarqué. Chargé avec `baseUrl` = origine YouTube
- * pour éviter l'erreur 153 (config du lecteur) en WebView React Native.
- */
-export function youtubeHtml(videoId: string): string {
-  // origin doit correspondre au baseUrl fourni à la WebView (www.youtube.com)
-  return `<!DOCTYPE html><html><head>
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-<style>html,body{margin:0;background:#000;height:100%}.wrap{position:relative;width:100%;height:100%}iframe{position:absolute;inset:0;width:100%;height:100%;border:0}</style>
-</head><body><div class="wrap">
-<iframe src="https://www.youtube.com/embed/${videoId}?playsinline=1&rel=0&modestbranding=1&fs=1&origin=https://www.youtube.com"
- allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture; fullscreen" allowfullscreen></iframe>
-</div></body></html>`;
-}
-
-/** URL de repli pour ouvrir la vidéo hors app (si intégration désactivée). */
+/** URL de repli pour ouvrir la vidéo hors app. */
 export function watchUrl(v: { kind: 'youtube'; id: string } | { kind: 'vimeo'; url: string }): string {
   return v.kind === 'youtube' ? `https://youtu.be/${v.id}` : v.url;
 }

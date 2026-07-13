@@ -14,11 +14,12 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { WebView } from 'react-native-webview';
+import YoutubePlayer from 'react-native-youtube-iframe';
 
 import { GlassCard } from '@/components/GlassCard';
 import { useAuth } from '@/lib/auth';
 import type { Tables } from '@/lib/database.types';
-import { metricColor, parseVideo, pctValue as pct, watchUrl, youtubeHtml } from '@/lib/ortho';
+import { metricColor, parseVideo, pctValue as pct, watchUrl } from '@/lib/ortho';
 import { supabase } from '@/lib/supabase';
 import { BRAND, GRADIENTS, usePaletteFor } from '@/lib/theme';
 
@@ -70,22 +71,20 @@ export default function OrthoTestScreen() {
             {video ? (
               <View style={{ gap: 8 }}>
                 <View style={s.videoWrap}>
-                  <WebView
-                    source={
-                      video.kind === 'youtube'
-                        ? { html: youtubeHtml(video.id), baseUrl: 'https://www.youtube.com' }
-                        : { uri: video.url }
-                    }
-                    style={{ flex: 1 }}
-                    originWhitelist={['*']}
-                    allowsFullscreenVideo
-                    allowsInlineMediaPlayback
-                    mediaPlaybackRequiresUserAction={false}
-                    javaScriptEnabled
-                    domStorageEnabled
-                  />
+                  {video.kind === 'youtube' ? (
+                    <YoutubePlayer height={210} videoId={video.id} play={false} webViewStyle={{ opacity: 0.99 }} />
+                  ) : (
+                    <WebView
+                      source={{ uri: video.url }}
+                      style={{ flex: 1 }}
+                      allowsFullscreenVideo
+                      allowsInlineMediaPlayback
+                      mediaPlaybackRequiresUserAction={false}
+                      javaScriptEnabled
+                    />
+                  )}
                 </View>
-                {/* Repli si l'auteur a désactivé la lecture intégrée (erreur 150/152) */}
+                {/* Repli si la lecture intégrée échoue */}
                 <Pressable onPress={() => Linking.openURL(watchUrl(video))} style={s.watchLink}>
                   <Ionicons name={video.kind === 'youtube' ? 'logo-youtube' : 'logo-vimeo'} size={16} color={C.textSecondary} />
                   <Text style={[s.watchLinkText, { color: C.textSecondary }]}>
