@@ -220,7 +220,7 @@ export default function DashboardScreen() {
             <Tile icon="school" label="Mes cours" sub="Formations vidéo" gradient={GRADIENTS.blue} onPress={() => router.push('/cours')} />
             <Tile icon="albums" label="Flashcards" sub={`${d.dueFlashcards} à réviser`} gradient={GRADIENTS.violet} onPress={() => router.push('/flashcards')} />
             <Tile icon="fitness" label="Pratique" sub="Techniques" gradient={GRADIENTS.orange} onPress={() => router.push('/pratique')} />
-            <Tile icon="flask" label="Tests ortho" sub="Examen clinique" gradient={GRADIENTS.green} onPress={() => router.push('/pratique')} />
+            <Tile icon="body" label="Tests ortho" sub="Examen clinique" gradient={GRADIENTS.green} onPress={() => router.push('/tests')} />
           </View>
 
           {/* ── Reprendre (dernière leçon / vidéo ouverte) ── */}

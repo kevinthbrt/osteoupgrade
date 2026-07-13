@@ -190,6 +190,30 @@ export type Database = {
         started_at: string | null;
         completed_at: string | null;
       }>;
+      orthopedic_tests: TableDef<{
+        id: string;
+        name: string;
+        description: string | null;
+        video_url: string | null;
+        sensitivity: number | null;
+        specificity: number | null;
+        rv_positive: number | null;
+        rv_negative: number | null;
+        interest: string | null;
+        category: string | null;
+        indications: string | null;
+        sources: string | null;
+        is_free_access: boolean | null;
+        created_at: string;
+        updated_at: string;
+      }>;
+      user_testing_progress: TableDef<{
+        id: string;
+        user_id: string;
+        test_id: string;
+        viewed_at: string | null;
+        completed: boolean;
+      }>;
       user_practice_progress: TableDef<{
         id: string;
         user_id: string;
