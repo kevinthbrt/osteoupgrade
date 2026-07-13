@@ -5,7 +5,6 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
-  Modal,
   Platform,
   Pressable,
   ScrollView,
@@ -15,6 +14,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { WebView } from 'react-native-webview';
 import ImageViewing from 'react-native-image-viewing';
 
 import { EmptyState } from '@/components/EmptyState';
@@ -33,6 +33,22 @@ function stripHtml(html: string | null): string {
   return (html ?? '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
 }
 
+// Rendu HTML réel (gras, retours à la ligne...) sur fond sombre, avec son
+// propre scroll interne — utilisé dans le pied de la visionneuse d'images.
+function descriptionHtmlDoc(html: string): string {
+  return `<!DOCTYPE html><html><head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<style>
+  * { -webkit-tap-highlight-color: transparent; }
+  body { margin: 0; padding: 4px 2px 24px; font-family: -apple-system, system-ui, sans-serif;
+    font-size: 14px; line-height: 1.55; color: rgba(255,255,255,0.9); background: transparent; }
+  a { color: #7dabff; }
+  b, strong { color: #fff; }
+  div:empty { min-height: 0.6em; }
+</style>
+</head><body>${html}</body></html>`;
+}
+
 export default function TopographieRegionScreen() {
   const { region } = useLocalSearchParams<{ region: string }>();
   const { session } = useAuth();
@@ -43,7 +59,10 @@ export default function TopographieRegionScreen() {
   const [role, setRole] = useState<Role>(null);
   const [loading, setLoading] = useState(true);
   const [viewerIndex, setViewerIndex] = useState<number | null>(null);
-  const [infoView, setInfoView] = useState<TopoView | null>(null);
+  const [descExpanded, setDescExpanded] = useState(false);
+
+  // Réinitialise le volet description à chaque changement d'image
+  useEffect(() => { setDescExpanded(false); }, [viewerIndex]);
 
   const load = useCallback(async () => {
     if (!region) return;
@@ -124,37 +143,35 @@ export default function TopographieRegionScreen() {
           FooterComponent={({ imageIndex }) => {
             const v = views[imageIndex];
             if (!v) return null;
-            const desc = stripHtml(v.description);
+            const hasDesc = !!stripHtml(v.description);
             return (
               <View style={s.viewerFooter}>
-                <Text style={s.viewerTitle}>{v.name}</Text>
-                {desc ? (
-                  <Pressable onPress={() => setInfoView(v)} style={s.descBtn}>
-                    <Ionicons name="document-text-outline" size={14} color="#fff" />
-                    <Text style={s.descBtnText}>Voir la description</Text>
-                  </Pressable>
-                ) : null}
+                <View style={s.viewerFooterHead}>
+                  <Text style={s.viewerTitle} numberOfLines={descExpanded ? 2 : 1}>{v.name}</Text>
+                  {hasDesc && (
+                    <Pressable onPress={() => setDescExpanded((e) => !e)} style={s.descBtn}>
+                      <Ionicons name={descExpanded ? 'chevron-down' : 'document-text-outline'} size={14} color="#fff" />
+                      <Text style={s.descBtnText}>{descExpanded ? 'Masquer' : 'Description'}</Text>
+                    </Pressable>
+                  )}
+                </View>
+                {/* Description en HTML réel (gras, retours à la ligne...), directement
+                    dans le pied de la visionneuse — évite les soucis d'empilement de Modal */}
+                {descExpanded && hasDesc && (
+                  <View style={s.descPanel}>
+                    <WebView
+                      source={{ html: descriptionHtmlDoc(v.description ?? '') }}
+                      style={{ flex: 1, backgroundColor: 'transparent' }}
+                      originWhitelist={['*']}
+                      scrollEnabled
+                      javaScriptEnabled
+                    />
+                  </View>
+                )}
               </View>
             );
           }}
         />
-
-        {/* Fiche description complète (non tronquée, scrollable) */}
-        <Modal visible={!!infoView} animationType="slide" transparent onRequestClose={() => setInfoView(null)}>
-          <View style={s.infoBackdrop}>
-            <View style={[s.infoSheet, { backgroundColor: C.cardSolid }]}>
-              <View style={s.infoHead}>
-                <Text style={[s.infoTitle, { color: C.text }]} numberOfLines={2}>{infoView?.name}</Text>
-                <Pressable onPress={() => setInfoView(null)} style={s.infoClose}>
-                  <Ionicons name="close" size={20} color={C.textSecondary} />
-                </Pressable>
-              </View>
-              <ScrollView style={s.infoScroll} showsVerticalScrollIndicator>
-                <Text style={[s.infoBody, { color: C.textSecondary }]}>{stripHtml(infoView?.description ?? null)}</Text>
-              </ScrollView>
-            </View>
-          </View>
-        </Modal>
       </SafeAreaView>
     </LinearGradient>
   );
@@ -174,16 +191,10 @@ const s = StyleSheet.create({
   thumb: { width: '100%', height: 120, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   lockOverlay: { position: 'absolute', top: 8, left: 8, right: 8, height: 120, borderRadius: 12, backgroundColor: 'rgba(0,0,0,0.35)', alignItems: 'center', justifyContent: 'center' },
   cardTitle: { fontSize: 13, fontWeight: '600', paddingHorizontal: 4, paddingBottom: 4 },
-  viewerFooter: { padding: 20, paddingBottom: 40, gap: 10 },
-  viewerTitle: { color: '#fff', fontSize: 17, fontWeight: '700' },
-  descBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start', backgroundColor: 'rgba(255,255,255,0.15)', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12 },
+  viewerFooter: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 34, gap: 10 },
+  viewerFooterHead: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  viewerTitle: { flex: 1, color: '#fff', fontSize: 17, fontWeight: '700' },
+  descBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(255,255,255,0.15)', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12 },
   descBtnText: { color: '#fff', fontSize: 13, fontWeight: '600' },
-
-  infoBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
-  infoSheet: { borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, maxHeight: '70%' },
-  infoHead: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, marginBottom: 14 },
-  infoTitle: { flex: 1, fontSize: 18, fontWeight: '800' },
-  infoClose: { width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.06)' },
-  infoScroll: { marginBottom: 8 },
-  infoBody: { fontSize: 14, lineHeight: 22, paddingBottom: 24 },
+  descPanel: { height: 220, backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 14, overflow: 'hidden' },
 });
