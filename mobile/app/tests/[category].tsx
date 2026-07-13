@@ -116,7 +116,7 @@ export default function TestCategoryScreen() {
             {indications.length > 0 && (
               <>
                 <Text style={[s.section, { color: C.text }]}>Indication</Text>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.chipsRow}>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.chipsBar} contentContainerStyle={s.chipsRow}>
                   <Chip label="Voir tout" active={indication === ALL} onPress={() => pickIndication(ALL)} C={C} />
                   {indications.map((ind) => (
                     <Chip key={ind} label={ind} active={indication === ind} onPress={() => pickIndication(ind)} C={C} />
@@ -187,7 +187,8 @@ const s = StyleSheet.create({
   clusterName: { fontSize: 15, fontWeight: '700' },
   clusterMeta: { fontSize: 12, marginTop: 2 },
 
-  chipsRow: { gap: 8, paddingVertical: 2, paddingRight: 8 },
+  chipsBar: { flexGrow: 0, flexShrink: 0 },
+  chipsRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 2, paddingRight: 8 },
   chip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 18, borderWidth: 1, maxWidth: 260 },
   chipText: { fontSize: 13, fontWeight: '600' },
 

@@ -71,7 +71,7 @@ export default function AdminSupportScreen() {
           </View>
         </View>
 
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.filterRow}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.filterBar} contentContainerStyle={s.filterRow}>
           {FILTERS.map((f) => (
             <Pressable key={f} onPress={() => setFilter(f)} style={[s.chip, { borderColor: filter === f ? BRAND : C.border, backgroundColor: filter === f ? BRAND : C.card }]}>
               <Text style={[s.chipText, { color: filter === f ? '#fff' : C.text }]}>{FILTER_LABEL[f]}</Text>
@@ -123,7 +123,8 @@ const s = StyleSheet.create({
   back: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
   title: { fontSize: 20, fontWeight: '800' },
   sub: { fontSize: 13, marginTop: 1 },
-  filterRow: { gap: 8, paddingHorizontal: 16, paddingBottom: 10 },
+  filterBar: { flexGrow: 0, flexShrink: 0 },
+  filterRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 16, paddingBottom: 10 },
   chip: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 16, borderWidth: 1 },
   chipText: { fontSize: 12, fontWeight: '600' },
   scroll: { padding: 16, paddingTop: 4, gap: 10, paddingBottom: 60 },

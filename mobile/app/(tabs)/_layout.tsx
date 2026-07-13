@@ -69,9 +69,9 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
-        name="tests"
+        name="clinique"
         options={{
-          title: 'Tests',
+          title: 'Clinique',
           tabBarIcon: ({ color, size }) => <Ionicons name="body" color={color} size={size} />,
         }}
       />

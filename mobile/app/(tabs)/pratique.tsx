@@ -322,7 +322,7 @@ export default function PratiqueScreen() {
           // ── Mode Scroll TikTok ──
           <View style={{ flex: 1 }}>
             {/* Filtre régions horizontal */}
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={sc.filterRow}>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={sc.filterBar} contentContainerStyle={sc.filterRow}>
               <Pressable
                 style={[sc.chip, !selectedRegion && sc.chipActive]}
                 onPress={() => { setSelectedRegion(null); listRef.current?.scrollToOffset({ offset: 0, animated: true }); }}>
@@ -415,7 +415,8 @@ const sl = StyleSheet.create({
 });
 
 const sc = StyleSheet.create({
-  filterRow: { flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingVertical: 8, backgroundColor: '#000' },
+  filterBar: { flexGrow: 0, flexShrink: 0 },
+  filterRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 16, paddingVertical: 8, backgroundColor: '#000' },
   chip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.1)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' },
   chipActive: { backgroundColor: BRAND, borderColor: BRAND },
   chipText: { color: 'rgba(255,255,255,0.8)', fontSize: 12, fontWeight: '600' },
