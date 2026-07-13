@@ -4,6 +4,7 @@ import { useEffect, useState, type ComponentType } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import AuthLayout from '@/components/AuthLayout'
+import MyOsteoFlowUpsellModal from '@/components/MyOsteoFlowUpsellModal'
 import {
   Stethoscope,
   GraduationCap,
@@ -153,6 +154,7 @@ export default function Dashboard() {
 
   return (
     <AuthLayout>
+      <MyOsteoFlowUpsellModal role={profile?.role} />
       <div className="min-h-screen -m-6 md:-m-8">
 
         {/* Header */}
@@ -421,6 +423,32 @@ export default function Dashboard() {
                       Windows
                     </a>
                   </div>
+                </div>
+              </div>
+            </section>
+          )}
+
+          {profile?.role === 'free' && (
+            <section>
+              <div className="flex items-center gap-2.5 mb-4">
+                <div className="h-5 w-1 rounded-full bg-gradient-to-b from-violet-500 to-violet-700" />
+                <h2 className="text-sm font-bold text-slate-800 tracking-wide">MyOsteoFlow — Logiciel de cabinet</h2>
+              </div>
+              <div className="rounded-2xl overflow-hidden shadow-xl border border-violet-300/70 bg-violet-100/85 backdrop-blur-2xl ring-1 ring-inset ring-white/60">
+                <div className="bg-gradient-to-r from-violet-600 to-indigo-600 px-5 py-3 flex items-center gap-2">
+                  <Lock className="h-4 w-4 text-white" />
+                  <p className="text-sm font-semibold text-white">Réservé aux comptes Premium</p>
+                </div>
+                <div className="px-5 py-5">
+                  <p className="text-sm text-slate-600 mb-4">
+                    Gérez vos patients, consultations et dossiers directement depuis votre ordinateur : dictée vocale IA, suivi patient automatisé,
+                    courriers générés par IA, messagerie patients, compta &amp; factures, statistiques du cabinet, et bien plus.
+                  </p>
+                  <button onClick={() => router.push('/settings/subscription')} className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-violet-700 text-white text-sm font-bold hover:bg-violet-800 transition-colors shadow-md">
+                    <Crown className="h-4 w-4" />
+                    Découvrir MyOsteoFlow en Premium
+                    <ArrowRight className="h-4 w-4" />
+                  </button>
                 </div>
               </div>
             </section>
