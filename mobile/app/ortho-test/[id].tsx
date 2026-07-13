@@ -4,6 +4,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
+  Linking,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -17,7 +18,7 @@ import { WebView } from 'react-native-webview';
 import { GlassCard } from '@/components/GlassCard';
 import { useAuth } from '@/lib/auth';
 import type { Tables } from '@/lib/database.types';
-import { metricColor, parseVideo, pctValue as pct, youtubeHtml } from '@/lib/ortho';
+import { metricColor, parseVideo, pctValue as pct, watchUrl, youtubeHtml } from '@/lib/ortho';
 import { supabase } from '@/lib/supabase';
 import { BRAND, GRADIENTS, usePaletteFor } from '@/lib/theme';
 
@@ -67,21 +68,30 @@ export default function OrthoTestScreen() {
           <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
             {/* Vidéo */}
             {video ? (
-              <View style={s.videoWrap}>
-                <WebView
-                  source={
-                    video.kind === 'youtube'
-                      ? { html: youtubeHtml(video.id), baseUrl: 'https://www.youtube.com' }
-                      : { uri: video.url }
-                  }
-                  style={{ flex: 1 }}
-                  originWhitelist={['*']}
-                  allowsFullscreenVideo
-                  allowsInlineMediaPlayback
-                  mediaPlaybackRequiresUserAction={false}
-                  javaScriptEnabled
-                  domStorageEnabled
-                />
+              <View style={{ gap: 8 }}>
+                <View style={s.videoWrap}>
+                  <WebView
+                    source={
+                      video.kind === 'youtube'
+                        ? { html: youtubeHtml(video.id), baseUrl: 'https://www.youtube.com' }
+                        : { uri: video.url }
+                    }
+                    style={{ flex: 1 }}
+                    originWhitelist={['*']}
+                    allowsFullscreenVideo
+                    allowsInlineMediaPlayback
+                    mediaPlaybackRequiresUserAction={false}
+                    javaScriptEnabled
+                    domStorageEnabled
+                  />
+                </View>
+                {/* Repli si l'auteur a désactivé la lecture intégrée (erreur 150/152) */}
+                <Pressable onPress={() => Linking.openURL(watchUrl(video))} style={s.watchLink}>
+                  <Ionicons name={video.kind === 'youtube' ? 'logo-youtube' : 'logo-vimeo'} size={16} color={C.textSecondary} />
+                  <Text style={[s.watchLinkText, { color: C.textSecondary }]}>
+                    La vidéo ne se lance pas ? Regarder sur {video.kind === 'youtube' ? 'YouTube' : 'Vimeo'}
+                  </Text>
+                </Pressable>
               </View>
             ) : null}
 
@@ -136,6 +146,8 @@ const s = StyleSheet.create({
   headerTitle: { flex: 1, fontSize: 17, fontWeight: '700' },
   scroll: { padding: 16, gap: 14, paddingBottom: 100 },
   videoWrap: { height: 210, borderRadius: 16, overflow: 'hidden', backgroundColor: '#000' },
+  watchLink: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 4 },
+  watchLinkText: { fontSize: 12, textDecorationLine: 'underline' },
   metricsCard: { padding: 16, gap: 12 },
   cardTitle: { fontSize: 15, fontWeight: '700' },
   metricsRow: { flexDirection: 'row', justifyContent: 'space-between' },
