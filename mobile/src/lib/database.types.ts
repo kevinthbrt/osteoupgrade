@@ -190,6 +190,19 @@ export type Database = {
         started_at: string | null;
         completed_at: string | null;
       }>;
+      elearning_topographic_views: TableDef<{
+        id: string;
+        region: string;
+        name: string;
+        description: string | null;
+        image_url: string | null;
+        display_order: number | null;
+        is_active: boolean;
+        is_free_access: boolean | null;
+        created_by: string | null;
+        created_at: string;
+        updated_at: string;
+      }>;
       orthopedic_tests: TableDef<{
         id: string;
         name: string;

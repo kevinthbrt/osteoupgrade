@@ -221,6 +221,7 @@ export default function DashboardScreen() {
             <Tile icon="albums" label="Flashcards" sub={`${d.dueFlashcards} à réviser`} gradient={GRADIENTS.violet} onPress={() => router.push('/flashcards')} />
             <Tile icon="fitness" label="Pratique" sub="Techniques" gradient={GRADIENTS.orange} onPress={() => router.push('/pratique')} />
             <Tile icon="body" label="Tests ortho" sub="Examen clinique" gradient={GRADIENTS.green} onPress={() => router.push('/tests')} />
+            <Tile icon="map" label="Topographie" sub="Vues anatomiques" gradient={GRADIENTS.blue} onPress={() => router.push('/topographie')} />
           </View>
 
           {/* ── Reprendre (dernière leçon / vidéo ouverte) ── */}
