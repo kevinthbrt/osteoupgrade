@@ -17,7 +17,7 @@ import { WebView } from 'react-native-webview';
 import { GlassCard } from '@/components/GlassCard';
 import { useAuth } from '@/lib/auth';
 import type { Tables } from '@/lib/database.types';
-import { metricColor, pctValue as pct, testEmbedUrl } from '@/lib/ortho';
+import { metricColor, parseVideo, pctValue as pct, youtubeHtml } from '@/lib/ortho';
 import { supabase } from '@/lib/supabase';
 import { BRAND, GRADIENTS, usePaletteFor } from '@/lib/theme';
 
@@ -47,7 +47,7 @@ export default function OrthoTestScreen() {
     });
   }, [id, session]);
 
-  const embed = test ? testEmbedUrl(test.video_url) : null;
+  const video = test ? parseVideo(test.video_url) : null;
 
   return (
     <LinearGradient colors={C.bgGradient} style={s.fill} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
@@ -66,9 +66,22 @@ export default function OrthoTestScreen() {
         ) : (
           <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
             {/* Vidéo */}
-            {embed ? (
+            {video ? (
               <View style={s.videoWrap}>
-                <WebView source={{ uri: embed }} style={{ flex: 1 }} allowsFullscreenVideo allowsInlineMediaPlayback mediaPlaybackRequiresUserAction={false} javaScriptEnabled />
+                <WebView
+                  source={
+                    video.kind === 'youtube'
+                      ? { html: youtubeHtml(video.id), baseUrl: 'https://www.youtube.com' }
+                      : { uri: video.url }
+                  }
+                  style={{ flex: 1 }}
+                  originWhitelist={['*']}
+                  allowsFullscreenVideo
+                  allowsInlineMediaPlayback
+                  mediaPlaybackRequiresUserAction={false}
+                  javaScriptEnabled
+                  domStorageEnabled
+                />
               </View>
             ) : null}
 

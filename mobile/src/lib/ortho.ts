@@ -2,16 +2,33 @@
  * Helpers partagés pour le module Tests orthopédiques.
  */
 
-/** Construit une URL d'embed lisible en WebView (YouTube ou Vimeo). */
-export function testEmbedUrl(url: string | null): string | null {
+export type VideoSource =
+  | { kind: 'youtube'; id: string }
+  | { kind: 'vimeo'; url: string }
+  | null;
+
+/** Détecte la plateforme et l'identifiant d'une vidéo de test. */
+export function parseVideo(url: string | null): VideoSource {
   if (!url) return null;
-  // YouTube : youtu.be/ID, youtube.com/watch?v=ID, /embed/ID, /shorts/ID
   const yt = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/))([\w-]{6,})/);
-  if (yt) return `https://www.youtube.com/embed/${yt[1]}?rel=0&playsinline=1`;
-  // Vimeo
+  if (yt) return { kind: 'youtube', id: yt[1] };
   const vm = url.match(/vimeo\.com\/(?:video\/)?(\d+)/);
-  if (vm) return `https://player.vimeo.com/video/${vm[1]}?color=4169F6`;
+  if (vm) return { kind: 'vimeo', url: `https://player.vimeo.com/video/${vm[1]}?color=4169F6` };
   return null;
+}
+
+/**
+ * HTML d'un lecteur YouTube embarqué. Chargé avec `baseUrl` = origine YouTube
+ * pour éviter l'erreur 153 (config du lecteur) en WebView React Native.
+ */
+export function youtubeHtml(videoId: string): string {
+  return `<!DOCTYPE html><html><head>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<style>html,body{margin:0;background:#000;height:100%}.wrap{position:relative;width:100%;height:100%}iframe{position:absolute;inset:0;width:100%;height:100%;border:0}</style>
+</head><body><div class="wrap">
+<iframe src="https://www.youtube-nocookie.com/embed/${videoId}?playsinline=1&rel=0&modestbranding=1&origin=https://osteoupgrade.vercel.app"
+ allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+</div></body></html>`;
 }
 
 /**
