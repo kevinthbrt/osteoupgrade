@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
-import { stripe, STRIPE_PLANS } from '@/lib/stripe'
+import { stripe, STRIPE_PLANS, FREE_TRIAL_DAYS } from '@/lib/stripe'
 
 export async function POST(request: Request) {
   try {
@@ -129,13 +129,29 @@ export async function POST(request: Request) {
       }
     }
 
+    // 🎁 Essai gratuit de 7 jours : réservé au premier abonnement d'un compte
+    // free (jamais utilisé auparavant) sur l'offre standard. La carte est
+    // exigée dès la souscription (payment_method_collection: 'always') et
+    // sera prélevée automatiquement à la fin de l'essai, sauf annulation.
+    const { data: trialProfile } = await supabase
+      .from('profiles')
+      .select('role, trial_used_at')
+      .eq('id', userId)
+      .single()
+
+    const isEligibleForTrial =
+      planType === 'premium_monthly' &&
+      trialProfile?.role === 'free' &&
+      !trialProfile?.trial_used_at
+
     console.log('🔑 Creating Stripe session with:', {
       priceId: plan.priceId,
       email,
       userId,
       isAnnual: plan.isAnnual,
       referralCode,
-      referrerUserId
+      referrerUserId,
+      isEligibleForTrial
     })
 
     // Créer une session de paiement Stripe sans engagement
@@ -151,6 +167,7 @@ export async function POST(request: Request) {
         }
       ],
       mode: 'subscription',
+      payment_method_collection: isEligibleForTrial ? 'always' : 'if_required',
       success_url: `${process.env.NEXT_PUBLIC_URL || 'http://localhost:3000'}/dashboard?success=true`,
       cancel_url: `${process.env.NEXT_PUBLIC_URL || 'http://localhost:3000'}/dashboard?cancelled=true`,
       metadata: {
@@ -159,16 +176,19 @@ export async function POST(request: Request) {
         billing_interval: plan.interval,
         is_annual: plan.isAnnual ? 'true' : 'false',
         referral_code: shouldProcessReferral ? referralCode || '' : '',
-        referrer_user_id: shouldProcessReferral ? referrerUserId || '' : ''
+        referrer_user_id: shouldProcessReferral ? referrerUserId || '' : '',
+        is_trial: isEligibleForTrial ? 'true' : 'false'
       },
       subscription_data: {
+        ...(isEligibleForTrial ? { trial_period_days: FREE_TRIAL_DAYS } : {}),
         metadata: {
           userId,
           planType: plan.planType || planType,
           billing_interval: plan.interval,
           is_annual: plan.isAnnual ? 'true' : 'false',
           referral_code: shouldProcessReferral ? referralCode || '' : '',
-          referrer_user_id: shouldProcessReferral ? referrerUserId || '' : ''
+          referrer_user_id: shouldProcessReferral ? referrerUserId || '' : '',
+          is_trial: isEligibleForTrial ? 'true' : 'false'
         }
       }
     })
@@ -176,7 +196,8 @@ export async function POST(request: Request) {
     console.log('✅ Stripe session created:', {
       sessionId: session.id,
       interval: plan.interval,
-      referralApplied: !!referrerUserId
+      referralApplied: !!referrerUserId,
+      isEligibleForTrial
     })
 
     return NextResponse.json({ sessionId: session.id, url: session.url })

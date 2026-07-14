@@ -194,6 +194,8 @@ function SubscriptionContent() {
 
   const isPremium = profile?.role === 'premium' || profile?.role === 'admin'
   const pendingPlanSupportsReferral = pendingPlanType ? isReferralEligiblePlan(pendingPlanType) : false
+  const isTrialing = isPremium && profile?.subscription_status === 'trialing'
+  const isTrialEligible = !isPremium && !profile?.trial_used_at
 
   return (
     <AuthLayout>
@@ -215,6 +217,11 @@ function SubscriptionContent() {
                     ? "Avant de passer sur Stripe, renseignez votre code si vous en possédez un : vous et votre parrain bénéficierez chacun d'un mois offert. Vous pouvez aussi continuer sans code."
                     : "Vous pouvez continuer sans code de parrainage."}
                 </p>
+                {pendingPlanType === 'premium_monthly' && isTrialEligible && (
+                  <p className="text-sm text-blue-700 bg-blue-50 border border-blue-200 rounded-lg px-3 py-2 mt-2">
+                    🎁 Votre carte sera enregistrée mais ne sera débitée qu'après vos 7 jours d'essai gratuit, sauf si vous annulez avant.
+                  </p>
+                )}
               </div>
             </div>
 
@@ -316,11 +323,53 @@ function SubscriptionContent() {
                 <p className="text-sm text-gray-500">Votre abonnement actuel</p>
                 <p className="text-2xl font-bold text-gray-900">Premium</p>
               </div>
-              <span className="inline-flex items-center gap-2 rounded-full bg-green-100 px-4 py-2 text-sm font-semibold text-green-700">
-                <Check className="h-4 w-4" />
-                Actif
-              </span>
+              {isTrialing ? (
+                <span className="inline-flex items-center gap-2 rounded-full bg-blue-100 px-4 py-2 text-sm font-semibold text-blue-700">
+                  <Gift className="h-4 w-4" />
+                  Essai gratuit
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-2 rounded-full bg-green-100 px-4 py-2 text-sm font-semibold text-green-700">
+                  <Check className="h-4 w-4" />
+                  Actif
+                </span>
+              )}
             </div>
+
+            {/* Trial Information */}
+            {isTrialing && (
+              <div className="border-t border-gray-200 pt-6">
+                <div className="flex items-start gap-4">
+                  <div className="p-3 bg-blue-50 rounded-lg">
+                    <Calendar className="h-6 w-6 text-blue-600" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-gray-900 mb-2">Période d'essai gratuit</h3>
+                    <p className="text-sm text-gray-600">
+                      {profile.trial_ends_at ? (
+                        <>
+                          Vous profitez de l'accès Premium gratuitement jusqu'au{' '}
+                          <strong className="text-gray-900">
+                            {new Date(profile.trial_ends_at).toLocaleDateString('fr-FR', {
+                              day: 'numeric',
+                              month: 'long',
+                              year: 'numeric'
+                            })}
+                          </strong>
+                          . Passé cette date, votre carte sera automatiquement débitée de 49,99€ pour le premier mois
+                          d'abonnement, sauf si vous annulez avant.
+                        </>
+                      ) : (
+                        <>
+                          Vous profitez de l'accès Premium gratuitement. À la fin de l'essai, votre carte sera
+                          automatiquement débitée pour le premier mois d'abonnement, sauf si vous annulez avant.
+                        </>
+                      )}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Commitment Information - Only for legacy users with commitment_end_date */}
             {profile.commitment_end_date && (
@@ -501,12 +550,22 @@ function SubscriptionContent() {
               <p className="text-yellow-900/90">L'intégralité des outils cliniques, réunis dans une seule plateforme</p>
               <div className="mt-6">
                 <div className="space-y-4">
+                  {isTrialEligible && (
+                    <div className="bg-blue-600/90 backdrop-blur-sm rounded-lg p-4 border-2 border-blue-300 flex items-center gap-3">
+                      <Gift className="h-5 w-5 flex-shrink-0 text-white" />
+                      <p className="text-sm text-white font-semibold">7 jours d'essai gratuit, carte requise à l'inscription. Annulable à tout moment avant la fin de l'essai.</p>
+                    </div>
+                  )}
                   <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4">
                     <div className="flex items-baseline gap-2 mb-1">
                       <span className="text-4xl font-bold">49,99€</span>
                       <span className="text-yellow-900/80">/mois</span>
                     </div>
-                    <p className="text-sm text-yellow-900/70">Sans engagement • Prélevé chaque mois • Annulable à tout moment</p>
+                    <p className="text-sm text-yellow-900/70">
+                      {isTrialEligible
+                        ? 'Après 7 jours d\'essai gratuit • Sans engagement • Annulable à tout moment'
+                        : 'Sans engagement • Prélevé chaque mois • Annulable à tout moment'}
+                    </p>
                   </div>
                   <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border-2 border-white/30 flex items-center gap-3">
                     <Gift className="h-5 w-5 flex-shrink-0" />
@@ -562,6 +621,8 @@ function SubscriptionContent() {
                 >
                   {processingPlan === 'premium_monthly' ? (
                     <><Loader2 className="h-5 w-5 animate-spin" />Redirection...</>
+                  ) : isTrialEligible ? (
+                    <><Gift className="h-5 w-5" />Démarrer les 7 jours d'essai gratuit</>
                   ) : (
                     <><Crown className="h-5 w-5" />Choisir Premium (49,99€/mois)</>
                   )}
@@ -576,6 +637,9 @@ function SubscriptionContent() {
           <h3 className="font-semibold text-gray-900 mb-3">💡 Bon à savoir</h3>
           <div className="space-y-2 text-sm text-gray-700">
             <p>✅ Paiement sécurisé via Stripe</p>
+            {isTrialEligible && (
+              <p>✅ <strong>7 jours d'essai gratuit</strong> à la première souscription : carte requise, débitée automatiquement à la fin de l'essai sauf annulation</p>
+            )}
             <p>✅ <strong>49,99€/mois, sans engagement</strong> : prélevé automatiquement chaque mois, annulable à tout moment</p>
             <p>✅ Renouvellement automatique (désactivable depuis votre compte)</p>
             <p>✅ Notification par email 7 jours avant chaque renouvellement</p>

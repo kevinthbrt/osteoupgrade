@@ -70,18 +70,42 @@ async function handleCheckoutCompleted(session: any) {
     return
   }
 
+  // Récupérer l'abonnement Stripe pour connaître son statut réel (ex: 'trialing'
+  // si un essai gratuit a été appliqué au checkout) et la date de fin d'essai.
+  let subscriptionStatus = 'active'
+  let trialEndsAt: string | null = null
+  const isTrial = session.metadata?.is_trial === 'true'
+
+  if (session.subscription) {
+    try {
+      const subscription = await stripe.subscriptions.retrieve(session.subscription)
+      subscriptionStatus = subscription.status
+      if (subscription.trial_end) {
+        trialEndsAt = new Date(subscription.trial_end * 1000).toISOString()
+      }
+    } catch (err) {
+      console.error('Error retrieving subscription on checkout completed')
+    }
+  }
+
   // Mettre à jour le profil utilisateur (sans engagement)
   const subscriptionStartDate = new Date()
-  const updateData = {
+  const updateData: Record<string, any> = {
     role: planType,
-    subscription_status: 'active',
+    subscription_status: subscriptionStatus,
     subscription_start_date: subscriptionStartDate.toISOString(),
     subscription_end_date: null,
     commitment_end_date: null, // Plus d'engagement
     commitment_cycle_number: null,
     commitment_renewal_notification_sent: false,
     stripe_customer_id: session.customer,
-    stripe_subscription_id: session.subscription
+    stripe_subscription_id: session.subscription,
+    trial_ends_at: trialEndsAt
+  }
+
+  // Marquer l'essai comme consommé (un seul essai gratuit par compte, à vie)
+  if (isTrial) {
+    updateData.trial_used_at = subscriptionStartDate.toISOString()
   }
 
   const { data: updatedProfile, error: updateError } = await supabaseAdmin
@@ -284,7 +308,8 @@ async function handleCheckoutCompleted(session: any) {
           nom: 'Premium',
           prix: displayPrice,
           interval: 'mensuel',
-          date_fact: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString('fr-FR'),
+          date_fact: (trialEndsAt ? new Date(trialEndsAt) : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)).toLocaleDateString('fr-FR'),
+          essai_gratuit: isTrial ? 'true' : 'false',
           code_parrainage: userReferralCode,
           facture_url: factureUrl
         }
@@ -348,12 +373,18 @@ async function handleSubscriptionUpdated(subscription: any) {
     return
   }
 
-  // Mettre à jour le statut
+  // Mettre à jour le statut (ex: passage de 'trialing' à 'active' à la fin
+  // de l'essai gratuit, une fois le premier prélèvement effectué)
+  const updateData: Record<string, any> = {
+    subscription_status: subscription.status
+  }
+  if (subscription.status !== 'trialing') {
+    updateData.trial_ends_at = null
+  }
+
   await supabaseAdmin
     .from('profiles')
-    .update({
-      subscription_status: subscription.status
-    })
+    .update(updateData)
     .eq('id', profile.id)
 }
 
@@ -386,7 +417,8 @@ async function handleSubscriptionDeleted(subscription: any) {
       subscription_status: 'cancelled',
       subscription_end_date: new Date().toISOString(),
       commitment_end_date: null,
-      commitment_cycle_number: null
+      commitment_cycle_number: null,
+      trial_ends_at: null
     })
     .eq('id', profile.id)
 
