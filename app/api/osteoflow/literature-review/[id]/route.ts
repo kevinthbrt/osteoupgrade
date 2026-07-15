@@ -14,12 +14,15 @@ export const dynamic = 'force-dynamic'
 // 'trial' pour l'accès général à l'app.
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   const tokenUser = await getOsteoflowSessionUser(req)
+  console.log('[literature-review] DEBUG tokenUser =', JSON.stringify(tokenUser))
   if (!tokenUser || !['premium', 'admin'].includes(tokenUser.role)) {
+    console.log('[literature-review] DEBUG blocked, role was:', tokenUser?.role)
     return NextResponse.json(
       { error: 'Un abonnement Premium est requis pour lire cet article.', code: 'NOT_PREMIUM' },
       { status: 403 }
     )
   }
+  console.log('[literature-review] DEBUG allowed through, role was:', tokenUser.role)
 
   const { data, error } = await supabaseAdmin
     .from('literature_reviews')
