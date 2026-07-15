@@ -1,5 +1,5 @@
 import { cookies } from 'next/headers'
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
+import { createRouteHandlerClient } from '@/lib/supabase-server-helpers'
 import { NextResponse } from 'next/server'
 export async function GET() {
   const supabase = createRouteHandlerClient({ cookies })

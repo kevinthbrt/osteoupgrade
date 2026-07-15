@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
+import { createRouteHandlerClient } from '@/lib/supabase-server-helpers'
 import { stripe, STRIPE_PLANS, FREE_TRIAL_DAYS } from '@/lib/stripe'
 
 export async function POST(request: Request) {
