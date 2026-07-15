@@ -4,16 +4,21 @@ import { getOsteoflowSessionUser } from '@/lib/osteoflow-auth'
 
 export const dynamic = 'force-dynamic'
 
-const EXPECTED_SECRET = process.env.OSTEOFLOW_PROXY_SECRET
-
 // GET /api/osteoflow/literature-review/[id]
 // Returns a single literature review with its full structured content, so
 // Osteoflow can display the article in-app instead of linking out.
+// La revue de littérature est un contenu Premium (voir CGU 5.1) : on exige
+// une session utilisateur identifiée avec le rôle premium/admin — 'trial'
+// (essai MyOsteoFlow) et le secret partagé seul (pas d'identité) sont
+// explicitement exclus, contrairement à getOsteoflowSessionUser qui autorise
+// 'trial' pour l'accès général à l'app.
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   const tokenUser = await getOsteoflowSessionUser(req)
-  const authHeader = req.headers.get('x-osteoflow-secret')
-  if (!tokenUser && authHeader !== EXPECTED_SECRET) {
-    return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+  if (!tokenUser || !['premium', 'admin'].includes(tokenUser.role)) {
+    return NextResponse.json(
+      { error: 'Un abonnement Premium est requis pour lire cet article.', code: 'NOT_PREMIUM' },
+      { status: 403 }
+    )
   }
 
   const { data, error } = await supabaseAdmin

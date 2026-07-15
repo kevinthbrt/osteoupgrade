@@ -383,7 +383,10 @@ async function handleCheckoutCompleted(session: any) {
     console.error('Error retrieving first invoice for confirmation email')
   }
 
-  // 🚀 DÉCLENCHER L'AUTOMATISATION "Passage à Premium"
+  // 🚀 DÉCLENCHER L'AUTOMATISATION : "Essai gratuit démarré" pendant l'essai
+  // (contenu spécifique : MyOsteoflow uniquement, reste verrouillé), sinon
+  // "Passage à Premium" classique. La conversion réelle de l'essai déclenche
+  // sa propre "Passage à Premium" dans handleSubscriptionUpdated.
   const displayPrice = '49,99€'
   try {
     await fetch(`${process.env.NEXT_PUBLIC_URL || 'http://localhost:3000'}/api/automations/trigger`, {
@@ -393,7 +396,7 @@ async function handleCheckoutCompleted(session: any) {
         'Authorization': `Bearer ${process.env.CRON_SECRET}`
       },
       body: JSON.stringify({
-        event: 'Passage à Premium',
+        event: isTrial ? 'Essai gratuit démarré' : 'Passage à Premium',
         contact_email: profile.email,
         full_name: profile.full_name,
         metadata: {
@@ -401,6 +404,7 @@ async function handleCheckoutCompleted(session: any) {
           prix: displayPrice,
           interval: 'mensuel',
           date_fact: (trialEndsAt ? new Date(trialEndsAt) : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)).toLocaleDateString('fr-FR'),
+          date_fin_essai: trialEndsAt ? new Date(trialEndsAt).toLocaleDateString('fr-FR') : '',
           essai_gratuit: isTrial ? 'true' : 'false',
           code_parrainage: userReferralCode,
           facture_url: factureUrl
@@ -512,6 +516,63 @@ async function handleSubscriptionUpdated(subscription: any) {
       referredFullName: profile.full_name
     })
   }
+
+  // 🚀 DÉCLENCHER L'AUTOMATISATION "Passage à Premium" : c'est ici, et non au
+  // démarrage de l'essai, que l'utilisateur devient réellement Premium.
+  if (wasTrialing && subscription.status === 'active') {
+    let userReferralCode = ''
+    try {
+      const { data: referralCodeData } = await supabaseAdmin
+        .from('referral_codes')
+        .select('referral_code')
+        .eq('user_id', profile.id)
+        .single()
+      userReferralCode = referralCodeData?.referral_code || ''
+    } catch (err) {
+      console.error('Could not fetch referral code for trial conversion automation')
+    }
+
+    let factureUrl = ''
+    try {
+      const invoiceId = subscription.latest_invoice
+      if (invoiceId) {
+        const latestInvoice = await stripe.invoices.retrieve(
+          typeof invoiceId === 'string' ? invoiceId : invoiceId.id
+        )
+        factureUrl = latestInvoice.hosted_invoice_url || latestInvoice.invoice_pdf || ''
+      }
+    } catch (err) {
+      console.error('Error retrieving invoice for trial conversion automation')
+    }
+
+    try {
+      await fetch(`${process.env.NEXT_PUBLIC_URL || 'http://localhost:3000'}/api/automations/trigger`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${process.env.CRON_SECRET}`
+        },
+        body: JSON.stringify({
+          event: 'Passage à Premium',
+          contact_email: profile.email,
+          full_name: profile.full_name,
+          metadata: {
+            nom: 'Premium',
+            prix: '49,99€',
+            interval: 'mensuel',
+            date_fact: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString('fr-FR'),
+            essai_gratuit: 'true',
+            code_parrainage: userReferralCode,
+            facture_url: factureUrl
+          }
+        })
+      })
+    } catch (err) {
+      console.error('Error triggering trial conversion automation')
+    }
+
+    await notifyAdmin('new_subscription', 'Essai converti en Premium', `${profile.email} — essai gratuit converti en abonnement Premium`)
+  }
 }
 
 // Gérer la suppression/annulation d'abonnement
@@ -526,7 +587,7 @@ async function handleSubscriptionDeleted(subscription: any) {
   // Trouver l'utilisateur par son stripe_customer_id
   const { data: profile, error: profileError } = await supabaseAdmin
     .from('profiles')
-    .select('id, email, full_name')
+    .select('id, email, full_name, role')
     .eq('stripe_customer_id', customerId)
     .single()
 
@@ -534,6 +595,11 @@ async function handleSubscriptionDeleted(subscription: any) {
     console.error('Profile not found for subscription deletion')
     return
   }
+
+  // Un essai jamais converti (annulé pendant les 7 jours, ou premier
+  // prélèvement refusé) déclenche un email différent d'une vraie résiliation
+  // Premium — l'utilisateur n'a jamais payé, "Abonnement expiré" serait faux.
+  const wasNeverConverted = profile.role === 'trial'
 
   // Révoquer le premium (plus d'engagement, annulation immédiate)
   const { error: updateError } = await supabaseAdmin
@@ -553,7 +619,7 @@ async function handleSubscriptionDeleted(subscription: any) {
     return
   }
 
-  // 🚀 DÉCLENCHER L'AUTOMATISATION "Abonnement expiré"
+  // 🚀 DÉCLENCHER L'AUTOMATISATION "Abonnement expiré" ou "Essai gratuit annulé"
   try {
     await fetch(`${process.env.NEXT_PUBLIC_URL || 'http://localhost:3000'}/api/automations/trigger`, {
       method: 'POST',
@@ -562,7 +628,7 @@ async function handleSubscriptionDeleted(subscription: any) {
         'Authorization': `Bearer ${process.env.CRON_SECRET}`
       },
       body: JSON.stringify({
-        event: 'Abonnement expiré',
+        event: wasNeverConverted ? 'Essai gratuit annulé' : 'Abonnement expiré',
         contact_email: profile.email,
         full_name: profile.full_name,
         metadata: {
