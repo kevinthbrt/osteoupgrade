@@ -85,12 +85,13 @@ export async function GET() {
   const since = (n: number) => now.getTime() - ms(n)
 
   // ── Account KPIs ──────────────────────────────────────────────────────────
-  let premium = 0, free = 0, admin = 0, foundingMembers = 0, newsletterOptIn = 0
+  let premium = 0, free = 0, trial = 0, admin = 0, foundingMembers = 0, newsletterOptIn = 0
   let signupsToday = 0, signups7d = 0, signups30d = 0, prevSignups30d = 0
 
   for (const p of profiles) {
     if (p.role === 'premium') premium++
     else if (p.role === 'admin') admin++
+    else if (p.role === 'trial') trial++
     else free++
     if (p.is_founding_member) foundingMembers++
     if (p.newsletter_opt_in) newsletterOptIn++
@@ -105,7 +106,11 @@ export async function GET() {
   }
 
   const total = profiles.length
-  const nonAdmin = free + premium
+  // Essai gratuit MyOsteoFlow : compté à part des 'free' pour donner une
+  // vraie visibilité sur le funnel d'essai, mais inclus dans le dénominateur
+  // "non-admin" au même titre que free/premium (ce sont des comptes actifs
+  // n'ayant pas encore payé).
+  const nonAdmin = free + trial + premium
   const conversionRate = nonAdmin > 0 ? Math.round((premium / nonAdmin) * 1000) / 10 : 0
 
   // ── Signup daily / cumulative series (90 days, zero-filled) ──────────────
@@ -188,7 +193,7 @@ export async function GET() {
         created_at: s.created_at,
       }
     })
-  const ofAdoption = premium + free > 0 ? Math.round((ofUsers.size / (premium + free)) * 1000) / 10 : 0
+  const ofAdoption = nonAdmin > 0 ? Math.round((ofUsers.size / nonAdmin) * 1000) / 10 : 0
 
   // ── AI usage ──────────────────────────────────────────────────────────────
   const byEndpoint = new Map<string, { calls: number; inTok: number; outTok: number; cacheRead: number }>()
@@ -263,7 +268,7 @@ export async function GET() {
 
   return NextResponse.json({
     kpis: {
-      total, premium, free, admin, foundingMembers, newsletterOptIn,
+      total, premium, free, trial, admin, foundingMembers, newsletterOptIn,
       signupsToday, signups7d, signups30d, prevSignups30d, conversionRate,
       dau, wau, mau, stickiness, activationRate,
     },

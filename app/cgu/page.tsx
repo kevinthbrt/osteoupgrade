@@ -17,7 +17,7 @@ export default function CGUPage() {
           </h1>
 
           <p className="text-gray-600 mb-8">
-            Dernière mise à jour : 23 juin 2026
+            Dernière mise à jour : 15 juillet 2026
           </p>
 
           <div className="prose prose-blue max-w-none space-y-8">
@@ -65,6 +65,7 @@ export default function CGUPage() {
                 <li><strong>OsteoUpgrade :</strong> Plateforme web accessible via navigateur incluant tests orthopédiques, e-learning, revue de littérature, topographie clinique, OsteoFlash (flashcards), aide au raisonnement clinique, techniques en vidéo et quiz</li>
                 <li><strong>MyOsteoflow :</strong> Application desktop (Mac, Windows) de gestion de cabinet, sans mode navigateur, incluant gestion des patients et consultations, dictée vocale par IA, courriers générés par IA, messagerie patients, facturation, comptabilité, statistiques, suivi patient automatisé et aide au raisonnement clinique</li>
                 <li><strong>Programme Ambassadeur :</strong> Dispositif de parrainage réservé aux abonnés Premium permettant au parrain et au filleul d&apos;obtenir chacun un mois d&apos;abonnement offert</li>
+                <li><strong>Essai gratuit :</strong> Période de 7 jours, réservée au premier abonnement d&apos;un Compte Gratuit n&apos;ayant jamais souscrit auparavant, donnant accès à MyOsteoflow uniquement (voir Article 5.4)</li>
               </ul>
             </section>
 
@@ -167,6 +168,26 @@ export default function CGUPage() {
                 L&apos;Abonné pourra résilier son abonnement sans frais avant l&apos;application du nouveau tarif.
                 À défaut de résiliation, la poursuite de l&apos;abonnement vaut acceptation du nouveau tarif.
               </p>
+
+              <h3 className="text-xl font-semibold text-gray-900 mt-6 mb-3">5.4 - Essai gratuit MyOsteoflow</h3>
+              <div className="bg-emerald-50 border-l-4 border-emerald-500 p-6 rounded-r-lg mb-4">
+                <p className="font-bold text-emerald-900 mb-2">🎁 7 jours d&apos;essai gratuit, réservé au premier abonnement</p>
+                <p className="text-gray-700 leading-relaxed">
+                  Un Compte Gratuit n&apos;ayant jamais souscrit auparavant à une offre payante peut bénéficier, une seule fois,
+                  d&apos;un essai gratuit de <strong>7 jours</strong> donnant accès à <strong>MyOsteoflow uniquement</strong>.
+                  Les autres services de la plateforme OsteoUpgrade (e-learning, OsteoFlash, tests orthopédiques, topographie,
+                  module pratique, revue de littérature) restent inaccessibles pendant l&apos;essai et ne sont débloqués qu&apos;à
+                  la conversion en abonnement Premium.
+                </p>
+              </div>
+              <ul className="list-disc list-inside space-y-2 text-gray-700 mt-3 ml-4">
+                <li>Une carte bancaire valide est requise pour démarrer l&apos;essai, dès la souscription</li>
+                <li>Aucun prélèvement n&apos;est effectué pendant les 7 jours de l&apos;essai</li>
+                <li>À l&apos;issue de l&apos;essai, l&apos;abonnement se convertit <strong>automatiquement</strong> en abonnement Premium payant (49,99 €/mois) et le premier prélèvement est effectué, <strong>sauf résiliation avant la fin de l&apos;essai</strong></li>
+                <li>La résiliation pendant l&apos;essai s&apos;effectue selon les mêmes modalités que la résiliation d&apos;un abonnement (Article 6.1) et n&apos;entraîne aucun frais</li>
+                <li>L&apos;essai gratuit est limité à une utilisation unique par Utilisateur et par moyen de paiement ; OsteoUpgrade se réserve le droit de refuser ou d&apos;interrompre un essai en cas de tentative d&apos;utilisation abusive ou répétée (comptes multiples, moyen de paiement déjà utilisé pour un essai précédent, etc.)</li>
+                <li>Le Programme Ambassadeur (Article 9) ne s&apos;applique pas pendant la période d&apos;essai ; la récompense de parrainage n&apos;est créditée qu&apos;à la conversion effective en abonnement payant</li>
+              </ul>
             </section>
 
             {/* Article 6 */}
@@ -227,6 +248,13 @@ export default function CGUPage() {
                   être appliqué conformément à l&apos;article L.221-25 du Code de la consommation.
                 </p>
               </div>
+              <p className="text-gray-700 leading-relaxed mt-4">
+                <strong>Cas particulier de l&apos;essai gratuit (Article 5.4) :</strong> le délai de rétractation de 14 jours
+                court à compter du début de l&apos;essai. Aucun remboursement n&apos;est applicable tant qu&apos;aucun prélèvement
+                n&apos;a eu lieu ; l&apos;Abonné peut simplement résilier avant la fin de l&apos;essai pour éviter tout prélèvement.
+                Si la rétractation est exercée après le premier prélèvement (conversion automatique de l&apos;essai), le
+                remboursement au prorata décrit ci-dessus s&apos;applique.
+              </p>
             </section>
 
             {/* Article 8 */}

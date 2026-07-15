@@ -241,7 +241,25 @@ export default function Dashboard() {
           <div className="pointer-events-none absolute top-1/2 right-1/3 w-64 h-64 bg-cyan-300/30 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '5s', animationDelay: '3s' }} />
           <div className="pointer-events-none absolute bottom-1/3 left-1/2 w-56 h-56 bg-blue-300/25 rounded-full blur-2xl animate-pulse" style={{ animationDuration: '9s', animationDelay: '0.5s' }} />
 
-          {profile?.role === 'free' && (
+          {profile?.role === 'free' && !profile?.trial_used_at && (
+            <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 p-5 shadow-lg">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -translate-y-8 translate-x-8" />
+              <div className="relative flex items-center gap-4">
+                <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl bg-white/15">
+                  <Gift className="h-6 w-6 text-white" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-bold text-white">Essayez MyOsteoFlow gratuitement 7 jours</p>
+                  <p className="text-emerald-50/90 text-sm mt-0.5">Carte requise, annulable à tout moment. Débloquez ensuite tout OsteoUpgrade à 49,99€/mois, sans engagement.</p>
+                </div>
+                <button onClick={() => router.push('/settings/subscription')} className="flex-shrink-0 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white text-emerald-700 text-sm font-bold hover:bg-emerald-50 transition-colors shadow-md">
+                  Essayer gratuitement <ArrowRight className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          )}
+
+          {profile?.role === 'free' && profile?.trial_used_at && (
             <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-500 p-5 shadow-lg">
               <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -translate-y-8 translate-x-8" />
               <div className="relative flex items-center gap-4">
@@ -254,6 +272,28 @@ export default function Dashboard() {
                 </div>
                 <button onClick={() => router.push('/settings/subscription')} className="flex-shrink-0 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-amber-900 text-amber-100 text-sm font-bold hover:bg-amber-800 transition-colors shadow-md">
                   Passer Premium <ArrowRight className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          )}
+
+          {profile?.role === 'trial' && (
+            <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-blue-500 via-sky-500 to-blue-600 p-5 shadow-lg">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -translate-y-8 translate-x-8" />
+              <div className="relative flex items-center gap-4">
+                <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl bg-white/15">
+                  <Laptop className="h-6 w-6 text-white" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-bold text-white">Essai MyOsteoFlow en cours</p>
+                  <p className="text-blue-50/90 text-sm mt-0.5">
+                    {profile?.trial_ends_at
+                      ? <>Jusqu&apos;au {new Date(profile.trial_ends_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })} — passé cette date, votre carte sera débitée de 49,99€/mois sauf annulation.</>
+                      : <>Votre carte sera débitée de 49,99€/mois à la fin de l&apos;essai, sauf annulation.</>}
+                  </p>
+                </div>
+                <button onClick={() => router.push('/settings/subscription')} className="flex-shrink-0 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white text-blue-700 text-sm font-bold hover:bg-blue-50 transition-colors shadow-md">
+                  Gérer mon essai <ArrowRight className="h-4 w-4" />
                 </button>
               </div>
             </div>
@@ -396,7 +436,7 @@ export default function Dashboard() {
             </section>
           )}
 
-          {(profile?.role === 'premium' || profile?.role === 'admin') && (
+          {(profile?.role === 'premium' || profile?.role === 'admin' || profile?.role === 'trial') && (
             <section>
               <div className="flex items-center gap-2.5 mb-4">
                 <div className="h-5 w-1 rounded-full bg-gradient-to-b from-violet-500 to-violet-700" />
@@ -405,7 +445,9 @@ export default function Dashboard() {
               <div className="rounded-2xl overflow-hidden shadow-xl border border-violet-300/70 bg-violet-100/85 backdrop-blur-2xl ring-1 ring-inset ring-white/60">
                 <div className="bg-gradient-to-r from-violet-600 to-indigo-600 px-5 py-3 flex items-center gap-2">
                   <Laptop className="h-4 w-4 text-white" />
-                  <p className="text-sm font-semibold text-white">Inclus avec votre abonnement Premium</p>
+                  <p className="text-sm font-semibold text-white">
+                    {profile?.role === 'trial' ? 'Inclus avec votre essai gratuit' : 'Inclus avec votre abonnement Premium'}
+                  </p>
                 </div>
                 <div className="px-5 py-5">
                   <p className="text-sm text-slate-600 mb-5">Gérez vos patients, consultations et dossiers directement depuis votre ordinateur. Toutes les données restent sur votre machine. Connectez-vous avec votre compte OsteoUpgrade pour activer la licence.</p>
@@ -445,8 +487,8 @@ export default function Dashboard() {
                     courriers générés par IA, messagerie patients, compta &amp; factures, statistiques du cabinet, et bien plus.
                   </p>
                   <button onClick={() => router.push('/settings/subscription')} className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-violet-700 text-white text-sm font-bold hover:bg-violet-800 transition-colors shadow-md">
-                    <Crown className="h-4 w-4" />
-                    Découvrir MyOsteoFlow en Premium
+                    {profile?.trial_used_at ? <Crown className="h-4 w-4" /> : <Gift className="h-4 w-4" />}
+                    {profile?.trial_used_at ? 'Découvrir MyOsteoFlow en Premium' : 'Essayer MyOsteoFlow gratuitement 7 jours'}
                     <ArrowRight className="h-4 w-4" />
                   </button>
                 </div>

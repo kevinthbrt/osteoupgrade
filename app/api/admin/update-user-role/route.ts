@@ -12,7 +12,7 @@ export async function PATCH(request: Request) {
   if (profile?.role !== 'admin') return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   const { userId, role } = await request.json()
-  if (!userId || !['free', 'premium', 'admin'].includes(role)) {
+  if (!userId || !['free', 'trial', 'premium', 'admin'].includes(role)) {
     return NextResponse.json({ error: 'Invalid payload' }, { status: 400 })
   }
 
