@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
+import { createRouteHandlerClient } from '@/lib/supabase-server-helpers'
 import { sendTransactionalEmail } from '@/lib/mailing'
 import { getBroadcastFooterHtml } from '@/lib/email-footer'
 import { getOrCreateSegment, syncContactsToSegment, createAndSendBroadcast } from '@/lib/resend-marketing'

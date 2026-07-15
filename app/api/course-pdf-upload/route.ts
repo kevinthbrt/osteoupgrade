@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { put } from '@vercel/blob'
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
+import { createRouteHandlerClient } from '@/lib/supabase-server-helpers'
 import { cookies } from 'next/headers'
 
 const MAX_SIZE = 20 * 1024 * 1024 // 20 Mo
