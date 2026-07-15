@@ -147,6 +147,25 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Webhook signature verification failed' }, { status: 400 })
     }
 
+    // 🔁 Idempotence : Stripe peut renvoyer un même événement plusieurs fois
+    // (retries sur timeout/erreur). Sans ce garde-fou, un renvoi de
+    // checkout.session.completed créditerait deux fois le mois offert de
+    // parrainage (argent réel) et pourrait redéclencher d'autres effets de
+    // bord. On n'insère la ligne qu'une fois — un conflit signale un renvoi.
+    const { error: dedupeError } = await supabaseAdmin
+      .from('stripe_webhook_events')
+      .insert({ id: event.id, event_type: event.type })
+
+    if (dedupeError) {
+      if (dedupeError.code === '23505') {
+        console.log('Webhook event already processed, skipping:', event.id)
+        return NextResponse.json({ received: true, duplicate: true })
+      }
+      console.error('Error recording webhook event for dedupe:', dedupeError.message)
+      // On continue quand même : mieux vaut traiter deux fois un événement
+      // en cas de panne de la table de dédup que de bloquer tout le webhook.
+    }
+
     // Gérer les différents événements Stripe
     switch (event.type) {
       case 'checkout.session.completed':
@@ -272,10 +291,15 @@ async function handleCheckoutCompleted(session: any) {
   // Mettre à jour le profil utilisateur (sans engagement)
   // Rôle 'trial' pendant l'essai : déverrouille MyOsteoFlow uniquement, pas le
   // reste du contenu premium (cours, flashcards…) tant que le paiement réel
-  // n'a pas eu lieu.
+  // n'a pas eu lieu. Le plan payant n'est accordé QUE si le paiement a
+  // réellement abouti (status 'active') — un statut 'incomplete'/'past_due'
+  // (carte refusée, 3D Secure non validé, y compris sur le chemin anti-abus
+  // qui met fin à l'essai immédiatement) ne doit jamais donner un accès
+  // premium gratuit ; le compte reste 'free' jusqu'à ce que
+  // customer.subscription.updated confirme un paiement réussi.
   const subscriptionStartDate = new Date()
   const updateData: Record<string, any> = {
-    role: subscriptionStatus === 'trialing' ? 'trial' : planType,
+    role: subscriptionStatus === 'trialing' ? 'trial' : subscriptionStatus === 'active' ? planType : 'free',
     subscription_status: subscriptionStatus,
     subscription_start_date: subscriptionStartDate.toISOString(),
     subscription_end_date: null,
