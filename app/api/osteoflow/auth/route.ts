@@ -60,7 +60,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Profil introuvable' }, { status: 404, headers: CORS })
     }
 
-    if (!['premium', 'admin'].includes(profile.role)) {
+    // 'trial' déverrouille MyOsteoFlow (mais pas le contenu premium — voir les
+    // endpoints formations/flashcards qui, eux, excluent explicitement 'trial').
+    if (!['premium', 'trial', 'admin'].includes(profile.role)) {
       return NextResponse.json(
         { error: 'Un abonnement Premium Osteoupgrade est requis pour utiliser MyOsteoFlow.', code: 'NOT_PREMIUM' },
         { status: 403, headers: CORS }

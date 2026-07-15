@@ -7,6 +7,128 @@ import { notifyAdmin } from '@/lib/admin-notify'
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!
 
+// 🎁 Crédite le mois offert (parrain + filleul) suite à un parrainage validé.
+// Appelé UNIQUEMENT sur un abonnement réellement payé (jamais pendant un essai
+// gratuit en cours — sinon un essai annulé avant conversion ferait gagner un
+// crédit réel au parrain pour zéro euro de revenu).
+async function creditReferral(params: {
+  referrerUserId: string
+  referralCode: string
+  planType: string
+  userId: string
+  customerId: string | null
+  subscriptionId: string | null
+  referredEmail: string
+  referredFullName: string | null
+}) {
+  const { referrerUserId, referralCode, planType, userId, customerId, subscriptionId, referredEmail, referredFullName } = params
+  const freeMonthAmount = REFERRAL_FREE_MONTH_AMOUNT
+
+  // Récupérer le parrain (customer Stripe + email pour la notification)
+  const { data: referrerProfile } = await supabaseAdmin
+    .from('profiles')
+    .select('email, full_name, stripe_customer_id')
+    .eq('id', referrerUserId)
+    .single()
+
+  // 1️⃣ Créditer LE FILLEUL (mois suivant offert)
+  let referredCredited = false
+  try {
+    if (customerId) {
+      await stripe.customers.createBalanceTransaction(customerId, {
+        amount: -freeMonthAmount, // montant négatif = crédit en faveur du client
+        currency: 'eur',
+        description: `Parrainage ${referralCode.toUpperCase()} — 1 mois offert (filleul)`
+      })
+      referredCredited = true
+    }
+  } catch (err) {
+    console.error('Error crediting referred user free month')
+  }
+
+  // 2️⃣ Créditer LE PARRAIN (mois suivant offert)
+  let referrerCredited = false
+  try {
+    if (referrerProfile?.stripe_customer_id) {
+      await stripe.customers.createBalanceTransaction(referrerProfile.stripe_customer_id, {
+        amount: -freeMonthAmount,
+        currency: 'eur',
+        description: `Parrainage ${referralCode.toUpperCase()} — 1 mois offert (parrain)`
+      })
+      referrerCredited = true
+    }
+  } catch (err) {
+    console.error('Error crediting referrer free month')
+  }
+
+  // 3️⃣ Historiser le parrainage côté parrain (1 ligne = 1 mois offert gagné)
+  const { error: referralError } = await supabaseAdmin
+    .from('referral_transactions')
+    .insert({
+      referrer_id: referrerUserId,
+      referred_user_id: userId,
+      referral_code: referralCode.toUpperCase(),
+      subscription_type: planType,
+      subscription_plan: 'monthly',
+      subscription_amount: freeMonthAmount,
+      // On stocke la valeur du mois offert (sert d'historique de la récompense)
+      commission_amount: freeMonthAmount,
+      commission_status: referrerCredited ? 'available' : 'pending',
+      stripe_subscription_id: subscriptionId
+    })
+
+  if (referralError) {
+    console.error('Error recording referral transaction')
+  }
+
+  // 4️⃣ Notifier le parrain (mois offert)
+  if (referrerProfile?.email) {
+    try {
+      await fetch(`${process.env.NEXT_PUBLIC_URL || 'http://localhost:3000'}/api/automations/trigger`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${process.env.CRON_SECRET}`
+        },
+        body: JSON.stringify({
+          event: 'Nouveau parrainage',
+          contact_email: referrerProfile.email,
+          full_name: referrerProfile.full_name,
+          metadata: {
+            referred_name: referredEmail,
+            plan: 'Premium'
+          }
+        })
+      })
+    } catch (err) {
+      console.error('Error sending referrer notification')
+    }
+  }
+
+  // 5️⃣ Notifier le filleul (mois offert de bienvenue)
+  if (referredCredited) {
+    try {
+      await fetch(`${process.env.NEXT_PUBLIC_URL || 'http://localhost:3000'}/api/automations/trigger`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${process.env.CRON_SECRET}`
+        },
+        body: JSON.stringify({
+          event: 'Bonus parrainage filleul',
+          contact_email: referredEmail,
+          full_name: referredFullName,
+          metadata: {
+            plan: 'Premium'
+          }
+        })
+      })
+    } catch (err) {
+      console.error('Error sending referred user notification')
+    }
+  }
+}
+
 export async function POST(request: Request) {
   try {
     const body = await request.text()
@@ -70,18 +192,104 @@ async function handleCheckoutCompleted(session: any) {
     return
   }
 
+  // Récupérer l'abonnement Stripe pour connaître son statut réel (ex: 'trialing'
+  // si un essai gratuit a été appliqué au checkout) et la date de fin d'essai.
+  let subscriptionStatus = 'active'
+  let trialEndsAt: string | null = null
+  let isTrial = session.metadata?.is_trial === 'true'
+  let subscription: any = null
+
+  if (session.subscription) {
+    try {
+      subscription = await stripe.subscriptions.retrieve(session.subscription)
+      subscriptionStatus = subscription.status
+      if (subscription.trial_end) {
+        trialEndsAt = new Date(subscription.trial_end * 1000).toISOString()
+      }
+    } catch (err) {
+      console.error('Error retrieving subscription on checkout completed')
+    }
+  }
+
+  // 🚫 ANTI-ABUS ESSAI GRATUIT : une même carte bancaire ne peut déclencher
+  // qu'un seul essai, tous comptes confondus. On identifie la carte par son
+  // fingerprint Stripe (stable même à travers plusieurs Customer différents).
+  // Si la carte a déjà servi à un essai sur un autre compte, on met fin à
+  // l'essai immédiatement (le premier prélèvement a lieu tout de suite au
+  // lieu d'être différé de 7 jours) plutôt que de bloquer la souscription.
+  if (isTrial && subscription) {
+    try {
+      const defaultPmId =
+        typeof subscription.default_payment_method === 'string'
+          ? subscription.default_payment_method
+          : subscription.default_payment_method?.id
+
+      if (defaultPmId) {
+        const paymentMethod = await stripe.paymentMethods.retrieve(defaultPmId)
+        const fingerprint = paymentMethod.card?.fingerprint
+
+        if (fingerprint) {
+          const { data: existingFingerprint } = await supabaseAdmin
+            .from('trial_card_fingerprints')
+            .select('user_id')
+            .eq('fingerprint', fingerprint)
+            .maybeSingle()
+
+          if (existingFingerprint && existingFingerprint.user_id !== userId) {
+            console.warn('⚠️ Trial abuse detected: card fingerprint already used for a trial', {
+              fingerprint,
+              previousUserId: existingFingerprint.user_id,
+              currentUserId: userId
+            })
+
+            try {
+              subscription = await stripe.subscriptions.update(session.subscription, { trial_end: 'now' })
+              subscriptionStatus = subscription.status
+              trialEndsAt = null
+              isTrial = false
+            } catch (err) {
+              console.error('Error ending abusive trial early')
+            }
+
+            await notifyAdmin(
+              'other',
+              'Essai gratuit bloqué (carte déjà utilisée)',
+              `${userId} a tenté un essai avec une carte déjà utilisée par un autre compte — essai annulé, prélèvement immédiat.`
+            )
+          }
+
+          // Upsert : première utilisation de cette carte, ou ré-essai légitime du même compte
+          await supabaseAdmin
+            .from('trial_card_fingerprints')
+            .upsert({ fingerprint, user_id: userId }, { onConflict: 'fingerprint', ignoreDuplicates: true })
+        }
+      }
+    } catch (err) {
+      console.error('Error checking trial card fingerprint')
+    }
+  }
+
   // Mettre à jour le profil utilisateur (sans engagement)
+  // Rôle 'trial' pendant l'essai : déverrouille MyOsteoFlow uniquement, pas le
+  // reste du contenu premium (cours, flashcards…) tant que le paiement réel
+  // n'a pas eu lieu.
   const subscriptionStartDate = new Date()
-  const updateData = {
-    role: planType,
-    subscription_status: 'active',
+  const updateData: Record<string, any> = {
+    role: subscriptionStatus === 'trialing' ? 'trial' : planType,
+    subscription_status: subscriptionStatus,
     subscription_start_date: subscriptionStartDate.toISOString(),
     subscription_end_date: null,
     commitment_end_date: null, // Plus d'engagement
     commitment_cycle_number: null,
     commitment_renewal_notification_sent: false,
     stripe_customer_id: session.customer,
-    stripe_subscription_id: session.subscription
+    stripe_subscription_id: session.subscription,
+    trial_ends_at: trialEndsAt
+  }
+
+  // Marquer l'essai comme consommé (un seul essai gratuit par compte, à vie)
+  if (isTrial) {
+    updateData.trial_used_at = subscriptionStartDate.toISOString()
   }
 
   const { data: updatedProfile, error: updateError } = await supabaseAdmin
@@ -107,115 +315,23 @@ async function handleCheckoutCompleted(session: any) {
     return
   }
 
-  // 🎁 GÉRER LE PARRAINAGE : 1 mois offert pour LE PARRAIN ET LE FILLEUL
-  // Mécanisme : on crédite la valeur d'un mois d'abonnement sur le solde Stripe
-  // (customer balance) de chaque partie → leur prochaine facture est offerte.
-  if (referrerUserId && referralCode) {
-    const freeMonthAmount = REFERRAL_FREE_MONTH_AMOUNT
-
-    // Récupérer le parrain (customer Stripe + email pour la notification)
-    const { data: referrerProfile } = await supabaseAdmin
-      .from('profiles')
-      .select('email, full_name, stripe_customer_id')
-      .eq('id', referrerUserId)
-      .single()
-
-    // 1️⃣ Créditer LE FILLEUL (mois suivant offert)
-    let referredCredited = false
-    try {
-      if (session.customer) {
-        await stripe.customers.createBalanceTransaction(session.customer, {
-          amount: -freeMonthAmount, // montant négatif = crédit en faveur du client
-          currency: 'eur',
-          description: `Parrainage ${referralCode.toUpperCase()} — 1 mois offert (filleul)`
-        })
-        referredCredited = true
-      }
-    } catch (err) {
-      console.error('Error crediting referred user free month')
-    }
-
-    // 2️⃣ Créditer LE PARRAIN (mois suivant offert)
-    let referrerCredited = false
-    try {
-      if (referrerProfile?.stripe_customer_id) {
-        await stripe.customers.createBalanceTransaction(referrerProfile.stripe_customer_id, {
-          amount: -freeMonthAmount,
-          currency: 'eur',
-          description: `Parrainage ${referralCode.toUpperCase()} — 1 mois offert (parrain)`
-        })
-        referrerCredited = true
-      }
-    } catch (err) {
-      console.error('Error crediting referrer free month')
-    }
-
-    // 3️⃣ Historiser le parrainage côté parrain (1 ligne = 1 mois offert gagné)
-    const { error: referralError } = await supabaseAdmin
-      .from('referral_transactions')
-      .insert({
-        referrer_id: referrerUserId,
-        referred_user_id: userId,
-        referral_code: referralCode.toUpperCase(),
-        subscription_type: planType,
-        subscription_plan: 'monthly',
-        subscription_amount: freeMonthAmount,
-        // On stocke la valeur du mois offert (sert d'historique de la récompense)
-        commission_amount: freeMonthAmount,
-        commission_status: referrerCredited ? 'available' : 'pending',
-        stripe_subscription_id: session.subscription
-      })
-
-    if (referralError) {
-      console.error('Error recording referral transaction')
-    }
-
-    // 4️⃣ Notifier le parrain (mois offert)
-    if (referrerProfile?.email) {
-      try {
-        await fetch(`${process.env.NEXT_PUBLIC_URL || 'http://localhost:3000'}/api/automations/trigger`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${process.env.CRON_SECRET}`
-          },
-          body: JSON.stringify({
-            event: 'Nouveau parrainage',
-            contact_email: referrerProfile.email,
-            full_name: referrerProfile.full_name,
-            metadata: {
-              referred_name: profile.email,
-              plan: 'Premium'
-            }
-          })
-        })
-      } catch (err) {
-        console.error('Error sending referrer notification')
-      }
-    }
-
-    // 5️⃣ Notifier le filleul (mois offert de bienvenue)
-    if (referredCredited) {
-      try {
-        await fetch(`${process.env.NEXT_PUBLIC_URL || 'http://localhost:3000'}/api/automations/trigger`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${process.env.CRON_SECRET}`
-          },
-          body: JSON.stringify({
-            event: 'Bonus parrainage filleul',
-            contact_email: profile.email,
-            full_name: profile.full_name,
-            metadata: {
-              plan: 'Premium'
-            }
-          })
-        })
-      } catch (err) {
-        console.error('Error sending referred user notification')
-      }
-    }
+  // 🎁 GÉRER LE PARRAINAGE : 1 mois offert pour LE PARRAIN ET LE FILLEUL.
+  // Jamais pendant un essai gratuit en cours (isTrial) : le crédit n'est
+  // accordé qu'à la conversion réelle en abonnement payant, gérée dans
+  // handleSubscriptionUpdated (transition trial → active). Sinon un essai
+  // annulé avant le premier prélèvement ferait gagner un crédit réel au
+  // parrain pour zéro euro de revenu.
+  if (referrerUserId && referralCode && !isTrial) {
+    await creditReferral({
+      referrerUserId,
+      referralCode,
+      planType,
+      userId,
+      customerId: session.customer,
+      subscriptionId: session.subscription,
+      referredEmail: profile.email,
+      referredFullName: profile.full_name
+    })
   }
 
   // 🛑 ANNULER la séquence de relance Premium (l'utilisateur vient de souscrire)
@@ -284,7 +400,8 @@ async function handleCheckoutCompleted(session: any) {
           nom: 'Premium',
           prix: displayPrice,
           interval: 'mensuel',
-          date_fact: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString('fr-FR'),
+          date_fact: (trialEndsAt ? new Date(trialEndsAt) : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)).toLocaleDateString('fr-FR'),
+          essai_gratuit: isTrial ? 'true' : 'false',
           code_parrainage: userReferralCode,
           facture_url: factureUrl
         }
@@ -339,7 +456,7 @@ async function handleSubscriptionUpdated(subscription: any) {
   // Trouver l'utilisateur par son stripe_customer_id
   const { data: profile, error: profileError } = await supabaseAdmin
     .from('profiles')
-    .select('id')
+    .select('id, role, email, full_name')
     .eq('stripe_customer_id', customerId)
     .single()
 
@@ -348,13 +465,53 @@ async function handleSubscriptionUpdated(subscription: any) {
     return
   }
 
-  // Mettre à jour le statut
+  // Mettre à jour le statut (ex: passage de 'trialing' à 'active' à la fin
+  // de l'essai gratuit, une fois le premier prélèvement effectué)
+  const updateData: Record<string, any> = {
+    subscription_status: subscription.status
+  }
+  if (subscription.status !== 'trialing') {
+    updateData.trial_ends_at = null
+  }
+
+  const wasTrialing = profile.role === 'trial'
+
+  if (wasTrialing) {
+    if (subscription.status === 'active') {
+      // Conversion de l'essai en abonnement payant : l'utilisateur passe du
+      // rôle 'trial' (MyOsteoFlow seul) au vrai plan souscrit (accès complet).
+      updateData.role = subscription.metadata?.planType || 'premium'
+    } else if (subscription.status !== 'trialing') {
+      // Fin de l'essai sans conversion réussie (ex: premier prélèvement
+      // refusé → 'past_due'/'unpaid'/'incomplete_expired') : on révoque
+      // l'accès MyOsteoFlow immédiatement plutôt que de le laisser ouvert.
+      updateData.role = 'free'
+    }
+  }
+
   await supabaseAdmin
     .from('profiles')
-    .update({
-      subscription_status: subscription.status
-    })
+    .update(updateData)
     .eq('id', profile.id)
+
+  // 🎁 Parrainage différé : le code de parrainage saisi au moment de l'essai
+  // n'a été crédité à personne (voir handleCheckoutCompleted). Maintenant que
+  // l'essai vient de se convertir en abonnement réellement payé, on crédite
+  // le mois offert au parrain et au filleul.
+  const referrerUserId = subscription.metadata?.referrer_user_id
+  const referralCode = subscription.metadata?.referral_code
+  if (wasTrialing && subscription.status === 'active' && referrerUserId && referralCode) {
+    await creditReferral({
+      referrerUserId,
+      referralCode,
+      planType: subscription.metadata?.planType || 'premium',
+      userId: profile.id,
+      customerId,
+      subscriptionId: subscription.id,
+      referredEmail: profile.email,
+      referredFullName: profile.full_name
+    })
+  }
 }
 
 // Gérer la suppression/annulation d'abonnement
@@ -386,7 +543,8 @@ async function handleSubscriptionDeleted(subscription: any) {
       subscription_status: 'cancelled',
       subscription_end_date: new Date().toISOString(),
       commitment_end_date: null,
-      commitment_cycle_number: null
+      commitment_cycle_number: null,
+      trial_ends_at: null
     })
     .eq('id', profile.id)
 

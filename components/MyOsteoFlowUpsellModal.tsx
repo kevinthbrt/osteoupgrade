@@ -23,7 +23,13 @@ const features = [
   { icon: Lock, title: '100% local & RGPD', desc: 'Vos données restent sur votre machine, export et suppression RGPD en un clic.' },
 ]
 
-export default function MyOsteoFlowUpsellModal({ role }: { role: string | null | undefined }) {
+export default function MyOsteoFlowUpsellModal({
+  role,
+  trialUsed
+}: {
+  role: string | null | undefined
+  trialUsed?: boolean
+}) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [mounted, setMounted] = useState(false)
@@ -68,9 +74,19 @@ export default function MyOsteoFlowUpsellModal({ role }: { role: string | null |
         </div>
 
         <div className="flex-1 overflow-y-auto p-6">
+          {!trialUsed && (
+            <div className="mb-5 rounded-xl bg-emerald-50 border border-emerald-200 px-4 py-3 flex items-start gap-3">
+              <Crown className="h-5 w-5 text-emerald-600 shrink-0 mt-0.5" />
+              <p className="text-sm text-emerald-900">
+                <strong>Testez MyOsteoFlow gratuitement pendant 7 jours</strong> (carte requise, annulable à tout moment).
+                Le reste du contenu Premium (cours, OsteoFlash…) reste réservé à l&apos;abonnement complet.
+              </p>
+            </div>
+          )}
           <p className="text-sm text-slate-700 leading-relaxed mb-5">
-            MyOsteoFlow est réservé aux comptes <strong>Premium</strong>. Passez premium pour gérer vos patients,
-            consultations et dossiers directement depuis votre ordinateur, en plus de tout l&apos;accès OsteoUpgrade :
+            MyOsteoFlow est réservé aux comptes <strong>Premium</strong> (ou en essai). Passez premium pour gérer vos
+            patients, consultations et dossiers directement depuis votre ordinateur, en plus de tout l&apos;accès
+            OsteoUpgrade :
           </p>
 
           <div className="grid sm:grid-cols-2 gap-3">
@@ -97,7 +113,7 @@ export default function MyOsteoFlowUpsellModal({ role }: { role: string | null |
             className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 text-white text-sm font-bold shadow hover:shadow-md transition-all"
           >
             <Crown className="h-4 w-4" />
-            Passer Premium
+            {trialUsed ? 'Passer Premium' : "Essayer 7 jours gratuitement"}
             <ArrowRight className="h-4 w-4" />
           </button>
         </div>

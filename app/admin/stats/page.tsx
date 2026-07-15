@@ -34,6 +34,7 @@ type Stats = {
     total: number
     premium: number
     free: number
+    trial: number
     admin: number
     foundingMembers: number
     newsletterOptIn: number
@@ -375,6 +376,8 @@ export default function AdminStatsPage() {
                       sub={<span className="text-slate-400">dont {stats.kpis.signupsToday} aujourd&apos;hui</span>} />
                     <KpiCard icon={Crown} label="Premium" value={stats.kpis.premium} iconColor="text-yellow-600" iconBg="bg-yellow-100"
                       sub={<span className="text-slate-400">{stats.kpis.conversionRate}% de conversion</span>} />
+                    <KpiCard icon={Laptop} label="Essais MyOsteoFlow" value={stats.kpis.trial} iconColor="text-blue-600" iconBg="bg-blue-100"
+                      sub={<span className="text-slate-400">en cours (7 jours)</span>} />
                     <KpiCard icon={Star} label="Membres fondateurs" value={stats.kpis.foundingMembers} iconColor="text-amber-600" iconBg="bg-amber-100" />
                     <KpiCard icon={Mail} label="Opt-in newsletter" value={stats.kpis.newsletterOptIn} iconColor="text-pink-600" iconBg="bg-pink-100"
                       sub={<span className="text-slate-400">{stats.kpis.total > 0 ? Math.round((stats.kpis.newsletterOptIn / stats.kpis.total) * 100) : 0}% des comptes</span>} />
@@ -445,7 +448,7 @@ export default function AdminStatsPage() {
                         {stats.osteoflow.recentDevices.map((d, i) => {
                           const name = d.full_name || d.email || 'Utilisateur inconnu'
                           const initial = name.charAt(0).toUpperCase()
-                          const avatarBg = d.role === 'premium' ? 'bg-yellow-500' : d.role === 'admin' ? 'bg-purple-600' : 'bg-slate-400'
+                          const avatarBg = d.role === 'premium' ? 'bg-yellow-500' : d.role === 'admin' ? 'bg-purple-600' : d.role === 'trial' ? 'bg-blue-500' : 'bg-slate-400'
                           return (
                             <div
                               key={i}
@@ -553,7 +556,7 @@ export default function AdminStatsPage() {
                       <p className="px-5 py-6 text-sm text-slate-500">Aucune inscription récente.</p>
                     ) : stats.recent.map((u, i) => (
                       <div key={u.id} className={`flex items-center gap-3 px-5 py-3 ${i < stats.recent.length - 1 ? 'border-b border-slate-100/80' : ''}`}>
-                        <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-white text-xs font-bold ${u.role === 'premium' ? 'bg-yellow-500' : u.role === 'admin' ? 'bg-purple-600' : 'bg-slate-400'}`}>
+                        <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-white text-xs font-bold ${u.role === 'premium' ? 'bg-yellow-500' : u.role === 'admin' ? 'bg-purple-600' : u.role === 'trial' ? 'bg-blue-500' : 'bg-slate-400'}`}>
                           {(u.full_name || u.email || '?').charAt(0).toUpperCase()}
                         </div>
                         <div className="flex-1 min-w-0">
@@ -589,6 +592,7 @@ function RoleBadge({ role }: { role: string }) {
   const map: Record<string, { label: string; cls: string }> = {
     premium: { label: 'Premium', cls: 'bg-yellow-100 text-yellow-700' },
     admin: { label: 'Admin', cls: 'bg-purple-100 text-purple-700' },
+    trial: { label: 'Essai', cls: 'bg-blue-100 text-blue-700' },
     free: { label: 'Gratuit', cls: 'bg-slate-100 text-slate-500' },
   }
   const b = map[role] || { label: role, cls: 'bg-slate-100 text-slate-500' }

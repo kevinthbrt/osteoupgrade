@@ -131,10 +131,14 @@ export type Database = {
         id: string
         email: string
         full_name: string | null
-        role: 'free' | 'premium' | 'admin'
+        role: 'free' | 'trial' | 'premium' | 'admin'
         subscription_status: string | null
         subscription_end_date: string | null
         subscription_start_date: string | null
+        stripe_customer_id: string | null
+        stripe_subscription_id: string | null
+        trial_used_at: string | null
+        trial_ends_at: string | null
         created_at: string
         updated_at: string
       }>

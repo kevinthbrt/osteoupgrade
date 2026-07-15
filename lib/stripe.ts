@@ -44,3 +44,9 @@ export const STRIPE_PLANS = {
 // Montant offert lors d'un parrainage validé (la valeur d'un mois d'abonnement),
 // crédité sur le solde Stripe du parrain ET du filleul → leur mois suivant est offert.
 export const REFERRAL_FREE_MONTH_AMOUNT = STRIPE_PLANS.premium_monthly.amount
+
+// Durée de l'essai gratuit offert aux comptes free lors de leur premier
+// abonnement (carte requise dès l'inscription, conversion automatique en
+// abonnement payant à l'issue de l'essai sauf annulation). Un seul essai par
+// compte (voir profiles.trial_used_at).
+export const FREE_TRIAL_DAYS = 7

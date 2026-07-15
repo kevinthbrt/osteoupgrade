@@ -493,7 +493,9 @@ export default function PracticePage() {
     )
   }
 
-  const isFreeUser = profile?.role === 'free'
+  // 'trial' (essai gratuit MyOsteoFlow) est traité comme 'free' ici : le
+  // contenu premium web reste verrouillé pendant l'essai.
+  const isFreeUser = profile?.role === 'free' || profile?.role === 'trial'
 
   /* ─────────────────────────────────────────────────────────────── */
   /*  RENDER                                                         */

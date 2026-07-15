@@ -49,6 +49,12 @@ function roleBadge(role: string) {
         <Crown className="h-3 w-3" /> Premium
       </span>
     )
+  if (role === 'trial')
+    return (
+      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-800">
+        <Crown className="h-3 w-3" /> Essai MyOsteoFlow
+      </span>
+    )
   return (
     <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-600">
       <User className="h-3 w-3" /> Gratuit
@@ -59,6 +65,7 @@ function roleBadge(role: string) {
 function avatarColor(role: string) {
   if (role === 'admin') return 'bg-purple-600'
   if (role === 'premium') return 'bg-yellow-500'
+  if (role === 'trial') return 'bg-blue-500'
   return 'bg-slate-400'
 }
 
@@ -301,6 +308,7 @@ export default function UsersManagementPage() {
   const stats = {
     total: users.length,
     free: users.filter(u => u.role === 'free').length,
+    trial: users.filter(u => u.role === 'trial').length,
     premium: users.filter(u => u.role === 'premium').length,
     admin: users.filter(u => u.role === 'admin').length,
     canceled: users.filter(u => u.subscription_status === 'canceled').length,
@@ -376,7 +384,7 @@ export default function UsersManagementPage() {
             </div>
 
             {/* ── Stats Cards ── */}
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-8 gap-4">
               <div className="rounded-2xl bg-white/85 backdrop-blur-2xl border border-white/70 shadow-xl ring-1 ring-inset ring-white/60 p-5">
                 <p className="text-xs text-slate-500 mb-1">Total inscrits</p>
                 <p className="text-2xl font-bold text-slate-800">{stats.total}</p>
@@ -388,6 +396,10 @@ export default function UsersManagementPage() {
               <div className="rounded-2xl bg-white/85 backdrop-blur-2xl border border-white/70 shadow-xl ring-1 ring-inset ring-white/60 p-5">
                 <p className="text-xs text-slate-500 mb-1">Premium</p>
                 <p className="text-2xl font-bold text-yellow-600">{stats.premium}</p>
+              </div>
+              <div className="rounded-2xl bg-white/85 backdrop-blur-2xl border border-white/70 shadow-xl ring-1 ring-inset ring-white/60 p-5">
+                <p className="text-xs text-slate-500 mb-1">Essai MyOsteoFlow</p>
+                <p className="text-2xl font-bold text-blue-600">{stats.trial}</p>
               </div>
               <div className="rounded-2xl bg-white/85 backdrop-blur-2xl border border-white/70 shadow-xl ring-1 ring-inset ring-white/60 p-5">
                 <p className="text-xs text-slate-500 mb-1">Annulés</p>
@@ -428,6 +440,7 @@ export default function UsersManagementPage() {
                 >
                   <option value="all">Tous les rôles</option>
                   <option value="free">Gratuit</option>
+                  <option value="trial">Essai MyOsteoFlow</option>
                   <option value="premium">Premium</option>
                   <option value="admin">Admin</option>
                 </select>
@@ -715,6 +728,7 @@ export default function UsersManagementPage() {
                         className="w-full px-4 py-2.5 rounded-xl bg-white/70 backdrop-blur-sm border border-blue-200/60 text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-400/50 transition-all text-sm"
                       >
                         <option value="free">Gratuit</option>
+                        <option value="trial">Essai MyOsteoFlow</option>
                         <option value="premium">Premium</option>
                         <option value="admin">Admin</option>
                       </select>
