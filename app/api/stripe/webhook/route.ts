@@ -291,10 +291,15 @@ async function handleCheckoutCompleted(session: any) {
   // Mettre à jour le profil utilisateur (sans engagement)
   // Rôle 'trial' pendant l'essai : déverrouille MyOsteoFlow uniquement, pas le
   // reste du contenu premium (cours, flashcards…) tant que le paiement réel
-  // n'a pas eu lieu.
+  // n'a pas eu lieu. Le plan payant n'est accordé QUE si le paiement a
+  // réellement abouti (status 'active') — un statut 'incomplete'/'past_due'
+  // (carte refusée, 3D Secure non validé, y compris sur le chemin anti-abus
+  // qui met fin à l'essai immédiatement) ne doit jamais donner un accès
+  // premium gratuit ; le compte reste 'free' jusqu'à ce que
+  // customer.subscription.updated confirme un paiement réussi.
   const subscriptionStartDate = new Date()
   const updateData: Record<string, any> = {
-    role: subscriptionStatus === 'trialing' ? 'trial' : planType,
+    role: subscriptionStatus === 'trialing' ? 'trial' : subscriptionStatus === 'active' ? planType : 'free',
     subscription_status: subscriptionStatus,
     subscription_start_date: subscriptionStartDate.toISOString(),
     subscription_end_date: null,
