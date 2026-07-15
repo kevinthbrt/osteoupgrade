@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase-server'
+import { getOsteoflowSessionUser } from '@/lib/osteoflow-auth'
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, x-osteoflow-secret',
+  'Access-Control-Allow-Headers': 'Content-Type, x-osteoflow-secret, x-osteoflow-token, x-osteoflow-device-id',
 }
 
 export async function OPTIONS() {
@@ -17,6 +18,19 @@ export async function GET(request: Request) {
 
   if (!secret || secret !== expectedSecret) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401, headers: CORS })
+  }
+
+  // Le module pratique (vidéos techniques) est un contenu Premium (CGU 5.1).
+  // Le secret partagé authentifie uniquement l'appli, pas l'utilisateur — on
+  // exige donc en plus une session identifiée avec le rôle premium/admin.
+  // 'trial' (essai MyOsteoFlow) est explicitement exclu, contrairement à
+  // getOsteoflowSessionUser qui l'autorise pour l'accès général à l'app.
+  const tokenUser = await getOsteoflowSessionUser(request)
+  if (!tokenUser || !['premium', 'admin'].includes(tokenUser.role)) {
+    return NextResponse.json(
+      { error: 'Un abonnement Premium est requis pour accéder au module pratique.', code: 'NOT_PREMIUM' },
+      { status: 403, headers: CORS }
+    )
   }
 
   try {

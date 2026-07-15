@@ -14,6 +14,8 @@ export type TriggerEvent =
   | 'user_registered'
   | 'Inscription'
   | 'Passage à Premium'
+  | 'Essai gratuit démarré'
+  | 'Essai gratuit annulé'
   | 'Renouvellement imminent'
   | 'Renouvellement effectué'
   | 'Abonnement expiré'
