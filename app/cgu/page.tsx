@@ -187,6 +187,7 @@ export default function CGUPage() {
                 <li>La résiliation pendant l&apos;essai s&apos;effectue selon les mêmes modalités que la résiliation d&apos;un abonnement (Article 6.1) et n&apos;entraîne aucun frais</li>
                 <li>L&apos;essai gratuit est limité à une utilisation unique par Utilisateur et par moyen de paiement ; OsteoUpgrade se réserve le droit de refuser ou d&apos;interrompre un essai en cas de tentative d&apos;utilisation abusive ou répétée (comptes multiples, moyen de paiement déjà utilisé pour un essai précédent, etc.)</li>
                 <li>Le Programme Ambassadeur (Article 9) ne s&apos;applique pas pendant la période d&apos;essai ; la récompense de parrainage n&apos;est créditée qu&apos;à la conversion effective en abonnement payant</li>
+                <li>L&apos;essai gratuit n&apos;est pas proposé aux comptes bénéficiant du statut Membre Fondateur (offre à -50 % à vie, voir Article 5.1), qui accèdent directement à l&apos;abonnement payant</li>
               </ul>
             </section>
 

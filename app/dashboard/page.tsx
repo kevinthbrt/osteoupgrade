@@ -154,7 +154,7 @@ export default function Dashboard() {
 
   return (
     <AuthLayout>
-      <MyOsteoFlowUpsellModal role={profile?.role} trialUsed={!!profile?.trial_used_at} />
+      <MyOsteoFlowUpsellModal role={profile?.role} trialUsed={!!profile?.trial_used_at || !!profile?.is_founding_member} />
       <div className="min-h-screen -m-6 md:-m-8">
 
         {/* Header */}
@@ -241,7 +241,7 @@ export default function Dashboard() {
           <div className="pointer-events-none absolute top-1/2 right-1/3 w-64 h-64 bg-cyan-300/30 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '5s', animationDelay: '3s' }} />
           <div className="pointer-events-none absolute bottom-1/3 left-1/2 w-56 h-56 bg-blue-300/25 rounded-full blur-2xl animate-pulse" style={{ animationDuration: '9s', animationDelay: '0.5s' }} />
 
-          {profile?.role === 'free' && !profile?.trial_used_at && (
+          {profile?.role === 'free' && !profile?.trial_used_at && !profile?.is_founding_member && (
             <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 p-5 shadow-lg">
               <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -translate-y-8 translate-x-8" />
               <div className="relative flex items-center gap-4">
@@ -259,7 +259,7 @@ export default function Dashboard() {
             </div>
           )}
 
-          {profile?.role === 'free' && profile?.trial_used_at && (
+          {profile?.role === 'free' && (profile?.trial_used_at || profile?.is_founding_member) && (
             <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-500 p-5 shadow-lg">
               <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -translate-y-8 translate-x-8" />
               <div className="relative flex items-center gap-4">
@@ -487,8 +487,8 @@ export default function Dashboard() {
                     courriers générés par IA, messagerie patients, compta &amp; factures, statistiques du cabinet, et bien plus.
                   </p>
                   <button onClick={() => router.push('/settings/subscription')} className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-violet-700 text-white text-sm font-bold hover:bg-violet-800 transition-colors shadow-md">
-                    {profile?.trial_used_at ? <Crown className="h-4 w-4" /> : <Gift className="h-4 w-4" />}
-                    {profile?.trial_used_at ? 'Découvrir MyOsteoFlow en Premium' : 'Essayer MyOsteoFlow gratuitement 7 jours'}
+                    {(profile?.trial_used_at || profile?.is_founding_member) ? <Crown className="h-4 w-4" /> : <Gift className="h-4 w-4" />}
+                    {(profile?.trial_used_at || profile?.is_founding_member) ? 'Découvrir MyOsteoFlow en Premium' : 'Essayer MyOsteoFlow gratuitement 7 jours'}
                     <ArrowRight className="h-4 w-4" />
                   </button>
                 </div>

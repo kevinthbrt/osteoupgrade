@@ -195,7 +195,7 @@ function SubscriptionContent() {
   const isPremium = profile?.role === 'premium' || profile?.role === 'admin'
   const isTrialing = profile?.role === 'trial'
   const pendingPlanSupportsReferral = pendingPlanType ? isReferralEligiblePlan(pendingPlanType) : false
-  const isTrialEligible = profile?.role === 'free' && !profile?.trial_used_at
+  const isTrialEligible = profile?.role === 'free' && !profile?.trial_used_at && !profile?.is_founding_member
 
   return (
     <AuthLayout>
