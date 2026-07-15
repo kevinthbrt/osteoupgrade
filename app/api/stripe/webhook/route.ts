@@ -130,7 +130,7 @@ async function handleCheckoutCompleted(session: any) {
             }
 
             await notifyAdmin(
-              'trial_abuse_blocked',
+              'other',
               'Essai gratuit bloqué (carte déjà utilisée)',
               `${userId} a tenté un essai avec une carte déjà utilisée par un autre compte — essai annulé, prélèvement immédiat.`
             )
