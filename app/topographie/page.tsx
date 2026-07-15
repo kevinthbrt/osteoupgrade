@@ -259,7 +259,9 @@ export default function TopographiePage() {
     )
   }
 
-  const isFree = role === 'free'
+  // 'trial' (essai gratuit MyOsteoFlow) est traité comme 'free' ici : le
+  // contenu premium web reste verrouillé pendant l'essai.
+  const isFree = role === 'free' || role === 'trial'
 
   return (
     <AuthLayout>

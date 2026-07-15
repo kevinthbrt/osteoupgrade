@@ -509,7 +509,7 @@ export default function ImprovedTestsPage() {
           <div className="pointer-events-none absolute top-1/2 right-0 w-80 h-80 bg-sky-400/25 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '8s', animationDelay: '2s' }} />
           <div className="pointer-events-none absolute bottom-0 left-0 w-72 h-72 bg-indigo-400/20 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '7s', animationDelay: '1s' }} />
           <div className="relative space-y-6">
-        {profile?.role === 'free' && <FreeUserBanner />}
+        {(profile?.role === 'free' || profile?.role === 'trial') && <FreeUserBanner />}
         {/* Grille de sélection des zones anatomiques */}
         {!selectedRegion ? (
           <div className="bg-white/85 backdrop-blur-2xl border border-white/70 shadow-xl ring-1 ring-inset ring-white/60 rounded-2xl p-6">
@@ -528,7 +528,7 @@ export default function ImprovedTestsPage() {
                   </h3>
                   <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3">
                     {regions.map((region) => {
-                      const isRegionLocked = profile?.role === 'free' && !FREE_ACCESSIBLE_REGIONS.includes(region)
+                      const isRegionLocked = (profile?.role === 'free' || profile?.role === 'trial') && !FREE_ACCESSIBLE_REGIONS.includes(region)
                       return (
                         <FreeContentGate key={region} isLocked={isRegionLocked} compact>
                           <button
@@ -675,7 +675,7 @@ export default function ImprovedTestsPage() {
                           {viewMode === 'grid' ? (
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                               {categoryClusters.map((cluster) => (
-                                <FreeContentGate key={cluster.id} isLocked={profile?.role === 'free' && !cluster.is_free_access}>
+                                <FreeContentGate key={cluster.id} isLocked={(profile?.role === 'free' || profile?.role === 'trial') && !cluster.is_free_access}>
                                 <div
                                   className="bg-white/85 backdrop-blur-2xl border border-white/70 shadow-xl ring-1 ring-inset ring-white/60 rounded-2xl overflow-hidden hover:shadow-2xl transition-all cursor-pointer"
                                   onClick={() => handleClusterClick(cluster)}
@@ -764,7 +764,7 @@ export default function ImprovedTestsPage() {
                           ) : (
                             <div className="space-y-2">
                               {categoryClusters.map((cluster) => (
-                                <FreeContentGate key={cluster.id} isLocked={profile?.role === 'free' && !cluster.is_free_access}>
+                                <FreeContentGate key={cluster.id} isLocked={(profile?.role === 'free' || profile?.role === 'trial') && !cluster.is_free_access}>
                                 <div
                                   className="bg-white/85 backdrop-blur-2xl border border-white/70 shadow-xl ring-1 ring-inset ring-white/60 rounded-2xl overflow-hidden p-4 hover:shadow-2xl transition-all cursor-pointer"
                                   onClick={() => handleClusterClick(cluster)}
@@ -840,7 +840,7 @@ export default function ImprovedTestsPage() {
                                 const thumbnail = getYouTubeThumbnail(test.video_url)
 
                                 return (
-                                  <FreeContentGate key={test.id} isLocked={profile?.role === 'free' && !test.is_free_access}>
+                                  <FreeContentGate key={test.id} isLocked={(profile?.role === 'free' || profile?.role === 'trial') && !test.is_free_access}>
                                   <div
                                     className="bg-white/85 backdrop-blur-2xl border border-white/70 shadow-xl ring-1 ring-inset ring-white/60 rounded-2xl overflow-hidden hover:shadow-2xl transition-all cursor-pointer"
                                     onClick={() => handleTestClick(test)}
@@ -933,7 +933,7 @@ export default function ImprovedTestsPage() {
                           ) : (
                             <div className="space-y-2">
                               {categoryTests.map((test) => (
-                                <FreeContentGate key={test.id} isLocked={profile?.role === 'free' && !test.is_free_access}>
+                                <FreeContentGate key={test.id} isLocked={(profile?.role === 'free' || profile?.role === 'trial') && !test.is_free_access}>
                                 <div
                                   className="bg-white/85 backdrop-blur-2xl border border-white/70 shadow-xl ring-1 ring-inset ring-white/60 rounded-2xl overflow-hidden p-4 hover:shadow-2xl transition-all cursor-pointer"
                                   onClick={() => handleTestClick(test)}

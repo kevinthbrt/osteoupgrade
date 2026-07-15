@@ -130,19 +130,22 @@ export async function POST(request: Request) {
     }
 
     // 🎁 Essai gratuit de 7 jours : réservé au premier abonnement d'un compte
-    // free (jamais utilisé auparavant) sur l'offre standard. La carte est
+    // free n'ayant JAMAIS été abonné auparavant (ni essai déjà utilisé, ni
+    // abonnement payant passé — y compris résilié depuis, ce qui remet le
+    // rôle à 'free' sans effacer subscription_start_date). La carte est
     // exigée dès la souscription (payment_method_collection: 'always') et
     // sera prélevée automatiquement à la fin de l'essai, sauf annulation.
     const { data: trialProfile } = await supabase
       .from('profiles')
-      .select('role, trial_used_at')
+      .select('role, trial_used_at, subscription_start_date')
       .eq('id', userId)
       .single()
 
     const isEligibleForTrial =
       planType === 'premium_monthly' &&
       trialProfile?.role === 'free' &&
-      !trialProfile?.trial_used_at
+      !trialProfile?.trial_used_at &&
+      !trialProfile?.subscription_start_date
 
     console.log('🔑 Creating Stripe session with:', {
       priceId: plan.priceId,

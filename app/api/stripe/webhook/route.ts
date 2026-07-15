@@ -444,10 +444,17 @@ async function handleSubscriptionUpdated(subscription: any) {
     updateData.trial_ends_at = null
   }
 
-  // Conversion de l'essai en abonnement payant : l'utilisateur passe du rôle
-  // 'trial' (MyOsteoFlow seul) au vrai plan souscrit (accès complet).
-  if (profile.role === 'trial' && subscription.status === 'active') {
-    updateData.role = subscription.metadata?.planType || 'premium'
+  if (profile.role === 'trial') {
+    if (subscription.status === 'active') {
+      // Conversion de l'essai en abonnement payant : l'utilisateur passe du
+      // rôle 'trial' (MyOsteoFlow seul) au vrai plan souscrit (accès complet).
+      updateData.role = subscription.metadata?.planType || 'premium'
+    } else if (subscription.status !== 'trialing') {
+      // Fin de l'essai sans conversion réussie (ex: premier prélèvement
+      // refusé → 'past_due'/'unpaid'/'incomplete_expired') : on révoque
+      // l'accès MyOsteoFlow immédiatement plutôt que de le laisser ouvert.
+      updateData.role = 'free'
+    }
   }
 
   await supabaseAdmin
