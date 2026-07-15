@@ -35,7 +35,9 @@ export async function getOsteoflowSessionUser(
       .select('email, role')
       .eq('id', session.user_id)
       .single()
-    if (!profile || !['premium', 'admin'].includes(profile.role)) return null
+    // 'trial' déverrouille MyOsteoFlow (mais pas le contenu premium — les
+    // endpoints formations/flashcards excluent explicitement 'trial').
+    if (!profile || !['premium', 'trial', 'admin'].includes(profile.role)) return null
 
     // Best-effort : rafraîchir l'activité de la session (ne bloque pas la requête)
     supabaseAdmin

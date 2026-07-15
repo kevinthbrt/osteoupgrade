@@ -47,7 +47,9 @@ export async function GET(request: Request) {
       return NextResponse.json({ valid: false, error: 'Profil introuvable' }, { headers: CORS })
     }
 
-    if (!['premium', 'admin'].includes(profile.role)) {
+    // 'trial' d\u00e9verrouille MyOsteoFlow (mais pas le contenu premium \u2014 voir les
+    // endpoints formations/flashcards qui, eux, excluent explicitement 'trial').
+    if (!['premium', 'trial', 'admin'].includes(profile.role)) {
       return NextResponse.json(
         {
           valid: false,
@@ -58,7 +60,7 @@ export async function GET(request: Request) {
       )
     }
 
-    if (profile.role === 'premium') {
+    if (profile.role === 'premium' || profile.role === 'trial') {
       const windowStart = new Date(Date.now() - CONCURRENT_WINDOW_MS).toISOString()
       const { data: activeSessions } = await supabaseAdmin
         .from('osteoflow_sessions')

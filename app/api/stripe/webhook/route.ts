@@ -74,11 +74,12 @@ async function handleCheckoutCompleted(session: any) {
   // si un essai gratuit a été appliqué au checkout) et la date de fin d'essai.
   let subscriptionStatus = 'active'
   let trialEndsAt: string | null = null
-  const isTrial = session.metadata?.is_trial === 'true'
+  let isTrial = session.metadata?.is_trial === 'true'
+  let subscription: any = null
 
   if (session.subscription) {
     try {
-      const subscription = await stripe.subscriptions.retrieve(session.subscription)
+      subscription = await stripe.subscriptions.retrieve(session.subscription)
       subscriptionStatus = subscription.status
       if (subscription.trial_end) {
         trialEndsAt = new Date(subscription.trial_end * 1000).toISOString()
@@ -88,10 +89,71 @@ async function handleCheckoutCompleted(session: any) {
     }
   }
 
+  // 🚫 ANTI-ABUS ESSAI GRATUIT : une même carte bancaire ne peut déclencher
+  // qu'un seul essai, tous comptes confondus. On identifie la carte par son
+  // fingerprint Stripe (stable même à travers plusieurs Customer différents).
+  // Si la carte a déjà servi à un essai sur un autre compte, on met fin à
+  // l'essai immédiatement (le premier prélèvement a lieu tout de suite au
+  // lieu d'être différé de 7 jours) plutôt que de bloquer la souscription.
+  if (isTrial && subscription) {
+    try {
+      const defaultPmId =
+        typeof subscription.default_payment_method === 'string'
+          ? subscription.default_payment_method
+          : subscription.default_payment_method?.id
+
+      if (defaultPmId) {
+        const paymentMethod = await stripe.paymentMethods.retrieve(defaultPmId)
+        const fingerprint = paymentMethod.card?.fingerprint
+
+        if (fingerprint) {
+          const { data: existingFingerprint } = await supabaseAdmin
+            .from('trial_card_fingerprints')
+            .select('user_id')
+            .eq('fingerprint', fingerprint)
+            .maybeSingle()
+
+          if (existingFingerprint && existingFingerprint.user_id !== userId) {
+            console.warn('⚠️ Trial abuse detected: card fingerprint already used for a trial', {
+              fingerprint,
+              previousUserId: existingFingerprint.user_id,
+              currentUserId: userId
+            })
+
+            try {
+              subscription = await stripe.subscriptions.update(session.subscription, { trial_end: 'now' })
+              subscriptionStatus = subscription.status
+              trialEndsAt = null
+              isTrial = false
+            } catch (err) {
+              console.error('Error ending abusive trial early')
+            }
+
+            await notifyAdmin(
+              'trial_abuse_blocked',
+              'Essai gratuit bloqué (carte déjà utilisée)',
+              `${userId} a tenté un essai avec une carte déjà utilisée par un autre compte — essai annulé, prélèvement immédiat.`
+            )
+          }
+
+          // Upsert : première utilisation de cette carte, ou ré-essai légitime du même compte
+          await supabaseAdmin
+            .from('trial_card_fingerprints')
+            .upsert({ fingerprint, user_id: userId }, { onConflict: 'fingerprint', ignoreDuplicates: true })
+        }
+      }
+    } catch (err) {
+      console.error('Error checking trial card fingerprint')
+    }
+  }
+
   // Mettre à jour le profil utilisateur (sans engagement)
+  // Rôle 'trial' pendant l'essai : déverrouille MyOsteoFlow uniquement, pas le
+  // reste du contenu premium (cours, flashcards…) tant que le paiement réel
+  // n'a pas eu lieu.
   const subscriptionStartDate = new Date()
   const updateData: Record<string, any> = {
-    role: planType,
+    role: subscriptionStatus === 'trialing' ? 'trial' : planType,
     subscription_status: subscriptionStatus,
     subscription_start_date: subscriptionStartDate.toISOString(),
     subscription_end_date: null,
@@ -364,7 +426,7 @@ async function handleSubscriptionUpdated(subscription: any) {
   // Trouver l'utilisateur par son stripe_customer_id
   const { data: profile, error: profileError } = await supabaseAdmin
     .from('profiles')
-    .select('id')
+    .select('id, role')
     .eq('stripe_customer_id', customerId)
     .single()
 
@@ -380,6 +442,12 @@ async function handleSubscriptionUpdated(subscription: any) {
   }
   if (subscription.status !== 'trialing') {
     updateData.trial_ends_at = null
+  }
+
+  // Conversion de l'essai en abonnement payant : l'utilisateur passe du rôle
+  // 'trial' (MyOsteoFlow seul) au vrai plan souscrit (accès complet).
+  if (profile.role === 'trial' && subscription.status === 'active') {
+    updateData.role = subscription.metadata?.planType || 'premium'
   }
 
   await supabaseAdmin

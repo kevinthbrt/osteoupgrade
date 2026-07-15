@@ -193,9 +193,9 @@ function SubscriptionContent() {
   }
 
   const isPremium = profile?.role === 'premium' || profile?.role === 'admin'
+  const isTrialing = profile?.role === 'trial'
   const pendingPlanSupportsReferral = pendingPlanType ? isReferralEligiblePlan(pendingPlanType) : false
-  const isTrialing = isPremium && profile?.subscription_status === 'trialing'
-  const isTrialEligible = !isPremium && !profile?.trial_used_at
+  const isTrialEligible = profile?.role === 'free' && !profile?.trial_used_at
 
   return (
     <AuthLayout>
@@ -219,7 +219,7 @@ function SubscriptionContent() {
                 </p>
                 {pendingPlanType === 'premium_monthly' && isTrialEligible && (
                   <p className="text-sm text-blue-700 bg-blue-50 border border-blue-200 rounded-lg px-3 py-2 mt-2">
-                    🎁 Votre carte sera enregistrée mais ne sera débitée qu'après vos 7 jours d'essai gratuit, sauf si vous annulez avant.
+                    🎁 Votre carte sera enregistrée mais ne sera débitée qu'après vos 7 jours d'essai gratuit sur MyOsteoFlow, sauf si vous annulez avant. Le reste du contenu Premium reste verrouillé pendant l'essai.
                   </p>
                 )}
               </div>
@@ -302,7 +302,13 @@ function SubscriptionContent() {
               <button onClick={() => router.push('/dashboard')} className="inline-flex items-center gap-2 text-white/50 hover:text-white/80 text-sm mb-4 transition"><ArrowLeft className="h-4 w-4" /> Retour au dashboard</button>
               <p className="text-purple-300 text-sm font-medium mb-1 tracking-wide flex items-center gap-2"><Crown className="h-4 w-4" /> Premium</p>
               <h1 className="text-3xl md:text-4xl font-bold tracking-tight bg-gradient-to-r from-white via-purple-100 to-indigo-200 bg-clip-text text-transparent">Abonnement Premium</h1>
-              <p className="text-blue-300/70 text-sm mt-1.5">{isPremium ? 'Vous êtes actuellement abonné Premium. Merci de votre confiance !' : 'Choisissez la formule qui correspond le mieux à vos besoins et boostez votre pratique clinique.'}</p>
+              <p className="text-blue-300/70 text-sm mt-1.5">
+                {isPremium
+                  ? 'Vous êtes actuellement abonné Premium. Merci de votre confiance !'
+                  : isTrialing
+                    ? "Vous testez MyOsteoFlow gratuitement. Le reste du contenu Premium se débloquera à la conversion de l'essai."
+                    : 'Choisissez la formule qui correspond le mieux à vos besoins et boostez votre pratique clinique.'}
+              </p>
             </div>
           </div>
           <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-purple-400/40 to-transparent" />
@@ -316,12 +322,12 @@ function SubscriptionContent() {
           <div className="relative space-y-6">
 
         {/* Current Status */}
-        {isPremium && (
+        {(isPremium || isTrialing) && (
           <div className="bg-white/85 backdrop-blur-2xl border border-white/70 shadow-xl ring-1 ring-inset ring-white/60 rounded-2xl p-6 space-y-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-500">Votre abonnement actuel</p>
-                <p className="text-2xl font-bold text-gray-900">Premium</p>
+                <p className="text-sm text-gray-500">{isTrialing ? 'Votre essai en cours' : 'Votre abonnement actuel'}</p>
+                <p className="text-2xl font-bold text-gray-900">{isTrialing ? 'MyOsteoFlow — Essai gratuit' : 'Premium'}</p>
               </div>
               {isTrialing ? (
                 <span className="inline-flex items-center gap-2 rounded-full bg-blue-100 px-4 py-2 text-sm font-semibold text-blue-700">
@@ -348,7 +354,7 @@ function SubscriptionContent() {
                     <p className="text-sm text-gray-600">
                       {profile.trial_ends_at ? (
                         <>
-                          Vous profitez de l'accès Premium gratuitement jusqu'au{' '}
+                          Vous avez accès gratuitement à <strong>MyOsteoFlow</strong> (logiciel de cabinet) jusqu'au{' '}
                           <strong className="text-gray-900">
                             {new Date(profile.trial_ends_at).toLocaleDateString('fr-FR', {
                               day: 'numeric',
@@ -357,14 +363,19 @@ function SubscriptionContent() {
                             })}
                           </strong>
                           . Passé cette date, votre carte sera automatiquement débitée de 49,99€ pour le premier mois
-                          d'abonnement, sauf si vous annulez avant.
+                          d'abonnement Premium, sauf si vous annulez avant.
                         </>
                       ) : (
                         <>
-                          Vous profitez de l'accès Premium gratuitement. À la fin de l'essai, votre carte sera
-                          automatiquement débitée pour le premier mois d'abonnement, sauf si vous annulez avant.
+                          Vous avez accès gratuitement à <strong>MyOsteoFlow</strong> (logiciel de cabinet). À la fin de
+                          l'essai, votre carte sera automatiquement débitée pour le premier mois d'abonnement Premium,
+                          sauf si vous annulez avant.
                         </>
                       )}
+                    </p>
+                    <p className="text-xs text-gray-500 mt-2">
+                      Le reste du contenu Premium (cours e-learning, OsteoFlash, topographies…) reste réservé aux
+                      abonnés — il se débloquera automatiquement dès la conversion de votre essai en abonnement.
                     </p>
                   </div>
                 </div>
@@ -439,8 +450,8 @@ function SubscriptionContent() {
           </div>
         )}
 
-        {/* Referral Code Input - Only for non-premium users */}
-        {!isPremium && (
+        {/* Referral Code Input - Only for non-premium, non-trial users */}
+        {!isPremium && !isTrialing && (
           <div className="bg-amber-100/85 backdrop-blur-2xl border border-amber-300/70 shadow-xl ring-1 ring-inset ring-white/60 rounded-2xl p-6">
             <div className="flex items-start gap-4">
               <div className="p-3 bg-yellow-500 rounded-lg flex-shrink-0">
@@ -530,8 +541,9 @@ function SubscriptionContent() {
           </div>
         )}
 
-        {/* Plan Premium */}
-        {!isPremium && (
+        {/* Plan Premium - masqué pendant l'essai : l'abonnement existe déjà côté
+            Stripe et se convertira automatiquement, pas besoin de re-checkout */}
+        {!isPremium && !isTrialing && (
           <div className="relative bg-white border-4 border-yellow-400 rounded-2xl shadow-2xl overflow-hidden max-w-2xl">
             <div className="absolute top-6 right-6 z-10">
               <div className="bg-gradient-to-r from-yellow-400 to-yellow-500 text-yellow-900 px-4 py-2 rounded-full text-sm font-bold shadow-lg flex items-center gap-2">
@@ -553,7 +565,7 @@ function SubscriptionContent() {
                   {isTrialEligible && (
                     <div className="bg-blue-600/90 backdrop-blur-sm rounded-lg p-4 border-2 border-blue-300 flex items-center gap-3">
                       <Gift className="h-5 w-5 flex-shrink-0 text-white" />
-                      <p className="text-sm text-white font-semibold">7 jours d'essai gratuit, carte requise à l'inscription. Annulable à tout moment avant la fin de l'essai.</p>
+                      <p className="text-sm text-white font-semibold">7 jours d'essai gratuit sur MyOsteoFlow (logiciel de cabinet), carte requise à l'inscription. Le reste du contenu Premium (cours, OsteoFlash…) se débloque à la conversion. Annulable à tout moment avant la fin de l'essai.</p>
                     </div>
                   )}
                   <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4">
@@ -638,7 +650,7 @@ function SubscriptionContent() {
           <div className="space-y-2 text-sm text-gray-700">
             <p>✅ Paiement sécurisé via Stripe</p>
             {isTrialEligible && (
-              <p>✅ <strong>7 jours d'essai gratuit</strong> à la première souscription : carte requise, débitée automatiquement à la fin de l'essai sauf annulation</p>
+              <p>✅ <strong>7 jours d'essai gratuit sur MyOsteoFlow</strong> à la première souscription : carte requise, débitée automatiquement à la fin de l'essai sauf annulation. Le reste du contenu Premium reste verrouillé pendant l'essai.</p>
             )}
             <p>✅ <strong>49,99€/mois, sans engagement</strong> : prélevé automatiquement chaque mois, annulable à tout moment</p>
             <p>✅ Renouvellement automatique (désactivable depuis votre compte)</p>
@@ -646,7 +658,7 @@ function SubscriptionContent() {
             <p>✅ Accès immédiat à tous les contenus après validation du paiement</p>
             <p>✅ Droit de rétractation de 14 jours</p>
             <p>✅ <strong>Parrainage :</strong> 1 mois offert pour le parrain et le filleul à chaque parrainage validé</p>
-            {!isPremium && (
+            {!isPremium && !isTrialing && (
               <p className="text-xs text-blue-700 mt-3 pt-3 border-t border-gray-300 flex items-center gap-1">
                 💡 <span>Vous avez reçu un code d'un collègue Premium ? Saisissez-le ci-dessus pour que votre parrain soit crédité.</span>
               </p>

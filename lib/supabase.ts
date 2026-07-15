@@ -131,7 +131,7 @@ export type Database = {
         id: string
         email: string
         full_name: string | null
-        role: 'free' | 'premium' | 'admin'
+        role: 'free' | 'trial' | 'premium' | 'admin'
         subscription_status: string | null
         subscription_end_date: string | null
         subscription_start_date: string | null

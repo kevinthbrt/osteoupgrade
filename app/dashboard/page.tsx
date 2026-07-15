@@ -154,7 +154,7 @@ export default function Dashboard() {
 
   return (
     <AuthLayout>
-      <MyOsteoFlowUpsellModal role={profile?.role} />
+      <MyOsteoFlowUpsellModal role={profile?.role} trialUsed={!!profile?.trial_used_at} />
       <div className="min-h-screen -m-6 md:-m-8">
 
         {/* Header */}
