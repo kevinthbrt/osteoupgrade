@@ -15,6 +15,12 @@ interface Practitioner {
   rpps?: string
   rpe?: string
   rne?: string
+  // 'FR' (default) or 'QC'. Québec has no RPPS/RPE/RNE registry — practitioners
+  // there show their association membership number instead (see
+  // association_number below and MyOsteoFlow's lib/practitioner/profession.ts,
+  // which this mirrors).
+  country?: string
+  association_number?: string
 }
 
 const PROFESSION_LABELS: Record<string, string> = {
@@ -31,6 +37,9 @@ function professionLabel(p: Practitioner): string {
 }
 
 function registrationLines(p: Practitioner): string[] {
+  if (p.country === 'QC') {
+    return p.association_number?.trim() ? [`N° de membre : ${p.association_number.trim()}`] : []
+  }
   const prof = p.profession || 'osteopathe'
   const lines: string[] = []
   if (prof === 'etiopathe') {
@@ -127,7 +136,7 @@ Retourne UNIQUEMENT un objet JSON valide :
 Structure exacte :
 ATTESTATION DE CONSULTATION OSTÉOPATHIQUE
 
-Je soussigné(e), [prénom NOM du praticien], Ostéopathe D.O., atteste avoir reçu en consultation :
+Je soussigné(e), [prénom NOM du praticien], [TITRE_PROFESSIONNEL], atteste avoir reçu en consultation :
 
 [NOM_PATIENT],
 
@@ -154,10 +163,11 @@ export async function POST(req: Request) {
       recipient_name, recipient_title, custom_instructions,
     } = body
 
-    const systemPrompt = PROMPTS[template_id]
-    if (!systemPrompt) {
+    const systemPromptTemplate = PROMPTS[template_id]
+    if (!systemPromptTemplate) {
       return NextResponse.json({ error: 'Template inconnu' }, { status: 400 })
     }
+    const systemPrompt = systemPromptTemplate.replace(/\[TITRE_PROFESSIONNEL\]/g, professionLabel(practitioner))
 
     const apiKey = process.env.ANTHROPIC_API_KEY
     if (!apiKey) {
