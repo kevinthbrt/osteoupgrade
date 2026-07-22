@@ -178,6 +178,7 @@ export default function LandingPage() {
   const flow = useScrollReveal()
   const upgrade = useScrollReveal()
   const pricing = useScrollReveal()
+  const partners = useScrollReveal()
   const cta = useScrollReveal()
 
   useEffect(() => {
@@ -351,6 +352,16 @@ export default function LandingPage() {
       screenshot: '/landing/screenshots/videos.png',
       glow: '249, 115, 22',
       tags: ['Par région', 'HVLA', 'Mobilisation', 'Tissulaire'],
+    },
+  ]
+
+  // Training / institutional partners
+  const partnersList = [
+    {
+      name: 'IFCOPS',
+      fullName: 'Institut de Formation Continue pour Ostéopathes et Professionnels de santé',
+      desc: 'Formations continues certifiées Qualiopi pour ostéopathes et professionnels de santé.',
+      url: 'https://www.ifcops.com/',
     },
   ]
 
@@ -1301,6 +1312,49 @@ export default function LandingPage() {
             Commencer maintenant
             <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
           </button>
+        </div>
+      </section>
+
+      {/* ─── PARTENAIRES ─── */}
+      <section id="partenaires" ref={partners.ref} className="py-16 lg:py-20 px-4 sm:px-6 lg:px-8 bg-white border-t border-slate-100">
+        <div className="max-w-6xl mx-auto">
+          <div className={`text-center mb-12 transition-all duration-700 ${
+            partners.isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
+          }`}>
+            <div className="inline-flex items-center gap-2 bg-slate-100 text-slate-600 px-4 py-2 rounded-full text-xs font-semibold mb-6 uppercase tracking-wider">
+              Ils nous font confiance
+            </div>
+            <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">
+              Nos partenaires
+            </h2>
+          </div>
+
+          <div className={`flex flex-wrap items-stretch justify-center gap-5 transition-all duration-700 delay-100 ${
+            partners.isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
+          }`}>
+            {partnersList.map((partner) => (
+              <a
+                key={partner.name}
+                href={partner.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group flex items-center gap-4 rounded-2xl bg-white border border-slate-200 p-5 sm:p-6 hover:shadow-lg hover:-translate-y-0.5 transition-all max-w-md"
+              >
+                <div className="relative flex-shrink-0 w-24 h-16 rounded-xl border-2 border-dashed border-slate-300/80 bg-gradient-to-br from-slate-100 to-slate-50 flex items-center justify-center">
+                  <span className="text-[9px] font-semibold uppercase tracking-wider text-slate-400 text-center px-1">
+                    Logo à venir
+                  </span>
+                </div>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-1.5 text-base font-bold text-slate-900">
+                    {partner.name}
+                    <ArrowRight className="h-3.5 w-3.5 text-slate-400 transition-transform group-hover:translate-x-1 group-hover:text-sky-500" />
+                  </div>
+                  <p className="text-xs text-slate-500 mt-1 leading-relaxed">{partner.desc}</p>
+                </div>
+              </a>
+            ))}
+          </div>
         </div>
       </section>
 
