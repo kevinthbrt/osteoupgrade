@@ -58,11 +58,6 @@ export async function POST(request: Request) {
         purpose: PARTNER_PROMO_PURPOSE,
         partner: partnerName,
         ...(batchNote ? { batch_note: batchNote } : {})
-      },
-      // Réservé aux clients qui n'ont jamais eu de transaction sur ce compte
-      // Stripe — c'est Stripe qui vérifie, pas nous.
-      restrictions: {
-        first_time_transaction: true
       }
     }
     if (premiumPriceId) {
@@ -86,6 +81,12 @@ export async function POST(request: Request) {
             },
             code,
             max_redemptions: 1,
+            // Réservé aux clients qui n'ont jamais payé sur ce compte Stripe —
+            // c'est Stripe qui vérifie, pas nous. (restrictions est un attribut
+            // du promotion code, pas du coupon.)
+            restrictions: {
+              first_time_transaction: true
+            },
             metadata: {
               created_by: admin.id,
               purpose: PARTNER_PROMO_PURPOSE,

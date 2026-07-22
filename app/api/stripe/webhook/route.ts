@@ -25,7 +25,9 @@ function detectPartnerDiscount(subscription: any): {
   for (const discount of discounts) {
     if (typeof discount !== 'object' || !discount) continue
     const promotionCode = discount.promotion_code
-    const coupon = discount.coupon
+    // API 2025-11-17.clover : le coupon d'un Discount est dans source.coupon
+    // (plus de champ coupon direct sur Discount).
+    const coupon = discount.source?.coupon
     const promoMeta = typeof promotionCode === 'object' ? promotionCode?.metadata : null
     const couponMeta = typeof coupon === 'object' ? coupon?.metadata : null
     const purpose = promoMeta?.purpose || couponMeta?.purpose
@@ -41,6 +43,23 @@ function detectPartnerDiscount(subscription: any): {
   }
 
   return null
+}
+
+// Retrieve séparé, best-effort, avec les expand nécessaires à
+// detectPartnerDiscount. Isolé du retrieve principal exprès : un chemin
+// d'expand invalide fait échouer TOUT l'appel Stripe, et le retrieve
+// principal porte la détection d'essai gratuit et le statut d'abonnement —
+// la détection partenaire ne doit jamais pouvoir casser ce chemin critique.
+async function fetchPartnerDiscount(subscriptionId: string): Promise<ReturnType<typeof detectPartnerDiscount>> {
+  try {
+    const expanded = await stripe.subscriptions.retrieve(subscriptionId, {
+      expand: ['discounts.promotion_code', 'discounts.source.coupon']
+    } as any)
+    return detectPartnerDiscount(expanded)
+  } catch (err) {
+    console.error('Error fetching subscription discounts for partner detection')
+    return null
+  }
 }
 
 // 📧 Construit les champs de fusion nom/prix/interval pour les emails de
@@ -280,12 +299,7 @@ async function handleCheckoutCompleted(session: any) {
 
   if (session.subscription) {
     try {
-      // expand des discounts : nécessaire pour détecter un éventuel code
-      // partenaire (ex: IFCOPS) saisi par l'utilisateur dans le champ "Code
-      // promo" natif de Stripe Checkout — voir detectPartnerDiscount ci-dessous.
-      subscription = await stripe.subscriptions.retrieve(session.subscription, {
-        expand: ['discounts.promotion_code', 'discounts.coupon']
-      } as any)
+      subscription = await stripe.subscriptions.retrieve(session.subscription)
       subscriptionStatus = subscription.status
       if (subscription.trial_end) {
         trialEndsAt = new Date(subscription.trial_end * 1000).toISOString()
@@ -295,7 +309,11 @@ async function handleCheckoutCompleted(session: any) {
     }
   }
 
-  const partnerDiscount = detectPartnerDiscount(subscription)
+  // 🎓 Détection best-effort d'un code partenaire saisi dans le champ "Code
+  // promo" natif de Stripe Checkout (retrieve séparé, voir fetchPartnerDiscount).
+  const partnerDiscount = session.subscription
+    ? await fetchPartnerDiscount(session.subscription)
+    : null
 
   // 🚫 ANTI-ABUS ESSAI GRATUIT : une même carte bancaire ne peut déclencher
   // qu'un seul essai, tous comptes confondus. On identifie la carte par son
@@ -685,15 +703,7 @@ async function handleSubscriptionUpdated(subscription: any) {
     // tracé sur le profil dans handleCheckoutCompleted — on le redétecte ici
     // seulement pour que le prix affiché dans cet email reste cohérent avec
     // l'email "Code partenaire utilisé" déjà reçu à l'époque.
-    let trialConversionPartnerDiscount: ReturnType<typeof detectPartnerDiscount> = null
-    try {
-      const expandedSub = await stripe.subscriptions.retrieve(subscription.id, {
-        expand: ['discounts.promotion_code', 'discounts.coupon']
-      } as any)
-      trialConversionPartnerDiscount = detectPartnerDiscount(expandedSub)
-    } catch (err) {
-      console.error('Error checking partner discount on trial conversion')
-    }
+    const trialConversionPartnerDiscount = await fetchPartnerDiscount(subscription.id)
     const { nom: trialPlanNom, prix: trialPlanPrix, interval: trialPlanInterval } =
       describePlanPricing(subscription.metadata?.planType || 'premium_monthly', trialConversionPartnerDiscount)
 

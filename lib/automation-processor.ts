@@ -239,6 +239,26 @@ export async function processAutomations(): Promise<{
   let errors = 0
 
   try {
+    // ── Récupération des claims orphelins ──────────────────────────────────
+    // Si une exécution précédente est morte en plein lot (timeout serverless),
+    // ses enrollments restent verrouillés en 'processing' et ne seraient
+    // jamais repris (le claim ne prend que les 'pending'). Un claim vieux de
+    // plus de 15 minutes ne peut pas être un traitement en cours (un lot
+    // complet se traite en secondes) : on le restitue à 'pending'.
+    const staleThreshold = new Date(Date.now() - 15 * 60 * 1000).toISOString()
+    const { data: recovered, error: recoveryError } = await supabase
+      .from('mail_automation_enrollments')
+      .update({ status: 'pending' })
+      .eq('status', 'processing')
+      .or(`claimed_at.lt.${staleThreshold},claimed_at.is.null`)
+      .select('id')
+
+    if (recoveryError) {
+      console.error('Error recovering stale enrollment claims:', recoveryError)
+    } else if (recovered && recovered.length > 0) {
+      console.warn(`♻️ Recovered ${recovered.length} stale enrollment claim(s) from a crashed run`)
+    }
+
     // Récupérer toutes les automatisations actives
     const { data: automations, error: automationsError } = await supabase
       .from('mail_automations')
@@ -279,7 +299,7 @@ export async function processAutomations(): Promise<{
       // exclusivement — aucune autre instance ne les traitera en parallèle.
       const { data: enrollments, error: enrollmentsError } = await supabase
         .from('mail_automation_enrollments')
-        .update({ status: 'processing' })
+        .update({ status: 'processing', claimed_at: new Date().toISOString() })
         .eq('automation_id', automation.id)
         .eq('status', 'pending')
         .select(`
