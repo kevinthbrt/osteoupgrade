@@ -65,6 +65,9 @@ export async function POST(req: NextRequest) {
       code_parrainage: 'TEST123',
       cycle: '1',
       facture_url: 'https://invoice.stripe.com/test-facture-exemple',
+      partner_name: 'IFCOPS',
+      percent_off: '10',
+      duration_months: '12',
     }
 
     const applyVars = (str: string): string => {

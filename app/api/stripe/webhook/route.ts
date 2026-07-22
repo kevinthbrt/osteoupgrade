@@ -1,11 +1,90 @@
 import { NextResponse } from 'next/server'
 import { headers } from 'next/headers'
-import { stripe, REFERRAL_FREE_MONTH_AMOUNT } from '@/lib/stripe'
+import { stripe, REFERRAL_FREE_MONTH_AMOUNT, PARTNER_PROMO_PURPOSE, STRIPE_PLANS } from '@/lib/stripe'
 import { supabaseAdmin } from '@/lib/supabase-server'
 import { sendTransactionalEmail } from '@/lib/mailing'
 import { notifyAdmin } from '@/lib/admin-notify'
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!
+
+// 🎓 Détecte si une réduction "partenaire" (ex: -10%/1an pour une formation
+// IFCOPS, générée depuis /admin/partners) est appliquée à l'abonnement — via
+// le champ "Code promo" natif de Stripe Checkout, saisi par l'utilisateur
+// lui-même. Ne renvoie rien si aucun des discounts n'a le metadata attendu
+// (metadata.purpose === PARTNER_PROMO_PURPOSE, posé côté coupon ET code promo
+// à la génération).
+function detectPartnerDiscount(subscription: any): {
+  partner: string
+  code: string
+  percentOff: number | null
+  durationInMonths: number | null
+} | null {
+  const discounts = subscription?.discounts
+  if (!Array.isArray(discounts)) return null
+
+  for (const discount of discounts) {
+    if (typeof discount !== 'object' || !discount) continue
+    const promotionCode = discount.promotion_code
+    // API 2025-11-17.clover : le coupon d'un Discount est dans source.coupon
+    // (plus de champ coupon direct sur Discount).
+    const coupon = discount.source?.coupon
+    const promoMeta = typeof promotionCode === 'object' ? promotionCode?.metadata : null
+    const couponMeta = typeof coupon === 'object' ? coupon?.metadata : null
+    const purpose = promoMeta?.purpose || couponMeta?.purpose
+
+    if (purpose === PARTNER_PROMO_PURPOSE) {
+      return {
+        partner: promoMeta?.partner || couponMeta?.partner || 'Partenaire',
+        code: typeof promotionCode === 'object' ? promotionCode?.code || '' : '',
+        percentOff: typeof coupon === 'object' ? coupon?.percent_off ?? null : null,
+        durationInMonths: typeof coupon === 'object' ? coupon?.duration_in_months ?? null : null
+      }
+    }
+  }
+
+  return null
+}
+
+// Retrieve séparé, best-effort, avec les expand nécessaires à
+// detectPartnerDiscount. Isolé du retrieve principal exprès : un chemin
+// d'expand invalide fait échouer TOUT l'appel Stripe, et le retrieve
+// principal porte la détection d'essai gratuit et le statut d'abonnement —
+// la détection partenaire ne doit jamais pouvoir casser ce chemin critique.
+async function fetchPartnerDiscount(subscriptionId: string): Promise<ReturnType<typeof detectPartnerDiscount>> {
+  try {
+    const expanded = await stripe.subscriptions.retrieve(subscriptionId, {
+      expand: ['discounts.promotion_code', 'discounts.source.coupon']
+    } as any)
+    return detectPartnerDiscount(expanded)
+  } catch (err) {
+    console.error('Error fetching subscription discounts for partner detection')
+    return null
+  }
+}
+
+// 📧 Construit les champs de fusion nom/prix/interval pour les emails de
+// bienvenue Premium ("Passage à Premium" / "Essai gratuit démarré").
+// Corrige un bug préexistant : ces champs étaient auparavant codés en dur sur
+// "Premium"/"49,99€"/"mensuel" quelle que soit l'offre réellement souscrite —
+// ce qui affichait un prix faux pour l'offre Fondateur (299,94€/an) et ne
+// reflétait jamais une réduction partenaire active, créant un email de
+// bienvenue contredisant l'email "Code partenaire utilisé" envoyé au même
+// moment (ou l'email "Membre fondateur activé" envoyé plus tôt par l'admin).
+function describePlanPricing(
+  planType: string,
+  partnerDiscount: { partner: string; percentOff: number | null; durationInMonths: number | null } | null
+): { nom: string; prix: string; interval: string } {
+  const plan = STRIPE_PLANS[planType as keyof typeof STRIPE_PLANS]
+  const nom = plan?.name || 'Premium'
+  const interval = plan?.isAnnual ? 'annuel' : 'mensuel'
+  let prix = plan?.displayPrice ? `${plan.displayPrice}${plan.isAnnual ? '/an' : '/mois'}` : '49,99€/mois'
+
+  if (partnerDiscount && partnerDiscount.percentOff) {
+    prix += ` (-${partnerDiscount.percentOff}% pendant ${partnerDiscount.durationInMonths ?? '?'} mois grâce à ${partnerDiscount.partner}, puis retour au tarif normal)`
+  }
+
+  return { nom, prix, interval }
+}
 
 // 🎁 Crédite le mois offert (parrain + filleul) suite à un parrainage validé.
 // Appelé UNIQUEMENT sur un abonnement réellement payé (jamais pendant un essai
@@ -230,6 +309,12 @@ async function handleCheckoutCompleted(session: any) {
     }
   }
 
+  // 🎓 Détection best-effort d'un code partenaire saisi dans le champ "Code
+  // promo" natif de Stripe Checkout (retrieve séparé, voir fetchPartnerDiscount).
+  const partnerDiscount = session.subscription
+    ? await fetchPartnerDiscount(session.subscription)
+    : null
+
   // 🚫 ANTI-ABUS ESSAI GRATUIT : une même carte bancaire ne peut déclencher
   // qu'un seul essai, tous comptes confondus. On identifie la carte par son
   // fingerprint Stripe (stable même à travers plusieurs Customer différents).
@@ -316,6 +401,14 @@ async function handleCheckoutCompleted(session: any) {
     updateData.trial_used_at = subscriptionStartDate.toISOString()
   }
 
+  // 🎓 Traçabilité du code partenaire (visible dans /admin/users et
+  // /admin/stats) — la réduction elle-même est déjà appliquée par Stripe,
+  // ces colonnes ne servent qu'à l'affichage admin.
+  if (partnerDiscount) {
+    updateData.partner_discount_name = partnerDiscount.partner
+    updateData.partner_discount_code = partnerDiscount.code
+  }
+
   const { data: updatedProfile, error: updateError } = await supabaseAdmin
     .from('profiles')
     .update(updateData)
@@ -356,6 +449,43 @@ async function handleCheckoutCompleted(session: any) {
       referredEmail: profile.email,
       referredFullName: profile.full_name
     })
+  }
+
+  // 🎓 CODE PARTENAIRE : notifier l'admin (bell) et confirmer par email à
+  // l'utilisateur — la réduction est déjà appliquée par Stripe, ceci ne sert
+  // qu'à la visibilité admin et à la confirmation utilisateur.
+  if (partnerDiscount) {
+    try {
+      await notifyAdmin(
+        'partner_discount',
+        `Code partenaire utilisé : ${partnerDiscount.partner}`,
+        `${profile.full_name || profile.email} a utilisé le code ${partnerDiscount.code} (${partnerDiscount.partner}) — -${partnerDiscount.percentOff ?? '?'}% pendant ${partnerDiscount.durationInMonths ?? '?'} mois.`
+      )
+    } catch (err) {
+      console.error('Error notifying admin of partner discount usage')
+    }
+
+    try {
+      await fetch(`${process.env.NEXT_PUBLIC_URL || 'http://localhost:3000'}/api/automations/trigger`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${process.env.CRON_SECRET}`
+        },
+        body: JSON.stringify({
+          event: 'Code partenaire utilisé',
+          contact_email: profile.email,
+          full_name: profile.full_name,
+          metadata: {
+            partner_name: partnerDiscount.partner,
+            percent_off: String(partnerDiscount.percentOff ?? ''),
+            duration_months: String(partnerDiscount.durationInMonths ?? '')
+          }
+        })
+      })
+    } catch (err) {
+      console.error('Error sending partner discount confirmation email')
+    }
   }
 
   // 🛑 ANNULER la séquence de relance Premium (l'utilisateur vient de souscrire)
@@ -411,7 +541,7 @@ async function handleCheckoutCompleted(session: any) {
   // (contenu spécifique : MyOsteoflow uniquement, reste verrouillé), sinon
   // "Passage à Premium" classique. La conversion réelle de l'essai déclenche
   // sa propre "Passage à Premium" dans handleSubscriptionUpdated.
-  const displayPrice = '49,99€'
+  const { nom: planNom, prix: planPrix, interval: planInterval } = describePlanPricing(planType, partnerDiscount)
   try {
     await fetch(`${process.env.NEXT_PUBLIC_URL || 'http://localhost:3000'}/api/automations/trigger`, {
       method: 'POST',
@@ -424,9 +554,9 @@ async function handleCheckoutCompleted(session: any) {
         contact_email: profile.email,
         full_name: profile.full_name,
         metadata: {
-          nom: 'Premium',
-          prix: displayPrice,
-          interval: 'mensuel',
+          nom: planNom,
+          prix: planPrix,
+          interval: planInterval,
           date_fact: (trialEndsAt ? new Date(trialEndsAt) : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)).toLocaleDateString('fr-FR'),
           date_fin_essai: trialEndsAt ? new Date(trialEndsAt).toLocaleDateString('fr-FR') : '',
           essai_gratuit: isTrial ? 'true' : 'false',
@@ -569,6 +699,14 @@ async function handleSubscriptionUpdated(subscription: any) {
       console.error('Error retrieving invoice for trial conversion automation')
     }
 
+    // Le code partenaire (si saisi au checkout initial de l'essai) a déjà été
+    // tracé sur le profil dans handleCheckoutCompleted — on le redétecte ici
+    // seulement pour que le prix affiché dans cet email reste cohérent avec
+    // l'email "Code partenaire utilisé" déjà reçu à l'époque.
+    const trialConversionPartnerDiscount = await fetchPartnerDiscount(subscription.id)
+    const { nom: trialPlanNom, prix: trialPlanPrix, interval: trialPlanInterval } =
+      describePlanPricing(subscription.metadata?.planType || 'premium_monthly', trialConversionPartnerDiscount)
+
     try {
       await fetch(`${process.env.NEXT_PUBLIC_URL || 'http://localhost:3000'}/api/automations/trigger`, {
         method: 'POST',
@@ -581,9 +719,9 @@ async function handleSubscriptionUpdated(subscription: any) {
           contact_email: profile.email,
           full_name: profile.full_name,
           metadata: {
-            nom: 'Premium',
-            prix: '49,99€',
-            interval: 'mensuel',
+            nom: trialPlanNom,
+            prix: trialPlanPrix,
+            interval: trialPlanInterval,
             date_fact: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString('fr-FR'),
             essai_gratuit: 'true',
             code_parrainage: userReferralCode,
