@@ -41,6 +41,11 @@ export const STRIPE_PLANS = {
   }
 }
 
+// Métadonnée utilisée pour distinguer les codes promo "partenaire" (ex: -10%
+// pendant 1 an pour les diplômés d'un organisme de formation partenaire type
+// IFCOPS) des codes Gold génériques gérés dans /admin/promo.
+export const PARTNER_PROMO_PURPOSE = 'partner_discount'
+
 // Montant offert lors d'un parrainage validé (la valeur d'un mois d'abonnement),
 // crédité sur le solde Stripe du parrain ET du filleul → leur mois suivant est offert.
 export const REFERRAL_FREE_MONTH_AMOUNT = STRIPE_PLANS.premium_monthly.amount

@@ -17,6 +17,7 @@ import {
   Megaphone,
   Database,
   BarChart3,
+  HeartHandshake,
 } from 'lucide-react'
 
 type Counts = { tickets: number; emails: number }
@@ -139,6 +140,14 @@ export default function AdminPage() {
       iconColor: 'text-emerald-600',
       iconBg: 'bg-emerald-100',
       href: '/admin/promo',
+    },
+    {
+      title: 'Partenaires',
+      description: 'Codes de réduction pour vos partenaires (ex. IFCOPS)',
+      icon: HeartHandshake,
+      iconColor: 'text-cyan-600',
+      iconBg: 'bg-cyan-100',
+      href: '/admin/partners',
     },
     {
       title: 'Cache IA',

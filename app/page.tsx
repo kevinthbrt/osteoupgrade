@@ -363,6 +363,7 @@ export default function LandingPage() {
       desc: 'Formations continues certifiées Qualiopi pour ostéopathes et professionnels de santé.',
       url: 'https://www.ifcops.com/',
       logo: '/landing/partners/ifcops.svg',
+      perk: '-10% pendant 1 an pour les diplômés IFCOPS',
     },
   ]
 
@@ -1356,6 +1357,12 @@ export default function LandingPage() {
                     <ArrowRight className="h-3.5 w-3.5 text-slate-400 transition-transform group-hover:translate-x-1 group-hover:text-sky-500" />
                   </div>
                   <p className="text-xs text-slate-500 mt-1 leading-relaxed">{partner.desc}</p>
+                  {partner.perk && (
+                    <span className="inline-flex items-center gap-1.5 mt-2 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-[11px] font-semibold">
+                      <Gift className="h-3 w-3" />
+                      {partner.perk}
+                    </span>
+                  )}
                 </div>
               </a>
             ))}
