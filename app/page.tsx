@@ -363,7 +363,7 @@ export default function LandingPage() {
       desc: 'Formations continues certifiées Qualiopi pour ostéopathes et professionnels de santé.',
       url: 'https://www.ifcops.com/',
       logo: '/landing/partners/ifcops.svg',
-      perk: '-10% pendant 1 an pour les diplômés IFCOPS',
+      perk: '-10% pendant 1 an pour les personnes ayant suivi une formation IFCOPS',
     },
   ]
 
