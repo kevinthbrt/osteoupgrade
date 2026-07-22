@@ -19,7 +19,8 @@ import {
   ExternalLink,
   X,
   Mail,
-  Star
+  Star,
+  Gift
 } from 'lucide-react'
 
 // ── helpers ────────────────────────────────────────────────────────────────
@@ -314,6 +315,7 @@ export default function UsersManagementPage() {
     canceled: users.filter(u => u.subscription_status === 'canceled').length,
     newsletterOptIn: users.filter(u => u.newsletter_opt_in).length,
     foundingMembers: users.filter(u => u.is_founding_member).length,
+    partnerDiscounts: users.filter(u => u.partner_discount_name).length,
   }
 
   if (loading) {
@@ -416,6 +418,10 @@ export default function UsersManagementPage() {
               <div className="rounded-2xl bg-gradient-to-br from-amber-50 to-yellow-50 border border-amber-200/60 shadow-xl ring-1 ring-inset ring-amber-100/60 p-5">
                 <p className="text-xs text-amber-700 mb-1 flex items-center gap-1"><Star className="h-3 w-3" /> Fondateurs</p>
                 <p className="text-2xl font-bold text-amber-600">{stats.foundingMembers}</p>
+              </div>
+              <div className="rounded-2xl bg-gradient-to-br from-emerald-50 to-teal-50 border border-emerald-200/60 shadow-xl ring-1 ring-inset ring-emerald-100/60 p-5">
+                <p className="text-xs text-emerald-700 mb-1 flex items-center gap-1"><Gift className="h-3 w-3" /> Codes partenaires</p>
+                <p className="text-2xl font-bold text-emerald-600">{stats.partnerDiscounts}</p>
               </div>
             </div>
 
@@ -563,6 +569,11 @@ export default function UsersManagementPage() {
                                   {user.is_founding_member && (
                                     <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-gradient-to-r from-amber-400 to-yellow-500 text-white shrink-0 shadow-sm">
                                       <Star className="h-2.5 w-2.5" /> Fondateur
+                                    </span>
+                                  )}
+                                  {user.partner_discount_name && (
+                                    <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-700 shrink-0">
+                                      <Gift className="h-2.5 w-2.5" /> {user.partner_discount_name}
                                     </span>
                                   )}
                                 </div>
@@ -819,6 +830,22 @@ export default function UsersManagementPage() {
                     )}
                   </button>
                 </div>
+
+                {/* Code partenaire */}
+                {selectedUser.partner_discount_name && (
+                  <div>
+                    <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Code partenaire</h4>
+                    <div className="w-full flex items-center gap-2.5 px-4 py-3.5 rounded-xl border border-emerald-200/60 bg-emerald-50">
+                      <div className="flex items-center justify-center h-8 w-8 rounded-full bg-emerald-100 shrink-0">
+                        <Gift className="h-4 w-4 text-emerald-600" />
+                      </div>
+                      <div className="text-left min-w-0">
+                        <p className="text-emerald-800 text-sm font-semibold">{selectedUser.partner_discount_name}</p>
+                        <p className="text-xs font-normal text-emerald-600 truncate">Code {selectedUser.partner_discount_code}</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {/* Actions */}
                 <div>

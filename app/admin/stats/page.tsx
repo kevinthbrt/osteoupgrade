@@ -25,6 +25,7 @@ import {
   Flame,
   LifeBuoy,
   Coins,
+  Gift,
 } from 'lucide-react'
 
 type Series = { date: string; count: number }[]
@@ -37,6 +38,7 @@ type Stats = {
     trial: number
     admin: number
     foundingMembers: number
+    partnerDiscounts: number
     newsletterOptIn: number
     signupsToday: number
     signups7d: number
@@ -379,6 +381,7 @@ export default function AdminStatsPage() {
                     <KpiCard icon={Laptop} label="Essais MyOsteoFlow" value={stats.kpis.trial} iconColor="text-blue-600" iconBg="bg-blue-100"
                       sub={<span className="text-slate-400">en cours (7 jours)</span>} />
                     <KpiCard icon={Star} label="Membres fondateurs" value={stats.kpis.foundingMembers} iconColor="text-amber-600" iconBg="bg-amber-100" />
+                    <KpiCard icon={Gift} label="Codes partenaires" value={stats.kpis.partnerDiscounts} iconColor="text-emerald-600" iconBg="bg-emerald-100" />
                     <KpiCard icon={Mail} label="Opt-in newsletter" value={stats.kpis.newsletterOptIn} iconColor="text-pink-600" iconBg="bg-pink-100"
                       sub={<span className="text-slate-400">{stats.kpis.total > 0 ? Math.round((stats.kpis.newsletterOptIn / stats.kpis.total) * 100) : 0}% des comptes</span>} />
                   </div>

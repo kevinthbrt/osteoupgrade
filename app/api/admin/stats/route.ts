@@ -12,6 +12,7 @@ type ProfileRow = {
   role: string | null
   is_founding_member: boolean | null
   newsletter_opt_in: boolean | null
+  partner_discount_name: string | null
   created_at: string | null
 }
 
@@ -53,7 +54,7 @@ export async function GET() {
     ticketsRes,
   ] = await Promise.all([
     supabaseAdmin.from('profiles')
-      .select('id, email, full_name, role, is_founding_member, newsletter_opt_in, created_at')
+      .select('id, email, full_name, role, is_founding_member, newsletter_opt_in, partner_discount_name, created_at')
       .order('created_at', { ascending: true }),
     supabaseAdmin.from('user_login_tracking').select('user_id, login_date'),
     supabaseAdmin.from('osteoflow_sessions').select('user_id, device_id, device_name, last_active_at, created_at'),
@@ -85,7 +86,7 @@ export async function GET() {
   const since = (n: number) => now.getTime() - ms(n)
 
   // ── Account KPIs ──────────────────────────────────────────────────────────
-  let premium = 0, free = 0, trial = 0, admin = 0, foundingMembers = 0, newsletterOptIn = 0
+  let premium = 0, free = 0, trial = 0, admin = 0, foundingMembers = 0, newsletterOptIn = 0, partnerDiscounts = 0
   let signupsToday = 0, signups7d = 0, signups30d = 0, prevSignups30d = 0
 
   for (const p of profiles) {
@@ -95,6 +96,7 @@ export async function GET() {
     else free++
     if (p.is_founding_member) foundingMembers++
     if (p.newsletter_opt_in) newsletterOptIn++
+    if (p.partner_discount_name) partnerDiscounts++
 
     if (p.created_at) {
       const t = new Date(p.created_at).getTime()
@@ -268,7 +270,7 @@ export async function GET() {
 
   return NextResponse.json({
     kpis: {
-      total, premium, free, trial, admin, foundingMembers, newsletterOptIn,
+      total, premium, free, trial, admin, foundingMembers, partnerDiscounts, newsletterOptIn,
       signupsToday, signups7d, signups30d, prevSignups30d, conversionRate,
       dau, wau, mau, stickiness, activationRate,
     },

@@ -1,11 +1,47 @@
 import { NextResponse } from 'next/server'
 import { headers } from 'next/headers'
-import { stripe, REFERRAL_FREE_MONTH_AMOUNT } from '@/lib/stripe'
+import { stripe, REFERRAL_FREE_MONTH_AMOUNT, PARTNER_PROMO_PURPOSE } from '@/lib/stripe'
 import { supabaseAdmin } from '@/lib/supabase-server'
 import { sendTransactionalEmail } from '@/lib/mailing'
 import { notifyAdmin } from '@/lib/admin-notify'
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!
+
+// 🎓 Détecte si une réduction "partenaire" (ex: -10%/1an pour une formation
+// IFCOPS, générée depuis /admin/partners) est appliquée à l'abonnement — via
+// le champ "Code promo" natif de Stripe Checkout, saisi par l'utilisateur
+// lui-même. Ne renvoie rien si aucun des discounts n'a le metadata attendu
+// (metadata.purpose === PARTNER_PROMO_PURPOSE, posé côté coupon ET code promo
+// à la génération).
+function detectPartnerDiscount(subscription: any): {
+  partner: string
+  code: string
+  percentOff: number | null
+  durationInMonths: number | null
+} | null {
+  const discounts = subscription?.discounts
+  if (!Array.isArray(discounts)) return null
+
+  for (const discount of discounts) {
+    if (typeof discount !== 'object' || !discount) continue
+    const promotionCode = discount.promotion_code
+    const coupon = discount.coupon
+    const promoMeta = typeof promotionCode === 'object' ? promotionCode?.metadata : null
+    const couponMeta = typeof coupon === 'object' ? coupon?.metadata : null
+    const purpose = promoMeta?.purpose || couponMeta?.purpose
+
+    if (purpose === PARTNER_PROMO_PURPOSE) {
+      return {
+        partner: promoMeta?.partner || couponMeta?.partner || 'Partenaire',
+        code: typeof promotionCode === 'object' ? promotionCode?.code || '' : '',
+        percentOff: typeof coupon === 'object' ? coupon?.percent_off ?? null : null,
+        durationInMonths: typeof coupon === 'object' ? coupon?.duration_in_months ?? null : null
+      }
+    }
+  }
+
+  return null
+}
 
 // 🎁 Crédite le mois offert (parrain + filleul) suite à un parrainage validé.
 // Appelé UNIQUEMENT sur un abonnement réellement payé (jamais pendant un essai
@@ -220,7 +256,12 @@ async function handleCheckoutCompleted(session: any) {
 
   if (session.subscription) {
     try {
-      subscription = await stripe.subscriptions.retrieve(session.subscription)
+      // expand des discounts : nécessaire pour détecter un éventuel code
+      // partenaire (ex: IFCOPS) saisi par l'utilisateur dans le champ "Code
+      // promo" natif de Stripe Checkout — voir detectPartnerDiscount ci-dessous.
+      subscription = await stripe.subscriptions.retrieve(session.subscription, {
+        expand: ['discounts.promotion_code', 'discounts.coupon']
+      } as any)
       subscriptionStatus = subscription.status
       if (subscription.trial_end) {
         trialEndsAt = new Date(subscription.trial_end * 1000).toISOString()
@@ -229,6 +270,8 @@ async function handleCheckoutCompleted(session: any) {
       console.error('Error retrieving subscription on checkout completed')
     }
   }
+
+  const partnerDiscount = detectPartnerDiscount(subscription)
 
   // 🚫 ANTI-ABUS ESSAI GRATUIT : une même carte bancaire ne peut déclencher
   // qu'un seul essai, tous comptes confondus. On identifie la carte par son
@@ -316,6 +359,14 @@ async function handleCheckoutCompleted(session: any) {
     updateData.trial_used_at = subscriptionStartDate.toISOString()
   }
 
+  // 🎓 Traçabilité du code partenaire (visible dans /admin/users et
+  // /admin/stats) — la réduction elle-même est déjà appliquée par Stripe,
+  // ces colonnes ne servent qu'à l'affichage admin.
+  if (partnerDiscount) {
+    updateData.partner_discount_name = partnerDiscount.partner
+    updateData.partner_discount_code = partnerDiscount.code
+  }
+
   const { data: updatedProfile, error: updateError } = await supabaseAdmin
     .from('profiles')
     .update(updateData)
@@ -356,6 +407,43 @@ async function handleCheckoutCompleted(session: any) {
       referredEmail: profile.email,
       referredFullName: profile.full_name
     })
+  }
+
+  // 🎓 CODE PARTENAIRE : notifier l'admin (bell) et confirmer par email à
+  // l'utilisateur — la réduction est déjà appliquée par Stripe, ceci ne sert
+  // qu'à la visibilité admin et à la confirmation utilisateur.
+  if (partnerDiscount) {
+    try {
+      await notifyAdmin(
+        'partner_discount',
+        `Code partenaire utilisé : ${partnerDiscount.partner}`,
+        `${profile.full_name || profile.email} a utilisé le code ${partnerDiscount.code} (${partnerDiscount.partner}) — -${partnerDiscount.percentOff ?? '?'}% pendant ${partnerDiscount.durationInMonths ?? '?'} mois.`
+      )
+    } catch (err) {
+      console.error('Error notifying admin of partner discount usage')
+    }
+
+    try {
+      await fetch(`${process.env.NEXT_PUBLIC_URL || 'http://localhost:3000'}/api/automations/trigger`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${process.env.CRON_SECRET}`
+        },
+        body: JSON.stringify({
+          event: 'Code partenaire utilisé',
+          contact_email: profile.email,
+          full_name: profile.full_name,
+          metadata: {
+            partner_name: partnerDiscount.partner,
+            percent_off: String(partnerDiscount.percentOff ?? ''),
+            duration_months: String(partnerDiscount.durationInMonths ?? '')
+          }
+        })
+      })
+    } catch (err) {
+      console.error('Error sending partner discount confirmation email')
+    }
   }
 
   // 🛑 ANNULER la séquence de relance Premium (l'utilisateur vient de souscrire)

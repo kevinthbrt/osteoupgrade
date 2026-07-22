@@ -16,12 +16,35 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: 'Invalid payload' }, { status: 400 })
   }
 
-  const { error } = await supabaseAdmin
+  const { data: updatedProfile, error } = await supabaseAdmin
     .from('profiles')
     .update({ is_founding_member })
     .eq('id', userId)
+    .select('email, full_name')
+    .single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  // 🌟 Confirmer par email uniquement à l'attribution du statut (pas au retrait)
+  if (is_founding_member && updatedProfile?.email) {
+    try {
+      await fetch(`${process.env.NEXT_PUBLIC_URL || 'http://localhost:3000'}/api/automations/trigger`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${process.env.CRON_SECRET}`
+        },
+        body: JSON.stringify({
+          event: 'Membre fondateur activé',
+          contact_email: updatedProfile.email,
+          full_name: updatedProfile.full_name,
+          metadata: {}
+        })
+      })
+    } catch (err) {
+      console.error('Error sending founding member confirmation email')
+    }
+  }
 
   return NextResponse.json({ success: true })
 }
