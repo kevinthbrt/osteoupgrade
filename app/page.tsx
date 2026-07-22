@@ -362,6 +362,7 @@ export default function LandingPage() {
       fullName: 'Institut de Formation Continue pour Ostéopathes et Professionnels de santé',
       desc: 'Formations continues certifiées Qualiopi pour ostéopathes et professionnels de santé.',
       url: 'https://www.ifcops.com/',
+      logo: '/landing/partners/ifcops.svg',
     },
   ]
 
@@ -1340,10 +1341,14 @@ export default function LandingPage() {
                 rel="noopener noreferrer"
                 className="group flex items-center gap-4 rounded-2xl bg-white border border-slate-200 p-5 sm:p-6 hover:shadow-lg hover:-translate-y-0.5 transition-all max-w-md"
               >
-                <div className="relative flex-shrink-0 w-24 h-16 rounded-xl border-2 border-dashed border-slate-300/80 bg-gradient-to-br from-slate-100 to-slate-50 flex items-center justify-center">
-                  <span className="text-[9px] font-semibold uppercase tracking-wider text-slate-400 text-center px-1">
-                    Logo à venir
-                  </span>
+                <div className="relative flex-shrink-0 w-24 h-16 rounded-xl bg-slate-50 flex items-center justify-center p-2">
+                  <Image
+                    src={partner.logo}
+                    alt={`Logo ${partner.name}`}
+                    width={80}
+                    height={48}
+                    className="object-contain w-full h-full"
+                  />
                 </div>
                 <div className="min-w-0">
                   <div className="flex items-center gap-1.5 text-base font-bold text-slate-900">
