@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { headers } from 'next/headers'
-import { stripe, REFERRAL_FREE_MONTH_AMOUNT, PARTNER_PROMO_PURPOSE } from '@/lib/stripe'
+import { stripe, REFERRAL_FREE_MONTH_AMOUNT, PARTNER_PROMO_PURPOSE, STRIPE_PLANS } from '@/lib/stripe'
 import { supabaseAdmin } from '@/lib/supabase-server'
 import { sendTransactionalEmail } from '@/lib/mailing'
 import { notifyAdmin } from '@/lib/admin-notify'
@@ -41,6 +41,30 @@ function detectPartnerDiscount(subscription: any): {
   }
 
   return null
+}
+
+// 📧 Construit les champs de fusion nom/prix/interval pour les emails de
+// bienvenue Premium ("Passage à Premium" / "Essai gratuit démarré").
+// Corrige un bug préexistant : ces champs étaient auparavant codés en dur sur
+// "Premium"/"49,99€"/"mensuel" quelle que soit l'offre réellement souscrite —
+// ce qui affichait un prix faux pour l'offre Fondateur (299,94€/an) et ne
+// reflétait jamais une réduction partenaire active, créant un email de
+// bienvenue contredisant l'email "Code partenaire utilisé" envoyé au même
+// moment (ou l'email "Membre fondateur activé" envoyé plus tôt par l'admin).
+function describePlanPricing(
+  planType: string,
+  partnerDiscount: { partner: string; percentOff: number | null; durationInMonths: number | null } | null
+): { nom: string; prix: string; interval: string } {
+  const plan = STRIPE_PLANS[planType as keyof typeof STRIPE_PLANS]
+  const nom = plan?.name || 'Premium'
+  const interval = plan?.isAnnual ? 'annuel' : 'mensuel'
+  let prix = plan?.displayPrice ? `${plan.displayPrice}${plan.isAnnual ? '/an' : '/mois'}` : '49,99€/mois'
+
+  if (partnerDiscount && partnerDiscount.percentOff) {
+    prix += ` (-${partnerDiscount.percentOff}% pendant ${partnerDiscount.durationInMonths ?? '?'} mois grâce à ${partnerDiscount.partner}, puis retour au tarif normal)`
+  }
+
+  return { nom, prix, interval }
 }
 
 // 🎁 Crédite le mois offert (parrain + filleul) suite à un parrainage validé.
@@ -499,7 +523,7 @@ async function handleCheckoutCompleted(session: any) {
   // (contenu spécifique : MyOsteoflow uniquement, reste verrouillé), sinon
   // "Passage à Premium" classique. La conversion réelle de l'essai déclenche
   // sa propre "Passage à Premium" dans handleSubscriptionUpdated.
-  const displayPrice = '49,99€'
+  const { nom: planNom, prix: planPrix, interval: planInterval } = describePlanPricing(planType, partnerDiscount)
   try {
     await fetch(`${process.env.NEXT_PUBLIC_URL || 'http://localhost:3000'}/api/automations/trigger`, {
       method: 'POST',
@@ -512,9 +536,9 @@ async function handleCheckoutCompleted(session: any) {
         contact_email: profile.email,
         full_name: profile.full_name,
         metadata: {
-          nom: 'Premium',
-          prix: displayPrice,
-          interval: 'mensuel',
+          nom: planNom,
+          prix: planPrix,
+          interval: planInterval,
           date_fact: (trialEndsAt ? new Date(trialEndsAt) : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)).toLocaleDateString('fr-FR'),
           date_fin_essai: trialEndsAt ? new Date(trialEndsAt).toLocaleDateString('fr-FR') : '',
           essai_gratuit: isTrial ? 'true' : 'false',
@@ -657,6 +681,22 @@ async function handleSubscriptionUpdated(subscription: any) {
       console.error('Error retrieving invoice for trial conversion automation')
     }
 
+    // Le code partenaire (si saisi au checkout initial de l'essai) a déjà été
+    // tracé sur le profil dans handleCheckoutCompleted — on le redétecte ici
+    // seulement pour que le prix affiché dans cet email reste cohérent avec
+    // l'email "Code partenaire utilisé" déjà reçu à l'époque.
+    let trialConversionPartnerDiscount: ReturnType<typeof detectPartnerDiscount> = null
+    try {
+      const expandedSub = await stripe.subscriptions.retrieve(subscription.id, {
+        expand: ['discounts.promotion_code', 'discounts.coupon']
+      } as any)
+      trialConversionPartnerDiscount = detectPartnerDiscount(expandedSub)
+    } catch (err) {
+      console.error('Error checking partner discount on trial conversion')
+    }
+    const { nom: trialPlanNom, prix: trialPlanPrix, interval: trialPlanInterval } =
+      describePlanPricing(subscription.metadata?.planType || 'premium_monthly', trialConversionPartnerDiscount)
+
     try {
       await fetch(`${process.env.NEXT_PUBLIC_URL || 'http://localhost:3000'}/api/automations/trigger`, {
         method: 'POST',
@@ -669,9 +709,9 @@ async function handleSubscriptionUpdated(subscription: any) {
           contact_email: profile.email,
           full_name: profile.full_name,
           metadata: {
-            nom: 'Premium',
-            prix: '49,99€',
-            interval: 'mensuel',
+            nom: trialPlanNom,
+            prix: trialPlanPrix,
+            interval: trialPlanInterval,
             date_fact: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString('fr-FR'),
             essai_gratuit: 'true',
             code_parrainage: userReferralCode,
