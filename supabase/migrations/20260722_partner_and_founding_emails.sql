@@ -1,6 +1,11 @@
 -- Email manquant : l'usage d'un code partenaire (ex: IFCOPS -10%/1an) ne
 -- déclenchait aucune confirmation par email à l'utilisateur.
 --
+-- L'ID du template est daaaaaaa-... : la série e1111111...e9999999 est déjà
+-- entièrement occupée en prod (e4444444 = "Rappel - Renouvellement imminent"
+-- notamment), et un INSERT ON CONFLICT DO NOTHING sur un ID pris échoue en
+-- silence, laissant l'étape d'automatisation pointer vers le mauvais template.
+--
 -- Note : le statut Membre Fondateur avait déjà son automatisation dédiée
 -- ("Bienvenue - Membre Fondateur", trigger_event 'Statut Fondateur activé',
 -- appliquée directement en base le 2026-07-01, jamais versionnée dans un
@@ -10,7 +15,7 @@
 
 INSERT INTO mail_templates (id, name, subject, description, html, text)
 VALUES (
-  'e4444444-4444-4444-4444-444444444444',
+  'daaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
   'Confirmation - Code partenaire appliqué',
   'Votre réduction partenaire {{partner_name}} est activée 🎓',
   'Email envoyé quand un utilisateur souscrit avec un code de réduction partenaire (ex: IFCOPS)',
@@ -75,5 +80,5 @@ ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO mail_automation_steps (automation_id, step_order, wait_minutes, subject, template_slug, payload)
 VALUES
-  ('c8888888-8888-8888-8888-888888888888', 1, 0, 'Votre réduction partenaire {{partner_name}} est activée 🎓', 'e4444444-4444-4444-4444-444444444444', '{}')
+  ('c8888888-8888-8888-8888-888888888888', 1, 0, 'Votre réduction partenaire {{partner_name}} est activée 🎓', 'daaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', '{}')
 ON CONFLICT DO NOTHING;
