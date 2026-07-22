@@ -25,7 +25,7 @@ export type TriggerEvent =
   | 'Demande de paiement parrainage'
   | 'Paiement parrainage effectué'
   | 'Code partenaire utilisé'
-  | 'Membre fondateur activé'
+  | 'Statut Fondateur activé'
 
 interface TriggerData {
   contact_id?: string

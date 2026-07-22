@@ -26,6 +26,9 @@ export async function PATCH(request: Request) {
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
   // 🌟 Confirmer par email uniquement à l'attribution du statut (pas au retrait)
+  // Réutilise l'automatisation "Bienvenue - Membre Fondateur" déjà existante
+  // en base (trigger_event: 'Statut Fondateur activé') — créée précédemment
+  // mais jamais déclenchée par le code, faute d'appel ici.
   if (is_founding_member && updatedProfile?.email) {
     try {
       await fetch(`${process.env.NEXT_PUBLIC_URL || 'http://localhost:3000'}/api/automations/trigger`, {
@@ -35,7 +38,7 @@ export async function PATCH(request: Request) {
           'Authorization': `Bearer ${process.env.CRON_SECRET}`
         },
         body: JSON.stringify({
-          event: 'Membre fondateur activé',
+          event: 'Statut Fondateur activé',
           contact_email: updatedProfile.email,
           full_name: updatedProfile.full_name,
           metadata: {}
