@@ -226,6 +226,16 @@ async function processEnrollment(
   }
 }
 
+// Nombre maximum d'enrollments réclamés par automatisation à chaque exécution.
+// Sans cette borne, un backlog (ex: après un précédent timeout) grossit le lot
+// à traiter indéfiniment, ce qui aggrave le risque de timeout au lieu de le résorber.
+const MAX_ENROLLMENTS_PER_AUTOMATION = 200
+
+// Budget de temps interne, avec marge sous maxDuration (280s, voir route.ts).
+// On s'arrête proprement avant que la plateforme ne tue la fonction, pour
+// rendre la main avec un résultat partiel plutôt que d'échouer en plein lot.
+const TIME_BUDGET_MS = 240_000
+
 // Processeur principal
 export async function processAutomations(): Promise<{
   processed: number
@@ -233,6 +243,9 @@ export async function processAutomations(): Promise<{
   errors: number
 }> {
   console.log('🚀 Starting automation processor...')
+
+  const startedAt = Date.now()
+  const hasTimeLeft = () => Date.now() - startedAt < TIME_BUDGET_MS
 
   let processed = 0
   let sent = 0
@@ -290,6 +303,34 @@ export async function processAutomations(): Promise<{
 
     // Pour chaque automatisation
     for (const automation of automations) {
+      if (!hasTimeLeft()) {
+        console.warn('⏱️ Time budget exhausted, stopping before next automation. Remaining enrollments will be picked up on the next run.')
+        break
+      }
+
+      // ── Sélection bornée des candidats ──────────────────────────────────────
+      // On plafonne le nombre d'enrollments traités par automatisation à chaque
+      // exécution : sans cette borne, un backlog (ex: après un précédent timeout)
+      // ferait grossir le lot indéfiniment et aggraverait le risque de timeout
+      // au lieu de le résorber. Triés par ancienneté pour un traitement FIFO.
+      const { data: candidateIds, error: candidatesError } = await supabase
+        .from('mail_automation_enrollments')
+        .select('id')
+        .eq('automation_id', automation.id)
+        .eq('status', 'pending')
+        .order('created_at', { ascending: true })
+        .limit(MAX_ENROLLMENTS_PER_AUTOMATION)
+
+      if (candidatesError) {
+        console.error(`Error selecting candidate enrollments for automation ${automation.id}:`, candidatesError)
+        errors++
+        continue
+      }
+
+      if (!candidateIds || candidateIds.length === 0) {
+        continue
+      }
+
       // ── Claim atomique ──────────────────────────────────────────────────────
       // On fait un UPDATE status='processing' WHERE status='pending' en une seule
       // opération SQL. Postgres verrouille chaque ligne pendant l'UPDATE, garantissant
@@ -300,7 +341,7 @@ export async function processAutomations(): Promise<{
       const { data: enrollments, error: enrollmentsError } = await supabase
         .from('mail_automation_enrollments')
         .update({ status: 'processing', claimed_at: new Date().toISOString() })
-        .eq('automation_id', automation.id)
+        .in('id', candidateIds.map(c => c.id))
         .eq('status', 'pending')
         .select(`
           id,
@@ -337,7 +378,25 @@ export async function processAutomations(): Promise<{
       const steps = (automation.steps || []).sort((a, b) => a.step_order - b.step_order)
 
       // Traiter chaque inscription
-      for (const enrollment of enrollments) {
+      for (let i = 0; i < enrollments.length; i++) {
+        if (!hasTimeLeft()) {
+          // On rend la main proprement : les enrollments restants de CE lot sont
+          // encore verrouillés en 'processing' par le claim ci-dessus, on les
+          // restitue explicitement à 'pending' plutôt que d'attendre les 15
+          // minutes de la récupération des claims orphelins.
+          const remainingIds = enrollments.slice(i).map(e => e.id)
+          console.warn(`⏱️ Time budget exhausted mid-batch for automation "${automation.name}", releasing ${remainingIds.length} remaining enrollment(s) back to pending.`)
+          const { error: releaseError } = await supabase
+            .from('mail_automation_enrollments')
+            .update({ status: 'pending' })
+            .in('id', remainingIds)
+          if (releaseError) {
+            console.error('Error releasing remaining enrollments back to pending:', releaseError)
+          }
+          break
+        }
+
+        const enrollment = enrollments[i]
         processed++
 
         // Vérifier que le contact existe et est abonné
