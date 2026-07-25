@@ -27,3 +27,15 @@ SET
   ),
   updated_at = now()
 WHERE name = 'Confirmation - Essai gratuit MyOsteoflow';
+
+-- L'email de fin d'essai évoquait un possible refus du moyen de paiement.
+-- Sans carte enregistrée, ce cas n'existe plus : l'essai se termine, point.
+UPDATE mail_templates
+SET
+  html = replace(
+    html,
+    '<strong>Aucun prélèvement n&apos;a été effectué</strong> (ou votre moyen de paiement a été refusé lors de la tentative de premier prélèvement).',
+    '<strong>Aucun prélèvement n&apos;a été effectué</strong> — l&apos;essai gratuit ne demande aucune carte bancaire.'
+  ),
+  updated_at = now()
+WHERE name = 'Notification - Essai gratuit annulé';
