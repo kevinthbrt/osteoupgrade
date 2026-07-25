@@ -134,9 +134,12 @@ export async function POST(request: Request) {
     // abonnement payant passé — y compris résilié depuis, ce qui remet le
     // rôle à 'free' sans effacer subscription_start_date), et jamais aux
     // membres fondateurs (déjà sur une offre à -50% à vie, pas de raison de
-    // cumuler avec un essai gratuit). La carte est exigée dès la souscription
-    // (payment_method_collection: 'always') et sera prélevée automatiquement
-    // à la fin de l'essai, sauf annulation.
+    // cumuler avec un essai gratuit). AUCUNE carte n'est demandée pour
+    // démarrer l'essai : exiger la carte à cette étape faisait décrocher la
+    // quasi-totalité des inscrits. À l'issue des 7 jours, faute de moyen de
+    // paiement, Stripe annule l'abonnement (trial_settings.end_behavior)
+    // au lieu d'émettre une facture impayée — le compte retombe simplement
+    // en 'free' via customer.subscription.deleted.
     const { data: trialProfile } = await supabase
       .from('profiles')
       .select('role, trial_used_at, subscription_start_date, is_founding_member')
@@ -173,7 +176,7 @@ export async function POST(request: Request) {
         }
       ],
       mode: 'subscription',
-      payment_method_collection: isEligibleForTrial ? 'always' : 'if_required',
+      payment_method_collection: 'if_required',
       success_url: `${process.env.NEXT_PUBLIC_URL || 'http://localhost:3000'}/dashboard?success=true`,
       cancel_url: `${process.env.NEXT_PUBLIC_URL || 'http://localhost:3000'}/dashboard?cancelled=true`,
       metadata: {
@@ -186,7 +189,17 @@ export async function POST(request: Request) {
         is_trial: isEligibleForTrial ? 'true' : 'false'
       },
       subscription_data: {
-        ...(isEligibleForTrial ? { trial_period_days: FREE_TRIAL_DAYS } : {}),
+        ...(isEligibleForTrial
+          ? {
+              trial_period_days: FREE_TRIAL_DAYS,
+              // Sans carte enregistrée, on annule l'abonnement à la fin de
+              // l'essai plutôt que de créer une facture impayée qui laisserait
+              // le compte en 'past_due' avec un accès ambigu.
+              trial_settings: {
+                end_behavior: { missing_payment_method: 'cancel' as const }
+              }
+            }
+          : {}),
         metadata: {
           userId,
           planType: plan.planType || planType,

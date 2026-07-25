@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase-server'
 import { createClient } from '@supabase/supabase-js'
 import { rateLimit } from '@/lib/rate-limit'
+import { notifyAdmin } from '@/lib/admin-notify'
 import crypto from 'crypto'
 
 const SESSION_DURATION_MS = 30 * 24 * 60 * 60 * 1000
@@ -67,6 +68,49 @@ export async function POST(request: Request) {
         { error: 'Un abonnement Premium Osteoupgrade est requis pour utiliser MyOsteoFlow.', code: 'NOT_PREMIUM' },
         { status: 403, headers: CORS }
       )
+    }
+
+    // 🚫 ANTI-ABUS ESSAI GRATUIT : un poste ne peut bénéficier que d'un seul
+    // essai, tous comptes confondus. L'essai ne demandant plus de carte, c'est
+    // le device_id qui sert d'ancrage — il vit dans la même base SQLite locale
+    // que les dossiers patients, donc en obtenir un nouveau impose d'effacer
+    // les données que l'utilisateur cherche justement à conserver.
+    // Les comptes premium/admin ne sont jamais concernés.
+    if (profile.role === 'trial') {
+      const { data: existingClaim } = await supabaseAdmin
+        .from('trial_device_claims')
+        .select('user_id')
+        .eq('device_id', device_id)
+        .maybeSingle()
+
+      if (existingClaim && existingClaim.user_id !== userId) {
+        console.warn('⚠️ Trial abuse detected: device already used for a trial', {
+          deviceId: device_id,
+          previousUserId: existingClaim.user_id,
+          currentUserId: userId,
+        })
+
+        await notifyAdmin(
+          'other',
+          'Essai gratuit bloqué (poste déjà utilisé)',
+          `${email} a tenté un essai sur un poste ayant déjà bénéficié d'un essai (compte ${existingClaim.user_id}).`
+        )
+
+        return NextResponse.json(
+          {
+            error:
+              "Cet ordinateur a déjà bénéficié d'un essai gratuit MyOsteoFlow. Souscrivez un abonnement pour continuer, ou contactez-nous si vous pensez qu'il s'agit d'une erreur.",
+            code: 'TRIAL_DEVICE_ALREADY_USED',
+          },
+          { status: 403, headers: CORS }
+        )
+      }
+
+      if (!existingClaim) {
+        await supabaseAdmin
+          .from('trial_device_claims')
+          .upsert({ device_id, user_id: userId }, { onConflict: 'device_id', ignoreDuplicates: true })
+      }
     }
 
     const token = crypto.randomBytes(32).toString('hex')

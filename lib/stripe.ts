@@ -51,7 +51,9 @@ export const PARTNER_PROMO_PURPOSE = 'partner_discount'
 export const REFERRAL_FREE_MONTH_AMOUNT = STRIPE_PLANS.premium_monthly.amount
 
 // Durée de l'essai gratuit offert aux comptes free lors de leur premier
-// abonnement (carte requise dès l'inscription, conversion automatique en
-// abonnement payant à l'issue de l'essai sauf annulation). Un seul essai par
-// compte (voir profiles.trial_used_at).
+// abonnement. Aucune carte n'est demandée pour démarrer : à l'issue de l'essai,
+// faute de moyen de paiement, Stripe annule l'abonnement et le compte retombe
+// en 'free' (voir trial_settings.end_behavior dans /api/stripe/checkout).
+// Un seul essai par compte (voir profiles.trial_used_at) et un seul par poste
+// MyOsteoFlow (voir la table trial_device_claims).
 export const FREE_TRIAL_DAYS = 7

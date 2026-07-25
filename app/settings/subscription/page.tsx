@@ -565,7 +565,7 @@ function SubscriptionContent() {
                   {isTrialEligible && (
                     <div className="bg-blue-600/90 backdrop-blur-sm rounded-lg p-4 border-2 border-blue-300 flex items-center gap-3">
                       <Gift className="h-5 w-5 flex-shrink-0 text-white" />
-                      <p className="text-sm text-white font-semibold">7 jours d'essai gratuit sur MyOsteoFlow (logiciel de cabinet), carte requise à l'inscription. Le reste du contenu Premium (cours, OsteoFlash…) se débloque à la conversion. Annulable à tout moment avant la fin de l'essai.</p>
+                      <p className="text-sm text-white font-semibold">7 jours d'essai gratuit sur MyOsteoFlow (logiciel de cabinet), sans carte bancaire. Le reste du contenu Premium (cours, OsteoFlash…) se débloque à la conversion. L'essai s'arrête tout seul à son terme : aucun prélèvement sans votre accord.</p>
                     </div>
                   )}
                   <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4">
@@ -650,7 +650,7 @@ function SubscriptionContent() {
           <div className="space-y-2 text-sm text-gray-700">
             <p>✅ Paiement sécurisé via Stripe</p>
             {isTrialEligible && (
-              <p>✅ <strong>7 jours d'essai gratuit sur MyOsteoFlow</strong> à la première souscription : carte requise, débitée automatiquement à la fin de l'essai sauf annulation. Le reste du contenu Premium reste verrouillé pendant l'essai.</p>
+              <p>✅ <strong>7 jours d'essai gratuit sur MyOsteoFlow</strong> à la première souscription : sans carte bancaire, sans prélèvement automatique. L'essai prend fin de lui-même à son terme, et le reste du contenu Premium reste verrouillé pendant l'essai.</p>
             )}
             <p>✅ <strong>49,99€/mois, sans engagement</strong> : prélevé automatiquement chaque mois, annulable à tout moment</p>
             <p>✅ Renouvellement automatique (désactivable depuis votre compte)</p>

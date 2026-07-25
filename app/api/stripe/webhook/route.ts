@@ -315,9 +315,11 @@ async function handleCheckoutCompleted(session: any) {
     ? await fetchPartnerDiscount(session.subscription)
     : null
 
-  // 🚫 ANTI-ABUS ESSAI GRATUIT : une même carte bancaire ne peut déclencher
-  // qu'un seul essai, tous comptes confondus. On identifie la carte par son
-  // fingerprint Stripe (stable même à travers plusieurs Customer différents).
+  // 🚫 ANTI-ABUS ESSAI GRATUIT (filet secondaire) : l'essai ne demandant plus
+  // de carte, ce bloc ne se déclenche plus que si un moyen de paiement est
+  // malgré tout rattaché à l'abonnement d'essai. Le verrou principal est
+  // désormais posé par poste MyOsteoFlow dans /api/osteoflow/auth (voir la
+  // table trial_device_claims).
   // Si la carte a déjà servi à un essai sur un autre compte, on met fin à
   // l'essai immédiatement (le premier prélèvement a lieu tout de suite au
   // lieu d'être différé de 7 jours) plutôt que de bloquer la souscription.

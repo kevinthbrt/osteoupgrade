@@ -181,11 +181,11 @@ export default function CGUPage() {
                 </p>
               </div>
               <ul className="list-disc list-inside space-y-2 text-gray-700 mt-3 ml-4">
-                <li>Une carte bancaire valide est requise pour démarrer l&apos;essai, dès la souscription</li>
+                <li><strong>Aucune carte bancaire n&apos;est requise</strong> pour démarrer l&apos;essai</li>
                 <li>Aucun prélèvement n&apos;est effectué pendant les 7 jours de l&apos;essai</li>
-                <li>À l&apos;issue de l&apos;essai, l&apos;abonnement se convertit <strong>automatiquement</strong> en abonnement Premium payant (49,99 €/mois) et le premier prélèvement est effectué, <strong>sauf résiliation avant la fin de l&apos;essai</strong></li>
-                <li>La résiliation pendant l&apos;essai s&apos;effectue selon les mêmes modalités que la résiliation d&apos;un abonnement (Article 6.1) et n&apos;entraîne aucun frais</li>
-                <li>L&apos;essai gratuit est limité à une utilisation unique par Utilisateur et par moyen de paiement ; OsteoUpgrade se réserve le droit de refuser ou d&apos;interrompre un essai en cas de tentative d&apos;utilisation abusive ou répétée (comptes multiples, moyen de paiement déjà utilisé pour un essai précédent, etc.)</li>
+                <li>À l&apos;issue de l&apos;essai, l&apos;accès à MyOsteoflow prend fin automatiquement et le Compte redevient un Compte Gratuit. <strong>Aucune conversion ni aucun prélèvement automatique n&apos;a lieu</strong> : la souscription d&apos;un abonnement Premium payant (49,99 €/mois) relève d&apos;une démarche volontaire de l&apos;Utilisateur</li>
+                <li>L&apos;Utilisateur peut interrompre son essai à tout moment ; l&apos;essai n&apos;entraîne aucun frais ni aucune obligation d&apos;achat</li>
+                <li>L&apos;essai gratuit est limité à une utilisation unique par Utilisateur et par poste de travail sur lequel MyOsteoflow est installé ; OsteoUpgrade se réserve le droit de refuser ou d&apos;interrompre un essai en cas de tentative d&apos;utilisation abusive ou répétée (comptes multiples, poste ayant déjà bénéficié d&apos;un essai précédent, etc.)</li>
                 <li>Le Programme Ambassadeur (Article 9) ne s&apos;applique pas pendant la période d&apos;essai ; la récompense de parrainage n&apos;est créditée qu&apos;à la conversion effective en abonnement payant</li>
                 <li>L&apos;essai gratuit n&apos;est pas proposé aux comptes bénéficiant du statut Membre Fondateur (offre à -50 % à vie, voir Article 5.1), qui accèdent directement à l&apos;abonnement payant</li>
               </ul>

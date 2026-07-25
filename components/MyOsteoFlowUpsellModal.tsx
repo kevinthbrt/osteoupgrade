@@ -78,7 +78,7 @@ export default function MyOsteoFlowUpsellModal({
             <div className="mb-5 rounded-xl bg-emerald-50 border border-emerald-200 px-4 py-3 flex items-start gap-3">
               <Crown className="h-5 w-5 text-emerald-600 shrink-0 mt-0.5" />
               <p className="text-sm text-emerald-900">
-                <strong>Testez MyOsteoFlow gratuitement pendant 7 jours</strong> (carte requise, annulable à tout moment).
+                <strong>Testez MyOsteoFlow gratuitement pendant 7 jours</strong> (sans carte bancaire, sans engagement).
                 Le reste du contenu Premium (cours, OsteoFlash…) reste réservé à l&apos;abonnement complet.
               </p>
             </div>

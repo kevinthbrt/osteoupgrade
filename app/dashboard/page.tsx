@@ -250,7 +250,7 @@ export default function Dashboard() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="font-bold text-white">Essayez MyOsteoFlow gratuitement 7 jours</p>
-                  <p className="text-emerald-50/90 text-sm mt-0.5">Carte requise, annulable à tout moment. Débloquez ensuite tout OsteoUpgrade à 49,99€/mois, sans engagement.</p>
+                  <p className="text-emerald-50/90 text-sm mt-0.5">Sans carte bancaire, sans engagement. Débloquez ensuite tout OsteoUpgrade à 49,99€/mois.</p>
                 </div>
                 <button onClick={() => router.push('/settings/subscription')} className="flex-shrink-0 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white text-emerald-700 text-sm font-bold hover:bg-emerald-50 transition-colors shadow-md">
                   Essayer gratuitement <ArrowRight className="h-4 w-4" />
@@ -288,8 +288,8 @@ export default function Dashboard() {
                   <p className="font-bold text-white">Essai MyOsteoFlow en cours</p>
                   <p className="text-blue-50/90 text-sm mt-0.5">
                     {profile?.trial_ends_at
-                      ? <>Jusqu&apos;au {new Date(profile.trial_ends_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })} — passé cette date, votre carte sera débitée de 49,99€/mois sauf annulation.</>
-                      : <>Votre carte sera débitée de 49,99€/mois à la fin de l&apos;essai, sauf annulation.</>}
+                      ? <>Jusqu&apos;au {new Date(profile.trial_ends_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })} — à cette date l&apos;essai prend fin. Souscrivez pour garder MyOsteoFlow et débloquer tout OsteoUpgrade à 49,99€/mois.</>
+                      : <>À la fin de l&apos;essai, souscrivez pour garder MyOsteoFlow et débloquer tout OsteoUpgrade à 49,99€/mois.</>}
                   </p>
                 </div>
                 <button onClick={() => router.push('/settings/subscription')} className="flex-shrink-0 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white text-blue-700 text-sm font-bold hover:bg-blue-50 transition-colors shadow-md">
