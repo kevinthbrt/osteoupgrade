@@ -11,9 +11,18 @@ type ProfileRow = {
   full_name: string | null
   role: string | null
   is_founding_member: boolean | null
+  is_complimentary: boolean | null
   newsletter_opt_in: boolean | null
   partner_discount_name: string | null
   created_at: string | null
+}
+
+// Un compte "offert" a bien le rôle premium en base (il en garde tous les accès),
+// mais ne paie rien : on l'affiche comme tel partout dans les stats pour ne pas
+// le confondre avec un abonné.
+function effectiveRole(p: { role: string | null; is_complimentary?: boolean | null } | undefined): string | null {
+  if (!p) return null
+  return p.is_complimentary ? 'complimentary' : p.role
 }
 
 function dayKey(d: Date): string {
@@ -54,7 +63,7 @@ export async function GET() {
     ticketsRes,
   ] = await Promise.all([
     supabaseAdmin.from('profiles')
-      .select('id, email, full_name, role, is_founding_member, newsletter_opt_in, partner_discount_name, created_at')
+      .select('id, email, full_name, role, is_founding_member, is_complimentary, newsletter_opt_in, partner_discount_name, created_at')
       .order('created_at', { ascending: true }),
     supabaseAdmin.from('user_login_tracking').select('user_id, login_date'),
     supabaseAdmin.from('osteoflow_sessions').select('user_id, device_id, device_name, last_active_at, created_at'),
@@ -86,11 +95,15 @@ export async function GET() {
   const since = (n: number) => now.getTime() - ms(n)
 
   // ── Account KPIs ──────────────────────────────────────────────────────────
-  let premium = 0, free = 0, trial = 0, admin = 0, foundingMembers = 0, newsletterOptIn = 0, partnerDiscounts = 0
+  let premium = 0, free = 0, trial = 0, admin = 0, complimentary = 0
+  let foundingMembers = 0, newsletterOptIn = 0, partnerDiscounts = 0
   let signupsToday = 0, signups7d = 0, signups30d = 0, prevSignups30d = 0
 
   for (const p of profiles) {
-    if (p.role === 'premium') premium++
+    // Les comptes offerts sont sortis des buckets d'abonnement : ils ne paient pas,
+    // les compter en premium fausserait le CA implicite et la conversion.
+    if (p.is_complimentary) complimentary++
+    else if (p.role === 'premium') premium++
     else if (p.role === 'admin') admin++
     else if (p.role === 'trial') trial++
     else free++
@@ -112,6 +125,9 @@ export async function GET() {
   // vraie visibilité sur le funnel d'essai, mais inclus dans le dénominateur
   // "non-admin" au même titre que free/premium (ce sont des comptes actifs
   // n'ayant pas encore payé).
+  // Les comptes offerts en sont exclus, comme les admins : ils ne sont ni des
+  // prospects à convertir, ni des abonnés — les inclure ne ferait que diluer
+  // le taux de conversion.
   const nonAdmin = free + trial + premium
   const conversionRate = nonAdmin > 0 ? Math.round((premium / nonAdmin) * 1000) / 10 : 0
 
@@ -190,7 +206,7 @@ export async function GET() {
         platform: normalizePlatform(s.device_name),
         full_name: p?.full_name ?? null,
         email: p?.email ?? null,
-        role: p?.role ?? null,
+        role: effectiveRole(p),
         last_active_at: s.last_active_at,
         created_at: s.created_at,
       }
@@ -265,12 +281,13 @@ export async function GET() {
 
   // ── Recent signups ────────────────────────────────────────────────────────
   const recent = [...profiles].reverse().slice(0, 8).map(p => ({
-    id: p.id, email: p.email, full_name: p.full_name, role: p.role, created_at: p.created_at,
+    id: p.id, email: p.email, full_name: p.full_name, role: effectiveRole(p), created_at: p.created_at,
   }))
 
   return NextResponse.json({
     kpis: {
-      total, premium, free, trial, admin, foundingMembers, partnerDiscounts, newsletterOptIn,
+      total, premium, free, trial, admin, complimentary,
+      foundingMembers, partnerDiscounts, newsletterOptIn,
       signupsToday, signups7d, signups30d, prevSignups30d, conversionRate,
       dau, wau, mau, stickiness, activationRate,
     },

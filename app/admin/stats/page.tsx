@@ -26,6 +26,7 @@ import {
   LifeBuoy,
   Coins,
   Gift,
+  HeartHandshake,
 } from 'lucide-react'
 
 type Series = { date: string; count: number }[]
@@ -37,6 +38,7 @@ type Stats = {
     free: number
     trial: number
     admin: number
+    complimentary: number
     foundingMembers: number
     partnerDiscounts: number
     newsletterOptIn: number
@@ -380,6 +382,10 @@ export default function AdminStatsPage() {
                       sub={<span className="text-slate-400">{stats.kpis.conversionRate}% de conversion</span>} />
                     <KpiCard icon={Laptop} label="Essais MyOsteoFlow" value={stats.kpis.trial} iconColor="text-blue-600" iconBg="bg-blue-100"
                       sub={<span className="text-slate-400">en cours (7 jours)</span>} />
+                    {stats.kpis.complimentary > 0 && (
+                      <KpiCard icon={HeartHandshake} label="Comptes offerts" value={stats.kpis.complimentary} iconColor="text-teal-600" iconBg="bg-teal-100"
+                        sub={<span className="text-slate-400">hors premium &amp; conversion</span>} />
+                    )}
                     <KpiCard icon={Star} label="Membres fondateurs" value={stats.kpis.foundingMembers} iconColor="text-amber-600" iconBg="bg-amber-100" />
                     <KpiCard icon={Gift} label="Codes partenaires" value={stats.kpis.partnerDiscounts} iconColor="text-emerald-600" iconBg="bg-emerald-100" />
                     <KpiCard icon={Mail} label="Opt-in newsletter" value={stats.kpis.newsletterOptIn} iconColor="text-pink-600" iconBg="bg-pink-100"
@@ -451,14 +457,13 @@ export default function AdminStatsPage() {
                         {stats.osteoflow.recentDevices.map((d, i) => {
                           const name = d.full_name || d.email || 'Utilisateur inconnu'
                           const initial = name.charAt(0).toUpperCase()
-                          const avatarBg = d.role === 'premium' ? 'bg-yellow-500' : d.role === 'admin' ? 'bg-purple-600' : d.role === 'trial' ? 'bg-blue-500' : 'bg-slate-400'
                           return (
                             <div
                               key={i}
                               className="flex items-center gap-3 py-2.5"
                               title={`${name}${d.email ? ` (${d.email})` : ''}\nPlateforme : ${d.platform}\nInstallé le ${fmtDateTime(d.created_at)}\nDernière activité : ${fmtDateTime(d.last_active_at)}`}
                             >
-                              <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-white text-xs font-bold ${avatarBg}`}>
+                              <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-white text-xs font-bold ${avatarBg(d.role)}`}>
                                 {initial}
                               </div>
                               <div className="flex-1 min-w-0">
@@ -559,11 +564,14 @@ export default function AdminStatsPage() {
                       <p className="px-5 py-6 text-sm text-slate-500">Aucune inscription récente.</p>
                     ) : stats.recent.map((u, i) => (
                       <div key={u.id} className={`flex items-center gap-3 px-5 py-3 ${i < stats.recent.length - 1 ? 'border-b border-slate-100/80' : ''}`}>
-                        <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-white text-xs font-bold ${u.role === 'premium' ? 'bg-yellow-500' : u.role === 'admin' ? 'bg-purple-600' : u.role === 'trial' ? 'bg-blue-500' : 'bg-slate-400'}`}>
+                        <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-white text-xs font-bold ${avatarBg(u.role)}`}>
                           {(u.full_name || u.email || '?').charAt(0).toUpperCase()}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold text-slate-900 truncate">{u.full_name || u.email || 'Utilisateur'}</p>
+                          <div className="flex items-center gap-1.5">
+                            <p className="text-sm font-semibold text-slate-900 truncate">{u.full_name || u.email || 'Utilisateur'}</p>
+                            {u.role && <RoleBadge role={u.role} />}
+                          </div>
                           {u.full_name && <p className="text-xs text-slate-500 truncate">{u.email}</p>}
                         </div>
                         <span className="text-xs text-slate-400 shrink-0">{relativeDate(u.created_at)}</span>
@@ -591,9 +599,18 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
   )
 }
 
+function avatarBg(role: string | null): string {
+  if (role === 'premium') return 'bg-yellow-500'
+  if (role === 'complimentary') return 'bg-teal-500'
+  if (role === 'admin') return 'bg-purple-600'
+  if (role === 'trial') return 'bg-blue-500'
+  return 'bg-slate-400'
+}
+
 function RoleBadge({ role }: { role: string }) {
   const map: Record<string, { label: string; cls: string }> = {
     premium: { label: 'Premium', cls: 'bg-yellow-100 text-yellow-700' },
+    complimentary: { label: 'Offert', cls: 'bg-teal-100 text-teal-700' },
     admin: { label: 'Admin', cls: 'bg-purple-100 text-purple-700' },
     trial: { label: 'Essai', cls: 'bg-blue-100 text-blue-700' },
     free: { label: 'Gratuit', cls: 'bg-slate-100 text-slate-500' },

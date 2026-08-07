@@ -20,7 +20,8 @@ import {
   X,
   Mail,
   Star,
-  Gift
+  Gift,
+  HeartHandshake
 } from 'lucide-react'
 
 // ── helpers ────────────────────────────────────────────────────────────────
@@ -105,6 +106,7 @@ export default function UsersManagementPage() {
   const [editRole, setEditRole] = useState('')
   const [saving, setSaving] = useState(false)
   const [savingFounder, setSavingFounder] = useState(false)
+  const [savingComplimentary, setSavingComplimentary] = useState(false)
 
   useEffect(() => {
     checkAdminAccess()
@@ -280,6 +282,29 @@ export default function UsersManagementPage() {
     }
   }
 
+  const handleToggleComplimentary = async () => {
+    if (!selectedUser) return
+    setSavingComplimentary(true)
+    const newValue = !selectedUser.is_complimentary
+    try {
+      const res = await fetch('/api/admin/toggle-complimentary', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: selectedUser.id, is_complimentary: newValue })
+      })
+      if (!res.ok) {
+        const json = await res.json()
+        throw new Error(json.error || 'Erreur inconnue')
+      }
+      setUsers(prev => prev.map(u => u.id === selectedUser.id ? { ...u, is_complimentary: newValue } : u))
+      setSelectedUser((prev: any) => ({ ...prev, is_complimentary: newValue }))
+    } catch (error: any) {
+      alert('Erreur : ' + error.message)
+    } finally {
+      setSavingComplimentary(false)
+    }
+  }
+
   const exportToCSV = () => {
     const csv = [
       ['Email', 'Nom', 'Rôle', 'Niveau', 'XP', 'Streak', 'Dernière connexion', 'Inscription'].join(','),
@@ -310,7 +335,9 @@ export default function UsersManagementPage() {
     total: users.length,
     free: users.filter(u => u.role === 'free').length,
     trial: users.filter(u => u.role === 'trial').length,
-    premium: users.filter(u => u.role === 'premium').length,
+    // Aligné sur /admin/stats : les comptes offerts ne comptent pas comme premium.
+    premium: users.filter(u => u.role === 'premium' && !u.is_complimentary).length,
+    complimentary: users.filter(u => u.is_complimentary).length,
     admin: users.filter(u => u.role === 'admin').length,
     canceled: users.filter(u => u.subscription_status === 'canceled').length,
     newsletterOptIn: users.filter(u => u.newsletter_opt_in).length,
@@ -398,6 +425,9 @@ export default function UsersManagementPage() {
               <div className="rounded-2xl bg-white/85 backdrop-blur-2xl border border-white/70 shadow-xl ring-1 ring-inset ring-white/60 p-5">
                 <p className="text-xs text-slate-500 mb-1">Premium</p>
                 <p className="text-2xl font-bold text-yellow-600">{stats.premium}</p>
+                {stats.complimentary > 0 && (
+                  <p className="text-[11px] text-teal-600 mt-0.5">+{stats.complimentary} offert{stats.complimentary > 1 ? 's' : ''}</p>
+                )}
               </div>
               <div className="rounded-2xl bg-white/85 backdrop-blur-2xl border border-white/70 shadow-xl ring-1 ring-inset ring-white/60 p-5">
                 <p className="text-xs text-slate-500 mb-1">Essai MyOsteoFlow</p>
@@ -574,6 +604,11 @@ export default function UsersManagementPage() {
                                   {user.partner_discount_name && (
                                     <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-700 shrink-0">
                                       <Gift className="h-2.5 w-2.5" /> {user.partner_discount_name}
+                                    </span>
+                                  )}
+                                  {user.is_complimentary && (
+                                    <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-teal-100 text-teal-700 shrink-0">
+                                      <HeartHandshake className="h-2.5 w-2.5" /> Offert
                                     </span>
                                   )}
                                 </div>
@@ -826,6 +861,41 @@ export default function UsersManagementPage() {
                     ) : (
                       <div className={`h-5 w-9 rounded-full transition-all ${selectedUser.is_founding_member ? 'bg-white/30' : 'bg-amber-200'} relative`}>
                         <div className={`absolute top-0.5 h-4 w-4 rounded-full transition-all ${selectedUser.is_founding_member ? 'left-4 bg-white' : 'left-0.5 bg-amber-400'}`} />
+                      </div>
+                    )}
+                  </button>
+                </div>
+
+                {/* Compte offert — accès accordé à la main, sans facturation */}
+                <div>
+                  <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Facturation</h4>
+                  <button
+                    onClick={handleToggleComplimentary}
+                    disabled={savingComplimentary}
+                    className={`w-full inline-flex items-center justify-between px-4 py-3.5 rounded-xl border text-sm font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
+                      selectedUser.is_complimentary
+                        ? 'bg-gradient-to-r from-teal-500 to-emerald-500 border-teal-300 text-white shadow-lg shadow-teal-200/50'
+                        : 'bg-white/70 backdrop-blur-sm border-teal-200/60 text-teal-700 hover:bg-teal-50'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <div className={`flex items-center justify-center h-8 w-8 rounded-full ${selectedUser.is_complimentary ? 'bg-white/25' : 'bg-teal-100'}`}>
+                        <HeartHandshake className={`h-4 w-4 ${selectedUser.is_complimentary ? 'text-white' : 'text-teal-500'}`} />
+                      </div>
+                      <div className="text-left">
+                        <p className={selectedUser.is_complimentary ? 'text-white' : 'text-teal-800'}>Compte offert</p>
+                        <p className={`text-xs font-normal ${selectedUser.is_complimentary ? 'text-white/70' : 'text-teal-500'}`}>
+                          {selectedUser.is_complimentary
+                            ? 'Exclu des KPI premium et du taux de conversion'
+                            : 'Garde ses accès, mais sort des stats premium'}
+                        </p>
+                      </div>
+                    </div>
+                    {savingComplimentary ? (
+                      <div className="h-4 w-4 rounded-full border-2 border-current border-t-transparent animate-spin" />
+                    ) : (
+                      <div className={`h-5 w-9 rounded-full transition-all ${selectedUser.is_complimentary ? 'bg-white/30' : 'bg-teal-200'} relative`}>
+                        <div className={`absolute top-0.5 h-4 w-4 rounded-full transition-all ${selectedUser.is_complimentary ? 'left-4 bg-white' : 'left-0.5 bg-teal-400'}`} />
                       </div>
                     )}
                   </button>
