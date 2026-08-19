@@ -425,6 +425,12 @@ conversion d'un essai. `Passage à Premium` est conservé pour le bundle : cet
 - [x] Contrôle : MRR recalculé en SQL sur les données réelles, identique au
       code (199,97 € — 3 abonnés au tarif public, 2 fondateurs mensualisés,
       1 compte offert et 1 essai exclus)
+- [x] `api/admin/stripe-portal-setup` + bouton dans `/admin` : génère les deux
+      configurations du portail client depuis l'application, qui dispose déjà
+      de la clé Stripe. Remplace `scripts/setup-portal-configs.ts`, qui
+      imposait de manipuler une clé live dans un terminal. Le dashboard Stripe
+      ne sait éditer que la configuration par défaut : impossible d'y créer la
+      seconde grille, celle des tarifs fondateur.
 
 **Reste à faire**
 
