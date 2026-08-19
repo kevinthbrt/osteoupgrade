@@ -40,6 +40,7 @@ import {
   Volume2,
   VolumeX,
 } from 'lucide-react'
+import { OFFERS, formatAmount, BUNDLE_SAVING } from '@/lib/offers'
 
 // Hook for scroll-triggered animations
 function useScrollReveal() {
@@ -1170,14 +1171,15 @@ export default function LandingPage() {
               Tarifs
             </div>
             <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-slate-900 mb-4 tracking-tight">
-              Les deux outils.
+              Prenez ce dont vous avez besoin.
               <br />
               <span className="bg-gradient-to-r from-sky-500 to-blue-600 bg-clip-text text-transparent">
-                49,99&euro;/mois, sans engagement.
+                &Agrave; partir de {formatAmount(2999)}/mois, sans engagement.
               </span>
             </h2>
             <p className="text-lg text-slate-500 max-w-xl mx-auto">
-              MyOsteoflow et OsteoUpgrade dans un seul abonnement.
+              Le logiciel de cabinet, la plateforme de formation, ou les deux &mdash;
+              r&eacute;unis avec {BUNDLE_SAVING.savedPercent}&nbsp;% de remise.
             </p>
           </div>
 
@@ -1185,99 +1187,94 @@ export default function LandingPage() {
             pricing.isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
           }`}>
             {/* Pricing cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-3xl mx-auto">
-              {/* Free */}
-              <div className="rounded-2xl bg-white border border-slate-200 p-8 hover:shadow-lg transition-all">
-                <div className="mb-8">
-                  <div className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-2">Gratuit</div>
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-5xl font-bold text-slate-900">0&euro;</span>
-                  </div>
-                  <p className="text-sm text-slate-500 mt-3">Découvrez la plateforme avec le module épaule complet, sans carte bancaire.</p>
-                </div>
-                <ul className="space-y-3 mb-8">
-                  {[
-                    'Module épaule complet',
-                    'Tests orthopédiques épaule',
-                    'E-learning épaule',
-                    'Topographie épaule',
-                    'Outils de base',
-                  ].map((f, i) => (
-                    <li key={i} className="flex items-start gap-3 text-sm text-slate-600">
-                      <CheckCircle className="h-4 w-4 text-slate-400 flex-shrink-0 mt-0.5" />
-                      {f}
-                    </li>
-                  ))}
-                </ul>
-                <button
-                  onClick={() => router.push('/auth')}
-                  className="w-full py-3.5 rounded-xl border-2 border-slate-200 text-slate-700 font-semibold text-sm hover:border-slate-300 hover:bg-slate-50 transition-all"
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+              {OFFERS.map((offer) => (
+                <div
+                  key={offer.id}
+                  className={`relative rounded-2xl p-8 flex flex-col transition-all ${
+                    offer.highlighted
+                      ? 'bg-white ring-2 ring-sky-500 shadow-xl lg:-mt-4 lg:pb-12'
+                      : 'bg-white border border-slate-200 hover:shadow-lg'
+                  }`}
                 >
-                  Commencer gratuitement
-                </button>
-              </div>
-
-              {/* Premium */}
-              <div className="rounded-2xl relative overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-br from-sky-400 via-sky-500 to-blue-600 rounded-2xl" />
-                <div className="absolute inset-[2px] bg-white rounded-[14px]" />
-                <div className="relative p-8">
-                  <div className="absolute top-6 right-6">
-                    <div className="flex items-center gap-1 bg-sky-50 text-sky-700 px-2.5 py-1 rounded-lg text-xs font-bold">
-                      <Crown className="h-3.5 w-3.5" />
-                      Recommandé
+                  {offer.highlighted && (
+                    <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                      <div className="flex items-center gap-1 bg-gradient-to-r from-sky-500 to-blue-600 text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg whitespace-nowrap">
+                        <Crown className="h-3.5 w-3.5" />
+                        Recommand&eacute; &middot; -{BUNDLE_SAVING.savedPercent}&nbsp;%
+                      </div>
                     </div>
-                  </div>
-                  <div className="mb-7">
-                    <div className="text-sm font-semibold text-sky-600 uppercase tracking-wider mb-2">Premium</div>
+                  )}
+
+                  <div className="mb-6">
+                    <div className={`text-sm font-semibold uppercase tracking-wider mb-2 ${offer.highlighted ? 'text-sky-600' : 'text-slate-500'}`}>
+                      {offer.name}
+                    </div>
                     <div className="flex items-baseline gap-1 mb-1">
-                      <span className="text-5xl font-bold text-slate-900">49,99&euro;</span>
+                      <span className="text-4xl font-bold text-slate-900">{formatAmount(offer.monthlyAmount)}</span>
                       <span className="text-slate-400 text-sm">/mois</span>
                     </div>
-                    <p className="text-xs text-slate-400 mb-2">Sans engagement · Prélevé chaque mois · Annulable à tout moment</p>
-                    <p className="text-xs text-emerald-600 font-semibold mb-4">Déductible des frais professionnels</p>
-                    <div className="rounded-xl bg-sky-50 border border-sky-200 p-3">
-                      <div className="flex items-center gap-2">
-                        <Gift className="h-4 w-4 text-sky-600 flex-shrink-0" />
-                        <span className="text-sm font-bold text-slate-900">Parrainage : 1 mois offert</span>
-                      </div>
-                      <p className="text-[11px] text-sky-700 mt-0.5">Pour vous et votre filleul à chaque parrainage validé</p>
-                    </div>
+                    <p className="text-xs text-slate-400">Sans engagement &middot; annulable &agrave; tout moment</p>
+                    {offer.highlighted && (
+                      <p className="text-xs text-emerald-600 font-semibold mt-1">
+                        {formatAmount(BUNDLE_SAVING.savedAmount)}/mois &eacute;conomis&eacute;s vs les deux offres s&eacute;par&eacute;es
+                      </p>
+                    )}
+                    <p className="text-sm text-slate-500 mt-3 min-h-[40px]">{offer.tagline}</p>
                   </div>
-                  <ul className="space-y-2.5 mb-7">
-                    {[
-                      'MyOsteoflow : logiciel de cabinet complet',
-                      'Dictée vocale IA & suivi patient automatisé',
-                      'Aide au raisonnement clinique avec proposition de tests ortho',
-                      'Toutes les régions anatomiques',
-                      'Bibliothèque complète de tests',
-                      'OsteoFlash - Flashcards',
-                      'E-learning complet et quiz',
-                      'Revue de littérature mensuelle',
-                      'Topographie clinique',
-                      'Parrainage : 1 mois offert (parrain & filleul)',
-                    ].map((f, i) => (
-                      <li key={i} className="flex items-start gap-3 text-sm text-slate-700">
-                        <CheckCircle className="h-4 w-4 text-sky-500 flex-shrink-0 mt-0.5" />
-                        <span className="font-medium">{f}</span>
+
+                  <ul className="space-y-2.5 mb-7 flex-1">
+                    {offer.features.map((f) => (
+                      <li key={f} className="flex items-start gap-3 text-sm text-slate-700">
+                        <CheckCircle className={`h-4 w-4 flex-shrink-0 mt-0.5 ${offer.highlighted ? 'text-sky-500' : 'text-slate-400'}`} />
+                        <span>{f}</span>
                       </li>
                     ))}
                   </ul>
-                  <div className="space-y-2.5">
-                    <button
-                      onClick={() => router.push('/auth')}
-                      className="w-full py-3.5 rounded-xl bg-gradient-to-r from-sky-500 to-blue-600 text-white font-bold text-sm hover:from-sky-400 hover:to-blue-500 transition-all shadow-lg shadow-sky-500/20"
-                    >
-                      Choisir Premium · 49,99&euro;/mois
+
+                  <button
+                    onClick={() => router.push('/auth')}
+                    className={`w-full py-3.5 rounded-xl font-bold text-sm transition-all ${
+                      offer.highlighted
+                        ? 'bg-gradient-to-r from-sky-500 to-blue-600 text-white hover:from-sky-400 hover:to-blue-500 shadow-lg shadow-sky-500/20'
+                        : 'border-2 border-slate-200 text-slate-700 hover:border-slate-300 hover:bg-slate-50'
+                    }`}
+                  >
+                    Choisir {offer.name}
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            {/* Essai + gratuit */}
+            <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4 max-w-4xl mx-auto">
+              <div className="rounded-2xl bg-white border border-slate-200 p-6 flex items-start gap-3">
+                <Gift className="h-5 w-5 text-sky-600 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-bold text-slate-900 text-sm">7 jours d&apos;essai gratuit</p>
+                  <p className="text-sm text-slate-500 mt-0.5">
+                    Sur l&apos;offre de votre choix, avec un acc&egrave;s complet. Carte requise, annulable avant la fin de l&apos;essai.
+                  </p>
+                </div>
+              </div>
+              <div className="rounded-2xl bg-white border border-slate-200 p-6 flex items-start gap-3">
+                <CheckCircle className="h-5 w-5 text-slate-400 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-bold text-slate-900 text-sm">Ou d&eacute;couvrez gratuitement</p>
+                  <p className="text-sm text-slate-500 mt-0.5">
+                    Le module &eacute;paule complet reste accessible sans carte bancaire.{' '}
+                    <button onClick={() => router.push('/auth')} className="text-sky-600 font-semibold hover:underline">
+                      Cr&eacute;er un compte
                     </button>
-                  </div>
+                  </p>
                 </div>
               </div>
             </div>
 
             <div className="mt-8 text-center">
               <p className="text-xs text-slate-400">
-                49,99&euro;/mois, sans engagement. Annulable à tout moment depuis votre compte. Déductible des frais professionnels.
+                Sans engagement. Annulable à tout moment depuis votre compte. Déductible des frais professionnels.
+                Changement d&apos;offre possible à tout moment, avec prorata automatique.
               </p>
             </div>
           </div>
@@ -1302,7 +1299,7 @@ export default function LandingPage() {
           </h2>
           <p className="text-lg text-slate-400 mb-4 max-w-lg mx-auto">
             MyOsteoflow pour gérer, OsteoUpgrade pour progresser.
-            Le tout pour 49,99&euro;/mois, sans engagement.
+            Séparément à {formatAmount(2999)}/mois, ou réunis à {formatAmount(4999)}/mois.
           </p>
           <p className="text-sm text-slate-500 mb-10 max-w-md mx-auto">
             Commencez gratuitement avec le module épaule. Sans carte bancaire.

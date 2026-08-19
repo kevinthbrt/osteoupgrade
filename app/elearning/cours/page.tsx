@@ -35,6 +35,7 @@ import {
 } from 'lucide-react'
 import FreeContentGate from '@/components/FreeContentGate'
 import FreeUserBanner from '@/components/FreeUserBanner'
+import { planOf } from '@/lib/entitlements'
 
 type Subpart = {
   id: string
@@ -78,6 +79,7 @@ type Formation = {
 type Profile = {
   id: string
   role: string
+  plan?: string
   full_name?: string
 }
 
@@ -699,7 +701,7 @@ export default function CoursPage() {
           <div className="absolute top-1/3 left-0 w-64 h-64 bg-indigo-400/20 rounded-full blur-3xl pointer-events-none" />
 
           <div className="relative space-y-6">
-            {isFree && <FreeUserBanner />}
+            {isFree && <FreeUserBanner plan={planOf(profile)} />}
 
             {!selectedFormation && (
               <>

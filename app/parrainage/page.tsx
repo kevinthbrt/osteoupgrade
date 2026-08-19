@@ -124,7 +124,7 @@ export default function ParrainagePage() {
                 <div className="grid gap-6 sm:grid-cols-3 mb-6">
                   {[
                     { num: '1', title: 'Partagez votre code', text: 'En tant que membre Premium, vous disposez d\'un code unique à partager avec vos collègues ostéopathes.' },
-                    { num: '2', title: 'Votre filleul s\'abonne', text: 'Il saisit votre code lors de son inscription et souscrit à l\'abonnement Premium (49,99€/mois).' },
+                    { num: '2', title: 'Votre filleul s\'abonne', text: 'Il saisit votre code lors de son inscription et souscrit à l\'une des offres payantes (à partir de 29,99€/mois).' },
                     { num: '3', title: 'Un mois offert chacun', text: 'Dès la validation du paiement, votre prochain mois ET celui de votre filleul sont automatiquement offerts.' },
                   ].map(({ num, title, text }) => (
                     <div key={num} className="flex flex-col items-center text-center">
@@ -301,7 +301,7 @@ export default function ParrainagePage() {
                 <div className="grid gap-4 sm:grid-cols-2">
                   {[
                     { title: 'Qui peut parrainer ?', text: 'Tous les membres Premium actifs. Le code est automatiquement généré à l\'activation de votre abonnement.' },
-                    { title: 'Quelle est la récompense ?', text: 'À chaque parrainage validé, vous ET votre filleul recevez chacun 1 mois d\'abonnement offert (49,99€).' },
+                    { title: 'Quelle est la récompense ?', text: 'À chaque parrainage validé, vous ET votre filleul recevez chacun 1 mois d\'abonnement offert, à hauteur du tarif de l\'offre souscrite par le filleul (29,99€ ou 49,99€).' },
                     { title: 'Combien de fois peut-on être parrainé ?', text: 'Un utilisateur ne peut être parrainé qu\'une seule fois au total.' },
                     { title: 'Quand le mois est-il offert ?', text: 'Immédiatement après la validation du paiement de votre filleul : le crédit s\'applique sur votre prochaine échéance mensuelle.' },
                     { title: 'Comment est appliqué le mois offert ?', text: 'Automatiquement, via un crédit sur votre compte Stripe. Aucune démarche : votre prochaine facture est déduite d\'un mois.' },

@@ -14,7 +14,7 @@ export async function GET() {
 
   const { data: profile, error: profileError } = await supabase
     .from('profiles')
-    .select('id, email, full_name, role, plan, is_founding_member, trial_used_at, trial_ends_at')
+    .select('id, email, full_name, role, plan, subscription_status, is_founding_member, trial_used_at, trial_ends_at')
     .eq('id', user.id)
     .maybeSingle()
 
@@ -23,7 +23,7 @@ export async function GET() {
       const { supabaseAdmin } = await import('@/lib/supabase-server')
       const { data: adminProfile, error: adminError } = await supabaseAdmin
         .from('profiles')
-        .select('id, email, full_name, role, plan, is_founding_member, trial_used_at, trial_ends_at')
+        .select('id, email, full_name, role, plan, subscription_status, is_founding_member, trial_used_at, trial_ends_at')
         .eq('id', user.id)
         .maybeSingle()
 

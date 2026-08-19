@@ -59,13 +59,15 @@ export default function CGUPage() {
               <h2 className="text-2xl font-bold text-gray-900 mb-4">Article 3 - Définitions</h2>
               <ul className="space-y-2 text-gray-700">
                 <li><strong>Utilisateur :</strong> Toute personne accédant aux services OsteoUpgrade ou MyOsteoflow</li>
-                <li><strong>Abonné :</strong> Utilisateur ayant souscrit à une offre Premium</li>
+                <li><strong>Abonné :</strong> Utilisateur ayant souscrit à l&apos;une des trois offres payantes</li>
                 <li><strong>Compte Gratuit :</strong> Accès limité au module épaule uniquement (OsteoUpgrade)</li>
+                <li><strong>Offre MyOsteoFlow :</strong> Accès au seul service MyOsteoflow, au tarif de 29,99 €/mois, sans engagement, prélevé automatiquement chaque mois jusqu&apos;à résiliation</li>
+                <li><strong>Offre OsteoUpgrade :</strong> Accès au seul service OsteoUpgrade, au tarif de 29,99 €/mois, sans engagement, prélevé automatiquement chaque mois jusqu&apos;à résiliation</li>
                 <li><strong>Abonnement Premium :</strong> Accès complet aux deux services, au tarif de 49,99 €/mois, sans engagement, prélevé automatiquement chaque mois jusqu&apos;à résiliation</li>
                 <li><strong>OsteoUpgrade :</strong> Plateforme web accessible via navigateur incluant tests orthopédiques, e-learning, revue de littérature, topographie clinique, OsteoFlash (flashcards), aide au raisonnement clinique, techniques en vidéo et quiz</li>
                 <li><strong>MyOsteoflow :</strong> Application desktop (Mac, Windows) de gestion de cabinet, sans mode navigateur, incluant gestion des patients et consultations, dictée vocale par IA, courriers générés par IA, messagerie patients, facturation, comptabilité, statistiques, suivi patient automatisé et aide au raisonnement clinique</li>
-                <li><strong>Programme Ambassadeur :</strong> Dispositif de parrainage réservé aux abonnés Premium permettant au parrain et au filleul d&apos;obtenir chacun un mois d&apos;abonnement offert</li>
-                <li><strong>Essai gratuit :</strong> Période de 7 jours, réservée au premier abonnement d&apos;un Compte Gratuit n&apos;ayant jamais souscrit auparavant, donnant accès à MyOsteoflow uniquement (voir Article 5.4)</li>
+                <li><strong>Programme Ambassadeur :</strong> Dispositif de parrainage réservé aux Abonnés permettant au parrain et au filleul d&apos;obtenir chacun un mois d&apos;abonnement offert</li>
+                <li><strong>Essai gratuit :</strong> Période de 7 jours, réservée au premier abonnement d&apos;un Compte Gratuit n&apos;ayant jamais souscrit auparavant, donnant un accès complet à l&apos;offre choisie (voir Article 5.5)</li>
               </ul>
             </section>
 
@@ -107,9 +109,40 @@ export default function CGUPage() {
                   </ul>
                 </div>
 
+                {/* MyOsteoFlow seul */}
+                <div className="border border-slate-200 rounded-lg p-5">
+                  <h4 className="font-bold text-lg text-slate-800 mb-1">MyOsteoFlow</h4>
+                  <p className="text-2xl font-bold text-gray-900">29,99 €<span className="text-base text-gray-600 font-normal">/mois</span></p>
+                  <p className="text-sm text-gray-500">Sans engagement — prélevé automatiquement chaque mois, résiliable à tout moment</p>
+                  <p className="text-sm text-emerald-600 font-semibold mt-1">Déductible des frais professionnels</p>
+                  <ul className="mt-3 space-y-1 text-sm text-gray-700">
+                    <li>✓ MyOsteoflow : logiciel de cabinet complet (desktop)</li>
+                    <li>✓ Dictée vocale IA &amp; suivi patient automatisé</li>
+                    <li>✓ Facturation, comptabilité et statistiques</li>
+                    <li>✓ Créateur de fiches d&apos;exercices (export PDF)</li>
+                    <li className="text-gray-500">✗ Contenus OsteoUpgrade (e-learning, tests, flashcards…)</li>
+                  </ul>
+                </div>
+
+                {/* OsteoUpgrade seul */}
+                <div className="border border-slate-200 rounded-lg p-5">
+                  <h4 className="font-bold text-lg text-slate-800 mb-1">OsteoUpgrade</h4>
+                  <p className="text-2xl font-bold text-gray-900">29,99 €<span className="text-base text-gray-600 font-normal">/mois</span></p>
+                  <p className="text-sm text-gray-500">Sans engagement — prélevé automatiquement chaque mois, résiliable à tout moment</p>
+                  <p className="text-sm text-emerald-600 font-semibold mt-1">Déductible des frais professionnels</p>
+                  <ul className="mt-3 space-y-1 text-sm text-gray-700">
+                    <li>✓ Tests orthopédiques complets + export PDF</li>
+                    <li>✓ E-learning actualisé en continu et quiz</li>
+                    <li>✓ Module pratique (techniques articulaires &amp; mobilisations)</li>
+                    <li>✓ OsteoFlash - Flashcards cliniques</li>
+                    <li>✓ Revue de littérature et topographies</li>
+                    <li className="text-gray-500">✗ Application de gestion de cabinet MyOsteoflow</li>
+                  </ul>
+                </div>
+
                 {/* Premium */}
                 <div className="border border-sky-200 rounded-lg p-5 bg-sky-50">
-                  <h4 className="font-bold text-lg text-sky-600 mb-1">Premium</h4>
+                  <h4 className="font-bold text-lg text-sky-600 mb-1">Premium (les deux services)</h4>
                   <div className="flex flex-wrap gap-4 mb-2">
                     <div>
                       <p className="text-2xl font-bold text-gray-900">49,99 €<span className="text-base text-gray-600 font-normal">/mois</span></p>
@@ -169,7 +202,19 @@ export default function CGUPage() {
                 À défaut de résiliation, la poursuite de l&apos;abonnement vaut acceptation du nouveau tarif.
               </p>
 
-              <h3 className="text-xl font-semibold text-gray-900 mt-6 mb-3">5.4 - Essai gratuit MyOsteoflow</h3>
+              <h3 className="text-xl font-semibold text-gray-900 mt-6 mb-3">5.4 - Changement d&apos;offre</h3>
+              <p className="text-gray-700 leading-relaxed">
+                L&apos;Abonné peut changer d&apos;offre à tout moment depuis son espace abonnement, sans frais
+                et sans engagement de durée.
+              </p>
+              <ul className="list-disc list-inside space-y-2 text-gray-700 mt-3 ml-4">
+                <li>Le changement prend effet <strong>immédiatement</strong> : les accès de la nouvelle offre sont ouverts, ceux qui n&apos;en font plus partie sont retirés</li>
+                <li>La différence de tarif est calculée <strong>au prorata</strong> de la période de facturation en cours par notre prestataire de paiement</li>
+                <li>En cas de passage à une offre moins chère, le crédit correspondant est imputé sur les prélèvements suivants</li>
+                <li>La date de renouvellement de l&apos;abonnement reste inchangée</li>
+              </ul>
+
+              <h3 className="text-xl font-semibold text-gray-900 mt-6 mb-3">5.5 - Essai gratuit</h3>
               <div className="bg-emerald-50 border-l-4 border-emerald-500 p-6 rounded-r-lg mb-4">
                 <p className="font-bold text-emerald-900 mb-2">🎁 7 jours d&apos;essai gratuit, réservé au premier abonnement</p>
                 <p className="text-gray-700 leading-relaxed">
@@ -183,7 +228,9 @@ export default function CGUPage() {
               <ul className="list-disc list-inside space-y-2 text-gray-700 mt-3 ml-4">
                 <li>Une carte bancaire valide est requise pour démarrer l&apos;essai, dès la souscription</li>
                 <li>Aucun prélèvement n&apos;est effectué pendant les 7 jours de l&apos;essai</li>
-                <li>À l&apos;issue de l&apos;essai, l&apos;abonnement se convertit <strong>automatiquement</strong> en abonnement Premium payant (49,99 €/mois) et le premier prélèvement est effectué, <strong>sauf résiliation avant la fin de l&apos;essai</strong></li>
+                <li>L&apos;essai porte sur l&apos;offre choisie par l&apos;Utilisateur et lui en donne l&apos;accès complet pendant toute sa durée</li>
+                <li>À l&apos;issue de l&apos;essai, l&apos;abonnement se convertit <strong>automatiquement</strong> en abonnement payant au tarif de l&apos;offre choisie (29,99 €/mois ou 49,99 €/mois) et le premier prélèvement est effectué, <strong>sauf résiliation avant la fin de l&apos;essai</strong></li>
+                <li>L&apos;essai gratuit est unique par Utilisateur : il ne peut être utilisé qu&apos;une seule fois, quelle que soit l&apos;offre choisie</li>
                 <li>La résiliation pendant l&apos;essai s&apos;effectue selon les mêmes modalités que la résiliation d&apos;un abonnement (Article 6.1) et n&apos;entraîne aucun frais</li>
                 <li>L&apos;essai gratuit est limité à une utilisation unique par Utilisateur et par moyen de paiement ; OsteoUpgrade se réserve le droit de refuser ou d&apos;interrompre un essai en cas de tentative d&apos;utilisation abusive ou répétée (comptes multiples, moyen de paiement déjà utilisé pour un essai précédent, etc.)</li>
                 <li>Le Programme Ambassadeur (Article 9) ne s&apos;applique pas pendant la période d&apos;essai ; la récompense de parrainage n&apos;est créditée qu&apos;à la conversion effective en abonnement payant</li>
@@ -250,7 +297,7 @@ export default function CGUPage() {
                 </p>
               </div>
               <p className="text-gray-700 leading-relaxed mt-4">
-                <strong>Cas particulier de l&apos;essai gratuit (Article 5.4) :</strong> le délai de rétractation de 14 jours
+                <strong>Cas particulier de l&apos;essai gratuit (Article 5.5) :</strong> le délai de rétractation de 14 jours
                 court à compter du début de l&apos;essai. Aucun remboursement n&apos;est applicable tant qu&apos;aucun prélèvement
                 n&apos;a eu lieu ; l&apos;Abonné peut simplement résilier avant la fin de l&apos;essai pour éviter tout prélèvement.
                 Si la rétractation est exercée après le premier prélèvement (conversion automatique de l&apos;essai), le
@@ -284,9 +331,10 @@ export default function CGUPage() {
 
               <h3 className="text-xl font-semibold text-gray-900 mt-6 mb-3">9.2 - Fonctionnement</h3>
               <p className="text-gray-700 leading-relaxed">
-                Chaque Abonné Premium dispose d&apos;un lien de parrainage personnel. Lorsqu&apos;un nouveau client souscrit
-                un abonnement Premium en utilisant ce lien, le parrain <strong>et</strong> le filleul
-                bénéficient chacun d&apos;<strong>un mois d&apos;abonnement offert</strong> (valeur 49,99 €).
+                Chaque Abonné dispose d&apos;un lien de parrainage personnel. Lorsqu&apos;un nouveau client souscrit
+                l&apos;une des offres payantes en utilisant ce lien, le parrain <strong>et</strong> le filleul
+                bénéficient chacun d&apos;<strong>un mois d&apos;abonnement offert</strong>, d&apos;une valeur égale au
+                tarif mensuel de l&apos;offre souscrite par le filleul (29,99 € ou 49,99 €).
               </p>
               <ul className="list-disc list-inside space-y-2 text-gray-700 mt-3 ml-4">
                 <li>Le mois offert est crédité automatiquement sur le compte de paiement (Stripe) de chaque bénéficiaire</li>

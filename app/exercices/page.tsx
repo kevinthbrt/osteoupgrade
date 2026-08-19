@@ -10,6 +10,7 @@ import jsPDF from 'jspdf'
 import 'jspdf-autotable'
 import FreeContentGate from '@/components/FreeContentGate'
 import FreeUserBanner from '@/components/FreeUserBanner'
+import { planOf } from '@/lib/entitlements'
 
 interface RehabExercise {
   id: string
@@ -486,7 +487,7 @@ export default function ExercisesModule() {
           <div className="relative space-y-6">
 
             {/* Free user banner */}
-            {isFree && <FreeUserBanner />}
+            {isFree && <FreeUserBanner plan={planOf(profile)} />}
 
             {/* Patient info + plan grid */}
             <div className="grid gap-6 lg:grid-cols-3">

@@ -9,6 +9,12 @@ interface FreeContentGateProps {
   className?: string
   /** Show a compact lock badge instead of a full overlay */
   compact?: boolean
+  /**
+   * Offre qui débloque ce contenu. Détermine le libellé affiché : dire
+   * « Premium » à quelqu'un qui a déjà MyOsteoFlow serait faux, il lui manque
+   * OsteoUpgrade.
+   */
+  requires?: 'osteoupgrade' | 'osteoflow'
 }
 
 /**
@@ -21,8 +27,11 @@ export default function FreeContentGate({
   children,
   className = '',
   compact = false,
+  requires = 'osteoupgrade',
 }: FreeContentGateProps) {
   if (!isLocked) return <div className={className}>{children}</div>
+
+  const libelle = requires === 'osteoflow' ? 'MyOsteoFlow' : 'OsteoUpgrade'
 
   return (
     <div className={`relative overflow-hidden rounded-xl ${className}`}>
@@ -36,14 +45,14 @@ export default function FreeContentGate({
         {compact ? (
           <div className="flex items-center gap-1.5 rounded-full bg-gray-800/80 px-3 py-1.5 text-xs font-semibold text-white shadow">
             <Lock className="h-3 w-3" />
-            Premium
+            {libelle}
           </div>
         ) : (
           <div className="flex flex-col items-center gap-2 text-center px-4">
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-amber-500 shadow-lg">
               <Lock className="h-5 w-5 text-white" />
             </div>
-            <p className="text-sm font-semibold text-gray-800">Contenu Premium</p>
+            <p className="text-sm font-semibold text-gray-800">Inclus avec {libelle}</p>
             <Link
               href="/settings/subscription"
               className="inline-flex items-center gap-1.5 rounded-lg bg-amber-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-amber-600 transition-colors shadow"

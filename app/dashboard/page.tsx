@@ -34,6 +34,8 @@ import {
   Star,
   Brain
 } from 'lucide-react'
+import { planOf } from '@/lib/entitlements'
+import { OFFERS, formatAmount, offerOf, BUNDLE_SAVING } from '@/lib/offers'
 
 export default function Dashboard() {
   const router = useRouter()
@@ -241,7 +243,7 @@ export default function Dashboard() {
           <div className="pointer-events-none absolute top-1/2 right-1/3 w-64 h-64 bg-cyan-300/30 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '5s', animationDelay: '3s' }} />
           <div className="pointer-events-none absolute bottom-1/3 left-1/2 w-56 h-56 bg-blue-300/25 rounded-full blur-2xl animate-pulse" style={{ animationDuration: '9s', animationDelay: '0.5s' }} />
 
-          {profile?.role === 'free' && !profile?.trial_used_at && !profile?.is_founding_member && (
+          {planOf(profile) === 'free' && !profile?.trial_used_at && !profile?.is_founding_member && (
             <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 p-5 shadow-lg">
               <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -translate-y-8 translate-x-8" />
               <div className="relative flex items-center gap-4">
@@ -249,8 +251,8 @@ export default function Dashboard() {
                   <Gift className="h-6 w-6 text-white" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-bold text-white">Essayez MyOsteoFlow gratuitement 7 jours</p>
-                  <p className="text-emerald-50/90 text-sm mt-0.5">Carte requise, annulable à tout moment. Débloquez ensuite tout OsteoUpgrade à 49,99€/mois, sans engagement.</p>
+                  <p className="font-bold text-white">Essayez gratuitement pendant 7 jours</p>
+                  <p className="text-emerald-50/90 text-sm mt-0.5">Sur l&apos;offre de votre choix, avec un accès complet. Carte requise, annulable à tout moment. À partir de {formatAmount(2999)}/mois, sans engagement.</p>
                 </div>
                 <button onClick={() => router.push('/settings/subscription')} className="flex-shrink-0 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white text-emerald-700 text-sm font-bold hover:bg-emerald-50 transition-colors shadow-md">
                   Essayer gratuitement <ArrowRight className="h-4 w-4" />
@@ -259,7 +261,7 @@ export default function Dashboard() {
             </div>
           )}
 
-          {profile?.role === 'free' && (profile?.trial_used_at || profile?.is_founding_member) && (
+          {planOf(profile) === 'free' && (profile?.trial_used_at || profile?.is_founding_member) && (
             <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-500 p-5 shadow-lg">
               <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -translate-y-8 translate-x-8" />
               <div className="relative flex items-center gap-4">
@@ -267,8 +269,8 @@ export default function Dashboard() {
                   <Crown className="h-6 w-6 text-amber-900" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-bold text-amber-900">Débloquez MyOsteoflow + OsteoUpgrade</p>
-                  <p className="text-amber-800/80 text-sm mt-0.5">150+ vidéos · 500+ contenus · Exercices patients — 49,99€/mois, sans engagement</p>
+                  <p className="font-bold text-amber-900">Choisissez votre offre</p>
+                  <p className="text-amber-800/80 text-sm mt-0.5">MyOsteoFlow ou OsteoUpgrade à {formatAmount(2999)}/mois, les deux réunis à {formatAmount(4999)}/mois — sans engagement</p>
                 </div>
                 <button onClick={() => router.push('/settings/subscription')} className="flex-shrink-0 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-amber-900 text-amber-100 text-sm font-bold hover:bg-amber-800 transition-colors shadow-md">
                   Passer Premium <ArrowRight className="h-4 w-4" />
@@ -277,7 +279,7 @@ export default function Dashboard() {
             </div>
           )}
 
-          {profile?.role === 'trial' && (
+          {profile?.subscription_status === 'trialing' && (
             <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-blue-500 via-sky-500 to-blue-600 p-5 shadow-lg">
               <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -translate-y-8 translate-x-8" />
               <div className="relative flex items-center gap-4">
@@ -285,11 +287,11 @@ export default function Dashboard() {
                   <Laptop className="h-6 w-6 text-white" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-bold text-white">Essai MyOsteoFlow en cours</p>
+                  <p className="font-bold text-white">Essai {offerOf(planOf(profile))?.name ?? ''} en cours</p>
                   <p className="text-blue-50/90 text-sm mt-0.5">
                     {profile?.trial_ends_at
-                      ? <>Jusqu&apos;au {new Date(profile.trial_ends_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })} — passé cette date, votre carte sera débitée de 49,99€/mois sauf annulation.</>
-                      : <>Votre carte sera débitée de 49,99€/mois à la fin de l&apos;essai, sauf annulation.</>}
+                      ? <>Jusqu&apos;au {new Date(profile.trial_ends_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })} — passé cette date, votre carte sera débitée de {formatAmount(offerOf(planOf(profile))?.monthlyAmount ?? 4999)}/mois sauf annulation.</>
+                      : <>Votre carte sera débitée de {formatAmount(offerOf(planOf(profile))?.monthlyAmount ?? 4999)}/mois à la fin de l&apos;essai, sauf annulation.</>}
                   </p>
                 </div>
                 <button onClick={() => router.push('/settings/subscription')} className="flex-shrink-0 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white text-blue-700 text-sm font-bold hover:bg-blue-50 transition-colors shadow-md">

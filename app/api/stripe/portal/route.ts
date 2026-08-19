@@ -17,7 +17,7 @@ export async function POST(request: Request) {
     // Récupérer le profil utilisateur avec les infos d'engagement
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
-      .select('stripe_customer_id, subscription_start_date, commitment_end_date, role')
+      .select('stripe_customer_id, subscription_start_date, commitment_end_date, role, plan, is_founding_member')
       .eq('id', user.id)
       .single()
 
@@ -39,14 +39,28 @@ export async function POST(request: Request) {
       commitmentEndDate: commitmentEndDate?.toISOString(),
       now: now.toISOString(),
       isInCommitment,
-      role: profile.role
+      role: profile.role,
+      plan: profile.plan,
+      grille: profile.is_founding_member ? 'fondateur' : 'standard'
     })
 
-    // Choisir la configuration du portail selon l'engagement
-    // Ces IDs seront à remplacer par vos vrais IDs de configuration Stripe
+    // Choix de la configuration du portail.
+    //
+    // Deux grilles distinctes autorisent le changement d'offre : les tarifs
+    // Fondateur (-50 % à vie) vivent sur les mêmes produits Stripe que les
+    // tarifs publics. Proposer la grille standard à un membre fondateur lui
+    // ferait perdre sa remise à vie en changeant d'offre, sans avertissement.
+    //
+    // Repli sur les configurations historiques si les nouvelles ne sont pas
+    // encore renseignées : le portail garde alors exactement le comportement
+    // actuel, sans changement d'offre.
+    const configPlans = profile.is_founding_member
+      ? process.env.STRIPE_PORTAL_CONFIG_PLANS_FOUNDING
+      : process.env.STRIPE_PORTAL_CONFIG_PLANS
+
     const portalConfig = isInCommitment
       ? process.env.STRIPE_PORTAL_CONFIG_ENGAGEMENT  // Configuration avec annulation bloquée
-      : process.env.STRIPE_PORTAL_CONFIG_LIBRE        // Configuration avec annulation autorisée
+      : configPlans || process.env.STRIPE_PORTAL_CONFIG_LIBRE
 
     // Créer la session du portail client
     const session = await stripe.billingPortal.sessions.create({

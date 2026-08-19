@@ -1,6 +1,6 @@
 # Passage à 3 offres — plan d'implémentation
 
-Statut : **phases 0, 1 et 2 terminées le 19/08/2026** — phases 3 à 5 à venir
+Statut : **phases 0 à 3 terminées le 19/08/2026** — phases 4 et 5 à venir
 Contrainte majeure : **le site et l'application desktop sont en production.**
 Aucune phase ne doit modifier le comportement des utilisateurs existants.
 
@@ -281,19 +281,54 @@ STRIPE_PRICE_FOUNDING_OSTEOUPGRADE_ANNUAL=price_1U66N3Er5HqbRRSrb0zwZMfY
 Leur absence n'empêche pas le webhook de fonctionner (il lit les metadata du
 Price), mais elle empêche de créer une session de paiement sur ces offres.
 
-### Phase 3 — Ouverture commerciale (UI + juridique)
+### Phase 3 — Ouverture commerciale ✅ terminée le 19/08/2026
 
-- [ ] `app/page.tsx` : refonte section Tarifs (l. 1170-1310) → 3 cartes ;
-      « 49,99 €/mois » en dur à 5 endroits du fichier
-- [ ] `app/settings/subscription/page.tsx` (706 l.) : conçue pour une offre
-      unique — affichage de l'offre courante, 3 CTA, upgrade/downgrade
-- [ ] `components/FreeContentGate.tsx`, `FreeUserBanner.tsx`,
-      `MyOsteoFlowUpsellModal.tsx` : messages selon l'entitlement manquant
-- [ ] `app/dashboard/page.tsx`, `app/settings/page.tsx` : prix en dur
-- [ ] Page/section « Comparer les offres »
-- [ ] `app/cgu/page.tsx` : CGU/CGV mentionnent le tarif unique
-- [ ] Portail Stripe : configuration `subscription_update` avec les 3 prix
-      (`api/stripe/portal`)
+**Source unique des prix** — `lib/offers.ts` porte le catalogue d'affichage
+(nom, tarif, arguments, clé Stripe standard et fondateur). Volontairement
+séparé de `lib/stripe.ts`, qui instancie le SDK et exige `STRIPE_SECRET_KEY` :
+il ne peut donc jamais être importé par un composant client. Plus aucun
+« 49,99 € » en dur dans les pages.
+
+- [x] `app/page.tsx` : grille des trois offres, titres et CTA finaux
+- [x] `app/settings/subscription/page.tsx` : grille à trois cartes pour les
+      comptes sans abonnement, bloc « votre offre actuelle » sinon, et bloc
+      d'évolution vers le bundle pour les abonnés MyOsteoFlow ou OsteoUpgrade
+      (différence de prix calculée, prorata annoncé)
+- [x] Les membres fondateurs voient les trois offres à leur tarif -50 %
+- [x] `FreeContentGate`, `FreeUserBanner`, `MyOsteoFlowUpsellModal` : le message
+      nomme l'offre manquante. Dire « Premium » à un abonné MyOsteoFlow serait
+      faux — ce qui lui manque, c'est OsteoUpgrade.
+- [x] `app/dashboard`, `app/settings`, `app/parrainage` : prix et libellés
+- [x] `app/cgu` : définitions des trois offres, grille tarifaire complète,
+      essai portant sur l'offre choisie, parrainage à montant variable, et
+      **nouvel article 5.4 « Changement d'offre »** (effet immédiat, prorata,
+      date de renouvellement inchangée)
+
+**Portail client Stripe** — `scripts/setup-portal-configs.ts` crée **deux**
+configurations, et `api/stripe/portal` choisit selon `is_founding_member`.
+Deux et non une : les tarifs Fondateur vivent sur les mêmes produits Stripe que
+les tarifs publics, une grille unique ferait perdre sa remise à vie à un
+fondateur qui change d'offre, sans le moindre avertissement. Tant que les
+variables ne sont pas renseignées, le portail garde exactement son comportement
+actuel (pas de changement d'offre) — l'activation est donc un choix explicite.
+
+**Vérifications** : `tsc` et `next build` en succès ; rendu vérifié compte par
+compte sur les 30 profils réels (page abonnement, bandeau d'essai, badge de
+navigation) — aucune divergence.
+
+**Un piège évité** : le bandeau d'essai du dashboard est passé de
+`role === 'trial'` à `subscription_status === 'trialing'`, mais `/api/profile`
+ne renvoyait pas cette colonne — le bandeau aurait disparu silencieusement.
+Colonne ajoutée aux deux `select` de la route.
+
+**À faire au déploiement**
+
+1. `npx tsx scripts/setup-portal-configs.ts`, puis reporter les deux
+   identifiants dans `STRIPE_PORTAL_CONFIG_PLANS` et
+   `STRIPE_PORTAL_CONFIG_PLANS_FOUNDING`.
+2. Remapper l'essai en cours vers son offre réelle (reporté depuis la phase 2) :
+   `UPDATE profiles SET plan = 'bundle' WHERE subscription_status = 'trialing';`
+   — à lancer **après** le déploiement, jamais avant.
 
 ### Phase 4 — Emails, parrainage, admin
 
