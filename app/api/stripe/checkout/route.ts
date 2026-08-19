@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { createRouteHandlerClient } from '@/lib/supabase-server-helpers'
 import { stripe, STRIPE_PLANS, FREE_TRIAL_DAYS } from '@/lib/stripe'
+import { planOf } from '@/lib/entitlements'
 
 export async function POST(request: Request) {
   try {
@@ -48,9 +49,10 @@ export async function POST(request: Request) {
       )
     }
 
-    // L'offre Fondateur est réservée aux comptes marqués comme tels — revérifié
-    // ici pour qu'elle ne soit jamais accessible en appelant l'API directement.
-    if (planType === 'founding_annual') {
+    // Les offres Fondateur (une par offre commerciale) sont réservées aux
+    // comptes marqués comme tels — revérifié ici pour qu'elles ne soient
+    // jamais accessibles en appelant l'API directement.
+    if (plan.isFounding) {
       const { data: founderProfile } = await supabase
         .from('profiles')
         .select('is_founding_member')
@@ -115,12 +117,12 @@ export async function POST(request: Request) {
         // Vérifier que le parrain est toujours un membre Premium/Admin actif
         const { data: referrerProfile } = await supabaseAdmin
           .from('profiles')
-          .select('role')
+          .select('role, plan')
           .eq('id', referralData.user_id)
           .single()
 
-        if (!referrerProfile || !['premium', 'admin'].includes(referrerProfile.role)) {
-          console.warn('⚠️ Referrer is no longer Premium, ignoring referral code:', referralCode)
+        if (!referrerProfile || (planOf(referrerProfile) === 'free' && referrerProfile.role !== 'admin')) {
+          console.warn('⚠️ Referrer no longer has an active plan, ignoring referral code:', referralCode)
           // Ne pas bloquer le checkout : on ignore simplement le parrainage
         } else {
           referrerUserId = referralData.user_id
@@ -139,13 +141,16 @@ export async function POST(request: Request) {
     // à la fin de l'essai, sauf annulation.
     const { data: trialProfile } = await supabase
       .from('profiles')
-      .select('role, trial_used_at, subscription_start_date, is_founding_member')
+      .select('role, plan, trial_used_at, subscription_start_date, is_founding_member')
       .eq('id', userId)
       .single()
 
+    // L'essai est ouvert aux trois offres mensuelles, mais reste unique par
+    // compte à vie : `trial_used_at` n'est pas remis à zéro d'une offre à
+    // l'autre. Les tarifs Fondateur en restent exclus.
     const isEligibleForTrial =
-      planType === 'premium_monthly' &&
-      trialProfile?.role === 'free' &&
+      !plan.isFounding &&
+      planOf(trialProfile) === 'free' &&
       !trialProfile?.trial_used_at &&
       !trialProfile?.subscription_start_date &&
       !trialProfile?.is_founding_member
@@ -178,7 +183,8 @@ export async function POST(request: Request) {
       cancel_url: `${process.env.NEXT_PUBLIC_URL || 'http://localhost:3000'}/dashboard?cancelled=true`,
       metadata: {
         userId,
-        planType: plan.planType || planType,
+        planType,
+        plan: plan.plan,
         billing_interval: plan.interval,
         is_annual: plan.isAnnual ? 'true' : 'false',
         referral_code: shouldProcessReferral ? referralCode || '' : '',
@@ -189,7 +195,8 @@ export async function POST(request: Request) {
         ...(isEligibleForTrial ? { trial_period_days: FREE_TRIAL_DAYS } : {}),
         metadata: {
           userId,
-          planType: plan.planType || planType,
+          planType,
+          plan: plan.plan,
           billing_interval: plan.interval,
           is_annual: plan.isAnnual ? 'true' : 'false',
           referral_code: shouldProcessReferral ? referralCode || '' : '',

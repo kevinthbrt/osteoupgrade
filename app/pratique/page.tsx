@@ -25,6 +25,7 @@ import {
 import CategoryManager, { PracticeCategory } from './CategoryManager'
 import FreeContentGate from '@/components/FreeContentGate'
 import FreeUserBanner from '@/components/FreeUserBanner'
+import { planOf } from '@/lib/entitlements'
 
 type VimeoApiMetadata = {
   vimeo_id: string
@@ -47,7 +48,7 @@ const regions = [
 
 const VIDEOS_PER_PAGE = 12
 
-type Profile = { id: string; role: string; full_name?: string }
+type Profile = { id: string; role: string; plan?: string; full_name?: string }
 
 type PracticeVideo = {
   id: string
@@ -848,7 +849,7 @@ export default function PracticePage() {
           <div className="pointer-events-none absolute bottom-0 left-0 w-72 h-72 bg-indigo-400/25 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '7s', animationDelay: '1s' }} />
 
           <div className="relative space-y-6">
-        {isFreeUser && <FreeUserBanner />}
+        {isFreeUser && <FreeUserBanner plan={planOf(profile)} />}
 
         {/* Region tabs */}
         <div className="flex flex-wrap gap-2">

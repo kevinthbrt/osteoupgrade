@@ -1,9 +1,11 @@
 import { NextResponse } from 'next/server'
 import { headers } from 'next/headers'
-import { stripe, REFERRAL_FREE_MONTH_AMOUNT, PARTNER_PROMO_PURPOSE, STRIPE_PLANS } from '@/lib/stripe'
+import { stripe, referralFreeMonthAmount, PARTNER_PROMO_PURPOSE, STRIPE_PLANS, planFromSubscription } from '@/lib/stripe'
+import { planLabel, type Plan } from '@/lib/entitlements'
 import { supabaseAdmin } from '@/lib/supabase-server'
 import { sendTransactionalEmail } from '@/lib/mailing'
 import { notifyAdmin } from '@/lib/admin-notify'
+import { subscriptionEventFor, cancelProspectSequences } from '@/lib/automation-triggers'
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!
 
@@ -74,7 +76,7 @@ function describePlanPricing(
   planType: string,
   partnerDiscount: { partner: string; percentOff: number | null; durationInMonths: number | null } | null
 ): { nom: string; prix: string; interval: string } {
-  const plan = STRIPE_PLANS[planType as keyof typeof STRIPE_PLANS]
+  const plan = STRIPE_PLANS[planType]
   const nom = plan?.name || 'Premium'
   const interval = plan?.isAnnual ? 'annuel' : 'mensuel'
   let prix = plan?.displayPrice ? `${plan.displayPrice}${plan.isAnnual ? '/an' : '/mois'}` : '49,99€/mois'
@@ -94,14 +96,17 @@ async function creditReferral(params: {
   referrerUserId: string
   referralCode: string
   planType: string
+  plan: Plan
   userId: string
   customerId: string | null
   subscriptionId: string | null
   referredEmail: string
   referredFullName: string | null
 }) {
-  const { referrerUserId, referralCode, planType, userId, customerId, subscriptionId, referredEmail, referredFullName } = params
-  const freeMonthAmount = REFERRAL_FREE_MONTH_AMOUNT
+  const { referrerUserId, referralCode, planType, plan, userId, customerId, subscriptionId, referredEmail, referredFullName } = params
+  // Le mois offert vaut le prix de l'offre réellement souscrite par le filleul :
+  // un parrainage sur MyOsteoFlow seul offre 29,99€, pas le prix du bundle.
+  const freeMonthAmount = referralFreeMonthAmount(plan)
 
   // Récupérer le parrain (customer Stripe + email pour la notification)
   const { data: referrerProfile } = await supabaseAdmin
@@ -147,7 +152,9 @@ async function creditReferral(params: {
       referrer_id: referrerUserId,
       referred_user_id: userId,
       referral_code: referralCode.toUpperCase(),
-      subscription_type: planType,
+      // On historise l'offre (`plan`) et non la clé de tarif : la contrainte
+      // CHECK de la colonne accepte désormais les quatre offres.
+      subscription_type: plan,
       subscription_plan: 'monthly',
       subscription_amount: freeMonthAmount,
       // On stocke la valeur du mois offert (sert d'historique de la récompense)
@@ -382,9 +389,18 @@ async function handleCheckoutCompleted(session: any) {
   // qui met fin à l'essai immédiatement) ne doit jamais donner un accès
   // premium gratuit ; le compte reste 'free' jusqu'à ce que
   // customer.subscription.updated confirme un paiement réussi.
+  // Offre réellement souscrite, lue en priorité depuis les metadata du Price
+  // Stripe (voir planFromSubscription) plutôt que depuis les metadata de la
+  // session, pour rester juste même si la configuration diverge.
+  const souscritPlan = subscription ? planFromSubscription(subscription) : 'bundle'
+
   const subscriptionStartDate = new Date()
   const updateData: Record<string, any> = {
-    role: subscriptionStatus === 'trialing' ? 'trial' : subscriptionStatus === 'active' ? planType : 'free',
+    // On écrit `plan` : le trigger SQL sync_profile_plan_role en dérive `role`.
+    // Un essai en cours donne désormais les droits complets de l'offre choisie
+    // (décision produit) — auparavant le rôle 'trial' n'ouvrait que MyOsteoFlow,
+    // ce qui n'aurait plus de sens pour un essai de l'offre OsteoUpgrade.
+    plan: subscriptionStatus === 'trialing' || subscriptionStatus === 'active' ? souscritPlan : 'free',
     subscription_status: subscriptionStatus,
     subscription_start_date: subscriptionStartDate.toISOString(),
     subscription_end_date: null,
@@ -443,6 +459,7 @@ async function handleCheckoutCompleted(session: any) {
       referrerUserId,
       referralCode,
       planType,
+      plan: souscritPlan,
       userId,
       customerId: session.customer,
       subscriptionId: session.subscription,
@@ -550,7 +567,7 @@ async function handleCheckoutCompleted(session: any) {
         'Authorization': `Bearer ${process.env.CRON_SECRET}`
       },
       body: JSON.stringify({
-        event: isTrial ? 'Essai gratuit démarré' : 'Passage à Premium',
+        event: isTrial ? 'Essai gratuit démarré' : subscriptionEventFor(souscritPlan),
         contact_email: profile.email,
         full_name: profile.full_name,
         metadata: {
@@ -569,8 +586,13 @@ async function handleCheckoutCompleted(session: any) {
     console.error('Error triggering automation')
   }
 
+  // ✋ La personne vient de s'abonner : on interrompt les séquences de
+  // prospection en cours. Sans cela, elle continuerait de recevoir « Passez
+  // Premium, débloquez tout » — un message écrit pour un compte gratuit.
+  await cancelProspectSequences(profile.email)
+
   // 🔔 NOTIF INTERNE admin (cloche)
-  const planLabel = 'Premium · 49,99€/mois'
+  const planLabel = `${planNom} · ${planPrix}`
   const notifBody = referralCode
     ? `${profile.email} — ${planLabel} (parrainage : ${referralCode})`
     : `${profile.email} — ${planLabel}`
@@ -580,7 +602,7 @@ async function handleCheckoutCompleted(session: any) {
   const adminEmail = process.env.ADMIN_EMAIL
   if (adminEmail) {
     try {
-      const planLabel = 'Premium (49,99€/mois)'
+      const planLabel = `${planNom} (${planPrix})`
       const referralInfo = referralCode ? `<p style="margin:4px 0;font-size:13px;color:#64748b;">Code parrainage utilisé : <strong>${referralCode}</strong></p>` : ''
       await sendTransactionalEmail({
         to: adminEmail,
@@ -614,7 +636,7 @@ async function handleSubscriptionUpdated(subscription: any) {
   // Trouver l'utilisateur par son stripe_customer_id
   const { data: profile, error: profileError } = await supabaseAdmin
     .from('profiles')
-    .select('id, role, email, full_name')
+    .select('id, role, plan, subscription_status, email, full_name')
     .eq('stripe_customer_id', customerId)
     .single()
 
@@ -632,25 +654,48 @@ async function handleSubscriptionUpdated(subscription: any) {
     updateData.trial_ends_at = null
   }
 
-  const wasTrialing = profile.role === 'trial'
+  // L'état d'essai se lit sur `subscription_status`, JAMAIS sur le rôle.
+  // Depuis l'introduction des offres multiples, `role = 'trial'` est le rôle
+  // miroir permanent de l'offre MyOsteoFlow seul : le tester ici ferait passer
+  // tout abonné MyOsteoFlow en accès complet au premier événement Stripe venu.
+  const wasTrialing = profile.subscription_status === 'trialing'
 
-  if (wasTrialing) {
-    if (subscription.status === 'active') {
-      // Conversion de l'essai en abonnement payant : l'utilisateur passe du
-      // rôle 'trial' (MyOsteoFlow seul) au vrai plan souscrit (accès complet).
-      updateData.role = subscription.metadata?.planType || 'premium'
-    } else if (subscription.status !== 'trialing') {
-      // Fin de l'essai sans conversion réussie (ex: premier prélèvement
-      // refusé → 'past_due'/'unpaid'/'incomplete_expired') : on révoque
-      // l'accès MyOsteoFlow immédiatement plutôt que de le laisser ouvert.
-      updateData.role = 'free'
-    }
+  // Offre portée par l'abonnement après cet événement. C'est ce qui permet de
+  // suivre un changement d'offre depuis le portail client Stripe : le prix de
+  // l'abonnement change, et l'accès doit suivre dans les deux sens.
+  const nouveauPlan = planFromSubscription(subscription)
+  const ancienPlan = profile.plan
+
+  if (['active', 'trialing'].includes(subscription.status)) {
+    updateData.plan = nouveauPlan
+  } else if (wasTrialing) {
+    // Fin de l'essai sans conversion réussie (ex: premier prélèvement
+    // refusé → 'past_due'/'unpaid'/'incomplete_expired') : on révoque
+    // l'accès immédiatement plutôt que de le laisser ouvert.
+    // Hors essai, un impayé ne coupe pas l'accès — comportement inchangé,
+    // Stripe relance et l'abonnement finit résilié s'il n'est jamais réglé.
+    updateData.plan = 'free'
   }
 
   await supabaseAdmin
     .from('profiles')
     .update(updateData)
     .eq('id', profile.id)
+
+  // Changement d'offre effectif (upgrade ou downgrade). On le trace : un
+  // downgrade silencieux qui n'aurait pas retiré les droits serait invisible.
+  if (updateData.plan && updateData.plan !== ancienPlan && !wasTrialing) {
+    console.log('[stripe] plan change %s -> %s for %s', ancienPlan, updateData.plan, profile.id)
+    try {
+      await notifyAdmin(
+        'other',
+        "Changement d'offre",
+        `${profile.full_name || profile.email} : ${planLabel(ancienPlan)} → ${planLabel(updateData.plan)}`
+      )
+    } catch (err) {
+      console.error('Error notifying admin of plan change')
+    }
+  }
 
   // 🎁 Parrainage différé : le code de parrainage saisi au moment de l'essai
   // n'a été crédité à personne (voir handleCheckoutCompleted). Maintenant que
@@ -663,6 +708,7 @@ async function handleSubscriptionUpdated(subscription: any) {
       referrerUserId,
       referralCode,
       planType: subscription.metadata?.planType || 'premium',
+      plan: nouveauPlan,
       userId: profile.id,
       customerId,
       subscriptionId: subscription.id,
@@ -715,7 +761,7 @@ async function handleSubscriptionUpdated(subscription: any) {
           'Authorization': `Bearer ${process.env.CRON_SECRET}`
         },
         body: JSON.stringify({
-          event: 'Passage à Premium',
+          event: subscriptionEventFor(nouveauPlan),
           contact_email: profile.email,
           full_name: profile.full_name,
           metadata: {
@@ -749,7 +795,7 @@ async function handleSubscriptionDeleted(subscription: any) {
   // Trouver l'utilisateur par son stripe_customer_id
   const { data: profile, error: profileError } = await supabaseAdmin
     .from('profiles')
-    .select('id, email, full_name, role')
+    .select('id, email, full_name, role, plan, subscription_status')
     .eq('stripe_customer_id', customerId)
     .single()
 
@@ -761,13 +807,17 @@ async function handleSubscriptionDeleted(subscription: any) {
   // Un essai jamais converti (annulé pendant les 7 jours, ou premier
   // prélèvement refusé) déclenche un email différent d'une vraie résiliation
   // Premium — l'utilisateur n'a jamais payé, "Abonnement expiré" serait faux.
-  const wasNeverConverted = profile.role === 'trial'
+  // Se lit sur le statut d'abonnement : `role = 'trial'` est désormais le rôle
+  // miroir permanent de l'offre MyOsteoFlow seul, pas un marqueur d'essai.
+  const wasNeverConverted = profile.subscription_status === 'trialing'
 
-  // Révoquer le premium (plus d'engagement, annulation immédiate)
+  // Révoquer l'accès (plus d'engagement, annulation immédiate). On écrit
+  // `plan`, dont le trigger SQL dérive le rôle — ce qui protège au passage
+  // un compte admin qui serait par ailleurs abonné.
   const { error: updateError } = await supabaseAdmin
     .from('profiles')
     .update({
-      role: 'free',
+      plan: 'free',
       subscription_status: 'cancelled',
       subscription_end_date: new Date().toISOString(),
       commitment_end_date: null,
@@ -794,6 +844,9 @@ async function handleSubscriptionDeleted(subscription: any) {
         contact_email: profile.email,
         full_name: profile.full_name,
         metadata: {
+          // `profile` a été lu avant la mise à jour : `plan` porte donc encore
+          // l'offre résiliée, que les sujets d'email affichent via {{nom}}.
+          nom: planLabel(profile.plan),
           cancellation_date: new Date().toISOString()
         }
       })

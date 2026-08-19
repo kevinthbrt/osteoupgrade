@@ -22,6 +22,7 @@ import {
   Map,
   Brain,
 } from 'lucide-react'
+import { planOf, planLabel } from '@/lib/entitlements'
 import AdminNotificationBell from './AdminNotificationBell'
 import UserNotificationBell from './UserNotificationBell'
 
@@ -89,19 +90,29 @@ export default function Navigation() {
   const getRoleBadge = () => {
     if (!profile) return null
 
-    const badges = {
-      free: { text: 'Gratuit', bg: 'bg-gray-100', color: 'text-gray-700' },
-      premium: { text: 'Premium', bg: 'bg-gradient-to-r from-yellow-400 to-yellow-500', color: 'text-white' },
-      admin: { text: 'Admin', bg: 'bg-gradient-to-r from-purple-500 to-purple-600', color: 'text-white' }
+    // Le badge suit l'offre souscrite, pas le rôle miroir : un abonné
+    // MyOsteoFlow seul a pour rôle 'trial' et s'affichait donc « Gratuit ».
+    if (profile.role === 'admin') {
+      return (
+        <span className="px-2 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-purple-500 to-purple-600 text-white flex items-center gap-1">
+          <Shield className="h-3 w-3" />
+          Admin
+        </span>
+      )
     }
 
-    const badge = badges[profile.role as keyof typeof badges] || badges.free
+    const plan = planOf(profile)
+    const styles: Record<string, string> = {
+      free: 'bg-gray-100 text-gray-700',
+      osteoflow: 'bg-gradient-to-r from-sky-500 to-blue-500 text-white',
+      osteoupgrade: 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white',
+      bundle: 'bg-gradient-to-r from-yellow-400 to-yellow-500 text-white',
+    }
 
     return (
-      <span className={`px-2 py-1 rounded-full text-xs font-medium ${badge.bg} ${badge.color} flex items-center gap-1`}>
-        {profile.role === 'premium' && <Crown className="h-3 w-3" />}
-        {profile.role === 'admin' && <Shield className="h-3 w-3" />}
-        {badge.text}
+      <span className={`px-2 py-1 rounded-full text-xs font-medium ${styles[plan]} flex items-center gap-1`}>
+        {plan === 'bundle' && <Crown className="h-3 w-3" />}
+        {planLabel(plan)}
       </span>
     )
   }
@@ -258,7 +269,7 @@ export default function Navigation() {
           </nav>
 
           {/* Premium CTA for free users */}
-          {profile?.role === 'free' && (
+          {profile && planOf(profile) === 'free' && profile.role !== 'admin' && (
             <div className="px-4 pb-2">
               <Link
                 href="/settings/subscription"

@@ -84,7 +84,7 @@ export default function MyOsteoFlowUpsellModal({
             </div>
           )}
           <p className="text-sm text-slate-700 leading-relaxed mb-5">
-            MyOsteoFlow est réservé aux comptes <strong>Premium</strong> (ou en essai). Passez premium pour gérer vos
+            MyOsteoFlow est inclus dans les offres <strong>MyOsteoFlow</strong> et <strong>Premium</strong>. Abonnez-vous pour gérer vos
             patients, consultations et dossiers directement depuis votre ordinateur, en plus de tout l&apos;accès
             OsteoUpgrade :
           </p>

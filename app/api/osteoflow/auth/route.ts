@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase-server'
 import { createClient } from '@supabase/supabase-js'
 import { rateLimit } from '@/lib/rate-limit'
+import { entitlementsOf, hasOsteoflow, planOf } from '@/lib/entitlements'
 import crypto from 'crypto'
 
 const SESSION_DURATION_MS = 30 * 24 * 60 * 60 * 1000
@@ -52,7 +53,7 @@ export async function POST(request: Request) {
 
     const { data: profile, error: profileError } = await supabaseAdmin
       .from('profiles')
-      .select('role, subscription_status')
+      .select('role, plan, subscription_status')
       .eq('id', userId)
       .single()
 
@@ -60,11 +61,22 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Profil introuvable' }, { status: 404, headers: CORS })
     }
 
-    // 'trial' déverrouille MyOsteoFlow (mais pas le contenu premium — voir les
-    // endpoints formations/flashcards qui, eux, excluent explicitement 'trial').
-    if (!['premium', 'trial', 'admin'].includes(profile.role)) {
+    // Seules les offres incluant MyOsteoFlow autorisent la connexion desktop.
+    // Un compte sans aucun abonnement et un compte abonné à OsteoUpgrade seul
+    // sont deux refus distincts : le second a payé, il ne faut pas lui dire
+    // que son abonnement a expiré mais que son offre ne couvre pas MyOsteoFlow.
+    if (!hasOsteoflow(profile)) {
+      const abonneSansOsteoflow = planOf(profile) === 'osteoupgrade'
       return NextResponse.json(
-        { error: 'Un abonnement Premium Osteoupgrade est requis pour utiliser MyOsteoFlow.', code: 'NOT_PREMIUM' },
+        abonneSansOsteoflow
+          ? {
+              error: "Votre offre OsteoUpgrade n'inclut pas MyOsteoFlow. Ajoutez MyOsteoFlow depuis votre espace abonnement pour utiliser l'application.",
+              code: 'PLAN_WITHOUT_OSTEOFLOW',
+            }
+          : {
+              error: 'Un abonnement Premium Osteoupgrade est requis pour utiliser MyOsteoFlow.',
+              code: 'NOT_PREMIUM',
+            },
         { status: 403, headers: CORS }
       )
     }
@@ -89,8 +101,18 @@ export async function POST(request: Request) {
 
     await anonClient.auth.signOut()
 
+    // `role` est conservé tel quel : les binaires desktop déjà distribués le
+    // lisent et le stockent en base locale. `plan` et `entitlements` sont
+    // additifs, exploités par les versions à venir.
     return NextResponse.json(
-      { token, email: authData.user.email, role: profile.role, expires_at: expiresAt },
+      {
+        token,
+        email: authData.user.email,
+        role: profile.role,
+        plan: planOf(profile),
+        entitlements: entitlementsOf(profile),
+        expires_at: expiresAt,
+      },
       { headers: CORS }
     )
   } catch (error) {

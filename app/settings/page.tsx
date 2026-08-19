@@ -21,6 +21,8 @@ import {
   Bell,
   Globe
 } from 'lucide-react'
+import { planOf, planLabel } from '@/lib/entitlements'
+import { formatAmount, offerOf } from '@/lib/offers'
 
 export default function SettingsPage() {
   const router = useRouter()
@@ -272,14 +274,14 @@ export default function SettingsPage() {
                     <div className="h-5 w-1 rounded-full bg-gradient-to-b from-amber-400 to-amber-600" />
                     <h2 className="text-sm font-bold text-slate-800 tracking-wide">Abonnement</h2>
                   </div>
-                  {profile?.role === 'free' ? (
+                  {planOf(profile) === 'free' ? (
                     <div className="space-y-4">
                       <div className="rounded-xl bg-amber-50/80 border border-amber-200/60 p-5">
                         <div className="flex items-start gap-4">
                           <Crown className="h-8 w-8 text-amber-500 flex-shrink-0" />
                           <div className="flex-1">
-                            <h3 className="font-semibold text-slate-900 mb-1">Passez à Premium</h3>
-                            <p className="text-slate-600 text-sm mb-4">Débloquez MyOsteoflow + OsteoUpgrade pour 49,99€/mois, sans engagement</p>
+                            <h3 className="font-semibold text-slate-900 mb-1">Choisissez votre offre</h3>
+                            <p className="text-slate-600 text-sm mb-4">MyOsteoFlow ou OsteoUpgrade à {formatAmount(2999)}/mois, les deux réunis à {formatAmount(4999)}/mois — sans engagement</p>
                             <div className="grid sm:grid-cols-2 gap-2 mb-4">
                               {premiumFeatures.map((f, i) => (
                                 <div key={i} className="flex items-center gap-2">
@@ -300,14 +302,14 @@ export default function SettingsPage() {
                         Vous utilisez actuellement la version gratuite avec accès limité
                       </div>
                     </div>
-                  ) : profile?.role === 'premium' ? (
+                  ) : planOf(profile) !== 'free' ? (
                     <div className="space-y-5">
                       <div className="rounded-xl bg-emerald-50/80 border border-emerald-200/60 p-5">
                         <div className="flex items-start gap-4">
                           <Crown className="h-8 w-8 text-emerald-600 flex-shrink-0" />
                           <div>
-                            <h3 className="font-semibold text-slate-900">Abonnement Premium actif</h3>
-                            <p className="text-slate-600 text-sm mt-1">49,99€/mois, sans engagement</p>
+                            <h3 className="font-semibold text-slate-900">Abonnement {offerOf(planOf(profile))?.name ?? planLabel(planOf(profile))} actif</h3>
+                            <p className="text-slate-600 text-sm mt-1">{formatAmount(offerOf(planOf(profile))?.monthlyAmount ?? 4999)}/mois, sans engagement</p>
                             {profile.subscription_end_date && (
                               <p className="text-sm text-slate-500 mt-1.5 flex items-center gap-1.5">
                                 <Calendar className="h-4 w-4" />

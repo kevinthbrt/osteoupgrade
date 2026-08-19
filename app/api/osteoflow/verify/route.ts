@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase-server'
+import { entitlementsOf, hasOsteoflow, planOf } from '@/lib/entitlements'
 
 const CONCURRENT_WINDOW_MS = 5 * 60 * 1000
 
@@ -39,7 +40,7 @@ export async function GET(request: Request) {
 
     const { data: profile, error: profileError } = await supabaseAdmin
       .from('profiles')
-      .select('role, email')
+      .select('role, plan, email')
       .eq('id', session.user_id)
       .single()
 
@@ -47,14 +48,18 @@ export async function GET(request: Request) {
       return NextResponse.json({ valid: false, error: 'Profil introuvable' }, { headers: CORS })
     }
 
-    // 'trial' d\u00e9verrouille MyOsteoFlow (mais pas le contenu premium \u2014 voir les
-    // endpoints formations/flashcards qui, eux, excluent explicitement 'trial').
-    if (!['premium', 'trial', 'admin'].includes(profile.role)) {
+    // Seules les offres incluant MyOsteoFlow gardent une session desktop valide.
+    // Un abonn\u00e9 OsteoUpgrade seul re\u00e7oit un message distinct de l'expiration :
+    // son abonnement est actif, c'est son offre qui ne couvre pas l'application.
+    if (!hasOsteoflow(profile)) {
+      const abonneSansOsteoflow = planOf(profile) === 'osteoupgrade'
       return NextResponse.json(
         {
           valid: false,
-          error: 'Votre abonnement Osteoupgrade Premium a expir\u00e9. Renouvelez votre abonnement pour continuer.',
-          code: 'SUBSCRIPTION_EXPIRED',
+          error: abonneSansOsteoflow
+            ? "Votre offre OsteoUpgrade n'inclut pas MyOsteoFlow. Ajoutez MyOsteoFlow depuis votre espace abonnement pour continuer \u00e0 utiliser l'application."
+            : 'Votre abonnement Osteoupgrade Premium a expir\u00e9. Renouvelez votre abonnement pour continuer.',
+          code: abonneSansOsteoflow ? 'PLAN_WITHOUT_OSTEOFLOW' : 'SUBSCRIPTION_EXPIRED',
         },
         { headers: CORS }
       )
@@ -86,7 +91,18 @@ export async function GET(request: Request) {
       .update({ last_active_at: new Date().toISOString() })
       .eq('token', token)
 
-    return NextResponse.json({ valid: true, role: profile.role, email: profile.email }, { headers: CORS })
+    // `role` reste en t\u00eate de r\u00e9ponse : les binaires desktop d\u00e9j\u00e0 distribu\u00e9s le
+    // lisent et le persistent. `plan` et `entitlements` sont purement additifs.
+    return NextResponse.json(
+      {
+        valid: true,
+        role: profile.role,
+        plan: planOf(profile),
+        entitlements: entitlementsOf(profile),
+        email: profile.email,
+      },
+      { headers: CORS }
+    )
   } catch (error) {
     console.error('[osteoflow/verify] Error:', error)
     return NextResponse.json({ error: 'Erreur serveur' }, { status: 500, headers: CORS })
