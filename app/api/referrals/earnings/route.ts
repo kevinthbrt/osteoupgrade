@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { createRouteHandlerClient } from '@/lib/supabase-server-helpers'
 import { supabaseAdmin } from '@/lib/supabase-server'
+import { planOf } from '@/lib/entitlements'
 
 /**
  * GET /api/referrals/earnings
@@ -23,7 +24,7 @@ export async function GET(request: Request) {
     // Récupérer le profil de l'utilisateur
     const { data: profile, error: profileError } = await supabaseAdmin
       .from('profiles')
-      .select('role')
+      .select('role, plan')
       .eq('id', user.id)
       .single()
 
@@ -32,7 +33,10 @@ export async function GET(request: Request) {
     }
 
     // Vérifier que l'utilisateur est Premium
-    if (profile.role !== 'premium' && profile.role !== 'admin') {
+    // Toute offre payante ouvre droit au parrainage — pas seulement le bundle.
+    // Un abonné MyOsteoFlow a pour rôle miroir 'trial' : tester le rôle ici
+    // l'aurait privé de son espace parrainage.
+    if (planOf(profile) === 'free' && profile.role !== 'admin') {
       return NextResponse.json(
         { error: 'Only Premium members have access to referral earnings' },
         { status: 403 }

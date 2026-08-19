@@ -117,12 +117,12 @@ export async function POST(request: Request) {
         // Vérifier que le parrain est toujours un membre Premium/Admin actif
         const { data: referrerProfile } = await supabaseAdmin
           .from('profiles')
-          .select('role')
+          .select('role, plan')
           .eq('id', referralData.user_id)
           .single()
 
-        if (!referrerProfile || !['premium', 'admin'].includes(referrerProfile.role)) {
-          console.warn('⚠️ Referrer is no longer Premium, ignoring referral code:', referralCode)
+        if (!referrerProfile || (planOf(referrerProfile) === 'free' && referrerProfile.role !== 'admin')) {
+          console.warn('⚠️ Referrer no longer has an active plan, ignoring referral code:', referralCode)
           // Ne pas bloquer le checkout : on ignore simplement le parrainage
         } else {
           referrerUserId = referralData.user_id

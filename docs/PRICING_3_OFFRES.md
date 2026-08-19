@@ -1,6 +1,7 @@
 # Passage à 3 offres — plan d'implémentation
 
-Statut : **phases 0 à 3 terminées le 19/08/2026** — phases 4 et 5 à venir
+Statut : **phases 0 à 3 + volet lancement de la phase 4 terminés le 19/08/2026**
+— reste de la phase 4 (back-office) et phase 5 à venir
 Contrainte majeure : **le site et l'application desktop sont en production.**
 Aucune phase ne doit modifier le comportement des utilisateurs existants.
 
@@ -330,19 +331,41 @@ Colonne ajoutée aux deux `select` de la route.
    `UPDATE profiles SET plan = 'bundle' WHERE subscription_status = 'trialing';`
    — à lancer **après** le déploiement, jamais avant.
 
-### Phase 4 — Emails, parrainage, admin
+### Phase 4a — Correctifs bloquants pour le lancement ✅ terminée le 19/08/2026
 
-- [ ] Templates SQL avec prix en dur :
-      `20260616_update_pricing_referral_emails.sql`,
-      `20260616_fix_remaining_email_prices.sql`,
-      `20260715_trial_email_automations.sql`,
-      `20260616_cleanup_referral_payout_emails.sql`
+Deux défauts que le tout premier abonné MyOsteoFlow-seul aurait rencontrés.
+
+**Parrainage** — migration `20260819_referral_codes_all_plans.sql`. Le
+dispositif était adossé au rôle : `trigger_create_referral_code_on_premium` ne
+créait un code que pour `premium`/`admin`, et les deux `validate_referral_code`
+n'acceptaient comme parrain que ces mêmes rôles. L'offre MyOsteoFlow ayant
+`trial` pour rôle miroir, son abonné n'aurait **jamais reçu de code** — et s'il
+en avait eu un, il aurait été refusé à l'usage. Tout bascule sur `plan` :
+toute offre payante ouvre droit au parrainage. Côté application, même bascule
+dans `api/referrals/earnings`, `api/referrals/my-code` et la vérification du
+parrain dans `api/stripe/checkout`. Rattrapage inclus pour les abonnés
+existants sans code. Les membres fondateurs restent exclus.
+
+**Prix dans les emails** — migration `20260819_email_templates_three_offers.sql`.
+Les champs de fusion étaient corrects depuis la phase 2, mais six corps de
+templates contenaient « 49,99 € » en dur : un abonné MyOsteoFlow à 29,99 €
+aurait reçu un email lui annonçant un prélèvement de 49,99 €. L'email
+transactionnel d'essai utilise désormais `{{prix}}` (qui porte le tarif réel,
+remise Fondateur et réduction partenaire comprises) ; les emails marketing,
+adressés à des comptes sans offre, mentionnent les trois tarifs. Deux libellés
+de notification admin encore codés en dur dans le webhook sont également
+corrigés.
+
+Validé au préalable dans une transaction annulée. Deux assertions initialement
+en échec se sont révélées être des invariants que le système n'a jamais
+garantis, et non des régressions : les codes des membres fondateurs existent
+mais restent désactivés, et un code reste actif en base après résiliation —
+c'est la validation qui le refuse, pas un drapeau.
+
+### Phase 4b — Back-office (reste)
+
 - [ ] `scripts/setup-email-automations.ts`
 - [ ] Emails de bienvenue différenciés + nouveaux : upgrade, downgrade, offre modifiée
-- [ ] Parrainage : `api/referrals/*`, `app/parrainage/page.tsx`,
-      `app/settings/referrals/page.tsx` ; trigger `create_referral_code_for_premium`
-      et les deux `validate_referral_code` (1 et 2 arguments) — étendre la
-      condition `WHEN` du trigger pour couvrir `plan = 'osteoflow'`
 - [ ] Contrainte `referral_transactions_subscription_type_check`
       (n'accepte que `premium_silver|premium_gold|premium`)
 - [ ] Codes promo `/admin/promo` (−100 € pensé pour l'ancien Gold) et
