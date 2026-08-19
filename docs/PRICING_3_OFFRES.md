@@ -435,6 +435,25 @@ conversion d'un essai. `Passage à Premium` est conservé pour le bundle : cet
       la console du navigateur en étant connecté administrateur (mode d'emploi
       en tête du fichier).
 
+**Fait — mailing et codes de réduction**
+
+- [x] `api/mailing/send` : la segmentation porte sur l'offre. Filtrer sur le
+      rôle n'a plus de sens — `premium` recouvre le bundle *et* l'offre
+      OsteoUpgrade seule, et `trial` est le rôle miroir permanent de
+      MyOsteoFlow. Les anciennes valeurs de rôle restent acceptées pour ne pas
+      casser un envoi préparé avec l'ancienne interface.
+- [x] `/admin/mailing` : segments « Offre Premium / MyOsteoFlow / OsteoUpgrade
+      / Comptes gratuits », et l'aide de `{{prix}}` ne cite plus un tarif unique
+- [x] `api/admin/generate-promo` et `api/admin/partner-codes` : les coupons
+      étaient restreints au seul prix du bundle (`applies_to.prices`), donc
+      inutilisables sur une offre à 29,99 €. Ils couvrent désormais les trois
+      tarifs mensuels. Les tarifs Fondateur en restent exclus : déjà à -50 % à
+      vie, y empiler une remise cumulerait deux avantages non prévus.
+- [x] `/admin/promo` : mention explicite qu'une remise ne dépasse jamais le
+      montant du premier prélèvement — un code de 100 € offre un mois entier
+      quelle que soit l'offre, et le reliquat est perdu. L'asymétrie de valeur
+      entre 49,99 € et 29,99 € doit être connue avant d'envoyer un code.
+
 **Reste à faire**
 
 - [ ] `scripts/setup-email-automations.ts`

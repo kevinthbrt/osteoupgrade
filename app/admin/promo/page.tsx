@@ -299,7 +299,7 @@ export default function AdminPromoPage() {
               {promoCodes.length === 0 ? (
                 <div className="text-center py-10 text-gray-400">
                   <Tag className="h-10 w-10 mx-auto mb-3 opacity-40" />
-                  <p>Aucun code promo Gold actif pour le moment.</p>
+                  <p>Aucun code promo actif pour le moment.</p>
                 </div>
               ) : (
                 <div className="space-y-3">
@@ -386,10 +386,16 @@ export default function AdminPromoPage() {
               <ol className="list-decimal list-inside space-y-1 text-blue-800">
                 <li>Générez un code ci-dessus (ex. <code className="bg-blue-100 px-1 rounded">GOLD399</code>)</li>
                 <li>Envoyez ce code à la personne ciblée (email, SMS, messagerie)</li>
-                <li>Elle choisit Gold sur <strong>/settings/subscription</strong></li>
-                <li>Au moment du paiement Stripe, elle saisit le code dans le champ "Code promo"</li>
-                <li>Le prix passe automatiquement de 499€ à 399€</li>
+                <li>Elle choisit l&apos;offre de son choix sur <strong>/settings/subscription</strong></li>
+                <li>Au moment du paiement Stripe, elle saisit le code dans le champ &laquo;&nbsp;Code promo&nbsp;&raquo;</li>
+                <li>La remise s&apos;applique au premier prélèvement de l&apos;offre choisie</li>
               </ol>
+              <p className="mt-3 text-blue-900 bg-blue-100/70 border border-blue-200 rounded-lg px-3 py-2">
+                <strong>À savoir :</strong> la remise ne dépasse jamais le montant du premier
+                prélèvement. Un code de 100 € offre donc un mois entier sur n&apos;importe quelle
+                offre — 49,99 € sur Premium, 29,99 € sur MyOsteoFlow ou OsteoUpgrade — et le
+                reliquat est perdu. Les tarifs Fondateur, déjà à -50 % à vie, sont exclus.
+              </p>
             </div>
 
           </div>
