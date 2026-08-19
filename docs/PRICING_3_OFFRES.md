@@ -1,6 +1,6 @@
 # Passage à 3 offres — plan d'implémentation
 
-Statut : **phase 0 appliquée en production le 19/08/2026** — phases 1 à 5 à venir
+Statut : **phases 0 et 1 terminées le 19/08/2026** — phases 2 à 5 à venir
 Contrainte majeure : **le site et l'application desktop sont en production.**
 Aucune phase ne doit modifier le comportement des utilisateurs existants.
 
@@ -162,22 +162,51 @@ Rollback : `DROP TRIGGER trigger_sync_profile_plan_role`, restaurer
 `trigger_create_referral_code_on_premium` sur `UPDATE OF role`, puis
 `ALTER TABLE profiles DROP COLUMN plan`.
 
-### Phase 1 — Le code lit `plan` (tous les comptes sont encore `free`/`bundle`)
+### Phase 1 — Le code lit `plan` ✅ terminée le 19/08/2026
 
-- [ ] `lib/entitlements.ts` : helpers `hasOsteoflow()`, `hasOsteoupgrade()`,
-      `planLabel()`, partagés serveur/client
-- [ ] **Sécurité** : `api/osteoflow/auth`, `api/osteoflow/verify`,
-      `lib/osteoflow-auth.ts` → basculer sur les entitlements
-- [ ] `verify` renvoie un champ `entitlements` **en plus** de `role`
-      (jamais à la place — les vieux binaires lisent `role`)
-- [ ] Message d'erreur dédié pour un compte OsteoUpgrade-seul qui tente le desktop
-      (nouveau code `PLAN_WITHOUT_OSTEOFLOW`)
-- [ ] `api/subscriptions/check-renewals` : le filtre `.eq('role','premium')`
-      raterait les abonnés `osteoflow`
-- [ ] `components/Navigation.tsx` : badges (`free`/`premium`/`admin` en dur)
-- [ ] `api/admin/update-user-role` : whitelist `['free','trial','premium','admin']`
-- [ ] Contrôle de non-régression : comportement strictement identique tant que
-      `plan ∈ {free, bundle}`
+Tous les comptes valent encore `free` ou `bundle` : le comportement observable
+est strictement inchangé, ce qui a été vérifié compte par compte (voir plus bas).
+
+- [x] `lib/entitlements.ts` : `planOf()`, `hasOsteoflow()`, `hasOsteoupgrade()`,
+      `entitlementsOf()`, `planLabel()`, `roleToPlan()` / `planToRole()`.
+      Module sans dépendance, utilisable serveur et navigateur. Si `plan` est
+      absent d'un `select`, `planOf()` retombe sur la dérivation depuis `role`
+      — un oubli de colonne dégrade vers le comportement actuel au lieu de
+      retirer un accès à tort.
+- [x] **Sécurité** — `lib/osteoflow-auth.ts`, `api/osteoflow/auth`,
+      `api/osteoflow/verify` : la condition `role IN ('premium','trial','admin')`
+      devient `hasOsteoflow(profile)`. C'est le contrôle que `role` ne peut pas
+      exprimer, puisque `osteoupgrade` a pour rôle miroir `premium`.
+- [x] `auth` et `verify` renvoient `plan` et `entitlements` **en plus** de
+      `role`, jamais à la place : les binaires desktop déjà distribués lisent
+      et persistent `role`.
+- [x] Code d'erreur `PLAN_WITHOUT_OSTEOFLOW` distinct de `SUBSCRIPTION_EXPIRED` :
+      un abonné OsteoUpgrade seul a un abonnement actif, lui annoncer une
+      expiration serait faux. Le client desktop affiche le message renvoyé et
+      traite les codes inconnus comme une invalidation — aucune adaptation
+      n'est requise côté binaires existants.
+- [x] `api/subscriptions/check-renewals` : le filtre `.eq('role','premium')`
+      devient `.in('plan', [...])`. Un abonné MyOsteoFlow seul a pour rôle
+      miroir `trial` et n'aurait jamais reçu son rappel de renouvellement.
+- [x] `api/profile` expose `plan` ; `components/Navigation.tsx` affiche un badge
+      par offre (Gratuit / MyOsteoFlow / OsteoUpgrade / Premium / Admin).
+- [x] `api/admin/update-user-role` accepte `plan` (chemin cible) tout en
+      conservant `role` (chemin hérité de l'UI admin actuelle).
+
+**Laissé volontairement inchangé** : les endpoints de contenu OsteoUpgrade
+(`flashcards/*`, `practice-video`, `literature-review/[id]`, `formations`,
+`course-full`, `course-progress`, `submit-quiz`, `ortho-tests`) testent encore
+`role IN ('premium','admin')`. Le rôle miroir les rend déjà exacts pour les
+quatre offres — les réécrire n'apporterait aucun changement de comportement et
+n'ajouterait que du risque. Migration vers `hasOsteoupgrade()` à faire quand
+ces fichiers seront ouverts pour une autre raison.
+
+**Vérifications** :
+- `tsc --noEmit` propre (base de référence également propre avant modification)
+- `next build` complet en succès
+- Non-régression mesurée en base sur les 30 comptes réels : pour l'accès
+  desktop comme pour le filtre du cron, **aucun écart** entre l'ancienne et la
+  nouvelle décision
 
 ### Phase 2 — Stripe (offres créées mais non vendues)
 

@@ -1,4 +1,5 @@
 import { supabaseAdmin } from '@/lib/supabase-server'
+import { hasOsteoflow, planOf, type Plan } from '@/lib/entitlements'
 
 /**
  * Étape 1 de la migration CF2 (auth osteoflow par jeton de session).
@@ -16,7 +17,7 @@ import { supabaseAdmin } from '@/lib/supabase-server'
  */
 export async function getOsteoflowSessionUser(
   req: Request
-): Promise<{ userId: string; email: string; role: string } | null> {
+): Promise<{ userId: string; email: string; role: string; plan: Plan } | null> {
   try {
     const token = req.headers.get('x-osteoflow-token')
     const deviceId = req.headers.get('x-osteoflow-device-id')
@@ -32,12 +33,15 @@ export async function getOsteoflowSessionUser(
 
     const { data: profile } = await supabaseAdmin
       .from('profiles')
-      .select('email, role')
+      .select('email, role, plan')
       .eq('id', session.user_id)
       .single()
-    // 'trial' déverrouille MyOsteoFlow (mais pas le contenu premium — les
-    // endpoints formations/flashcards excluent explicitement 'trial').
-    if (!profile || !['premium', 'trial', 'admin'].includes(profile.role)) return null
+    // Seules les offres incluant MyOsteoFlow ouvrent une session desktop
+    // (`osteoflow` et `bundle`). L'offre OsteoUpgrade seule en est exclue,
+    // alors que son rôle miroir vaut 'premium' : c'est précisément le contrôle
+    // que `role` ne peut pas exprimer. Le contenu OsteoUpgrade reste, lui,
+    // filtré par les endpoints appelants.
+    if (!profile || !hasOsteoflow(profile)) return null
 
     // Best-effort : rafraîchir l'activité de la session (ne bloque pas la requête)
     supabaseAdmin
@@ -53,7 +57,7 @@ export async function getOsteoflowSessionUser(
     // "jeton" est bien emprunté pendant la transition. À retirer à l'étape 3.
     console.log('[osteoflow-auth] mode=token user=%s', profile.email)
 
-    return { userId: session.user_id, email: profile.email, role: profile.role }
+    return { userId: session.user_id, email: profile.email, role: profile.role, plan: planOf(profile) }
   } catch {
     return null
   }

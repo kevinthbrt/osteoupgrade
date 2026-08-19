@@ -24,12 +24,15 @@ export async function GET(request: Request) {
     const now = new Date()
     const sevenDaysFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)
 
-    // Récupérer tous les utilisateurs Premium actifs avec un stripe_subscription_id
+    // Récupérer tous les abonnés actifs avec un stripe_subscription_id.
+    // Le filtre porte sur `plan` et non sur `role` : un abonné MyOsteoFlow
+    // seul a pour rôle miroir 'trial', il aurait été ignoré par un filtre
+    // `role = 'premium'` et n'aurait jamais reçu son rappel de renouvellement.
     const { data: premiumUsers, error: usersError } = await supabaseAdmin
       .from('profiles')
-      .select('id, email, full_name, role, stripe_subscription_id, stripe_customer_id, renewal_reminder_sent_at')
+      .select('id, email, full_name, role, plan, stripe_subscription_id, stripe_customer_id, renewal_reminder_sent_at')
       .eq('subscription_status', 'active')
-      .eq('role', 'premium')
+      .in('plan', ['osteoflow', 'osteoupgrade', 'bundle'])
       .not('stripe_subscription_id', 'is', null)
 
     if (usersError) {
