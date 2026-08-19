@@ -1,7 +1,7 @@
 # Passage à 3 offres — plan d'implémentation
 
-Statut : **phases 0 à 3 + volet lancement de la phase 4 terminés le 19/08/2026**
-— reste de la phase 4 (back-office) et phase 5 à venir
+Statut : **phases 0 à 3 et 4a livrées et déployées le 19/08/2026** (PR #323)
+— phase 4b en cours, phase 5 à venir
 Contrainte majeure : **le site et l'application desktop sont en production.**
 Aucune phase ne doit modifier le comportement des utilisateurs existants.
 
@@ -406,7 +406,27 @@ conversion d'un essai. `Passage à Premium` est conservé pour le bundle : cet
   semaines. Nouvelle colonne `mail_automations.stop_on_subscribe`, et
   `cancelProspectSequences()` appelée par le webhook à la souscription.
 
-### Phase 4b — Back-office (reste)
+### Phase 4b — Back-office (en cours)
+
+**Fait — visibilité commerciale et gestion des offres**
+
+- [x] `api/admin/stats` : décompte par offre, **MRR** et panier moyen. Le seul
+      chiffre disponible était « premium », qui ne dit plus rien maintenant
+      qu'il recouvre le bundle *et* l'offre OsteoUpgrade seule. Les tarifs
+      Fondateur (annuels, -50 %) sont mensualisés pour rester comparables ;
+      essais et comptes offerts sont comptés dans la répartition mais exclus
+      du MRR, comme ils l'étaient déjà du taux de conversion.
+- [x] `/admin/stats` : bloc « Répartition par offre » avec part de chacune,
+      cartes « Abonnés payants », « MRR » et « Essais en cours »
+- [x] `/admin/users` : le sélecteur attribue une **offre** (et non plus un
+      rôle), écrit `plan`, et laisse le trigger SQL recalculer le rôle miroir.
+      `admin` reste une entrée à part — ce n'est pas une offre. Badges et
+      compteurs suivent l'offre ; l'état d'essai vient de `subscription_status`.
+- [x] Contrôle : MRR recalculé en SQL sur les données réelles, identique au
+      code (199,97 € — 3 abonnés au tarif public, 2 fondateurs mensualisés,
+      1 compte offert et 1 essai exclus)
+
+**Reste à faire**
 
 - [ ] `scripts/setup-email-automations.ts`
 - [ ] Emails de bienvenue différenciés + nouveaux : upgrade, downgrade, offre modifiée

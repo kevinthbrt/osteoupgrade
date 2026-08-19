@@ -1,4 +1,18 @@
 import { NextResponse } from 'next/server'
+import { planOf, type Plan } from '@/lib/entitlements'
+import { OFFERS } from '@/lib/offers'
+
+/**
+ * Contribution mensuelle d'un abonné au revenu récurrent.
+ *
+ * Les tarifs Fondateur sont annuels et à -50 % : on les ramène au mois pour
+ * que le MRR reste comparable, plutôt que de les compter au prix public.
+ */
+function mrrPourOffre(offre: Plan, fondateur?: boolean | null): number {
+  const o = OFFERS.find((x) => x.id === offre)
+  if (!o) return 0
+  return fondateur ? Math.round(o.foundingAnnualAmount / 12) : o.monthlyAmount
+}
 import { cookies } from 'next/headers'
 import { createRouteHandlerClient } from '@/lib/supabase-server-helpers'
 import { supabaseAdmin } from '@/lib/supabase-server'
@@ -10,6 +24,9 @@ type ProfileRow = {
   email: string | null
   full_name: string | null
   role: string | null
+  plan: string | null
+  subscription_status: string | null
+  is_complimentary: boolean | null
   is_founding_member: boolean | null
   newsletter_opt_in: boolean | null
   partner_discount_name: string | null
@@ -54,7 +71,7 @@ export async function GET() {
     ticketsRes,
   ] = await Promise.all([
     supabaseAdmin.from('profiles')
-      .select('id, email, full_name, role, is_founding_member, newsletter_opt_in, partner_discount_name, created_at')
+      .select('id, email, full_name, role, plan, subscription_status, is_complimentary, is_founding_member, newsletter_opt_in, partner_discount_name, created_at')
       .order('created_at', { ascending: true }),
     supabaseAdmin.from('user_login_tracking').select('user_id, login_date'),
     supabaseAdmin.from('osteoflow_sessions').select('user_id, device_id, device_name, last_active_at, created_at'),
@@ -86,10 +103,31 @@ export async function GET() {
   const since = (n: number) => now.getTime() - ms(n)
 
   // ── Account KPIs ──────────────────────────────────────────────────────────
+  // Le décompte suit l'offre souscrite, pas le rôle : `premium` était le seul
+  // chiffre disponible, il ne dit plus rien maintenant qu'il recouvre le
+  // bundle ET l'offre OsteoUpgrade seule.
   let premium = 0, free = 0, trial = 0, admin = 0, foundingMembers = 0, newsletterOptIn = 0, partnerDiscounts = 0
   let signupsToday = 0, signups7d = 0, signups30d = 0, prevSignups30d = 0
 
+  // Répartition par offre, et revenu récurrent mensuel correspondant.
+  const parOffre: Record<string, number> = { osteoflow: 0, osteoupgrade: 0, bundle: 0 }
+  let mrrCents = 0, abonnesPayants = 0, enEssai = 0
+
   for (const p of profiles) {
+    const offre = planOf(p)
+    const enCoursDEssai = p.subscription_status === 'trialing'
+
+    // Un compte offert garde ses accès mais n'a jamais payé : il est déjà
+    // exclu du taux de conversion, il doit l'être aussi du MRR.
+    if (offre !== 'free' && p.role !== 'admin') {
+      parOffre[offre]++
+      if (enCoursDEssai) enEssai++
+      else if (!p.is_complimentary) {
+        abonnesPayants++
+        mrrCents += mrrPourOffre(offre, p.is_founding_member)
+      }
+    }
+
     if (p.role === 'premium') premium++
     else if (p.role === 'admin') admin++
     else if (p.role === 'trial') trial++
@@ -265,12 +303,14 @@ export async function GET() {
 
   // ── Recent signups ────────────────────────────────────────────────────────
   const recent = [...profiles].reverse().slice(0, 8).map(p => ({
-    id: p.id, email: p.email, full_name: p.full_name, role: p.role, created_at: p.created_at,
+    id: p.id, email: p.email, full_name: p.full_name, role: p.role, plan: planOf(p), created_at: p.created_at,
   }))
 
   return NextResponse.json({
     kpis: {
       total, premium, free, trial, admin, foundingMembers, partnerDiscounts, newsletterOptIn,
+      parOffre, mrrCents, abonnesPayants, enEssai,
+      panierMoyenCents: abonnesPayants > 0 ? Math.round(mrrCents / abonnesPayants) : 0,
       signupsToday, signups7d, signups30d, prevSignups30d, conversionRate,
       dau, wau, mau, stickiness, activationRate,
     },
