@@ -24,21 +24,6 @@ type Counts = { tickets: number; emails: number }
 
 export default function AdminPage() {
   const router = useRouter()
-  const [portalSetup, setPortalSetup] = useState<{ loading: boolean; result: any | null; error: string | null }>({
-    loading: false, result: null, error: null,
-  })
-
-  const configurerPortail = async () => {
-    setPortalSetup({ loading: true, result: null, error: null })
-    try {
-      const res = await fetch('/api/admin/stripe-portal-setup', { method: 'POST' })
-      const json = await res.json()
-      if (!res.ok) throw new Error(json.error || 'Erreur inconnue')
-      setPortalSetup({ loading: false, result: json, error: null })
-    } catch (e: any) {
-      setPortalSetup({ loading: false, result: null, error: e.message })
-    }
-  }
   const [counts, setCounts] = useState<Counts>({ tickets: 0, emails: 0 })
 
   useEffect(() => {
@@ -255,47 +240,6 @@ export default function AdminPage() {
                   )
                 })}
               </div>
-            </div>
-
-            {/* Portail Stripe — changement d'offre */}
-            <div className="rounded-2xl bg-white/85 backdrop-blur-2xl border border-white/70 shadow-xl ring-1 ring-inset ring-white/60 p-5">
-              <div className="flex items-center gap-2.5 mb-3">
-                <div className="h-5 w-1 rounded-full bg-gradient-to-b from-amber-400 to-amber-600" />
-                <h2 className="text-sm font-bold text-slate-800 tracking-wide">Portail Stripe — changement d&apos;offre</h2>
-              </div>
-              <p className="text-sm text-slate-600 mb-3">
-                Génère les deux configurations du portail client : une grille aux tarifs publics, une aux
-                tarifs fondateur. Deux grilles distinctes, sans quoi un membre fondateur perdrait son
-                −50 % à vie en changeant d&apos;offre. L&apos;opération est réversible et peut être relancée
-                sans créer de doublon.
-              </p>
-              <button
-                onClick={configurerPortail}
-                disabled={portalSetup.loading}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-800 text-white text-sm font-semibold hover:bg-slate-700 shadow-sm transition-all disabled:opacity-50"
-              >
-                {portalSetup.loading ? 'Configuration…' : 'Configurer le portail'}
-              </button>
-
-              {portalSetup.error && (
-                <p className="mt-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
-                  {portalSetup.error}
-                </p>
-              )}
-
-              {portalSetup.result && (
-                <div className="mt-3 space-y-2">
-                  <p className="text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2">
-                    Configurations prêtes. Reportez ces deux variables dans Vercel, puis redéployez —
-                    les variables d&apos;environnement ne sont lues qu&apos;au build. Tant que ce n&apos;est
-                    pas fait, le portail garde son comportement actuel.
-                  </p>
-                  <pre className="text-xs bg-slate-900 text-slate-100 rounded-lg p-3 overflow-x-auto">
-{`STRIPE_PORTAL_CONFIG_PLANS=${portalSetup.result.variables.STRIPE_PORTAL_CONFIG_PLANS}
-STRIPE_PORTAL_CONFIG_PLANS_FOUNDING=${portalSetup.result.variables.STRIPE_PORTAL_CONFIG_PLANS_FOUNDING}`}
-                  </pre>
-                </div>
-              )}
             </div>
 
             {/* Quick links */}
