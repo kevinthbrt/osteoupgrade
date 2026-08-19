@@ -1,6 +1,6 @@
 # Passage à 3 offres — plan d'implémentation
 
-Statut : **phases 0 et 1 terminées le 19/08/2026** — phases 2 à 5 à venir
+Statut : **phases 0, 1 et 2 terminées le 19/08/2026** — phases 3 à 5 à venir
 Contrainte majeure : **le site et l'application desktop sont en production.**
 Aucune phase ne doit modifier le comportement des utilisateurs existants.
 
@@ -10,9 +10,9 @@ Aucune phase ne doit modifier le comportement des utilisateurs existants.
 
 | Offre | Contenu | Prix | Price ID Stripe |
 |---|---|---|---|
-| **Bundle** (actuelle) | OsteoUpgrade + MyOsteoFlow | 49,99 €/mois | `STRIPE_PRICE_PREMIUM_MONTHLY` (existant, inchangé) |
-| **MyOsteoFlow seul** | Application cabinet + IA | 29,99 €/mois | `STRIPE_PRICE_OSTEOFLOW_MONTHLY` (à créer) |
-| **OsteoUpgrade seul** | E-learning, pratique, flashcards, tests | 29,99 €/mois | `STRIPE_PRICE_OSTEOUPGRADE_MONTHLY` (à créer) |
+| **Bundle** (actuelle) | OsteoUpgrade + MyOsteoFlow | 49,99 €/mois | `price_1TqqwCEr5HqbRRSri15NXlif` (inchangé) |
+| **MyOsteoFlow seul** | Application cabinet + IA | 29,99 €/mois | `price_1U66MeEr5HqbRRSrTFTPeiOr` |
+| **OsteoUpgrade seul** | E-learning, pratique, flashcards, tests | 29,99 €/mois | `price_1U66MlEr5HqbRRSrrx7lHFan` |
 
 Remise bundle : 59,98 → 49,99 €, soit **−17 %** (argument commercial à afficher).
 
@@ -22,9 +22,9 @@ Les membres fondateurs choisissent l'offre de leur choix, toujours à −50 % :
 
 | Offre fondateur | Prix | Price ID |
 |---|---|---|
-| Bundle | 299,94 €/an | `STRIPE_PRICE_FOUNDING_ANNUAL` (existant) |
-| MyOsteoFlow seul | 179,94 €/an | `STRIPE_PRICE_FOUNDING_OSTEOFLOW_ANNUAL` (à créer) |
-| OsteoUpgrade seul | 179,94 €/an | `STRIPE_PRICE_FOUNDING_OSTEOUPGRADE_ANNUAL` (à créer) |
+| Bundle | 299,94 €/an | `price_1TqqwBEr5HqbRRSrkCNHqUdA` (inchangé) |
+| MyOsteoFlow seul | 179,94 €/an | `price_1U66MwEr5HqbRRSrl4BvuJVx` |
+| OsteoUpgrade seul | 179,94 €/an | `price_1U66N3Er5HqbRRSrb0zwZMfY` |
 
 → **6 prix Stripe au total** (3 mensuels standard + 3 annuels fondateur).
 
@@ -208,27 +208,78 @@ ces fichiers seront ouverts pour une autre raison.
   desktop comme pour le filtre du cron, **aucun écart** entre l'ancienne et la
   nouvelle décision
 
-### Phase 2 — Stripe (offres créées mais non vendues)
+### Phase 2 — Stripe ✅ terminée le 19/08/2026
 
-- [ ] Créer les 4 nouveaux Price dans Stripe (2 mensuels + 2 fondateurs annuels)
-- [ ] `lib/stripe.ts` : `STRIPE_PLANS` passe de 2 à 6 entrées, chacune portant
-      `plan` et `entitlements`
-- [ ] Table de correspondance **`priceId → plan`** (source de vérité du webhook,
-      plus robuste que les metadata)
-- [ ] `api/stripe/webhook` : mapping du plan (l. 387 `role: … ? planType : 'free'`
-      et l. 770 sur `subscription.deleted`)
-- [ ] `api/stripe/webhook` : **gérer le changement de price** dans
-      `customer.subscription.updated` — non géré aujourd'hui, indispensable pour
-      les upgrades/downgrades
-- [ ] `describePlanPricing()` : prix affichés dans les emails de bienvenue
-- [ ] `api/stripe/checkout` : éligibilité essai (aujourd'hui
-      `planType === 'premium_monthly'` en dur, l. ~145) + garde fondateur étendue
-      aux 3 offres fondateur
-- [ ] `REFERRAL_FREE_MONTH_AMOUNT` → montant variable selon le plan du filleul
-- [ ] Remapper les essais en cours (`subscription_status = 'trialing'`) vers le
-      plan réellement souscrit — la phase 0 les a backfillés en `osteoflow`
-      pour préserver le comportement actuel
-- [ ] Recette sur un compte interne en test mode, sur les 6 prix
+**Catalogue Stripe (livemode)** — 4 Price créés, 2 existants alignés. Chaque
+Price porte un `lookup_key` et un `metadata.plan`, ce qui rend la résolution
+d'offre indépendante de la configuration d'environnement.
+
+- [x] Produits `MyOsteoFlow` (`prod_V6IypGYLNuW3tR`) et `OsteoUpgrade`
+      (`prod_V6IyzEUUNnj934`), chacun portant son tarif mensuel et son tarif
+      Fondateur annuel
+- [x] `metadata.plan` posé sur les deux Price bundle existants (`premium` → `bundle`)
+
+**Code**
+
+- [x] `lib/stripe.ts` : `STRIPE_PLANS` passe de 2 à 6 entrées, typées, chacune
+      portant `plan` et `isFounding`. Les clés historiques `premium_monthly` et
+      `founding_annual` sont conservées — elles vivent déjà dans les metadata
+      des abonnements en cours et dans le front.
+- [x] `planFromSubscription()` : résolution en cascade `price.metadata.plan` →
+      priceId → metadata de l'abonnement → `bundle`. Le repli final n'est
+      jamais `free` : jusqu'ici une seule offre existait, couper l'accès d'un
+      abonné non identifiable serait le pire résultat possible.
+- [x] `referralFreeMonthAmount(plan)` remplace la constante fixe : un
+      parrainage sur MyOsteoFlow seul offre 29,99 €, pas le prix du bundle.
+- [x] `api/stripe/checkout` : garde Fondateur généralisée via `plan.isFounding`,
+      essai ouvert aux trois offres mensuelles (et toujours unique par compte
+      à vie), metadata enrichies de `plan`.
+- [x] `api/stripe/webhook` : entièrement piloté par `plan`, plus aucune
+      écriture directe de `role`. Écrire `plan` protège au passage un compte
+      admin par ailleurs abonné, que l'ancien `role: 'free'` rétrogradait.
+- [x] **Changement d'offre géré** dans `customer.subscription.updated` — le
+      code n'existait pas. Upgrade et downgrade suivent le prix de
+      l'abonnement, et tout changement est tracé par une notification admin :
+      un downgrade qui ne retirerait pas les droits serait invisible.
+
+**Deux bugs bloquants trouvés et corrigés**
+
+1. `handleSubscriptionUpdated` et `handleSubscriptionDeleted` détectaient
+   l'essai par `role === 'trial'`. Or `trial` est devenu le rôle miroir
+   **permanent** de l'offre MyOsteoFlow seul : chaque abonné MyOsteoFlow
+   serait passé en accès complet au premier événement Stripe venu. L'état
+   d'essai se lit désormais sur `subscription_status`.
+2. `referral_transactions.subscription_type` avait une contrainte CHECK
+   limitée aux valeurs de l'ancien modèle. L'insertion d'un parrainage validé
+   aurait échoué. Migration `20260819_referral_transactions_accept_plans.sql`.
+
+**Vérifications** : `tsc` et `next build` en succès ; résolution d'offre testée
+sur 7 cas dont le **payload réel** de l'abonnement en cours (prix legacy sans
+metadata, abonnement historique, payload vide) — 7/7.
+
+**Volontairement reporté en phase 3**
+
+- **Configuration du portail Stripe** (`subscription_update`). L'activer
+  maintenant permettrait aux abonnés actuels de descendre à 29,99 € avant même
+  l'ouverture commerciale. Elle doit être publiée avec la nouvelle grille.
+- **Remappage de l'essai en cours** vers `bundle`. À faire **après** le
+  déploiement du code : tant que l'ancien webhook tourne, il détecte l'essai
+  par `role === 'trial'`, et remapper d'abord lui ferait manquer l'email
+  « Passage à Premium » et le crédit de parrainage à la conversion. Le nouveau
+  webhook s'en charge de lui-même au prochain événement Stripe.
+
+**Variables d'environnement à ajouter dans Vercel** (les deux premières
+existent déjà) :
+
+```
+STRIPE_PRICE_OSTEOFLOW_MONTHLY=price_1U66MeEr5HqbRRSrTFTPeiOr
+STRIPE_PRICE_OSTEOUPGRADE_MONTHLY=price_1U66MlEr5HqbRRSrrx7lHFan
+STRIPE_PRICE_FOUNDING_OSTEOFLOW_ANNUAL=price_1U66MwEr5HqbRRSrl4BvuJVx
+STRIPE_PRICE_FOUNDING_OSTEOUPGRADE_ANNUAL=price_1U66N3Er5HqbRRSrb0zwZMfY
+```
+
+Leur absence n'empêche pas le webhook de fonctionner (il lit les metadata du
+Price), mais elle empêche de créer une session de paiement sur ces offres.
 
 ### Phase 3 — Ouverture commerciale (UI + juridique)
 
