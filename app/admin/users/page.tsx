@@ -22,6 +22,7 @@ import {
   Star,
   Gift
 } from 'lucide-react'
+import { planOf, planLabel, PLANS } from '@/lib/entitlements'
 
 // ── helpers ────────────────────────────────────────────────────────────────
 
@@ -37,28 +38,21 @@ function relativeDate(dateStr: string | null): string {
   return `Il y a ${Math.floor(months / 12)} an(s)`
 }
 
-function roleBadge(role: string) {
-  if (role === 'admin')
-    return (
-      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-purple-100 text-purple-800">
-        <Shield className="h-3 w-3" /> Admin
-      </span>
-    )
-  if (role === 'premium')
-    return (
-      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-800">
-        <Crown className="h-3 w-3" /> Premium
-      </span>
-    )
-  if (role === 'trial')
-    return (
-      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-800">
-        <Crown className="h-3 w-3" /> Essai MyOsteoFlow
-      </span>
-    )
+function planBadge(user: any) {
+  if (user?.role === 'admin')
+    return <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-purple-100 text-purple-800">Admin</span>
+
+  const plan = planOf(user)
+  const styles: Record<string, string> = {
+    free: 'bg-slate-100 text-slate-600',
+    osteoflow: 'bg-sky-100 text-sky-800',
+    osteoupgrade: 'bg-violet-100 text-violet-800',
+    bundle: 'bg-yellow-100 text-yellow-800',
+  }
   return (
-    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-600">
-      <User className="h-3 w-3" /> Gratuit
+    <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold ${styles[plan]}`}>
+      {planLabel(plan)}
+      {user?.subscription_status === 'trialing' && <span className="opacity-70">· essai</span>}
     </span>
   )
 }
@@ -222,7 +216,8 @@ export default function UsersManagementPage() {
 
   const openDetail = (user: any) => {
     setSelectedUser(user)
-    setEditRole(user.role)
+    // `admin` n'est pas une offre : on le conserve tel quel dans le sélecteur.
+    setEditRole(user.role === 'admin' ? 'admin' : planOf(user))
     setShowDetailModal(true)
   }
 
@@ -238,18 +233,20 @@ export default function UsersManagementPage() {
       const res = await fetch('/api/admin/update-user-role', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: selectedUser.id, role: editRole })
+        body: editRole === 'admin'
+          ? JSON.stringify({ userId: selectedUser.id, role: 'admin' })
+          : JSON.stringify({ userId: selectedUser.id, plan: editRole })
       })
       if (!res.ok) {
         const json = await res.json()
         throw new Error(json.error || 'Erreur inconnue')
       }
 
-      setUsers(prev =>
-        prev.map(u => u.id === selectedUser.id ? { ...u, role: editRole } : u)
-      )
-      setSelectedUser((prev: any) => ({ ...prev, role: editRole }))
-      alert('Rôle mis à jour avec succès !')
+      // Le rôle miroir est recalculé côté serveur par le trigger SQL ; on
+      // recharge pour afficher l'état réel plutôt que de le deviner ici.
+      await loadUsers()
+      closeDetail()
+      alert(editRole === 'admin' ? 'Compte promu administrateur.' : `Offre mise à jour : ${planLabel(editRole as any)}`)
     } catch (error: any) {
       alert('Erreur : ' + error.message)
     } finally {
@@ -308,9 +305,9 @@ export default function UsersManagementPage() {
 
   const stats = {
     total: users.length,
-    free: users.filter(u => u.role === 'free').length,
-    trial: users.filter(u => u.role === 'trial').length,
-    premium: users.filter(u => u.role === 'premium').length,
+    free: users.filter(u => u.role !== 'admin' && planOf(u) === 'free').length,
+    trial: users.filter(u => u.subscription_status === 'trialing').length,
+    premium: users.filter(u => u.role !== 'admin' && planOf(u) !== 'free').length,
     admin: users.filter(u => u.role === 'admin').length,
     canceled: users.filter(u => u.subscription_status === 'canceled').length,
     newsletterOptIn: users.filter(u => u.newsletter_opt_in).length,
@@ -591,7 +588,7 @@ export default function UsersManagementPage() {
 
                           {/* Rôle */}
                           <td className="px-6 py-4 whitespace-nowrap">
-                            {roleBadge(user.role)}
+                            {planBadge(user)}
                           </td>
 
                           {/* Abonnement */}
@@ -694,7 +691,7 @@ export default function UsersManagementPage() {
                   <div>
                     <h3 className="text-lg font-bold text-slate-800">{selectedUser.full_name || 'Sans nom'}</h3>
                     <p className="text-sm text-slate-500 mb-1">{selectedUser.email}</p>
-                    {roleBadge(selectedUser.role)}
+                    {planBadge(selectedUser)}
                   </div>
                 </div>
                 <button
@@ -732,17 +729,22 @@ export default function UsersManagementPage() {
                   <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Informations</h4>
                   <div className="space-y-3">
                     <div>
-                      <label className="block text-xs font-medium text-slate-500 mb-1">Rôle</label>
+                      <label className="block text-xs font-medium text-slate-500 mb-1">Offre</label>
                       <select
                         value={editRole}
                         onChange={(e) => setEditRole(e.target.value)}
                         className="w-full px-4 py-2.5 rounded-xl bg-white/70 backdrop-blur-sm border border-blue-200/60 text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-400/50 transition-all text-sm"
                       >
-                        <option value="free">Gratuit</option>
-                        <option value="trial">Essai MyOsteoFlow</option>
-                        <option value="premium">Premium</option>
-                        <option value="admin">Admin</option>
+                        {PLANS.map((p) => (
+                          <option key={p} value={p}>{planLabel(p)}</option>
+                        ))}
+                        <option value="admin">Administrateur</option>
                       </select>
+                      <p className="mt-1 text-[11px] text-slate-400">
+                        Attribuer une offre ici ne crée aucun abonnement Stripe : l&apos;accès est ouvert,
+                        mais rien n&apos;est facturé. Pour un accès offert durable, pensez au drapeau
+                        « compte offert ».
+                      </p>
                     </div>
                     <div className="flex justify-between text-sm py-1">
                       <span className="text-slate-500">Inscription</span>
@@ -853,7 +855,7 @@ export default function UsersManagementPage() {
                   <div className="space-y-2">
                     <button
                       onClick={handleUpdateRole}
-                      disabled={saving || editRole === selectedUser.role}
+                      disabled={saving || editRole === (selectedUser.role === 'admin' ? 'admin' : planOf(selectedUser))}
                       className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600/90 backdrop-blur-sm border border-blue-400/30 text-white text-sm font-semibold hover:bg-blue-600 shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <Shield className="h-4 w-4" />

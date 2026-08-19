@@ -27,6 +27,7 @@ import {
   Coins,
   Gift,
 } from 'lucide-react'
+import { OFFERS, formatAmount } from '@/lib/offers'
 
 type Series = { date: string; count: number }[]
 
@@ -34,6 +35,11 @@ type Stats = {
   kpis: {
     total: number
     premium: number
+    parOffre: { osteoflow: number; osteoupgrade: number; bundle: number }
+    mrrCents: number
+    abonnesPayants: number
+    enEssai: number
+    panierMoyenCents: number
     free: number
     trial: number
     admin: number
@@ -376,15 +382,47 @@ export default function AdminStatsPage() {
                       )} />
                     <KpiCard icon={UserPlus} label="Inscrits (7j)" value={stats.kpis.signups7d} iconColor="text-indigo-600" iconBg="bg-indigo-100"
                       sub={<span className="text-slate-400">dont {stats.kpis.signupsToday} aujourd&apos;hui</span>} />
-                    <KpiCard icon={Crown} label="Premium" value={stats.kpis.premium} iconColor="text-yellow-600" iconBg="bg-yellow-100"
+                    <KpiCard icon={Crown} label="Abonnés payants" value={stats.kpis.abonnesPayants} iconColor="text-yellow-600" iconBg="bg-yellow-100"
                       sub={<span className="text-slate-400">{stats.kpis.conversionRate}% de conversion</span>} />
-                    <KpiCard icon={Laptop} label="Essais MyOsteoFlow" value={stats.kpis.trial} iconColor="text-blue-600" iconBg="bg-blue-100"
+                    <KpiCard icon={TrendingUp} label="MRR" value={formatAmount(stats.kpis.mrrCents)} iconColor="text-emerald-600" iconBg="bg-emerald-100"
+                      sub={<span className="text-slate-400">{formatAmount(stats.kpis.panierMoyenCents)} par abonné</span>} />
+                    <KpiCard icon={Laptop} label="Essais en cours" value={stats.kpis.enEssai} iconColor="text-blue-600" iconBg="bg-blue-100"
                       sub={<span className="text-slate-400">en cours (7 jours)</span>} />
                     <KpiCard icon={Star} label="Membres fondateurs" value={stats.kpis.foundingMembers} iconColor="text-amber-600" iconBg="bg-amber-100" />
                     <KpiCard icon={Gift} label="Codes partenaires" value={stats.kpis.partnerDiscounts} iconColor="text-emerald-600" iconBg="bg-emerald-100" />
                     <KpiCard icon={Mail} label="Opt-in newsletter" value={stats.kpis.newsletterOptIn} iconColor="text-pink-600" iconBg="bg-pink-100"
                       sub={<span className="text-slate-400">{stats.kpis.total > 0 ? Math.round((stats.kpis.newsletterOptIn / stats.kpis.total) * 100) : 0}% des comptes</span>} />
                   </div>
+
+                  {/* Répartition par offre */}
+                  <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-5">
+                    <h3 className="text-sm font-bold text-slate-800 mb-4">Répartition par offre</h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      {OFFERS.map((offre) => {
+                        const n = stats.kpis.parOffre[offre.id] ?? 0
+                        const totalAbonnes = OFFERS.reduce((acc, o) => acc + (stats.kpis.parOffre[o.id] ?? 0), 0)
+                        const part = totalAbonnes > 0 ? Math.round((n / totalAbonnes) * 100) : 0
+                        return (
+                          <div key={offre.id} className="rounded-xl border border-slate-200 p-4">
+                            <div className="flex items-baseline justify-between mb-1">
+                              <span className="text-sm font-semibold text-slate-700">{offre.name}</span>
+                              <span className="text-xs text-slate-400">{formatAmount(offre.monthlyAmount)}/mois</span>
+                            </div>
+                            <p className="text-2xl font-bold text-slate-900">{n}</p>
+                            <div className="mt-2 h-1.5 w-full rounded-full bg-slate-100">
+                              <div className={`h-1.5 rounded-full ${offre.id === 'bundle' ? 'bg-yellow-500' : offre.id === 'osteoflow' ? 'bg-sky-500' : 'bg-violet-500'}`} style={{ width: `${part}%` }} />
+                            </div>
+                            <p className="mt-1 text-xs text-slate-400">{part}% des abonnés</p>
+                          </div>
+                        )
+                      })}
+                    </div>
+                    <p className="mt-4 text-xs text-slate-400">
+                      Essais et comptes offerts inclus dans la répartition, exclus du MRR. Les tarifs Fondateur
+                      (annuels, -50 %) sont ramenés au mois.
+                    </p>
+                  </div>
+
                 </section>
 
                 {/* ═══ ACTIVITY ═══ */}
