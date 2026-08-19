@@ -454,6 +454,28 @@ conversion d'un essai. `Passage à Premium` est conservé pour le bundle : cet
       quelle que soit l'offre, et le reliquat est perdu. L'asymétrie de valeur
       entre 49,99 € et 29,99 € doit être connue avant d'envoyer un code.
 
+**Tests orthopédiques — frontière tranchée**
+
+Le contenu de la bibliothèque relève d'OsteoUpgrade, mais l'aide au
+raisonnement de MyOsteoFlow peut continuer à **nommer** des tests. Autrement
+dit : sans OsteoUpgrade, on sait quel test faire, pas comment ni pourquoi.
+
+| Endpoint | Renvoie | Sans OsteoUpgrade |
+|---|---|---|
+| `osteoflow/ortho-tests` | nom + **indications** | **403** — c'est la bibliothèque |
+| `osteoflow/generate-hypotheses` | nom, région, rationale de l'IA | ouvert — aucune indication n'est renvoyée |
+| `osteoflow/suggest-tests` | nom + raisonnement de l'IA | ouvert — même raison |
+
+Le descriptif n'est affiché que dans le sélecteur du formulaire de
+consultation, alimenté par `ortho-tests` : le fermer suffit à faire respecter
+la frontière, sans toucher aux fonctions vendues avec MyOsteoFlow.
+
+**Transition** : le contrôle ne s'applique **que si le client transmet un
+jeton de session**. Les binaires desktop déjà distribués n'envoient que le
+secret partagé pour cet endpoint — l'exiger tout de suite couperait les tests
+à tous les abonnés, Premium compris, jusqu'à ce que chacun ait mis à jour son
+application. Même stratégie que la migration CF2.
+
 **Reste à faire**
 
 - [ ] `scripts/setup-email-automations.ts`
