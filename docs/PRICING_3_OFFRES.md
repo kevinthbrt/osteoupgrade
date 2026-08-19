@@ -362,6 +362,50 @@ garantis, et non des régressions : les codes des membres fondateurs existent
 mais restent désactivés, et un code reste actif en base après résiliation —
 c'est la validation qui le refuse, pas un drapeau.
 
+### Phase 4a-bis — Séquences d'emails par offre ✅ terminée le 19/08/2026
+
+Migration `20260819_emails_par_offre.sql`.
+
+**Le défaut** : le déclencheur `Passage à Premium` partait pour **n'importe
+quelle offre payante** et portait trois emails consacrés à MyOsteoflow
+(bienvenue + installation, rappel J+7, astuces J+14). Un abonné OsteoUpgrade
+seul aurait reçu trois relances sur un logiciel qu'il n'a pas acheté et ne peut
+pas ouvrir — le premier partant **immédiatement**, donc dès le premier client.
+
+**Pourquoi une séquence par offre** : le moteur ne fait que du remplacement
+`{{variable}}`, sans aucune condition. Impossible de brancher le contenu dans
+un template ; il faut des automatisations distinctes, et un événement par
+offre émis par le webhook.
+
+| Offre | Immédiat | J+7 | J+21 |
+|---|---|---|---|
+| MyOsteoFlow | Bienvenue + installation | Rappel installation *(partagé)* | **Upsell OsteoUpgrade** |
+| OsteoUpgrade | Bienvenue orientée contenu | Par où commencer | **Upsell MyOsteoFlow** |
+| Premium | Séquence existante, inchangée | | |
+
+L'argument d'upsell est le même dans les deux sens : passer de 29,99 à 49,99 €
+coûte **20 €** et donne l'autre produit entier, soit **10 €/mois de moins**
+que de le prendre séparément. Le bouton renvoie vers la page abonnement, où le
+bloc « Changer d'offre » de la phase 3 exécute le changement via Stripe.
+
+`subscriptionEventFor(plan)` route l'événement, à la souscription comme à la
+conversion d'un essai. `Passage à Premium` est conservé pour le bundle : cet
+événement vit déjà dans les metadata des abonnements en cours.
+
+**Autres correctifs de cohérence**
+
+- Sujets adossés à une offre unique (`essai gratuit MyOsteoflow`,
+  `abonnement Premium annulé`) → `{{nom}}`, qui porte l'offre réelle. Le
+  webhook transmet désormais `nom` aussi à la résiliation.
+- L'email d'essai affirmait que « seul MyOsteoflow est débloqué » — devenu faux
+  depuis que l'essai donne l'accès complet à l'offre choisie. Bloc retiré,
+  texte réécrit autour de `{{nom}}`.
+- **Défaut préexistant corrigé** : les inscriptions en séquence n'étaient
+  annulées qu'en cas de désabonnement. Un compte gratuit qui souscrivait
+  continuait de recevoir « Passez Premium, débloquez tout » pendant des
+  semaines. Nouvelle colonne `mail_automations.stop_on_subscribe`, et
+  `cancelProspectSequences()` appelée par le webhook à la souscription.
+
 ### Phase 4b — Back-office (reste)
 
 - [ ] `scripts/setup-email-automations.ts`

@@ -5,6 +5,7 @@ import { planLabel, type Plan } from '@/lib/entitlements'
 import { supabaseAdmin } from '@/lib/supabase-server'
 import { sendTransactionalEmail } from '@/lib/mailing'
 import { notifyAdmin } from '@/lib/admin-notify'
+import { subscriptionEventFor, cancelProspectSequences } from '@/lib/automation-triggers'
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!
 
@@ -566,7 +567,7 @@ async function handleCheckoutCompleted(session: any) {
         'Authorization': `Bearer ${process.env.CRON_SECRET}`
       },
       body: JSON.stringify({
-        event: isTrial ? 'Essai gratuit démarré' : 'Passage à Premium',
+        event: isTrial ? 'Essai gratuit démarré' : subscriptionEventFor(souscritPlan),
         contact_email: profile.email,
         full_name: profile.full_name,
         metadata: {
@@ -584,6 +585,11 @@ async function handleCheckoutCompleted(session: any) {
   } catch (err) {
     console.error('Error triggering automation')
   }
+
+  // ✋ La personne vient de s'abonner : on interrompt les séquences de
+  // prospection en cours. Sans cela, elle continuerait de recevoir « Passez
+  // Premium, débloquez tout » — un message écrit pour un compte gratuit.
+  await cancelProspectSequences(profile.email)
 
   // 🔔 NOTIF INTERNE admin (cloche)
   const planLabel = `${planNom} · ${planPrix}`
@@ -755,7 +761,7 @@ async function handleSubscriptionUpdated(subscription: any) {
           'Authorization': `Bearer ${process.env.CRON_SECRET}`
         },
         body: JSON.stringify({
-          event: 'Passage à Premium',
+          event: subscriptionEventFor(nouveauPlan),
           contact_email: profile.email,
           full_name: profile.full_name,
           metadata: {
@@ -838,6 +844,9 @@ async function handleSubscriptionDeleted(subscription: any) {
         contact_email: profile.email,
         full_name: profile.full_name,
         metadata: {
+          // `profile` a été lu avant la mise à jour : `plan` porte donc encore
+          // l'offre résiliée, que les sujets d'email affichent via {{nom}}.
+          nom: planLabel(profile.plan),
           cancellation_date: new Date().toISOString()
         }
       })

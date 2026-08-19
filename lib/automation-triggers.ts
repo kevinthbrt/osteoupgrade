@@ -14,6 +14,8 @@ export type TriggerEvent =
   | 'user_registered'
   | 'Inscription'
   | 'Passage à Premium'
+  | 'Abonnement MyOsteoFlow'
+  | 'Abonnement OsteoUpgrade'
   | 'Essai gratuit démarré'
   | 'Essai gratuit annulé'
   | 'Renouvellement imminent'
@@ -26,6 +28,71 @@ export type TriggerEvent =
   | 'Paiement parrainage effectué'
   | 'Code partenaire utilisé'
   | 'Statut Fondateur activé'
+
+/**
+ * Événement de bienvenue correspondant à l'offre souscrite.
+ *
+ * Une séquence par offre : le moteur ne sait que remplacer des {{variables}},
+ * jamais brancher le contenu. Sans ce routage, un abonné OsteoUpgrade seul
+ * recevrait les emails d'installation de MyOsteoflow — un logiciel qu'il n'a
+ * pas acheté et ne peut pas ouvrir.
+ *
+ * `Passage à Premium` est conservé pour le bundle : cet événement existe déjà
+ * dans les metadata des abonnements en cours et dans l'historique d'envoi.
+ */
+export function subscriptionEventFor(plan: string): TriggerEvent {
+  switch (plan) {
+    case 'osteoflow':
+      return 'Abonnement MyOsteoFlow'
+    case 'osteoupgrade':
+      return 'Abonnement OsteoUpgrade'
+    default:
+      return 'Passage à Premium'
+  }
+}
+
+/**
+ * Interrompt les séquences de prospection en cours pour un contact qui vient
+ * de s'abonner.
+ *
+ * Les inscriptions n'étaient annulées qu'en cas de désabonnement : un compte
+ * gratuit qui souscrivait continuait de recevoir « Passez Premium, débloquez
+ * tout » pendant des semaines. Les séquences concernées sont marquées par
+ * `mail_automations.stop_on_subscribe`.
+ */
+export async function cancelProspectSequences(contactEmail: string): Promise<number> {
+  try {
+    const { data: contact } = await supabaseAdmin
+      .from('mail_contacts')
+      .select('id')
+      .eq('email', contactEmail)
+      .maybeSingle()
+    if (!contact) return 0
+
+    const { data: automations } = await supabaseAdmin
+      .from('mail_automations')
+      .select('id')
+      .eq('stop_on_subscribe', true)
+    if (!automations || automations.length === 0) return 0
+
+    const { data: cancelled, error } = await supabaseAdmin
+      .from('mail_automation_enrollments')
+      .update({ status: 'cancelled' })
+      .eq('contact_id', contact.id)
+      .in('automation_id', automations.map((a) => a.id))
+      .not('status', 'in', '("completed","cancelled")')
+      .select('id')
+
+    if (error) {
+      console.error('Error cancelling prospect sequences:', error.message)
+      return 0
+    }
+    return cancelled?.length ?? 0
+  } catch (err) {
+    console.error('Error cancelling prospect sequences')
+    return 0
+  }
+}
 
 interface TriggerData {
   contact_id?: string
