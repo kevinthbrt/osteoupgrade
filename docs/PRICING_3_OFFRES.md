@@ -1,6 +1,6 @@
 # Passage à 3 offres — plan d'implémentation
 
-Statut : **plan validé, implémentation non démarrée**
+Statut : **phase 0 appliquée en production le 19/08/2026** — phases 1 à 5 à venir
 Contrainte majeure : **le site et l'application desktop sont en production.**
 Aucune phase ne doit modifier le comportement des utilisateurs existants.
 
@@ -36,18 +36,27 @@ Les membres fondateurs choisissent l'offre de leur choix, toujours à −50 % :
 - anti-abus par empreinte de carte (`trial_card_fingerprints`) conservé ;
 - jamais cumulable avec l'offre Fondateur.
 
-> ⚠️ **Point restant à trancher** : aujourd'hui le rôle `trial` ne déverrouille
-> que MyOsteoFlow, jamais le contenu premium — c'était une protection anti-abus.
-> Avec un essai sur l'offre OsteoUpgrade, cette protection n'a plus de sens
-> (l'essai porterait sur rien). Proposition retenue par défaut : **l'essai donne
-> les entitlements complets de l'offre choisie**. Cela assouplit la posture
-> actuelle sur le bundle — à confirmer.
+**Tranché** : l'essai donne les **entitlements complets de l'offre choisie**.
+Jusqu'ici le rôle `trial` ne déverrouillait que MyOsteoFlow, y compris pour un
+essai du bundle — une protection anti-abus qui n'a plus de sens dès lors qu'on
+peut essayer l'offre OsteoUpgrade (l'essai porterait alors sur rien). Ce
+changement de comportement intervient en **phase 2**, quand `plan` pilotera les
+droits ; les essais en cours à ce moment-là devront être remappés vers le plan
+réellement souscrit.
 
 ### Parrainage
 
 Mois offert **à montant variable** = prix de l'offre du filleul (29,99 ou 49,99 €).
 `REFERRAL_FREE_MONTH_AMOUNT` (constante fixe dans `lib/stripe.ts`) devient une
 fonction du plan souscrit.
+
+**Tranché** : un abonné MyOsteoFlow-seul a droit à un code de parrainage. Le
+trigger `trigger_create_referral_code_on_premium` ne se déclenche aujourd'hui
+que pour `role IN ('premium','admin')` — donc pas pour `plan = 'osteoflow'`
+(miroir `trial`). Sa condition `WHEN` est à étendre en phase 4.
+
+**Tranché** : les codes promo (`/admin/promo`) et partenaires (`/admin/partners`)
+s'appliquent aux **trois offres**.
 
 ### Changement d'offre
 
@@ -126,17 +135,32 @@ après l'ouverture commerciale.
 Chaque phase est déployable seule, sans changement de comportement observable,
 et réversible.
 
-### Phase 0 — Filet de sécurité (risque nul)
+### Phase 0 — Filet de sécurité ✅ appliquée le 19/08/2026
 
-- [ ] Migration : ajout de `profiles.plan` + backfill depuis `role`
-      (`premium` → `bundle`, `trial` → `osteoflow`, `free` → `free`)
-- [ ] Trigger de synchronisation `plan → role` (et garde-fou : toute écriture
-      directe de `role` par le webhook actuel reste tolérée pendant la transition)
-- [ ] Helpers SQL `has_osteoflow(uuid)` / `has_osteoupgrade(uuid)`
-- [ ] Contrôle : `SELECT plan, role, count(*) FROM profiles GROUP BY 1,2`
-      doit montrer une correspondance 1-1 parfaite
+Migrations `20260819_add_profile_plan.sql` et
+`20260819_harden_profile_plan_functions.sql`.
 
-**Aucun code applicatif ne lit `plan` à ce stade.** Rollback = `DROP COLUMN`.
+- [x] Colonne `profiles.plan` (contrainte CHECK + index) et backfill depuis `role`
+- [x] Trigger `trigger_sync_profile_plan_role` — synchronisation **bidirectionnelle**,
+      pour que le webhook Stripe et `/admin/users`, qui écrivent encore `role`,
+      maintiennent `plan` à jour sans aucun déploiement applicatif
+- [x] Helpers `has_osteoflow()` / `has_osteoupgrade()` (SECURITY INVOKER)
+- [x] `trigger_create_referral_code_on_premium` écoute désormais `role` **et** `plan` :
+      `AFTER UPDATE OF role` ne se déclenche que si la colonne figure dans le `SET`
+      de la requête, pas si un trigger BEFORE la modifie — sans cet ajout, une
+      écriture portant uniquement sur `plan` (phase 2) aurait silencieusement
+      cessé de créer les codes de parrainage
+- [x] Migration validée au préalable dans une transaction annulée (8 assertions :
+      backfill, chemin hérité, chemin cible, `osteoflow`→`trial`, admin non
+      rétrogradé, résiliation, nouvelle inscription, helpers)
+
+Répartition constatée après application (30 comptes, 0 écart) :
+`free/free ×21 · premium/bundle ×6 · admin/bundle ×2 · trial/osteoflow ×1`
+
+**Aucun code applicatif ne lit `plan` à ce stade.**
+Rollback : `DROP TRIGGER trigger_sync_profile_plan_role`, restaurer
+`trigger_create_referral_code_on_premium` sur `UPDATE OF role`, puis
+`ALTER TABLE profiles DROP COLUMN plan`.
 
 ### Phase 1 — Le code lit `plan` (tous les comptes sont encore `free`/`bundle`)
 
@@ -172,6 +196,9 @@ et réversible.
       `planType === 'premium_monthly'` en dur, l. ~145) + garde fondateur étendue
       aux 3 offres fondateur
 - [ ] `REFERRAL_FREE_MONTH_AMOUNT` → montant variable selon le plan du filleul
+- [ ] Remapper les essais en cours (`subscription_status = 'trialing'`) vers le
+      plan réellement souscrit — la phase 0 les a backfillés en `osteoflow`
+      pour préserver le comportement actuel
 - [ ] Recette sur un compte interne en test mode, sur les 6 prix
 
 ### Phase 3 — Ouverture commerciale (UI + juridique)
@@ -199,12 +226,12 @@ et réversible.
 - [ ] Emails de bienvenue différenciés + nouveaux : upgrade, downgrade, offre modifiée
 - [ ] Parrainage : `api/referrals/*`, `app/parrainage/page.tsx`,
       `app/settings/referrals/page.tsx` ; trigger `create_referral_code_for_premium`
-      et les deux `validate_referral_code` (1 et 2 arguments) — décider si un
-      abonné `osteoflow` obtient un code
+      et les deux `validate_referral_code` (1 et 2 arguments) — étendre la
+      condition `WHEN` du trigger pour couvrir `plan = 'osteoflow'`
 - [ ] Contrainte `referral_transactions_subscription_type_check`
       (n'accepte que `premium_silver|premium_gold|premium`)
 - [ ] Codes promo `/admin/promo` (−100 € pensé pour l'ancien Gold) et
-      partenaires `/admin/partners` : à quelles offres s'appliquent-ils ?
+      partenaires `/admin/partners` : à étendre aux trois offres
 - [ ] `20260708_disable_referral_for_founding_members.sql` à revoir
 - [ ] `/admin/users` : affichage et édition de l'offre
 - [ ] `/admin/stats` + `api/admin/stats` : MRR et conversion par offre
