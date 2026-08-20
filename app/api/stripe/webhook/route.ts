@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { headers } from 'next/headers'
-import { stripe, referralFreeMonthAmount, PARTNER_PROMO_PURPOSE, STRIPE_PLANS, planFromSubscription } from '@/lib/stripe'
+import { stripe, referralFreeMonthAmount, PARTNER_PROMO_PURPOSE, STRIPE_PLANS, planFromSubscription, planTypeFromSubscription } from '@/lib/stripe'
 import { planLabel, type Plan } from '@/lib/entitlements'
 import { supabaseAdmin } from '@/lib/supabase-server'
 import { sendTransactionalEmail } from '@/lib/mailing'
@@ -750,8 +750,12 @@ async function handleSubscriptionUpdated(subscription: any) {
     // seulement pour que le prix affiché dans cet email reste cohérent avec
     // l'email "Code partenaire utilisé" déjà reçu à l'époque.
     const trialConversionPartnerDiscount = await fetchPartnerDiscount(subscription.id)
+    // Le tarif annoncé se lit sur le prix réellement porté par l'abonnement,
+    // pas sur les metadata du checkout : un changement d'offre pendant l'essai
+    // met fin à l'essai (portail Stripe) et arrive ici avec des metadata
+    // périmées, qui annonceraient l'ancienne offre et son ancien prix.
     const { nom: trialPlanNom, prix: trialPlanPrix, interval: trialPlanInterval } =
-      describePlanPricing(subscription.metadata?.planType || 'premium_monthly', trialConversionPartnerDiscount)
+      describePlanPricing(planTypeFromSubscription(subscription), trialConversionPartnerDiscount)
 
     try {
       await fetch(`${process.env.NEXT_PUBLIC_URL || 'http://localhost:3000'}/api/automations/trigger`, {

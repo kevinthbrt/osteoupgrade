@@ -158,6 +158,43 @@ export function planFromSubscription(subscription: any): Plan {
   return 'bundle'
 }
 
+/**
+ * Clé du catalogue (`STRIPE_PLANS`) correspondant à un abonnement Stripe.
+ *
+ * `subscription.metadata.planType` est figé au checkout : il ne suit pas un
+ * changement d'offre depuis le portail client. S'y fier pour le nom et le
+ * tarif d'un email annoncerait l'ancienne offre — et son ancien prix — à
+ * quelqu'un qui vient précisément d'en changer. On repart donc du prix
+ * réellement porté par l'abonnement, et on ne retombe sur les metadata que
+ * pour les abonnements antérieurs au catalogue actuel.
+ */
+export function planTypeFromSubscription(subscription: any, fallback = 'premium_monthly'): string {
+  const price = subscription?.items?.data?.[0]?.price
+  const priceId = typeof price === 'string' ? price : price?.id
+
+  if (priceId) {
+    const parPrix = Object.entries(STRIPE_PLANS).find(([, p]) => p.priceId && p.priceId === priceId)
+    if (parPrix) return parPrix[0]
+  }
+
+  // Repli : l'offre est connue par les metadata du Price, mais la variable
+  // d'environnement du priceId n'est pas renseignée. L'intervalle départage
+  // le tarif standard du tarif Fondateur.
+  const planDuPrix = price?.metadata?.plan
+  if (isPlan(planDuPrix)) {
+    const annuel = price?.recurring?.interval === 'year'
+    const parPlan = Object.entries(STRIPE_PLANS).find(
+      ([, p]) => p.plan === planDuPrix && p.isAnnual === annuel
+    )
+    if (parPlan) return parPlan[0]
+  }
+
+  const legacy = subscription?.metadata?.planType
+  if (legacy && STRIPE_PLANS[legacy]) return legacy
+
+  return fallback
+}
+
 // Métadonnée utilisée pour distinguer les codes promo "partenaire" (ex: -10%
 // pendant 1 an pour les diplômés d'un organisme de formation partenaire type
 // IFCOPS) des codes Gold génériques gérés dans /admin/promo.

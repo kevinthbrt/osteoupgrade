@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import AuthLayout from '@/components/AuthLayout'
 import MyOsteoFlowUpsellModal from '@/components/MyOsteoFlowUpsellModal'
+import UpsellBundleCard from '@/components/UpsellBundleCard'
 import {
   Stethoscope,
   GraduationCap,
@@ -34,7 +35,7 @@ import {
   Star,
   Brain
 } from 'lucide-react'
-import { planOf } from '@/lib/entitlements'
+import { planOf, hasOsteoflow, hasOsteoupgrade } from '@/lib/entitlements'
 import { OFFERS, formatAmount, offerOf, BUNDLE_SAVING } from '@/lib/offers'
 
 export default function Dashboard() {
@@ -95,7 +96,7 @@ export default function Dashboard() {
         ).filter(Boolean))
       }
 
-      if ((profileData?.role === 'premium' || profileData?.role === 'admin') && !profileData?.is_founding_member) {
+      if (planOf(profileData) !== 'free' && !profileData?.is_founding_member) {
         try {
           const [codeRes, earningsRes] = await Promise.all([fetch('/api/referrals/my-code'), fetch('/api/referrals/earnings')])
           const referralCode = codeRes.ok ? (await codeRes.json()).referralCode : null
@@ -157,6 +158,7 @@ export default function Dashboard() {
   return (
     <AuthLayout>
       <MyOsteoFlowUpsellModal role={profile?.role} trialUsed={!!profile?.trial_used_at || !!profile?.is_founding_member} />
+      <UpsellBundleCard profile={profile} />
       <div className="min-h-screen -m-6 md:-m-8">
 
         {/* Header */}
@@ -370,6 +372,27 @@ export default function Dashboard() {
             </div>
           </section>
 
+          {!hasOsteoupgrade(profile) && planOf(profile) !== 'free' && (
+            <div className="rounded-2xl overflow-hidden shadow-xl border border-emerald-300/70 bg-emerald-100/85 backdrop-blur-2xl ring-1 ring-inset ring-white/60">
+              <div className="bg-gradient-to-r from-emerald-600 to-teal-600 px-5 py-3 flex items-center gap-2">
+                <Lock className="h-4 w-4 text-white" />
+                <p className="text-sm font-semibold text-white">Non compris dans votre offre MyOsteoFlow</p>
+              </div>
+              <div className="px-5 py-5">
+                <p className="text-sm text-slate-600 mb-4">
+                  Cours, module pratique en vidéo, OsteoFlash, revue de littérature, bibliothèque de tests
+                  orthopédiques et topographie font partie d&apos;OsteoUpgrade. Vous pouvez les parcourir, mais leur
+                  contenu reste verrouillé avec votre offre actuelle.
+                </p>
+                <button onClick={() => router.push('/settings/subscription')} className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-700 text-white text-sm font-bold hover:bg-emerald-800 transition-colors shadow-md">
+                  <Crown className="h-4 w-4" />
+                  Ajouter OsteoUpgrade pour {formatAmount(BUNDLE_SAVING.bundleAmount - (offerOf('osteoflow')?.monthlyAmount ?? 0))}/mois de plus
+                  <ArrowRight className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          )}
+
           <section>
             <div className="flex items-center gap-2.5 mb-4">
               <div className="h-5 w-1 rounded-full bg-gradient-to-b from-blue-500 to-blue-700" />
@@ -398,7 +421,7 @@ export default function Dashboard() {
             </div>
           </section>
 
-          {(profile?.role === 'premium' || profile?.role === 'admin') && referralData && (
+          {planOf(profile) !== 'free' && referralData && (
             <section>
               <div className="flex items-center gap-2.5 mb-4">
                 <div className="h-5 w-1 rounded-full bg-gradient-to-b from-amber-400 to-amber-600" />
@@ -438,7 +461,7 @@ export default function Dashboard() {
             </section>
           )}
 
-          {(profile?.role === 'premium' || profile?.role === 'admin' || profile?.role === 'trial') && (
+          {hasOsteoflow(profile) && (
             <section>
               <div className="flex items-center gap-2.5 mb-4">
                 <div className="h-5 w-1 rounded-full bg-gradient-to-b from-violet-500 to-violet-700" />
@@ -448,7 +471,9 @@ export default function Dashboard() {
                 <div className="bg-gradient-to-r from-violet-600 to-indigo-600 px-5 py-3 flex items-center gap-2">
                   <Laptop className="h-4 w-4 text-white" />
                   <p className="text-sm font-semibold text-white">
-                    {profile?.role === 'trial' ? 'Inclus avec votre essai gratuit' : 'Inclus avec votre abonnement Premium'}
+                    {profile?.subscription_status === 'trialing'
+                      ? 'Inclus avec votre essai gratuit'
+                      : `Inclus avec votre offre ${offerOf(planOf(profile))?.name ?? 'Premium'}`}
                   </p>
                 </div>
                 <div className="px-5 py-5">
@@ -472,7 +497,7 @@ export default function Dashboard() {
             </section>
           )}
 
-          {profile?.role === 'free' && (
+          {!hasOsteoflow(profile) && (
             <section>
               <div className="flex items-center gap-2.5 mb-4">
                 <div className="h-5 w-1 rounded-full bg-gradient-to-b from-violet-500 to-violet-700" />
@@ -481,7 +506,11 @@ export default function Dashboard() {
               <div className="rounded-2xl overflow-hidden shadow-xl border border-violet-300/70 bg-violet-100/85 backdrop-blur-2xl ring-1 ring-inset ring-white/60">
                 <div className="bg-gradient-to-r from-violet-600 to-indigo-600 px-5 py-3 flex items-center gap-2">
                   <Lock className="h-4 w-4 text-white" />
-                  <p className="text-sm font-semibold text-white">Réservé aux comptes Premium</p>
+                  <p className="text-sm font-semibold text-white">
+                    {planOf(profile) === 'osteoupgrade'
+                      ? 'Non compris dans votre offre OsteoUpgrade'
+                      : 'Inclus dans les offres MyOsteoFlow et Premium'}
+                  </p>
                 </div>
                 <div className="px-5 py-5">
                   <p className="text-sm text-slate-600 mb-4">
@@ -489,8 +518,12 @@ export default function Dashboard() {
                     courriers générés par IA, messagerie patients, compta &amp; factures, statistiques du cabinet, et bien plus.
                   </p>
                   <button onClick={() => router.push('/settings/subscription')} className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-violet-700 text-white text-sm font-bold hover:bg-violet-800 transition-colors shadow-md">
-                    {(profile?.trial_used_at || profile?.is_founding_member) ? <Crown className="h-4 w-4" /> : <Gift className="h-4 w-4" />}
-                    {(profile?.trial_used_at || profile?.is_founding_member) ? 'Découvrir MyOsteoFlow en Premium' : 'Essayer MyOsteoFlow gratuitement 7 jours'}
+                    {planOf(profile) === 'osteoupgrade' || profile?.trial_used_at || profile?.is_founding_member ? <Crown className="h-4 w-4" /> : <Gift className="h-4 w-4" />}
+                    {planOf(profile) === 'osteoupgrade'
+                      ? `Ajouter MyOsteoFlow pour ${formatAmount(BUNDLE_SAVING.bundleAmount - (offerOf('osteoupgrade')?.monthlyAmount ?? 0))}/mois de plus`
+                      : (profile?.trial_used_at || profile?.is_founding_member)
+                        ? 'Découvrir MyOsteoFlow en Premium'
+                        : 'Essayer MyOsteoFlow gratuitement 7 jours'}
                     <ArrowRight className="h-4 w-4" />
                   </button>
                 </div>

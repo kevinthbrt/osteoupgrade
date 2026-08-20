@@ -650,6 +650,25 @@ async function createAutomations() {
   console.log('   - {{email}} : email de l\'utilisateur')
 }
 
+// ⛔ Script d'amorçage historique — NE PLUS EXÉCUTER.
+//
+// Il crée les automatisations d'un modèle tarifaire abandonné deux fois depuis
+// (« Passage à Premium Silver » / « Gold »), avec des prix codés en dur à
+// 49,99 €. Le rejouer aujourd'hui dupliquerait les automatisations en
+// production et enverrait des emails annonçant des offres qui n'existent plus.
+//
+// Les automatisations vivent désormais en base, versionnées par migrations
+// (voir supabase/migrations/20260819_emails_par_offre.sql) et éditables depuis
+// /admin/automations. Le fichier est conservé pour l'historique des gabarits.
+if (process.env.AUTORISER_SCRIPT_OBSOLETE !== 'oui') {
+  console.error(
+    "⛔ Script obsolète (offres Premium Silver/Gold, prix codés en dur).\n" +
+    "   Les automatisations sont gérées par migrations et depuis /admin/automations.\n" +
+    "   Pour passer outre en connaissance de cause : AUTORISER_SCRIPT_OBSOLETE=oui"
+  )
+  process.exit(1)
+}
+
 // Exécuter le script
 createAutomations()
   .then(() => {

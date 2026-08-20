@@ -688,6 +688,15 @@ function SubscriptionContent() {
                     {formatAmount(cible.monthlyAmount - (currentOffer?.monthlyAmount ?? 0))} de plus par mois —
                     soit {formatAmount(BUNDLE_SAVING.savedAmount)} de moins que les deux offres séparées.
                     Le changement est immédiat et proratisé par Stripe.
+                    {isTrialing && (
+                      <>
+                        {' '}
+                        <strong className="text-amber-700">
+                          Attention : changer d&apos;offre pendant l&apos;essai y met fin — le premier prélèvement
+                          a lieu tout de suite, au tarif de la nouvelle offre.
+                        </strong>
+                      </>
+                    )}
                   </p>
                 </div>
                 <button
@@ -716,6 +725,9 @@ function SubscriptionContent() {
             )}
             <p>✅ <strong>Sans engagement</strong> : {OFFERS.map((o) => `${o.name} ${formatAmount(o.monthlyAmount)}/mois`).join(' · ')}. Prélevé automatiquement chaque mois, annulable à tout moment.</p>
             <p>✅ <strong>Changement d&apos;offre à tout moment</strong> depuis « Gérer mon abonnement » — Stripe calcule le prorata automatiquement</p>
+            {isTrialing && (
+              <p>⚠️ <strong>Pendant l&apos;essai</strong>, changer d&apos;offre met fin à la période gratuite et déclenche le premier prélèvement immédiatement. Pour profiter de vos jours restants, attendez la fin de l&apos;essai avant de changer.</p>
+            )}
             <p>✅ Renouvellement automatique (désactivable depuis votre compte)</p>
             <p>✅ Notification par email 7 jours avant chaque renouvellement</p>
             <p>✅ Accès immédiat à tous les contenus après validation du paiement</p>

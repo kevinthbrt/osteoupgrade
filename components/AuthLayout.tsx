@@ -4,6 +4,7 @@ import Navigation from '@/components/Navigation'
 import AdminChangelogModal from '@/components/AdminChangelogModal'
 import SupportWidget from '@/components/SupportWidget'
 import BroadcastModal from '@/components/BroadcastModal'
+import PlanSimulationBanner from '@/components/PlanSimulationBanner'
 
 export default function AuthLayout({
   children,
@@ -21,6 +22,7 @@ export default function AuthLayout({
         </div>
       </main>
       <SupportWidget />
+      <PlanSimulationBanner />
     </div>
   )
 }
