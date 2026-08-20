@@ -22,6 +22,7 @@ import {
 } from 'lucide-react'
 import FreeContentGate from '@/components/FreeContentGate'
 import FreeUserBanner from '@/components/FreeUserBanner'
+import { planOf } from '@/lib/entitlements'
 
 const FREE_ACCESSIBLE_REGIONS_TOPO = ['epaule']
 
@@ -294,7 +295,7 @@ export default function TopographiePage() {
           <div className="pointer-events-none absolute top-1/2 right-0 w-80 h-80 bg-sky-400/25 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '8s', animationDelay: '2s' }} />
           <div className="pointer-events-none absolute bottom-0 left-0 w-72 h-72 bg-indigo-400/20 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '7s', animationDelay: '1s' }} />
           <div className="relative space-y-6">
-        {isFree && <FreeUserBanner />}
+        {isFree && <FreeUserBanner plan={planOf({ role })} />}
 
         {/* Grille de sélection des zones anatomiques */}
         {selectedRegion === 'all' ? (

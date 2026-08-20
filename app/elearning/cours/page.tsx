@@ -86,8 +86,10 @@ type Profile = {
 const canAccessFormation = (role: string | undefined, isPrivate?: boolean, isFreeAccess?: boolean) => {
   if (!role) return false
   if (isPrivate) return role === 'admin'
-  // Free users can access courses marked as free access
-  if (isFreeAccess && role === 'free') return true
+  // Les contenus en accès libre le sont pour tout le monde — c'est déjà ce que
+  // font les policies RLS. Réserver ce cas au rôle `free` donnait moins à un
+  // abonné MyOsteoFlow (rôle miroir `trial`) qu'à un compte gratuit.
+  if (isFreeAccess) return true
   return ['premium', 'admin'].includes(role)
 }
 

@@ -6,6 +6,8 @@ import AuthLayout from '@/components/AuthLayout'
 import { supabase } from '@/lib/supabase'
 import { MarkdownContent } from '@/components/MarkdownContent'
 import { ThrustScore } from '@/components/ThrustScore'
+import { planOf, hasOsteoupgrade } from '@/lib/entitlements'
+import { OFFERS, formatAmount, offerOf } from '@/lib/offers'
 import {
   ArrowLeft,
   Calendar,
@@ -58,6 +60,7 @@ export default function LiteratureReviewDetailPage() {
   const reviewId = params?.id as string
 
   const [review, setReview] = useState<LiteratureReview | null>(null)
+  const [profile, setProfile] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -75,6 +78,13 @@ export default function LiteratureReviewDetailPage() {
         router.push('/')
         return
       }
+
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('role, plan')
+        .eq('id', user.id)
+        .maybeSingle()
+      setProfile(profileData)
 
       const { data, error: fetchError } = await supabase
         .from('literature_reviews')
@@ -188,6 +198,51 @@ export default function LiteratureReviewDetailPage() {
             <p className="text-red-700">
               Cet article n'existe pas ou a été supprimé.
             </p>
+          </div>
+        </div>
+      </AuthLayout>
+    )
+  }
+
+  // Même règle que la liste : hors Épaule, l'article relève d'OsteoUpgrade.
+  // La liste floutait ces articles, mais la page de détail ne verrouillait
+  // rien — l'URL directe donnait l'article entier à n'importe quel compte.
+  const estEpaule = review.tags.some((t) =>
+    [t.name.toLowerCase(), t.slug.toLowerCase()].some((v) => v.includes('epaul') || v.includes('épaul'))
+  )
+  const offre = planOf(profile)
+  const verrouille = !hasOsteoupgrade(profile) && !estEpaule
+
+  if (verrouille) {
+    const complet = offre === 'osteoflow'
+      ? OFFERS.find((o) => o.id === 'bundle')
+      : null
+    return (
+      <AuthLayout>
+        <div className="max-w-3xl mx-auto">
+          <button
+            onClick={() => router.push('/elearning/revue-litterature')}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-xl text-slate-700 hover:bg-slate-50 transition-colors font-medium shadow-sm mb-6"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Retour aux articles
+          </button>
+
+          <div className="rounded-2xl border border-amber-200 bg-amber-50 p-8 text-center">
+            <h1 className="text-2xl font-bold text-slate-900 mb-2">{review.title}</h1>
+            <p className="text-sm text-amber-800 mb-6">
+              {offre === 'osteoflow'
+                ? "Cet article fait partie de la Revue OsteoUpgrade, qui n'est pas comprise dans votre offre MyOsteoFlow."
+                : "Cet article fait partie de la Revue OsteoUpgrade, réservée aux abonnés."}
+            </p>
+            <a
+              href="/settings/subscription"
+              className="inline-flex items-center gap-2 rounded-xl bg-amber-500 px-5 py-2.5 text-sm font-bold text-white hover:bg-amber-600 transition-colors shadow"
+            >
+              {offre === 'osteoflow' && complet
+                ? `Ajouter OsteoUpgrade pour ${formatAmount(complet.monthlyAmount - (offerOf('osteoflow')?.monthlyAmount ?? 0))}/mois de plus`
+                : 'Voir les offres'}
+            </a>
           </div>
         </div>
       </AuthLayout>

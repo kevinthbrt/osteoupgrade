@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import AuthLayout from '@/components/AuthLayout'
+import { planOf } from '@/lib/entitlements'
 import Link from 'next/link'
 import {
   Gift,
@@ -35,7 +36,7 @@ export default function ParrainagePage() {
       if (!user) { router.push('/auth'); return }
       const { data: profileData } = await supabase.from('profiles').select('*').eq('id', user.id).single()
       setProfile(profileData)
-      if (profileData?.role === 'premium' || profileData?.role === 'admin') {
+      if (planOf(profileData) !== 'free') {
         const [codeRes, earningsRes] = await Promise.all([fetch('/api/referrals/my-code'), fetch('/api/referrals/earnings')])
         if (codeRes.ok) { const d = await codeRes.json(); setReferralCode(d.referralCode) }
         if (earningsRes.ok) { const d = await earningsRes.json(); setEarnings(d) }
@@ -64,7 +65,8 @@ export default function ParrainagePage() {
     </AuthLayout>
   )
 
-  const isPremium = profile?.role === 'premium' || profile?.role === 'admin'
+  // Toute offre payante ouvre droit au parrainage — pas seulement le bundle.
+  const isPremium = planOf(profile) !== 'free'
   const isFoundingMember = Boolean(profile?.is_founding_member)
   const totalReferrals = earnings?.summary?.total_referrals || 0
   const referralLink = referralCode
