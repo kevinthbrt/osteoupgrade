@@ -535,10 +535,18 @@ les nouvelles offres.
       pendant un essai (qui a déjà son bandeau), reportée 14 jours au refus,
       définitivement close sur « Ne plus me proposer ». Ce sont des clients
       payants : leur barrer la page se paierait en résiliations.
-- [x] Avertissement d'essai sur `/settings/subscription` : la configuration du
-      portail est en `trial_update_behavior: 'end_trial'`, donc **changer
-      d'offre pendant l'essai y met fin et déclenche le prélèvement
-      immédiatement**. La page promettait un simple prorata.
+- [x] Essai et changement d'offre : le portail était en
+      `trial_update_behavior: 'end_trial'` — changer d'offre pendant l'essai y
+      mettait fin et déclenchait le prélèvement sur-le-champ. Le 20/08/2026 un
+      abonné a perdu ses 7 jours gratuits pour être passé de Premium à
+      OsteoUpgrade **trois minutes** après avoir souscrit. Un avertissement
+      avait d'abord été ajouté sur `/settings/subscription`, mais il ne pouvait
+      rien : le changement se fait dans le portail, chez Stripe, où nos écrans
+      n'existent pas. Les deux configurations sont passées en
+      `continue_trial` — l'essai se poursuit, le nouveau tarif s'applique à son
+      terme — et le texte de la page dit désormais l'inverse de ce qu'il
+      annonçait. `trial_used_at` empêchant déjà tout second essai, il n'y avait
+      rien à protéger.
 - [x] `planTypeFromSubscription()` (`lib/stripe.ts`) : l'email de conversion
       d'essai lisait le tarif dans `subscription.metadata.planType`, figé au
       checkout. Après un changement d'offre pendant l'essai, il annonçait

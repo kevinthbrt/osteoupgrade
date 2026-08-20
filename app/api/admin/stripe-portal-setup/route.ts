@@ -89,6 +89,15 @@ async function construireParametres(grille: Grille) {
         // Prorata facturé immédiatement : c'est ce que les CGU (art. 5.4)
         // annoncent, et ce qui rend l'upgrade effectif tout de suite.
         proration_behavior: 'always_invoice',
+        // Un changement d'offre pendant l'essai laisse courir les jours
+        // restants. Le comportement par défaut de Stripe (`end_trial`) mettait
+        // fin à l'essai et déclenchait le prélèvement sur-le-champ : le
+        // 20/08/2026, un abonné a perdu ses 7 jours gratuits pour avoir changé
+        // d'offre trois minutes après avoir souscrit, sans le moindre
+        // avertissement — le portail est chez Stripe, nos écrans n'y sont pas.
+        // `trial_used_at` empêche déjà tout second essai : il n'y a rien à
+        // protéger ici.
+        trial_update_behavior: 'continue_trial',
       },
     },
     metadata: { app: 'osteoupgrade', grille },
