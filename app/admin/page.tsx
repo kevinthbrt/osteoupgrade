@@ -18,13 +18,36 @@ import {
   Database,
   BarChart3,
   HeartHandshake,
+  Eye,
+  Loader2,
 } from 'lucide-react'
+import { PLANS, planLabel, type Plan } from '@/lib/entitlements'
 
 type Counts = { tickets: number; emails: number }
 
 export default function AdminPage() {
   const router = useRouter()
   const [counts, setCounts] = useState<Counts>({ tickets: 0, emails: 0 })
+  const [simulationEnCours, setSimulationEnCours] = useState<Plan | null>(null)
+
+  // Simulation d'offre : voir l'application avec les droits d'un abonné, sans
+  // rien modifier en base (cf. lib/plan-simulation.ts). On redirige vers le
+  // dashboard, seul endroit où la différence entre les offres se voit vraiment.
+  const lancerSimulation = async (plan: Plan) => {
+    setSimulationEnCours(plan)
+    try {
+      const res = await fetch('/api/admin/simulate-plan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plan }),
+      })
+      if (!res.ok) throw new Error('refus')
+      window.location.href = '/dashboard'
+    } catch {
+      setSimulationEnCours(null)
+      alert("La simulation n'a pas pu être activée.")
+    }
+  }
 
   useEffect(() => {
     checkAdminAccess()
@@ -240,6 +263,38 @@ export default function AdminPage() {
                   )
                 })}
               </div>
+            </div>
+
+            {/* Simulation d'offre */}
+            <div className="rounded-2xl bg-white/85 backdrop-blur-2xl border border-white/70 shadow-xl ring-1 ring-inset ring-white/60 p-5">
+              <div className="flex items-center gap-2.5 mb-3">
+                <div className="h-5 w-1 rounded-full bg-gradient-to-b from-amber-400 to-amber-600" />
+                <h2 className="text-sm font-bold text-slate-800 tracking-wide flex items-center gap-2">
+                  <Eye className="h-4 w-4 text-amber-600" /> Simulation d&apos;offre
+                </h2>
+              </div>
+              <p className="text-sm text-slate-600 mb-4">
+                Voyez le site exactement comme le voit un abonné : navigation, dashboard, page d&apos;abonnement,
+                écrans de blocage. <strong>Aucune donnée n&apos;est modifiée</strong> — la simulation vit dans un
+                cookie, s&apos;annule d&apos;un clic depuis le bandeau et expire d&apos;elle-même au bout de 4 heures.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {PLANS.map((p) => (
+                  <button
+                    key={p}
+                    onClick={() => lancerSimulation(p)}
+                    disabled={simulationEnCours !== null}
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-amber-100 border border-amber-300 text-amber-900 text-sm font-semibold hover:bg-amber-200 shadow-sm transition-all disabled:opacity-50"
+                  >
+                    {simulationEnCours === p ? <Loader2 className="h-4 w-4 animate-spin" /> : <Eye className="h-4 w-4" />}
+                    {planLabel(p)}
+                  </button>
+                ))}
+              </div>
+              <p className="text-xs text-slate-500 mt-3">
+                Le contenu servi par la base reste celui d&apos;un administrateur : c&apos;est l&apos;interface, ses
+                verrous et ses messages que l&apos;on vérifie ici, pas les policies RLS.
+              </p>
             </div>
 
             {/* Quick links */}

@@ -1,7 +1,8 @@
 # Passage à 3 offres — plan d'implémentation
 
-Statut : **phases 0 à 3 et 4a livrées et déployées le 19/08/2026** (PR #323)
-— phase 4b en cours, phase 5 à venir
+Statut : **phases 0 à 4c terminées** — 0 à 4a déployées le 19/08/2026 (PR #323),
+4b partiellement déployée (PR #324, trois commits encore à merger), 4c du
+20/08/2026. Phase 5 (release desktop 1.18.0) prête à builder.
 Contrainte majeure : **le site et l'application desktop sont en production.**
 Aucune phase ne doit modifier le comportement des utilisateurs existants.
 
@@ -476,34 +477,104 @@ secret partagé pour cet endpoint — l'exiger tout de suite couperait les tests
 à tous les abonnés, Premium compris, jusqu'à ce que chacun ait mis à jour son
 application. Même stratégie que la migration CF2.
 
-**Reste à faire**
+**Reste à faire — revu le 20/08/2026**
 
-- [ ] `scripts/setup-email-automations.ts`
-- [ ] Emails de bienvenue différenciés + nouveaux : upgrade, downgrade, offre modifiée
-- [ ] Contrainte `referral_transactions_subscription_type_check`
-      (n'accepte que `premium_silver|premium_gold|premium`)
-- [ ] Codes promo `/admin/promo` (−100 € pensé pour l'ancien Gold) et
-      partenaires `/admin/partners` : à étendre aux trois offres
-- [ ] `20260708_disable_referral_for_founding_members.sql` à revoir
-- [ ] `/admin/users` : affichage et édition de l'offre
-- [ ] `/admin/stats` + `api/admin/stats` : MRR et conversion par offre
-      (aujourd'hui un simple compteur `premium`)
-- [ ] `/admin/mailing`, `/admin/broadcasts`, `/admin/automations` : segmentation
+La liste initiale de la phase 4b a été reprise item par item ; l'essentiel
+avait été traité par les phases 4a, 4a-bis et 4b elles-mêmes.
 
-### Phase 5 — Release desktop (non bloquante)
+- [x] Contrainte `referral_transactions_subscription_type_check` — corrigée en
+      phase 2 (`20260819_referral_transactions_accept_plans.sql`)
+- [x] Codes promo et partenaires étendus aux trois offres — phase 4b
+- [x] `/admin/users`, `/admin/stats`, `/admin/mailing` — phase 4b
+- [x] Emails de bienvenue différenciés par offre — phase 4a-bis
+- [x] `20260708_disable_referral_for_founding_members.sql` — **rien à revoir** :
+      vérifié en base, les membres fondateurs ont bien un code mais désactivé,
+      ce qui est le comportement voulu. `20260819_referral_codes_all_plans.sql`
+      a ouvert le parrainage aux trois offres sans toucher à cette exclusion.
+- [x] `/admin/broadcasts` et `/admin/automations` — **rien à segmenter** :
+      les diffusions ciblent une *application* (`osteoflow` / `osteoupgrade` /
+      les deux), pas une offre, et les automatisations n'ont pas d'audience :
+      elles réagissent à un événement. La segmentation par offre se joue dans
+      l'événement émis (`subscriptionEventFor`), déjà fait en phase 4a-bis.
+- [x] `scripts/setup-email-automations.ts` — script d'amorçage **obsolète**
+      (offres « Premium Silver / Gold », prix codés en dur). Il n'a pas été
+      mis à jour mais **neutralisé** : le rejouer dupliquerait les
+      automatisations en production. Garde explicite en tête d'exécution,
+      contournable par `AUTORISER_SCRIPT_OBSOLETE=oui`.
+- [ ] **Emails de changement d'offre** (upgrade / downgrade). Seul reste réel :
+      un changement depuis le portail met l'accès à jour et notifie l'admin,
+      mais le client ne reçoit que la facture Stripe. Demande une automatisation
+      par sens de changement (le moteur ne fait pas de conditionnel).
 
-- [ ] `src/app/api/license/route.ts` : stocker les entitlements, pas seulement
-      `license_role`
-- [ ] `src/app/api/license/online-verify/route.ts` : persister les entitlements
-      du heartbeat 30 min
-- [ ] `src/app/(auth)/osteoupgrade/page.tsx` : message clair pour un compte
-      sans MyOsteoFlow
-- [ ] `src/components/layout/license-guard.tsx` : gérer le nouveau code d'erreur
-- [ ] Masquage/verrouillage des widgets OsteoUpgrade :
-      `osteoupgrade-widgets.tsx`, `flashcards-widget.tsx`, `video-widget.tsx`,
-      `literature-review-modal.tsx`, `dashboard.tsx`
-- [ ] Écran d'upsell in-app « Ajouter OsteoUpgrade »
-- [ ] `electron/main.ts` si le payload du heartbeat évolue
+### Phase 4c — Cohérence de l'affichage par offre ✅ terminée le 20/08/2026
+
+Le back-office et la facturation étaient justes, le **dashboard du site** ne
+l'était pas : il gate encore sur `role`, dont le miroir ne peut pas exprimer
+les nouvelles offres.
+
+- [x] Section « MyOsteoFlow — Logiciel de cabinet » : `role IN (premium, admin,
+      trial)` → `hasOsteoflow()`. `plan = 'osteoupgrade'` se miroite en
+      `premium` : le compte se voyait proposer les trois liens de
+      téléchargement d'un logiciel qu'il ne peut pas ouvrir. Il aurait
+      installé l'application pour être accueilli par `PLAN_WITHOUT_OSTEOFLOW`.
+- [x] Même section, libellé : `role === 'trial'` affichait « Inclus avec votre
+      essai gratuit » — désormais faux pour un abonné MyOsteoFlow payant, dont
+      c'est le rôle miroir permanent. L'essai se lit sur `subscription_status`,
+      et le libellé nomme l'offre.
+- [x] Espace Ambassadeur : `role IN (premium, admin)` → toute offre payante.
+      La phase 4a a donné un code de parrainage à l'abonné MyOsteoFlow ; le
+      dashboard ne le lui montrait pas, et ne l'appelait même pas.
+- [x] Bloc verrouillé MyOsteoFlow : affiché pour toute absence du droit, et
+      plus seulement aux comptes gratuits — un abonné OsteoUpgrade seul ne
+      voyait rien du tout de l'autre produit.
+- [x] Nouveau bloc symétrique au-dessus du hub d'apprentissage pour un abonné
+      MyOsteoFlow seul : les modules restent visibles, mais on dit avant le
+      clic pourquoi ils sont verrouillés, plutôt qu'après.
+- [x] `components/UpsellBundleCard.tsx` : proposition de passage au bundle pour
+      les deux offres simples. Carte en coin d'écran, jamais bloquante ; muette
+      pendant un essai (qui a déjà son bandeau), reportée 14 jours au refus,
+      définitivement close sur « Ne plus me proposer ». Ce sont des clients
+      payants : leur barrer la page se paierait en résiliations.
+- [x] Avertissement d'essai sur `/settings/subscription` : la configuration du
+      portail est en `trial_update_behavior: 'end_trial'`, donc **changer
+      d'offre pendant l'essai y met fin et déclenche le prélèvement
+      immédiatement**. La page promettait un simple prorata.
+- [x] `planTypeFromSubscription()` (`lib/stripe.ts`) : l'email de conversion
+      d'essai lisait le tarif dans `subscription.metadata.planType`, figé au
+      checkout. Après un changement d'offre pendant l'essai, il annonçait
+      l'ancienne offre et son ancien prix. Le tarif se lit désormais sur le
+      prix réellement porté par l'abonnement.
+
+**Simulation d'offre pour l'administration** — `lib/plan-simulation.ts`,
+`api/admin/simulate-plan`, `components/PlanSimulationBanner.tsx`, entrée dans
+`/admin`.
+
+Basculer son propre rôle en base ne permet pas de tester : écrire `plan` sur un
+compte admin ne change rien (le trigger ne rétrograde jamais un admin, et tous
+les helpers comme les policies RLS court-circuitent sur `admin`), et écrire
+`role` fait perdre `/admin` — sans même donner accès à l'offre OsteoUpgrade
+seule, qu'**aucune valeur de rôle ne peut représenter** (`premium` se dérive en
+`bundle`, `trial` en `osteoflow`). La simulation vit dans un cookie honoré par
+`/api/profile` pour les seuls comptes réellement `admin`, n'écrit rien, expire
+en 4 h et s'annule d'un clic depuis un bandeau permanent. C'est une simulation
+d'**affichage** : la base continue de servir le contenu à un administrateur.
+
+### Phase 5 — Release desktop ✅ code terminé le 19/08/2026
+
+Dépôt `Osteoflow`, branche `claude/pricing-strategy-products-72ldtv`,
+**version 1.18.0**. Reste à builder, signer et notariser.
+
+- [x] `src/lib/entitlements.ts` + `src/hooks/use-entitlements.ts` (9 tests)
+- [x] `src/app/api/license/route.ts` : stocke `license_entitlements`
+- [x] `src/app/api/license/online-verify/route.ts` : entitlements persistés au
+      heartbeat 30 min — un changement d'offre s'applique sans reconnexion
+- [x] `src/app/(auth)/osteoupgrade/page.tsx` et `license-guard.tsx` : le code
+      `PLAN_WITHOUT_OSTEOFLOW` donne un message juste, au lieu d'annoncer un
+      abonnement expiré à un abonné parfaitement actif
+- [x] Masquage des widgets OsteoUpgrade + `osteoupgrade-upsell.tsx`
+- [x] `ortho-tests` : le proxy transmet les en-têtes de session, et le bouton
+      « Tests orthos » du formulaire de consultation suit le droit
+- [x] `electron/main.ts` : payload inchangé, rien à faire
 
 ---
 
