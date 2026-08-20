@@ -352,7 +352,16 @@ function SubscriptionContent() {
                 </p>
                 {currentOffer && !isTrialing && (
                   <p className="text-sm text-gray-500 mt-0.5">
-                    {formatAmount(currentOffer.monthlyAmount)}/mois · sans engagement
+                    {/* Le tarif affiché doit être celui réellement payé : un membre
+                        fondateur règle son offre à l'année, à -50 %, et un compte
+                        offert ne règle rien. Leur annoncer le tarif public serait
+                        faux — et, pour un fondateur, lui laisser croire qu'il a
+                        perdu sa remise. */}
+                    {profile?.is_complimentary
+                      ? 'Offert · sans facturation'
+                      : isFounder
+                        ? `${formatAmount(currentOffer.foundingAnnualAmount)}/an · tarif fondateur -50 % à vie`
+                        : `${formatAmount(currentOffer.monthlyAmount)}/mois · sans engagement`}
                   </p>
                 )}
               </div>
