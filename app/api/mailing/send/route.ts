@@ -5,6 +5,7 @@ import { sendTransactionalEmail } from '@/lib/mailing'
 import { getBroadcastFooterHtml } from '@/lib/email-footer'
 import { getOrCreateSegment, syncContactsToSegment, createAndSendBroadcast } from '@/lib/resend-marketing'
 import { supabaseAdmin } from '@/lib/supabase-server'
+import { isPlan, planLabel } from '@/lib/entitlements'
 
 // Synchroniser plusieurs centaines de contacts vers Resend (séquentiel, ~4 req/s)
 // peut prendre plusieurs minutes pour les grands segments.
@@ -78,16 +79,26 @@ export async function POST(request: Request) {
         contacts = (rows || []).map((c) => ({ email: c.email as string, firstName: c.first_name, lastName: c.last_name }))
         segmentName = 'Newsletter pré-lancement'
       } else {
+        // Le filtre porte sur l'offre souscrite, pas sur le rôle : `premium`
+        // recouvre désormais le bundle ET l'offre OsteoUpgrade seule, et
+        // `trial` est le rôle miroir permanent de l'offre MyOsteoFlow.
+        // Les anciennes valeurs de rôle restent acceptées pour ne pas casser
+        // un envoi programmé avec l'ancienne interface.
+        const parOffre = isPlan(subscriptionFilter)
+        const colonne = parOffre ? 'plan' : 'role'
+
         const { data: profiles, error } = await supabaseAdmin
           .from('profiles')
           .select('email, full_name')
-          .eq('role', subscriptionFilter)
+          .eq(colonne, subscriptionFilter)
           .not('email', 'is', null)
           .eq('newsletter_opt_in', true)
 
         if (error) throw new Error('Erreur lors de la récupération des emails')
         contacts = (profiles || []).map((p) => ({ email: p.email as string, ...splitName(p.full_name) }))
-        segmentName = `Newsletter - Rôle ${subscriptionFilter}`
+        segmentName = parOffre
+          ? `Newsletter - Offre ${planLabel(subscriptionFilter as any)}`
+          : `Newsletter - Rôle ${subscriptionFilter}`
       }
 
       if (!contacts.length) {

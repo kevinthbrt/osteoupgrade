@@ -18,6 +18,18 @@ import { verifyAdmin } from '@/lib/api-guards'
  * perdrait sa remise à vie sans en être averti.
  *
  * Idempotent : les configurations sont retrouvées par leur metadata `grille`.
+ *
+ * À relancer si un tarif change ou si une offre est ajoutée — sinon le portail
+ * continuerait de proposer les anciens prix. Aucun bouton dans l'interface :
+ * c'est une opération de maintenance rare. Pour la déclencher, être connecté
+ * en administrateur puis, depuis la console du navigateur :
+ *
+ *   await fetch('/api/admin/stripe-portal-setup', { method: 'POST' })
+ *     .then(r => r.json()).then(console.log)
+ *
+ * La réponse contient les deux identifiants à reporter dans
+ * STRIPE_PORTAL_CONFIG_PLANS et STRIPE_PORTAL_CONFIG_PLANS_FOUNDING, suivis
+ * d'un redéploiement — les variables d'environnement ne sont lues qu'au build.
  */
 
 export const dynamic = 'force-dynamic'

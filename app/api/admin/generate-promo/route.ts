@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { createRouteHandlerClient } from '@/lib/supabase-server-helpers'
-import { stripe } from '@/lib/stripe'
+import { stripe, PUBLIC_PLAN_TYPES, STRIPE_PLANS } from '@/lib/stripe'
 
 async function checkAdmin(supabase: any) {
   const { data: { user }, error } = await supabase.auth.getUser()
@@ -25,24 +25,27 @@ export async function POST(request: Request) {
 
     const discountAmount = amountOff ?? 10000 // 100€ par défaut en centimes
 
-    const premiumPriceId = process.env.STRIPE_PRICE_PREMIUM_MONTHLY
+    // Le code s'applique aux trois offres mensuelles. Les tarifs Fondateur en
+    // sont exclus : ils sont déjà à -50 % à vie, empiler une remise dessus
+    // reviendrait à offrir l'abonnement.
+    const prixEligibles = PUBLIC_PLAN_TYPES
+      .map((clef) => STRIPE_PLANS[clef]?.priceId)
+      .filter((id): id is string => Boolean(id))
 
-    // Crée le coupon Stripe — restreint à l'offre Premium mensuelle
     const couponParams: any = {
       amount_off: discountAmount,
       currency: 'eur',
       duration: 'once',
       max_redemptions: maxRedemptions,
-      name: `Premium -${discountAmount / 100}€`,
+      name: `Offres -${discountAmount / 100}€`,
       metadata: {
         created_by: admin.id,
         purpose: 'gold_promo',
         plan: 'monthly'
       }
     }
-    // Restreindre au prix Premium si le price ID est configuré
-    if (premiumPriceId) {
-      couponParams.applies_to = { prices: [premiumPriceId] }
+    if (prixEligibles.length > 0) {
+      couponParams.applies_to = { prices: prixEligibles }
     }
 
     const coupon = await stripe.coupons.create(couponParams)

@@ -425,12 +425,56 @@ conversion d'un essai. `Passage à Premium` est conservé pour le bundle : cet
 - [x] Contrôle : MRR recalculé en SQL sur les données réelles, identique au
       code (199,97 € — 3 abonnés au tarif public, 2 fondateurs mensualisés,
       1 compte offert et 1 essai exclus)
-- [x] `api/admin/stripe-portal-setup` + bouton dans `/admin` : génère les deux
-      configurations du portail client depuis l'application, qui dispose déjà
-      de la clé Stripe. Remplace `scripts/setup-portal-configs.ts`, qui
-      imposait de manipuler une clé live dans un terminal. Le dashboard Stripe
-      ne sait éditer que la configuration par défaut : impossible d'y créer la
-      seconde grille, celle des tarifs fondateur.
+- [x] `api/admin/stripe-portal-setup` : génère les deux configurations du
+      portail client depuis l'application, qui dispose déjà de la clé Stripe.
+      Le dashboard Stripe ne sait éditer que la configuration par défaut :
+      impossible d'y créer la seconde grille, celle des tarifs fondateur.
+      **Configurations générées et variables renseignées le 19/08/2026.**
+      Le bouton d'interface a été retiré une fois l'opération faite ; la route
+      reste disponible pour un futur changement de tarif, déclenchable depuis
+      la console du navigateur en étant connecté administrateur (mode d'emploi
+      en tête du fichier).
+
+**Fait — mailing et codes de réduction**
+
+- [x] `api/mailing/send` : la segmentation porte sur l'offre. Filtrer sur le
+      rôle n'a plus de sens — `premium` recouvre le bundle *et* l'offre
+      OsteoUpgrade seule, et `trial` est le rôle miroir permanent de
+      MyOsteoFlow. Les anciennes valeurs de rôle restent acceptées pour ne pas
+      casser un envoi préparé avec l'ancienne interface.
+- [x] `/admin/mailing` : segments « Offre Premium / MyOsteoFlow / OsteoUpgrade
+      / Comptes gratuits », et l'aide de `{{prix}}` ne cite plus un tarif unique
+- [x] `api/admin/generate-promo` et `api/admin/partner-codes` : les coupons
+      étaient restreints au seul prix du bundle (`applies_to.prices`), donc
+      inutilisables sur une offre à 29,99 €. Ils couvrent désormais les trois
+      tarifs mensuels. Les tarifs Fondateur en restent exclus : déjà à -50 % à
+      vie, y empiler une remise cumulerait deux avantages non prévus.
+- [x] `/admin/promo` : mention explicite qu'une remise ne dépasse jamais le
+      montant du premier prélèvement — un code de 100 € offre un mois entier
+      quelle que soit l'offre, et le reliquat est perdu. L'asymétrie de valeur
+      entre 49,99 € et 29,99 € doit être connue avant d'envoyer un code.
+
+**Tests orthopédiques — frontière tranchée**
+
+Le contenu de la bibliothèque relève d'OsteoUpgrade, mais l'aide au
+raisonnement de MyOsteoFlow peut continuer à **nommer** des tests. Autrement
+dit : sans OsteoUpgrade, on sait quel test faire, pas comment ni pourquoi.
+
+| Endpoint | Renvoie | Sans OsteoUpgrade |
+|---|---|---|
+| `osteoflow/ortho-tests` | nom + **indications** | **403** — c'est la bibliothèque |
+| `osteoflow/generate-hypotheses` | nom, région, rationale de l'IA | ouvert — aucune indication n'est renvoyée |
+| `osteoflow/suggest-tests` | nom + raisonnement de l'IA | ouvert — même raison |
+
+Le descriptif n'est affiché que dans le sélecteur du formulaire de
+consultation, alimenté par `ortho-tests` : le fermer suffit à faire respecter
+la frontière, sans toucher aux fonctions vendues avec MyOsteoFlow.
+
+**Transition** : le contrôle ne s'applique **que si le client transmet un
+jeton de session**. Les binaires desktop déjà distribués n'envoient que le
+secret partagé pour cet endpoint — l'exiger tout de suite couperait les tests
+à tous les abonnés, Premium compris, jusqu'à ce que chacun ait mis à jour son
+application. Même stratégie que la migration CF2.
 
 **Reste à faire**
 

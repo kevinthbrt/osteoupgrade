@@ -1,4 +1,6 @@
 import { NextResponse } from 'next/server'
+import { getOsteoflowSessionUser } from '@/lib/osteoflow-auth'
+import { hasOsteoupgrade } from '@/lib/entitlements'
 import { createClient } from '@supabase/supabase-js'
 
 export const dynamic = 'force-dynamic'
@@ -10,6 +12,22 @@ export async function GET(req: Request) {
     if (!expectedSecret || authHeader !== expectedSecret) {
       return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
     }
+
+    // Contenu OsteoUpgrade : réservé aux offres qui l'incluent.
+    //
+    // Le contrôle ne s'applique QUE si le client transmet un jeton de session.
+    // Les binaires desktop déjà distribués n'envoient que le secret partagé
+    // pour cet endpoint : exiger le jeton dès maintenant couperait les tests
+    // à TOUS les abonnés, Premium compris, jusqu'à ce que chacun ait mis à
+    // jour son application. Même stratégie de transition que la migration CF2.
+    const tokenUser = await getOsteoflowSessionUser(req)
+    if (tokenUser && !hasOsteoupgrade(tokenUser)) {
+      return NextResponse.json(
+        { error: "Votre offre n'inclut pas les tests orthopédiques OsteoUpgrade.", code: 'PLAN_WITHOUT_OSTEOUPGRADE' },
+        { status: 403 }
+      )
+    }
+
 
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
     const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY

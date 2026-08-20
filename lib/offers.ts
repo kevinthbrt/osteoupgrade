@@ -46,7 +46,7 @@ export const OFFERS: Offer[] = [
     features: [
       'Dossiers patients et consultations',
       'Prise de note par dictée vocale IA',
-      'Aide au raisonnement clinique',
+      'Aide au raisonnement clinique (hypothèses)',
       'Facturation et comptabilité',
       'Fiches d’exercices patients + export PDF',
       'Objectifs et statistiques de cabinet',
@@ -79,7 +79,7 @@ export const OFFERS: Offer[] = [
     foundingAnnualAmount: 17994,
     features: [
       'E-learning complet et quiz',
-      'Bibliothèque de tests orthopédiques',
+      'Bibliothèque de tests orthopédiques + suggestions par IA',
       'Module pratique en vidéo',
       'OsteoFlash — flashcards',
       'Revue de littérature mensuelle',

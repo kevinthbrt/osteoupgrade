@@ -78,7 +78,7 @@ export default function MailingAdminPage() {
   const [html, setHtml] = useState('<p>Rédigez votre newsletter ici...</p>')
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>('')
   const [audienceMode, setAudienceMode] = useState<'manual' | 'all' | 'subscription'>('manual')
-  const [subscriptionFilter, setSubscriptionFilter] = useState<string>('premium')
+  const [subscriptionFilter, setSubscriptionFilter] = useState<string>('bundle')
   const [sending, setSending] = useState(false)
   const [result, setResult] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
   const [attachments, setAttachments] = useState<Attachment[]>([])
@@ -719,7 +719,7 @@ export default function MailingAdminPage() {
                         <div className="flex flex-wrap gap-2">
                           {[
                             { var: '{{nom}}', desc: 'Nom du plan (Premium)' },
-                            { var: '{{prix}}', desc: 'Prix de l’abonnement (49,99€/mois)' },
+                            { var: '{{prix}}', desc: 'Prix de l’offre souscrite (29,99€ ou 49,99€/mois)' },
                             { var: '{{date_fact}}', desc: 'Date de prochaine facturation' },
                             { var: '{{date_renouv}}', desc: 'Date de renouvellement' },
                             { var: '{{cycle}}', desc: 'Numéro du cycle' },
@@ -1220,8 +1220,10 @@ export default function MailingAdminPage() {
                   onChange={(e) => setSubscriptionFilter(e.target.value)}
                   className="w-full bg-white/70 backdrop-blur-sm border border-blue-200/60 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-purple-300 outline-none"
                 >
-                  <option value="premium">Premium</option>
-                  <option value="free">Gratuit</option>
+                  <option value="bundle">Offre Premium (les deux outils)</option>
+                  <option value="osteoflow">Offre MyOsteoFlow seule</option>
+                  <option value="osteoupgrade">Offre OsteoUpgrade seule</option>
+                  <option value="free">Comptes gratuits</option>
                   <option value="newsletter_pre_launch">Newsletter pré-lancement</option>
                 </select>
               )}
@@ -1343,7 +1345,7 @@ export default function MailingAdminPage() {
                       <div className="flex flex-wrap gap-2">
                         {[
                           { var: '{{nom}}', desc: 'Nom du plan (Premium)' },
-                          { var: '{{prix}}', desc: 'Prix de l’abonnement (49,99€/mois)' },
+                          { var: '{{prix}}', desc: 'Prix de l’offre souscrite (29,99€ ou 49,99€/mois)' },
                           { var: '{{date_fact}}', desc: 'Date de prochaine facturation' },
                           { var: '{{date_renouv}}', desc: 'Date de renouvellement' },
                           { var: '{{cycle}}', desc: 'Numéro du cycle' },
