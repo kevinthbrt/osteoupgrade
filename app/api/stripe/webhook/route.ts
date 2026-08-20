@@ -684,7 +684,13 @@ async function handleSubscriptionUpdated(subscription: any) {
 
   // Changement d'offre effectif (upgrade ou downgrade). On le trace : un
   // downgrade silencieux qui n'aurait pas retiré les droits serait invisible.
-  if (updateData.plan && updateData.plan !== ancienPlan && !wasTrialing) {
+  // La condition `updateData.plan !== ancienPlan` suffit : à la conversion d'un
+  // essai, l'offre ne change pas, donc rien ne part. Exclure en plus les
+  // comptes en essai faisait taire les *vrais* changements d'offre survenus
+  // pendant l'essai — c'est ce qui s'est passé le 20/08/2026 : un abonné a
+  // souscrit Premium puis est repassé sur OsteoUpgrade trois minutes plus tard
+  // depuis le portail, sans qu'aucune notification ni email ne soit émis.
+  if (updateData.plan && updateData.plan !== ancienPlan) {
     console.log('[stripe] plan change %s -> %s for %s', ancienPlan, updateData.plan, profile.id)
     try {
       await notifyAdmin(
