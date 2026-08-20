@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import AuthLayout from '@/components/AuthLayout'
+import { planOf } from '@/lib/entitlements'
 import {
   Crown,
   Copy,
@@ -46,8 +47,10 @@ export default function ReferralsPage() {
 
       setProfile(profileData)
 
-      // Check if user is Premium
-      if (profileData?.role !== 'premium' && profileData?.role !== 'admin') {
+      // Toute offre payante ouvre droit au parrainage (phase 4a). Décider sur
+      // le rôle éjectait l'abonné MyOsteoFlow de son propre espace : son rôle
+      // miroir est `trial`.
+      if (planOf(profileData) === 'free') {
         router.push('/dashboard')
         return
       }

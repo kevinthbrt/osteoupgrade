@@ -234,21 +234,19 @@ export default function SettingsPage() {
                       <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className={inputCls} />
                     </div>
                     <div>
-                      <label className={labelCls}>Rôle</label>
+                      <label className={labelCls}>Offre</label>
                       <div className="flex items-center gap-2">
-                        {profile?.role === 'admin' && (
+                        {profile?.role === 'admin' ? (
                           <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold bg-purple-100 text-purple-700 border border-purple-200">
                             <Shield className="h-3.5 w-3.5" /> Administrateur
                           </span>
-                        )}
-                        {profile?.role === 'premium' && (
-                          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold bg-amber-100 text-amber-700 border border-amber-200">
-                            <Crown className="h-3.5 w-3.5" /> Premium
-                          </span>
-                        )}
-                        {profile?.role === 'free' && (
+                        ) : planOf(profile) === 'free' ? (
                           <span className="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-slate-100 text-slate-600 border border-slate-200">
                             Gratuit
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold bg-amber-100 text-amber-700 border border-amber-200">
+                            <Crown className="h-3.5 w-3.5" /> {offerOf(planOf(profile))?.name ?? planLabel(planOf(profile))}
                           </span>
                         )}
                       </div>

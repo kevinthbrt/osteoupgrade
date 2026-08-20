@@ -3,6 +3,9 @@
 import { useEffect, useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import AuthLayout from '@/components/AuthLayout'
+import FreeUserBanner from '@/components/FreeUserBanner'
+import { fetchProfilePayload } from '@/lib/profile-client'
+import { planOf, hasOsteoupgrade } from '@/lib/entitlements'
 import { supabase } from '@/lib/supabase'
 import {
   Search,
@@ -34,6 +37,13 @@ function SearchPageContent() {
   const [results, setResults] = useState<SearchResult[]>([])
   const [loading, setLoading] = useState(false)
   const [searched, setSearched] = useState(false)
+  const [profile, setProfile] = useState<any>(null)
+
+  useEffect(() => {
+    fetchProfilePayload()
+      .then((payload) => setProfile(payload?.profile ?? null))
+      .catch(() => {})
+  }, [])
 
   useEffect(() => {
     if (query) {
@@ -290,6 +300,10 @@ function SearchPageContent() {
           <div className="pointer-events-none absolute bottom-0 left-0 w-72 h-72 bg-indigo-400/30 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '7s', animationDelay: '1s' }} />
 
           <div className="relative space-y-8">
+
+            {/* Les policies RLS filtrent déjà les résultats selon l'offre : sans
+                ce bandeau, la recherche paraîtrait simplement vide. */}
+            {profile && !hasOsteoupgrade(profile) && <FreeUserBanner plan={planOf(profile)} />}
 
             {/* Loading State */}
             {loading && (

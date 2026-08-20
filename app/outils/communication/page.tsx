@@ -25,6 +25,7 @@ import {
 import type { CommunicationDocument, CommunicationDocumentInsert } from '@/lib/types-communication'
 import FreeContentGate from '@/components/FreeContentGate'
 import FreeUserBanner from '@/components/FreeUserBanner'
+import { planOf, hasOsteoupgrade } from '@/lib/entitlements'
 
 const CATEGORIES = [
   { value: 'courrier', label: 'Courrier', icon: '📧' },
@@ -313,7 +314,9 @@ export default function CommunicationPage() {
     documents: filteredDocuments.filter(doc => doc.category === category.value)
   })).filter(cat => cat.documents.length > 0)
 
-  const isFree = userRole === 'free'
+  // Le verrou suit le droit, pas le rôle : `trial` est le rôle miroir
+  // permanent de l'offre MyOsteoFlow, qui ne comprend pas ces modèles.
+  const isFree = !hasOsteoupgrade({ role: userRole })
 
   return (
     <AuthLayout>
@@ -549,7 +552,7 @@ export default function CommunicationPage() {
             {/* Free user banner */}
             {isFree && (
               <div>
-                <FreeUserBanner />
+                <FreeUserBanner plan={planOf({ role: userRole })} />
               </div>
             )}
 
