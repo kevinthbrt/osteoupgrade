@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server'
 import { headers } from 'next/headers'
 import { stripe, referralFreeMonthAmount, PARTNER_PROMO_PURPOSE, STRIPE_PLANS, planFromSubscription, planTypeFromSubscription } from '@/lib/stripe'
-import { planLabel, type Plan } from '@/lib/entitlements'
+import { planLabel, describePlanChange, type Plan } from '@/lib/entitlements'
 import { supabaseAdmin } from '@/lib/supabase-server'
 import { sendTransactionalEmail } from '@/lib/mailing'
 import { notifyAdmin } from '@/lib/admin-notify'
-import { subscriptionEventFor, cancelProspectSequences } from '@/lib/automation-triggers'
+import { subscriptionEventFor, planChangeEventFor, cancelProspectSequences } from '@/lib/automation-triggers'
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!
 
@@ -695,6 +695,48 @@ async function handleSubscriptionUpdated(subscription: any) {
     } catch (err) {
       console.error('Error notifying admin of plan change')
     }
+
+    // Confirmer le changement au client. Jusqu'ici l'accès suivait et l'admin
+    // était notifié, mais l'abonné n'avait que sa facture Stripe : rien ne lui
+    // disait ce qui venait de s'ouvrir — ou de se fermer.
+    //
+    // Une résiliation n'emprunte pas ce chemin (elle passe par
+    // customer.subscription.deleted), mais on l'exclut explicitement : un
+    // passage à `free` mérite l'email de résiliation, pas celui-ci.
+    const evenementChangement =
+      updateData.plan !== 'free' && ancienPlan
+        ? planChangeEventFor(ancienPlan as Plan, updateData.plan as Plan)
+        : null
+
+    if (evenementChangement) {
+      const descriptionOffre = describePlanPricing(planTypeFromSubscription(subscription), null)
+      try {
+        await fetch(`${process.env.NEXT_PUBLIC_URL || 'http://localhost:3000'}/api/automations/trigger`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${process.env.CRON_SECRET}`
+          },
+          body: JSON.stringify({
+            event: evenementChangement,
+            contact_email: profile.email,
+            full_name: profile.full_name,
+            metadata: {
+              ancienne_offre: planLabel(ancienPlan as Plan),
+              detail: describePlanChange(ancienPlan as Plan, updateData.plan as Plan),
+              nom: planLabel(updateData.plan as Plan),
+              nouvelle_offre: planLabel(updateData.plan as Plan),
+              prix: descriptionOffre.prix,
+              date_fact: subscription.current_period_end
+                ? new Date(subscription.current_period_end * 1000).toLocaleDateString('fr-FR')
+                : ''
+            }
+          })
+        })
+      } catch (err) {
+        console.error('Error triggering plan change automation')
+      }
+    }
   }
 
   // 🎁 Parrainage différé : le code de parrainage saisi au moment de l'essai
@@ -876,10 +918,32 @@ async function handlePaymentSucceeded(invoice: any) {
     return
   }
 
+  // Écarter aussi la toute première facture d'un abonnement issu d'un essai.
+  // Stripe l'émet avec billing_reason = 'subscription_cycle' — indistinguable
+  // d'un renouvellement par ce seul champ. Sans ce filtre, la conversion d'un
+  // essai envoie deux emails simultanés : celui de bienvenue, et un
+  // « renouvellement effectué » pour un abonnement qui n'a jamais été renouvelé.
+  //
+  // En cas d'échec de la lecture Stripe on laisse passer : un accusé de
+  // paiement en double vaut mieux qu'une facture jamais transmise.
+  try {
+    const sub = await stripe.subscriptions.retrieve(
+      typeof subscriptionId === 'string' ? subscriptionId : subscriptionId.id
+    )
+    const finEssai = (sub as any).trial_end as number | null
+    const debutPeriode = (invoice.lines?.data?.[0]?.period?.start ?? invoice.period_start) as number | undefined
+    if (finEssai && debutPeriode && Math.abs(debutPeriode - finEssai) < 3600) {
+      console.log('[stripe] first invoice after trial, renewal email skipped')
+      return
+    }
+  } catch (err) {
+    console.error('Could not check trial conversion on payment succeeded')
+  }
+
   // Trouver l'utilisateur par son stripe_subscription_id
   const { data: profile, error: profileError } = await supabaseAdmin
     .from('profiles')
-    .select('id, email, role, full_name')
+    .select('id, email, role, plan, full_name')
     .eq('stripe_subscription_id', subscriptionId)
     .single()
 
@@ -913,7 +977,7 @@ async function handlePaymentSucceeded(invoice: any) {
         contact_email: profile.email,
         full_name: profile.full_name,
         metadata: {
-          nom: 'Premium',
+          nom: planLabel(profile.plan),
           date_fact: new Date().toLocaleDateString('fr-FR'),
           facture_url: invoice.hosted_invoice_url || invoice.invoice_pdf || ''
         }
@@ -934,7 +998,7 @@ async function handlePaymentFailed(invoice: any) {
   // Trouver l'utilisateur par son stripe_subscription_id
   const { data: profile, error: profileError } = await supabaseAdmin
     .from('profiles')
-    .select('id, email, full_name')
+    .select('id, email, full_name, plan')
     .eq('stripe_subscription_id', subscriptionId)
     .single()
 
@@ -956,7 +1020,10 @@ async function handlePaymentFailed(invoice: any) {
         contact_email: profile.email,
         full_name: profile.full_name,
         metadata: {
-          nom: 'Premium'
+          // L'offre réellement souscrite, et non « Premium » en dur : annoncer
+          // le mauvais nom d'offre dans un email de relance de paiement, c'est
+          // faire douter le client de la légitimité du message.
+          nom: planLabel(profile.plan)
         }
       })
     })

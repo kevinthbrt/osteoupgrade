@@ -112,3 +112,66 @@ export function planLabel(plan: Plan): string {
       return 'Gratuit'
   }
 }
+
+/** Nature d'un changement d'offre, du point de vue des droits accordés. */
+export type PlanChange = 'gain' | 'perte' | 'echange' | null
+
+/**
+ * Compare deux offres en termes de droits, et non de prix.
+ *
+ * Le prix ne suffit pas : `osteoflow` et `osteoupgrade` coûtent le même
+ * montant, un passage de l'un à l'autre n'est ni une évolution ni une
+ * réduction — c'est un échange de produit, qui appelle un message à part.
+ */
+export function comparePlans(ancien: Plan, nouveau: Plan): PlanChange {
+  const droits = (p: Plan) => ({
+    flow: p === 'osteoflow' || p === 'bundle',
+    up: p === 'osteoupgrade' || p === 'bundle',
+  })
+  const a = droits(ancien)
+  const n = droits(nouveau)
+
+  const gagne = (!a.flow && n.flow) || (!a.up && n.up)
+  const perd = (a.flow && !n.flow) || (a.up && !n.up)
+
+  if (gagne && perd) return 'echange'
+  if (gagne) return 'gain'
+  if (perd) return 'perte'
+  return null
+}
+
+/**
+ * Phrase décrivant concrètement un changement d'offre.
+ *
+ * Calculée ici plutôt que dans le template : le moteur d'emails ne fait que
+ * du remplacement de `{{variable}}`, sans condition. Sans cette phrase, un
+ * email de changement d'offre ne pourrait que rester vague — « votre offre a
+ * changé » — au moment précis où le client veut savoir lequel des deux
+ * produits vient de s'ouvrir ou de se fermer.
+ */
+export function describePlanChange(ancien: Plan, nouveau: Plan): string {
+  const nom = { flow: 'MyOsteoFlow', up: 'OsteoUpgrade' }
+  const droits = (p: Plan) => ({
+    flow: p === 'osteoflow' || p === 'bundle',
+    up: p === 'osteoupgrade' || p === 'bundle',
+  })
+  const a = droits(ancien)
+  const n = droits(nouveau)
+
+  const gagnes = [!a.flow && n.flow ? nom.flow : null, !a.up && n.up ? nom.up : null].filter(Boolean)
+  const perdus = [a.flow && !n.flow ? nom.flow : null, a.up && !n.up ? nom.up : null].filter(Boolean)
+
+  if (gagnes.length && perdus.length) {
+    const verbe = gagnes.length > 1 ? 'remplacent' : 'remplace'
+    return `${gagnes.join(' et ')} ${verbe} ${perdus.join(' et ')} dans votre abonnement.`
+  }
+  if (gagnes.length) {
+    const verbe = gagnes.length > 1 ? "s'ajoutent" : "s'ajoute"
+    return `${gagnes.join(' et ')} ${verbe} à votre abonnement.`
+  }
+  if (perdus.length) {
+    const verbe = perdus.length > 1 ? 'ne sont plus compris' : "n'est plus compris"
+    return `${perdus.join(' et ')} ${verbe} dans votre abonnement.`
+  }
+  return 'Vos accès restent identiques.'
+}

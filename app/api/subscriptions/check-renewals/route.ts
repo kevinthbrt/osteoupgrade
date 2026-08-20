@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase-server'
 import { stripe } from '@/lib/stripe'
+import { planOf, planLabel } from '@/lib/entitlements'
 
 // Cron quotidien : détecte les abonnements Stripe dont le prochain renouvellement
 // tombe dans les 7 prochains jours et déclenche l'email "Renouvellement imminent" (template e4444444).
@@ -85,7 +86,9 @@ export async function GET(request: Request) {
                   year: 'numeric'
                 }),
                 jours: daysUntilRenewal,
-                nom: 'Premium'
+                // L'offre réellement souscrite : le rappel annonçait « Premium »
+                // à un abonné MyOsteoFlow ou OsteoUpgrade.
+                nom: planLabel(planOf(user))
               }
             })
           })
