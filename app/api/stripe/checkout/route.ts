@@ -3,6 +3,7 @@ import { cookies } from 'next/headers'
 import { createRouteHandlerClient } from '@/lib/supabase-server-helpers'
 import { stripe, STRIPE_PLANS, FREE_TRIAL_DAYS } from '@/lib/stripe'
 import { planOf } from '@/lib/entitlements'
+import { notifyAdmin } from '@/lib/admin-notify'
 
 export async function POST(request: Request) {
   try {
@@ -47,6 +48,63 @@ export async function POST(request: Request) {
         },
         { status: 400 }
       )
+    }
+
+    // 🛡️ Le Price ID vient d'une variable d'environnement : rien ne garantit
+    // qu'elle pointe vers le bon tarif. Une variable intervertie ne provoque
+    // aucune erreur — elle facture simplement le mauvais montant pour le
+    // mauvais produit, et le webhook accorde ensuite l'offre du prix
+    // réellement payé. C'est arrivé en production le 20/08/2026 :
+    // STRIPE_PRICE_PREMIUM_MONTHLY portait le prix OsteoUpgrade, et un client
+    // ayant choisi Premium a été débité de 29,99 € pour un accès partiel.
+    //
+    // On revérifie donc auprès de Stripe que le prix correspond bien à l'offre
+    // demandée. En cas d'écart on refuse : un paiement qui échoue se rattrape,
+    // un client facturé au mauvais tarif pour le mauvais produit, non.
+    try {
+      const priceStripe = await stripe.prices.retrieve(plan.priceId)
+      const planDuPrix = priceStripe.metadata?.plan
+      const ecarts: string[] = []
+
+      if (planDuPrix && planDuPrix !== plan.plan) {
+        ecarts.push(`offre ${planDuPrix} au lieu de ${plan.plan}`)
+      }
+      if (priceStripe.unit_amount !== plan.amount) {
+        ecarts.push(`${priceStripe.unit_amount} centimes au lieu de ${plan.amount}`)
+      }
+      if (priceStripe.recurring?.interval !== plan.interval) {
+        ecarts.push(`facturation ${priceStripe.recurring?.interval} au lieu de ${plan.interval}`)
+      }
+
+      if (ecarts.length > 0) {
+        console.error('❌ Price mismatch for plan:', planType, plan.priceId, ecarts)
+        try {
+          await notifyAdmin(
+            'other',
+            'Tarif Stripe incohérent — souscription bloquée',
+            `L'offre ${planType} pointe vers ${plan.priceId}, qui ne correspond pas : ${ecarts.join(' ; ')}. ` +
+              `Vérifiez la variable d'environnement du prix. Aucune souscription n'est possible sur cette offre tant que ce n'est pas corrigé.`
+          )
+        } catch {
+          // La notification ne doit jamais empêcher le refus.
+        }
+        return NextResponse.json(
+          { error: 'Cette offre est momentanément indisponible. Notre équipe a été prévenue.' },
+          { status: 503 }
+        )
+      }
+    } catch (err: any) {
+      // Prix introuvable côté Stripe : même conclusion, on ne facture pas à l'aveugle.
+      if (err?.type === 'StripeInvalidRequestError') {
+        console.error('❌ Price not found on Stripe:', plan.priceId)
+        return NextResponse.json(
+          { error: 'Cette offre est momentanément indisponible. Notre équipe a été prévenue.' },
+          { status: 503 }
+        )
+      }
+      // Panne réseau ou API Stripe indisponible : on laisse passer plutôt que
+      // de bloquer toutes les souscriptions sur une vérification annexe.
+      console.error('⚠️ Could not verify price consistency, proceeding:', err?.message)
     }
 
     // Les offres Fondateur (une par offre commerciale) sont réservées aux
