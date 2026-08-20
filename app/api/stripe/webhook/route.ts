@@ -692,11 +692,17 @@ async function handleSubscriptionUpdated(subscription: any) {
   // depuis le portail, sans qu'aucune notification ni email ne soit émis.
   if (updateData.plan && updateData.plan !== ancienPlan) {
     console.log('[stripe] plan change %s -> %s for %s', ancienPlan, updateData.plan, profile.id)
+
+    // Le tarif est lu sur le prix réellement porté par l'abonnement après le
+    // changement — y compris pour un membre fondateur, dont l'offre est
+    // annuelle et remisée. Sert à la notification comme à l'email client.
+    const descriptionOffre = describePlanPricing(planTypeFromSubscription(subscription), null)
+
     try {
       await notifyAdmin(
         'other',
         "Changement d'offre",
-        `${profile.full_name || profile.email} : ${planLabel(ancienPlan)} → ${planLabel(updateData.plan)}`
+        `${profile.full_name || profile.email} : ${planLabel(ancienPlan)} → ${planLabel(updateData.plan)} · ${descriptionOffre.prix}`
       )
     } catch (err) {
       console.error('Error notifying admin of plan change')
@@ -715,7 +721,6 @@ async function handleSubscriptionUpdated(subscription: any) {
         : null
 
     if (evenementChangement) {
-      const descriptionOffre = describePlanPricing(planTypeFromSubscription(subscription), null)
       try {
         await fetch(`${process.env.NEXT_PUBLIC_URL || 'http://localhost:3000'}/api/automations/trigger`, {
           method: 'POST',
@@ -831,7 +836,14 @@ async function handleSubscriptionUpdated(subscription: any) {
       console.error('Error triggering trial conversion automation')
     }
 
-    await notifyAdmin('new_subscription', 'Essai converti en Premium', `${profile.email} — essai gratuit converti en abonnement Premium`)
+    // `trialPlanNom` / `trialPlanPrix` viennent du prix réellement porté par
+    // l'abonnement : « Premium » en dur annonçait la mauvaise offre, et le
+    // mauvais montant, pour une conversion MyOsteoFlow ou OsteoUpgrade.
+    await notifyAdmin(
+      'new_subscription',
+      `Essai converti — ${trialPlanNom}`,
+      `${profile.email} — essai gratuit converti en abonnement ${trialPlanNom} · ${trialPlanPrix}`
+    )
   }
 }
 
