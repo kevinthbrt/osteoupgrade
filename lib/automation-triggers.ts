@@ -1,4 +1,5 @@
 import { supabaseAdmin } from './supabase-server'
+import { comparePlans, type Plan } from './entitlements'
 
 export type TriggerEvent =
   | 'contact_created'
@@ -28,6 +29,9 @@ export type TriggerEvent =
   | 'Paiement parrainage effectué'
   | 'Code partenaire utilisé'
   | 'Statut Fondateur activé'
+  | 'Offre augmentée'
+  | 'Offre réduite'
+  | 'Offre échangée'
 
 /**
  * Événement de bienvenue correspondant à l'offre souscrite.
@@ -48,6 +52,31 @@ export function subscriptionEventFor(plan: string): TriggerEvent {
       return 'Abonnement OsteoUpgrade'
     default:
       return 'Passage à Premium'
+  }
+}
+
+/**
+ * Événement correspondant à un changement d'offre en cours d'abonnement.
+ *
+ * Trois cas et non deux : `osteoflow` et `osteoupgrade` étant au même prix, en
+ * changer n'est ni une évolution ni une réduction. Un message unique devrait
+ * rester si vague qu'il n'annoncerait plus rien — or c'est précisément le
+ * moment où le client veut savoir ce qui s'ouvre et ce qui se ferme.
+ *
+ * Renvoie `null` quand les droits ne bougent pas (changement de périodicité,
+ * passage au tarif Fondateur) : il n'y a alors rien à annoncer, et la facture
+ * Stripe suffit.
+ */
+export function planChangeEventFor(ancien: Plan, nouveau: Plan): TriggerEvent | null {
+  switch (comparePlans(ancien, nouveau)) {
+    case 'gain':
+      return 'Offre augmentée'
+    case 'perte':
+      return 'Offre réduite'
+    case 'echange':
+      return 'Offre échangée'
+    default:
+      return null
   }
 }
 
