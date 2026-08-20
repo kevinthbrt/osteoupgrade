@@ -934,7 +934,7 @@ async function handlePaymentFailed(invoice: any) {
   // Trouver l'utilisateur par son stripe_subscription_id
   const { data: profile, error: profileError } = await supabaseAdmin
     .from('profiles')
-    .select('id, email, full_name')
+    .select('id, email, full_name, plan')
     .eq('stripe_subscription_id', subscriptionId)
     .single()
 
@@ -956,7 +956,10 @@ async function handlePaymentFailed(invoice: any) {
         contact_email: profile.email,
         full_name: profile.full_name,
         metadata: {
-          nom: 'Premium'
+          // L'offre réellement souscrite, et non « Premium » en dur : annoncer
+          // le mauvais nom d'offre dans un email de relance de paiement, c'est
+          // faire douter le client de la légitimité du message.
+          nom: planLabel(profile.plan)
         }
       })
     })
