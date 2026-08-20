@@ -88,19 +88,15 @@ export default function SettingsPage() {
     } finally { setSaving(false) }
   }
 
-  const handleUpgradeToPremium = async () => {
-    if (!user?.id || !email) { alert('Veuillez vous reconnecter.'); return }
-    setSaving(true)
-    try {
-      const response = await fetch('/api/stripe/checkout', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ planType: 'premium_monthly', userId: user.id, email }) })
-      const data = await response.json()
-      if (!response.ok) throw new Error(data?.error || 'Impossible de démarrer le paiement Stripe')
-      if (data?.url) window.location.href = data.url
-      else throw new Error('Lien Stripe manquant')
-    } catch (error: any) {
-      alert('Erreur lors de la redirection vers Stripe: ' + error.message)
-    } finally { setSaving(false) }
+  // Depuis le passage à trois offres, ce bouton ne peut plus souscrire quoi
+  // que ce soit : il envoyait `premium_monthly` en dur, sous un encart intitulé
+  // « Choisissez votre offre » qui en annonce trois. Le seul bouton disponible
+  // souscrivait donc Premium, y compris à qui voulait une offre à 29,99 €.
+  // On renvoie vers la grille, seul endroit où le choix est réellement fait.
+  const handleUpgradeToPremium = () => {
+    router.push('/settings/subscription')
   }
+
 
   const handleCancelSubscription = async () => {
     if (!confirm('Êtes-vous sûr de vouloir annuler votre abonnement ?')) return
@@ -288,9 +284,9 @@ export default function SettingsPage() {
                                 </div>
                               ))}
                             </div>
-                            <button onClick={handleUpgradeToPremium} disabled={saving}
-                              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-amber-500/90 backdrop-blur-sm border border-amber-400/30 text-white text-sm font-semibold hover:bg-amber-500 shadow-sm transition-all disabled:opacity-50">
-                              {saving ? 'Redirection...' : 'Passer à Premium'}
+                            <button onClick={handleUpgradeToPremium}
+                              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-amber-500/90 backdrop-blur-sm border border-amber-400/30 text-white text-sm font-semibold hover:bg-amber-500 shadow-sm transition-all">
+                              Comparer les trois offres
                             </button>
                           </div>
                         </div>
