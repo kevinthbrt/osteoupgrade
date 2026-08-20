@@ -918,6 +918,38 @@ async function handleSubscriptionDeleted(subscription: any) {
   } catch (err) {
     console.error('Error triggering expiry automation')
   }
+
+  // 🔔 Prévenir l'administrateur. Rien ne remontait jusqu'ici : le client
+  // recevait son email, l'équipe n'apprenait le départ qu'en consultant les
+  // statistiques. C'est pourtant le moment où un rattrapage est encore
+  // possible — et le portail collecte le motif, qui se perdait avec.
+  try {
+    const motifs: Record<string, string> = {
+      too_expensive: 'trop cher',
+      switched_service: 'parti chez un concurrent',
+      unused: 'ne s\'en sert pas',
+      customer_service: 'service client',
+      too_complex: 'trop compliqué',
+      low_quality: 'qualité insuffisante',
+      missing_features: 'fonctionnalités manquantes',
+      other: 'autre',
+    }
+    const retour = subscription?.cancellation_details?.feedback
+    const commentaire = subscription?.cancellation_details?.comment
+    const details = [
+      retour ? `motif : ${motifs[retour] ?? retour}` : null,
+      commentaire ? `« ${commentaire} »` : null,
+    ].filter(Boolean).join(' — ')
+
+    await notifyAdmin(
+      'other',
+      wasNeverConverted ? 'Essai gratuit abandonné' : `Résiliation — ${planLabel(profile.plan)}`,
+      `${profile.full_name || profile.email} (${profile.email}) a mis fin à son offre ${planLabel(profile.plan)}.` +
+        (details ? ` ${details}` : ' Aucun motif renseigné.')
+    )
+  } catch (err) {
+    console.error('Error notifying admin of cancellation')
+  }
 }
 
 // Paiement réussi (renouvellement)
@@ -1047,5 +1079,28 @@ async function handlePaymentFailed(invoice: any) {
     })
   } catch (err) {
     console.error('Error triggering payment failed automation')
+  }
+
+  // 🔔 Prévenir l'administrateur. Stripe relance tout seul, mais un impayé qui
+  // n'aboutit jamais finit en résiliation : le savoir tôt laisse le temps
+  // d'écrire au client avant d'en arriver là.
+  try {
+    const montant = typeof invoice.amount_due === 'number'
+      ? `${(invoice.amount_due / 100).toFixed(2).replace('.', ',')} €`
+      : 'montant inconnu'
+    const prochaine = invoice.next_payment_attempt
+      ? new Date(invoice.next_payment_attempt * 1000).toLocaleDateString('fr-FR')
+      : null
+
+    await notifyAdmin(
+      'other',
+      `Paiement échoué — ${planLabel(profile.plan)}`,
+      `${profile.full_name || profile.email} (${profile.email}) — ${montant} pour l'offre ${planLabel(profile.plan)}. ` +
+        `Tentative ${invoice.attempt_count ?? 1}.` +
+        (prochaine ? ` Prochaine tentative le ${prochaine}.` : ' Plus de tentative prévue : l\'abonnement finira résilié.') +
+        (invoice.hosted_invoice_url ? ` Facture : ${invoice.hosted_invoice_url}` : '')
+    )
+  } catch (err) {
+    console.error('Error notifying admin of payment failure')
   }
 }
