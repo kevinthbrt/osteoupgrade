@@ -700,9 +700,9 @@ function SubscriptionContent() {
                     {isTrialing && (
                       <>
                         {' '}
-                        <strong className="text-amber-700">
-                          Attention : changer d&apos;offre pendant l&apos;essai y met fin — le premier prélèvement
-                          a lieu tout de suite, au tarif de la nouvelle offre.
+                        <strong className="text-emerald-700">
+                          Votre essai continue : vous gardez vos jours gratuits restants, et le premier
+                          prélèvement aura lieu à la fin de l&apos;essai, au tarif de la nouvelle offre.
                         </strong>
                       </>
                     )}
@@ -735,7 +735,7 @@ function SubscriptionContent() {
             <p>✅ <strong>Sans engagement</strong> : {OFFERS.map((o) => `${o.name} ${formatAmount(o.monthlyAmount)}/mois`).join(' · ')}. Prélevé automatiquement chaque mois, annulable à tout moment.</p>
             <p>✅ <strong>Changement d&apos;offre à tout moment</strong> depuis « Gérer mon abonnement » — Stripe calcule le prorata automatiquement</p>
             {isTrialing && (
-              <p>⚠️ <strong>Pendant l&apos;essai</strong>, changer d&apos;offre met fin à la période gratuite et déclenche le premier prélèvement immédiatement. Pour profiter de vos jours restants, attendez la fin de l&apos;essai avant de changer.</p>
+              <p>✅ <strong>Pendant l&apos;essai</strong>, vous pouvez changer d&apos;offre sans perdre vos jours gratuits : l&apos;essai se poursuit jusqu&apos;à son terme, et c&apos;est le tarif de votre nouvelle offre qui s&apos;appliquera au premier prélèvement.</p>
             )}
             <p>✅ Renouvellement automatique (désactivable depuis votre compte)</p>
             <p>✅ Notification par email 7 jours avant chaque renouvellement</p>

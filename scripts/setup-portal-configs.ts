@@ -79,6 +79,9 @@ function parametres(founding: boolean): Stripe.BillingPortal.ConfigurationCreate
         // Le prorata est facturé immédiatement : c'est ce que les CGU (5.4)
         // annoncent, et ce qui rend l'upgrade effectif tout de suite.
         proration_behavior: 'always_invoice',
+        // Un changement d'offre pendant l'essai laisse courir les jours
+        // restants (cf. api/admin/stripe-portal-setup pour le détail).
+        trial_update_behavior: 'continue_trial',
         // `billing_cycle_anchor` n'est pas exposé par les types Stripe installés,
         // mais sa valeur par défaut est déjà 'unchanged' : la date de
         // renouvellement ne bouge pas lors d'un changement d'offre.
