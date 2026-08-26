@@ -20,6 +20,12 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Fichier audio manquant' }, { status: 400 })
     }
 
+    // Fin de la transcription précédente. En dictée continue, l'enregistrement
+    // est découpé en segments : donner à Whisper la phrase en cours lui permet
+    // de recoller une coupure et de garder le vocabulaire déjà employé.
+    const context = formData.get('prompt')
+    const prompt = typeof context === 'string' && context.trim() ? context.slice(-400) : undefined
+
     const apiKey = process.env.GROQ_API_KEY
     if (!apiKey) {
       return NextResponse.json({ error: 'Clé API Groq non configurée' }, { status: 500 })
@@ -31,6 +37,7 @@ export async function POST(req: Request) {
       model: 'whisper-large-v3-turbo',
       language: 'fr',
       response_format: 'text',
+      ...(prompt ? { prompt } : {}),
     })
 
     return NextResponse.json({ transcript: transcription })
