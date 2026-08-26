@@ -29,7 +29,13 @@ Règles absolues :
   reformuler. C'est ce qui permet au praticien de vérifier.
 - Dans le doute, n'extrais pas. Un signal faux coûte plus cher qu'un signal
   manquant : il oriente le raisonnement dans une mauvaise direction.
-- Aucun texte avant ou après le JSON.`
+- Aucun texte avant ou après le JSON.
+
+Quand une liste « déjà relevé » accompagne le texte, celui-ci est la suite de
+l'anamnèse et non son intégralité. Ne renvoie alors que ce que ce passage
+ajoute ou contredit : un signal déjà relevé et simplement répété n'a pas à
+figurer dans la réponse, un signal déjà relevé que ce passage contredit doit y
+figurer avec sa nouvelle valeur.`
 
 interface VocabularyEntry {
   id: string
@@ -47,9 +53,11 @@ export async function POST(req: Request) {
     const body = (await req.json()) as {
       text: string
       reason?: string
+      known?: { id: string; value: boolean }[]
       vocabulary: VocabularyEntry[]
     }
     const { text, reason, vocabulary } = body
+    const known = Array.isArray(body.known) ? body.known : []
 
     if (!text?.trim()) {
       return NextResponse.json({ signals: [] })
@@ -92,7 +100,11 @@ export async function POST(req: Request) {
         messages: [
           {
             role: 'user',
-            content: `${reason ? `Motif de consultation : ${reason}\n\n` : ''}Anamnèse :\n${text}`,
+            content: `${reason ? `Motif de consultation : ${reason}\n\n` : ''}${
+              known.length > 0
+                ? `Déjà relevé :\n${known.map((s) => `${s.id} = ${s.value}`).join('\n')}\n\nSuite de l'anamnèse :\n`
+                : 'Anamnèse :\n'
+            }${text}`,
           },
         ],
       }),
