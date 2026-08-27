@@ -5,6 +5,22 @@ export const dynamic = 'force-dynamic'
 // davantage que la profondeur. On reste largement sous le plafond.
 export const maxDuration = 60
 
+/**
+ * Modèle d'extraction. Relever des faits dans une liste fermée n'est pas une
+ * tâche de raisonnement — celui-ci est fait par le moteur déterministe côté
+ * MyOsteoFlow — et un modèle léger suffit. La variable permet de comparer deux
+ * modèles sur de vraies anamnèses sans redéployer de code.
+ */
+const MODEL = process.env.EXTRACTION_MODEL ?? 'claude-haiku-4-5'
+
+/**
+ * Le réglage d'effort n'existe que sur les modèles récents des familles Opus,
+ * Sonnet et Fable : l'envoyer à Haiku 4.5 fait échouer la requête.
+ */
+function supportsEffort(model: string): boolean {
+  return /^claude-(opus|sonnet|fable)-/.test(model)
+}
+
 const SYSTEM_PROMPT = `Tu es un extracteur de faits cliniques pour ostéopathes francophones.
 
 Tu reçois le texte d'une anamnèse dictée. Tu dois le traduire en signaux issus
@@ -29,7 +45,13 @@ Règles absolues :
   reformuler. C'est ce qui permet au praticien de vérifier.
 - Dans le doute, n'extrais pas. Un signal faux coûte plus cher qu'un signal
   manquant : il oriente le raisonnement dans une mauvaise direction.
-- Aucun texte avant ou après le JSON.`
+- Aucun texte avant ou après le JSON.
+
+Quand une liste « déjà relevé » accompagne le texte, celui-ci est la suite de
+l'anamnèse et non son intégralité. Ne renvoie alors que ce que ce passage
+ajoute ou contredit : un signal déjà relevé et simplement répété n'a pas à
+figurer dans la réponse, un signal déjà relevé que ce passage contredit doit y
+figurer avec sa nouvelle valeur.`
 
 interface VocabularyEntry {
   id: string
@@ -47,9 +69,11 @@ export async function POST(req: Request) {
     const body = (await req.json()) as {
       text: string
       reason?: string
+      known?: { id: string; value: boolean }[]
       vocabulary: VocabularyEntry[]
     }
     const { text, reason, vocabulary } = body
+    const known = Array.isArray(body.known) ? body.known : []
 
     if (!text?.trim()) {
       return NextResponse.json({ signals: [] })
@@ -80,11 +104,9 @@ export async function POST(req: Request) {
         'anthropic-beta': 'prompt-caching-2024-07-31,extended-cache-ttl-2025-04-11',
       },
       body: JSON.stringify({
-        model: 'claude-opus-5',
+        model: MODEL,
         max_tokens: 2000,
-        // Relever des faits n'appelle pas de raisonnement profond, et cet appel
-        // se fait pendant que le praticien est avec son patient.
-        output_config: { effort: 'low' },
+        ...(supportsEffort(MODEL) ? { output_config: { effort: 'low' } } : {}),
         system: [
           { type: 'text', text: SYSTEM_PROMPT },
           { type: 'text', text: vocabularyText, cache_control: { type: 'ephemeral', ttl: '1h' } },
@@ -92,7 +114,11 @@ export async function POST(req: Request) {
         messages: [
           {
             role: 'user',
-            content: `${reason ? `Motif de consultation : ${reason}\n\n` : ''}Anamnèse :\n${text}`,
+            content: `${reason ? `Motif de consultation : ${reason}\n\n` : ''}${
+              known.length > 0
+                ? `Déjà relevé :\n${known.map((s) => `${s.id} = ${s.value}`).join('\n')}\n\nSuite de l'anamnèse :\n`
+                : 'Anamnèse :\n'
+            }${text}`,
           },
         ],
       }),
