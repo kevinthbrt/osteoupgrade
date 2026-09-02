@@ -185,14 +185,10 @@ const optinSchema = z.object({
 const imageSchema = z.object({
   ...baseBlock,
   type: z.literal('image'),
-  imageUrl: z
-    .string()
-    .trim()
-    .min(1, 'Choisissez une image, ou collez son URL')
-    .max(1000)
-    .refine((url) => /^https:\/\//i.test(url), {
-      message: 'L’image doit être servie en https://',
-    }),
+  // Facultative : un bloc photo doit pouvoir être posé en amont, comme
+  // emplacement à remplir, sans bloquer l'enregistrement de toute la page.
+  // Un bloc sans image n'est simplement pas rendu.
+  imageUrl: imageUrlSchema,
   /** Texte alternatif : lu par les lecteurs d'écran, affiché si l'image tombe. */
   alt: z.string().trim().max(300).optional().or(z.literal('')),
   caption: optionalShort,

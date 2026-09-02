@@ -3,18 +3,29 @@
 -- Déclencheur : `funnel:examen-clinique-epaule` — posé par l'opt-in de la page
 -- /f/examen-clinique-epaule (cf. docs/FUNNELS.md).
 --
--- Cinq emails sur neuf jours. `wait_minutes` est un délai DEPUIS L'ÉTAPE
+-- Trois emails sur cinq jours. `wait_minutes` est un délai DEPUIS L'ÉTAPE
 -- PRÉCÉDENTE (depuis l'inscription pour la première), comme dans les séquences
 -- du cycle de vie existantes :
---   J+0   livraison de ce qui a été promis
---   J+2   un contenu utile, sans rien vendre
---   J+4   l'angle : pourquoi un test isolé ne suffit pas
---   J+6   l'offre, une seule fois, clairement
---   J+9   un dernier message, puis on s'arrête
+--   J+0   le lien pour créer l'accès gratuit
+--   J+2   une raison de revenir (contenu utile), et le lien à nouveau
+--   J+5   dernier rappel, puis on s'arrête
+--
+-- POURQUOI SI COURT. Le formulaire du funnel ne crée pas de compte : il capte
+-- un email. Or la formation épaule demande un accès gratuit. Le rôle de cette
+-- séquence est donc UNIQUEMENT d'amener à créer cet accès — pas de vendre.
+--
+-- Dès que le compte existe, les séquences d'inscription existantes prennent le
+-- relais (« Bienvenue - Inscription » puis « Relance Premium - Séquence
+-- onboarding », 4 emails). Prolonger celle-ci ferait arriver deux séquences de
+-- prospection en parallèle dans la même boîte mail.
 --
 -- `stop_on_subscribe = true` : quelqu'un qui s'abonne cesse aussitôt de
 -- recevoir la suite. Sans ça, un nouvel abonné lirait « essayez gratuitement »
 -- pour une offre qu'il vient de payer.
+--
+-- Attention : ce drapeau ne coupe QUE sur une souscription payante. Créer un
+-- compte gratuit n'annule rien — d'où le format court, pour que le
+-- recouvrement avec l'onboarding reste d'un ou deux messages au pire.
 --
 -- La séquence est créée INACTIVE. Elle ne partira qu'une fois relue et activée
 -- dans Administration → Automatisations.
@@ -48,76 +59,47 @@ $fn$ LANGUAGE sql;
 
 INSERT INTO public.mail_templates (name, subject, description, html, text) VALUES
 (
-  'funnel-epaule-1-livraison',
-  'Votre formation épaule est prête',
-  'Funnel épaule — J+0, livraison',
+  'funnel-epaule-1-acces',
+  'Votre formation épaule vous attend',
+  'Funnel épaule — J+0, lien de création d''accès',
   pg_temp.gabarit_epaule(
     '<p>Bonjour {{first_name}},</p>'
-    || '<p>Votre accès à <strong>« Examen clinique de l''épaule basé sur les preuves »</strong> est ouvert : 10 chapitres, 21 leçons.</p>'
-    || '<p style="margin:28px 0;"><a href="https://osteo-upgrade.fr/elearning" style="background:#2563eb;color:#ffffff;text-decoration:none;padding:14px 26px;border-radius:10px;font-weight:600;display:inline-block;">Ouvrir la formation</a></p>'
-    || '<p>Un conseil : ne commencez pas par les tests orthopédiques. Le chapitre sur le triage est celui qui change le plus de choses en consultation — c''est là que se joue ce qui ne relève pas de vous.</p>'
-    || '<p>Vous avancez à votre rythme, l''accès ne se ferme pas.</p>'
+    || '<p>Votre formation <strong>« Examen clinique de l''épaule basé sur les preuves »</strong> est prête : 10 chapitres, 21 leçons.</p>'
+    || '<p>Il vous reste une étape : créer votre accès gratuit. Trente secondes, aucune carte bancaire.</p>'
+    || '<p style="margin:28px 0;"><a href="https://osteo-upgrade.fr/auth?funnel=examen-clinique-epaule" style="background:#2563eb;color:#ffffff;text-decoration:none;padding:14px 26px;border-radius:10px;font-weight:600;display:inline-block;">Créer mon accès et ouvrir la formation</a></p>'
+    || '<p>Un conseil pour commencer : ne sautez pas au chapitre des tests orthopédiques. Le triage est celui qui change le plus de choses en consultation — c''est là que se joue ce qui ne relève pas de vous.</p>'
     || '<p style="margin-top:28px;">Bonne lecture,<br>Kevin</p>'
   ),
-  E'Bonjour {{first_name}},\n\nVotre accès à « Examen clinique de l\'épaule basé sur les preuves » est ouvert : 10 chapitres, 21 leçons.\n\nOuvrir la formation : https://osteo-upgrade.fr/elearning\n\nUn conseil : ne commencez pas par les tests orthopédiques. Le chapitre sur le triage est celui qui change le plus de choses en consultation.\n\nVous avancez à votre rythme, l\'accès ne se ferme pas.\n\nBonne lecture,\nKevin'
+  E'Bonjour {{first_name}},\n\nVotre formation « Examen clinique de l\'épaule basé sur les preuves » est prête : 10 chapitres, 21 leçons.\n\nIl vous reste une étape : créer votre accès gratuit. Trente secondes, aucune carte bancaire.\n\nhttps://osteo-upgrade.fr/auth?funnel=examen-clinique-epaule\n\nUn conseil : ne sautez pas au chapitre des tests orthopédiques. Le triage est celui qui change le plus de choses en consultation.\n\nBonne lecture,\nKevin'
 ),
 (
   'funnel-epaule-2-neer',
   'Le test de Neer, et ce qu''il ne dit pas',
-  'Funnel épaule — J+2, contenu utile',
+  'Funnel épaule — J+2, contenu utile + rappel du lien',
   pg_temp.gabarit_epaule(
     '<p>Bonjour {{first_name}},</p>'
-    || '<p>Le Neer est sans doute le test d''épaule le plus pratiqué. Il est aussi l''un de ceux dont on tire le plus de conclusions abusives.</p>'
-    || '<p>Sa sensibilité est correcte : un Neer négatif rend un conflit sous-acromial moins probable. Sa spécificité, en revanche, est faible — un Neer positif ne permet pas d''affirmer grand-chose. Beaucoup de choses le rendent positif.</p>'
-    || '<p>Concrètement : ce test aide à <em>écarter</em>, pas à <em>affirmer</em>. Employé comme argument de confirmation, il oriente vers un diagnostic que rien ne soutient vraiment.</p>'
-    || '<p>Le chapitre « Tests orthopédiques » de votre formation reprend ça test par test, avec les valeurs et l''usage recommandé.</p>'
-    || '<p style="margin:28px 0;"><a href="https://osteo-upgrade.fr/elearning" style="background:#2563eb;color:#ffffff;text-decoration:none;padding:14px 26px;border-radius:10px;font-weight:600;display:inline-block;">Reprendre la formation</a></p>'
+    || '<p>Le Neer est sans doute le test d''épaule le plus pratiqué. C''est aussi l''un de ceux dont on tire le plus de conclusions abusives.</p>'
+    || '<p>Sa sensibilité est correcte : un Neer négatif rend un conflit sous-acromial moins probable. Sa spécificité, elle, est faible — un Neer positif ne permet pas d''affirmer grand-chose.</p>'
+    || '<p><strong>Il aide à écarter, pas à affirmer.</strong> Employé comme argument de confirmation, il oriente vers un diagnostic que rien ne soutient vraiment.</p>'
+    || '<p>Le chapitre « Tests orthopédiques » reprend ça test par test, avec les valeurs et l''usage en cluster.</p>'
+    || '<p style="margin:28px 0;"><a href="https://osteo-upgrade.fr/auth?funnel=examen-clinique-epaule" style="background:#2563eb;color:#ffffff;text-decoration:none;padding:14px 26px;border-radius:10px;font-weight:600;display:inline-block;">Ouvrir la formation</a></p>'
     || '<p style="margin-top:28px;">Kevin</p>'
   ),
-  E'Bonjour {{first_name}},\n\nLe Neer est sans doute le test d\'épaule le plus pratiqué, et l\'un de ceux dont on tire le plus de conclusions abusives.\n\nSa sensibilité est correcte : un Neer négatif rend un conflit sous-acromial moins probable. Sa spécificité est faible — un Neer positif ne permet pas d\'affirmer grand-chose.\n\nCe test aide à écarter, pas à affirmer.\n\nLe chapitre « Tests orthopédiques » reprend ça test par test.\n\nReprendre la formation : https://osteo-upgrade.fr/elearning\n\nKevin'
+  E'Bonjour {{first_name}},\n\nLe Neer est le test d\'épaule le plus pratiqué, et l\'un de ceux dont on tire le plus de conclusions abusives.\n\nSa sensibilité est correcte : un Neer négatif rend un conflit sous-acromial moins probable. Sa spécificité est faible — un Neer positif ne permet pas d\'affirmer grand-chose.\n\nIl aide à écarter, pas à affirmer.\n\nOuvrir la formation : https://osteo-upgrade.fr/auth?funnel=examen-clinique-epaule\n\nKevin'
 ),
 (
-  'funnel-epaule-3-cluster',
-  'Pourquoi un test isolé ne suffit jamais',
-  'Funnel épaule — J+4, l''angle',
-  pg_temp.gabarit_epaule(
-    '<p>Bonjour {{first_name}},</p>'
-    || '<p>Un test isolé déplace peu la probabilité d''une hypothèse. Deux ou trois tests bien choisis, combinés à une anamnèse sérieuse, la déplacent assez pour décider.</p>'
-    || '<p>C''est tout l''intérêt du raisonnement en cluster : on ne cherche pas le test parfait, on cherche à faire converger plusieurs signaux imparfaits.</p>'
-    || '<p>Ça change la façon de mener une consultation. On arrête d''enchaîner les tests en espérant qu''un seul tranche, et on construit un raisonnement qui tient debout — y compris devant un patient qui demande pourquoi.</p>'
-    || '<p>C''est la logique que suit toute la formation, du triage à la conclusion.</p>'
-    || '<p style="margin-top:28px;">Kevin</p>'
-  ),
-  E'Bonjour {{first_name}},\n\nUn test isolé déplace peu la probabilité d\'une hypothèse. Deux ou trois tests bien choisis, combinés à une anamnèse sérieuse, la déplacent assez pour décider.\n\nC\'est l\'intérêt du raisonnement en cluster : faire converger plusieurs signaux imparfaits.\n\nC\'est la logique que suit toute la formation, du triage à la conclusion.\n\nKevin'
-),
-(
-  'funnel-epaule-4-offre',
-  'Ce qu''il y a après l''épaule',
-  'Funnel épaule — J+6, l''offre',
-  pg_temp.gabarit_epaule(
-    '<p>Bonjour {{first_name}},</p>'
-    || '<p>La formation épaule reste à vous, gratuitement. Ce message est là pour vous dire ce qu''il y a autour, une fois, sans y revenir.</p>'
-    || '<p>OsteoUpgrade, c''est six formations complètes (épaule, cheville, HVLA, mobilisations, éducation à la douleur, biostatistiques), une bibliothèque de tests orthopédiques avec leurs valeurs et leurs vidéos, une revue de littérature enrichie chaque mois, et des flashcards pour que tout ça reste.</p>'
-    || '<p><strong>29,99 € par mois, sans engagement, avec 7 jours d''essai gratuit.</strong> Votre carte est demandée à l''inscription mais rien n''est prélevé pendant l''essai : si vous résiliez avant la fin, vous ne payez rien.</p>'
-    || '<p style="margin:28px 0;"><a href="https://osteo-upgrade.fr/f/examen-clinique-epaule" style="background:#2563eb;color:#ffffff;text-decoration:none;padding:14px 26px;border-radius:10px;font-weight:600;display:inline-block;">Voir ce que ça contient</a></p>'
-    || '<p>Et si ça ne vous intéresse pas, gardez la formation épaule : elle ne se ferme pas.</p>'
-    || '<p style="margin-top:28px;">Kevin</p>'
-  ),
-  E'Bonjour {{first_name}},\n\nLa formation épaule reste à vous, gratuitement. Ce message est là pour vous dire ce qu\'il y a autour, une fois.\n\nOsteoUpgrade : six formations complètes, une bibliothèque de tests orthopédiques avec leurs valeurs et leurs vidéos, une revue de littérature enrichie chaque mois, des flashcards.\n\n29,99 € par mois, sans engagement, avec 7 jours d\'essai gratuit. Rien n\'est prélevé pendant l\'essai.\n\nVoir ce que ça contient : https://osteo-upgrade.fr/f/examen-clinique-epaule\n\nEt si ça ne vous intéresse pas, gardez la formation épaule : elle ne se ferme pas.\n\nKevin'
-),
-(
-  'funnel-epaule-5-cloture',
+  'funnel-epaule-3-rappel',
   'Je vous laisse tranquille',
-  'Funnel épaule — J+9, dernier message',
+  'Funnel épaule — J+5, dernier rappel',
   pg_temp.gabarit_epaule(
     '<p>Bonjour {{first_name}},</p>'
-    || '<p>Dernier message de cette série — ensuite je vous laisse à votre pratique.</p>'
-    || '<p>Si la formation épaule vous a été utile, le reste d''OsteoUpgrade suit la même logique : ce que dit la littérature, ce qu''on peut en conclure, et ce qu''on en fait en consultation.</p>'
-    || '<p style="margin:28px 0;"><a href="https://osteo-upgrade.fr/f/examen-clinique-epaule" style="background:#2563eb;color:#ffffff;text-decoration:none;padding:14px 26px;border-radius:10px;font-weight:600;display:inline-block;">Essayer 7 jours</a></p>'
-    || '<p>Et si le moment n''est pas le bon, ce n''est pas un problème : votre accès à la formation épaule reste ouvert, sans limite de temps.</p>'
+    || '<p>Dernier message de ma part à ce sujet — ensuite je vous laisse à votre pratique.</p>'
+    || '<p>Votre formation épaule reste disponible, sans limite de temps. Si vous n''avez pas encore créé votre accès, c''est ici :</p>'
+    || '<p style="margin:28px 0;"><a href="https://osteo-upgrade.fr/auth?funnel=examen-clinique-epaule" style="background:#2563eb;color:#ffffff;text-decoration:none;padding:14px 26px;border-radius:10px;font-weight:600;display:inline-block;">Créer mon accès gratuit</a></p>'
+    || '<p>Et si le moment n''est pas le bon, ce n''est pas un problème : rien n''expire.</p>'
     || '<p style="margin-top:28px;">Merci de m''avoir lu,<br>Kevin</p>'
   ),
-  E'Bonjour {{first_name}},\n\nDernier message de cette série — ensuite je vous laisse à votre pratique.\n\nSi la formation épaule vous a été utile, le reste d\'OsteoUpgrade suit la même logique : ce que dit la littérature, ce qu\'on peut en conclure, et ce qu\'on en fait en consultation.\n\nEssayer 7 jours : https://osteo-upgrade.fr/f/examen-clinique-epaule\n\nEt si le moment n\'est pas le bon, votre accès à la formation épaule reste ouvert, sans limite de temps.\n\nMerci de m\'avoir lu,\nKevin'
+  E'Bonjour {{first_name}},\n\nDernier message de ma part à ce sujet — ensuite je vous laisse à votre pratique.\n\nVotre formation épaule reste disponible, sans limite de temps. Si vous n\'avez pas encore créé votre accès :\n\nhttps://osteo-upgrade.fr/auth?funnel=examen-clinique-epaule\n\nEt si le moment n\'est pas le bon, rien n\'expire.\n\nMerci de m\'avoir lu,\nKevin'
 );
 
 -- ── Séquence ───────────────────────────────────────────────────────────────
@@ -147,11 +129,9 @@ INSERT INTO public.mail_automation_steps (automation_id, step_order, wait_minute
 SELECT a.id, e.step_order, e.wait_minutes, e.subject, e.template_slug
 FROM public.mail_automations a
 CROSS JOIN (VALUES
-  (1,    0, 'Votre formation épaule est prête',          'funnel-epaule-1-livraison'),
+  (1,    0, 'Votre formation épaule vous attend',        'funnel-epaule-1-acces'),
   (2, 2880, 'Le test de Neer, et ce qu''il ne dit pas',   'funnel-epaule-2-neer'),
-  (3, 2880, 'Pourquoi un test isolé ne suffit jamais',    'funnel-epaule-3-cluster'),
-  (4, 2880, 'Ce qu''il y a après l''épaule',              'funnel-epaule-4-offre'),
-  (5, 4320, 'Je vous laisse tranquille',                  'funnel-epaule-5-cloture')
+  (3, 4320, 'Je vous laisse tranquille',                  'funnel-epaule-3-rappel')
 ) AS e(step_order, wait_minutes, subject, template_slug)
 WHERE a.trigger_event = 'funnel:examen-clinique-epaule';
 

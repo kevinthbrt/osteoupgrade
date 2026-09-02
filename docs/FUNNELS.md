@@ -147,6 +147,24 @@ session :
 Si le funnel n'a pas d'offre configurée mais contient un bloc `optin`, les CTA
 « souscription » basculent automatiquement vers le formulaire email.
 
+## Ce que l'opt-in fait — et ne fait pas
+
+Le formulaire crée un **contact de diffusion** (`mail_contacts`) et un **lead**
+(`funnel_leads`). Il ne crée **pas** de compte : ni `auth.users`, ni `profiles`.
+
+Conséquence à ne pas manquer en rédigeant une page : un contenu réservé aux
+comptes (même gratuits) n'est pas accessible juste après l'opt-in. La promesse
+de la page doit donc être « vous recevez le lien pour créer votre accès », pas
+« accès immédiat ». Le premier email de la séquence porte ce lien, vers
+`/auth?funnel=<slug>`.
+
+Corollaire sur les séquences : `stop_on_subscribe` ne coupe que sur une
+souscription **payante**. Créer un compte gratuit n'annule rien, et les
+séquences d'inscription existantes (« Bienvenue », « Relance Premium ») se
+déclenchent alors en plus. Gardez donc une séquence de funnel courte, dont le
+seul rôle est d'amener à la création du compte, et laissez l'onboarding
+existant faire la suite.
+
 ## Statuts et aperçu
 
 Seul un funnel `published` est servi aux visiteurs. Un `draft` ou un `archived`

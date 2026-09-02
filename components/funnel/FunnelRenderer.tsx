@@ -588,6 +588,9 @@ function BlockView({
       )
 
     case 'image': {
+      // Emplacement encore vide : on ne rend rien plutôt qu'un cadre creux.
+      if (!block.imageUrl) return null
+
       // `next/image` non contraint en dimensions : on laisse la hauteur suivre
       // le ratio réel plutôt que d'imposer un cadre qui rognerait la photo.
       const photo = (
