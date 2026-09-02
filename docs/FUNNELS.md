@@ -29,6 +29,11 @@ couche « pages » — c'est ce que fait ce module.
 `hero`, `video`, `benefits`, `testimonials`, `curriculum`, `image`, `pricing`,
 `guarantee`, `faq`, `cta`, `optin`, `text`.
 
+L'accroche et le rappel final acceptent un fond **clair** (défaut) ou
+**sombre**, au choix dans l'éditeur. Le clair est le défaut parce qu'un aplat
+ardoise en haut de page écrase les couleurs de marque et referme la page dès le
+premier écran ; le sombre reste utile pour ponctuer une fin de page.
+
 Le bloc `image` (« Photo ») envoie le fichier sur **Vercel Blob** via
 `/api/funnels/image-upload` — même schéma que les envois existants du projet :
 réservé aux admins, type et taille vérifiés, SVG exclu (une image servie sur une

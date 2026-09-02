@@ -16,6 +16,17 @@ import { z } from 'zod'
 
 // ── Blocs ──────────────────────────────────────────────────────────────────
 
+/**
+ * Traitement visuel d'une section pleine largeur.
+ *
+ * L'accroche et le rappel final sont les deux blocs qui occupent tout l'écran :
+ * ce sont eux qui donnent le ton de la page. `clair` par défaut — un aplat
+ * sombre en haut de page écrase les couleurs de marque et referme la page dès
+ * le premier écran.
+ */
+const variantSchema = z.enum(['clair', 'sombre'])
+export type BlockVariant = z.infer<typeof variantSchema>
+
 /** Cible d'un bouton d'appel à l'action. */
 const ctaTargetSchema = z.enum([
   'checkout', // souscription à l'offre du funnel
@@ -70,6 +81,7 @@ const heroSchema = z.object({
   ctaTarget: ctaTargetSchema.default('checkout'),
   ctaUrl: ctaUrlSchema,
   imageUrl: imageUrlSchema,
+  variant: variantSchema.default('clair'),
 })
 
 const videoSchema = z.object({
@@ -168,6 +180,7 @@ const ctaSchema = z.object({
   ctaLabel: shortText,
   ctaTarget: ctaTargetSchema.default('checkout'),
   ctaUrl: ctaUrlSchema,
+  variant: variantSchema.default('clair'),
 })
 
 const optinSchema = z.object({

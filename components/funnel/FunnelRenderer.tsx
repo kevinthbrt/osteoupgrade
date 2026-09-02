@@ -282,14 +282,37 @@ function BlockView({
   fallbackToOptin,
 }: BlockViewProps) {
   switch (block.type) {
-    case 'hero':
+    case 'hero': {
+      const sombre = block.variant === 'sombre'
       return (
-        <section className="relative overflow-hidden bg-slate-950 px-5 py-20 text-white sm:py-28">
-          <div className="absolute left-1/4 top-10 h-[420px] w-[420px] rounded-full bg-[#4169F6]/[0.14] blur-[130px]" />
-          <div className="absolute bottom-0 right-1/4 h-[360px] w-[360px] rounded-full bg-violet-500/[0.10] blur-[110px]" />
+        <section
+          className={`relative overflow-hidden px-5 py-20 sm:py-28 ${
+            sombre
+              ? 'bg-slate-950 text-white'
+              : 'bg-gradient-to-b from-sky-50 via-white to-white text-slate-900'
+          }`}
+        >
+          {/* Halos de marque : très présents sur fond sombre, seulement suggérés
+              sur fond clair — au-delà, ils grisent le blanc au lieu de l'animer. */}
+          <div
+            className={`absolute left-1/4 top-10 h-[420px] w-[420px] rounded-full blur-[130px] ${
+              sombre ? 'bg-[#4169F6]/[0.14]' : 'bg-[#4169F6]/[0.10]'
+            }`}
+          />
+          <div
+            className={`absolute bottom-0 right-1/4 h-[360px] w-[360px] rounded-full blur-[110px] ${
+              sombre ? 'bg-violet-500/[0.10]' : 'bg-violet-400/[0.09]'
+            }`}
+          />
           <div className="relative mx-auto max-w-3xl text-center">
             {block.eyebrow && (
-              <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs font-semibold text-slate-200 backdrop-blur-sm">
+              <div
+                className={`mb-6 inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold backdrop-blur-sm ${
+                  sombre
+                    ? 'border border-white/10 bg-white/5 text-slate-200'
+                    : 'border border-blue-100 bg-white/80 text-blue-700 shadow-sm'
+                }`}
+              >
                 <Sparkles className="h-3.5 w-3.5" />
                 {block.eyebrow}
               </div>
@@ -298,7 +321,11 @@ function BlockView({
               {block.title}
             </h1>
             {block.subtitle && (
-              <div className="mt-5 space-y-3 text-lg leading-relaxed text-slate-300">
+              <div
+                className={`mt-5 space-y-3 text-lg leading-relaxed ${
+                  sombre ? 'text-slate-300' : 'text-slate-600'
+                }`}
+              >
                 <Paragraphs text={block.subtitle} />
               </div>
             )}
@@ -319,7 +346,11 @@ function BlockView({
               </div>
             )}
             {block.imageUrl && (
-              <div className="mt-12 overflow-hidden rounded-2xl border border-white/10 shadow-2xl">
+              <div
+                className={`mt-12 overflow-hidden rounded-2xl shadow-2xl ${
+                  sombre ? 'border border-white/10' : 'border border-slate-200/80 shadow-blue-500/10'
+                }`}
+              >
                 <Image
                   src={block.imageUrl}
                   alt=""
@@ -334,6 +365,7 @@ function BlockView({
           </div>
         </section>
       )
+    }
 
     case 'video': {
       const src = safeEmbedUrl(block.embedUrl)
@@ -537,15 +569,26 @@ function BlockView({
         </Section>
       )
 
-    case 'cta':
+    case 'cta': {
+      const sombreCta = block.variant === 'sombre'
       return (
-        <Section className="bg-slate-950 text-white">
+        <Section
+          className={
+            sombreCta
+              ? 'bg-slate-950 text-white'
+              : 'bg-gradient-to-b from-white to-sky-50 text-slate-900'
+          }
+        >
           <div className="text-center">
             {block.title && (
               <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">{block.title}</h2>
             )}
             {block.text && (
-              <div className="mt-4 space-y-3 text-lg text-slate-300">
+              <div
+                className={`mt-4 space-y-3 text-lg ${
+                  sombreCta ? 'text-slate-300' : 'text-slate-600'
+                }`}
+              >
                 <Paragraphs text={block.text} />
               </div>
             )}
@@ -566,6 +609,7 @@ function BlockView({
           </div>
         </Section>
       )
+    }
 
     case 'optin':
       return (

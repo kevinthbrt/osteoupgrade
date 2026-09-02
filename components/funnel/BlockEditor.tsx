@@ -329,6 +329,23 @@ function AmountField({
   )
 }
 
+/** Traitement visuel des deux sections pleine largeur. */
+function VariantField({ block, set }: { block: any; set: (patch: any) => void }) {
+  return (
+    <div>
+      <Label>Fond de la section</Label>
+      <select
+        value={block.variant ?? 'clair'}
+        onChange={(e) => set({ variant: e.target.value })}
+        className={inputClass}
+      >
+        <option value="clair">Clair — dégradé bleu très pâle vers blanc</option>
+        <option value="sombre">Sombre — aplat ardoise, texte blanc</option>
+      </select>
+    </div>
+  )
+}
+
 const CTA_TARGETS = [
   { value: 'checkout', label: 'Souscription (offre du funnel)' },
   { value: 'optin', label: 'Aller au formulaire email' },
@@ -406,6 +423,7 @@ export default function BlockEditor({ block, index, total, onChange, onMove, onR
             <TextArea label="Sous-titre" value={block.subtitle} onChange={(v) => set({ subtitle: v })} />
             <Field label="Libellé du bouton" value={block.ctaLabel} onChange={(v) => set({ ctaLabel: v })} />
             <CtaFields block={block} set={set} />
+            <VariantField block={block} set={set} />
             <ImageField
               label="Image d’illustration (facultative)"
               value={block.imageUrl}
@@ -596,6 +614,7 @@ export default function BlockEditor({ block, index, total, onChange, onMove, onR
             <TextArea label="Texte" value={block.text} onChange={(v) => set({ text: v })} />
             <Field label="Libellé du bouton" value={block.ctaLabel} onChange={(v) => set({ ctaLabel: v })} />
             <CtaFields block={block} set={set} />
+            <VariantField block={block} set={set} />
           </>
         )}
 
