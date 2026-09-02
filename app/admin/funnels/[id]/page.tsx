@@ -187,6 +187,9 @@ export default function FunnelEditorPage({ params }: { params: { id: string } })
           name: `Funnel — ${form.name}`,
           description: `Séquence déclenchée par les inscriptions sur /f/${form.slug}`,
           trigger_event: funnelTriggerEvent(form.slug),
+          // Un funnel s'adresse à des prospects : la séquence doit s'arrêter
+          // dès que la personne souscrit.
+          stop_on_subscribe: true,
           steps: [],
         }),
       })

@@ -88,7 +88,7 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json()
-    const { name, description, trigger_event, steps } = body
+    const { name, description, trigger_event, steps, stop_on_subscribe } = body
 
     if (!name || !trigger_event) {
       return NextResponse.json(
@@ -104,7 +104,13 @@ export async function POST(request: Request) {
         name,
         description,
         trigger_event,
-        active: false
+        active: false,
+        // Séquences de prospection : à couper dès que la personne souscrit.
+        // Sans ça, un nouvel abonné continue de recevoir « il vous reste
+        // 3 jours pour profiter de l'offre » — pour une offre qu'il a déjà
+        // payée. Défaut inchangé (false) pour les appelants qui ne le passent
+        // pas.
+        stop_on_subscribe: stop_on_subscribe === true
       })
       .select()
       .single()

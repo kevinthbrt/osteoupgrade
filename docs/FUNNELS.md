@@ -79,10 +79,34 @@ Il n'y a qu'une seule liste de diffusion : les règles existantes
 (désabonnement, promotion d'un statut « lead », `stop_on_subscribe`)
 s'appliquent sans traitement particulier.
 
-> **Limite héritée** : l'application ne sait pas encore éditer les *étapes*
-> d'une séquence. Le bouton crée la séquence et son déclencheur ; les emails
-> qu'elle envoie s'ajoutent en base (migration SQL), comme pour toutes les
-> séquences du cycle de vie existantes.
+La séquence est créée avec `stop_on_subscribe = true` : un prospect qui
+souscrit cesse aussitôt de recevoir les relances. Sans ça, un nouvel abonné
+continuerait de lire « il vous reste 3 jours pour profiter de l'offre » — pour
+une offre qu'il vient de payer.
+
+### Écrire les emails d'une séquence
+
+L'application ne sait pas éditer les *étapes* d'une séquence : le bouton crée
+la séquence et son déclencheur, les emails s'ajoutent en base, comme pour
+toutes les séquences du cycle de vie existantes.
+
+Une étape (`mail_automation_steps`) porte :
+
+| Colonne | Rôle |
+|---|---|
+| `step_order` | ordre d'envoi |
+| `wait_minutes` | délai **depuis l'étape précédente** (depuis l'inscription pour la première) |
+| `subject` | objet, variables comprises |
+| `template_slug` | `mail_templates.name` (ou son UUID). Vide → le corps vient de `payload.html` |
+| `payload` | contenu direct et/ou variables supplémentaires |
+
+Variables disponibles, par priorité croissante : le contact
+(`{{first_name}}`, `{{last_name}}`, `{{email}}`, `{{full_name}}`), puis le
+`payload` de l'étape, puis les metadata de l'inscription.
+
+Pour les funnels, ces metadata sont renseignées à l'opt-in — `{{funnel_slug}}`
+et les UTM (`{{utm_campaign}}`, `{{utm_source}}`…) sont donc utilisables
+directement dans le sujet comme dans le corps.
 
 ## Attribution des campagnes
 
