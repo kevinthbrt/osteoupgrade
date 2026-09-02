@@ -188,6 +188,24 @@ vérifiée côté serveur) et affiche un bandeau rappelant que la page n'est pas
 publique. Sans ce contrôle, `?preview=1` suffirait à lire n'importe quel
 brouillon : une offre en préparation, ses prix et sa date de lancement.
 
+## Statistiques
+
+Vues, clics CTA, opt-ins et départs au paiement sont écrits dans
+`funnel_events` par `/api/funnels/track` et `/api/funnels/lead`.
+
+Deux points à connaître :
+
+- **Un brouillon n'enregistre rien.** Les deux routes refusent un funnel qui
+  n'est pas `published`. Les visites d'aperçu ne comptent donc pas, et les
+  compteurs restent à zéro jusqu'à la publication. C'est voulu : une page en
+  préparation ne doit pas polluer les chiffres de la campagne.
+- **L'agrégation se fait en SQL**, par la fonction `funnel_stats(uuid[])`.
+  Compter les lignes ramenées côté application les aurait plafonnées à la
+  limite de lignes de PostgREST, sans erreur pour le signaler : les compteurs
+  se seraient figés en silence une fois la campagne lancée. La fonction n'est
+  exécutable que par `service_role`, la fréquentation d'une campagne n'ayant
+  pas à être lisible depuis le navigateur.
+
 ## Sécurité
 
 - Les trois tables n'ont **aucune** politique `anon` : rien n'est lisible depuis

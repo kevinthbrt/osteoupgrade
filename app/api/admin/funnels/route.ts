@@ -23,26 +23,24 @@ export async function GET() {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
-  // Compteurs agrégés en une passe plutôt qu'une requête par funnel : la liste
-  // en afficherait autant qu'il y a de campagnes.
+  // Agrégation faite en SQL (`funnel_stats`), et non en comptant des lignes
+  // ramenées ici : PostgREST plafonne le nombre de lignes par requête, donc
+  // au-delà de ce plafond les compteurs se seraient figés silencieusement.
   const ids = (funnels ?? []).map((f) => f.id)
   const counts = new Map<string, { leads: number; views: number }>()
 
   if (ids.length > 0) {
-    const [{ data: leads }, { data: events }] = await Promise.all([
-      supabaseAdmin.from('funnel_leads').select('funnel_id').in('funnel_id', ids),
-      supabaseAdmin.from('funnel_events').select('funnel_id').in('funnel_id', ids).eq('type', 'view'),
-    ])
+    const { data: stats, error: statsError } = await supabaseAdmin.rpc('funnel_stats', {
+      p_funnel_ids: ids,
+    })
 
-    for (const row of leads ?? []) {
-      const entry = counts.get(row.funnel_id) ?? { leads: 0, views: 0 }
-      entry.leads += 1
-      counts.set(row.funnel_id, entry)
+    if (statsError) {
+      // Les compteurs ne valent pas de faire échouer la liste des funnels.
+      console.error('Erreur de lecture des statistiques:', statsError.message)
     }
-    for (const row of events ?? []) {
-      const entry = counts.get(row.funnel_id) ?? { leads: 0, views: 0 }
-      entry.views += 1
-      counts.set(row.funnel_id, entry)
+
+    for (const row of stats ?? []) {
+      counts.set(row.funnel_id, { leads: Number(row.leads), views: Number(row.views) })
     }
   }
 

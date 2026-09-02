@@ -23,19 +23,25 @@ export async function GET(_request: Request, { params }: { params: { id: string 
     return NextResponse.json({ error: 'Funnel introuvable' }, { status: 404 })
   }
 
-  const [{ data: leads }, { data: events }] = await Promise.all([
+  // Les 50 derniers leads pour la liste, mais les compteurs agrégés en SQL :
+  // les compter à partir des lignes ramenées les aurait plafonnés à la limite
+  // de lignes de PostgREST, sans erreur pour le signaler.
+  const [{ data: leads }, { data: statsRows }] = await Promise.all([
     supabaseAdmin
       .from('funnel_leads')
       .select('id, email, full_name, utm, created_at, deadline_at')
       .eq('funnel_id', params.id)
       .order('created_at', { ascending: false })
       .limit(50),
-    supabaseAdmin.from('funnel_events').select('type').eq('funnel_id', params.id),
+    supabaseAdmin.rpc('funnel_stats', { p_funnel_ids: [params.id] }),
   ])
 
-  const stats = { view: 0, cta_click: 0, optin: 0, checkout_started: 0 }
-  for (const event of events ?? []) {
-    if (event.type in stats) stats[event.type as keyof typeof stats] += 1
+  const row = statsRows?.[0]
+  const stats = {
+    view: Number(row?.views ?? 0),
+    cta_click: Number(row?.cta_clicks ?? 0),
+    optin: Number(row?.optins ?? 0),
+    checkout_started: Number(row?.checkouts ?? 0),
   }
 
   return NextResponse.json({ funnel, leads: leads ?? [], stats })
