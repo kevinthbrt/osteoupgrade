@@ -5,7 +5,7 @@ import { supabaseAdmin } from '@/lib/supabase-server'
 import { verifyAdmin } from '@/lib/api-guards'
 import { describeValidationError, funnelInputSchema } from '@/lib/funnels'
 
-/** GET — liste des funnels, avec le compte de leads et de vues. */
+/** GET : liste des funnels, avec le compte de leads et de vues. */
 export async function GET() {
   if (!(await verifyAdmin())) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
@@ -55,7 +55,7 @@ export async function GET() {
   })
 }
 
-/** POST — création d'un funnel. */
+/** POST : création d'un funnel. */
 export async function POST(request: Request) {
   const supabase = createRouteHandlerClient({ cookies })
   const {

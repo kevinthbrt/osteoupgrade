@@ -1,16 +1,16 @@
 -- Funnels : pages de vente éditables depuis l'admin
 --
 -- Trois tables :
---   * `funnels`       — la page elle-même. Le contenu est un tableau de blocs
+--   * `funnels` : la page elle-même. Le contenu est un tableau de blocs
 --                       JSONB (`content`), ce qui permet d'ajouter un type de
 --                       bloc sans migration. La forme des blocs est validée
 --                       côté applicatif (`lib/funnels.ts`), jamais ici : une
 --                       contrainte SQL sur du JSON libre se serait figée au
 --                       premier bloc ajouté.
---   * `funnel_leads`  — les opt-ins (email seul, sans compte). C'est la
+--   * `funnel_leads` : les opt-ins (email seul, sans compte). C'est la
 --                       différence avec `profiles` : un lead n'est pas un
 --                       utilisateur, il n'a pas de ligne dans `auth.users`.
---   * `funnel_events` — vues, clics CTA et départs au paiement, pour mesurer
+--   * `funnel_events` : vues, clics CTA et départs au paiement, pour mesurer
 --                       la conversion par campagne (UTM).
 --
 -- Lecture publique : AUCUNE politique `anon`. Les pages funnel sont rendues
@@ -41,7 +41,7 @@ CREATE TABLE IF NOT EXISTS public.funnels (
   meta_description text,
 
   -- Blocs de la page : [{ id, type, ... }]
-  content jsonb NOT NULL DEFAULT '[]'::jsonb,
+  content jsonb NOT NULL DEFAULT '[]' : jsonb,
 
   -- Offre poussée par les CTA (clé de STRIPE_PLANS, ex. 'founding_annual').
   -- NULL = le CTA renvoie vers l'inscription sans offre pré-sélectionnée.
@@ -87,7 +87,7 @@ CREATE TABLE IF NOT EXISTS public.funnel_leads (
   contact_id uuid REFERENCES public.mail_contacts(id) ON DELETE SET NULL,
 
   -- Attribution : d'où vient ce lead.
-  utm jsonb NOT NULL DEFAULT '{}'::jsonb,
+  utm jsonb NOT NULL DEFAULT '{}' : jsonb,
   referrer text,
   landing_path text,
 
@@ -119,7 +119,7 @@ CREATE TABLE IF NOT EXISTS public.funnel_events (
   -- Identifiant anonyme de session (cookie premier-partie), pour distinguer
   -- deux visiteurs sans jamais stocker d'IP.
   visitor_id text,
-  utm jsonb NOT NULL DEFAULT '{}'::jsonb,
+  utm jsonb NOT NULL DEFAULT '{}' : jsonb,
 
   created_at timestamptz NOT NULL DEFAULT now()
 );

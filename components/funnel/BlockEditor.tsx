@@ -8,8 +8,7 @@ import { BLOCK_LABELS, type FunnelBlock } from '@/lib/funnels'
  * Édition d'un bloc de funnel.
  *
  * Les blocs sont manipulés en JSON libre (`any`) plutôt qu'avec le type
- * discriminé : pendant la saisie, un bloc est presque toujours incomplet —
- * une liste vide, un champ à remplir. Le typage strict est appliqué à
+ * discriminé : pendant la saisie, un bloc est presque toujours incomplet : * une liste vide, un champ à remplir. Le typage strict est appliqué à
  * l'enregistrement par `funnelInputSchema`, qui est la seule barrière qui
  * compte puisque c'est elle qui protège la base.
  */
@@ -293,7 +292,7 @@ function ImageField({
 
       {error && <p className="mt-1 text-xs font-medium text-red-600">{error}</p>}
       <p className="mt-1 text-xs text-slate-400">
-        {hint || 'JPG, PNG, WebP, GIF ou AVIF — 10 Mo maximum. Stockage Vercel Blob.'}
+        {hint || 'JPG, PNG, WebP, GIF ou AVIF : 10 Mo maximum. Stockage Vercel Blob.'}
       </p>
     </div>
   )
@@ -339,8 +338,8 @@ function VariantField({ block, set }: { block: any; set: (patch: any) => void })
         onChange={(e) => set({ variant: e.target.value })}
         className={inputClass}
       >
-        <option value="clair">Clair — dégradé bleu très pâle vers blanc</option>
-        <option value="sombre">Sombre — aplat ardoise, texte blanc</option>
+        <option value="clair">Clair : dégradé bleu très pâle vers blanc</option>
+        <option value="sombre">Sombre : aplat ardoise, texte blanc</option>
       </select>
     </div>
   )
@@ -424,6 +423,15 @@ export default function BlockEditor({ block, index, total, onChange, onMove, onR
             <Field label="Libellé du bouton" value={block.ctaLabel} onChange={(v) => set({ ctaLabel: v })} />
             <CtaFields block={block} set={set} />
             <VariantField block={block} set={set} />
+            <label className="flex items-center gap-2 text-sm text-slate-700">
+              <input
+                type="checkbox"
+                checked={block.logoWatermark ?? false}
+                onChange={(e) => set({ logoWatermark: e.target.checked })}
+                className="h-4 w-4 rounded border-slate-300"
+              />
+              Filigrane « OsteoUpgrade × MyOsteoFlow » en fond
+            </label>
             <ImageField
               label="Image d’illustration (facultative)"
               value={block.imageUrl}
@@ -540,7 +548,7 @@ export default function BlockEditor({ block, index, total, onChange, onMove, onR
                           }
                           set({ modules })
                         }}
-                        placeholder="Leçons — une par ligne"
+                        placeholder="Leçons : une par ligne"
                         rows={3}
                         className={inputClass}
                       />

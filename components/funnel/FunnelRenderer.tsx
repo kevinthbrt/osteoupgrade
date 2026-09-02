@@ -88,7 +88,7 @@ export default function FunnelRenderer({
       document.cookie = `${UTM_COOKIE}=${serializeAttribution(attribution)}; path=/; max-age=${UTM_COOKIE_MAX_AGE}; SameSite=Lax`
     }
 
-    // Le cookie fait foi dès qu'il porte une campagne — y compris quand l'URL
+    // Le cookie fait foi dès qu'il porte une campagne : y compris quand l'URL
     // en annonce une autre. Prendre celle de l'URL ici enregistrerait la
     // campagne B sur le lead et les événements pendant que Stripe recevrait la
     // campagne A depuis le cookie : deux attributions contradictoires pour une
@@ -293,7 +293,7 @@ function BlockView({
           }`}
         >
           {/* Halos de marque : très présents sur fond sombre, seulement suggérés
-              sur fond clair — au-delà, ils grisent le blanc au lieu de l'animer. */}
+              sur fond clair : au-delà, ils grisent le blanc au lieu de l'animer. */}
           <div
             className={`absolute left-1/4 top-10 h-[420px] w-[420px] rounded-full blur-[130px] ${
               sombre ? 'bg-[#4169F6]/[0.14]' : 'bg-[#4169F6]/[0.10]'
@@ -304,6 +304,29 @@ function BlockView({
               sombre ? 'bg-violet-500/[0.10]' : 'bg-violet-400/[0.09]'
             }`}
           />
+          {block.logoWatermark && (
+            <div
+              className="pointer-events-none absolute inset-y-0 right-0 flex items-center"
+              aria-hidden="true"
+            >
+              {/* La marque seule, pas le lockup complet : celui-ci porte le nom
+                  et la signature, dont le filigrane produisait des mots
+                  fantômes derrière l'accroche. Débordement volontaire à droite,
+                  qui donne une texture de marque plutôt qu'une image posée.
+                  Plus d'opacité sur fond clair, la marque y étant elle-même
+                  claire. */}
+              <Image
+                src="/logo-mark.png"
+                alt=""
+                width={640}
+                height={640}
+                priority
+                className={`w-[380px] max-w-none translate-x-[22%] sm:w-[520px] ${
+                  sombre ? 'opacity-10' : 'opacity-20'
+                }`}
+              />
+            </div>
+          )}
           <div className="relative mx-auto max-w-3xl text-center">
             {block.eyebrow && (
               <div

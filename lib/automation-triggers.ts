@@ -4,7 +4,7 @@ import { comparePlans, type Plan } from './entitlements'
 /**
  * Séquence propre à une page funnel : `funnel:<slug>`.
  *
- * Les funnels sont créés depuis l'admin, pas dans le code — leur nombre n'est
+ * Les funnels sont créés depuis l'admin, pas dans le code : leur nombre n'est
  * donc pas connu à la compilation. `mail_automations.trigger_event` étant du
  * texte libre (cf. les séquences séminaire), il suffit de créer dans
  * /admin/automations une séquence dont le déclencheur porte ce nom pour
@@ -50,7 +50,7 @@ export type TriggerEvent =
  *
  * Une séquence par offre : le moteur ne sait que remplacer des {{variables}},
  * jamais brancher le contenu. Sans ce routage, un abonné OsteoUpgrade seul
- * recevrait les emails d'installation de MyOsteoflow — un logiciel qu'il n'a
+ * recevrait les emails d'installation de MyOsteoflow : un logiciel qu'il n'a
  * pas acheté et ne peut pas ouvrir.
  *
  * `Passage à Premium` est conservé pour le bundle : cet événement existe déjà
@@ -72,7 +72,7 @@ export function subscriptionEventFor(plan: string): TriggerEvent {
  *
  * Trois cas et non deux : `osteoflow` et `osteoupgrade` étant au même prix, en
  * changer n'est ni une évolution ni une réduction. Un message unique devrait
- * rester si vague qu'il n'annoncerait plus rien — or c'est précisément le
+ * rester si vague qu'il n'annoncerait plus rien : or c'est précisément le
  * moment où le client veut savoir ce qui s'ouvre et ce qui se ferme.
  *
  * Renvoie `null` quand les droits ne bougent pas (changement de périodicité,
@@ -158,8 +158,8 @@ function splitFullName(fullName?: string | null): { first_name: string | null; l
  * Extrait de `triggerAutomations` pour pouvoir être appelé seul : cette
  * dernière sort dès qu'aucune séquence active ne correspond à l'événement, et
  * n'atteignait donc pas la création du contact. Un formulaire de funnel dont
- * la séquence n'est pas encore écrite — l'état normal juste après la
- * publication d'une page — captait ainsi des adresses qui n'entraient jamais
+ * la séquence n'est pas encore écrite : l'état normal juste après la
+ * publication d'une page : captait ainsi des adresses qui n'entraient jamais
  * dans la liste de diffusion.
  *
  * Renvoie `error` plutôt que de lever : l'appelant décide si l'échec est
@@ -215,7 +215,7 @@ export async function ensureMailContact(data: {
   }
 
   // Rattrapage : le contact avait été créé sans nom par un déclenchement
-  // précédent (ex: avant que cet appelant ne transmette full_name) — on le
+  // précédent (ex: avant que cet appelant ne transmette full_name) : on le
   // complète dès qu'on reçoit un nom, pour que {{full_name}} cesse de
   // retomber sur l'email dans les emails déjà en cours d'envoi.
   if (data.full_name && !existing.first_name && !existing.last_name) {

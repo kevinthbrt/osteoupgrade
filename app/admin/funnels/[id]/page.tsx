@@ -49,10 +49,10 @@ const inputClass =
  * le SDK Stripe et ne peut pas être importé par un composant client.
  */
 const PLAN_OPTIONS = OFFERS.flatMap((offer) => [
-  { value: offer.planType, label: `${offer.name} — ${formatAmount(offer.monthlyAmount)}/mois` },
+  { value: offer.planType, label: `${offer.name} : ${formatAmount(offer.monthlyAmount)}/mois` },
   {
     value: offer.foundingPlanType,
-    label: `${offer.name} Fondateur — ${formatAmount(offer.foundingAnnualAmount)}/an`,
+    label: `${offer.name} Fondateur : ${formatAmount(offer.foundingAnnualAmount)}/an`,
   },
 ])
 
@@ -184,7 +184,7 @@ export default function FunnelEditorPage({ params }: { params: { id: string } })
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          name: `Funnel — ${form.name}`,
+          name: `Funnel : ${form.name}`,
           description: `Séquence déclenchée par les inscriptions sur /f/${form.slug}`,
           trigger_event: funnelTriggerEvent(form.slug),
           // Un funnel s'adresse à des prospects : la séquence doit s'arrêter
@@ -324,7 +324,7 @@ export default function FunnelEditorPage({ params }: { params: { id: string } })
             {!estEnLigne && (
               <p className="mt-1 flex items-center gap-1.5 text-xs text-amber-700">
                 <AlertTriangle className="h-3.5 w-3.5" />
-                {form.status === 'draft' ? 'Brouillon' : 'Archivé'} — le lien ouvre un aperçu
+                {form.status === 'draft' ? 'Brouillon' : 'Archivé'} : le lien ouvre un aperçu
                 réservé aux admins et renvoie une erreur 404 aux visiteurs.
               </p>
             )}
@@ -540,7 +540,7 @@ export default function FunnelEditorPage({ params }: { params: { id: string } })
                 <p className="mt-3 rounded-lg bg-amber-50 p-3 text-xs leading-relaxed text-amber-800">
                   La séquence existe mais ne contient aucun email : rien ne partira tant qu’une étape
                   n’y est pas ajoutée. L’ajout d’étapes se fait aujourd’hui en base (migration SQL),
-                  comme pour les séquences du cycle de vie — il n’existe pas encore d’éditeur d’étapes
+                  comme pour les séquences du cycle de vie : il n’existe pas encore d’éditeur d’étapes
                   dans l’interface.
                 </p>
               )}
@@ -636,9 +636,9 @@ export default function FunnelEditorPage({ params }: { params: { id: string } })
                   {leads.map((lead) => (
                     <tr key={lead.id} className="border-b border-slate-100 last:border-0">
                       <td className="py-2 font-medium text-slate-900">{lead.email}</td>
-                      <td className="py-2 text-slate-600">{lead.full_name || '—'}</td>
+                      <td className="py-2 text-slate-600">{lead.full_name || ''}</td>
                       <td className="py-2 text-slate-500">
-                        {lead.utm?.utm_campaign || lead.utm?.utm_source || '—'}
+                        {lead.utm?.utm_campaign || lead.utm?.utm_source || ''}
                       </td>
                       <td className="py-2 whitespace-nowrap text-slate-500">
                         {new Date(lead.created_at).toLocaleDateString('fr-FR')}

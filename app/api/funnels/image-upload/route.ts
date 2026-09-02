@@ -7,7 +7,7 @@ import { verifyAdmin, validateImageUpload, safeImageExt } from '@/lib/api-guards
  *
  * Même schéma que les autres envois du projet (`course-image-upload`) : réservé
  * aux admins, type et taille vérifiés par `validateImageUpload`, et extension
- * reprise d'une liste blanche plutôt que du nom de fichier — le SVG en est
+ * reprise d'une liste blanche plutôt que du nom de fichier : le SVG en est
  * volontairement exclu, une image servie sur une URL publique pouvant y
  * embarquer du script.
  */

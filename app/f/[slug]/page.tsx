@@ -17,7 +17,7 @@ export const dynamic = 'force-dynamic'
  * Les tables funnel n'ont aucune politique `anon` (cf. migration 20260902) :
  * rien n'est lisible depuis le navigateur, et le filtre sur le statut est
  * appliqué ici. Un brouillon n'est donc jamais servi à un visiteur, même en
- * devinant son slug — seul un admin en aperçu peut le voir.
+ * devinant son slug : seul un admin en aperçu peut le voir.
  */
 async function getFunnel(slug: string, autoriserBrouillon: boolean): Promise<Funnel | null> {
   let query = supabaseAdmin
@@ -42,7 +42,7 @@ async function getFunnel(slug: string, autoriserBrouillon: boolean): Promise<Fun
  * Un aperçu n'est accordé qu'à un admin connecté.
  *
  * Sans cette vérification, `?preview=1` suffirait à lire n'importe quel
- * brouillon — une offre en préparation, ses prix et sa date de lancement.
+ * brouillon : une offre en préparation, ses prix et sa date de lancement.
  */
 async function estAdmin(): Promise<boolean> {
   try {
@@ -107,7 +107,7 @@ export default async function FunnelPage({
     <main className="min-h-screen bg-white">
       {brouillon && (
         <div className="sticky top-0 z-50 bg-amber-500 px-4 py-2.5 text-center text-sm font-semibold text-amber-950">
-          Aperçu — cette page est en {funnel.status === 'draft' ? 'brouillon' : 'archive'} et
+          Aperçu : cette page est en {funnel.status === 'draft' ? 'brouillon' : 'archive'} et
           renvoie une erreur 404 aux visiteurs. Passez son statut à « En ligne » pour la diffuser.
         </div>
       )}

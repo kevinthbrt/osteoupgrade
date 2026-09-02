@@ -54,7 +54,7 @@ export async function POST(request: Request) {
 
     // 🛡️ Le Price ID vient d'une variable d'environnement : rien ne garantit
     // qu'elle pointe vers le bon tarif. Une variable intervertie ne provoque
-    // aucune erreur — elle facture simplement le mauvais montant pour le
+    // aucune erreur : elle facture simplement le mauvais montant pour le
     // mauvais produit, et le webhook accorde ensuite l'offre du prix
     // réellement payé. C'est arrivé en production le 20/08/2026 :
     // STRIPE_PRICE_PREMIUM_MONTHLY portait le prix OsteoUpgrade, et un client
@@ -83,7 +83,7 @@ export async function POST(request: Request) {
         try {
           await notifyAdmin(
             'other',
-            'Tarif Stripe incohérent — souscription bloquée',
+            'Tarif Stripe incohérent : souscription bloquée',
             `L'offre ${planType} pointe vers ${plan.priceId}, qui ne correspond pas : ${ecarts.join(' ; ')}. ` +
               `Vérifiez la variable d'environnement du prix. Aucune souscription n'est possible sur cette offre tant que ce n'est pas corrigé.`
           )
@@ -110,7 +110,7 @@ export async function POST(request: Request) {
     }
 
     // Les offres Fondateur (une par offre commerciale) sont réservées aux
-    // comptes marqués comme tels — revérifié ici pour qu'elles ne soient
+    // comptes marqués comme tels : revérifié ici pour qu'elles ne soient
     // jamais accessibles en appelant l'API directement.
     if (plan.isFounding) {
       const { data: founderProfile } = await supabase
@@ -191,7 +191,7 @@ export async function POST(request: Request) {
 
     // 🎁 Essai gratuit de 7 jours : réservé au premier abonnement d'un compte
     // free n'ayant JAMAIS été abonné auparavant (ni essai déjà utilisé, ni
-    // abonnement payant passé — y compris résilié depuis, ce qui remet le
+    // abonnement payant passé : y compris résilié depuis, ce qui remet le
     // rôle à 'free' sans effacer subscription_start_date), et jamais aux
     // membres fondateurs (déjà sur une offre à -50% à vie, pas de raison de
     // cumuler avec un essai gratuit). La carte est exigée dès la souscription
@@ -245,7 +245,7 @@ export async function POST(request: Request) {
         } else if (funnel.deadline_mode === 'relative') {
           // Échéance individuelle : celle figée à l'opt-in de ce visiteur.
           // Un utilisateur qui n'a jamais laissé son email sur cette page n'a
-          // pas d'échéance à faire respecter — il n'a rien vu se fermer.
+          // pas d'échéance à faire respecter : il n'a rien vu se fermer.
           const { data: lead } = await supabaseAdmin
             .from('funnel_leads')
             .select('deadline_at')

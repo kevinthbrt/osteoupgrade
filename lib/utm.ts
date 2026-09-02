@@ -2,7 +2,7 @@
  * Attribution des campagnes (UTM).
  *
  * Le besoin : savoir quelle campagne a produit un abonnement. Les paramètres
- * UTM n'existent que sur la première URL visitée — ils disparaissent dès que
+ * UTM n'existent que sur la première URL visitée : ils disparaissent dès que
  * le visiteur navigue, et à plus forte raison entre la page funnel,
  * l'inscription et le paiement Stripe, qui sont trois pages différentes et,
  * pour Stripe, un autre domaine.

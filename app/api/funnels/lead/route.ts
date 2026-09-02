@@ -11,7 +11,7 @@ import { UTM_KEYS } from '@/lib/utm'
  *
  * Route publique : c'est la seule façon de capter un email avant la création
  * de compte, et donc de faire entrer un prospect dans les séquences. Elle est
- * volontairement étroite — elle n'écrit que dans `funnel_leads` et délègue
+ * volontairement étroite : elle n'écrit que dans `funnel_leads` et délègue
  * l'inscription aux séquences existantes via `triggerAutomations`.
  *
  * Ce que la route ne fait pas : créer de compte, accorder de droits, ni
@@ -78,7 +78,7 @@ export async function POST(req: NextRequest) {
 
     const deadline = leadDeadlineFor(funnel, new Date())
 
-    // Le contact d'abord, la séquence ensuite — et jamais l'inverse.
+    // Le contact d'abord, la séquence ensuite et jamais l'inverse.
     // `triggerAutomations` sort dès qu'aucune séquence active ne correspond à
     // l'événement : lui déléguer la création du contact ferait perdre toutes
     // les adresses captées tant que la séquence du funnel n'est pas écrite,
@@ -90,7 +90,7 @@ export async function POST(req: NextRequest) {
     })
 
     if (contactError) {
-      console.error('Funnel opt-in — contact:', contactError)
+      console.error('Funnel opt-in : contact:', contactError)
     }
 
     // L'inscription à la liste est acquise à ce stade ; l'échec d'une séquence
@@ -103,7 +103,7 @@ export async function POST(req: NextRequest) {
     })
 
     if (triggerResult.errors.length > 0) {
-      console.error('Funnel opt-in — erreurs d’automatisation:', triggerResult.errors)
+      console.error('Funnel opt-in : erreurs d’automatisation:', triggerResult.errors)
     }
 
     const contact = contactId ? { id: contactId } : null

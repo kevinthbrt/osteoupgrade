@@ -39,7 +39,7 @@ const features = [
   },
   {
     icon: FileText,
-    label: "Dictée vocale — l'IA rédige vos CR",
+    label: "Dictée vocale : l'IA rédige vos CR",
     pillar: 'MyOsteoflow',
     color: 'text-blue-300',
   },
@@ -70,7 +70,7 @@ const features = [
  *
  * `planType` n'est pas validé ici : c'est /api/stripe/checkout qui fait
  * autorité sur les offres et refuse ce qu'il ne connaît pas. En cas d'échec on
- * retombe sur le tableau de bord — un compte créé ne doit jamais rester
+ * retombe sur le tableau de bord : un compte créé ne doit jamais rester
  * bloqué sur une erreur de paiement.
  */
 async function redirectAfterAuth(router: ReturnType<typeof useRouter>) {
@@ -247,7 +247,7 @@ export default function AuthPage() {
               <span className="text-sky-400">votre pratique</span>
             </h1>
             <p className="text-slate-400 text-lg leading-relaxed max-w-md">
-              Deux outils pensés pour l&apos;ostéopathe d&apos;aujourd&apos;hui — monter en compétences cliniques et simplifier la gestion du cabinet.
+              Deux outils pensés pour l&apos;ostéopathe d&apos;aujourd&apos;hui : monter en compétences cliniques et simplifier la gestion du cabinet.
             </p>
           </div>
 

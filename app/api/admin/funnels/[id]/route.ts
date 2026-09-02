@@ -3,7 +3,7 @@ import { supabaseAdmin } from '@/lib/supabase-server'
 import { verifyAdmin } from '@/lib/api-guards'
 import { describeValidationError, funnelInputSchema } from '@/lib/funnels'
 
-/** GET — un funnel, ses leads récents et ses compteurs d'événements. */
+/** GET : un funnel, ses leads récents et ses compteurs d'événements. */
 export async function GET(_request: Request, { params }: { params: { id: string } }) {
   if (!(await verifyAdmin())) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
@@ -41,7 +41,7 @@ export async function GET(_request: Request, { params }: { params: { id: string 
   return NextResponse.json({ funnel, leads: leads ?? [], stats })
 }
 
-/** PATCH — mise à jour complète du funnel (le formulaire renvoie tout). */
+/** PATCH : mise à jour complète du funnel (le formulaire renvoie tout). */
 export async function PATCH(request: Request, { params }: { params: { id: string } }) {
   if (!(await verifyAdmin())) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
@@ -89,7 +89,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
 }
 
 /**
- * DELETE — suppression.
+ * DELETE : suppression.
  *
  * Les leads et événements partent avec (ON DELETE CASCADE). Les contacts
  * `mail_contacts` créés par les opt-ins, eux, restent : ils appartiennent à la

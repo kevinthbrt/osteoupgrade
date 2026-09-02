@@ -5,7 +5,7 @@
  * choix permet d'ajouter un type de bloc sans migration, mais il déplace la
  * validation ici : la base accepte n'importe quel JSON, donc c'est ce module
  * qui garantit qu'un bloc enregistré est affichable. Toute écriture passe par
- * `parseFunnelContent` — jamais d'insertion directe du corps de la requête.
+ * `parseFunnelContent` : jamais d'insertion directe du corps de la requête.
  *
  * Les textes sont rendus comme du texte (jamais `dangerouslySetInnerHTML`) :
  * l'éditeur est réservé aux admins, mais un rendu HTML libre transformerait
@@ -20,7 +20,7 @@ import { z } from 'zod'
  * Traitement visuel d'une section pleine largeur.
  *
  * L'accroche et le rappel final sont les deux blocs qui occupent tout l'écran :
- * ce sont eux qui donnent le ton de la page. `clair` par défaut — un aplat
+ * ce sont eux qui donnent le ton de la page. `clair` par défaut : un aplat
  * sombre en haut de page écrase les couleurs de marque et referme la page dès
  * le premier écran.
  */
@@ -41,7 +41,7 @@ const optionalShort = z.string().trim().max(300).optional().or(z.literal(''))
 
 /**
  * URL d'un CTA « lien libre ». Refusée à l'enregistrement si elle n'est pas en
- * http(s) — la même règle est réappliquée au clic (`safeLinkUrl`), car un
+ * http(s) : la même règle est réappliquée au clic (`safeLinkUrl`), car un
  * enregistrement antérieur à cette validation peut déjà être en base.
  */
 const ctaUrlSchema = z
@@ -82,6 +82,8 @@ const heroSchema = z.object({
   ctaUrl: ctaUrlSchema,
   imageUrl: imageUrlSchema,
   variant: variantSchema.default('clair'),
+  /** Filigrane de marque « OsteoUpgrade × MyOsteoFlow » derrière l'accroche. */
+  logoWatermark: z.boolean().default(false),
 })
 
 const videoSchema = z.object({
@@ -331,7 +333,7 @@ export type FunnelInput = z.infer<typeof funnelInputSchema>
  *
  * Zod renvoie « String must contain at least 1 character(s) » sans dire où :
  * sur une page de trente blocs, c'est inexploitable. On reconstruit le chemin
- * en clair — « Bloc 3 (Tarifs) → items → 2 → question ».
+ * en clair : « Bloc 3 (Tarifs) → items → 2 → question ».
  */
 export function describeValidationError(error: z.ZodError): string {
   const issue = error.issues[0]
@@ -373,7 +375,7 @@ export type Funnel = {
  *
  * En mode `relative`, chaque lead a la sienne (J+N après son opt-in) : c'est
  * ce qui distingue un funnel permanent d'une campagne à date unique. Un
- * visiteur qui n'a pas encore laissé son email n'a pas d'échéance — afficher
+ * visiteur qui n'a pas encore laissé son email n'a pas d'échéance : afficher
  * un décompte avant l'inscription reviendrait à décompter dans le vide.
  */
 export function resolveDeadline(

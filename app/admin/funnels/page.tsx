@@ -149,7 +149,7 @@ export default function AdminFunnelsPage() {
             <RouteIcon className="mx-auto mb-3 h-10 w-10 text-slate-300" />
             <p className="font-semibold text-slate-700">Aucun funnel pour l’instant</p>
             <p className="mt-1 text-sm text-slate-500">
-              Créez une page, ajoutez vos blocs, publiez — l’URL sera <code>/f/votre-slug</code>.
+              Créez une page, ajoutez vos blocs, publiez : l’URL sera <code>/f/votre-slug</code>.
             </p>
           </div>
         ) : (

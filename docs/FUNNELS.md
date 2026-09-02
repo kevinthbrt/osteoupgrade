@@ -1,4 +1,4 @@
-# Funnels — pages de vente éditables
+# Funnels : pages de vente éditables
 
 Pages de vente autonomes servies sur `/f/<slug>`, créées et modifiées depuis
 **Administration → Funnels**, sans redéploiement.
@@ -9,7 +9,7 @@ L'infrastructure qu'un LearnyBox ou un ClickFunnels apporte existe déjà ici :
 paiement Stripe, moteur de séquences email (`mail_automations`), codes promo,
 parrainage, base de contacts. Un outil externe aurait imposé de synchroniser
 deux bases de contacts et deux catalogues d'offres. Il ne manquait que la
-couche « pages » — c'est ce que fait ce module.
+couche « pages » : c'est ce que fait ce module.
 
 ## Structure
 
@@ -29,13 +29,19 @@ couche « pages » — c'est ce que fait ce module.
 `hero`, `video`, `benefits`, `testimonials`, `curriculum`, `image`, `pricing`,
 `guarantee`, `faq`, `cta`, `optin`, `text`.
 
+L'accroche peut porter un **filigrane de marque** : la sphère du logo, en
+débord à droite. C'est `public/logo-mark.png`, extrait du lockup
+`logo-email-banner.png`. Le lockup complet ne convient pas en filigrane : il
+porte le nom et la signature, dont la transparence produit des mots fantômes
+derrière l'accroche.
+
 L'accroche et le rappel final acceptent un fond **clair** (défaut) ou
 **sombre**, au choix dans l'éditeur. Le clair est le défaut parce qu'un aplat
 ardoise en haut de page écrase les couleurs de marque et referme la page dès le
 premier écran ; le sombre reste utile pour ponctuer une fin de page.
 
 Le bloc `image` (« Photo ») envoie le fichier sur **Vercel Blob** via
-`/api/funnels/image-upload` — même schéma que les envois existants du projet :
+`/api/funnels/image-upload` : même schéma que les envois existants du projet :
 réservé aux admins, type et taille vérifiés, SVG exclu (une image servie sur une
 URL publique peut y embarquer du script). Une URL `https` peut aussi être
 collée. L'accroche accepte la même image en illustration.
@@ -47,7 +53,7 @@ Le contenu est un tableau JSONB : ajouter un type de bloc ne demande pas de
 migration, seulement une entrée dans `funnelBlockSchema` (validation), dans
 `BlockEditor` (saisie) et dans `FunnelRenderer` (affichage).
 
-Les textes sont rendus **comme du texte** — le HTML n'est jamais interprété.
+Les textes sont rendus **comme du texte** : le HTML n'est jamais interprété.
 Les sauts de ligne sont conservés. Les vidéos ne sont chargées que depuis Vimeo
 et YouTube (`safeEmbedUrl`).
 
@@ -55,12 +61,12 @@ et YouTube (`safeEmbedUrl`).
 
 Trois modes :
 
-- **`none`** — pas de compte à rebours.
-- **`fixed`** — même date pour tout le monde. C'est le modèle CFPCO : une
+- **`none`** : pas de compte à rebours.
+- **`fixed`** : même date pour tout le monde. C'est le modèle CFPCO : une
   session qui ferme.
-- **`relative`** — J+N après l'opt-in, propre à chaque lead. C'est le modèle
+- **`relative`** : J+N après l'opt-in, propre à chaque lead. C'est le modèle
   adapté à un abonnement permanent : la page reste en ligne, mais l'offre du
-  visiteur expire. Le décompte n'apparaît qu'après l'inscription — avant, il
+  visiteur expire. Le décompte n'apparaît qu'après l'inscription : avant, il
   n'y a rien à décompter.
 
 Un renvoi du formulaire ne repousse pas l'échéance : sinon il suffirait de se
@@ -76,7 +82,7 @@ Le contact est créé dans `mail_contacts` par `ensureMailContact()`, **avant**
 toute recherche de séquence. C'est délibéré : `triggerAutomations` sort dès
 qu'aucune séquence active ne correspond à l'événement, et lui déléguer la
 création du contact ferait perdre toutes les adresses captées tant que la
-séquence n'est pas écrite — c'est-à-dire dans l'état normal juste après la
+séquence n'est pas écrite : c'est-à-dire dans l'état normal juste après la
 publication d'une page. Une inscription entre donc dans la liste de diffusion
 même sans séquence.
 
@@ -86,7 +92,7 @@ s'appliquent sans traitement particulier.
 
 La séquence est créée avec `stop_on_subscribe = true` : un prospect qui
 souscrit cesse aussitôt de recevoir les relances. Sans ça, un nouvel abonné
-continuerait de lire « il vous reste 3 jours pour profiter de l'offre » — pour
+continuerait de lire « il vous reste 3 jours pour profiter de l'offre » : pour
 une offre qu'il vient de payer.
 
 ### Écrire les emails d'une séquence
@@ -109,7 +115,7 @@ Variables disponibles, par priorité croissante : le contact
 (`{{first_name}}`, `{{last_name}}`, `{{email}}`, `{{full_name}}`), puis le
 `payload` de l'étape, puis les metadata de l'inscription.
 
-Pour les funnels, ces metadata sont renseignées à l'opt-in — `{{funnel_slug}}`
+Pour les funnels, ces metadata sont renseignées à l'opt-in : `{{funnel_slug}}`
 et les UTM (`{{utm_campaign}}`, `{{utm_source}}`…) sont donc utilisables
 directement dans le sujet comme dans le corps.
 
@@ -135,16 +141,16 @@ dans l'éditeur.
 
 Stripe exige un compte (l'API refuse un appel anonyme). Un CTA « souscription »
 envoie donc vers `/auth?funnel=<slug>&plan=<planType>`, et `/auth` enchaîne sur
-le paiement dès le compte créé — le visiteur n'a pas à retrouver l'offre qu'il
+le paiement dès le compte créé : le visiteur n'a pas à retrouver l'offre qu'il
 venait d'accepter.
 
 `/api/stripe/checkout` refait deux vérifications côté serveur avant de créer la
 session :
 
-- **l'offre demandée est bien celle de la page** — sinon le slug d'un funnel
+- **l'offre demandée est bien celle de la page** : sinon le slug d'un funnel
   encore ouvert servirait à valider n'importe quelle autre offre ;
 - **l'échéance n'est pas dépassée** (date fixe du funnel, ou échéance
-  individuelle du lead) — le compte à rebours affiché n'engage que le
+  individuelle du lead) : le compte à rebours affiché n'engage que le
   navigateur, et un lien conservé ou une horloge décalée suffisent à
   l'atteindre après la fin annoncée. Une offre présentée comme fermée doit
   l'être réellement.
@@ -152,7 +158,7 @@ session :
 Si le funnel n'a pas d'offre configurée mais contient un bloc `optin`, les CTA
 « souscription » basculent automatiquement vers le formulaire email.
 
-## Ce que l'opt-in fait — et ne fait pas
+## Ce que l'opt-in fait et ne fait pas
 
 Le formulaire crée un **contact de diffusion** (`mail_contacts`) et un **lead**
 (`funnel_leads`). Il ne crée **pas** de compte : ni `auth.users`, ni `profiles`.
@@ -173,14 +179,14 @@ existant faire la suite.
 ## Statuts et aperçu
 
 Seul un funnel `published` est servi aux visiteurs. Un `draft` ou un `archived`
-renvoie une **404** — c'est ce qui empêche une page en préparation d'être lue
+renvoie une **404** : c'est ce qui empêche une page en préparation d'être lue
 par quelqu'un qui devine son slug.
 
 Pour relire une page avant de la diffuser, l'éditeur et la liste pointent vers
 `/f/<slug>?preview=1`. L'aperçu n'est accordé qu'à un **admin connecté** (session
 vérifiée côté serveur) et affiche un bandeau rappelant que la page n'est pas
 publique. Sans ce contrôle, `?preview=1` suffirait à lire n'importe quel
-brouillon — une offre en préparation, ses prix et sa date de lancement.
+brouillon : une offre en préparation, ses prix et sa date de lancement.
 
 ## Sécurité
 
@@ -215,7 +221,7 @@ supabase db push
 
 ### Vérifications passées à l'application
 
-- Un visiteur `anon` ne lit aucune ligne de `funnels`, même publiée — le rendu
+- Un visiteur `anon` ne lit aucune ligne de `funnels`, même publiée : le rendu
   public passe bien par la clé service-role.
 - Les contraintes refusent un slug non conforme, une échéance annoncée sans
   date ni durée, un statut ou un type d'événement inconnu.
