@@ -25,6 +25,7 @@ import {
   CreditCard,
   Copy,
   Check,
+  AlertTriangle,
 } from 'lucide-react'
 
 type Stats = { view: number; cta_click: number; optin: number; checkout_started: number }
@@ -286,6 +287,8 @@ export default function FunnelEditorPage({ params }: { params: { id: string } })
     )
   }
 
+  const estEnLigne = form.status === 'published'
+
   const statCards = [
     { label: 'Vues', value: stats.view, icon: Eye },
     { label: 'Clics CTA', value: stats.cta_click, icon: MousePointerClick },
@@ -301,8 +304,11 @@ export default function FunnelEditorPage({ params }: { params: { id: string } })
         <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-0">
             <h1 className="truncate text-2xl font-bold text-slate-900">{form.name}</h1>
+            {/* Un brouillon renvoie 404 aux visiteurs : présenter son URL comme
+                un lien ordinaire ne ferait qu'inviter à constater l'erreur. On
+                pointe donc vers l'aperçu, réservé aux admins, et on le dit. */}
             <a
-              href={`/f/${form.slug}`}
+              href={estEnLigne ? `/f/${form.slug}` : `/f/${form.slug}?preview=1`}
               target="_blank"
               rel="noopener noreferrer"
               className="mt-1 inline-flex items-center gap-1.5 font-mono text-xs text-blue-600 hover:underline"
@@ -310,6 +316,13 @@ export default function FunnelEditorPage({ params }: { params: { id: string } })
               /f/{form.slug}
               <ExternalLink className="h-3 w-3" />
             </a>
+            {!estEnLigne && (
+              <p className="mt-1 flex items-center gap-1.5 text-xs text-amber-700">
+                <AlertTriangle className="h-3.5 w-3.5" />
+                {form.status === 'draft' ? 'Brouillon' : 'Archivé'} — le lien ouvre un aperçu
+                réservé aux admins et renvoie une erreur 404 aux visiteurs.
+              </p>
+            )}
           </div>
           <div className="flex items-center gap-2">
             <button
@@ -382,10 +395,15 @@ export default function FunnelEditorPage({ params }: { params: { id: string } })
                 onChange={(e) => set({ status: e.target.value })}
                 className={inputClass}
               >
-                <option value="draft">Brouillon (invisible)</option>
+                <option value="draft">Brouillon (404 pour les visiteurs)</option>
                 <option value="published">En ligne</option>
-                <option value="archived">Archivé</option>
+                <option value="archived">Archivé (404 pour les visiteurs)</option>
               </select>
+              {!estEnLigne && (
+                <p className="mt-1 text-xs text-amber-700">
+                  Passez sur « En ligne » puis enregistrez pour que l’URL soit accessible.
+                </p>
+              )}
             </div>
             <div>
               <label className="mb-1 block text-xs font-semibold text-slate-600">Offre souscrite</label>

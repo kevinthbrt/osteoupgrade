@@ -188,17 +188,22 @@ export default function AdminFunnelsPage() {
                       <Users className="h-4 w-4" />
                       {funnel.leads_count}
                     </span>
-                    {funnel.status === 'published' && (
-                      <a
-                        href={`/f/${funnel.slug}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-1.5 font-medium text-blue-600 hover:underline"
-                      >
-                        Voir
-                        <ExternalLink className="h-3.5 w-3.5" />
-                      </a>
-                    )}
+                    {/* Un brouillon s'ouvre en aperçu (admin) plutôt que sur
+                        une 404 : c'est la seule façon de le relire avant de le
+                        publier. */}
+                    <a
+                      href={
+                        funnel.status === 'published'
+                          ? `/f/${funnel.slug}`
+                          : `/f/${funnel.slug}?preview=1`
+                      }
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1.5 font-medium text-blue-600 hover:underline"
+                    >
+                      {funnel.status === 'published' ? 'Voir' : 'Aperçu'}
+                      <ExternalLink className="h-3.5 w-3.5" />
+                    </a>
                   </div>
                 </div>
               )

@@ -114,6 +114,18 @@ session :
 Si le funnel n'a pas d'offre configurée mais contient un bloc `optin`, les CTA
 « souscription » basculent automatiquement vers le formulaire email.
 
+## Statuts et aperçu
+
+Seul un funnel `published` est servi aux visiteurs. Un `draft` ou un `archived`
+renvoie une **404** — c'est ce qui empêche une page en préparation d'être lue
+par quelqu'un qui devine son slug.
+
+Pour relire une page avant de la diffuser, l'éditeur et la liste pointent vers
+`/f/<slug>?preview=1`. L'aperçu n'est accordé qu'à un **admin connecté** (session
+vérifiée côté serveur) et affiche un bandeau rappelant que la page n'est pas
+publique. Sans ce contrôle, `?preview=1` suffirait à lire n'importe quel
+brouillon — une offre en préparation, ses prix et sa date de lancement.
+
 ## Sécurité
 
 - Les trois tables n'ont **aucune** politique `anon` : rien n'est lisible depuis
