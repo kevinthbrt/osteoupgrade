@@ -107,13 +107,26 @@ Si le funnel n'a pas d'offre configurée mais contient un bloc `optin`, les CTA
 
 ## Mise en service
 
+Le schéma est **déjà appliqué** sur le projet Supabase `osteoupgrade`
+(migration `funnels`, 2026-09-02). Aucune variable d'environnement
+supplémentaire n'est nécessaire : le module réutilise Supabase, Stripe et
+Resend déjà configurés.
+
+Pour un autre environnement :
+
 ```bash
-# Appliquer le schéma
 supabase db push
 # ou : coller supabase/migrations/20260902_funnels.sql dans le SQL Editor
 ```
 
-Aucune variable d'environnement supplémentaire n'est nécessaire.
+### Vérifications passées à l'application
+
+- Un visiteur `anon` ne lit aucune ligne de `funnels`, même publiée — le rendu
+  public passe bien par la clé service-role.
+- Les contraintes refusent un slug non conforme, une échéance annoncée sans
+  date ni durée, un statut ou un type d'événement inconnu.
+- Deux opt-ins avec la même adresse à la casse près ne créent qu'un seul lead
+  (colonne `citext`).
 
 ## Limites connues
 
