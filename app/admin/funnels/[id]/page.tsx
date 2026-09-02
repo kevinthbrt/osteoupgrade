@@ -84,6 +84,8 @@ function blankBlock(type: FunnelBlockType): any {
       return { id, type, title: 'Ils l’utilisent', items: [{ quote: '', author: '' }] }
     case 'curriculum':
       return { id, type, title: 'Le programme', modules: [{ title: '', lessons: [] }] }
+    case 'image':
+      return { id, type, imageUrl: '', alt: '', full: false }
     case 'pricing':
       return { id, type, title: 'L’offre', features: [], ctaLabel: 'Je m’abonne' }
     case 'guarantee':

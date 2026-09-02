@@ -43,6 +43,21 @@ const ctaUrlSchema = z
   .optional()
   .or(z.literal(''))
 
+/**
+ * URL d'image. Restreinte à `https` : les images sont envoyées sur Vercel Blob
+ * (`/api/funnels/image-upload`), mais le champ accepte aussi une URL collée, et
+ * un `javascript:`/`data:` n'a rien à faire dans un `src` de page publique.
+ */
+const imageUrlSchema = z
+  .string()
+  .trim()
+  .max(1000)
+  .refine((url) => url === '' || /^https:\/\//i.test(url), {
+    message: 'L’image doit être servie en https://',
+  })
+  .optional()
+  .or(z.literal(''))
+
 const baseBlock = { id: z.string().trim().min(1).max(64) }
 
 const heroSchema = z.object({
@@ -54,7 +69,7 @@ const heroSchema = z.object({
   ctaLabel: optionalShort,
   ctaTarget: ctaTargetSchema.default('checkout'),
   ctaUrl: ctaUrlSchema,
-  imageUrl: optionalShort,
+  imageUrl: imageUrlSchema,
 })
 
 const videoSchema = z.object({
@@ -167,6 +182,24 @@ const optinSchema = z.object({
   successMessage: z.string().trim().max(500).optional().or(z.literal('')),
 })
 
+const imageSchema = z.object({
+  ...baseBlock,
+  type: z.literal('image'),
+  imageUrl: z
+    .string()
+    .trim()
+    .min(1, 'Choisissez une image, ou collez son URL')
+    .max(1000)
+    .refine((url) => /^https:\/\//i.test(url), {
+      message: 'L’image doit être servie en https://',
+    }),
+  /** Texte alternatif : lu par les lecteurs d'écran, affiché si l'image tombe. */
+  alt: z.string().trim().max(300).optional().or(z.literal('')),
+  caption: optionalShort,
+  /** Pleine largeur, ou centrée dans la colonne de lecture. */
+  full: z.boolean().default(false),
+})
+
 const textSchema = z.object({
   ...baseBlock,
   type: z.literal('text'),
@@ -181,6 +214,7 @@ export const funnelBlockSchema = z.discriminatedUnion('type', [
   benefitsSchema,
   testimonialsSchema,
   curriculumSchema,
+  imageSchema,
   pricingSchema,
   guaranteeSchema,
   faqSchema,
@@ -198,6 +232,7 @@ export const FUNNEL_BLOCK_TYPES: FunnelBlockType[] = [
   'benefits',
   'testimonials',
   'curriculum',
+  'image',
   'pricing',
   'guarantee',
   'faq',
@@ -212,6 +247,7 @@ export const BLOCK_LABELS: Record<FunnelBlockType, string> = {
   benefits: 'Bénéfices',
   testimonials: 'Témoignages',
   curriculum: 'Programme',
+  image: 'Photo',
   pricing: 'Tarifs',
   guarantee: 'Garantie',
   faq: 'FAQ',

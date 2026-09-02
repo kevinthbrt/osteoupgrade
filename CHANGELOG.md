@@ -15,6 +15,7 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/).
 - **Attribution des campagnes (UTM)** : les paramètres UTM sont captés à l'arrivée dans le cookie premier-partie `ou_attrib` (90 jours, premier contact conservé) et réinjectés dans les metadata de la session et de l'abonnement Stripe. Une vente est désormais rattachable à la campagne qui l'a produite. (`lib/utm.ts`)
 - **Mesure par funnel** : vues, clics CTA, opt-ins et départs au paiement, avec la liste des derniers leads et leur campagne. (`app/api/funnels/track/`)
 - **Tables `funnels`, `funnel_leads`, `funnel_events`** : RLS admin uniquement, aucune politique `anon` — le rendu public passe par la clé service-role, qui filtre sur `status = 'published'`. (`supabase/migrations/20260902_funnels.sql`)
+- **Bloc « Photo »** : envoi d'image vers Vercel Blob depuis l'éditeur (`/api/funnels/image-upload`, admin uniquement, SVG exclu), avec texte alternatif, légende et affichage pleine largeur ou dans la colonne de lecture. Le champ image de l'accroche, déclaré mais jamais rendu ni saisissable, est branché du même coup.
 - **Aperçu des brouillons** : `/f/<slug>?preview=1`, réservé aux admins connectés, pour relire une page avant de la publier. (`lib/supabase-server-helpers.ts` : ajout de `createServerComponentClient`)
 - **Documentation** : `docs/FUNNELS.md`.
 

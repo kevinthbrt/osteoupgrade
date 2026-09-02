@@ -1,6 +1,7 @@
 'use client'
 
-import { ChevronDown, ChevronUp, Trash2 } from 'lucide-react'
+import { useRef, useState } from 'react'
+import { ChevronDown, ChevronUp, Trash2, Upload, Loader2, X } from 'lucide-react'
 import { BLOCK_LABELS, type FunnelBlock } from '@/lib/funnels'
 
 /**
@@ -191,6 +192,113 @@ function RepeatableField({
   )
 }
 
+/**
+ * Champ image : envoi d'un fichier vers Vercel Blob, ou URL collée.
+ *
+ * L'aperçu utilise `<img>` et non `next/image` : la source est saisie par
+ * l'admin et peut pointer hors des domaines déclarés dans `next.config.js`,
+ * ce qui ferait échouer l'optimiseur. Sur la page publique, en revanche,
+ * l'image passe bien par `next/image`.
+ */
+function ImageField({
+  label,
+  value,
+  onChange,
+  hint,
+}: {
+  label: string
+  value: string | undefined
+  onChange: (url: string) => void
+  hint?: string
+}) {
+  const inputRef = useRef<HTMLInputElement>(null)
+  const [uploading, setUploading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const handleFile = async (file: File) => {
+    setUploading(true)
+    setError(null)
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+      const res = await fetch('/api/funnels/image-upload', { method: 'POST', body: formData })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Envoi impossible')
+      onChange(data.url)
+    } catch (err: any) {
+      setError(err.message || 'Envoi impossible')
+    } finally {
+      setUploading(false)
+      // Permet de renvoyer deux fois le même fichier d'affilée.
+      if (inputRef.current) inputRef.current.value = ''
+    }
+  }
+
+  return (
+    <div>
+      <Label>{label}</Label>
+
+      {value ? (
+        <div className="relative overflow-hidden rounded-lg border border-slate-200 bg-slate-50">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={value} alt="" className="max-h-56 w-full object-contain" />
+          <button
+            type="button"
+            onClick={() => onChange('')}
+            className="absolute right-2 top-2 rounded-lg bg-white/90 p-1.5 text-slate-500 shadow-sm transition hover:text-red-600"
+            aria-label="Retirer l’image"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => inputRef.current?.click()}
+          disabled={uploading}
+          className="flex w-full items-center justify-center gap-2 rounded-lg border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-sm font-medium text-slate-600 transition hover:border-blue-400 hover:text-blue-600 disabled:opacity-60"
+        >
+          {uploading ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Envoi en cours…
+            </>
+          ) : (
+            <>
+              <Upload className="h-4 w-4" />
+              Choisir une image
+            </>
+          )}
+        </button>
+      )}
+
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/jpeg,image/png,image/webp,image/gif,image/avif"
+        className="hidden"
+        onChange={(e) => {
+          const file = e.target.files?.[0]
+          if (file) handleFile(file)
+        }}
+      />
+
+      <input
+        type="url"
+        value={value ?? ''}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder="…ou collez une URL https://"
+        className={`${inputClass} mt-2`}
+      />
+
+      {error && <p className="mt-1 text-xs font-medium text-red-600">{error}</p>}
+      <p className="mt-1 text-xs text-slate-400">
+        {hint || 'JPG, PNG, WebP, GIF ou AVIF — 10 Mo maximum. Stockage Vercel Blob.'}
+      </p>
+    </div>
+  )
+}
+
 /** Champ montant : saisi en euros, stocké en centimes. */
 function AmountField({
   label,
@@ -298,6 +406,12 @@ export default function BlockEditor({ block, index, total, onChange, onMove, onR
             <TextArea label="Sous-titre" value={block.subtitle} onChange={(v) => set({ subtitle: v })} />
             <Field label="Libellé du bouton" value={block.ctaLabel} onChange={(v) => set({ ctaLabel: v })} />
             <CtaFields block={block} set={set} />
+            <ImageField
+              label="Image d’illustration (facultative)"
+              value={block.imageUrl}
+              onChange={(imageUrl) => set({ imageUrl })}
+              hint="Affichée sous le bouton, dans l’accroche."
+            />
           </>
         )}
 
@@ -515,6 +629,35 @@ export default function BlockEditor({ block, index, total, onChange, onMove, onR
               value={block.successMessage}
               onChange={(v) => set({ successMessage: v })}
             />
+          </>
+        )}
+
+        {block.type === 'image' && (
+          <>
+            <ImageField
+              label="Image"
+              value={block.imageUrl}
+              onChange={(imageUrl) => set({ imageUrl })}
+            />
+            <Field
+              label="Texte alternatif"
+              value={block.alt}
+              onChange={(v) => set({ alt: v })}
+              placeholder="Ce que montre l’image"
+            />
+            <p className="text-xs text-slate-400">
+              Lu par les lecteurs d’écran et affiché si l’image ne charge pas.
+            </p>
+            <Field label="Légende" value={block.caption} onChange={(v) => set({ caption: v })} />
+            <label className="flex items-center gap-2 text-sm text-slate-700">
+              <input
+                type="checkbox"
+                checked={block.full ?? false}
+                onChange={(e) => set({ full: e.target.checked })}
+                className="h-4 w-4 rounded border-slate-300"
+              />
+              Pleine largeur (sinon centrée dans la colonne de lecture)
+            </label>
           </>
         )}
 

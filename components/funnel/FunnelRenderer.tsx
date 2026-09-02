@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import {
   ArrowRight,
@@ -317,6 +318,19 @@ function BlockView({
                 />
               </div>
             )}
+            {block.imageUrl && (
+              <div className="mt-12 overflow-hidden rounded-2xl border border-white/10 shadow-2xl">
+                <Image
+                  src={block.imageUrl}
+                  alt=""
+                  width={1600}
+                  height={900}
+                  priority
+                  sizes="(max-width: 768px) 100vw, 768px"
+                  className="h-auto w-full object-cover"
+                />
+              </div>
+            )}
           </div>
         </section>
       )
@@ -572,6 +586,38 @@ function BlockView({
           </div>
         </Section>
       )
+
+    case 'image': {
+      // `next/image` non contraint en dimensions : on laisse la hauteur suivre
+      // le ratio réel plutôt que d'imposer un cadre qui rognerait la photo.
+      const photo = (
+        <figure className={block.full ? '' : 'mx-auto max-w-3xl'}>
+          <div className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 shadow-sm">
+            <Image
+              src={block.imageUrl}
+              alt={block.alt || ''}
+              width={1600}
+              height={900}
+              sizes={block.full ? '100vw' : '(max-width: 768px) 100vw, 768px'}
+              className="h-auto w-full object-cover"
+            />
+          </div>
+          {block.caption && (
+            <figcaption className="mt-3 text-center text-sm text-slate-500">
+              {block.caption}
+            </figcaption>
+          )}
+        </figure>
+      )
+
+      // En pleine largeur, l'image sort de la colonne de lecture : on ne la
+      // met donc pas dans `Section`, qui la contraindrait à `max-w-3xl`.
+      return block.full ? (
+        <section className="px-0 py-14 sm:py-20">{photo}</section>
+      ) : (
+        <Section>{photo}</Section>
+      )
+    }
 
     case 'text':
       return (

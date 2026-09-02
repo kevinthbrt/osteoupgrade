@@ -26,8 +26,17 @@ couche « pages » — c'est ce que fait ce module.
 
 ## Blocs disponibles
 
-`hero`, `video`, `benefits`, `testimonials`, `curriculum`, `pricing`,
+`hero`, `video`, `benefits`, `testimonials`, `curriculum`, `image`, `pricing`,
 `guarantee`, `faq`, `cta`, `optin`, `text`.
+
+Le bloc `image` (« Photo ») envoie le fichier sur **Vercel Blob** via
+`/api/funnels/image-upload` — même schéma que les envois existants du projet :
+réservé aux admins, type et taille vérifiés, SVG exclu (une image servie sur une
+URL publique peut y embarquer du script). Une URL `https` peut aussi être
+collée. L'accroche accepte la même image en illustration.
+
+Les images sont rendues par `next/image` ; le domaine
+`**.public.blob.vercel-storage.com` est déjà déclaré dans `next.config.js`.
 
 Le contenu est un tableau JSONB : ajouter un type de bloc ne demande pas de
 migration, seulement une entrée dans `funnelBlockSchema` (validation), dans
