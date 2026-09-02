@@ -4,10 +4,11 @@ import { createRouteHandlerClient } from '@/lib/supabase-server-helpers'
 import { stripe, STRIPE_PLANS, FREE_TRIAL_DAYS } from '@/lib/stripe'
 import { planOf } from '@/lib/entitlements'
 import { notifyAdmin } from '@/lib/admin-notify'
+import { UTM_COOKIE, parseAttributionCookie, attributionToStripeMetadata } from '@/lib/utm'
 
 export async function POST(request: Request) {
   try {
-    const { planType, referralCode } = await request.json()
+    const { planType, referralCode, funnelSlug } = await request.json()
 
     const supabase = createRouteHandlerClient({ cookies })
     const { data: { user }, error: authError } = await supabase.auth.getUser()
@@ -213,6 +214,14 @@ export async function POST(request: Request) {
       !trialProfile?.subscription_start_date &&
       !trialProfile?.is_founding_member
 
+    // Attribution de la campagne. Le cookie a été posé sur la page d'arrivée
+    // (funnel, landing ou lien email) et survit à l'inscription : c'est le
+    // seul lien entre la campagne qui a produit la visite et le paiement, que
+    // Stripe rattachera ensuite à l'abonnement.
+    const attribution = parseAttributionCookie(cookies().get(UTM_COOKIE)?.value)
+    const attributionMetadata = attributionToStripeMetadata(attribution)
+    if (funnelSlug) attributionMetadata.funnel_slug = String(funnelSlug).slice(0, 100)
+
     console.log('🔑 Creating Stripe session with:', {
       priceId: plan.priceId,
       email,
@@ -247,7 +256,8 @@ export async function POST(request: Request) {
         is_annual: plan.isAnnual ? 'true' : 'false',
         referral_code: shouldProcessReferral ? referralCode || '' : '',
         referrer_user_id: shouldProcessReferral ? referrerUserId || '' : '',
-        is_trial: isEligibleForTrial ? 'true' : 'false'
+        is_trial: isEligibleForTrial ? 'true' : 'false',
+        ...attributionMetadata
       },
       subscription_data: {
         ...(isEligibleForTrial ? { trial_period_days: FREE_TRIAL_DAYS } : {}),
@@ -259,7 +269,8 @@ export async function POST(request: Request) {
           is_annual: plan.isAnnual ? 'true' : 'false',
           referral_code: shouldProcessReferral ? referralCode || '' : '',
           referrer_user_id: shouldProcessReferral ? referrerUserId || '' : '',
-          is_trial: isEligibleForTrial ? 'true' : 'false'
+          is_trial: isEligibleForTrial ? 'true' : 'false',
+          ...attributionMetadata
         }
       }
     })

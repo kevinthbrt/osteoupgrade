@@ -5,6 +5,25 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/).
 
 ---
 
+## [1.4.0] — 2026-09-02
+
+### Ajouté
+
+- **Funnels — pages de vente éditables** : nouveau module `/f/<slug>`, créé et modifié depuis **Administration → Funnels** sans redéploiement. Onze types de blocs (accroche, vidéo, bénéfices, témoignages, programme, tarifs, garantie, FAQ, appel à l'action, capture email, texte), réordonnables. Contenu stocké en JSONB, validé par `funnelInputSchema`. (`app/f/[slug]/`, `app/admin/funnels/`, `components/funnel/`, `lib/funnels.ts`)
+- **Capture de leads sans compte** : bloc formulaire alimentant `mail_contacts` via `triggerAutomations`, donc la même liste de diffusion que l'inscription. Chaque opt-in déclenche les automatisations dont le déclencheur vaut `funnel:<slug>` — une séquence par campagne, créée dans Automatisations sans écrire de code. (`app/api/funnels/lead/`)
+- **Échéance d'offre** : aucune, date fixe commune, ou J+N propre à chaque lead (offre permanente à fenêtre individuelle). Compte à rebours dans les blocs accroche, tarifs et appel à l'action. Un renvoi du formulaire ne repousse pas l'échéance.
+- **Attribution des campagnes (UTM)** : les paramètres UTM sont captés à l'arrivée dans le cookie premier-partie `ou_attrib` (90 jours, premier contact conservé) et réinjectés dans les metadata de la session et de l'abonnement Stripe. Une vente est désormais rattachable à la campagne qui l'a produite. (`lib/utm.ts`)
+- **Mesure par funnel** : vues, clics CTA, opt-ins et départs au paiement, avec la liste des derniers leads et leur campagne. (`app/api/funnels/track/`)
+- **Tables `funnels`, `funnel_leads`, `funnel_events`** : RLS admin uniquement, aucune politique `anon` — le rendu public passe par la clé service-role, qui filtre sur `status = 'published'`. (`supabase/migrations/20260902_funnels.sql`)
+- **Documentation** : `docs/FUNNELS.md`.
+
+### Amélioré
+
+- **Parcours d'achat depuis un funnel** : `/auth` accepte `?plan=` et `?funnel=` et enchaîne sur le paiement Stripe dès le compte créé, au lieu de renvoyer au tableau de bord — le visiteur n'a plus à retrouver l'offre qu'il venait d'accepter.
+- **Middleware** : les pages `/f/` sont exclues du contrôle de session, qui ajoutait une lecture Supabase à chaque visite sur les pages où la vitesse d'affichage se paie en conversions.
+
+---
+
 ## [1.3.0] — 2026-05-25
 
 ### Ajouté

@@ -45,5 +45,10 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)'],
+  // `f/` (pages funnel) est exclu : ces pages sont publiques par définition et
+  // rendues côté serveur avec la clé service-role. Les faire passer par le
+  // middleware ajouterait une lecture de session Supabase à chaque visite,
+  // sur précisément les pages où la vitesse d'affichage se paie en
+  // conversions.
+  matcher: ['/((?!api|_next/static|_next/image|favicon.ico|f/).*)'],
 }

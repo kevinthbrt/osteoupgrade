@@ -1,7 +1,19 @@
 import { supabaseAdmin } from './supabase-server'
 import { comparePlans, type Plan } from './entitlements'
 
+/**
+ * Séquence propre à une page funnel : `funnel:<slug>`.
+ *
+ * Les funnels sont créés depuis l'admin, pas dans le code — leur nombre n'est
+ * donc pas connu à la compilation. `mail_automations.trigger_event` étant du
+ * texte libre (cf. les séquences séminaire), il suffit de créer dans
+ * /admin/automations une séquence dont le déclencheur porte ce nom pour
+ * qu'un opt-in sur ce funnel l'enclenche.
+ */
+export type FunnelTriggerEvent = `funnel:${string}`
+
 export type TriggerEvent =
+  | FunnelTriggerEvent
   | 'contact_created'
   | 'contact_subscribed'
   | 'tag_added'
