@@ -11,7 +11,7 @@ import {
   Sparkles,
 } from 'lucide-react'
 import type { FunnelBlock } from '@/lib/funnels'
-import { safeEmbedUrl } from '@/lib/funnels'
+import { safeEmbedUrl, safeLinkUrl } from '@/lib/funnels'
 import { formatAmount } from '@/lib/offers'
 import {
   UTM_COOKIE,
@@ -75,8 +75,9 @@ export default function FunnelRenderer({
     // Premier contact conservé : on n'écrase un cookie existant que s'il ne
     // portait aucune campagne. Sinon un retour en direct volerait la
     // conversion à la campagne qui l'a réellement produite.
-    const shouldWrite = hasUtm(fromUrl) && !(existing && hasUtm(existing.utm))
-    if (shouldWrite) {
+    const attributed = existing && hasUtm(existing.utm) ? existing : null
+
+    if (!attributed && hasUtm(fromUrl)) {
       const attribution = {
         utm: fromUrl,
         landing: window.location.pathname,
@@ -84,10 +85,14 @@ export default function FunnelRenderer({
         first_seen: new Date().toISOString(),
       }
       document.cookie = `${UTM_COOKIE}=${serializeAttribution(attribution)}; path=/; max-age=${UTM_COOKIE_MAX_AGE}; SameSite=Lax`
-      setUtm(fromUrl)
-    } else {
-      setUtm(hasUtm(fromUrl) ? fromUrl : existing?.utm ?? {})
     }
+
+    // Le cookie fait foi dès qu'il porte une campagne — y compris quand l'URL
+    // en annonce une autre. Prendre celle de l'URL ici enregistrerait la
+    // campagne B sur le lead et les événements pendant que Stripe recevrait la
+    // campagne A depuis le cookie : deux attributions contradictoires pour une
+    // seule conversion.
+    setUtm(attributed ? attributed.utm : fromUrl)
 
     setLeadDeadline(localStorage.getItem(deadlineKey(funnel.slug)))
   }, [funnel.slug])
@@ -140,9 +145,16 @@ export default function FunnelRenderer({
         return
       }
 
-      if (target === 'url' && url) {
+      if (target === 'url') {
+        // Revalidé au clic et pas seulement à l'enregistrement : un lien
+        // stocké avant l'ajout de cette règle serait sinon navigable tel quel.
+        const safe = url ? safeLinkUrl(url) : null
+        if (!safe) {
+          console.warn('Lien de CTA ignoré (schéma non autorisé)')
+          return
+        }
         track('cta_click', { target: 'url' })
-        window.location.href = url
+        window.location.href = safe
         return
       }
 

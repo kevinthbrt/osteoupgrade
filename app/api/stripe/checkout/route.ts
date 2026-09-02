@@ -5,6 +5,7 @@ import { stripe, STRIPE_PLANS, FREE_TRIAL_DAYS } from '@/lib/stripe'
 import { planOf } from '@/lib/entitlements'
 import { notifyAdmin } from '@/lib/admin-notify'
 import { UTM_COOKIE, parseAttributionCookie, attributionToStripeMetadata } from '@/lib/utm'
+import { supabaseAdmin } from '@/lib/supabase-server'
 
 export async function POST(request: Request) {
   try {
@@ -131,8 +132,6 @@ export async function POST(request: Request) {
     const shouldProcessReferral = Boolean(referralCode)
 
     if (shouldProcessReferral) {
-      const { supabaseAdmin } = await import('@/lib/supabase-server')
-
       // 🚫 VÉRIFIER QUE L'UTILISATEUR N'A JAMAIS ÉTÉ PARRAINÉ (1 fois AU TOTAL, pas par année)
       const { data: existingReferrals, error: existingError } = await supabaseAdmin
         .from('referral_transactions')
@@ -213,6 +212,59 @@ export async function POST(request: Request) {
       !trialProfile?.trial_used_at &&
       !trialProfile?.subscription_start_date &&
       !trialProfile?.is_founding_member
+
+    // 🕒 Échéance du funnel.
+    //
+    // Le compte à rebours affiché sur la page n'engage que le navigateur : un
+    // lien conservé, un onglet resté ouvert ou une horloge décalée suffisent à
+    // atteindre cette route après la fin annoncée. Une offre présentée comme
+    // fermée doit l'être réellement, sinon le décompte n'est qu'un décor.
+    if (funnelSlug) {
+      const { data: funnel } = await supabaseAdmin
+        .from('funnels')
+        .select('id, plan_type, deadline_mode, deadline_at, deadline_days')
+        .eq('slug', String(funnelSlug))
+        .eq('status', 'published')
+        .maybeSingle()
+
+      if (funnel) {
+        // L'offre demandée doit être celle que la page annonçait : sans cette
+        // vérification, le slug d'un funnel encore ouvert servirait à valider
+        // n'importe quelle autre offre.
+        if (funnel.plan_type && funnel.plan_type !== planType) {
+          return NextResponse.json(
+            { error: 'Cette offre ne correspond pas à la page dont vous venez.' },
+            { status: 400 }
+          )
+        }
+
+        let echeance: Date | null = null
+
+        if (funnel.deadline_mode === 'fixed' && funnel.deadline_at) {
+          echeance = new Date(funnel.deadline_at)
+        } else if (funnel.deadline_mode === 'relative') {
+          // Échéance individuelle : celle figée à l'opt-in de ce visiteur.
+          // Un utilisateur qui n'a jamais laissé son email sur cette page n'a
+          // pas d'échéance à faire respecter — il n'a rien vu se fermer.
+          const { data: lead } = await supabaseAdmin
+            .from('funnel_leads')
+            .select('deadline_at')
+            .eq('funnel_id', funnel.id)
+            .eq('email', email)
+            .maybeSingle()
+
+          if (lead?.deadline_at) echeance = new Date(lead.deadline_at)
+        }
+
+        if (echeance && echeance.getTime() < Date.now()) {
+          console.warn('⏳ Offre expirée refusée:', { funnelSlug, planType, userId })
+          return NextResponse.json(
+            { error: 'Cette offre est terminée.' },
+            { status: 410 }
+          )
+        }
+      }
+    }
 
     // Attribution de la campagne. Le cookie a été posé sur la page d'arrivée
     // (funnel, landing ou lien email) et survit à l'inscription : c'est le

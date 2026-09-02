@@ -17,6 +17,14 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/).
 - **Tables `funnels`, `funnel_leads`, `funnel_events`** : RLS admin uniquement, aucune politique `anon` — le rendu public passe par la clé service-role, qui filtre sur `status = 'published'`. (`supabase/migrations/20260902_funnels.sql`)
 - **Documentation** : `docs/FUNNELS.md`.
 
+### Corrigé
+
+- **Funnels — l'email capté n'entrait pas dans la liste de diffusion** : `triggerAutomations` sort dès qu'aucune séquence active ne correspond à l'événement, donc avant sa propre création de contact. Un formulaire dont la séquence n'était pas encore écrite — l'état normal juste après la publication d'une page — enregistrait le lead sans jamais créer le contact. La résolution du contact est extraite dans `ensureMailContact()` et appelée avant toute recherche de séquence. (`lib/automation-triggers.ts`, `app/api/funnels/lead/route.ts`)
+- **Funnels — offre datée encore achetable après la fin** : `/api/stripe/checkout` ne vérifiait aucune échéance ; le compte à rebours n'engageait que le navigateur. La route résout désormais le funnel côté serveur et refuse une offre expirée (date fixe ou échéance individuelle du lead), ainsi qu'une offre ne correspondant pas à celle annoncée par la page.
+- **Funnels — URL de CTA non filtrée** : `ctaUrl` n'était validé que comme texte court et était assigné à `window.location.href`. Une URL `javascript:` enregistrée en base s'exécutait donc dans l'origine de l'application au premier clic. Les liens sont restreints à `http(s)` à l'enregistrement et au clic (`safeLinkUrl`).
+- **Funnels — attribution contradictoire** : lorsqu'un visiteur déjà attribué à une campagne rouvrait la page avec d'autres paramètres UTM, le cookie conservait bien la première campagne mais les leads et événements enregistraient la seconde. Le cookie fait désormais foi partout.
+- **Funnels — séquence impossible à créer depuis l'interface** : l'éditeur renvoyait vers Administration → Automatisations, qui ne sait que lister et activer des séquences existantes (aucun écran n'appelle `POST /api/automations`). L'éditeur crée maintenant la séquence et son déclencheur, et signale explicitement qu'une séquence sans étape n'envoie rien.
+
 ### Amélioré
 
 - **Parcours d'achat depuis un funnel** : `/auth` accepte `?plan=` et `?funnel=` et enchaîne sur le paiement Stripe dès le compte créé, au lieu de renvoyer au tableau de bord — le visiteur n'a plus à retrouver l'offre qu'il venait d'accepter.

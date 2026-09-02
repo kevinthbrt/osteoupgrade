@@ -28,6 +28,7 @@ import {
 } from 'lucide-react'
 
 type Stats = { view: number; cta_click: number; optin: number; checkout_started: number }
+type FunnelAutomation = { id: string; name: string; active: boolean; steps_count: number }
 type Lead = {
   id: string
   email: string
@@ -111,6 +112,8 @@ export default function FunnelEditorPage({ params }: { params: { id: string } })
   const [blocks, setBlocks] = useState<any[]>([])
   const [stats, setStats] = useState<Stats>({ view: 0, cta_click: 0, optin: 0, checkout_started: 0 })
   const [leads, setLeads] = useState<Lead[]>([])
+  const [automation, setAutomation] = useState<FunnelAutomation | null>(null)
+  const [creatingSequence, setCreatingSequence] = useState(false)
 
   useEffect(() => {
     const init = async () => {
@@ -142,6 +145,7 @@ export default function FunnelEditorPage({ params }: { params: { id: string } })
       setBlocks(Array.isArray(data.funnel.content) ? data.funnel.content : [])
       setStats(data.stats)
       setLeads(data.leads)
+      await loadAutomation(data.funnel.slug)
       setLoading(false)
     }
     init()
@@ -149,6 +153,49 @@ export default function FunnelEditorPage({ params }: { params: { id: string } })
   }, [params.id])
 
   const set = (patch: any) => setForm((prev: any) => ({ ...prev, ...patch }))
+
+  /** Séquence email rattachée à ce funnel, s'il en existe une. */
+  const loadAutomation = async (slug: string) => {
+    const res = await fetch('/api/automations')
+    if (!res.ok) return
+    const data = await res.json()
+    const trigger = funnelTriggerEvent(slug)
+    const found = (data.automations || []).find((a: any) => a.trigger_event === trigger)
+    setAutomation(
+      found
+        ? {
+            id: found.id,
+            name: found.name,
+            active: found.active,
+            steps_count: Array.isArray(found.steps) ? found.steps.length : 0,
+          }
+        : null
+    )
+  }
+
+  const handleCreateSequence = async () => {
+    setCreatingSequence(true)
+    setError(null)
+    try {
+      const res = await fetch('/api/automations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: `Funnel — ${form.name}`,
+          description: `Séquence déclenchée par les inscriptions sur /f/${form.slug}`,
+          trigger_event: funnelTriggerEvent(form.slug),
+          steps: [],
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error)
+      await loadAutomation(form.slug)
+    } catch (err: any) {
+      setError(err.message || 'Création de la séquence impossible')
+    } finally {
+      setCreatingSequence(false)
+    }
+  }
 
   const handleSave = async () => {
     setSaving(true)
@@ -434,10 +481,9 @@ export default function FunnelEditorPage({ params }: { params: { id: string } })
         <section className="mb-6 rounded-2xl border border-blue-200 bg-blue-50 p-6">
           <h2 className="mb-1 font-bold text-slate-900">Séquence email</h2>
           <p className="mb-3 text-sm text-slate-600">
-            Chaque opt-in sur cette page déclenche les automatisations dont le déclencheur porte ce nom.
-            Créez-la dans <strong>Administration → Automatisations</strong> avec ce déclencheur exact :
+            Chaque inscription sur cette page déclenche la séquence portant ce déclencheur :
           </p>
-          <div className="flex items-center gap-2">
+          <div className="mb-4 flex items-center gap-2">
             <code className="flex-1 rounded-lg border border-blue-200 bg-white px-3 py-2 font-mono text-sm text-blue-800">
               {funnelTriggerEvent(form.slug)}
             </code>
@@ -449,6 +495,53 @@ export default function FunnelEditorPage({ params }: { params: { id: string } })
               {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
             </button>
           </div>
+
+          {automation ? (
+            <div className="rounded-lg border border-blue-200 bg-white p-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <p className="font-semibold text-slate-900">{automation.name}</p>
+                  <p className="mt-0.5 text-xs text-slate-500">
+                    {automation.steps_count} email{automation.steps_count > 1 ? 's' : ''} ·{' '}
+                    {automation.active ? 'active' : 'inactive'}
+                  </p>
+                </div>
+                <a
+                  href="/admin/automations"
+                  className="text-sm font-medium text-blue-600 hover:underline"
+                >
+                  Ouvrir les automatisations
+                </a>
+              </div>
+              {automation.steps_count === 0 && (
+                <p className="mt-3 rounded-lg bg-amber-50 p-3 text-xs leading-relaxed text-amber-800">
+                  La séquence existe mais ne contient aucun email : rien ne partira tant qu’une étape
+                  n’y est pas ajoutée. L’ajout d’étapes se fait aujourd’hui en base (migration SQL),
+                  comme pour les séquences du cycle de vie — il n’existe pas encore d’éditeur d’étapes
+                  dans l’interface.
+                </p>
+              )}
+            </div>
+          ) : (
+            <div className="rounded-lg border border-blue-200 bg-white p-4">
+              <p className="mb-3 text-sm text-slate-600">
+                Aucune séquence n’écoute encore ce déclencheur. Les inscriptions seront bien
+                enregistrées et ajoutées à la liste de diffusion, mais aucun email ne partira.
+              </p>
+              <button
+                onClick={handleCreateSequence}
+                disabled={creatingSequence}
+                className="flex items-center gap-2 rounded-xl border border-blue-300 bg-white px-4 py-2 text-sm font-semibold text-blue-700 transition hover:bg-blue-50 disabled:opacity-60"
+              >
+                {creatingSequence ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Plus className="h-4 w-4" />
+                )}
+                Créer la séquence
+              </button>
+            </div>
+          )}
         </section>
 
         {/* Blocs */}

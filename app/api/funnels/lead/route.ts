@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { supabaseAdmin } from '@/lib/supabase-server'
 import { rateLimit } from '@/lib/rate-limit'
-import { triggerAutomations } from '@/lib/automation-triggers'
+import { ensureMailContact, triggerAutomations } from '@/lib/automation-triggers'
 import { funnelTriggerEvent, leadDeadlineFor, slugSchema } from '@/lib/funnels'
 import { UTM_KEYS } from '@/lib/utm'
 
@@ -78,10 +78,25 @@ export async function POST(req: NextRequest) {
 
     const deadline = leadDeadlineFor(funnel, new Date())
 
-    // Le contact est créé (ou retrouvé) par le moteur d'emails, qui est déjà
-    // la source de vérité de `mail_contacts` — on ne duplique pas cette
-    // logique ici. Le lead ne sert qu'à rattacher le contact à la campagne.
+    // Le contact d'abord, la séquence ensuite — et jamais l'inverse.
+    // `triggerAutomations` sort dès qu'aucune séquence active ne correspond à
+    // l'événement : lui déléguer la création du contact ferait perdre toutes
+    // les adresses captées tant que la séquence du funnel n'est pas écrite,
+    // c'est-à-dire dans l'état normal juste après la publication d'une page.
+    const { contactId, error: contactError } = await ensureMailContact({
+      email,
+      full_name,
+      metadata: { funnel_slug: slug, ...utm },
+    })
+
+    if (contactError) {
+      console.error('Funnel opt-in — contact:', contactError)
+    }
+
+    // L'inscription à la liste est acquise à ce stade ; l'échec d'une séquence
+    // ne doit donc pas faire échouer l'opt-in du visiteur.
     const triggerResult = await triggerAutomations(funnelTriggerEvent(slug), {
+      contact_id: contactId ?? undefined,
       contact_email: email,
       full_name,
       metadata: { funnel_slug: slug, ...utm },
@@ -91,11 +106,7 @@ export async function POST(req: NextRequest) {
       console.error('Funnel opt-in — erreurs d’automatisation:', triggerResult.errors)
     }
 
-    const { data: contact } = await supabaseAdmin
-      .from('mail_contacts')
-      .select('id')
-      .eq('email', email)
-      .maybeSingle()
+    const contact = contactId ? { id: contactId } : null
 
     // Un renvoi du formulaire ne doit PAS repousser l'échéance : sinon il
     // suffirait de se réinscrire pour rouvrir indéfiniment une offre fermée.

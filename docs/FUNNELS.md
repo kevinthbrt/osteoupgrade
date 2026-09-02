@@ -55,15 +55,25 @@ réinscrire pour rouvrir une offre fermée.
 ## Séquence email
 
 Chaque opt-in déclenche les automatisations dont le `trigger_event` vaut
-`funnel:<slug>`. Le déclencheur exact est affiché et copiable dans l'éditeur.
+`funnel:<slug>`. L'éditeur affiche ce déclencheur, indique si une séquence
+l'écoute, et permet de la créer d'un bouton.
 
-La séquence elle-même se crée dans **Administration → Automatisations**, comme
-n'importe quelle autre. Aucun code à écrire pour lancer une campagne.
+Le contact est créé dans `mail_contacts` par `ensureMailContact()`, **avant**
+toute recherche de séquence. C'est délibéré : `triggerAutomations` sort dès
+qu'aucune séquence active ne correspond à l'événement, et lui déléguer la
+création du contact ferait perdre toutes les adresses captées tant que la
+séquence n'est pas écrite — c'est-à-dire dans l'état normal juste après la
+publication d'une page. Une inscription entre donc dans la liste de diffusion
+même sans séquence.
 
-Le contact est créé dans `mail_contacts` par `triggerAutomations` — la même
-fonction que l'inscription et le passage Premium. Il n'y a donc qu'une seule
-liste de diffusion, et les règles existantes (désabonnement,
-`stop_on_subscribe`) s'appliquent sans traitement particulier.
+Il n'y a qu'une seule liste de diffusion : les règles existantes
+(désabonnement, promotion d'un statut « lead », `stop_on_subscribe`)
+s'appliquent sans traitement particulier.
+
+> **Limite héritée** : l'application ne sait pas encore éditer les *étapes*
+> d'une séquence. Le bouton crée la séquence et son déclencheur ; les emails
+> qu'elle envoie s'ajoutent en base (migration SQL), comme pour toutes les
+> séquences du cycle de vie existantes.
 
 ## Attribution des campagnes
 
@@ -90,6 +100,17 @@ envoie donc vers `/auth?funnel=<slug>&plan=<planType>`, et `/auth` enchaîne sur
 le paiement dès le compte créé — le visiteur n'a pas à retrouver l'offre qu'il
 venait d'accepter.
 
+`/api/stripe/checkout` refait deux vérifications côté serveur avant de créer la
+session :
+
+- **l'offre demandée est bien celle de la page** — sinon le slug d'un funnel
+  encore ouvert servirait à valider n'importe quelle autre offre ;
+- **l'échéance n'est pas dépassée** (date fixe du funnel, ou échéance
+  individuelle du lead) — le compte à rebours affiché n'engage que le
+  navigateur, et un lien conservé ou une horloge décalée suffisent à
+  l'atteindre après la fin annoncée. Une offre présentée comme fermée doit
+  l'être réellement.
+
 Si le funnel n'a pas d'offre configurée mais contient un bloc `optin`, les CTA
 « souscription » basculent automatiquement vers le formulaire email.
 
@@ -101,6 +122,11 @@ Si le funnel n'a pas d'offre configurée mais contient un bloc `optin`, les CTA
   servi, même en devinant son slug.
 - `/api/funnels/lead` et `/api/funnels/track` sont publics mais limités en débit
   et refusent un funnel non publié.
+- Les liens de CTA « lien libre » sont restreints à `http(s)` à l'enregistrement
+  **et** au clic (`safeLinkUrl`) : sans ça, une URL `javascript:` stockée en
+  base s'exécuterait dans l'origine de l'application au premier clic d'un
+  visiteur. La double vérification couvre les enregistrements antérieurs à
+  cette règle.
 - Les pages funnel sont exclues du middleware d'authentification et marquées
   `noindex` : elles sont diffusées par email et publicité, et leur
   référencement concurrencerait la page d'accueil sur les mêmes requêtes.

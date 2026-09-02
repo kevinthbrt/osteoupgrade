@@ -28,6 +28,21 @@ const shortText = z.string().trim().min(1).max(300)
 const longText = z.string().trim().min(1).max(5000)
 const optionalShort = z.string().trim().max(300).optional().or(z.literal(''))
 
+/**
+ * URL d'un CTA « lien libre ». Refusée à l'enregistrement si elle n'est pas en
+ * http(s) — la même règle est réappliquée au clic (`safeLinkUrl`), car un
+ * enregistrement antérieur à cette validation peut déjà être en base.
+ */
+const ctaUrlSchema = z
+  .string()
+  .trim()
+  .max(500)
+  .refine((url) => url === '' || /^https?:\/\//i.test(url), {
+    message: 'Le lien doit commencer par http:// ou https://',
+  })
+  .optional()
+  .or(z.literal(''))
+
 const baseBlock = { id: z.string().trim().min(1).max(64) }
 
 const heroSchema = z.object({
@@ -38,7 +53,7 @@ const heroSchema = z.object({
   subtitle: z.string().trim().max(1000).optional().or(z.literal('')),
   ctaLabel: optionalShort,
   ctaTarget: ctaTargetSchema.default('checkout'),
-  ctaUrl: optionalShort,
+  ctaUrl: ctaUrlSchema,
   imageUrl: optionalShort,
 })
 
@@ -137,7 +152,7 @@ const ctaSchema = z.object({
   text: z.string().trim().max(1000).optional().or(z.literal('')),
   ctaLabel: shortText,
   ctaTarget: ctaTargetSchema.default('checkout'),
-  ctaUrl: optionalShort,
+  ctaUrl: ctaUrlSchema,
 })
 
 const optinSchema = z.object({
@@ -352,6 +367,25 @@ export function leadDeadlineFor(
  */
 export function funnelTriggerEvent(slug: string): `funnel:${string}` {
   return `funnel:${slug}`
+}
+
+/**
+ * N'autorise qu'un lien réellement navigable pour un CTA « lien libre ».
+ *
+ * La cible est assignée à `window.location.href` : sans ce filtre, une URL
+ * `javascript:` enregistrée en base s'exécuterait dans l'origine de
+ * l'application au premier clic d'un visiteur. L'éditeur est réservé aux
+ * admins, mais un compte admin compromis ne doit pas pouvoir transformer une
+ * page publique en vecteur d'exécution.
+ */
+export function safeLinkUrl(url: string): string | null {
+  try {
+    const parsed = new URL(url)
+    if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') return null
+    return parsed.toString()
+  } catch {
+    return null
+  }
 }
 
 /**
