@@ -306,7 +306,7 @@ function BlockView({
           />
           {block.logoWatermark && (
             <div
-              className="pointer-events-none absolute right-0 top-0 translate-x-[22%] -translate-y-[14%]"
+              className="pointer-events-none absolute right-0 top-0 translate-x-[10%] -translate-y-[14%]"
               aria-hidden="true"
             >
               {/* La marque seule, pas le lockup complet : celui-ci porte le nom
@@ -320,15 +320,20 @@ function BlockView({
                   qui porte une illustration devient très haute, et un filigrane
                   centré s'y retrouve à mi-section, à côté de l'image, où il
                   ressemble à une décoration égarée. Ancré en haut, il reste sur
-                  la zone de l'accroche quelle que soit la hauteur du bloc. */}
+                  la zone de l'accroche quelle que soit la hauteur du bloc.
+
+                  Largeur en `vw` au-delà du mobile, et non en pixels fixes :
+                  une taille fixe collée au bord droit fond à mesure que
+                  l'écran s'élargit, au point de devenir un détail invisible
+                  dans un coin sur un moniteur large. */}
               <Image
                 src="/logo-mark.png"
                 alt=""
                 width={640}
                 height={640}
                 priority
-                className={`w-[380px] max-w-none sm:w-[520px] ${
-                  sombre ? 'opacity-10' : 'opacity-20'
+                className={`w-[300px] max-w-none sm:w-[min(620px,34vw)] ${
+                  sombre ? 'opacity-[0.12]' : 'opacity-[0.22]'
                 }`}
               />
             </div>
