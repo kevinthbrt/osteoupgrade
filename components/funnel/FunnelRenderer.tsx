@@ -306,7 +306,7 @@ function BlockView({
           />
           {block.logoWatermark && (
             <div
-              className="pointer-events-none absolute inset-y-0 right-0 flex items-center"
+              className="pointer-events-none absolute right-0 top-0 translate-x-[22%] -translate-y-[14%]"
               aria-hidden="true"
             >
               {/* La marque seule, pas le lockup complet : celui-ci porte le nom
@@ -314,14 +314,20 @@ function BlockView({
                   fantômes derrière l'accroche. Débordement volontaire à droite,
                   qui donne une texture de marque plutôt qu'une image posée.
                   Plus d'opacité sur fond clair, la marque y étant elle-même
-                  claire. */}
+                  claire.
+
+                  Ancrée en HAUT plutôt que centrée verticalement : une accroche
+                  qui porte une illustration devient très haute, et un filigrane
+                  centré s'y retrouve à mi-section, à côté de l'image, où il
+                  ressemble à une décoration égarée. Ancré en haut, il reste sur
+                  la zone de l'accroche quelle que soit la hauteur du bloc. */}
               <Image
                 src="/logo-mark.png"
                 alt=""
                 width={640}
                 height={640}
                 priority
-                className={`w-[380px] max-w-none translate-x-[22%] sm:w-[520px] ${
+                className={`w-[380px] max-w-none sm:w-[520px] ${
                   sombre ? 'opacity-10' : 'opacity-20'
                 }`}
               />
