@@ -14,6 +14,7 @@ Tu reçois la transcription brute d'une anamnèse et tu dois la structurer en ca
 RÉPONDS UNIQUEMENT EN JSON valide avec ce format exact :
 {
   "reason": "motif principal en 1 ligne courte",
+  "summary": "synthèse clinique en une phrase, 25 mots maximum",
   "sections": [
     { "id": "history", "label": "Histoire", "icon": "⚡", "color": "slate", "items": ["..."] },
     { "id": "pain", "label": "Douleur", "icon": "📍", "color": "sky", "items": ["..."] },
@@ -24,6 +25,20 @@ RÉPONDS UNIQUEMENT EN JSON valide avec ce format exact :
     { "id": "red_flags", "label": "Drapeaux rouges", "icon": "🚩", "color": "green", "items": ["..."], "allClear": true }
   ]
 }
+
+LA SYNTHÈSE ("summary") est destinée à être relue À VOIX HAUTE au patient en fin
+d'anamnèse, pour qu'il confirme ou corrige lui-même. Elle doit donc :
+- tenir en UNE phrase de 25 mots maximum, prononçable d'un trait ;
+- enchaîner, dans cet ordre et seulement si l'information est présente : le motif,
+  son ancienneté, la circonstance d'apparition, la localisation et le côté,
+  l'intensité chiffrée, l'irradiation, puis le statut des drapeaux rouges ;
+- rester au style télégraphique, sans verbe conjugué inutile, sans « le patient
+  rapporte que », sans reformulation empathique ;
+- ne contenir AUCUN fait absent des sections : elle les résume, elle ne les
+  complète pas. Quand un drapeau rouge est présent, elle le nomme.
+Exemple de forme attendue : « Lombalgie aiguë mécanique depuis 4 jours, post-port
+de charge, lombaire basse gauche, EVA 7/10, irradiation fessière, sans drapeau
+rouge. »
 
 Inclus TOUJOURS les 7 sections dans cet ordre, même si certaines sont vides (elles
 servent de checklist au praticien). Garde les "id", "label", "icon" et "color"
@@ -212,10 +227,10 @@ export async function POST(req: Request) {
       },
       body: JSON.stringify({
         model: 'claude-sonnet-4-6',
-        // Output now carries both the markdown anamnesis AND the sections array,
-        // so a long consultation can overflow 2000 tokens and truncate the JSON
-        // (which then falls back to a card-less response). 3000 gives headroom.
-        max_tokens: 3000,
+        // Output now carries the markdown anamnesis, the sections array AND the
+        // one-line summary, so a long consultation can overflow and truncate the
+        // JSON (which then falls back to a card-less response). 3200 gives headroom.
+        max_tokens: 3200,
         system: [
           {
             type: 'text',
@@ -282,7 +297,7 @@ export async function POST(req: Request) {
     const end = content.lastIndexOf('}')
     const jsonStr = start >= 0 && end > start ? content.slice(start, end + 1) : content
 
-    let parsed: { reason?: string; sections?: unknown[]; anamnesis?: string }
+    let parsed: { reason?: string; summary?: string; sections?: unknown[]; anamnesis?: string }
     try {
       parsed = JSON.parse(jsonStr)
     } catch {
