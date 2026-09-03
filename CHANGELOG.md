@@ -5,6 +5,19 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/).
 
 ---
 
+## [1.5.0] : 2026-09-03
+
+### Ajouté
+
+- **Structuration d'anamnèse : phrase de synthèse** : `/api/osteoflow/ai` renvoie désormais un champ `summary` en plus du motif et des cartes. Une phrase de vingt-cinq mots au plus, au style télégraphique, écrite pour être relue à voix haute au patient en fin d'interrogatoire : il confirme ou corrige lui-même, ce qui vérifie à la source au lieu de faire relire trente items au praticien. L'ordre est imposé (motif, ancienneté, circonstance, localisation et côté, intensité, irradiation, drapeaux rouges) et la phrase ne peut contenir aucun fait absent des cartes. (`app/api/osteoflow/ai/route.ts`)
+- **`/api/osteoflow/summarize-anamnesis`** : nouvelle route, protégée par le même secret de proxy, qui produit cette phrase à partir de cartes DÉJÀ structurées. Elle sert la reprise des consultations antérieures de MyOsteoFlow, dont les cartes sont en base mais qui ont été traitées avant l'existence du champ `summary`. Résumer des faits déjà relevés n'est pas une tâche de raisonnement : le modèle est Haiku, réglable par `SUMMARY_MODEL`. Les items valant « — » (sujet non abordé) ne sont pas transmis, les transmettre ferait passer une absence pour un fait. Tailles bornées à l'entrée (20 rubriques, 40 items, 500 caractères).
+
+### Amélioré
+
+- **Marge de sortie de la structuration** : `max_tokens` passe de 3000 à 3200. La réponse porte maintenant le texte markdown, le tableau des sections ET la phrase de synthèse ; une anamnèse longue tronquait sinon le JSON, ce qui faisait retomber le client sur un affichage sans cartes.
+
+---
+
 ## [1.4.0] : 2026-09-02
 
 ### Ajouté
