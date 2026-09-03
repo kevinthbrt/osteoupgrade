@@ -49,7 +49,7 @@ Ne réécris jamais une ligne inchangée. Ne répète jamais un fait déjà rele
 AXES autorisés, à copier caractère pour caractère (tout autre axe est ignoré) :
 - motif : le motif de consultation, en une formule courte
 - localisation : où se situe la plainte
-- lateralite : droite, gauche, bilatérale
+- lateralite : droite, gauche, bilaterale, ou mediane quand la plainte est centrale
 - anciennete : depuis quand
 - apparition : brutale ou progressive, circonstance déclenchante
 - type : la qualité de la douleur (mécanique, brûlure, décharge, raideur)
@@ -63,6 +63,22 @@ AXES autorisés, à copier caractère pour caractère (tout autre axe est ignor�
 - antecedent : antécédent médical, chirurgical, traumatique ou familial mentionné
 - retentissement : conséquences au travail, dans le sport, sur le sommeil
 - red_flag : signal d'alerte, voir ci-dessous
+
+RÈGLE DE COUVERTURE IMPLICITE : une phrase renseigne souvent un axe sans le
+nommer. Chaque fois qu'elle répond à un axe, produis la ligne correspondante,
+même si elle en alimente déjà un autre. Une seule phrase peut donc donner
+plusieurs lignes.
+- « j'ai mal en plein milieu des lombaires » donne DEUX lignes : localisation
+  « Lombaire basse » ET lateralite « Médiane, non latéralisée ». Une douleur
+  centrale, axiale, sur la colonne ou « des deux côtés pareil » est une réponse
+  de latéralité, pas une absence de réponse.
+- « ça ne descend pas dans la jambe » renseigne l'axe irradiation.
+- « c'est venu d'un coup en soulevant un carton » donne apparition ET anciennete
+  si un repère de temps est donné.
+- « je ne peux plus courir » renseigne retentissement.
+Ne laisse jamais un axe non renseigné alors que le passage y répond : le
+praticien s'appuie sur ce qui reste non couvert pour savoir quoi demander, et un
+axe réclamé à tort lui fait reposer une question déjà posée.
 
 ÉCRITURE des lignes :
 - une ligne = UN fait précis, style télégraphique, 12 mots maximum, sans verbe
