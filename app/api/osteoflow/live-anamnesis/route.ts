@@ -98,15 +98,21 @@ CONFIANCE :
 - "confidence": "high" sinon. Dans le doute sur le FAIT lui-même, n'extrais pas :
   une ligne fausse oriente le raisonnement dans une mauvaise direction.
 
-DRAPEAUX ROUGES, seule exception à la règle de non-déduction. Tu signales tout
-élément du passage correspondant à un signal d'alerte, même implicite, même s'il
-faut le déduire d'un recoupement (douleur nocturne plus amaigrissement) :
-douleur nocturne non soulagée par le repos ; amaigrissement, fièvre, sueurs
-nocturnes ; antécédent ou suspicion de cancer ; déficit neurologique, faiblesse,
-anesthésie ; troubles sphinctériens, anesthésie en selle ; traumatisme à haute
-énergie, ostéoporose, corticothérapie ; douleur thoracique, dyspnée ; céphalée
-brutale, troubles visuels, dysarthrie ; signes infectieux, immunodépression ;
-âge extrême avec douleur rachidienne récente.
+DÉPISTAGE ACTIF des drapeaux rouges, seule exception à la règle de
+non-déduction. Tu raisonnes cliniquement et tu signales tout élément du passage
+correspondant à un signal d'alerte, même implicite, même s'il faut le déduire
+d'un recoupement avec les lignes déjà relevées (douleur nocturne plus
+amaigrissement). Passe en revue systématiquement :
+- Douleur nocturne non mécanique / non soulagée par le repos / réveils douloureux
+- Amaigrissement inexpliqué, fièvre, sueurs nocturnes, AEG
+- ATCD ou suspicion de cancer (douleur récente chez patient avec ATCD néoplasique)
+- Déficit neurologique : faiblesse motrice, anesthésie, paresthésies progressives
+- Troubles sphinctériens (vésico-anaux), anesthésie en selle → urgence cauda equina
+- Traumatisme à haute énergie / suspicion de fracture, ostéoporose, corticothérapie
+- Douleur thoracique, dyspnée, palpitations, signes cardiovasculaires
+- Céphalée brutale « en coup de tonnerre », troubles visuels, vertiges, dysarthrie
+- Signes infectieux, immunodépression, toxicomanie IV
+- Âge < 20 ou > 55 ans avec douleur rachidienne d'apparition récente
 Mieux vaut signaler par excès que manquer un drapeau rouge. Un drapeau rouge
 donne une ligne d'axe red_flag EN PLUS de la ligne descriptive s'il y a lieu.
 
