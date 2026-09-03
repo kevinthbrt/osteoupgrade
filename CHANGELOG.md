@@ -5,6 +5,18 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/).
 
 ---
 
+## [1.6.0] : 2026-09-03
+
+### Ajouté
+
+- **`/api/osteoflow/live-anamnesis`** : extraction incrémentale d'une anamnèse dictée, pour le mode consultation de MyOsteoFlow. Reçoit un passage qui vient d'être prononcé et l'état des lignes déjà relevées avec leur identifiant ; renvoie des opérations (`add`, `update`, `remove`) sur ces lignes plutôt qu'une nouvelle synthèse. C'est ce qui permet à « c'est à gauche, ah non pardon à droite » de corriger la ligne existante au lieu d'en empiler une seconde qui la contredirait : deux lignes contradictoires sont pires que pas de ligne du tout.
+- **Texte libre, axes fermés** : le texte des lignes n'est soumis à aucun vocabulaire, imposer un lexique abîmerait la formulation et n'est pas nécessaire pour afficher. Seul l'AXE de chaque ligne est pris dans une liste fermée de quinze valeurs, parce qu'il sert ensuite à dire ce qui manque et qu'on ne détecte pas une absence sans référence. Cette liste est générique et non régionale : une liste par pathologie demanderait un développement par région et se périmerait.
+- **Dépistage des drapeaux rouges en direct** : seule exception à la règle de non-déduction, reprise du prompt de structuration. Le passage est passé en revue pour les dix familles de signaux d'alerte, y compris par recoupement, et mieux vaut signaler par excès que manquer un signe.
+- **Confiance et verbatim par ligne** : une transcription douteuse est marquée et accompagnée des mots du patient, sans reformulation, pour que le praticien tranche sans redemander.
+- **Modèle et cache** : Haiku par défaut, réglable par `LIVE_ANAMNESIS_MODEL`. La route étant appelée toutes les dix à quinze secondes pendant une consultation, le prompt système est mis en cache pour ne pas être repayé à chaque passage, et une réponse illisible renvoie une liste d'opérations vide plutôt que d'interrompre la dictée.
+
+---
+
 ## [1.5.0] : 2026-09-03
 
 ### Ajouté
