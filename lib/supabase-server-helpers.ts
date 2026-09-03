@@ -1,12 +1,13 @@
 import {
   createRouteHandlerClient as _createRouteHandlerClient,
-  createMiddlewareClient as _createMiddlewareClient
+  createMiddlewareClient as _createMiddlewareClient,
+  createServerComponentClient as _createServerComponentClient
 } from '@supabase/auth-helpers-nextjs'
 import type { cookies as CookiesFn } from 'next/headers'
 import type { NextRequest, NextResponse } from 'next/server'
 
 // Next.js intercepte tout fetch() exécuté côté serveur et le met en cache
-// via son Data Cache — qui est PERSISTANT ENTRE LES DÉPLOIEMENTS sur Vercel.
+// via son Data Cache : qui est PERSISTANT ENTRE LES DÉPLOIEMENTS sur Vercel.
 // Ça inclut les appels internes des clients Supabase (auth-helpers-nextjs
 // comme le client admin), et `export const dynamic = 'force-dynamic'` sur
 // une route ne suffit pas à s'en protéger de façon fiable pour un fetch
@@ -23,4 +24,9 @@ export function createRouteHandlerClient(context: { cookies: typeof CookiesFn })
 
 export function createMiddlewareClient(context: { req: NextRequest; res: NextResponse }) {
   return _createMiddlewareClient(context, { options: { global: { fetch: noStoreFetch } } })
+}
+
+/** Lecture de la session depuis un composant serveur (pages, layouts). */
+export function createServerComponentClient(context: { cookies: typeof CookiesFn }) {
+  return _createServerComponentClient(context, { options: { global: { fetch: noStoreFetch } } })
 }

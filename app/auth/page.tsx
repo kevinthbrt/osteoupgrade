@@ -39,7 +39,7 @@ const features = [
   },
   {
     icon: FileText,
-    label: "Dictée vocale — l'IA rédige vos CR",
+    label: "Dictée vocale : l'IA rédige vos CR",
     pillar: 'MyOsteoflow',
     color: 'text-blue-300',
   },
@@ -56,6 +56,51 @@ const features = [
     color: 'text-blue-300',
   },
 ]
+
+/**
+ * Redirection après authentification.
+ *
+ * Un visiteur venu d'une page funnel arrive ici avec l'offre qu'il a choisie
+ * (`?plan=`) et le funnel d'origine (`?funnel=`). L'enchaînement attendu est
+ * « je m'inscris puis je paie » : le renvoyer au tableau de bord lui ferait
+ * rechercher lui-même l'offre qu'il venait d'accepter.
+ *
+ * Les paramètres sont lus depuis `window.location` plutôt qu'avec
+ * `useSearchParams`, qui imposerait une frontière Suspense à toute la page.
+ *
+ * `planType` n'est pas validé ici : c'est /api/stripe/checkout qui fait
+ * autorité sur les offres et refuse ce qu'il ne connaît pas. En cas d'échec on
+ * retombe sur le tableau de bord : un compte créé ne doit jamais rester
+ * bloqué sur une erreur de paiement.
+ */
+async function redirectAfterAuth(router: ReturnType<typeof useRouter>) {
+  const params = new URLSearchParams(window.location.search)
+  const planType = params.get('plan')
+  const funnelSlug = params.get('funnel')
+
+  if (!planType) {
+    router.push('/dashboard')
+    return
+  }
+
+  try {
+    const res = await fetch('/api/stripe/checkout', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ planType, funnelSlug: funnelSlug || undefined }),
+    })
+    const data = await res.json()
+    if (res.ok && data.url) {
+      window.location.href = data.url
+      return
+    }
+    console.error('Checkout depuis un funnel impossible:', data.error)
+  } catch (err) {
+    console.error('Checkout depuis un funnel impossible:', err)
+  }
+
+  router.push('/dashboard')
+}
 
 export default function AuthPage() {
   const router = useRouter()
@@ -108,7 +153,7 @@ export default function AuthPage() {
         if (error) throw error
 
         if (data.user) {
-          router.push('/dashboard')
+          await redirectAfterAuth(router)
         }
       } else {
         if (!acceptCgu) {
@@ -164,7 +209,7 @@ export default function AuthPage() {
           }
 
           setSuccess('Compte créé avec succès ! Vous allez être redirigé...')
-          setTimeout(() => router.push('/dashboard'), 2000)
+          setTimeout(() => { void redirectAfterAuth(router) }, 2000)
         }
       }
     } catch (error: any) {
@@ -202,7 +247,7 @@ export default function AuthPage() {
               <span className="text-sky-400">votre pratique</span>
             </h1>
             <p className="text-slate-400 text-lg leading-relaxed max-w-md">
-              Deux outils pensés pour l&apos;ostéopathe d&apos;aujourd&apos;hui — monter en compétences cliniques et simplifier la gestion du cabinet.
+              Deux outils pensés pour l&apos;ostéopathe d&apos;aujourd&apos;hui : monter en compétences cliniques et simplifier la gestion du cabinet.
             </p>
           </div>
 

@@ -20,6 +20,7 @@ import {
   HeartHandshake,
   Eye,
   Loader2,
+  Route,
 } from 'lucide-react'
 import { PLANS, planLabel, type Plan } from '@/lib/entitlements'
 
@@ -155,6 +156,14 @@ export default function AdminPage() {
       iconColor: 'text-purple-600',
       iconBg: 'bg-purple-100',
       href: '/admin/automations',
+    },
+    {
+      title: 'Funnels',
+      description: 'Pages de vente éditables, leads et attribution des campagnes',
+      icon: Route,
+      iconColor: 'text-blue-600',
+      iconBg: 'bg-blue-100',
+      href: '/admin/funnels',
     },
     {
       title: 'Codes Promo',

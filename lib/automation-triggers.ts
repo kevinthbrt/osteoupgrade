@@ -1,7 +1,19 @@
 import { supabaseAdmin } from './supabase-server'
 import { comparePlans, type Plan } from './entitlements'
 
+/**
+ * Séquence propre à une page funnel : `funnel:<slug>`.
+ *
+ * Les funnels sont créés depuis l'admin, pas dans le code : leur nombre n'est
+ * donc pas connu à la compilation. `mail_automations.trigger_event` étant du
+ * texte libre (cf. les séquences séminaire), il suffit de créer dans
+ * /admin/automations une séquence dont le déclencheur porte ce nom pour
+ * qu'un opt-in sur ce funnel l'enclenche.
+ */
+export type FunnelTriggerEvent = `funnel:${string}`
+
 export type TriggerEvent =
+  | FunnelTriggerEvent
   | 'contact_created'
   | 'contact_subscribed'
   | 'tag_added'
@@ -38,7 +50,7 @@ export type TriggerEvent =
  *
  * Une séquence par offre : le moteur ne sait que remplacer des {{variables}},
  * jamais brancher le contenu. Sans ce routage, un abonné OsteoUpgrade seul
- * recevrait les emails d'installation de MyOsteoflow — un logiciel qu'il n'a
+ * recevrait les emails d'installation de MyOsteoflow : un logiciel qu'il n'a
  * pas acheté et ne peut pas ouvrir.
  *
  * `Passage à Premium` est conservé pour le bundle : cet événement existe déjà
@@ -60,7 +72,7 @@ export function subscriptionEventFor(plan: string): TriggerEvent {
  *
  * Trois cas et non deux : `osteoflow` et `osteoupgrade` étant au même prix, en
  * changer n'est ni une évolution ni une réduction. Un message unique devrait
- * rester si vague qu'il n'annoncerait plus rien — or c'est précisément le
+ * rester si vague qu'il n'annoncerait plus rien : or c'est précisément le
  * moment où le client veut savoir ce qui s'ouvre et ce qui se ferme.
  *
  * Renvoie `null` quand les droits ne bougent pas (changement de périodicité,
@@ -141,6 +153,85 @@ function splitFullName(fullName?: string | null): { first_name: string | null; l
 }
 
 /**
+ * Crée ou retrouve le contact de diffusion correspondant à une adresse.
+ *
+ * Extrait de `triggerAutomations` pour pouvoir être appelé seul : cette
+ * dernière sort dès qu'aucune séquence active ne correspond à l'événement, et
+ * n'atteignait donc pas la création du contact. Un formulaire de funnel dont
+ * la séquence n'est pas encore écrite : l'état normal juste après la
+ * publication d'une page : captait ainsi des adresses qui n'entraient jamais
+ * dans la liste de diffusion.
+ *
+ * Renvoie `error` plutôt que de lever : l'appelant décide si l'échec est
+ * bloquant.
+ */
+export async function ensureMailContact(data: {
+  email: string
+  full_name?: string | null
+  metadata?: Record<string, any>
+}): Promise<{ contactId: string | null; error?: string }> {
+  const { data: existing } = await supabaseAdmin
+    .from('mail_contacts')
+    .select('id, status, first_name, last_name')
+    .eq('email', data.email)
+    .maybeSingle()
+
+  if (!existing) {
+    const { first_name, last_name } = splitFullName(data.full_name)
+    const { data: created, error: createError } = await supabaseAdmin
+      .from('mail_contacts')
+      .insert({
+        email: data.email,
+        status: 'subscribed',
+        first_name,
+        last_name,
+        metadata: data.metadata || {},
+      })
+      .select('id')
+      .single()
+
+    if (createError) {
+      return { contactId: null, error: `Error creating contact: ${createError.message}` }
+    }
+    return { contactId: created?.id ?? null }
+  }
+
+  if (existing.status !== 'subscribed' && existing.status !== 'unsubscribed') {
+    // Le contact existait avec un statut « lead » (ex: newsletter_pre_launch).
+    // Une inscription / un passage Premium = consentement aux emails du service :
+    // on le promeut en 'subscribed' pour que le processor n'annule pas les envois.
+    // On respecte cependant un désabonnement explicite ('unsubscribed').
+    const { error: promoteError } = await supabaseAdmin
+      .from('mail_contacts')
+      .update({ status: 'subscribed' })
+      .eq('id', existing.id)
+
+    if (promoteError) {
+      return {
+        contactId: existing.id,
+        error: `Error promoting contact to subscribed: ${promoteError.message}`,
+      }
+    }
+  }
+
+  // Rattrapage : le contact avait été créé sans nom par un déclenchement
+  // précédent (ex: avant que cet appelant ne transmette full_name) : on le
+  // complète dès qu'on reçoit un nom, pour que {{full_name}} cesse de
+  // retomber sur l'email dans les emails déjà en cours d'envoi.
+  if (data.full_name && !existing.first_name && !existing.last_name) {
+    const { first_name, last_name } = splitFullName(data.full_name)
+    if (first_name) {
+      await supabaseAdmin
+        .from('mail_contacts')
+        .update({ first_name, last_name })
+        .eq('id', existing.id)
+    }
+  }
+
+  return { contactId: existing.id }
+}
+
+/**
  * Déclenche les automatisations correspondant à un événement
  */
 export async function triggerAutomations(
@@ -172,65 +263,16 @@ export async function triggerAutomations(
     let contactId = data.contact_id
 
     if (!contactId && data.contact_email) {
-      // Chercher ou créer le contact par email
-      let { data: contact } = await supabaseAdmin
-        .from('mail_contacts')
-        .select('id, status, first_name, last_name')
-        .eq('email', data.contact_email)
-        .single()
-
-      if (!contact) {
-        const { first_name, last_name } = splitFullName(data.full_name)
-        const { data: newContact, error: createError } = await supabaseAdmin
-          .from('mail_contacts')
-          .insert({
-            email: data.contact_email,
-            status: 'subscribed',
-            first_name,
-            last_name,
-            metadata: data.metadata || {}
-          })
-          .select('id, status, first_name, last_name')
-          .single()
-
-        if (createError) {
-          errors.push(`Error creating contact: ${createError.message}`)
-          return { enrolled, errors }
-        }
-
-        contact = newContact
-      } else {
-        if (contact.status !== 'subscribed' && contact.status !== 'unsubscribed') {
-          // Le contact existait avec un statut « lead » (ex: newsletter_pre_launch).
-          // Une inscription / un passage Premium = consentement aux emails du service :
-          // on le promeut en 'subscribed' pour que le processor n'annule pas les envois.
-          // On respecte cependant un désabonnement explicite ('unsubscribed').
-          const { error: promoteError } = await supabaseAdmin
-            .from('mail_contacts')
-            .update({ status: 'subscribed' })
-            .eq('id', contact.id)
-
-          if (promoteError) {
-            errors.push(`Error promoting contact to subscribed: ${promoteError.message}`)
-          }
-        }
-
-        // Rattrapage : le contact avait été créé sans nom par un déclenchement
-        // précédent (ex: avant que cet appelant ne transmette full_name) — on le
-        // complète dès qu'on reçoit un nom, pour que {{full_name}} cesse de
-        // retomber sur l'email dans les emails déjà en cours d'envoi.
-        if (data.full_name && !contact.first_name && !contact.last_name) {
-          const { first_name, last_name } = splitFullName(data.full_name)
-          if (first_name) {
-            await supabaseAdmin
-              .from('mail_contacts')
-              .update({ first_name, last_name })
-              .eq('id', contact.id)
-          }
-        }
+      const resolved = await ensureMailContact({
+        email: data.contact_email,
+        full_name: data.full_name,
+        metadata: data.metadata,
+      })
+      if (resolved.error) {
+        errors.push(resolved.error)
+        return { enrolled, errors }
       }
-
-      contactId = contact?.id
+      contactId = resolved.contactId ?? undefined
     }
 
     if (!contactId) {
