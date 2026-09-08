@@ -134,6 +134,48 @@ export const EMAIL_STATUS_LABELS: Record<string, { label: string; classes: strin
   failed:     { label: "Échec d'envoi", classes: 'bg-red-100 text-red-700' },
 }
 
+// ── Actions consignées à la main ───────────────────────────────────────────
+
+export const CANAUX_CONTACT = ['email', 'appel', 'message', 'reponse', 'autre'] as const
+export type CanalContact = (typeof CANAUX_CONTACT)[number]
+
+/**
+ * Ce qu'on peut inscrire dans la chronologie sans que le module l'ait fait.
+ *
+ * Le rattrapage de la migration a reconstitué les dates que `profiles`
+ * portait encore, mais rien de ce qui s'est passé en dehors de l'application :
+ * un email envoyé depuis votre boîte, un appel, une réponse reçue ailleurs.
+ * Sans moyen de les consigner, la fiche affirme « jamais relancé » d'une
+ * personne relancée trois fois, ce qui est pire qu'une fiche vide.
+ */
+export const CANAL_LABELS: Record<CanalContact, { label: string; description: string; emoji: string }> = {
+  email: {
+    label: 'Email envoyé',
+    description: 'Message parti de votre boîte, hors du module. Compte comme une relance.',
+    emoji: '✉️',
+  },
+  appel: {
+    label: 'Appel téléphonique',
+    description: 'Échange de vive voix.',
+    emoji: '📞',
+  },
+  message: {
+    label: 'Message',
+    description: 'SMS, WhatsApp, réseau social.',
+    emoji: '💬',
+  },
+  reponse: {
+    label: 'Réponse reçue',
+    description: 'La personne vous a répondu, par un canal que le module ne voit pas.',
+    emoji: '📥',
+  },
+  autre: {
+    label: 'Autre contact',
+    description: 'Rencontre en formation, salon, recommandation.',
+    emoji: '🤝',
+  },
+}
+
 // ── Enquêtes ───────────────────────────────────────────────────────────────
 
 export const SURVEY_KINDS = [

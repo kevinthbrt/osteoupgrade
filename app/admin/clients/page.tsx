@@ -7,7 +7,7 @@ import AuthLayout from '@/components/AuthLayout'
 import AdminBackButton from '@/components/AdminBackButton'
 import {
   Users, Search, Download, Mail, Loader2, ArrowUpDown, MessageSquareQuote,
-  AlertTriangle, EyeOff, Star,
+  AlertTriangle, EyeOff, Star, ClipboardCheck,
 } from 'lucide-react'
 import { planLabel, planOf, PLANS } from '@/lib/entitlements'
 import {
@@ -20,6 +20,7 @@ import {
 import FicheClient from './FicheClient'
 import ComposeurEmail from './ComposeurEmail'
 import ReponsesEnquetes from './ReponsesEnquetes'
+import ConsignerAction from './ConsignerAction'
 
 type Tri =
   | 'created_at' | 'full_name' | 'lifecycle_stage' | 'plan'
@@ -77,6 +78,7 @@ export default function SuiviClientsPage() {
   const [selection, setSelection] = useState<Set<string>>(new Set())
   const [ficheId, setFicheId] = useState<string | null>(null)
   const [composeurGroupe, setComposeurGroupe] = useState(false)
+  const [consignationGroupe, setConsignationGroupe] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
 
   useEffect(() => {
@@ -136,9 +138,15 @@ export default function SuiviClientsPage() {
     // facultatif. S'il est désactivé, `emails_opened` vaut zéro pour tout le
     // monde, et ce filtre désignerait comme silencieux quelqu'un qui vient de
     // cliquer sur le lien de la relance.
+    //
+    // `emails_tracked` et non `emails_sent` : un email consigné à la main
+    // n'aura jamais de statut d'ouverture, rien ne pouvant être mesuré d'un
+    // message parti d'ailleurs. Le compter ici ferait dire à la liste
+    // « relancé, aucun signe de vie » là où la vérité est « nous n'en savons
+    // rien », et c'est exactement le contresens qui fait renoncer à un compte.
     if (filtreRapide === 'jamais_relance') liste = liste.filter((c) => !c.emails_sent)
     if (filtreRapide === 'jamais_ouvert') {
-      liste = liste.filter((c) => c.emails_sent > 0 && !c.emails_opened && !c.emails_clicked)
+      liste = liste.filter((c) => c.emails_tracked > 0 && !c.emails_opened && !c.emails_clicked)
     }
     if (filtreRapide === 'inactif_30j') {
       liste = liste.filter((c) => {
@@ -405,6 +413,12 @@ export default function SuiviClientsPage() {
                       >
                         <Mail className="h-4 w-4" /> Écrire à la sélection
                       </button>
+                      <button
+                        onClick={() => setConsignationGroupe(true)}
+                        className="px-4 py-2 rounded-lg bg-white/10 text-sm font-semibold hover:bg-white/20 inline-flex items-center gap-2"
+                      >
+                        <ClipboardCheck className="h-4 w-4" /> Consigner
+                      </button>
                       <button onClick={() => setSelection(new Set())} className="px-4 py-2 rounded-lg bg-white/10 text-sm font-semibold hover:bg-white/20">
                         Annuler
                       </button>
@@ -459,7 +473,7 @@ export default function SuiviClientsPage() {
                                 <p className="font-semibold text-slate-800 flex items-center gap-1.5">
                                   {c.full_name || '(sans nom)'}
                                   {c.is_founding_member && <Star className="h-3.5 w-3.5 text-yellow-500" />}
-                                  {c.emails_sent > 0 && !c.emails_opened && !c.emails_clicked && (
+                                  {c.emails_tracked > 0 && !c.emails_opened && !c.emails_clicked && (
                                     <EyeOff className="h-3.5 w-3.5 text-amber-500" />
                                   )}
                                 </p>
@@ -528,6 +542,22 @@ export default function SuiviClientsPage() {
 
       {ficheId && (
         <FicheClient clientId={ficheId} onClose={() => setFicheId(null)} onChange={charger} />
+      )}
+
+      {consignationGroupe && selectionnes.length > 0 && (
+        <ConsignerAction
+          cibles={selectionnes.map((c) => ({ id: c.id, email: c.email, full_name: c.full_name }))}
+          motifDepartPossible={selectionnes.every((c) =>
+            ['resilie', 'essai_termine'].includes(c.lifecycle_stage)
+          )}
+          onClose={() => setConsignationGroupe(false)}
+          onDone={(resume) => {
+            setConsignationGroupe(false)
+            setSelection(new Set())
+            setMessage(resume)
+            charger()
+          }}
+        />
       )}
 
       {composeurGroupe && selectionnes.length > 0 && (

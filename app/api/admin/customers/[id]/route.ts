@@ -43,7 +43,7 @@ export async function GET(_request: Request, { params }: { params: { id: string 
       .limit(200),
     supabaseAdmin
       .from('customer_emails')
-      .select('id, subject, category, status, sent_at, delivered_at, opened_at, clicked_at, open_count, click_count, error, campaign_id, survey_id')
+      .select('id, subject, category, status, provider, sent_at, delivered_at, opened_at, clicked_at, open_count, click_count, error, campaign_id, survey_id')
       .or(parIdOuEmail)
       .order('sent_at', { ascending: false })
       .limit(100),

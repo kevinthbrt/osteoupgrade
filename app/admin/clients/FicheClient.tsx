@@ -3,20 +3,23 @@
 import { useEffect, useState } from 'react'
 import {
   X, Loader2, Mail, StickyNote, Clock, LifeBuoy, Inbox, Tag, Trash2,
-  ExternalLink, Star, CreditCard, Gift, Pin,
+  ExternalLink, Star, CreditCard, Gift, Pin, ClipboardCheck,
 } from 'lucide-react'
 import { planLabel, planOf } from '@/lib/entitlements'
 import {
+  CANAL_LABELS,
   EMAIL_STATUS_LABELS,
   EVENT_LABELS,
   SURVEY_DEFINITIONS,
   churnReasonLabel,
   lifecycleLabel,
   suggestedSurvey,
+  type CanalContact,
   type CustomerEventType,
   type SurveyKind,
 } from '@/lib/customer-tracking'
 import ComposeurEmail from './ComposeurEmail'
+import ConsignerAction from './ConsignerAction'
 
 function dateCourte(v: string | null | undefined) {
   if (!v) return null
@@ -54,6 +57,7 @@ export default function FicheClient({
   const [note, setNote] = useState('')
   const [enregistrement, setEnregistrement] = useState(false)
   const [composeur, setComposeur] = useState(false)
+  const [consignation, setConsignation] = useState(false)
   const [nouvelleTag, setNouvelleTag] = useState('')
   const [message, setMessage] = useState<string | null>(null)
 
@@ -95,6 +99,17 @@ export default function FicheClient({
 
   const supprimerNote = async (noteId: string) => {
     await fetch(`/api/admin/customers/${clientId}/notes?noteId=${noteId}`, { method: 'DELETE' })
+    await charger()
+    onChange()
+  }
+
+  const supprimerConsignation = async (eventId: string) => {
+    const res = await fetch(`/api/admin/customers/interactions?eventId=${eventId}`, { method: 'DELETE' })
+    if (!res.ok) {
+      const json = await res.json().catch(() => ({}))
+      setMessage(json.error || 'Suppression impossible.')
+      return
+    }
     await charger()
     onChange()
   }
@@ -174,6 +189,12 @@ export default function FicheClient({
               >
                 <Mail className="h-4 w-4" /> Écrire
               </button>
+              <button
+                onClick={() => setConsignation(true)}
+                className="px-4 py-2 rounded-lg bg-white/10 text-white text-sm font-semibold hover:bg-white/20 inline-flex items-center gap-2"
+              >
+                <ClipboardCheck className="h-4 w-4" /> Consigner
+              </button>
               {client.stripe_customer_id && (
                 <a
                   href={`https://dashboard.stripe.com/customers/${client.stripe_customer_id}`}
@@ -216,7 +237,7 @@ export default function FicheClient({
               <Carte
                 titre="Ouverts"
                 valeur={`${client.emails_opened || 0}${client.emails_clicked ? ` · ${client.emails_clicked} clic(s)` : ''}`}
-                accent={client.emails_sent && !client.emails_opened && !client.emails_clicked ? 'text-amber-600' : undefined}
+                accent={client.emails_tracked && !client.emails_opened && !client.emails_clicked ? 'text-amber-600' : undefined}
               />
               <Carte
                 titre="Enquêtes"
@@ -235,6 +256,11 @@ export default function FicheClient({
                 </p>
                 {client.churn_comment && (
                   <p className="text-sm text-red-800/80 mt-1 italic">« {client.churn_comment} »</p>
+                )}
+                {(data.evenements || []).some((e: any) => e.metadata?.motif_manuel) && (
+                  <p className="text-[11px] text-red-600/70 mt-2">
+                    Motif ressaisi à la main, et non recueilli auprès du client par Stripe.
+                  </p>
                 )}
               </div>
             )}
@@ -315,14 +341,35 @@ export default function FicheClient({
                 {data.evenements.length === 0 && <Vide texte="Aucun événement." />}
                 {data.evenements.map((e: any) => (
                   <div key={e.id} className="rounded-xl bg-white border border-slate-200 p-3.5 flex gap-3">
-                    <Clock className="h-4 w-4 text-slate-400 shrink-0 mt-0.5" />
+                    {e.metadata?.manuel ? (
+                      <ClipboardCheck className="h-4 w-4 text-slate-500 shrink-0 mt-0.5" />
+                    ) : (
+                      <Clock className="h-4 w-4 text-slate-400 shrink-0 mt-0.5" />
+                    )}
                     <div className="min-w-0 flex-1">
                       <div className="flex items-baseline justify-between gap-3">
                         <p className="text-sm font-semibold text-slate-800">
-                          {EVENT_LABELS[e.event_type as CustomerEventType] || e.event_type}
+                          {e.metadata?.canal && CANAL_LABELS[e.metadata.canal as CanalContact]
+                            ? CANAL_LABELS[e.metadata.canal as CanalContact].label
+                            : EVENT_LABELS[e.event_type as CustomerEventType] || e.event_type}
+                          {e.metadata?.objet ? ` : ${e.metadata.objet}` : ''}
                         </p>
-                        <p className="text-xs text-slate-400 shrink-0">{dateHeure(e.occurred_at)}</p>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <p className="text-xs text-slate-400">{dateHeure(e.occurred_at)}</p>
+                          {e.metadata?.manuel && (
+                            <button
+                              onClick={() => supprimerConsignation(e.id)}
+                              title="Retirer cette entrée consignée"
+                              className="text-slate-300 hover:text-red-600"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          )}
+                        </div>
                       </div>
+                      {e.metadata?.manuel && (
+                        <p className="text-[11px] text-slate-400 mt-0.5">Consigné à la main</p>
+                      )}
                       <p className="text-xs text-slate-500 mt-0.5">
                         {e.previous_plan && e.plan && e.previous_plan !== e.plan
                           ? `${planLabel(e.previous_plan)} vers ${planLabel(e.plan)}`
@@ -349,10 +396,13 @@ export default function FicheClient({
               <div className="space-y-2">
                 {data.emails.length === 0 && <Vide texte="Aucun email envoyé depuis cette fiche." />}
                 {data.emails.map((e: any) => {
-                  const statut = EMAIL_STATUS_LABELS[e.status] || {
-                    label: e.status,
-                    classes: 'bg-slate-100 text-slate-600',
-                  }
+                  const statut =
+                    e.provider === 'manuel'
+                      ? { label: 'Consigné', classes: 'bg-slate-100 text-slate-500' }
+                      : EMAIL_STATUS_LABELS[e.status] || {
+                          label: e.status,
+                          classes: 'bg-slate-100 text-slate-600',
+                        }
                   return (
                     <div key={e.id} className="rounded-xl bg-white border border-slate-200 p-3.5">
                       <div className="flex items-start justify-between gap-3">
@@ -484,6 +534,20 @@ export default function FicheClient({
           </div>
         </div>
       </div>
+
+      {consignation && (
+        <ConsignerAction
+          cibles={[{ id: client.id, email: client.email, full_name: client.full_name }]}
+          motifDepartPossible={['resilie', 'essai_termine'].includes(client.lifecycle_stage)}
+          onClose={() => setConsignation(false)}
+          onDone={(resume) => {
+            setConsignation(false)
+            setMessage(resume)
+            charger()
+            onChange()
+          }}
+        />
+      )}
 
       {composeur && (
         <ComposeurEmail

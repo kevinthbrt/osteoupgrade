@@ -47,6 +47,9 @@ définitivement perdus : ils n'ont jamais été stockés.
 | `customer_surveys` | Enquêtes envoyées et réponses reçues. |
 | `profiles.admin_tags` | Étiquettes libres de segmentation. |
 
+Les lignes saisies à la main portent `metadata.manuel = true`, et
+`customer_emails.provider = 'manuel'` pour un email consigné.
+
 La vue `admin_customer_overview` agrège le tout, une ligne par compte, et
 calcule `lifecycle_stage`. Elle n'est lisible que par la clé service-role.
 
@@ -82,6 +85,43 @@ stade.
 
 Les réponses remontent dans l'onglet **Réponses**, avec le classement des
 motifs les plus cités et la satisfaction moyenne.
+
+## Consigner ce qui s'est passé ailleurs
+
+Le rattrapage de la migration a reconstitué les dates que `profiles` portait
+encore. Il ne pouvait rien savoir du reste : une relance partie de votre boîte,
+un appel, une réponse reçue sur un autre canal. Sans moyen de l'inscrire, la
+fiche d'une personne relancée trois fois affirme « jamais relancé », et le
+filtre du même nom la remonte en tête des comptes à contacter. Une fiche fausse
+est pire qu'une fiche vide : elle fait agir à tort.
+
+Bouton **Consigner**, sur une fiche ou sur une sélection multiple. Rien n'est
+envoyé, seule la chronologie est mise à jour, à la date que vous indiquez (jamais
+dans le futur).
+
+| Action | Effet |
+| --- | --- |
+| Email envoyé | Compte comme une relance dans les compteurs et les filtres |
+| Appel téléphonique, Message, Réponse reçue, Autre contact | Apparaît dans la chronologie |
+| Motif de départ | Renseigne le motif d'une résiliation antérieure au module |
+
+Les entrées consignées portent la mention « Consigné à la main » et sont les
+seules supprimables : un événement posé par Stripe est un fait, pas une saisie,
+et l'effacer ferait mentir la chronologie sur ce qui s'est réellement produit.
+
+Le motif de départ ne crée pas un second événement de résiliation, il complète
+celui qui existe : deux « Résiliation » dans une chronologie laisseraient croire
+à deux départs. Il est affiché avec la réserve qui s'impose, un motif ressaisi
+de mémoire n'étant pas la parole du client.
+
+### Emails consignés et mesure
+
+Un email consigné n'aura jamais de statut d'ouverture : rien ne peut être
+mesuré d'un message parti d'ailleurs. La vue distingue donc `emails_sent` (tout
+ce qui est parti, consigné compris) de `emails_tracked` (les seuls envois passés
+par Resend). Le filtre « sans réaction » s'appuie sur le second, sans quoi il
+affirmerait « relancé, aucun signe de vie » là où la vérité est « nous n'en
+savons rien ».
 
 ## Suivi des ouvertures
 
