@@ -50,5 +50,11 @@ export const config = {
   // middleware ajouterait une lecture de session Supabase à chaque visite,
   // sur précisément les pages où la vitesse d'affichage se paie en
   // conversions.
-  matcher: ['/((?!api|_next/static|_next/image|favicon.ico|f/).*)'],
+  //
+  // `avis/` (réponse à une enquête) relève du même cas, et plus encore : on y
+  // arrive depuis un email, sans compte, et souvent après avoir résilié. La
+  // seule clé est le jeton de l'URL, vérifié côté serveur. Une lecture de
+  // session n'apprendrait rien et retarderait la page dont le taux de réponse
+  // est tout l'intérêt.
+  matcher: ['/((?!api|_next/static|_next/image|favicon.ico|f/|avis/).*)'],
 }

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { createRouteHandlerClient } from '@/lib/supabase-server-helpers'
 import { supabaseAdmin } from '@/lib/supabase-server'
+import { logCustomerEvent } from '@/lib/customer-events'
 
 export async function PATCH(request: Request) {
   const supabase = createRouteHandlerClient({ cookies })
@@ -24,6 +25,18 @@ export async function PATCH(request: Request) {
     .single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  // 📇 SUIVI CLIENT : le statut Fondateur change le tarif accessible au compte.
+  // Le tracer évite d'avoir à se souvenir de qui en a bénéficié, et quand.
+  if (updatedProfile?.email) {
+    await logCustomerEvent({
+      userId,
+      email: updatedProfile.email,
+      type: is_founding_member ? 'founding_granted' : 'other',
+      source: 'admin',
+      metadata: { is_founding_member }
+    })
+  }
 
   // 🌟 Confirmer par email uniquement à l'attribution du statut (pas au retrait)
   // Réutilise l'automatisation "Bienvenue - Membre Fondateur" déjà existante

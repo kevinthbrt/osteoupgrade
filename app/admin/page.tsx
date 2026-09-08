@@ -21,6 +21,7 @@ import {
   Eye,
   Loader2,
   Route,
+  UserSearch,
 } from 'lucide-react'
 import { PLANS, planLabel, type Plan } from '@/lib/entitlements'
 
@@ -114,6 +115,14 @@ export default function AdminPage() {
       iconColor: 'text-blue-600',
       iconBg: 'bg-blue-100',
       href: '/admin/users',
+    },
+    {
+      title: 'Suivi des clients',
+      description: 'Parcours, essais, résiliations, relances et retours clients',
+      icon: UserSearch,
+      iconColor: 'text-violet-600',
+      iconBg: 'bg-violet-100',
+      href: '/admin/clients',
     },
     {
       title: 'Tickets Support',

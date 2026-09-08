@@ -24,6 +24,30 @@ export async function verifyAdmin(): Promise<boolean> {
   }
 }
 
+/**
+ * Comme `verifyAdmin`, mais renvoie l'administrateur identifié plutôt qu'un
+ * booléen. Nécessaire dès qu'on doit tracer QUI a agi : auteur d'une note,
+ * expéditeur d'un email de relance.
+ */
+export async function currentAdmin(): Promise<{ id: string; email: string | null } | null> {
+  try {
+    const supabase = createRouteHandlerClient({ cookies })
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+    if (!user) return null
+    const { data: profile } = await supabaseAdmin
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single()
+    if (profile?.role !== 'admin') return null
+    return { id: user.id, email: user.email ?? null }
+  } catch {
+    return null
+  }
+}
+
 /** Vrai si l'en-tête Authorization correspond au secret CRON. */
 export function isValidCron(request: Request): boolean {
   const secret = process.env.CRON_SECRET
