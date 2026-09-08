@@ -7,13 +7,16 @@ import AuthLayout from '@/components/AuthLayout'
 import AdminBackButton from '@/components/AdminBackButton'
 import {
   Users, Search, Download, Mail, Loader2, ArrowUpDown, MessageSquareQuote,
-  AlertTriangle, EyeOff, Star, ClipboardCheck,
+  AlertTriangle, EyeOff, Star, ClipboardCheck, ListChecks,
 } from 'lucide-react'
 import { planLabel, planOf, PLANS } from '@/lib/entitlements'
 import {
   LIFECYCLE_STAGES,
+  URGENCE_STYLES,
   churnReasonLabel,
   lifecycleLabel,
+  signalPrincipal,
+  signauxDe,
   suggestedSurvey,
   type SurveyKind,
 } from '@/lib/customer-tracking'
@@ -21,6 +24,7 @@ import FicheClient from './FicheClient'
 import ComposeurEmail from './ComposeurEmail'
 import ReponsesEnquetes from './ReponsesEnquetes'
 import ConsignerAction from './ConsignerAction'
+import AtraiterFile from './AtraiterFile'
 
 type Tri =
   | 'created_at' | 'full_name' | 'lifecycle_stage' | 'plan'
@@ -64,7 +68,7 @@ export default function SuiviClientsPage() {
   const [clients, setClients] = useState<any[]>([])
   const [stats, setStats] = useState<any>(null)
   const [chargement, setChargement] = useState(true)
-  const [vue, setVue] = useState<'clients' | 'reponses'>('clients')
+  const [vue, setVue] = useState<'a_traiter' | 'clients' | 'reponses'>('a_traiter')
 
   const [recherche, setRecherche] = useState('')
   const [filtreEtape, setFiltreEtape] = useState('all')
@@ -79,6 +83,9 @@ export default function SuiviClientsPage() {
   const [ficheId, setFicheId] = useState<string | null>(null)
   const [composeurGroupe, setComposeurGroupe] = useState(false)
   const [consignationGroupe, setConsignationGroupe] = useState(false)
+  // Écriture lancée depuis la file d'attente, sur un seul compte : elle
+  // court-circuite la sélection, qui n'a pas de sens dans ce contexte.
+  const [cibleDirecte, setCibleDirecte] = useState<{ client: any; enquete: boolean } | null>(null)
   const [message, setMessage] = useState<string | null>(null)
 
   useEffect(() => {
@@ -106,6 +113,11 @@ export default function SuiviClientsPage() {
       setChargement(false)
     }
   }
+
+  const nbATraiter = useMemo(
+    () => clients.filter((c) => signauxDe(c).length > 0).length,
+    [clients]
+  )
 
   const tags = useMemo(() => {
     const set = new Set<string>()
@@ -284,7 +296,22 @@ export default function SuiviClientsPage() {
           <div className="pointer-events-none absolute top-0 left-1/4 w-96 h-96 bg-violet-400/30 rounded-full blur-3xl" />
           <div className="relative space-y-6">
 
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap">
+              <button
+                onClick={() => setVue('a_traiter')}
+                className={`px-5 py-2.5 rounded-xl text-sm font-semibold border transition-all ${
+                  vue === 'a_traiter' ? 'bg-violet-600 text-white border-violet-500 shadow' : 'bg-white/70 text-slate-700 border-violet-200/60'
+                }`}
+              >
+                <span className="flex items-center gap-2">
+                  <ListChecks className="h-4 w-4" /> À traiter
+                  {nbATraiter > 0 && (
+                    <span className={`px-1.5 py-0.5 rounded-md text-[11px] font-bold ${vue === 'a_traiter' ? 'bg-white/20' : 'bg-red-100 text-red-700'}`}>
+                      {nbATraiter}
+                    </span>
+                  )}
+                </span>
+              </button>
               <button
                 onClick={() => setVue('clients')}
                 className={`px-5 py-2.5 rounded-xl text-sm font-semibold border transition-all ${
@@ -310,13 +337,21 @@ export default function SuiviClientsPage() {
               </div>
             )}
 
-            {vue === 'reponses' ? (
+            {vue === 'a_traiter' ? (
+              <AtraiterFile
+                clients={clients}
+                onOuvrir={setFicheId}
+                onEcrire={(c) => setCibleDirecte({ client: c, enquete: false })}
+                onEnquete={(c) => setCibleDirecte({ client: c, enquete: true })}
+              />
+            ) : vue === 'reponses' ? (
               <ReponsesEnquetes />
             ) : (
               <>
                 {/* INDICATEURS */}
                 {stats && (
                   <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
+                    <Indicateur titre="À traiter" valeur={stats.aTraiter ?? 0} couleur="text-red-600" onClick={() => setVue('a_traiter')} />
                     <Indicateur titre="Comptes" valeur={stats.total} onClick={() => setFiltreEtape('all')} />
                     <Indicateur titre="Inscrits sans suite" valeur={stats.inscrits} onClick={() => setFiltreEtape('inscrit')} />
                     <Indicateur titre="Essai en cours" valeur={stats.essaiEnCours} couleur="text-blue-600" onClick={() => setFiltreEtape('essai_en_cours')} />
@@ -462,6 +497,7 @@ export default function SuiviClientsPage() {
                         {filtres.map((c) => {
                           const etape = lifecycleLabel(c.lifecycle_stage)
                           const inactif = joursDepuis(c.last_login_date)
+                          const signal = signalPrincipal(c)
                           return (
                             <tr key={c.id} className="hover:bg-violet-50/50 transition-colors">
                               <td className="px-4 py-3">
@@ -474,6 +510,12 @@ export default function SuiviClientsPage() {
                               </td>
                               <td className="px-4 py-3 cursor-pointer" onClick={() => setFicheId(c.id)}>
                                 <p className="font-semibold text-slate-800 flex items-center gap-1.5">
+                                  {signal && (
+                                    <span
+                                      className={`h-2 w-2 rounded-full shrink-0 ${URGENCE_STYLES[signal.urgence].point}`}
+                                      title={signal.raison}
+                                    />
+                                  )}
                                   {c.full_name || '(sans nom)'}
                                   {c.is_founding_member && <Star className="h-3.5 w-3.5 text-yellow-500" />}
                                   {c.emails_tracked > 0 && !c.emails_opened && !c.emails_clicked && (
@@ -545,6 +587,27 @@ export default function SuiviClientsPage() {
 
       {ficheId && (
         <FicheClient clientId={ficheId} onClose={() => setFicheId(null)} onChange={charger} />
+      )}
+
+      {cibleDirecte && (
+        <ComposeurEmail
+          destinataires={[
+            {
+              id: cibleDirecte.client.id,
+              email: cibleDirecte.client.email,
+              full_name: cibleDirecte.client.full_name,
+            },
+          ]}
+          suggestion={
+            cibleDirecte.enquete ? suggestedSurvey(cibleDirecte.client.lifecycle_stage) : null
+          }
+          onClose={() => setCibleDirecte(null)}
+          onSent={(resume) => {
+            setCibleDirecte(null)
+            setMessage(resume)
+            charger()
+          }}
+        />
       )}
 
       {consignationGroupe && selectionnes.length > 0 && (

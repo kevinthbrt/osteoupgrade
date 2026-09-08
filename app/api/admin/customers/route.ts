@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { verifyAdmin } from '@/lib/api-guards'
 import { supabaseAdmin } from '@/lib/supabase-server'
+import { signauxDe } from '@/lib/customer-tracking'
 
 export const dynamic = 'force-dynamic'
 
@@ -39,6 +40,11 @@ export async function GET() {
     if (c.churn_reason) motifs[c.churn_reason] = (motifs[c.churn_reason] || 0) + 1
   }
 
+  // Comptés ici comme dans la page : une seule fonction décide de ce qui
+  // mérite d'agir, sinon l'onglet et l'indicateur finiraient par diverger.
+  const maintenant = Date.now()
+  const aTraiter = clients.filter((c: any) => signauxDe(c, maintenant).length > 0).length
+
   const actifs = clients.filter((c: any) => c.lifecycle_stage === 'abonne').length
   const essais = clients.filter((c: any) => c.has_trialed).length
   const essaisConvertis = clients.filter((c: any) => c.has_trialed && c.first_subscribed_at).length
@@ -47,6 +53,7 @@ export async function GET() {
     clients,
     stats: {
       total: clients.length,
+      aTraiter,
       inscrits: clients.filter((c: any) => c.lifecycle_stage === 'inscrit').length,
       essaiEnCours: clients.filter((c: any) => c.lifecycle_stage === 'essai_en_cours').length,
       essaiTermine: clients.filter((c: any) => c.lifecycle_stage === 'essai_termine').length,
