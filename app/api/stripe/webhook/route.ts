@@ -6,6 +6,7 @@ import { supabaseAdmin } from '@/lib/supabase-server'
 import { sendTransactionalEmail } from '@/lib/mailing'
 import { notifyAdmin } from '@/lib/admin-notify'
 import { subscriptionEventFor, planChangeEventFor, cancelProspectSequences } from '@/lib/automation-triggers'
+import { logCustomerEvent } from '@/lib/customer-events'
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!
 
@@ -554,6 +555,25 @@ async function handleCheckoutCompleted(session: any) {
     console.error('Error retrieving first invoice for confirmation email')
   }
 
+  // 📇 SUIVI CLIENT : poser l'événement dans la chronologie (/admin/clients).
+  // `profiles` ne garde que l'état courant : sans cette ligne, un essai pris
+  // puis abandonné ne laisserait aucune trace une fois le compte repassé en
+  // gratuit, et « a-t-il pris l'essai ? » resterait sans réponse.
+  await logCustomerEvent({
+    userId,
+    email: profile.email,
+    type: isTrial ? 'trial_started' : 'subscribed',
+    plan: souscritPlan,
+    source: 'stripe',
+    amountCents: STRIPE_PLANS[planType]?.amount ?? null,
+    metadata: {
+      plan_type: planType,
+      partenaire: partnerDiscount?.partner || null,
+      parrainage: referralCode || null,
+      fin_essai: trialEndsAt || null
+    }
+  })
+
   // 🚀 DÉCLENCHER L'AUTOMATISATION : "Essai gratuit démarré" pendant l'essai
   // (contenu spécifique : MyOsteoflow uniquement, reste verrouillé), sinon
   // "Passage à Premium" classique. La conversion réelle de l'essai déclenche
@@ -693,6 +713,20 @@ async function handleSubscriptionUpdated(subscription: any) {
   if (updateData.plan && updateData.plan !== ancienPlan) {
     console.log('[stripe] plan change %s -> %s for %s', ancienPlan, updateData.plan, profile.id)
 
+    // 📇 SUIVI CLIENT : un changement d'offre est le seul événement que
+    // `profiles` écrase entièrement. Sans les deux offres conservées côte à
+    // côte, impossible de savoir plus tard s'il s'agissait d'une montée en
+    // gamme ou d'une réduction.
+    await logCustomerEvent({
+      userId: profile.id,
+      email: profile.email,
+      type: 'plan_changed',
+      plan: updateData.plan,
+      previousPlan: ancienPlan,
+      source: 'stripe',
+      metadata: { statut: subscription.status }
+    })
+
     // Le tarif est lu sur le prix réellement porté par l'abonnement après le
     // changement — y compris pour un membre fondateur, dont l'offre est
     // annuelle et remisée. Sert à la notification comme à l'email client.
@@ -748,6 +782,20 @@ async function handleSubscriptionUpdated(subscription: any) {
         console.error('Error triggering plan change automation')
       }
     }
+  }
+
+  // 📇 SUIVI CLIENT : conversion de l'essai. C'est l'événement qui alimente le
+  // taux de conversion affiché dans /admin/clients ; il ne se déduit d'aucune
+  // colonne de `profiles`, où l'essai converti et l'abonnement direct
+  // aboutissent au même état.
+  if (wasTrialing && subscription.status === 'active') {
+    await logCustomerEvent({
+      userId: profile.id,
+      email: profile.email,
+      type: 'trial_converted',
+      plan: updateData.plan || profile.plan,
+      source: 'stripe'
+    })
   }
 
   // 🎁 Parrainage différé : le code de parrainage saisi au moment de l'essai
@@ -919,6 +967,26 @@ async function handleSubscriptionDeleted(subscription: any) {
     console.error('Error triggering expiry automation')
   }
 
+  // 📇 SUIVI CLIENT : le motif saisi dans le portail Stripe est enregistré ici,
+  // pas seulement transmis dans une notification. C'est la seule source du
+  // « pourquoi ils annulent » demandé par /admin/clients : Stripe ne le
+  // conserve que sur l'objet abonnement, qui disparaît de la fiche client dès
+  // que le compte repasse en gratuit.
+  await logCustomerEvent({
+    userId: profile.id,
+    email: profile.email,
+    type: wasNeverConverted ? 'trial_canceled' : 'canceled',
+    previousPlan: profile.plan,
+    plan: 'free',
+    source: 'stripe',
+    reason: subscription?.cancellation_details?.feedback || null,
+    comment: subscription?.cancellation_details?.comment || null,
+    metadata: {
+      statut_precedent: profile.subscription_status,
+      raison_stripe: subscription?.cancellation_details?.reason || null
+    }
+  })
+
   // 🔔 Prévenir l'administrateur. Rien ne remontait jusqu'ici : le client
   // recevait son email, l'équipe n'apprenait le départ qu'en consultant les
   // statistiques. C'est pourtant le moment où un rattrapage est encore
@@ -1014,6 +1082,18 @@ async function handlePaymentSucceeded(invoice: any) {
     console.error('Error updating subscription status on renewal')
   }
 
+  // 📇 SUIVI CLIENT : les renouvellements encaissés donnent l'ancienneté réelle
+  // d'un abonné, que `subscription_start_date` seule ne dit pas.
+  await logCustomerEvent({
+    userId: profile.id,
+    email: profile.email,
+    type: 'renewed',
+    plan: profile.plan,
+    source: 'stripe',
+    amountCents: typeof invoice.amount_paid === 'number' ? invoice.amount_paid : null,
+    metadata: { facture: invoice.number || invoice.id || null }
+  })
+
   // 🚀 DÉCLENCHER L'AUTOMATISATION "Renouvellement effectué" → template e5555555
   try {
     await fetch(`${process.env.NEXT_PUBLIC_URL || 'http://localhost:3000'}/api/automations/trigger`, {
@@ -1056,6 +1136,22 @@ async function handlePaymentFailed(invoice: any) {
     console.error('Profile not found for payment failed')
     return
   }
+
+  // 📇 SUIVI CLIENT : un impayé précède souvent un départ. Le voir dans la
+  // chronologie permet d'écrire au client avant la résiliation, pas après.
+  await logCustomerEvent({
+    userId: profile.id,
+    email: profile.email,
+    type: 'payment_failed',
+    plan: profile.plan,
+    source: 'stripe',
+    amountCents: typeof invoice.amount_due === 'number' ? invoice.amount_due : null,
+    metadata: {
+      prochaine_tentative: invoice.next_payment_attempt
+        ? new Date(invoice.next_payment_attempt * 1000).toISOString()
+        : null
+    }
+  })
 
   // 🚀 DÉCLENCHER L'AUTOMATISATION "Paiement échoué" (relance / dunning)
   try {

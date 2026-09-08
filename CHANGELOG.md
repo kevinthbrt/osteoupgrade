@@ -5,6 +5,21 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/).
 
 ---
 
+## [1.7.0] : 2026-09-08
+
+### Ajouté
+
+- **Suivi des clients (`/admin/clients`)** : nouveau module d'administration qui répond à ce que `profiles` seul ne permettait pas de savoir : ce compte a-t-il pris l'essai, l'a-t-il annulé et pourquoi, quelle offre a-t-il prise, et que lui a-t-on déjà écrit. Tableau triable sur toutes les colonnes, filtres par étape du cycle de vie, offre et étiquette, sélection multiple, export CSV de la liste affichée. Voir `docs/SUIVI_CLIENTS.md`.
+- **Chronologie client (`customer_events`)** : `profiles` ne porte que l'état courant, un compte résilié y est indiscernable d'un compte jamais converti. Les inscriptions (trigger SQL), les essais, abonnements, changements d'offre, renouvellements, impayés et résiliations (webhook Stripe) laissent désormais une trace datée. Les comptes existants ont été rattrapés depuis leurs dates connues, marqués `source = 'backfill'`.
+- **Motif de résiliation conservé** : le motif et le commentaire saisis dans le portail client Stripe étaient lus dans la notification à l'administrateur puis perdus. Ils sont stockés sur l'événement `canceled`, affichés sur la fiche et agrégés en tête du module.
+- **Envoi d'emails depuis la fiche client** : message libre au gabarit maison avec champs de fusion (`{{prenom}}`, `{{nom}}`, `{{offre}}`) et bouton facultatif, à un compte ou à une sélection. Chaque envoi laisse une ligne dans `customer_emails`, échecs compris : un email refusé par Resend reste visible, plutôt que de faire croire à une relance jamais reçue.
+- **Enquêtes « pourquoi ? »** : quatre questions prédéfinies selon l'étape du parcours (pourquoi ne pas s'être abonné, pourquoi l'essai a été annulé, pourquoi la résiliation, satisfaction notée de 1 à 5). Chaque destinataire reçoit un lien personnel ouvrant `/avis/<token>`, sans connexion : exiger un compte pour répondre à « pourquoi êtes-vous parti ? » écarterait précisément les personnes interrogées. Les réponses sont regroupées dans un onglet dédié, avec le classement des motifs les plus cités.
+- **Suivi des ouvertures et des clics** : nouveau webhook `POST /api/emails/events` (signature Svix, même secret que la réception). À déclarer une fois dans Resend, faute de quoi un email reste au statut « envoyé » : on saurait qu'il est parti, jamais s'il a été lu.
+- **Notes internes et étiquettes** : annotations libres par compte et étiquettes de segmentation (`profiles.admin_tags`), filtrables depuis la liste.
+- **Listes de travail** : filtres rapides « jamais relancé », « n'ouvre jamais », « inactif 30 jours » et « enquête sans réponse », plus le taux de conversion des essais, que rien ne mesurait jusqu'ici.
+
+---
+
 ## [1.6.0] : 2026-09-03
 
 ### Ajouté
