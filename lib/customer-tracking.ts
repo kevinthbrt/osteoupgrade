@@ -426,3 +426,267 @@ export function fusionner(texte: string, valeurs: { prenom?: string | null; nom?
     .replace(/\{\{\s*nom\s*\}\}/gi, valeurs.nom || '')
     .replace(/\{\{\s*offre\s*\}\}/gi, valeurs.offre || '')
 }
+
+// ── Signaux d'action ───────────────────────────────────────────────────────
+
+/**
+ * Ce qui transforme une base de données en liste de travail.
+ *
+ * Le module savait tout d'un client sans jamais dire par où commencer. Un
+ * signal répond à la seule question qui compte le matin : qui dois-je
+ * contacter aujourd'hui, et pourquoi lui.
+ *
+ * Deux règles gouvernent leur conception, et elles comptent plus que la liste
+ * elle-même :
+ *
+ *   1. Un signal a une fenêtre qui se referme. « L'essai finit dans trois
+ *      jours » ne vaut que ces trois jours ; au-delà, ce n'est plus une
+ *      relance mais un email de deuil. C'est la fenêtre qui crée l'urgence,
+ *      pas la couleur du voyant.
+ *
+ *   2. Un signal s'éteint seul dès qu'un contact lui est postérieur. Aucun
+ *      bouton « fait » à cliquer : entretenir une liste de tâches en plus du
+ *      travail, personne ne le fait deux semaines de suite.
+ *
+ * Sans ces deux règles, vingt comptes sur trente-six brilleraient en
+ * permanence, on cesserait de les regarder, et les voyants deviendraient du
+ * papier peint. Un voyant toujours allumé n'est pas un voyant.
+ */
+
+export const SIGNAL_KEYS = [
+  'essai_finit',
+  'impaye',
+  'resilie_a_interroger',
+  'abonne_dormant',
+  'essai_sans_relance',
+  'inscrit_sans_relance',
+  'reponse_sans_suite',
+  'adresse_en_echec',
+] as const
+
+export type SignalKey = (typeof SIGNAL_KEYS)[number]
+
+/** 1 est le plus urgent. Sert au tri de la file et à la couleur du voyant. */
+export type Urgence = 1 | 2 | 3 | 4
+
+export type Signal = {
+  key: SignalKey
+  urgence: Urgence
+  label: string
+  /** Pourquoi maintenant, en clair. C'est ce que lit l'admin, pas la clé. */
+  raison: string
+  /** Ce que propose le bouton de la file d'attente. */
+  action: 'ecrire' | 'enquete' | 'corriger'
+}
+
+export const URGENCE_STYLES: Record<Urgence, { point: string; badge: string; libelle: string }> = {
+  1: { point: 'bg-red-500',    badge: 'bg-red-100 text-red-800',       libelle: 'Urgent' },
+  2: { point: 'bg-orange-500', badge: 'bg-orange-100 text-orange-800', libelle: 'À faire' },
+  3: { point: 'bg-amber-400',  badge: 'bg-amber-100 text-amber-800',   libelle: 'Quand vous pouvez' },
+  4: { point: 'bg-slate-400',  badge: 'bg-slate-100 text-slate-600',   libelle: 'À corriger' },
+}
+
+/** Objet minimal attendu : une ligne de `admin_customer_overview`. */
+type LigneClient = {
+  lifecycle_stage?: string | null
+  subscription_status?: string | null
+  trial_ends_at?: string | null
+  trial_used_at?: string | null
+  trial_canceled_at?: string | null
+  canceled_at?: string | null
+  last_payment_failed_at?: string | null
+  last_login_date?: string | null
+  last_contact_at?: string | null
+  last_answer_at?: string | null
+  last_rating?: number | null
+  surveys_sent?: number | null
+  emails_sent?: number | null
+  emails_failed?: number | null
+  created_at?: string | null
+}
+
+const JOUR = 86400000
+
+function tempsDe(valeur: string | null | undefined): number | null {
+  if (!valeur) return null
+  const t = new Date(valeur).getTime()
+  return Number.isNaN(t) ? null : t
+}
+
+/**
+ * Vrai si un contact a eu lieu depuis que le signal s'est allumé.
+ *
+ * C'est l'extinction automatique : elle regarde `last_contact_at`, qui agrège
+ * les emails réellement partis ET les contacts consignés sur un autre canal.
+ * Un appel passé hier éteint donc le voyant, comme un email envoyé hier.
+ */
+function contacteDepuis(client: LigneClient, declenchement: number | null): boolean {
+  if (declenchement === null) return false
+  const contact = tempsDe(client.last_contact_at)
+  return contact !== null && contact >= declenchement
+}
+
+/**
+ * Signaux actifs pour un client, du plus urgent au moins urgent.
+ *
+ * Fonction pure : la page l'appelle sur les lignes déjà chargées, la route
+ * l'appelle pour compter. Un seul endroit décide de ce qui mérite d'agir.
+ */
+export function signauxDe(client: LigneClient, maintenant = Date.now()): Signal[] {
+  const signaux: Signal[] = []
+  const etape = client.lifecycle_stage
+
+  // Un compte admin n'est pas un client à travailler.
+  if (etape === 'admin') return signaux
+
+  // 1. Essai qui se termine. Le seul moment où un mot peut convertir : après,
+  //    l'accès est déjà coupé et le message change de nature.
+  const finEssai = tempsDe(client.trial_ends_at)
+  if (etape === 'essai_en_cours' && finEssai !== null && finEssai > maintenant) {
+    const joursRestants = Math.ceil((finEssai - maintenant) / JOUR)
+    const declenchement = finEssai - 3 * JOUR
+    if (joursRestants <= 3 && !contacteDepuis(client, declenchement)) {
+      signaux.push({
+        key: 'essai_finit',
+        urgence: 1,
+        label: 'Essai bientôt fini',
+        raison:
+          joursRestants <= 1
+            ? "L'essai se termine demain, ou aujourd'hui. Après, ce n'est plus une relance."
+            : `L'essai se termine dans ${joursRestants} jours.`,
+        action: 'ecrire',
+      })
+    }
+  }
+
+  // 2. Impayé. Stripe relance seul puis résilie : la fenêtre pour écrire se
+  //    compte en jours, et un rattrapage y est encore possible.
+  if (etape === 'impaye') {
+    const echec = tempsDe(client.last_payment_failed_at)
+    if (!contacteDepuis(client, echec)) {
+      signaux.push({
+        key: 'impaye',
+        urgence: 1,
+        label: 'Paiement en échec',
+        raison: echec
+          ? `Prélèvement refusé il y a ${Math.floor((maintenant - echec) / JOUR)} jour(s). Stripe relance seul, puis résilie.`
+          : 'Abonnement en impayé. Stripe relance seul, puis résilie.',
+        action: 'ecrire',
+      })
+    }
+  }
+
+  // 3. Départ récent, jamais interrogé. Passé une semaine, le « pourquoi »
+  //    ne reçoit plus de réponse : la fenêtre est courte et ne revient pas.
+  const depart = tempsDe(client.canceled_at) ?? tempsDe(client.trial_canceled_at)
+  if (
+    (etape === 'resilie' || etape === 'essai_termine') &&
+    depart !== null &&
+    maintenant - depart <= 7 * JOUR &&
+    !(client.surveys_sent ?? 0) &&
+    !contacteDepuis(client, depart)
+  ) {
+    const jours = Math.floor((maintenant - depart) / JOUR)
+    signaux.push({
+      key: 'resilie_a_interroger',
+      urgence: 2,
+      label: 'Départ à comprendre',
+      raison: `Parti il y a ${jours} jour(s), sans qu'on lui ait demandé pourquoi. Au-delà d'une semaine, plus personne ne répond.`,
+      action: 'enquete',
+    })
+  }
+
+  // 4. Abonné qui ne vient plus. Le meilleur indicateur avancé d'une
+  //    résiliation : il se voit des semaines avant qu'elle n'arrive.
+  if (etape === 'abonne') {
+    const derniereVisite = tempsDe(client.last_login_date) ?? tempsDe(client.created_at)
+    if (derniereVisite !== null) {
+      const jours = Math.floor((maintenant - derniereVisite) / JOUR)
+      const declenchement = derniereVisite + 45 * JOUR
+      if (jours >= 45 && !contacteDepuis(client, declenchement)) {
+        signaux.push({
+          key: 'abonne_dormant',
+          urgence: 2,
+          label: 'Abonné dormant',
+          raison: `Abonné payant, aucune connexion depuis ${jours} jours. C'est ce qui précède une résiliation.`,
+          action: 'ecrire',
+        })
+      }
+    }
+  }
+
+  // 5. Essai consommé, jamais relancé. Le gisement le plus évident, et celui
+  //    qu'on oublie parce que rien ne le remonte.
+  if (etape === 'essai_termine' && !(client.emails_sent ?? 0)) {
+    signaux.push({
+      key: 'essai_sans_relance',
+      urgence: 3,
+      label: 'Essai sans relance',
+      raison: "A consommé son essai sans s'abonner, et n'a jamais reçu le moindre message depuis.",
+      action: 'ecrire',
+    })
+  }
+
+  // 6. Inscrit qui n'a jamais rien pris, ni essai, ni abonnement, et à qui on
+  //    n'a jamais écrit. C'est la question d'origine du module : « pourquoi
+  //    ne se sont-ils pas abonnés ? », qu'on ne peut poser qu'en la posant.
+  //
+  //    Le délai de quatorze jours écarte les inscriptions de la semaine, qui
+  //    n'ont pas encore eu le temps de se décider : relancer quelqu'un
+  //    d'inscrit avant-hier, c'est le presser, pas le comprendre.
+  //
+  //    Ce signal éclaire d'un coup tout l'arriéré, ce qui est voulu : c'est le
+  //    travail qui existait déjà sans être visible. Il ne se rallume ensuite
+  //    que pour les nouvelles inscriptions restées froides.
+  const inscription = tempsDe(client.created_at)
+  if (
+    etape === 'inscrit' &&
+    inscription !== null &&
+    maintenant - inscription >= 14 * JOUR &&
+    !(client.emails_sent ?? 0) &&
+    !contacteDepuis(client, inscription)
+  ) {
+    signaux.push({
+      key: 'inscrit_sans_relance',
+      urgence: 3,
+      label: 'Inscrit sans suite',
+      raison: `Compte créé il y a ${Math.floor((maintenant - inscription) / JOUR)} jours, sans essai ni abonnement, et jamais contacté.`,
+      action: 'enquete',
+    })
+  }
+
+  // 7. Réponse restée sans suite. Quelqu'un a pris le temps d'écrire et
+  //    personne ne lui a répondu : le silence coûte plus que la critique.
+  const reponse = tempsDe(client.last_answer_at)
+  if (reponse !== null && !contacteDepuis(client, reponse)) {
+    const note = client.last_rating
+    signaux.push({
+      key: 'reponse_sans_suite',
+      urgence: typeof note === 'number' && note <= 2 ? 2 : 3,
+      label: 'Réponse sans suite',
+      raison:
+        typeof note === 'number' && note <= 2
+          ? `A répondu à une enquête avec une note de ${note}/5, sans réponse de notre part.`
+          : "A répondu à une enquête, sans réponse de notre part.",
+      action: 'ecrire',
+    })
+  }
+
+  // 8. Adresse morte. Insister ne sert à rien tant qu'elle n'est pas corrigée.
+  if ((client.emails_failed ?? 0) > 0 && !(client.emails_sent ?? 0)) {
+    signaux.push({
+      key: 'adresse_en_echec',
+      urgence: 4,
+      label: 'Adresse en échec',
+      raison: "Tous les envois vers cette adresse ont été refusés. Rien ne lui parvient.",
+      action: 'corriger',
+    })
+  }
+
+  return signaux.sort((a, b) => a.urgence - b.urgence)
+}
+
+/** Le signal le plus urgent, celui qui donne la couleur du voyant. */
+export function signalPrincipal(client: LigneClient, maintenant = Date.now()): Signal | null {
+  return signauxDe(client, maintenant)[0] ?? null
+}

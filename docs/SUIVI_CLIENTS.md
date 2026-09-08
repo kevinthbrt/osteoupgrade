@@ -116,6 +116,53 @@ produit un lien vers la production, qui répond 404 tant que la version n'y est
 pas déployée. Le jeton reste valide, l'email déjà reçu fonctionnera après le
 déploiement, il n'y a rien à renvoyer.
 
+## L'onglet « À traiter »
+
+Le module ouvre sur ce qu'il y a à faire, pas sur un annuaire. Une liste de
+comptes triée par date d'inscription ne dit pas par où commencer ; la file
+d'attente ne montre que les comptes portant un signal actif, du plus urgent au
+moins urgent, avec la raison écrite en clair à côté du nom.
+
+Deux règles gouvernent les signaux, et elles comptent plus que la liste
+elle-même :
+
+1. **Une fenêtre qui se referme.** « L'essai finit dans trois jours » ne vaut
+   que ces trois jours. Au-delà, ce n'est plus une relance mais un email de
+   deuil. C'est la fenêtre qui crée l'urgence, pas la couleur du voyant.
+2. **Une extinction automatique.** Le signal s'éteint dès qu'un contact lui est
+   postérieur, email envoyé depuis le module ou action consignée à la main. Rien
+   à cocher : entretenir une liste de tâches en plus du travail, personne ne le
+   fait deux semaines de suite.
+
+Sans ces deux règles, la moitié des comptes brilleraient en permanence, on
+cesserait de les regarder, et les voyants deviendraient du papier peint. Un
+voyant toujours allumé n'est pas un voyant.
+
+| Signal | Condition | Urgence |
+| --- | --- | --- |
+| Essai bientôt fini | Essai en cours, fin dans 3 jours ou moins | 🔴 |
+| Paiement en échec | Statut `past_due` | 🔴 |
+| Départ à comprendre | Résiliation ou essai annulé depuis 7 jours au plus, aucune enquête envoyée | 🟠 |
+| Abonné dormant | Abonné payant, aucune connexion depuis 45 jours | 🟠 |
+| Réponse sans suite | A répondu à une enquête, personne ne lui a répondu (🟠 si la note vaut 2 ou moins) | 🟡 |
+| Essai sans relance | Essai consommé, aucun message envoyé depuis | 🟡 |
+| Inscrit sans suite | Compte de plus de 14 jours, ni essai ni abonnement, jamais contacté | 🟡 |
+| Adresse en échec | Tous les envois refusés | ⚫ |
+
+Le calcul vit dans `signauxDe()` (`lib/customer-tracking.ts`), fonction pure
+sans dépendance : la page l'appelle sur les lignes déjà chargées, la route
+l'appelle pour compter. Un seul endroit décide de ce qui mérite d'agir, sinon
+l'onglet et l'indicateur finiraient par diverger.
+
+L'extinction s'appuie sur `last_contact_at`, qui agrège les emails réellement
+partis et les contacts consignés sur un autre canal. Ne regarder que les emails
+éteindrait un signal sur un appel jamais passé, et le maintiendrait allumé
+après un appel passé.
+
+`inscrit_sans_relance` éclaire d'un coup tout l'arriéré au premier usage, ce
+qui est voulu : c'est le travail qui existait déjà sans être visible. Il ne se
+rallume ensuite que pour les nouvelles inscriptions restées froides.
+
 ## Consigner ce qui s'est passé ailleurs
 
 Le rattrapage de la migration a reconstitué les dates que `profiles` portait
@@ -152,6 +199,24 @@ ce qui est parti, consigné compris) de `emails_tracked` (les seuls envois pass�
 par Resend). Le filtre « sans réaction » s'appuie sur le second, sans quoi il
 affirmerait « relancé, aucun signe de vie » là où la vérité est « nous n'en
 savons rien ».
+
+## Notifications
+
+Une réponse à une enquête déclenche une notification sur la cloche admin
+(`admin_notifications`, temps réel), avec la réponse elle-même dans le corps :
+le motif coché, la note, le début du texte libre. Lire un motif dans la
+notification et devoir ouvrir l'application pour savoir s'il valait la peine
+d'être lu ne sont pas la même chose, et un client qui vient d'expliquer son
+départ est précisément celui qu'on peut encore rappeler.
+
+**Une réponse par email, en revanche, ne déclenche rien.** Si un client répond
+à une relance, le message arrive dans `received_emails` via
+`/api/emails/inbound` et se compte dans la pastille « Boite mail » du tableau
+de bord admin, sans notification sur la cloche. C'est un choix par défaut, pas
+un oubli du module : l'adresse de réception encaisse aussi des retours
+automatiques et des désabonnements, et une notification par message reçu
+rendrait la cloche inutilisable. À rebrancher si le volume réel dit le
+contraire.
 
 ## Suivi des ouvertures
 
