@@ -216,7 +216,7 @@ export default function FicheClient({
               <Carte
                 titre="Ouverts"
                 valeur={`${client.emails_opened || 0}${client.emails_clicked ? ` · ${client.emails_clicked} clic(s)` : ''}`}
-                accent={client.emails_sent && !client.emails_opened ? 'text-amber-600' : undefined}
+                accent={client.emails_sent && !client.emails_opened && !client.emails_clicked ? 'text-amber-600' : undefined}
               />
               <Carte
                 titre="Enquêtes"

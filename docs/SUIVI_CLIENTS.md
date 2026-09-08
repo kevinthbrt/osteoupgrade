@@ -93,14 +93,23 @@ webhook `POST /api/emails/events`.
 indissociables : le webhook seul ne recevrait jamais d'ouverture, et le suivi
 resterait vide sans qu'aucune erreur ne le signale.
 
-**1. Activer le suivi sur le domaine** (Resend > Domains > `osteo-upgrade.fr`) :
+**1. Créer un sous-domaine de suivi** (Resend > Domains > `osteo-upgrade.fr`
+> *New tracking subdomain*). Resend ne propose pas un simple interrupteur : le
+suivi passe par un sous-domaine dédié, par exemple `links.osteo-upgrade.fr`,
+qui héberge la redirection des liens. Il demande un enregistrement DNS (CNAME)
+à ajouter chez le registrar, au même endroit que `resend._domainkey`.
 
-- *Open Tracking* : Resend insère une image invisible dans chaque email.
-- *Click Tracking* : Resend réécrit les liens pour passer par sa redirection.
+Deux cases à l'intérieur :
 
-Sans ces deux réglages, les événements `email.opened` et `email.clicked`
-n'existent tout simplement pas. `email.delivered` et `email.bounced`, eux,
-fonctionnent sans rien activer.
+- *Enable click tracking* : les liens des emails passent par ce sous-domaine.
+  Signal fiable, à activer.
+- *Enable open tracking* : image invisible dans chaque email. Resend prévient
+  lui-même de son imprécision (voir plus bas).
+
+Sans ce sous-domaine, les événements `email.opened` et `email.clicked`
+n'existent tout simplement pas. `email.delivered`, `email.bounced` et
+`email.complained`, eux, fonctionnent sans rien activer : le suivi reste utile
+même si l'on refuse le suivi d'ouverture.
 
 **2. Créer le point de terminaison** (Resend > Webhooks > Add Webhook) :
 
@@ -131,8 +140,12 @@ les images à la place du destinataire, et par les clients qui bloquent les
 images distantes. Une ouverture peut donc être fictive, et une absence
 d'ouverture peut être une lecture réelle. Le clic, lui, est fiable.
 
-Concrètement : le filtre « n'ouvre jamais » sert à repérer une adresse morte
-ou une relance qui tombe à plat, pas à conclure que la personne n'a pas lu.
+Concrètement : le filtre « sans réaction » sert à repérer une adresse morte ou
+une relance qui tombe à plat, pas à conclure que la personne n'a pas lu. Il
+retient les comptes sans ouverture **ni clic**, ce qui le laisse utilisable si
+le suivi d'ouverture reste désactivé : `emails_opened` vaudrait alors zéro
+partout, et un filtre qui ne regarderait que ce compteur désignerait comme
+silencieux quelqu'un venant de cliquer sur la relance.
 
 Le statut ne recule jamais : un email déjà ouvert ne redevient pas
 « seulement délivré », les événements Resend pouvant arriver désordonnés.

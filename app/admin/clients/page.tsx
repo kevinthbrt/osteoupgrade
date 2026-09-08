@@ -128,10 +128,18 @@ export default function SuiviClientsPage() {
     if (filtreTag !== 'all') liste = liste.filter((c) => (c.admin_tags || []).includes(filtreTag))
 
     // Filtres rapides : ce sont les listes de travail, celles sur lesquelles on
-    // agit. « Jamais relancé » sert à ne pas oublier quelqu'un, « jamais
-    // ouvert » à ne pas s'acharner sur une adresse qui ne lit rien.
+    // agit. « Jamais relancé » sert à ne pas oublier quelqu'un, « sans
+    // réaction » à ne pas s'acharner sur une adresse qui ne répond à rien.
+    //
+    // Le clic compte autant que l'ouverture, et pas seulement par prudence :
+    // le suivi d'ouverture de Resend demande un sous-domaine dédié et reste
+    // facultatif. S'il est désactivé, `emails_opened` vaut zéro pour tout le
+    // monde, et ce filtre désignerait comme silencieux quelqu'un qui vient de
+    // cliquer sur le lien de la relance.
     if (filtreRapide === 'jamais_relance') liste = liste.filter((c) => !c.emails_sent)
-    if (filtreRapide === 'jamais_ouvert') liste = liste.filter((c) => c.emails_sent > 0 && !c.emails_opened)
+    if (filtreRapide === 'jamais_ouvert') {
+      liste = liste.filter((c) => c.emails_sent > 0 && !c.emails_opened && !c.emails_clicked)
+    }
     if (filtreRapide === 'inactif_30j') {
       liste = liste.filter((c) => {
         const j = joursDepuis(c.last_login_date)
@@ -367,7 +375,7 @@ export default function SuiviClientsPage() {
                     {([
                       ['aucun', 'Tous'],
                       ['jamais_relance', 'Jamais relancé'],
-                      ['jamais_ouvert', "N'ouvre jamais"],
+                      ['jamais_ouvert', 'Sans réaction'],
                       ['inactif_30j', 'Inactif 30 jours'],
                       ['sans_reponse', 'Enquête sans réponse'],
                     ] as const).map(([cle, libelle]) => (
@@ -451,7 +459,7 @@ export default function SuiviClientsPage() {
                                 <p className="font-semibold text-slate-800 flex items-center gap-1.5">
                                   {c.full_name || '(sans nom)'}
                                   {c.is_founding_member && <Star className="h-3.5 w-3.5 text-yellow-500" />}
-                                  {c.emails_sent > 0 && !c.emails_opened && (
+                                  {c.emails_sent > 0 && !c.emails_opened && !c.emails_clicked && (
                                     <EyeOff className="h-3.5 w-3.5 text-amber-500" />
                                   )}
                                 </p>
@@ -489,6 +497,9 @@ export default function SuiviClientsPage() {
                                 {c.emails_sent || 0}
                                 {c.emails_opened ? (
                                   <span className="text-emerald-600 font-semibold"> · {c.emails_opened} lu(s)</span>
+                                ) : null}
+                                {c.emails_clicked ? (
+                                  <span className="text-violet-600 font-semibold"> · {c.emails_clicked} clic(s)</span>
                                 ) : null}
                               </td>
                               <td className="px-4 py-3 text-slate-500 cursor-pointer" onClick={() => setFicheId(c.id)}>
