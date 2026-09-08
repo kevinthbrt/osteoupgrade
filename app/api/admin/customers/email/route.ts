@@ -180,6 +180,20 @@ export async function POST(request: Request) {
 
       resultats.push({ email: profile.email, ok: true })
     } catch (err: any) {
+      // L'enquête a été créée AVANT l'appel à Resend, pour que le lien puisse
+      // figurer dans l'email. Si l'envoi échoue, la laisser en base ferait
+      // compter une enquête envoyée à quelqu'un qui n'a jamais reçu le lien :
+      // il apparaîtrait dans « Enquête sans réponse », et son silence
+      // gonflerait un taux de non-réponse qui ne mesurerait que notre panne.
+      if (surveyId) {
+        await supabaseAdmin
+          .from('customer_surveys')
+          .delete()
+          .eq('id', surveyId)
+          .is('responded_at', null)
+        surveyId = null
+      }
+
       // L'échec est enregistré comme les autres envois : un email refusé par
       // Resend doit rester visible sur la fiche, sinon on croit avoir relancé
       // quelqu'un qui n'a jamais rien reçu.

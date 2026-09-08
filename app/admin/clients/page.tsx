@@ -324,6 +324,9 @@ export default function SuiviClientsPage() {
                     <Indicateur titre="Abonnés" valeur={stats.abonnes} couleur="text-emerald-600" onClick={() => setFiltreEtape('abonne')} />
                     <Indicateur titre="Résiliés" valeur={stats.resilies} couleur="text-red-600" onClick={() => setFiltreEtape('resilie')} />
                     <Indicateur titre="Essais convertis" valeur={`${stats.tauxConversionEssai} %`} couleur="text-violet-600" />
+                    {stats.envoisEnEchec > 0 && (
+                      <Indicateur titre="Envois en échec" valeur={stats.envoisEnEchec} couleur="text-red-600" />
+                    )}
                   </div>
                 )}
 

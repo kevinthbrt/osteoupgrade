@@ -58,6 +58,25 @@ calcule `lifecycle_stage`. Elle n'est lisible que par la clé service-role.
 a consommé son essai sans jamais s'abonner ensuite : c'est la cible naturelle
 d'une relance.
 
+`resilie` est réservé aux résiliations payantes. Un essai abandonné produit un
+événement `trial_canceled`, distinct de `canceled` jusque dans la vue : sans
+cette séparation, l'admin proposerait « pourquoi avez-vous résilié votre
+abonnement ? » à quelqu'un qui n'en a jamais eu, et l'enquête sur l'essai
+deviendrait inatteignable.
+
+Trois compteurs d'emails, à ne pas confondre :
+
+| Colonne | Compte |
+| --- | --- |
+| `emails_sent` | Tout ce qui est réellement parti, consigné à la main compris |
+| `emails_tracked` | Les seuls envois mesurables : ni consignés, ni refusés |
+| `emails_failed` | Les envois refusés par Resend |
+
+Un envoi refusé n'est pas une relance : le compter comme telle sortirait la
+personne de « jamais relancé », donc on cesserait de la relancer, et la ferait
+entrer dans « sans réaction », comme si elle avait ignoré un message qu'elle
+n'a jamais reçu.
+
 ## Écrire à un client
 
 Deux modes, depuis une fiche ou depuis une sélection multiple :

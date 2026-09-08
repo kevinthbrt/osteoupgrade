@@ -228,12 +228,25 @@ export default function FicheClient({
                 valeur={dateCourte(client.first_subscribed_at) || dateCourte(client.subscription_start_date) || 'Jamais'}
               />
               <Carte
-                titre="Résilié le"
-                valeur={dateCourte(client.canceled_at) || dateCourte(client.subscription_end_date) || '-'}
-                accent={client.canceled_at ? 'text-red-600' : undefined}
+                titre={client.canceled_at ? 'Résilié le' : client.trial_canceled_at ? 'Essai annulé le' : 'Résilié le'}
+                valeur={
+                  dateCourte(client.canceled_at) ||
+                  dateCourte(client.trial_canceled_at) ||
+                  dateCourte(client.subscription_end_date) ||
+                  '-'
+                }
+                accent={client.canceled_at || client.trial_canceled_at ? 'text-red-600' : undefined}
               />
               <Carte titre="Dernière connexion" valeur={dateCourte(client.last_login_date) || 'Jamais'} />
-              <Carte titre="Emails envoyés" valeur={String(client.emails_sent || 0)} />
+              <Carte
+                titre="Emails envoyés"
+                valeur={
+                  client.emails_failed
+                    ? `${client.emails_sent || 0} · ${client.emails_failed} en échec`
+                    : String(client.emails_sent || 0)
+                }
+                accent={client.emails_failed ? 'text-red-600' : undefined}
+              />
               <Carte
                 titre="Ouverts"
                 valeur={`${client.emails_opened || 0}${client.emails_clicked ? ` · ${client.emails_clicked} clic(s)` : ''}`}

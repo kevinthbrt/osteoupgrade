@@ -57,6 +57,7 @@ export async function GET() {
       // Taux de conversion de l'essai : la mesure qui manquait pour savoir si
       // l'essai gratuit sert à quelque chose.
       tauxConversionEssai: essais ? Math.round((essaisConvertis / essais) * 100) : 0,
+      envoisEnEchec: clients.reduce((n: number, c: any) => n + (c.emails_failed || 0), 0),
       enquetesEnAttente: clients.reduce(
         (n: number, c: any) => n + Math.max(0, (c.surveys_sent || 0) - (c.surveys_answered || 0)),
         0
