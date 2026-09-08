@@ -8,8 +8,7 @@ export const dynamic = 'force-dynamic'
  * POST /api/emails/events
  *
  * Webhook d'événements Resend (délivré, ouvert, cliqué, rejeté, plainte).
- * À configurer sur https://resend.com/webhooks avec le même secret que le
- * webhook de réception (`RESEND_WEBHOOK_SECRET`).
+ * À configurer sur https://resend.com/webhooks (cf. docs/SUIVI_CLIENTS.md).
  *
  * Sans lui, le module de suivi saurait qu'un email a été envoyé, jamais s'il
  * a été lu : c'est pourtant la différence entre « il ignore la relance » et
@@ -25,23 +24,46 @@ export async function POST(request: Request) {
   const svixId = request.headers.get('svix-id')
   const svixTimestamp = request.headers.get('svix-timestamp')
   const svixSignature = request.headers.get('svix-signature')
-  const secret = process.env.RESEND_WEBHOOK_SECRET
 
-  if (!secret) {
-    console.error('RESEND_WEBHOOK_SECRET non configuré')
+  // Resend attribue un secret de signature PROPRE À CHAQUE point de
+  // terminaison : celui de la réception (`RESEND_WEBHOOK_SECRET`) ne signe pas
+  // les événements d'envoi. D'où une variable dédiée, avec repli sur l'ancienne
+  // pour le cas où les deux jeux d'événements finiraient sur la même URL.
+  // Sans cette distinction, toute livraison serait rejetée en 401, et le
+  // symptôme serait un suivi d'ouverture définitivement vide, sans erreur
+  // visible côté application.
+  const secrets = Array.from(
+    new Set(
+      [process.env.RESEND_EVENTS_WEBHOOK_SECRET, process.env.RESEND_WEBHOOK_SECRET]
+        .map((s) => s?.trim())
+        .filter((s): s is string => Boolean(s))
+    )
+  )
+
+  if (!secrets.length) {
+    console.error('RESEND_EVENTS_WEBHOOK_SECRET non configuré')
     return NextResponse.json({ error: 'Webhook secret not configured' }, { status: 500 })
   }
   if (!svixId || !svixTimestamp || !svixSignature) {
     return NextResponse.json({ error: 'Missing Svix headers' }, { status: 400 })
   }
 
-  try {
-    new Webhook(secret).verify(payload, {
-      'svix-id': svixId,
-      'svix-timestamp': svixTimestamp,
-      'svix-signature': svixSignature,
-    })
-  } catch {
+  const entetes = {
+    'svix-id': svixId,
+    'svix-timestamp': svixTimestamp,
+    'svix-signature': svixSignature,
+  }
+
+  const signatureValide = secrets.some((secret) => {
+    try {
+      new Webhook(secret).verify(payload, entetes)
+      return true
+    } catch {
+      return false
+    }
+  })
+
+  if (!signatureValide) {
     return NextResponse.json({ error: 'Invalid webhook signature' }, { status: 401 })
   }
 

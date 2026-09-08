@@ -89,17 +89,50 @@ Les emails partent par l'API transactionnelle Resend, avec le pied de
 désinscription ajouté par `lib/mailing.ts`. Leur statut est mis à jour par le
 webhook `POST /api/emails/events`.
 
-**À configurer une fois** sur https://resend.com/webhooks :
+**Trois réglages à faire une fois**, dans cet ordre. Les deux premiers sont
+indissociables : le webhook seul ne recevrait jamais d'ouverture, et le suivi
+resterait vide sans qu'aucune erreur ne le signale.
+
+**1. Activer le suivi sur le domaine** (Resend > Domains > `osteo-upgrade.fr`) :
+
+- *Open Tracking* : Resend insère une image invisible dans chaque email.
+- *Click Tracking* : Resend réécrit les liens pour passer par sa redirection.
+
+Sans ces deux réglages, les événements `email.opened` et `email.clicked`
+n'existent tout simplement pas. `email.delivered` et `email.bounced`, eux,
+fonctionnent sans rien activer.
+
+**2. Créer le point de terminaison** (Resend > Webhooks > Add Webhook) :
 
 - URL : `https://www.osteo-upgrade.fr/api/emails/events`
 - Événements : `email.delivered`, `email.opened`, `email.clicked`,
   `email.bounced`, `email.complained`
-- Secret de signature : la variable `RESEND_WEBHOOK_SECRET` déjà utilisée par
-  le webhook de réception `/api/emails/inbound`
+
+Ne pas ajouter ces événements au webhook de réception existant : cette URL
+attend un email entrant et traiterait une ouverture comme un message reçu.
+
+**3. Reporter le secret de signature** dans les variables d'environnement
+Vercel, sous `RESEND_EVENTS_WEBHOOK_SECRET`, puis redéployer.
+
+Resend attribue **un secret par point de terminaison**. Celui de la réception
+(`RESEND_WEBHOOK_SECRET`) ne signe pas les événements d'envoi : le réutiliser
+ferait rejeter toutes les livraisons en 401. La route accepte les deux
+variables, ce qui la laisse fonctionner si les deux jeux d'événements
+finissaient un jour sur la même URL, mais la variable dédiée est la bonne.
 
 Sans ce webhook, tout fonctionne, mais un email reste au statut « envoyé » :
 on sait qu'il est parti, jamais s'il a été lu. C'est pourtant la différence
 entre « il ignore la relance » et « il n'a rien reçu ».
+
+### Ce que vaut une ouverture
+
+Le pixel de suivi est neutralisé par Apple Mail Privacy Protection, qui charge
+les images à la place du destinataire, et par les clients qui bloquent les
+images distantes. Une ouverture peut donc être fictive, et une absence
+d'ouverture peut être une lecture réelle. Le clic, lui, est fiable.
+
+Concrètement : le filtre « n'ouvre jamais » sert à repérer une adresse morte
+ou une relance qui tombe à plat, pas à conclure que la personne n'a pas lu.
 
 Le statut ne recule jamais : un email déjà ouvert ne redevient pas
 « seulement délivré », les événements Resend pouvant arriver désordonnés.
