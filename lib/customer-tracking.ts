@@ -458,6 +458,8 @@ export const SIGNAL_KEYS = [
   'impaye',
   'resilie_a_interroger',
   'abonne_dormant',
+  'produit_jamais_active',
+  'produit_delaisse',
   'essai_sans_relance',
   'inscrit_sans_relance',
   'reponse_sans_suite',
@@ -495,7 +497,15 @@ type LigneClient = {
   trial_canceled_at?: string | null
   canceled_at?: string | null
   last_payment_failed_at?: string | null
+  plan?: string | null
+  role?: string | null
+  /** Dernière visite du site OsteoUpgrade (e-learning, pratique, tests). */
   last_login_date?: string | null
+  /** Dernier battement du logiciel MyOsteoFlow (`osteoflow_sessions`). */
+  osteoflow_last_active_at?: string | null
+  /** Le plus récent des deux. Ne sert qu'au silence total. */
+  last_activity_at?: string | null
+  first_subscribed_at?: string | null
   last_contact_at?: string | null
   last_answer_at?: string | null
   last_rating?: number | null
@@ -506,6 +516,21 @@ type LigneClient = {
 }
 
 const JOUR = 86400000
+
+/**
+ * Les deux produits payés, lus depuis l'offre.
+ *
+ * Repris de `lib/entitlements.ts` plutôt qu'importés : ce module reste sans
+ * dépendance, et la règle tient en une ligne. Un admin dispose de tout sans
+ * rien payer, il est écarté en amont.
+ */
+function payePourFlow(client: LigneClient): boolean {
+  return client.plan === 'osteoflow' || client.plan === 'bundle'
+}
+
+function payePourUp(client: LigneClient): boolean {
+  return client.plan === 'osteoupgrade' || client.plan === 'bundle'
+}
 
 function tempsDe(valeur: string | null | undefined): number | null {
   if (!valeur) return null
@@ -596,19 +621,81 @@ export function signauxDe(client: LigneClient, maintenant = Date.now()): Signal[
     })
   }
 
-  // 4. Abonné qui ne vient plus. Le meilleur indicateur avancé d'une
-  //    résiliation : il se voit des semaines avant qu'elle n'arrive.
+  // 4, 4bis, 4ter. Usage des produits.
+  //
+  //    Les deux produits se mesurent séparément et doivent le rester : le site
+  //    OsteoUpgrade par la dernière visite web, le logiciel MyOsteoFlow par le
+  //    dernier battement de sa session desktop. Les confondre produit deux
+  //    contresens symétriques : un abonné MyOsteoFlow qui travaille dans le
+  //    logiciel tous les jours n'ouvre jamais le site, et passerait pour
+  //    dormant ; un abonné OsteoUpgrade n'aura jamais de session desktop, et
+  //    passerait pour actif.
   if (etape === 'abonne') {
-    const derniereVisite = tempsDe(client.last_login_date) ?? tempsDe(client.created_at)
-    if (derniereVisite !== null) {
-      const jours = Math.floor((maintenant - derniereVisite) / JOUR)
-      const declenchement = derniereVisite + 45 * JOUR
+    const flow = payePourFlow(client)
+    const up = payePourUp(client)
+    const usageFlow = tempsDe(client.osteoflow_last_active_at)
+    const usageUp = tempsDe(client.last_login_date)
+    const depuisAbonnement = tempsDe(client.first_subscribed_at) ?? tempsDe(client.created_at)
+    const ancien = depuisAbonnement !== null && maintenant - depuisAbonnement >= 7 * JOUR
+
+    // Paie un produit sans l'avoir jamais lancé. Le pire des cas : il paie
+    // pour quelque chose qu'il n'a même pas installé, et le découvrira au
+    // prélèvement suivant. C'est là qu'un mot change tout.
+    const jamaisLances = [
+      flow && usageFlow === null ? 'MyOsteoFlow' : null,
+      up && usageUp === null ? 'OsteoUpgrade' : null,
+    ].filter(Boolean) as string[]
+
+    if (ancien && jamaisLances.length && !contacteDepuis(client, depuisAbonnement)) {
+      signaux.push({
+        key: 'produit_jamais_active',
+        urgence: 1,
+        label: 'Payé, jamais ouvert',
+        raison: `Abonné payant qui n'a jamais lancé ${jamaisLances.join(' ni ')}. Il paie sans avoir commencé.`,
+        action: 'ecrire',
+      })
+    }
+
+    // Paie les deux, n'en utilise qu'un. Ce n'est pas un abandon, c'est une
+    // moitié d'abonnement payée pour rien : la question se posera d'elle-même
+    // au renouvellement, autant la devancer.
+    if (flow && up && !jamaisLances.length && usageFlow !== null && usageUp !== null) {
+      const recent = (t: number) => maintenant - t <= 30 * JOUR
+      const delaisse = (t: number) => maintenant - t >= 60 * JOUR
+      const couples: [boolean, string, string, number][] = [
+        [recent(usageFlow) && delaisse(usageUp), 'MyOsteoFlow', 'OsteoUpgrade', usageUp],
+        [recent(usageUp) && delaisse(usageFlow), 'OsteoUpgrade', 'MyOsteoFlow', usageFlow],
+      ]
+      for (const [actif, utilise, ignore, depuis] of couples) {
+        if (actif && !contacteDepuis(client, depuis + 60 * JOUR)) {
+          signaux.push({
+            key: 'produit_delaisse',
+            urgence: 3,
+            label: 'Moitié de son offre inutilisée',
+            raison: `Paie l'offre Premium mais ne se sert que de ${utilise} : ${ignore} n'a pas été ouvert depuis ${Math.floor((maintenant - depuis) / JOUR)} jours.`,
+            action: 'ecrire',
+          })
+        }
+      }
+    }
+
+    // Silence complet, sur tout ce qu'il paie. Le meilleur indicateur avancé
+    // d'une résiliation : il se voit des semaines avant qu'elle n'arrive.
+    const derniereActivite =
+      tempsDe(client.last_activity_at) ??
+      (usageFlow !== null || usageUp !== null
+        ? Math.max(usageFlow ?? 0, usageUp ?? 0)
+        : tempsDe(client.created_at))
+
+    if (derniereActivite !== null && !jamaisLances.length) {
+      const jours = Math.floor((maintenant - derniereActivite) / JOUR)
+      const declenchement = derniereActivite + 45 * JOUR
       if (jours >= 45 && !contacteDepuis(client, declenchement)) {
         signaux.push({
           key: 'abonne_dormant',
           urgence: 2,
           label: 'Abonné dormant',
-          raison: `Abonné payant, aucune connexion depuis ${jours} jours. C'est ce qui précède une résiliation.`,
+          raison: `Abonné payant, aucune activité depuis ${jours} jours, ni sur le site ni dans le logiciel.`,
           action: 'ecrire',
         })
       }

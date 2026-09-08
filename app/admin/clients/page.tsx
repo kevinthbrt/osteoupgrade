@@ -28,14 +28,14 @@ import AtraiterFile from './AtraiterFile'
 
 type Tri =
   | 'created_at' | 'full_name' | 'lifecycle_stage' | 'plan'
-  | 'last_login_date' | 'emails_sent' | 'last_email_at' | 'canceled_at'
+  | 'last_activity_at' | 'emails_sent' | 'last_email_at' | 'canceled_at'
 
 const COLONNES: { cle: Tri; libelle: string }[] = [
   { cle: 'full_name', libelle: 'Client' },
   { cle: 'lifecycle_stage', libelle: 'Étape' },
   { cle: 'plan', libelle: 'Offre' },
   { cle: 'created_at', libelle: 'Inscrit' },
-  { cle: 'last_login_date', libelle: 'Dernière visite' },
+  { cle: 'last_activity_at', libelle: 'Dernière activité' },
   { cle: 'emails_sent', libelle: 'Emails' },
   { cle: 'last_email_at', libelle: 'Dernière relance' },
 ]
@@ -162,7 +162,7 @@ export default function SuiviClientsPage() {
     }
     if (filtreRapide === 'inactif_30j') {
       liste = liste.filter((c) => {
-        const j = joursDepuis(c.last_login_date)
+        const j = joursDepuis(c.last_activity_at)
         return j === null || j >= 30
       })
     }
@@ -225,7 +225,7 @@ export default function SuiviClientsPage() {
   const exporterCSV = () => {
     const entetes = [
       'Email', 'Nom', 'Étape', 'Offre', 'Inscrit le', 'Essai pris le', 'Abonné le',
-      'Résilié le', 'Motif de départ', 'Commentaire', 'Dernière visite',
+      'Résilié le', 'Motif de départ', 'Commentaire', 'Dernière activité', 'Site OsteoUpgrade', 'Logiciel MyOsteoFlow', 'Postes',
       'Emails envoyés', 'Emails ouverts', 'Dernière relance', 'Enquêtes répondues', 'Étiquettes',
     ]
     const echapper = (v: any) => `"${String(v ?? '').replace(/"/g, '""')}"`
@@ -233,7 +233,8 @@ export default function SuiviClientsPage() {
       [
         c.email, c.full_name || '', lifecycleLabel(c.lifecycle_stage).label, planLabel(planOf(c)),
         jour(c.created_at), jour(c.trial_used_at), jour(c.first_subscribed_at), jour(c.canceled_at),
-        churnReasonLabel(c.churn_reason) || '', c.churn_comment || '', jour(c.last_login_date),
+        churnReasonLabel(c.churn_reason) || '', c.churn_comment || '',
+        jour(c.last_activity_at), jour(c.last_login_date), jour(c.osteoflow_last_active_at), c.osteoflow_devices ?? 0,
         c.emails_sent || 0, c.emails_opened || 0, jour(c.last_email_at),
         `${c.surveys_answered || 0}/${c.surveys_sent || 0}`, (c.admin_tags || []).join(' '),
       ].map(echapper).join(',')
@@ -551,6 +552,16 @@ export default function SuiviClientsPage() {
                                 <span className={inactif !== null && inactif >= 30 ? 'text-amber-600 font-semibold' : 'text-slate-500'}>
                                   {inactif === null ? 'Jamais' : inactif === 0 ? "Aujourd'hui" : `Il y a ${inactif} j`}
                                 </span>
+                                {/* Lequel des deux produits, car « actif » ne veut pas dire la
+                                    même chose pour un abonné MyOsteoFlow et un abonné OsteoUpgrade. */}
+                                <p className="text-[11px] text-slate-400">
+                                  {[
+                                    c.osteoflow_last_active_at ? 'logiciel' : null,
+                                    c.last_login_date ? 'site' : null,
+                                  ]
+                                    .filter(Boolean)
+                                    .join(' + ') || 'aucun usage'}
+                                </p>
                               </td>
                               <td className="px-4 py-3 text-slate-500 cursor-pointer" onClick={() => setFicheId(c.id)}>
                                 {c.emails_sent || 0}
