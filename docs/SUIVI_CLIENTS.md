@@ -153,6 +153,24 @@ par Resend). Le filtre « sans réaction » s'appuie sur le second, sans quoi il
 affirmerait « relancé, aucun signe de vie » là où la vérité est « nous n'en
 savons rien ».
 
+## Notifications
+
+Une réponse à une enquête déclenche une notification sur la cloche admin
+(`admin_notifications`, temps réel), avec la réponse elle-même dans le corps :
+le motif coché, la note, le début du texte libre. Lire un motif dans la
+notification et devoir ouvrir l'application pour savoir s'il valait la peine
+d'être lu ne sont pas la même chose, et un client qui vient d'expliquer son
+départ est précisément celui qu'on peut encore rappeler.
+
+**Une réponse par email, en revanche, ne déclenche rien.** Si un client répond
+à une relance, le message arrive dans `received_emails` via
+`/api/emails/inbound` et se compte dans la pastille « Boite mail » du tableau
+de bord admin, sans notification sur la cloche. C'est un choix par défaut, pas
+un oubli du module : l'adresse de réception encaisse aussi des retours
+automatiques et des désabonnements, et une notification par message reçu
+rendrait la cloche inutilisable. À rebrancher si le volume réel dit le
+contraire.
+
 ## Suivi des ouvertures
 
 Les emails partent par l'API transactionnelle Resend, avec le pied de

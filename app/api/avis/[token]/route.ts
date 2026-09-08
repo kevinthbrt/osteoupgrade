@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase-server'
 import { logCustomerEvent } from '@/lib/customer-events'
+import { notifyAdmin } from '@/lib/admin-notify'
 import { SURVEY_DEFINITIONS, type SurveyKind } from '@/lib/customer-tracking'
 
 export const dynamic = 'force-dynamic'
@@ -59,6 +60,28 @@ export async function POST(request: Request, { params }: { params: { token: stri
     comment: texte || null,
     metadata: { kind: survey.kind, rating: note, survey_id: survey.id },
   })
+
+  // 🔔 Prévenir l'administrateur, sur la cloche déjà en place. Une réponse qui
+  // n'arrive nulle part défait l'intérêt d'avoir posé la question : personne
+  // ne consulte un onglet « Réponses » au hasard, et un client qui vient
+  // d'expliquer son départ est précisément celui qu'on peut encore rappeler.
+  //
+  // Le corps porte la réponse elle-même, pas seulement son existence : c'est
+  // la différence entre lire un motif dans la notification et devoir ouvrir
+  // l'application pour savoir s'il valait la peine d'être lu.
+  const resume = [
+    motif,
+    note ? `note ${note}/5` : null,
+    texte ? `« ${texte.length > 160 ? `${texte.slice(0, 160)}...` : texte} »` : null,
+  ]
+    .filter(Boolean)
+    .join(' · ')
+
+  await notifyAdmin(
+    'other',
+    `Réponse reçue : ${def?.label || 'enquête'}`,
+    `${survey.email}${resume ? ` : ${resume}` : ' a répondu.'}`
+  )
 
   return NextResponse.json({ success: true })
 }
