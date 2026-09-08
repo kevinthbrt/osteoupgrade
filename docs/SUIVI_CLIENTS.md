@@ -86,6 +86,17 @@ stade.
 Les réponses remontent dans l'onglet **Réponses**, avec le classement des
 motifs les plus cités et la satisfaction moyenne.
 
+### Le lien de réponse pointe toujours vers la production
+
+`surveyUrl()` construit le lien depuis `NEXT_PUBLIC_APP_URL`, jamais depuis
+l'adresse du déploiement qui envoie. C'est voulu : un email parti chez un vrai
+client ne doit pas renvoyer vers une préversion Vercel qui disparaîtra.
+
+Conséquence à connaître en test : une enquête envoyée depuis une préversion
+produit un lien vers la production, qui répond 404 tant que la version n'y est
+pas déployée. Le jeton reste valide, l'email déjà reçu fonctionnera après le
+déploiement, il n'y a rien à renvoyer.
+
 ## Consigner ce qui s'est passé ailleurs
 
 Le rattrapage de la migration a reconstitué les dates que `profiles` portait
