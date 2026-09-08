@@ -143,11 +143,37 @@ voyant toujours allumé n'est pas un voyant.
 | Essai bientôt fini | Essai en cours, fin dans 3 jours ou moins | 🔴 |
 | Paiement en échec | Statut `past_due` | 🔴 |
 | Départ à comprendre | Résiliation ou essai annulé depuis 7 jours au plus, aucune enquête envoyée | 🟠 |
-| Abonné dormant | Abonné payant, aucune connexion depuis 45 jours | 🟠 |
+| Payé, jamais ouvert | Abonné depuis plus de 7 jours qui n'a jamais lancé un produit qu'il paie | 🔴 |
+| Abonné dormant | Abonné payant, aucune activité depuis 45 jours, ni site ni logiciel | 🟠 |
+| Moitié de son offre inutilisée | Offre Premium, un produit actif depuis moins de 30 jours, l'autre délaissé depuis plus de 60 | 🟡 |
 | Réponse sans suite | A répondu à une enquête, personne ne lui a répondu (🟠 si la note vaut 2 ou moins) | 🟡 |
 | Essai sans relance | Essai consommé, aucun message envoyé depuis | 🟡 |
 | Inscrit sans suite | Compte de plus de 14 jours, ni essai ni abonnement, jamais contacté | 🟡 |
 | Adresse en échec | Tous les envois refusés | ⚫ |
+
+### Deux produits, deux mesures
+
+`last_login_date` ne compte que les visites du site OsteoUpgrade. Un abonné
+MyOsteoFlow travaille dans le logiciel et n'ouvre jamais le site : mesuré sur
+cette seule colonne, il ressort « aucune connexion depuis 45 jours », et le
+module désigne comme dormant le client le plus assidu.
+
+Le logiciel laisse pourtant une trace. `/api/osteoflow/verify` rafraîchit
+`osteoflow_sessions.last_active_at` à chaque vérification de licence : c'est
+un battement de cœur, la vue le lit sous `osteoflow_last_active_at`, avec le
+nombre de postes.
+
+Les deux usages restent **séparés** dans la vue comme dans l'interface, et
+c'est délibéré : les fusionner perdrait ce qu'ils ont d'intéressant. Un abonné
+Premium qui se sert du logiciel tous les jours sans jamais ouvrir l'e-learning
+paie la moitié de son offre pour rien, et la question se posera d'elle-même au
+renouvellement. `last_activity_at` n'agrège les deux que pour détecter un
+silence complet.
+
+Les signaux d'usage lisent donc l'offre souscrite : un abonné MyOsteoFlow seul
+n'a aucune raison de visiter le site, un abonné OsteoUpgrade seul n'aura jamais
+de session desktop. Réclamer les deux à l'un comme à l'autre produirait deux
+contresens symétriques.
 
 Le calcul vit dans `signauxDe()` (`lib/customer-tracking.ts`), fonction pure
 sans dépendance : la page l'appelle sur les lignes déjà chargées, la route

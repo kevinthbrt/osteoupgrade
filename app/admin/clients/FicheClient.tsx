@@ -237,7 +237,20 @@ export default function FicheClient({
                 }
                 accent={client.canceled_at || client.trial_canceled_at ? 'text-red-600' : undefined}
               />
-              <Carte titre="Dernière connexion" valeur={dateCourte(client.last_login_date) || 'Jamais'} />
+              <Carte
+                titre="Site OsteoUpgrade"
+                valeur={dateCourte(client.last_login_date) || 'Jamais ouvert'}
+                accent={client.last_login_date ? undefined : 'text-slate-400'}
+              />
+              <Carte
+                titre="Logiciel MyOsteoFlow"
+                valeur={
+                  client.osteoflow_last_active_at
+                    ? `${dateCourte(client.osteoflow_last_active_at)}${client.osteoflow_devices > 1 ? ` · ${client.osteoflow_devices} postes` : ''}`
+                    : 'Jamais lancé'
+                }
+                accent={client.osteoflow_last_active_at ? undefined : 'text-slate-400'}
+              />
               <Carte
                 titre="Emails envoyés"
                 valeur={
