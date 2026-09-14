@@ -22,6 +22,7 @@ import {
   Laptop,
   MonitorSmartphone,
   GraduationCap,
+  Library,
   Flame,
   LifeBuoy,
   Coins,
@@ -579,6 +580,17 @@ export default function AdminStatsPage() {
                       ) : <p className="text-sm text-slate-400">Aucune donnée.</p>}
                     </SectionCard>
                   </div>
+
+                  {/* Ces barres disent quelle rubrique tourne, jamais quelle formation
+                      ni quelle vidéo : le détail par contenu vit sur sa propre page. */}
+                  <button
+                    onClick={() => router.push('/admin/contenus')}
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white/80 border border-blue-200/70 text-slate-700 text-sm font-medium hover:bg-white shadow-sm transition-all"
+                  >
+                    <Library className="h-4 w-4 text-emerald-600" />
+                    Voir le détail contenu par contenu
+                    <ArrowRight className="h-4 w-4 text-slate-400" />
+                  </button>
                 </section>
 
                 {/* ═══ RECENT SIGNUPS ═══ */}

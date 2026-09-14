@@ -17,6 +17,7 @@ import {
   Megaphone,
   Database,
   BarChart3,
+  Library,
   HeartHandshake,
   Eye,
   Loader2,
@@ -107,6 +108,14 @@ export default function AdminPage() {
       iconColor: 'text-sky-600',
       iconBg: 'bg-sky-100',
       href: '/admin/stats',
+    },
+    {
+      title: 'Usage des contenus',
+      description: 'Ce qui est consulté, l’avancement des cours et les contenus qui dorment',
+      icon: Library,
+      iconColor: 'text-emerald-600',
+      iconBg: 'bg-emerald-100',
+      href: '/admin/contenus',
     },
     {
       title: 'Gestion des Utilisateurs',

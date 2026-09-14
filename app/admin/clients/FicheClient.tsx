@@ -20,6 +20,7 @@ import {
 } from '@/lib/customer-tracking'
 import ComposeurEmail from './ComposeurEmail'
 import ConsignerAction from './ConsignerAction'
+import UsageContenusClient from '@/components/UsageContenusClient'
 
 function dateCourte(v: string | null | undefined) {
   if (!v) return null
@@ -33,7 +34,7 @@ function dateHeure(v: string | null | undefined) {
   })
 }
 
-type Onglet = 'chronologie' | 'emails' | 'notes' | 'enquetes'
+type Onglet = 'chronologie' | 'contenus' | 'emails' | 'notes' | 'enquetes'
 
 /**
  * Fiche d'un compte : tout ce qui le concerne au même endroit.
@@ -346,10 +347,11 @@ export default function FicheClient({
             <div className="flex gap-1.5 flex-wrap">
               {([
                 ['chronologie', 'Chronologie', data.evenements.length],
+                ['contenus', 'Contenus', null],
                 ['emails', 'Emails', data.emails.length],
                 ['notes', 'Notes', data.notes.length],
                 ['enquetes', 'Enquêtes', data.enquetes.length],
-              ] as [Onglet, string, number][]).map(([cle, libelle, n]) => (
+              ] as [Onglet, string, number | null][]).map(([cle, libelle, n]) => (
                 <button
                   key={cle}
                   onClick={() => setOnglet(cle)}
@@ -357,10 +359,12 @@ export default function FicheClient({
                     onglet === cle ? 'bg-slate-900 text-white' : 'bg-white text-slate-600 border border-slate-200'
                   }`}
                 >
-                  {libelle} <span className="opacity-60">{n}</span>
+                  {libelle}{n !== null && <span className="opacity-60"> {n}</span>}
                 </button>
               ))}
             </div>
+
+            {onglet === 'contenus' && <UsageContenusClient userId={clientId} />}
 
             {onglet === 'chronologie' && (
               <div className="space-y-2">
@@ -482,7 +486,7 @@ export default function FicheClient({
                     value={note}
                     onChange={(e) => setNote(e.target.value)}
                     rows={3}
-                    placeholder="Appelé le 12/03, veut une démo avant de s'abonner..."
+                    placeholder="Appelé le 12/03, veut une démo avant de s’abonner..."
                     className="w-full text-sm border-0 focus:outline-none resize-none"
                   />
                   <div className="flex justify-end">
