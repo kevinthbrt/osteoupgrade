@@ -1,10 +1,12 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { Fragment, useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import AuthLayout from '@/components/AuthLayout'
 import AdminBackButton from '@/components/AdminBackButton'
+import UsageContenusClient from '@/components/UsageContenusClient'
+import { planLabel, type Plan } from '@/lib/entitlements'
 import {
   Library,
   GraduationCap,
@@ -18,6 +20,7 @@ import {
   RefreshCw,
   ChevronDown,
   ChevronRight,
+  Search,
   Award,
   EyeOff,
   AlertTriangle,
@@ -47,7 +50,11 @@ type PaquetLigne = {
   id: string; titre: string; theme: string | null; cartes: number; cartesTravaillees: number
   apprenants: number; revisions: number; noteMoyenne: number | null; oubliees: number; certificats: number; derniereActivite: string | null
 }
-type Membre = { id: string; nom: string | null; email: string | null; role: string | null; total: number; elearning: number; quiz: number; pratique: number; tests: number; flashcards: number }
+type Membre = {
+  id: string; nom: string | null; email: string | null; role: string | null; offre: string
+  actions30: number; actionsTotal: number; derniereActivite: string | null
+  elearning: number; quiz: number; pratique: number; tests: number; flashcards: number
+}
 
 type Usage = {
   perimetre: { inclureAdmins: boolean; comptes: number; comptesTotal: number; admins: number; actifs30: number }
@@ -264,6 +271,9 @@ export default function AdminContenusPage() {
   const [inclureAdmins, setInclureAdmins] = useState(false)
   const [formationOuverte, setFormationOuverte] = useState<string | null>(null)
   const [rafraichir, setRafraichir] = useState(0)
+  const [recherche, setRecherche] = useState('')
+  const [clientOuvert, setClientOuvert] = useState<string | null>(null)
+  const [toutVoir, setToutVoir] = useState(false)
 
   useEffect(() => {
     let annule = false
@@ -311,6 +321,17 @@ export default function AdminContenusPage() {
     if (!usage || !formationOuverte) return []
     return usage.elearning.chapitres.filter(c => c.formationId === formationOuverte)
   }, [usage, formationOuverte])
+
+  const membresAffiches = useMemo(() => {
+    if (!usage) return []
+    const q = recherche.trim().toLowerCase()
+    if (q) {
+      return usage.membres.filter(m =>
+        (m.nom || '').toLowerCase().includes(q) || (m.email || '').toLowerCase().includes(q)
+      )
+    }
+    return toutVoir ? usage.membres : usage.membres.slice(0, 12)
+  }, [usage, recherche, toutVoir])
 
   const quizFragiles = useMemo(() => {
     if (!usage) return []
@@ -757,45 +778,90 @@ export default function AdminContenusPage() {
 
                 {/* ═══ MEMBRES ═══ */}
                 <SectionCard
-                  title="Les clients les plus actifs (30 jours)"
-                  subtitle="Actions sur les contenus, toutes rubriques confondues"
+                  title="Activité par client"
+                  subtitle="Cliquez une ligne pour voir son avancement détaillé"
                   accent="from-blue-400 to-blue-600"
                   icon={Users}
+                  action={
+                    <div className="relative">
+                      <Search className="h-3.5 w-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+                      <input
+                        value={recherche}
+                        onChange={e => setRecherche(e.target.value)}
+                        placeholder="Rechercher un client"
+                        className="pl-8 pr-3 py-1.5 rounded-lg border border-slate-200 text-xs w-52 focus:outline-none focus:border-blue-400"
+                      />
+                    </div>
+                  }
                 >
-                  {usage.membres.length === 0 ? (
-                    <p className="text-sm text-slate-400">Aucune activité sur les 30 derniers jours.</p>
+                  {membresAffiches.length === 0 ? (
+                    <p className="text-sm text-slate-400">Aucun client ne correspond.</p>
                   ) : (
                     <div className="overflow-x-auto">
                       <table className="w-full text-sm">
                         <thead>
                           <tr className="text-[11px] uppercase tracking-wide text-slate-400 border-b border-slate-200">
                             <th className="text-left font-semibold py-2 pr-3">Client</th>
+                            <th className="text-right font-semibold py-2 px-2">30 j</th>
                             <th className="text-right font-semibold py-2 px-2">Total</th>
                             <th className="text-right font-semibold py-2 px-2">Cours</th>
                             <th className="text-right font-semibold py-2 px-2">Quiz</th>
                             <th className="text-right font-semibold py-2 px-2">Pratique</th>
-                            <th className="text-right font-semibold py-2 px-2">Tests</th>
-                            <th className="text-right font-semibold py-2 pl-2">Flashcards</th>
+                            <th className="text-right font-semibold py-2 px-2">Flashcards</th>
+                            <th className="text-right font-semibold py-2 pl-2">Dernière action</th>
                           </tr>
                         </thead>
                         <tbody>
-                          {usage.membres.map(m => (
-                            <tr key={m.id} className="border-b border-slate-100">
-                              <td className="py-2 pr-3">
-                                <p className="font-medium text-slate-800 truncate">{m.nom || m.email || 'Compte sans nom'}</p>
-                                <p className="text-[11px] text-slate-400 truncate">{m.email}{m.role === 'admin' && ' · admin'}</p>
-                              </td>
-                              <td className="py-2 px-2 text-right font-bold text-slate-800 tabular-nums">{m.total}</td>
-                              <td className="py-2 px-2 text-right text-slate-600 tabular-nums">{m.elearning}</td>
-                              <td className="py-2 px-2 text-right text-slate-600 tabular-nums">{m.quiz}</td>
-                              <td className="py-2 px-2 text-right text-slate-600 tabular-nums">{m.pratique}</td>
-                              <td className="py-2 px-2 text-right text-slate-600 tabular-nums">{m.tests}</td>
-                              <td className="py-2 pl-2 text-right text-slate-600 tabular-nums">{m.flashcards}</td>
-                            </tr>
+                          {membresAffiches.map(m => (
+                            <Fragment key={m.id}>
+                              <tr
+                                onClick={() => setClientOuvert(o => (o === m.id ? null : m.id))}
+                                className={`border-b border-slate-100 cursor-pointer hover:bg-blue-50/50 ${clientOuvert === m.id ? 'bg-blue-50/70' : ''}`}
+                              >
+                                <td className="py-2 pr-3">
+                                  <div className="flex items-center gap-2">
+                                    {clientOuvert === m.id ? <ChevronDown className="h-3.5 w-3.5 text-slate-400 shrink-0" /> : <ChevronRight className="h-3.5 w-3.5 text-slate-300 shrink-0" />}
+                                    <div className="min-w-0">
+                                      <p className="font-medium text-slate-800 truncate">{m.nom || m.email || 'Compte sans nom'}</p>
+                                      <p className="text-[11px] text-slate-400 truncate">
+                                        {m.email}
+                                        {' · '}{planLabel(m.offre as Plan)}
+                                        {m.role === 'admin' && ' · admin'}
+                                      </p>
+                                    </div>
+                                  </div>
+                                </td>
+                                <td className={`py-2 px-2 text-right font-bold tabular-nums ${m.actions30 > 0 ? 'text-slate-800' : 'text-slate-300'}`}>{m.actions30}</td>
+                                <td className="py-2 px-2 text-right text-slate-500 tabular-nums">{m.actionsTotal}</td>
+                                <td className="py-2 px-2 text-right text-slate-600 tabular-nums">{m.elearning}</td>
+                                <td className="py-2 px-2 text-right text-slate-600 tabular-nums">{m.quiz}</td>
+                                <td className="py-2 px-2 text-right text-slate-600 tabular-nums">{m.pratique}</td>
+                                <td className="py-2 px-2 text-right text-slate-600 tabular-nums">{m.flashcards}</td>
+                                <td className={`py-2 pl-2 text-right text-xs ${m.derniereActivite ? 'text-slate-500' : 'text-red-400 font-medium'}`}>
+                                  {m.derniereActivite ? fmtDate(m.derniereActivite) : 'jamais'}
+                                </td>
+                              </tr>
+                              {clientOuvert === m.id && (
+                                <tr>
+                                  <td colSpan={8} className="bg-slate-50/80 p-4">
+                                    <UsageContenusClient userId={m.id} />
+                                  </td>
+                                </tr>
+                              )}
+                            </Fragment>
                           ))}
                         </tbody>
                       </table>
                     </div>
+                  )}
+
+                  {!recherche && usage.membres.length > 12 && (
+                    <button
+                      onClick={() => setToutVoir(v => !v)}
+                      className="mt-3 text-xs font-semibold text-blue-600 hover:text-blue-800"
+                    >
+                      {toutVoir ? 'Réduire la liste' : `Voir les ${usage.membres.length} clients`}
+                    </button>
                   )}
                 </SectionCard>
 

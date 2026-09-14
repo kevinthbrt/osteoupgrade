@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { createRouteHandlerClient } from '@/lib/supabase-server-helpers'
-import { supabaseAdmin } from '@/lib/supabase-server'
+import { MS_DAY, jourISO, lireTout, plusRecente, serieVide } from '@/lib/admin-content-usage'
+import { planOf } from '@/lib/entitlements'
 
 /**
  * Usage des contenus : qui consomme quoi, et surtout qu’est-ce qui ne sert pas.
@@ -18,25 +19,7 @@ import { supabaseAdmin } from '@/lib/supabase-server'
 
 export const dynamic = 'force-dynamic'
 
-const MS_DAY = 24 * 60 * 60 * 1000
-const FENETRE_JOURS = 90
-
-// PostgREST plafonne une lecture à 1000 lignes : les tables de progression
-// grossissent avec chaque abonné, on pagine donc plutôt que de tronquer en
-// silence le jour où le catalogue décolle.
-const PAGE = 1000
-async function lireTout<T>(table: string, colonnes: string): Promise<T[]> {
-  const lignes: T[] = []
-  for (let depuis = 0; ; depuis += PAGE) {
-    const { data, error } = await supabaseAdmin.from(table).select(colonnes).range(depuis, depuis + PAGE - 1)
-    if (error) throw new Error(`${table} : ${error.message}`)
-    const lot = (data || []) as unknown as T[]
-    lignes.push(...lot)
-    if (lot.length < PAGE) return lignes
-  }
-}
-
-type Profil = { id: string; email: string | null; full_name: string | null; role: string | null }
+type Profil = { id: string; email: string | null; full_name: string | null; role: string | null; plan: string | null }
 type Formation = { id: string; title: string | null; is_private: boolean | null; is_free_access: boolean | null; subject_id: string | null; created_at: string | null }
 type Chapitre = { id: string; formation_id: string | null; title: string | null; order_index: number | null }
 type SousPartie = { id: string; chapter_id: string | null; title: string | null; order_index: number | null; vimeo_url: string | null; pdf_url: string | null }
@@ -54,23 +37,8 @@ type Revision = { deck_id: string | null; card_id: string | null; user_id: strin
 type Certificat = { user_id: string; issued_at: string | null; formation_id?: string | null; deck_id?: string | null }
 type Sujet = { id: string; name: string | null; color: string | null }
 
-function jour(d: Date): string {
-  return d.toISOString().slice(0, 10)
-}
-
 function pourcent(part: number, total: number): number {
   return total > 0 ? Math.round((part / total) * 1000) / 10 : 0
-}
-
-/** Date la plus récente d’une série, au format ISO, ou null si la série est vide. */
-function plusRecente(dates: (string | null)[]): string | null {
-  let max = 0
-  for (const d of dates) {
-    if (!d) continue
-    const t = new Date(d).getTime()
-    if (t > max) max = t
-  }
-  return max > 0 ? new Date(max).toISOString() : null
 }
 
 export async function GET(req: NextRequest) {
@@ -85,7 +53,7 @@ export async function GET(req: NextRequest) {
   let donnees
   try {
     donnees = await Promise.all([
-      lireTout<Profil>('profiles', 'id, email, full_name, role'),
+      lireTout<Profil>('profiles', 'id, email, full_name, role, plan'),
       lireTout<Sujet>('course_subjects', 'id, name, color'),
       lireTout<Formation>('elearning_formations', 'id, title, is_private, is_free_access, subject_id, created_at'),
       lireTout<Chapitre>('elearning_chapters', 'id, formation_id, title, order_index'),
@@ -429,14 +397,10 @@ export async function GET(req: NextRequest) {
   ].sort((a, b) => b.actions30 - a.actions30)
 
   // ── Chronologie (90 jours, toutes familles) ───────────────────────────────
-  const serie = new Map<string, { date: string; elearning: number; quiz: number; pratique: number; tests: number; flashcards: number }>()
-  for (let i = FENETRE_JOURS - 1; i >= 0; i--) {
-    const k = jour(new Date(maintenant - i * MS_DAY))
-    serie.set(k, { date: k, elearning: 0, quiz: 0, pratique: 0, tests: 0, flashcards: 0 })
-  }
+  const serie = serieVide(maintenant)
   const ajoute = (d: string | null, cle: 'elearning' | 'quiz' | 'pratique' | 'tests' | 'flashcards') => {
     if (!d) return
-    const k = jour(new Date(d))
+    const k = jourISO(new Date(d))
     const ligne = serie.get(k)
     if (ligne) ligne[cle]++
   }
@@ -446,35 +410,50 @@ export async function GET(req: NextRequest) {
   vTests.forEach(v => ajoute(v.viewed_at, 'tests'))
   revs.forEach(r => ajoute(r.reviewed_at, 'flashcards'))
 
-  // ── Membres les plus actifs sur les contenus (30 jours) ───────────────────
-  const profilParId = new Map(profils.map(p => [p.id, p]))
-  const parMembre = new Map<string, { elearning: number; quiz: number; pratique: number; tests: number; flashcards: number }>()
-  const compte = (userId: string, cle: 'elearning' | 'quiz' | 'pratique' | 'tests' | 'flashcards') => {
-    if (!parMembre.has(userId)) parMembre.set(userId, { elearning: 0, quiz: 0, pratique: 0, tests: 0, flashcards: 0 })
-    parMembre.get(userId)![cle]++
+  // ── Activité par client ───────────────────────────────────────────────────
+  // Tous les comptes du périmètre figurent dans la liste, y compris ceux qui
+  // n’ont rien ouvert : un abonné à zéro action est justement celui qu’il faut
+  // repérer avant son échéance.
+  type ActiviteMembre = { elearning: number; quiz: number; pratique: number; tests: number; flashcards: number; total: number; derniere: string | null }
+  const activiteVide = (): ActiviteMembre => ({ elearning: 0, quiz: 0, pratique: 0, tests: 0, flashcards: 0, total: 0, derniere: null })
+  const parMembre = new Map<string, ActiviteMembre>()
+  const compte = (userId: string, cle: 'elearning' | 'quiz' | 'pratique' | 'tests' | 'flashcards', date: string | null) => {
+    if (!parMembre.has(userId)) parMembre.set(userId, activiteVide())
+    const e = parMembre.get(userId)!
+    e.total++
+    if (recent(date)) e[cle]++
+    if (date && (!e.derniere || new Date(date).getTime() > new Date(e.derniere).getTime())) e.derniere = date
   }
-  prog.forEach(p => recent(p.completed_at) && compte(p.user_id, 'elearning'))
-  tents.forEach(t => recent(t.completed_at) && compte(t.user_id, 'quiz'))
-  vVideos.forEach(v => recent(v.viewed_at) && compte(v.user_id, 'pratique'))
-  vTests.forEach(v => recent(v.viewed_at) && compte(v.user_id, 'tests'))
-  revs.forEach(r => recent(r.reviewed_at) && compte(r.user_id, 'flashcards'))
+  prog.forEach(p => compte(p.user_id, 'elearning', p.completed_at))
+  tents.forEach(t => compte(t.user_id, 'quiz', t.completed_at))
+  vVideos.forEach(v => compte(v.user_id, 'pratique', v.viewed_at))
+  vTests.forEach(v => compte(v.user_id, 'tests', v.viewed_at))
+  revs.forEach(r => compte(r.user_id, 'flashcards', r.reviewed_at))
 
-  const actifs30 = parMembre.size
+  const actifs30 = [...parMembre.values()].filter(a => a.elearning + a.quiz + a.pratique + a.tests + a.flashcards > 0).length
 
-  const membres = [...parMembre.entries()]
-    .map(([id, d]) => {
-      const p = profilParId.get(id)
+  const membres = profils
+    .filter(p => suivis.has(p.id))
+    .map(p => {
+      const a = parMembre.get(p.id) || activiteVide()
+      const actions30 = a.elearning + a.quiz + a.pratique + a.tests + a.flashcards
       return {
-        id,
-        nom: p?.full_name || null,
-        email: p?.email || null,
-        role: p?.role || null,
-        total: d.elearning + d.quiz + d.pratique + d.tests + d.flashcards,
-        ...d,
+        id: p.id,
+        nom: p.full_name,
+        email: p.email,
+        role: p.role,
+        offre: planOf(p),
+        actions30,
+        actionsTotal: a.total,
+        derniereActivite: a.derniere,
+        elearning: a.elearning,
+        quiz: a.quiz,
+        pratique: a.pratique,
+        tests: a.tests,
+        flashcards: a.flashcards,
       }
     })
-    .sort((a, b) => b.total - a.total)
-    .slice(0, 12)
+    .sort((a, b) => b.actions30 - a.actions30 || b.actionsTotal - a.actionsTotal)
 
   // ── Contenus sans mesure d’usage ──────────────────────────────────────────
   // Ces rubriques existent en base mais rien n’enregistre leur consultation :
