@@ -192,3 +192,69 @@ export function formatDuration(minutes: number | null | undefined): string {
   const m = minutes % 60
   return m ? `${h} h ${m}` : `${h} h`
 }
+
+// ---------------------------------------------------------------------------
+// Activités interactives
+// ---------------------------------------------------------------------------
+
+export type ActivityKind = 'qcm' | 'vrai_faux' | 'cas_etape' | 'probabilite' | 'tri_drapeaux'
+
+export type RegionActivity = {
+  id: string
+  chapter_id: string
+  kind: ActivityKind
+  title: string | null
+  prompt: string | null
+  payload: any
+  explanation: string | null
+  order_index: number
+}
+
+/**
+ * Rapports de vraisemblance calculés depuis la sensibilité et la spécificité
+ * de la fiche du test, jamais saisis à part. Un chiffre corrigé sur la fiche
+ * corrige donc aussi l'exercice, et l'exercice ne peut pas la contredire.
+ *
+ * Les valeurs sont stockées en pourcentage (92.00 pour 92 %) et arrivent en
+ * chaîne depuis PostgREST, d'où la normalisation.
+ */
+export function likelihoodRatios(se: number | string, sp: number | string) {
+  const sensitivity = (typeof se === 'string' ? parseFloat(se) : se) / 100
+  const specificity = (typeof sp === 'string' ? parseFloat(sp) : sp) / 100
+
+  // Une spécificité de 100 % donnerait un rapport positif infini, et une
+  // sensibilité de 100 % un rapport négatif nul. Les deux sont des artefacts
+  // d'arrondi, pas des réalités cliniques : on borne plutôt que d'afficher ∞.
+  const positive = specificity >= 1 ? Infinity : sensitivity / (1 - specificity)
+  const negative = specificity <= 0 ? Infinity : (1 - sensitivity) / specificity
+
+  return { positive, negative }
+}
+
+/** Probabilité après application d'une suite de rapports de vraisemblance. */
+export function posteriorProbability(prevalencePercent: number, ratios: number[]): number {
+  const prior = Math.min(Math.max(prevalencePercent, 0.1), 99.9) / 100
+  let odds = prior / (1 - prior)
+  for (const ratio of ratios) {
+    if (!Number.isFinite(ratio) || ratio <= 0) continue
+    odds *= ratio
+  }
+  return (odds / (1 + odds)) * 100
+}
+
+/** Identifiant d'une vidéo YouTube, quel que soit le format d'URL. */
+export function youtubeId(url?: string | null): string | null {
+  if (!url) return null
+  const match = url.match(/^.*(youtu\.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]{11}).*/)
+  return match ? match[2] : null
+}
+
+export function youtubeThumbnail(url?: string | null): string | null {
+  const id = youtubeId(url)
+  return id ? `https://img.youtube.com/vi/${id}/hqdefault.jpg` : null
+}
+
+export function youtubeEmbed(url?: string | null): string | null {
+  const id = youtubeId(url)
+  return id ? `https://www.youtube.com/embed/${id}?autoplay=1&rel=0` : null
+}

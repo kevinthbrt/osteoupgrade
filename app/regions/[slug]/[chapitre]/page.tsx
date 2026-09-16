@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
 import AuthLayout from '@/components/AuthLayout'
 import FreeContentGate from '@/components/FreeContentGate'
+import ChapterActivities from '@/components/regions/ChapterActivities'
 import { supabase } from '@/lib/supabase'
 import { fetchProfilePayload } from '@/lib/profile-client'
 import { hasOsteoupgrade } from '@/lib/entitlements'
@@ -16,6 +17,9 @@ import {
   PATHOLOGY_ROLE_LABELS,
   SOURCE_TYPE_LABELS,
   vimeoEmbedUrl,
+  youtubeEmbed,
+  youtubeThumbnail,
+  type RegionActivity,
   type RegionChapter,
   type RegionModule,
   type RegionReference,
@@ -115,6 +119,9 @@ export default function RegionChapterPage() {
   const [exercises, setExercises] = useState<LinkedExercise[]>([])
   const [techniques, setTechniques] = useState<TechniqueWithVideo[]>([])
   const [references, setReferences] = useState<RegionReference[]>([])
+  const [activities, setActivities] = useState<RegionActivity[]>([])
+  const [solvedActivities, setSolvedActivities] = useState<Set<string>>(new Set())
+  const [playingTest, setPlayingTest] = useState<string | null>(null)
   const [done, setDone] = useState(false)
   const [saving, setSaving] = useState(false)
   const [playing, setPlaying] = useState<string | null>(null)
@@ -166,6 +173,7 @@ export default function RegionChapterPage() {
         exerciseRes,
         techniqueRes,
         referenceRes,
+        activityRes,
         progressRes,
       ] = await Promise.all([
         supabase
@@ -204,6 +212,11 @@ export default function RegionChapterPage() {
           .eq('chapter_id', current.id)
           .order('order_index', { ascending: true }),
         supabase
+          .from('region_chapter_activities')
+          .select('*')
+          .eq('chapter_id', current.id)
+          .order('order_index', { ascending: true }),
+        supabase
           .from('region_chapter_progress')
           .select('chapter_id')
           .eq('user_id', payload.user.id)
@@ -218,6 +231,21 @@ export default function RegionChapterPage() {
       setTechniques((techniqueRes.data || []) as unknown as TechniqueWithVideo[])
       setReferences((referenceRes.data || []) as RegionReference[])
       setDone(Boolean(progressRes.data))
+
+      const chapterActivities = (activityRes.data || []) as unknown as RegionActivity[]
+      setActivities(chapterActivities)
+      if (chapterActivities.length) {
+        const { data: attempts } = await supabase
+          .from('region_activity_attempts')
+          .select('activity_id, is_correct')
+          .eq('user_id', payload.user.id)
+          .in('activity_id', chapterActivities.map((a) => a.id))
+        setSolvedActivities(
+          new Set((attempts || []).filter((a: any) => a.is_correct).map((a: any) => a.activity_id))
+        )
+      } else {
+        setSolvedActivities(new Set())
+      }
 
       const linkedClusters = (clusterRes.data || []) as unknown as LinkedCluster[]
       setClusters(linkedClusters)
@@ -489,6 +517,35 @@ export default function RegionChapterPage() {
                           </div>
                         </div>
                         {item.note && <p className="mt-1.5 text-sm text-slate-600">{item.note}</p>}
+
+                        {youtubeThumbnail(test.video_url) && (
+                          playingTest === test.id ? (
+                            <div className="mt-3 aspect-video w-full max-w-lg overflow-hidden rounded-lg bg-black">
+                              <iframe
+                                src={youtubeEmbed(test.video_url) || ''}
+                                className="h-full w-full"
+                                allow="autoplay; encrypted-media; picture-in-picture"
+                                allowFullScreen
+                                title={test.name}
+                              />
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => setPlayingTest(test.id)}
+                              className="group/video relative mt-3 block w-40 overflow-hidden rounded-lg ring-1 ring-slate-200"
+                            >
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img
+                                src={youtubeThumbnail(test.video_url) || ''}
+                                alt=""
+                                className="aspect-video w-full object-cover transition-transform group-hover/video:scale-105"
+                              />
+                              <span className="absolute inset-0 flex items-center justify-center bg-slate-900/30">
+                                <PlayCircle className="h-8 w-8 text-white drop-shadow" />
+                              </span>
+                            </button>
+                          )
+                        )}
                       </div>
                     )
                   })}
@@ -637,6 +694,12 @@ export default function RegionChapterPage() {
                 </Link>
               </section>
             )}
+
+            <ChapterActivities
+              activities={activities}
+              userId={userId}
+              solved={solvedActivities}
+            />
 
             {chapter.key_points?.length > 0 && (
               <section className="rounded-2xl border border-slate-900 bg-slate-900 p-6 text-white">

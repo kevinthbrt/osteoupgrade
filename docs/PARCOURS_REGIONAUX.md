@@ -122,3 +122,47 @@ population définie. Les autres restent vides, et l’explication passe dans
 `interest`. Un chiffre inventé serait pire que pas de chiffre : il serait
 utilisé pour décider. Le chapitre « Décider avec des probabilités » dit
 explicitement au lecteur qu’une case vide est un choix, pas un oubli.
+
+## Activités interactives
+
+`region_chapter_activities` porte les exercices d'un chapitre, `region_activity_attempts` le dernier état de chaque réponse par utilisateur. Le rendu est dans `components/regions/ChapterActivities.tsx`.
+
+Un seul type de ligne, un `kind` et un `payload` JSON. Les formats d'activité évoluent plus vite qu'un schéma, et une table par format aurait imposé une migration à chaque nouvelle idée pédagogique.
+
+| `kind` | Forme du `payload` |
+|---|---|
+| `qcm` | `{multiple, options:[{label, correct, feedback}]}` |
+| `vrai_faux` | `{statements:[{label, correct, feedback}]}` |
+| `tri_drapeaux` | `{niveaux:[…], items:[{label, niveau, feedback}]}` |
+| `cas_etape` | `{steps:[{situation, question, options:[{label, correct, feedback}]}]}` |
+| `probabilite` | `{prevalence, prevalence_label, tests:[{name, se, sp}]}` |
+
+Le score n'est pas une note : il sert à savoir ce qui reste à revoir. Les réponses sont donc enregistrées en dernier état, sans historique, et une activité peut être refaite autant de fois qu'on veut. Un échec d'enregistrement n'interrompt jamais l'exercice.
+
+### Le calculateur de probabilité
+
+C'est l'activité qui justifie le mécanisme. Le chapitre sur les rapports de vraisemblance explique en mots qu'un test sensible et peu spécifique ne sert qu'à écarter ; le calculateur le fait constater. On coche « Lasègue positif » et la probabilité bouge de trois points, on coche « Lasègue négatif » et elle s'effondre.
+
+Point de conception à préserver : **les rapports de vraisemblance ne sont jamais saisis à la main**. Le `payload` ne stocke que la sensibilité et la spécificité lues dans `orthopedic_tests` au moment de la migration, et `likelihoodRatios()` les recalcule à l'affichage. Un chiffre corrigé sur une fiche corrige donc aussi l'exercice, et l'exercice ne peut pas contredire la fiche qu'il cite.
+
+Deux garde-fous dans le calcul : une spécificité à 100 % donnerait un rapport positif infini et une sensibilité à 100 % un rapport négatif nul, deux artefacts d'arrondi que `likelihoodRatios()` borne ; et la probabilité de départ est ramenée dans l'intervalle [0,1 %, 99,9 %] pour éviter une division par zéro.
+
+## D'où vient le contenu
+
+Les sources sont les instances et les revues systématiques, pas ce que la base contenait déjà. Trois références de cadrage, vérifiées auprès de l'émetteur et liées depuis les chapitres :
+
+- **HAS**, fiche mémo « Prise en charge du patient présentant une lombalgie commune », adoptée le 27 mars 2019. C'est la référence opposable en France, et elle apporte la grille par durée et par risque, dont la catégorie « à risque de chronicité » que les recommandations anglo-saxonnes nomment moins nettement.
+- **NICE NG59**, dont la mise à jour du 29 juillet 2026 a retiré les recommandations 1.2.13 et 1.2.14 et amendé les 1.1.3 et 1.2.7.
+- **OMS**, guide 2023 sur la prise en charge non chirurgicale de la lombalgie chronique primaire, dont toutes les recommandations sont conditionnelles.
+
+### Vérifier avant de republier
+
+Le cas du NICE de juillet 2026 est l'exemple à retenir : deux recommandations ont été retirées parce que des travaux qui les fondaient ont été **rétractés**. Un module écrit de mémoire six mois plus tôt les enseignait encore.
+
+Avant toute republication d'un parcours, reprendre les recommandations citées à leur source et vérifier qu'elles n'ont pas bougé. Quand deux instances divergent, le dire dans le contenu plutôt que choisir : le chapitre « principes-traitement » porte une section entière sur la divergence NICE et OMS à propos des approches psychologiques, et c'est un meilleur enseignement qu'une liste tranchée.
+
+## Vidéo sur les tests
+
+Les fiches de `orthopedic_tests` portent un `video_url`, le plus souvent YouTube. La page de chapitre en affiche la vignette et lance la lecture au clic, à côté de la sensibilité et de la spécificité. Les helpers sont dans `lib/region-modules.ts` (`youtubeId`, `youtubeThumbnail`, `youtubeEmbed`), séparés des helpers Vimeo qui servent aux vidéos de pratique.
+
+Sur les tests actuellement cités par le parcours lombaire, six portent une vidéo. Les autres s'affichent sans, sans message d'erreur : la vignette apparaît d'elle-même le jour où la fiche reçoit son URL.
