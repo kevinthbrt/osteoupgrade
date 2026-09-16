@@ -33,7 +33,8 @@ import {
   Laptop,
   Download,
   Star,
-  Brain
+  Brain,
+  Route
 } from 'lucide-react'
 import { planOf, hasOsteoflow, hasOsteoupgrade } from '@/lib/entitlements'
 import { OFFERS, formatAmount, offerOf, BUNDLE_SAVING } from '@/lib/offers'
@@ -124,6 +125,7 @@ export default function Dashboard() {
     { id: 'cours', title: 'Cours', description: 'Cours interactifs et formations structurées', icon: BookOpen, href: '/elearning/cours', count: 'Formation continue', gradient: 'from-blue-500 to-cyan-500', emoji: '📚' },
     { id: 'pratique', title: 'Pratique', description: 'Techniques ostéopathiques en vidéo, par région anatomique', icon: Stethoscope, href: '/pratique', count: '150+ vidéos', gradient: 'from-pink-500 to-rose-600', emoji: '🩺' },
     { id: 'revue', title: 'Revue de littérature', description: 'Articles et études scientifiques commentés', icon: FileText, href: '/elearning/revue-litterature', count: 'Recherche', gradient: 'from-violet-500 to-purple-600', emoji: '📖' },
+    { id: 'regions', title: 'Parcours régionaux', description: 'Diagnostiquer et traiter une région, chapitre par chapitre', icon: Route, href: '/regions', count: 'Nouveau', gradient: 'from-sky-500 to-indigo-600', emoji: '🧭' },
     { id: 'tests', title: 'Tests orthopédiques', description: 'Référentiel complet des tests cliniques', icon: Clipboard, href: '/tests', count: 'Référentiel', gradient: 'from-orange-500 to-red-500', emoji: '🔬' },
     { id: 'topographie', title: 'Topographie', description: 'Atlas anatomique interactif', icon: Map, href: '/topographie', count: 'Atlas', gradient: 'from-teal-500 to-green-600', emoji: '🗺️' },
     { id: 'parrainage', title: 'Parrainage', description: 'Parrainez vos collègues : 1 mois offert pour vous deux', icon: Gift, href: '/parrainage', count: '1 mois offert', gradient: 'from-amber-400 to-yellow-500', emoji: '🎁' },

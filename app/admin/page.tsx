@@ -110,6 +110,14 @@ export default function AdminPage() {
       href: '/admin/stats',
     },
     {
+      title: 'Parcours régionaux',
+      description: 'Publication des parcours et démonstrations vidéo restant à tourner',
+      icon: Route,
+      iconColor: 'text-indigo-600',
+      iconBg: 'bg-indigo-100',
+      href: '/admin/regions',
+    },
+    {
       title: 'Usage des contenus',
       description: 'Ce qui est consulté, l’avancement des cours et les contenus qui dorment',
       icon: Library,

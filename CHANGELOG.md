@@ -5,6 +5,26 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/).
 
 ---
 
+## [1.8.0] : 2026-09-16
+
+### Ajouté
+
+- **Parcours régionaux (`/regions`)** : environnements d'apprentissage par région anatomique, découpés en chapitres. Les briques existaient déjà et étaient bonnes (pathologies, tests orthopédiques, clusters, vidéos de pratique, exercices) ; ce qui manquait, c'était le fil. Un praticien qui voulait devenir compétent sur la lombalgie devait ouvrir quatre modules distincts et deviner l'ordre dans lequel les parcourir. Voir `docs/PARCOURS_REGIONAUX.md`.
+- **Aucune donnée clinique dupliquée** : un chapitre cite les briques, il ne les recopie pas. Un test reste dans `orthopedic_tests`, une vidéo dans `practice_videos`. Corriger une sensibilité à un seul endroit continue de corriger tout le site, la fiche du test comme les chapitres qui la citent. C'est la raison pour laquelle le module est une couche de liaison et non un nouveau référentiel.
+- **Module « Région lombaire »** : 26 chapitres, 133 sections, 98 références, de l'épidémiologie aux cas cliniques intégratifs, en passant par les drapeaux rouges, la queue de cheval, les douleurs viscérales, la lombalgie inflammatoire, l'examen neurologique et neurodynamique, les sept tableaux diagnostiques (radiculopathie, sténose, discogénique, facettaire, instabilité, ceinture pelvienne, diagnostics de voisinage), le traitement fondé sur les preuves et la réorientation.
+- **Une technique existe avant sa vidéo** : `region_chapter_techniques` porte le catalogue des gestes recommandés indépendamment de ce qui est filmé. Refuser d'écrire une technique tant que la vidéo n'existe pas aurait amputé le contenu de tout ce qui est recommandé mais pas encore tourné, SNAG de Mulligan, protocole McKenzie complet, puncture sèche, neuromobilisation. `to_film` marque ce qui reste à produire, `film_brief` dit ce que la vidéo doit montrer. Sur les 21 techniques du parcours lombaire, 10 sont reliées à une démonstration existante et 11 attendent d'être tournées.
+- **Liste de tournage (`/admin/regions`)** : les techniques en attente, avec leur brief, et l'association en un clic à une vidéo de la bibliothèque. Associer remplit `practice_video_id` et repasse `to_film` à faux : la liste se vide d'elle-même.
+- **Publication contrôlée** : un module en `draft` n'est lisible que des administrateurs, la policy de lecture laissant passer `is_admin()`. Le contenu clinique est relu avant d'être servi aux abonnés. Le parcours lombaire est livré en brouillon.
+- **Compléments au référentiel de tests** : items des règles de prédiction clinique de Flynn et de Hicks, Active Straight Leg Raise, mouvements aberrants lombaires, Schober modifié, test du tapis roulant en deux temps, hyperextension unipodale, palper-rouler de la charnière thoraco-lombaire, hypomobilité segmentaire, signe de la sonnette. Plus trois clusters : règle de Flynn, règle de Hicks, faisceau d'arguments de radiculopathie. Ces fiches profitent aussi au module `/tests`.
+- **Sensibilité et spécificité renseignées seulement quand elles existent** : les colonnes restent vides lorsque la littérature ne donne pas de chiffre stable sur une population définie, et l'explication passe dans `interest`. Un chiffre inventé serait pire que pas de chiffre, il serait utilisé pour décider. Le chapitre « Décider avec des probabilités » dit explicitement au lecteur qu'une case vide est un choix.
+- **Progression par chapitre** : `region_chapter_progress`, une ligne par chapitre terminé, reprise dans le sommaire et sur la carte du parcours.
+
+### Corrigé
+
+- **« Tight thrust test »** devient **« Thigh thrust test »** dans le référentiel des tests sacro-iliaques. La coquille était visible des abonnés sur une fiche clinique ; le nom n'est qu'un libellé d'affichage, aucune requête ne s'y appuyait.
+
+---
+
 ## [1.7.0] : 2026-09-08
 
 ### Ajouté

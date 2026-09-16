@@ -21,6 +21,7 @@ import {
   Gift,
   Map,
   Brain,
+  Route,
 } from 'lucide-react'
 import { planOf, planLabel } from '@/lib/entitlements'
 import AdminNotificationBell from './AdminNotificationBell'
@@ -79,6 +80,7 @@ export default function Navigation() {
     { href: '/dashboard', label: 'Dashboard', icon: Home },
     { href: '/elearning/cours', label: 'Cours', icon: BookOpen },
     { href: '/pratique', label: 'Pratique', icon: Stethoscope },
+    { href: '/regions', label: 'Parcours régionaux', icon: Route, isNew: true },
     { href: '/tests', label: 'Tests ortho', icon: Clipboard },
     { href: '/topographie', label: 'Topographie', icon: Map },
     { href: '/flashcards', label: 'OsteoFlash', icon: Brain, isNew: true },
