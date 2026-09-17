@@ -1,10 +1,22 @@
 # Questionnaires cliniques
 
-`/outils/questionnaires`. Passation, calcul du score, et conduite qui en découle.
+Ils vivent **dans les chapitres qui les enseignent**, pas dans un outil séparé. Un praticien qui apprend à stratifier le risque doit pouvoir faire passer le STarT Back sans quitter la page où on lui explique à quoi il sert.
+
+Le rattachement passe par `region_chapter_questionnaires`, exactement comme un chapitre cite un test ou un exercice : il cite la brique, il ne la recopie pas.
+
+| Chapitre | Questionnaire |
+|---|---|
+| Drapeaux jaunes et stratification du risque | STarT Back, FABQ |
+| Quel mécanisme de douleur domine ? | DN4 |
+| La grille de décision | EIFEL, Oswestry |
 
 ## Pourquoi ils existent
 
 Le parcours lombaire recommandait le STarT Back dès la première consultation, le simulateur en renvoyait un score quand on demandait l'examen, et la règle de Flynn exige un FABQ-Travail sous 19. Aucun de ces outils n'était disponible sur le site : la formation demandait au praticien des instruments qu'elle ne lui donnait pas.
+
+## Un instrument sans chapitre n'a pas sa place
+
+L'EIFEL et l'Oswestry ont été ajoutés au catalogue avant que le cours n'en parle, ce qui les laissait orphelins. La règle qui en découle : un questionnaire qu'aucun chapitre n'enseigne n'a rien à faire dans le parcours. Soit on écrit le passage qui l'explique, soit on ne l'embarque pas. Ici, la grille de décision a reçu la section « Mesurer, pour pouvoir comparer », et les deux échelles y sont rattachées.
 
 ## Ce qui est en ligne
 
@@ -47,4 +59,5 @@ Les échelles de réponse, elles, ne sont pas modifiables depuis l'administratio
 1. Choisir la méthode de calcul parmi les quatre existantes, ou en ajouter une dans `lib/questionnaires.ts` avec ses cas dans `scripts/verifier-questionnaires.ts`.
 2. Insérer la ligne dans `questionnaires` avec ses seuils, sa source, sa licence et son état.
 3. Insérer les items avec leur échelle. Un item non scoré porte `sous_echelle = NULL` : il reste affiché, il ne compte pas.
-4. Faire vérifier le nombre d'items par la migration elle-même, comme le fait `20260919_questionnaires_lombaire.sql` : un item manquant donne un score faux, et un score faux fait décider de travers.
+4. Le rattacher au chapitre qui l'enseigne, dans `region_chapter_questionnaires`, avec une note qui dit ce que le praticien doit en retenir. Si aucun chapitre ne l'enseigne, écrire d'abord le passage.
+5. Faire vérifier le nombre d'items par la migration elle-même, comme le fait `20260919_questionnaires_lombaire.sql` : un item manquant donne un score faux, et un score faux fait décider de travers.

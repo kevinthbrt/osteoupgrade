@@ -6,6 +6,8 @@ import { useParams, useRouter } from 'next/navigation'
 import AuthLayout from '@/components/AuthLayout'
 import FreeContentGate from '@/components/FreeContentGate'
 import ChapterActivities from '@/components/regions/ChapterActivities'
+import Passation from '@/components/questionnaires/Passation'
+import type { Questionnaire, QuestionnaireItem } from '@/lib/questionnaires'
 import { supabase } from '@/lib/supabase'
 import { fetchProfilePayload } from '@/lib/profile-client'
 import { hasOsteoupgrade } from '@/lib/entitlements'
@@ -28,6 +30,7 @@ import {
   type SectionCallout,
 } from '@/lib/region-modules'
 import {
+  ClipboardList,
   Activity,
   AlertTriangle,
   ArrowLeft,
@@ -75,6 +78,12 @@ type LinkedExercise = {
   exercise: any
 }
 
+type LinkedQuestionnaire = {
+  note: string | null
+  order_index: number
+  questionnaire: Questionnaire
+}
+
 type TechniqueWithVideo = RegionTechnique & { video: any | null }
 
 const CALLOUT_STYLES: Record<SectionCallout, { wrapper: string; label: string | null; icon: any }> = {
@@ -120,6 +129,8 @@ export default function RegionChapterPage() {
   const [techniques, setTechniques] = useState<TechniqueWithVideo[]>([])
   const [references, setReferences] = useState<RegionReference[]>([])
   const [activities, setActivities] = useState<RegionActivity[]>([])
+  const [questionnaires, setQuestionnaires] = useState<LinkedQuestionnaire[]>([])
+  const [questionnaireItems, setQuestionnaireItems] = useState<Record<string, QuestionnaireItem[]>>({})
   const [solvedActivities, setSolvedActivities] = useState<Set<string>>(new Set())
   const [playingTest, setPlayingTest] = useState<string | null>(null)
   const [done, setDone] = useState(false)
@@ -174,6 +185,7 @@ export default function RegionChapterPage() {
         techniqueRes,
         referenceRes,
         activityRes,
+        questionnaireRes,
         progressRes,
       ] = await Promise.all([
         supabase
@@ -217,6 +229,11 @@ export default function RegionChapterPage() {
           .eq('chapter_id', current.id)
           .order('order_index', { ascending: true }),
         supabase
+          .from('region_chapter_questionnaires')
+          .select('note, order_index, questionnaire:questionnaires(*)')
+          .eq('chapter_id', current.id)
+          .order('order_index', { ascending: true }),
+        supabase
           .from('region_chapter_progress')
           .select('chapter_id')
           .eq('user_id', payload.user.id)
@@ -231,6 +248,31 @@ export default function RegionChapterPage() {
       setTechniques((techniqueRes.data || []) as unknown as TechniqueWithVideo[])
       setReferences((referenceRes.data || []) as RegionReference[])
       setDone(Boolean(progressRes.data))
+
+      // Les items d'un questionnaire ne sont lisibles que par un abonné : la
+      // politique de lecture les filtre, et un compte gratuit reçoit la fiche
+      // sans les items. Le composant affiche alors un questionnaire vide, ce
+      // que la page évite en ne le montrant pas du tout.
+      const linkedQuestionnaires = (questionnaireRes.data || []) as unknown as LinkedQuestionnaire[]
+      setQuestionnaires(linkedQuestionnaires)
+      if (linkedQuestionnaires.length) {
+        const { data: lignes } = await supabase
+          .from('questionnaire_items')
+          .select('*')
+          .in('questionnaire_id', linkedQuestionnaires.map((l) => l.questionnaire.id))
+          .order('order_index', { ascending: true })
+
+        const parQuestionnaire: Record<string, QuestionnaireItem[]> = {}
+        for (const ligne of (lignes || []) as QuestionnaireItem[]) {
+          parQuestionnaire[ligne.questionnaire_id] = [
+            ...(parQuestionnaire[ligne.questionnaire_id] || []),
+            ligne,
+          ]
+        }
+        setQuestionnaireItems(parQuestionnaire)
+      } else {
+        setQuestionnaireItems({})
+      }
 
       const chapterActivities = (activityRes.data || []) as unknown as RegionActivity[]
       setActivities(chapterActivities)
@@ -692,6 +734,30 @@ export default function RegionChapterPage() {
                   Ouvrir la bibliothèque d’exercices
                   <ExternalLink className="h-3.5 w-3.5" />
                 </Link>
+              </section>
+            )}
+
+            {questionnaires.some((lien) => (questionnaireItems[lien.questionnaire.id] || []).length > 0) && (
+              <section>
+                <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-slate-500">
+                  <ClipboardList className="h-4 w-4" />
+                  Les questionnaires de ce chapitre
+                </h2>
+                <div className="space-y-3">
+                  {questionnaires.map((lien) => {
+                    const items = questionnaireItems[lien.questionnaire.id] || []
+                    if (!items.length) return null
+                    return (
+                      <Passation
+                        key={lien.questionnaire.id}
+                        questionnaire={lien.questionnaire}
+                        items={items}
+                        note={lien.note}
+                        replie
+                      />
+                    )
+                  })}
+                </div>
               </section>
             )}
 

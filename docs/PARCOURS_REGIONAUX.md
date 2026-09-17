@@ -257,6 +257,6 @@ Le champ `piege` mérite un soin particulier : c'est lui qui distingue un cas d'
 
 ## Les questionnaires que le parcours cite
 
-Le STarT Back, le FABQ et le DN4 sont cités par les chapitres et exigés par le simulateur et par la règle de Flynn. Ils vivent dans `/outils/questionnaires`, documentés dans `docs/QUESTIONNAIRES.md`, et les sections concernées y renvoient.
+Un questionnaire se rattache au chapitre qui l'enseigne, par `region_chapter_questionnaires`, et se remplit sur place. C'est la même mécanique que pour les tests, les clusters et les exercices : le chapitre cite la brique, il ne la recopie pas. Le détail est dans `docs/QUESTIONNAIRES.md`.
 
-La règle vaut pour tout nouveau parcours : un chapitre qui recommande un outil doit pouvoir y conduire. Citer un questionnaire sans le fournir revient à demander au praticien d'aller le chercher ailleurs, ce qu'il ne fera pas.
+Deux règles en découlent, et elles valent pour tout nouveau parcours. Un chapitre qui recommande un outil doit permettre de s'en servir sans quitter la page : l'envoyer le chercher ailleurs revient à ce qu'il ne le fasse pas. Et un questionnaire qu'aucun chapitre n'enseigne n'a rien à faire dans le parcours.

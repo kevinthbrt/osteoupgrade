@@ -55,7 +55,7 @@ async function chargerParcours(token: string) {
   const ids = (chapters || []).map((c: Row) => c.id)
   if (ids.length === 0) return { module, chapters: [], par: {} as Record<string, any> }
 
-  const [sections, tests, clusters, pathologies, techniques, references, activities] =
+  const [sections, tests, clusters, pathologies, techniques, references, activities, questionnaires] =
     await Promise.all([
       supabaseAdmin.from('region_chapter_sections').select('*').in('chapter_id', ids).order('order_index'),
       supabaseAdmin
@@ -76,6 +76,11 @@ async function chargerParcours(token: string) {
       supabaseAdmin.from('region_chapter_techniques').select('*').in('chapter_id', ids).order('order_index'),
       supabaseAdmin.from('region_chapter_references').select('*').in('chapter_id', ids).order('order_index'),
       supabaseAdmin.from('region_chapter_activities').select('*').in('chapter_id', ids).order('order_index'),
+      supabaseAdmin
+        .from('region_chapter_questionnaires')
+        .select('chapter_id, note, order_index, questionnaire:questionnaires(code, name, purpose, licence, licence_statut, traduction_officielle, interpretation)')
+        .in('chapter_id', ids)
+        .order('order_index'),
     ])
 
   const grouper = (rows: Row[] | null) => {
@@ -97,6 +102,7 @@ async function chargerParcours(token: string) {
       techniques: grouper(techniques.data),
       references: grouper(references.data),
       activities: grouper(activities.data),
+      questionnaires: grouper(questionnaires.data),
     },
   }
 }
@@ -283,6 +289,35 @@ export default async function PageApercu({ params }: { params: { token: string }
                     </span>
                     {technique.evidence_summary && (
                       <span className="block text-slate-600">{technique.evidence_summary}</span>
+                    )}
+                  </div>
+                ))}
+              </Bloc>
+            )}
+
+            {(par.questionnaires[chapter.id] || []).length > 0 && (
+              <Bloc titre="Questionnaires du chapitre">
+                {(par.questionnaires[chapter.id] || []).map((lien: Row) => (
+                  <div key={lien.questionnaire?.code} className="text-sm text-slate-600">
+                    <span className="font-medium text-slate-800">{lien.questionnaire?.code}</span>
+                    {' · '}
+                    {lien.questionnaire?.name}
+                    {lien.note && <span className="block text-xs text-slate-500">{lien.note}</span>}
+                    <span className="mt-1 block text-xs">
+                      {(lien.questionnaire?.interpretation || []).map((niveau: Row) => (
+                        <span key={niveau.cle} className="mr-3 text-slate-500">
+                          {niveau.libelle} : {niveau.min} à {niveau.max}
+                        </span>
+                      ))}
+                    </span>
+                    {!lien.questionnaire?.traduction_officielle && (
+                      <span className="mt-0.5 block text-xs text-amber-700">
+                        Formulation non officiellement validée
+                        {lien.questionnaire?.licence_statut !== 'libre' &&
+                          lien.questionnaire?.licence_statut !== 'obtenue' &&
+                          `, licence à régler auprès de ${lien.questionnaire?.licence || 'son détenteur'}`}
+                        .
+                      </span>
                     )}
                   </div>
                 ))}
