@@ -15,12 +15,15 @@ import {
 import {
   Check,
   Clapperboard,
+  Copy,
   ExternalLink,
   Eye,
   EyeOff,
   Film,
+  Link2,
   Loader2,
   Route,
+  Trash2,
 } from 'lucide-react'
 
 type ModuleRow = {
@@ -28,6 +31,7 @@ type ModuleRow = {
   slug: string
   title: string
   status: 'draft' | 'published' | 'archived'
+  preview_token: string | null
   chapters: number
   toFilm: number
 }
@@ -46,6 +50,7 @@ export default function AdminRegionsPage() {
   const [videos, setVideos] = useState<VideoOption[]>([])
   const [selection, setSelection] = useState<Record<string, string>>({})
   const [busy, setBusy] = useState<string | null>(null)
+  const [copied, setCopied] = useState<string | null>(null)
 
   useEffect(() => {
     void checkAdminAndLoad()
@@ -74,7 +79,7 @@ export default function AdminRegionsPage() {
   const load = async () => {
     const { data: moduleRows } = await supabase
       .from('region_modules')
-      .select('id, slug, title, status')
+      .select('id, slug, title, status, preview_token')
       .order('order_index', { ascending: true })
 
     const list = moduleRows || []
@@ -137,6 +142,50 @@ export default function AdminRegionsPage() {
       return
     }
     setModules((prev) => prev.map((m) => (m.id === module.id ? { ...m, status: next } : m)))
+  }
+
+  /**
+   * Le jeton est généré dans le navigateur : c'est un identifiant aléatoire,
+   * pas un secret dérivé d'autre chose, et la seule exigence est qu'il ne soit
+   * pas devinable. `crypto.randomUUID` suffit et évite un aller-retour serveur.
+   */
+  const createPreviewLink = async (module: ModuleRow) => {
+    setBusy(module.id)
+    const token = crypto.randomUUID()
+    const { error } = await supabase
+      .from('region_modules')
+      .update({ preview_token: token, preview_created_at: new Date().toISOString() })
+      .eq('id', module.id)
+    setBusy(null)
+    if (error) {
+      alert('Échec : ' + error.message)
+      return
+    }
+    setModules((prev) => prev.map((m) => (m.id === module.id ? { ...m, preview_token: token } : m)))
+  }
+
+  const revokePreviewLink = async (module: ModuleRow) => {
+    if (!confirm('Révoquer ce lien ? Il cessera de fonctionner immédiatement pour tous ceux à qui vous l’avez envoyé.')) {
+      return
+    }
+    setBusy(module.id)
+    const { error } = await supabase
+      .from('region_modules')
+      .update({ preview_token: null, preview_created_at: null })
+      .eq('id', module.id)
+    setBusy(null)
+    if (error) {
+      alert('Échec : ' + error.message)
+      return
+    }
+    setModules((prev) => prev.map((m) => (m.id === module.id ? { ...m, preview_token: null } : m)))
+  }
+
+  const copyPreviewLink = (module: ModuleRow) => {
+    if (!module.preview_token) return
+    navigator.clipboard.writeText(`${window.location.origin}/apercu/${module.preview_token}`)
+    setCopied(module.id)
+    setTimeout(() => setCopied(null), 2000)
   }
 
   const attachVideo = async (technique: TechniqueRow) => {
@@ -255,6 +304,68 @@ export default function AdminRegionsPage() {
                     )}
                     {module.status === 'published' ? 'Dépublier' : 'Publier'}
                   </button>
+                </div>
+
+                <div className="w-full rounded-xl bg-slate-50 p-4">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    Lien de relecture
+                  </p>
+                  {module.preview_token ? (
+                    <>
+                      <p className="mt-1.5 text-sm text-slate-600">
+                        Lisible sans compte, en lecture seule, même si le parcours n’est pas publié.
+                        Les activités y apparaissent avec leurs réponses attendues.
+                      </p>
+                      <div className="mt-3 flex flex-wrap items-center gap-2">
+                        <code className="flex-1 overflow-x-auto rounded-lg bg-white px-3 py-2 text-xs text-slate-700 ring-1 ring-slate-200">
+                          /apercu/{module.preview_token}
+                        </code>
+                        <button
+                          onClick={() => copyPreviewLink(module)}
+                          className="inline-flex items-center gap-1.5 rounded-lg bg-sky-600 px-3 py-2 text-sm font-semibold text-white hover:bg-sky-700"
+                        >
+                          {copied === module.id ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+                          {copied === module.id ? 'Copié' : 'Copier'}
+                        </button>
+                        <a
+                          href={`/apercu/${module.preview_token}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                        >
+                          Ouvrir
+                          <ExternalLink className="h-3.5 w-3.5" />
+                        </a>
+                        <button
+                          onClick={() => revokePreviewLink(module)}
+                          disabled={busy === module.id}
+                          className="inline-flex items-center gap-1.5 rounded-lg border border-rose-200 px-3 py-2 text-sm font-medium text-rose-700 hover:bg-rose-50 disabled:opacity-60"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                          Révoquer
+                        </button>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <p className="mt-1.5 text-sm text-slate-600">
+                        Aucun lien pour le moment. En créer un permet de faire relire le parcours par
+                        un confrère sans le publier et sans lui ouvrir un compte.
+                      </p>
+                      <button
+                        onClick={() => createPreviewLink(module)}
+                        disabled={busy === module.id}
+                        className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-3 py-2 text-sm font-semibold text-white hover:bg-slate-800 disabled:opacity-60"
+                      >
+                        {busy === module.id ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <Link2 className="h-3.5 w-3.5" />
+                        )}
+                        Créer un lien de relecture
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
             ))}
