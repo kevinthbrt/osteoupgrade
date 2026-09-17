@@ -209,3 +209,40 @@
     animation: none;
   }
 }
+
+/* Parcours régionaux : mise en forme du HTML stocké en base (sections de
+   chapitre, introduction de module, description de technique). Le plugin
+   typography n'est pas installé, ces quelques règles suffisent au jeu de
+   balises réellement produit par l'éditeur : p, strong, em, ul, ol, li, a. */
+.region-html > p {
+  margin-bottom: 0.875rem;
+  line-height: 1.7;
+}
+
+.region-html > p:last-child {
+  margin-bottom: 0;
+}
+
+.region-html strong {
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.region-html em {
+  font-style: italic;
+}
+
+.region-html ul,
+.region-html ol {
+  margin: 0 0 0.875rem 1.25rem;
+  line-height: 1.7;
+}
+
+.region-html ul { list-style: disc; }
+.region-html ol { list-style: decimal; }
+.region-html li { margin-bottom: 0.25rem; }
+
+.region-html a {
+  color: #0369a1;
+  text-decoration: underline;
+}

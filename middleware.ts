@@ -56,5 +56,9 @@ export const config = {
   // seule clé est le jeton de l'URL, vérifié côté serveur. Une lecture de
   // session n'apprendrait rien et retarderait la page dont le taux de réponse
   // est tout l'intérêt.
-  matcher: ['/((?!api|_next/static|_next/image|favicon.ico|f/|avis/).*)'],
+  //
+  // `apercu/` (relecture d'un parcours régional) suit exactement la même
+  // logique : le relecteur n'a pas de compte, le jeton de l'URL est la seule
+  // clé, et la page est rendue côté serveur avec la clé service-role.
+  matcher: ['/((?!api|_next/static|_next/image|favicon.ico|f/|avis/|apercu/).*)'],
 }

@@ -33,7 +33,8 @@ import {
   Laptop,
   Download,
   Star,
-  Brain
+  Brain,
+  Route
 } from 'lucide-react'
 import { planOf, hasOsteoflow, hasOsteoupgrade } from '@/lib/entitlements'
 import { OFFERS, formatAmount, offerOf, BUNDLE_SAVING } from '@/lib/offers'
@@ -46,6 +47,7 @@ export default function Dashboard() {
   const [badges, setBadges] = useState<{ id: string; name: string; icon: string | null; description?: string | null }[]>([])
   const [referralData, setReferralData] = useState<{ code: string | null; referrals_count: number; available_earnings: number } | null>(null)
   const [codeCopied, setCodeCopied] = useState(false)
+  const [parcoursPublies, setParcoursPublies] = useState(0)
   const [stats, setStats] = useState({
     level: 1, totalXp: 0, currentStreak: 0, unlockedAchievements: 0,
     weekLogins: 0, weekElearning: 0, weekPractice: 0, weekTesting: 0,
@@ -72,6 +74,12 @@ export default function Dashboard() {
       if (!response.ok) { setProfile({ role: 'free', full_name: 'Invité' }); setLoading(false); return }
       const { user, profile: profileData } = await response.json()
       if (profileData) setProfile(profileData)
+
+      const { count: parcours } = await supabase
+        .from('region_modules')
+        .select('id', { count: 'exact', head: true })
+        .eq('status', 'published')
+      setParcoursPublies(parcours || 0)
 
       const { data: gs } = await supabase.from('user_gamification_stats').select('*').eq('user_id', user.id).single()
       if (gs) {
@@ -128,6 +136,22 @@ export default function Dashboard() {
     { id: 'topographie', title: 'Topographie', description: 'Atlas anatomique interactif', icon: Map, href: '/topographie', count: 'Atlas', gradient: 'from-teal-500 to-green-600', emoji: '🗺️' },
     { id: 'parrainage', title: 'Parrainage', description: 'Parrainez vos collègues : 1 mois offert pour vous deux', icon: Gift, href: '/parrainage', count: '1 mois offert', gradient: 'from-amber-400 to-yellow-500', emoji: '🎁' },
   ]
+
+  // Même règle que la navigation : la carte n'apparaît qu'une fois un parcours
+  // publié, sinon elle mènerait les abonnés vers une page vide. Un
+  // administrateur la voit toujours, pour relire ses brouillons.
+  if (parcoursPublies > 0 || profile?.role === 'admin') {
+    modules.splice(3, 0, {
+      id: 'regions',
+      title: 'Parcours régionaux',
+      description: 'Diagnostiquer et traiter une région, chapitre par chapitre',
+      icon: Route,
+      href: '/regions',
+      count: parcoursPublies > 1 ? `${parcoursPublies} parcours` : 'Nouveau',
+      gradient: 'from-sky-500 to-indigo-600',
+      emoji: '🧭',
+    })
+  }
 
   const xpToNextLevel = 500
   const xpProgress = Math.min((stats.totalXp % xpToNextLevel) / xpToNextLevel * 100, 100)
