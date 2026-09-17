@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import { supabase } from '@/lib/supabase'
+import ArbreDecisionVisuel from './ArbreDecisionVisuel'
 import {
   likelihoodRatios,
   posteriorProbability,
@@ -16,6 +17,8 @@ import {
   ChevronRight,
   Lightbulb,
   RotateCcw,
+  GitBranch,
+  MousePointerClick,
   Send,
   Sparkles,
   Stethoscope,
@@ -108,7 +111,7 @@ export default function ChapterActivities({ activities, userId, solved }: Props)
                   <CasEtape activity={activity} onResolved={(ok) => record(activity.id, ok)} />
                 )}
                 {activity.kind === 'probabilite' && <Probabilite activity={activity} />}
-                {activity.kind === 'arbre_decision' && <ArbreDecision activity={activity} />}
+                {activity.kind === 'arbre_decision' && <Arbre activity={activity} />}
               </div>
             </div>
           </article>
@@ -627,7 +630,50 @@ function Probabilite({ activity }: { activity: RegionActivity }) {
 }
 
 /**
- * Arbre de décision.
+ * Deux façons de lire le même arbre.
+ *
+ * Le schéma complet d'abord, parce que c'est lui qui montre le raisonnement :
+ * toutes les branches sont à l'écran, y compris celles qu'on n'aurait pas
+ * prises. Le parcours pas à pas ensuite, pour le dérouler sur un patient
+ * précis, où l'intérêt est au contraire de ne voir qu'une question à la fois.
+ */
+function Arbre({ activity }: { activity: RegionActivity }) {
+  const [mode, setMode] = useState<'schema' | 'pas_a_pas'>('schema')
+
+  return (
+    <div>
+      <div className="mb-3 inline-flex rounded-lg border border-slate-200 bg-white p-0.5">
+        {([
+          ['schema', 'Arbre complet', GitBranch],
+          ['pas_a_pas', 'Dérouler pas à pas', MousePointerClick],
+        ] as const).map(([valeur, libelle, Icone]) => (
+          <button
+            key={valeur}
+            onClick={() => setMode(valeur)}
+            className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${
+              mode === valeur ? 'bg-violet-600 text-white' : 'text-slate-600 hover:bg-slate-50'
+            }`}
+          >
+            <Icone className="h-3.5 w-3.5" />
+            {libelle}
+          </button>
+        ))}
+      </div>
+
+      {mode === 'schema' ? (
+        <>
+          <ArbreDecisionVisuel payload={activity.payload} />
+          <Explanation text={activity.explanation} />
+        </>
+      ) : (
+        <ArbreDecision activity={activity} />
+      )}
+    </div>
+  )
+}
+
+/**
+ * Parcours pas à pas.
  *
  * On avance nœud par nœud en gardant la trace du chemin suivi, parce que c'est
  * le chemin qui enseigne quelque chose : au bout, le praticien voit sur quoi sa

@@ -210,7 +210,24 @@ Le chapitre `arbre-decisionnel` de la partie « Intégrer » porte une activité
 }
 ```
 
-Le rendu (`components/regions/ChapterActivities.tsx`) déroule l'arbre nœud par nœud en affichant le chemin parcouru, chaque étape étant cliquable pour y revenir. C'est le chemin qui enseigne : au bout, le praticien voit que la décision s'est jouée sur la sécurité, sur le comportement de la douleur et sur la réponse au mouvement, presque jamais sur le nom d'un tissu. L'arbre n'est pas noté et ne compte pas dans le score du chapitre.
+Deux rendus pour le même payload, et le premier est celui qui compte.
+
+**Le schéma complet** (`components/regions/ArbreDecisionVisuel.tsx`) dessine les vingt-neuf nœuds d'un seul tenant : toutes les branches sont à l'écran, y compris celles qu'on n'aurait pas prises, et c'est là que se lit le raisonnement. La couleur d'une carte terminale et de la flèche qui y mène donne l'issue de la branche avant même qu'on l'ait lue.
+
+**Le parcours pas à pas** (`ChapterActivities.tsx`) déroule l'arbre une question à la fois en affichant le chemin suivi, chaque étape restant cliquable pour y revenir. Il sert à dérouler l'arbre sur un patient précis, où voir les autres branches ne sert à rien. L'arbre n'est noté dans aucun des deux modes et ne compte pas dans le score du chapitre.
+
+### La mise en page du schéma
+
+Elle est calculée dans le composant, sans bibliothèque de graphes : trente nœuds ne justifient pas une dépendance de plus.
+
+Les nœuds sont placés par couches, chacune à la profondeur de son plus long chemin depuis la racine, ce qui garantit que toutes les flèches descendent. À l'intérieur d'une couche, l'ordre suit le barycentre des parents, ce qui suffit à éviter l'essentiel des croisements.
+
+Le graphe n'étant pas un arbre au sens strict, les convergences reçoivent deux traitements opposés, et c'est le point à comprendre avant de modifier ce fichier :
+
+- **une question atteinte depuis plusieurs endroits reste unique.** Les mouvements répétés sont atteints par trois chemins, et c'est ce que le lecteur doit voir : quel que soit le détour, on y repasse ;
+- **une conclusion atteinte depuis plusieurs endroits est dessinée sous chacun de ses parents.** La partager obligerait à la poser sur la couche de son parent le plus profond, avec une flèche traversant tout le schéma. L'urgence, atteinte depuis le tri de sécurité et depuis l'examen neurologique, se lit bien mieux répétée sous les deux.
+
+Le texte est coupé à la main pour calculer les hauteurs de boîtes, avec une espace insécable devant la ponctuation double. C'est la règle française, et cela évite au passage qu'un point d'interrogation se retrouve seul sur la dernière ligne d'une question.
 
 Le `ton` d'une conclusion décide de la couleur de la carte finale : `urgence`, `orienter`, `traiter`. Il n'y a pas d'autre valeur, et le rendu retombe sur `traiter` si elle est inconnue.
 
