@@ -22,6 +22,7 @@ import {
   CheckCircle2,
   ChevronRight,
   Circle,
+  ClipboardList,
   Clock,
   Clapperboard,
   Eye,
@@ -42,6 +43,10 @@ export default function RegionModulePage() {
   const [chapters, setChapters] = useState<RegionChapter[]>([])
   const [completed, setCompleted] = useState<Set<string>>(new Set())
   const [toFilm, setToFilm] = useState(0)
+  // Sans repère dans le sommaire, un questionnaire posé au milieu de trente-quatre
+  // chapitres est introuvable : il faut ouvrir les chapitres un par un pour le
+  // trouver, ce qui revient à ne pas l'avoir mis.
+  const [avecQuestionnaire, setAvecQuestionnaire] = useState<Set<string>>(new Set())
   const [publishing, setPublishing] = useState(false)
 
   useEffect(() => {
@@ -78,6 +83,14 @@ export default function RegionModulePage() {
 
       const list = (chapterRows || []) as RegionChapter[]
       setChapters(list)
+
+      if (list.length) {
+        const { data: liens } = await supabase
+          .from('region_chapter_questionnaires')
+          .select('chapter_id')
+          .in('chapter_id', list.map((c) => c.id))
+        setAvecQuestionnaire(new Set((liens || []).map((l: any) => l.chapter_id)))
+      }
 
       const { data: progressRows } = await supabase
         .from('region_chapter_progress')
@@ -340,6 +353,12 @@ export default function RegionModulePage() {
                             <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-600">
                               {KIND_LABELS[chapter.kind]}
                             </span>
+                            {avecQuestionnaire.has(chapter.id) && (
+                              <span className="inline-flex items-center gap-1 rounded-full bg-violet-100 px-2 py-0.5 text-[11px] font-medium text-violet-700">
+                                <ClipboardList className="h-3 w-3" />
+                                Questionnaire
+                              </span>
+                            )}
                           </div>
                           {chapter.subtitle && (
                             <p className="mt-0.5 text-sm text-slate-500">{chapter.subtitle}</p>

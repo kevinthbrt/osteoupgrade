@@ -451,6 +451,30 @@ export default function RegionChapterPage() {
               )
             })}
 
+            {questionnaires.some((lien) => (questionnaireItems[lien.questionnaire.id] || []).length > 0) && (
+              <section>
+                <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-slate-500">
+                  <ClipboardList className="h-4 w-4" />
+                  Les questionnaires de ce chapitre
+                </h2>
+                <div className="space-y-3">
+                  {questionnaires.map((lien) => {
+                    const items = questionnaireItems[lien.questionnaire.id] || []
+                    if (!items.length) return null
+                    return (
+                      <Passation
+                        key={lien.questionnaire.id}
+                        questionnaire={lien.questionnaire}
+                        items={items}
+                        note={lien.note}
+                        replie
+                      />
+                    )
+                  })}
+                </div>
+              </section>
+            )}
+
             {pathologies.length > 0 && (
               <section>
                 <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-slate-500">
@@ -734,30 +758,6 @@ export default function RegionChapterPage() {
                   Ouvrir la bibliothèque d’exercices
                   <ExternalLink className="h-3.5 w-3.5" />
                 </Link>
-              </section>
-            )}
-
-            {questionnaires.some((lien) => (questionnaireItems[lien.questionnaire.id] || []).length > 0) && (
-              <section>
-                <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-slate-500">
-                  <ClipboardList className="h-4 w-4" />
-                  Les questionnaires de ce chapitre
-                </h2>
-                <div className="space-y-3">
-                  {questionnaires.map((lien) => {
-                    const items = questionnaireItems[lien.questionnaire.id] || []
-                    if (!items.length) return null
-                    return (
-                      <Passation
-                        key={lien.questionnaire.id}
-                        questionnaire={lien.questionnaire}
-                        items={items}
-                        note={lien.note}
-                        replie
-                      />
-                    )
-                  })}
-                </div>
               </section>
             )}
 
