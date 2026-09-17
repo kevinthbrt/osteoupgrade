@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "verifier:questionnaires": "tsc lib/questionnaires.ts scripts/verifier-questionnaires.ts --module commonjs --target es2020 --esModuleInterop --outDir .verif && node .verif/scripts/verifier-questionnaires.js"
   },
   "dependencies": {
     "@react-pdf/renderer": "^3.4.4",

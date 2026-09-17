@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import AuthLayout from '@/components/AuthLayout'
 import {
+  ClipboardList,
   Users,
   Shield,
   Layers,
@@ -116,6 +117,14 @@ export default function AdminPage() {
       iconColor: 'text-indigo-600',
       iconBg: 'bg-indigo-100',
       href: '/admin/regions',
+    },
+    {
+      title: 'Questionnaires',
+      description: 'Suivi des licences et formulation des items des questionnaires cliniques',
+      icon: ClipboardList,
+      iconColor: 'text-violet-600',
+      iconBg: 'bg-violet-100',
+      href: '/admin/questionnaires',
     },
     {
       title: 'Usage des contenus',

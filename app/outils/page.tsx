@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation'
 import AuthLayout from '@/components/AuthLayout'
 import {
+  ClipboardList,
   FileText,
   Wrench,
   ArrowRight
@@ -19,6 +20,16 @@ export default function OutilsPage() {
       icon: FileText,
       href: '/outils/communication',
       gradient: 'from-blue-500 to-cyan-600',
+      count: 'Premium',
+      available: true
+    },
+    {
+      id: 'questionnaires',
+      title: 'Questionnaires cliniques',
+      description: 'STarT Back, DN4, FABQ, EIFEL, Oswestry : passation, score et conduite qui en découle',
+      icon: ClipboardList,
+      href: '/outils/questionnaires',
+      gradient: 'from-violet-500 to-purple-600',
       count: 'Premium',
       available: true
     }

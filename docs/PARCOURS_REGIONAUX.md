@@ -254,3 +254,9 @@ Le `ton` d'une conclusion décide de la couleur de la carte finale : `urgence`, 
 5. écrire `debrief`, la leçon du cas, affichée après la correction.
 
 Le champ `piege` mérite un soin particulier : c'est lui qui distingue un cas d'un exercice. Le patient qui réclame une manipulation alors qu'il fait une queue de cheval, celui qui arrive avec le diagnostic d'un confrère, celle qui tient à son IRM.
+
+## Les questionnaires que le parcours cite
+
+Le STarT Back, le FABQ et le DN4 sont cités par les chapitres et exigés par le simulateur et par la règle de Flynn. Ils vivent dans `/outils/questionnaires`, documentés dans `docs/QUESTIONNAIRES.md`, et les sections concernées y renvoient.
+
+La règle vaut pour tout nouveau parcours : un chapitre qui recommande un outil doit pouvoir y conduire. Citer un questionnaire sans le fournir revient à demander au praticien d'aller le chercher ailleurs, ce qu'il ne fera pas.
