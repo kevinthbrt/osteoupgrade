@@ -5,6 +5,23 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/).
 
 ---
 
+## [1.9.0] : 2026-09-18
+
+### Ajouté
+
+- **Simulateur de consultation (`/regions/<slug>/simulateur`)** : un patient est tiré au sort parmi les tableaux du parcours, le praticien mène l'anamnèse en langage libre, le modèle répond dans le rôle du patient, puis le praticien décide des examens et conclut. Vingt cas pour le parcours lombaire, couvrant les dix-sept conduites possibles, de la queue de cheval à l'optimisation fonctionnelle.
+- **Un modèle joue le patient, il ne décide de rien d'autre** : les résultats d'examen sont lus dans le cas, jamais produits par le modèle, et le résultat normal par défaut appartient au catalogue d'examens. Un test donne donc le même résultat à chaque fois qu'on le demande, ce qui est la condition pour que la conclusion soit corrigeable. La correction elle-même est un test d'égalité avec la conduite attendue : le modèle n'écrit que le débriefing.
+- **La correction s'appuie sur l'arbre de décision** : les conclusions proposées au praticien sont lues dans le `payload` de l'activité `arbre_decision` du parcours, et la migration des cas vérifie dans sa propre transaction qu'aucune conclusion attendue n'est absente de l'arbre. Il n'y a donc pas deux vérités à tenir à jour.
+- **Arbre de décision interactif** : le chapitre « L'arbre de décision complet » se déroule nœud par nœud, en affichant le chemin parcouru, chaque étape restant cliquable pour revenir en arrière et essayer l'autre branche. Il n'est pas noté : ce qu'il enseigne est le chemin, pas le score.
+- **Cas et solutions hors de portée du navigateur** : `region_simulation_cases` contient la réponse, sa lecture est donc réservée à la clé service-role et aux administrateurs. Les sessions se lisent mais ne s'écrivent pas côté client, sinon le verdict serait modifiable par celui qu'il évalue.
+
+### Corrigé
+
+- **Entrée « Parcours régionaux » dans la navigation** : elle n'apparaît qu'une fois un parcours publié, ou pour un administrateur. Sans cette condition, une mise en production aurait envoyé tous les abonnés vers une page vide, le parcours lombaire étant encore en brouillon.
+- **Parité entre le dépôt et la base** : deux migrations appliquées sans fichier dans `supabase/migrations/` ont été ajoutées, la correction des sources officielles de juillet 2026 et l'arbre de décision. Une base reconstruite depuis les migrations produit de nouveau le même contenu que la production.
+
+---
+
 ## [1.8.0] : 2026-09-16
 
 ### Ajouté

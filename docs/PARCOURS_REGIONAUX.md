@@ -193,3 +193,47 @@ Avant toute republication d'un parcours, reprendre les recommandations citées �
 Les fiches de `orthopedic_tests` portent un `video_url`, le plus souvent YouTube. La page de chapitre en affiche la vignette et lance la lecture au clic, à côté de la sensibilité et de la spécificité. Les helpers sont dans `lib/region-modules.ts` (`youtubeId`, `youtubeThumbnail`, `youtubeEmbed`), séparés des helpers Vimeo qui servent aux vidéos de pratique.
 
 Sur les tests actuellement cités par le parcours lombaire, six portent une vidéo. Les autres s'affichent sans, sans message d'erreur : la vignette apparaît d'elle-même le jour où la fiche reçoit son URL.
+
+## L'arbre de décision
+
+Le chapitre `arbre-decisionnel` de la partie « Intégrer » porte une activité de type `arbre_decision`. Son `payload` est un dictionnaire de nœuds et la clé du premier :
+
+```json
+{
+  "racine": "securite",
+  "noeuds": {
+    "securite": { "type": "question", "axe": "Axe 1, sécurité", "texte": "…",
+                  "options": [{ "label": "…", "vers": "fin_urgence" }] },
+    "fin_urgence": { "type": "conclusion", "ton": "urgence", "titre": "…",
+                     "conduite": "…", "pourquoi": "…" }
+  }
+}
+```
+
+Le rendu (`components/regions/ChapterActivities.tsx`) déroule l'arbre nœud par nœud en affichant le chemin parcouru, chaque étape étant cliquable pour y revenir. C'est le chemin qui enseigne : au bout, le praticien voit que la décision s'est jouée sur la sécurité, sur le comportement de la douleur et sur la réponse au mouvement, presque jamais sur le nom d'un tissu. L'arbre n'est pas noté et ne compte pas dans le score du chapitre.
+
+Le `ton` d'une conclusion décide de la couleur de la carte finale : `urgence`, `orienter`, `traiter`. Il n'y a pas d'autre valeur, et le rendu retombe sur `traiter` si elle est inconnue.
+
+## Simulateur de consultation
+
+`/regions/<slug>/simulateur`. Un patient est tiré au sort, le praticien mène l'anamnèse en langage libre, décide des examens, puis conclut. Deux tables : `region_simulation_cases` et `region_simulation_sessions`.
+
+**Ce que le modèle fait, et ce qu'il ne fait pas.** Il joue le patient pendant l'anamnèse, c'est tout. Il ne décide jamais du résultat d'un examen : celui-ci est lu dans le cas, et à défaut c'est le résultat normal du catalogue `lib/region-simulation.ts` qui est renvoyé. Sans cette règle, le même test répété donnerait deux réponses différentes et la conclusion ne serait plus corrigeable. Il ne corrige pas non plus : la comparaison entre la conclusion choisie et la conclusion attendue est un test d'égalité, le modèle n'écrit que le commentaire.
+
+**Le résultat normal appartient au catalogue, pas au cas.** Un cas ne décrit que ce qu'il a d'anormal. C'est ce qui le garde lisible et ce qui évite qu'un oubli produise un « sans particularité » invraisemblable sur un examen que personne n'a pensé à renseigner.
+
+**Les conclusions proposées sont les feuilles de l'arbre.** Elles ne sont pas recopiées dans le simulateur : la route les lit dans le `payload` de l'activité `arbre_decision` du parcours. Un cas dont l'`expected.issue` ne correspondrait à aucune feuille serait incorrigeable, et la migration des cas vérifie ce point dans sa propre transaction : elle échoue plutôt que de laisser passer un cas orphelin.
+
+**Les cas contiennent leur solution.** `region_simulation_cases` n'a donc aucune politique de lecture pour un utilisateur ordinaire : tout passe par la route `/api/regions/simulateur` et la clé service-role. Le rendre lisible au navigateur reviendrait à afficher la réponse dans la console. Même logique pour l'écriture des sessions : un utilisateur lit les siennes, il ne les écrit pas, sinon le verdict serait modifiable par celui qu'il évalue.
+
+**Modèles.** Le patient répond avec un modèle intermédiaire, le débriefing avec le modèle supérieur, et la route redescend d'un cran si la clé n'a pas accès à ce dernier plutôt que de casser une consultation en cours. La consommation est journalisée dans `ai_cache_logs` sous les points d'entrée `simulateur-patient` et `simulateur-debrief`.
+
+**Écrire un cas.** Vingt cas couvrent les dix-sept feuilles de l'arbre lombaire, les trois orientations en urgence étant représentées par trois tableaux différents. Pour en ajouter un :
+
+1. choisir la feuille de l'arbre que le cas doit faire atteindre ;
+2. écrire `presentation` (ce que le praticien voit en entrant) et `secret` (ce que le patient sait et ne dira que si on le lui demande, avec un champ `a_ne_pas_dire_spontanement`) ;
+3. ne renseigner dans `exams` que les résultats anormaux ou spécifiques ;
+4. remplir `expected` : `issue`, `tableau`, `elements`, `examens_cles`, `piege` ;
+5. écrire `debrief`, la leçon du cas, affichée après la correction.
+
+Le champ `piege` mérite un soin particulier : c'est lui qui distingue un cas d'un exercice. Le patient qui réclame une manipulation alors qu'il fait une queue de cheval, celui qui arrive avec le diagnostic d'un confrère, celle qui tient à son IRM.

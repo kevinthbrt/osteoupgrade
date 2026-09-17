@@ -27,6 +27,7 @@ import {
   Eye,
   EyeOff,
   Loader2,
+  Stethoscope,
   Target,
 } from 'lucide-react'
 
@@ -216,6 +217,30 @@ export default function RegionModulePage() {
             </Link>
           )}
         </header>
+
+        {!locked && (
+          <Link
+            href={`/regions/${module.slug}/simulateur`}
+            className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-violet-200 bg-gradient-to-br from-violet-50 to-white p-5 transition-colors hover:border-violet-300"
+          >
+            <div className="flex gap-3">
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-violet-600 text-white">
+                <Stethoscope className="h-5 w-5" />
+              </span>
+              <div>
+                <p className="font-semibold text-slate-900">Simulateur de consultation</p>
+                <p className="mt-0.5 text-sm text-slate-600">
+                  Un patient tiré au sort, votre anamnèse, vos examens, votre conclusion. Corrigée
+                  sur l’arbre de décision du parcours.
+                </p>
+              </div>
+            </div>
+            <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-violet-700">
+              Recevoir un patient
+              <ArrowRight className="h-4 w-4" />
+            </span>
+          </Link>
+        )}
 
         {isAdmin && (
           <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white p-5">
