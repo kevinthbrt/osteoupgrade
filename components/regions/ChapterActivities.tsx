@@ -5,14 +5,20 @@ import { supabase } from '@/lib/supabase'
 import {
   likelihoodRatios,
   posteriorProbability,
+  type ArbreNoeud,
+  type ArbrePayload,
   type RegionActivity,
 } from '@/lib/region-modules'
 import {
+  AlertTriangle,
+  ArrowLeft,
   Check,
   ChevronRight,
   Lightbulb,
   RotateCcw,
+  Send,
   Sparkles,
+  Stethoscope,
   Target,
   X,
 } from 'lucide-react'
@@ -53,7 +59,11 @@ export default function ChapterActivities({ activities, userId, solved }: Props)
     }
   }
 
-  const scored = activities.filter((a) => a.kind !== 'probabilite')
+  // Le calculateur et l'arbre ne sont pas des questions à réponse juste : on
+  // les sort du compteur plutôt que de leur inventer un score.
+  const scored = activities.filter(
+    (a) => a.kind !== 'probabilite' && a.kind !== 'arbre_decision'
+  )
   const correct = scored.filter((a) => done[a.id]).length
 
   if (activities.length === 0) return null
@@ -98,6 +108,7 @@ export default function ChapterActivities({ activities, userId, solved }: Props)
                   <CasEtape activity={activity} onResolved={(ok) => record(activity.id, ok)} />
                 )}
                 {activity.kind === 'probabilite' && <Probabilite activity={activity} />}
+                {activity.kind === 'arbre_decision' && <ArbreDecision activity={activity} />}
               </div>
             </div>
           </article>
@@ -611,6 +622,171 @@ function Probabilite({ activity }: { activity: RegionActivity }) {
       </p>
 
       <Explanation text={activity.explanation} />
+    </div>
+  )
+}
+
+/**
+ * Arbre de décision.
+ *
+ * On avance nœud par nœud en gardant la trace du chemin suivi, parce que c'est
+ * le chemin qui enseigne quelque chose : au bout, le praticien voit sur quoi sa
+ * décision s'est réellement jouée. Rien n'est noté, on peut remonter à
+ * n'importe quelle étape et essayer l'autre branche.
+ */
+const ARBRE_TONS = {
+  urgence: {
+    carte: 'border-rose-300 bg-rose-50',
+    titre: 'text-rose-900',
+    pastille: 'bg-rose-600',
+    icone: AlertTriangle,
+    libelle: 'Urgence',
+  },
+  orienter: {
+    carte: 'border-amber-300 bg-amber-50',
+    titre: 'text-amber-900',
+    pastille: 'bg-amber-500',
+    icone: Send,
+    libelle: 'Réorienter',
+  },
+  traiter: {
+    carte: 'border-emerald-300 bg-emerald-50',
+    titre: 'text-emerald-900',
+    pastille: 'bg-emerald-600',
+    icone: Stethoscope,
+    libelle: 'Prendre en charge',
+  },
+} as const
+
+function ArbreDecision({ activity }: { activity: RegionActivity }) {
+  const arbre: ArbrePayload = activity.payload || { racine: '', noeuds: {} }
+  const noeuds = arbre.noeuds || {}
+
+  // Chaque pas retient le nœud quitté et l'option choisie : de quoi reconstituer
+  // le fil, et de quoi revenir en arrière sans rejouer depuis le début.
+  const [chemin, setChemin] = useState<{ de: string; label: string; axe?: string }[]>([])
+  const [courant, setCourant] = useState<string>(arbre.racine)
+
+  const noeud: ArbreNoeud | undefined = noeuds[courant]
+  if (!noeud) return null
+
+  const choisir = (option: { label: string; vers: string }) => {
+    if (noeud.type !== 'question') return
+    setChemin((prev) => [...prev, { de: courant, label: option.label, axe: noeud.axe }])
+    setCourant(option.vers)
+  }
+
+  const revenirA = (index: number) => {
+    const cible = chemin[index]
+    if (!cible) return
+    setChemin(chemin.slice(0, index))
+    setCourant(cible.de)
+  }
+
+  const recommencer = () => {
+    setChemin([])
+    setCourant(arbre.racine)
+  }
+
+  return (
+    <div>
+      {chemin.length > 0 && (
+        <ol className="mb-4 space-y-1.5">
+          {chemin.map((pas, index) => (
+            <li key={index} className="flex items-start gap-2 text-sm">
+              <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-violet-600 text-[11px] font-semibold text-white">
+                {index + 1}
+              </span>
+              <button
+                onClick={() => revenirA(index)}
+                className="text-left text-slate-600 hover:text-violet-700 hover:underline"
+                title="Revenir à cette étape"
+              >
+                {pas.axe && (
+                  <span className="mr-1.5 text-xs font-medium uppercase tracking-wide text-violet-500">
+                    {pas.axe} :
+                  </span>
+                )}
+                {pas.label}
+              </button>
+            </li>
+          ))}
+        </ol>
+      )}
+
+      {noeud.type === 'question' ? (
+        <div>
+          {noeud.axe && (
+            <p className="text-xs font-semibold uppercase tracking-wide text-violet-600">
+              {noeud.axe}
+            </p>
+          )}
+          <p className="mt-1 font-medium text-slate-900">{noeud.texte}</p>
+
+          <div className="mt-3 space-y-2">
+            {noeud.options.map((option, index) => (
+              <button
+                key={index}
+                onClick={() => choisir(option)}
+                className="flex w-full items-start gap-2.5 rounded-xl border border-slate-200 bg-white p-3.5 text-left text-sm text-slate-800 transition-colors hover:border-violet-300 hover:bg-violet-50/60"
+              >
+                <ChevronRight className="mt-0.5 h-4 w-4 shrink-0 text-violet-500" />
+                {option.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <Conclusion noeud={noeud} />
+      )}
+
+      <div className="mt-4 flex flex-wrap gap-3">
+        {chemin.length > 0 && (
+          <>
+            <button
+              onClick={() => revenirA(chemin.length - 1)}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
+            >
+              <ArrowLeft className="h-3.5 w-3.5" />
+              Étape précédente
+            </button>
+            <button
+              onClick={recommencer}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
+            >
+              <RotateCcw className="h-3.5 w-3.5" />
+              Repartir du début
+            </button>
+          </>
+        )}
+      </div>
+
+      {noeud.type === 'conclusion' && <Explanation text={activity.explanation} />}
+    </div>
+  )
+}
+
+function Conclusion({ noeud }: { noeud: Extract<ArbreNoeud, { type: 'conclusion' }> }) {
+  const ton = ARBRE_TONS[noeud.ton] || ARBRE_TONS.traiter
+  const Icone = ton.icone
+
+  return (
+    <div className={`rounded-2xl border p-5 ${ton.carte}`}>
+      <span
+        className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold text-white ${ton.pastille}`}
+      >
+        <Icone className="h-3.5 w-3.5" />
+        {ton.libelle}
+      </span>
+
+      <h4 className={`mt-2.5 text-lg font-semibold ${ton.titre}`}>{noeud.titre}</h4>
+      <p className="mt-2 text-sm text-slate-700">{noeud.conduite}</p>
+
+      {noeud.pourquoi && (
+        <p className="mt-3 border-t border-white/70 pt-3 text-sm italic text-slate-600">
+          {noeud.pourquoi}
+        </p>
+      )}
     </div>
   )
 }

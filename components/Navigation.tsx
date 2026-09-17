@@ -45,6 +45,10 @@ export default function Navigation() {
   const [profile, setProfile] = useState<any>(null)
   const [profileError, setProfileError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
+  // Un parcours régional en brouillon n'est visible que des administrateurs.
+  // Afficher quand même l'entrée de menu mènerait les abonnés vers une page
+  // vide : elle n'apparaît donc qu'une fois un parcours publié.
+  const [parcoursPublies, setParcoursPublies] = useState(0)
 
   useEffect(() => {
     const getUser = async () => {
@@ -60,6 +64,12 @@ export default function Navigation() {
         const payload = await response.json()
         setUser(payload.user)
         setProfile(payload.profile ?? { role: 'free', full_name: 'Invité' })
+
+        const { count } = await supabase
+          .from('region_modules')
+          .select('id', { count: 'exact', head: true })
+          .eq('status', 'published')
+        setParcoursPublies(count || 0)
       } catch (error) {
         console.error('Erreur de récupération du profil:', error)
         setProfile({ role: 'free', full_name: 'Invité' })
@@ -80,7 +90,6 @@ export default function Navigation() {
     { href: '/dashboard', label: 'Dashboard', icon: Home },
     { href: '/elearning/cours', label: 'Cours', icon: BookOpen },
     { href: '/pratique', label: 'Pratique', icon: Stethoscope },
-    { href: '/regions', label: 'Parcours régionaux', icon: Route, isNew: true },
     { href: '/tests', label: 'Tests ortho', icon: Clipboard },
     { href: '/topographie', label: 'Topographie', icon: Map },
     { href: '/flashcards', label: 'OsteoFlash', icon: Brain, isNew: true },
@@ -88,6 +97,17 @@ export default function Navigation() {
     { href: '/parrainage', label: 'Parrainage & Cagnotte', icon: Gift },
     { href: '/settings', label: 'Paramètres', icon: Settings },
   ]
+
+  // L'entrée apparaît dès qu'un parcours est publié, et reste visible des
+  // administrateurs pour qu'ils puissent relire un brouillon.
+  if (parcoursPublies > 0 || profile?.role === 'admin') {
+    menuItems.splice(4, 0, {
+      href: '/regions',
+      label: 'Parcours régionaux',
+      icon: Route,
+      isNew: parcoursPublies > 0,
+    })
+  }
 
   const getRoleBadge = () => {
     if (!profile) return null

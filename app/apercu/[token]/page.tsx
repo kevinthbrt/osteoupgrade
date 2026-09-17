@@ -426,6 +426,64 @@ function CorrigeActivite({ activity }: { activity: Row }) {
     )
   }
 
+  if (activity.kind === 'arbre_decision') {
+    // L'arbre est rendu à plat, dans l'ordre où on le parcourt : le relecteur
+    // doit pouvoir vérifier toutes les branches sans avoir à cliquer partout.
+    const noeuds: Record<string, Row> = payload.noeuds || {}
+    const ordre: string[] = []
+    const file: string[] = payload.racine ? [payload.racine] : []
+    while (file.length > 0) {
+      const cle = file.shift() as string
+      if (ordre.includes(cle) || !noeuds[cle]) continue
+      ordre.push(cle)
+      for (const option of noeuds[cle].options || []) file.push(option.vers)
+    }
+    for (const cle of Object.keys(noeuds)) if (!ordre.includes(cle)) ordre.push(cle)
+
+    const TONS: Record<string, string> = {
+      urgence: 'text-rose-700',
+      orienter: 'text-amber-700',
+      traiter: 'text-emerald-700',
+    }
+
+    return (
+      <ol className="mt-1.5 space-y-2">
+        {ordre.map((cle) => {
+          const noeud = noeuds[cle]
+          if (noeud.type === 'conclusion') {
+            return (
+              <li key={cle} className="text-slate-600">
+                <span className={`font-medium ${TONS[noeud.ton] || 'text-slate-800'}`}>
+                  {noeud.titre}
+                </span>{' '}
+                <span className="text-xs text-slate-400">({cle})</span>
+                <span className="block pl-4 text-xs text-slate-600">{noeud.conduite}</span>
+                {noeud.pourquoi && (
+                  <span className="block pl-4 text-xs italic text-slate-500">{noeud.pourquoi}</span>
+                )}
+              </li>
+            )
+          }
+          return (
+            <li key={cle} className="text-slate-600">
+              {noeud.axe && <span className="block text-xs text-slate-500">{noeud.axe}</span>}
+              <span className="font-medium text-slate-800">{noeud.texte}</span>{' '}
+              <span className="text-xs text-slate-400">({cle})</span>
+              <ul className="mt-1 space-y-0.5 pl-4">
+                {(noeud.options || []).map((option: Row, j: number) => (
+                  <li key={j} className="text-slate-500">
+                    · {option.label}{' '}
+                    <span className="text-xs text-slate-400">→ {option.vers}</span>
+                  </li>
+                ))}
+              </ul>
+            </li>
+          )
+        })}
+      </ol>
+    )
+  }
+
   if (activity.kind === 'probabilite') {
     return (
       <p className="mt-1.5 text-slate-600">

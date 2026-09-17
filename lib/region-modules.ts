@@ -199,7 +199,41 @@ export function formatDuration(minutes: number | null | undefined): string {
 // Activités interactives
 // ---------------------------------------------------------------------------
 
-export type ActivityKind = 'qcm' | 'vrai_faux' | 'cas_etape' | 'probabilite' | 'tri_drapeaux'
+export type ActivityKind =
+  | 'qcm'
+  | 'vrai_faux'
+  | 'cas_etape'
+  | 'probabilite'
+  | 'tri_drapeaux'
+  | 'arbre_decision'
+
+/**
+ * Arbre de décision : un dictionnaire de nœuds et la clé du premier.
+ *
+ * Les nœuds « question » portent l'axe de raisonnement auquel ils appartiennent,
+ * ce qui permet d'afficher le chemin parcouru en montrant sur quoi la décision
+ * s'est jouée. Les nœuds « conclusion » portent un ton, qui décide de la couleur
+ * de la carte finale : urgence, orienter ou traiter.
+ */
+export type ArbreNoeud =
+  | {
+      type: 'question'
+      axe?: string
+      texte: string
+      options: { label: string; vers: string }[]
+    }
+  | {
+      type: 'conclusion'
+      ton: 'urgence' | 'orienter' | 'traiter'
+      titre: string
+      conduite: string
+      pourquoi?: string
+    }
+
+export type ArbrePayload = {
+  racine: string
+  noeuds: Record<string, ArbreNoeud>
+}
 
 export type RegionActivity = {
   id: string
