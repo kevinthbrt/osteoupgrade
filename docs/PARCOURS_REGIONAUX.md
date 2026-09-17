@@ -123,6 +123,33 @@ population définie. Les autres restent vides, et l’explication passe dans
 utilisé pour décider. Le chapitre « Décider avec des probabilités » dit
 explicitement au lecteur qu’une case vide est un choix, pas un oubli.
 
+## L'axe du parcours : quatre décisions, pas une liste d'organes
+
+C'est le point de conception le plus important, et il a été corrigé après coup.
+
+La première version organisait la partie diagnostique par tissu : discogénique, facettaire, instabilité, sacro-iliaque. Cet ordre venait de la table `pathologies`, pas de la littérature. Le problème est qu'il contredisait le contenu : trois de ces chapitres expliquent qu'aucun test clinique ne permet d'identifier le tissu source de façon fiable. Le parcours enseignait donc une chose et s'organisait selon son contraire.
+
+La colonne vertébrale est maintenant ce qui décide réellement du traitement, dans un ordre où chaque question suppose la précédente résolue :
+
+1. **Est-ce que cela relève de moi ?** Parties « Trier » et « Interroger et examiner ».
+2. **Quel mécanisme de douleur domine ?** Nociceptif, neuropathique, nociplastique. Critères IASP, gradation de Finnerup, critères de Kosek 2021.
+3. **Quel profil de réponse au traitement ?** Modulation des symptômes, contrôle du mouvement, optimisation fonctionnelle. Classification de Delitto révisée par Alrwaily 2016.
+4. **Quel risque de chronicisation ?** STarT Back, et la grille par durée et par risque de la HAS.
+
+Ces trois derniers axes forment la partie **« Classer pour décider »**, placée avant les tableaux cliniques.
+
+### Pourquoi les chapitres tissulaires ont été gardés
+
+Ils n'ont pas été supprimés : leur contenu est bon, et il faut savoir reconnaître ces tableaux. Ils ont changé de statut. La partie s'appelle désormais **« Répertoire des tableaux cliniques »**, et le chapitre `croiser-les-axes` dit explicitement à quoi elle sert : reconnaître les tableaux qui se distinguent vraiment (sténose, radiculopathie, ceinture pelvienne, voisinage), savoir ce qu'on ne peut pas affirmer (discogénique, facettaire, instabilité), et affiner une première intention **après** que les quatre axes sont posés.
+
+La règle donnée au lecteur, et qui vaut aussi pour qui écrira le prochain parcours : si le plan de traitement change selon le tableau qu'on nomme, vérifier que ce n'est pas le mécanisme ou le profil qui aurait dû le décider.
+
+### Conséquence pour un nouveau parcours régional
+
+Reprendre cette ossature plutôt que la liste des pathologies de la région. Les parties « Comprendre », « Trier », « Interroger et examiner », « Classer pour décider », « Traiter », « Déjouer les pièges », « Orienter » et « Intégrer » sont transposables telles quelles ; seuls le répertoire des tableaux et les techniques sont propres à la région.
+
+L'ordre d'affichage des parties est fixé par `PART_ORDER` dans `lib/region-modules.ts`, pas par l'ordre alphabétique : une nouvelle partie doit y être ajoutée, sinon elle tombe en fin de sommaire.
+
 ## Activités interactives
 
 `region_chapter_activities` porte les exercices d'un chapitre, `region_activity_attempts` le dernier état de chaque réponse par utilisateur. Le rendu est dans `components/regions/ChapterActivities.tsx`.

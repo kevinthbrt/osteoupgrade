@@ -324,12 +324,19 @@ function TriDrapeaux({ activity, onResolved }: { activity: RegionActivity; onRes
   const [answers, setAnswers] = useState<Record<number, string>>({})
   const [checked, setChecked] = useState(false)
 
-  const tone = (niveau: string) =>
-    niveau.startsWith('Urgence')
-      ? 'bg-rose-600'
-      : niveau.startsWith('Avis')
-        ? 'bg-amber-500'
-        : 'bg-emerald-600'
+  // Les catégories d'un tri ne sont pas toujours des degrés de gravité : classer
+  // un mécanisme de douleur n'a pas d'ordre, et un dégradé rouge vers vert y
+  // suggérerait une hiérarchie qui n'existe pas. On ne garde donc la palette
+  // d'urgence que lorsque les niveaux en sont réellement.
+  const urgencyScale = niveaux.some((n) => n.startsWith('Urgence'))
+  const neutral = ['bg-violet-600', 'bg-sky-600', 'bg-teal-600', 'bg-slate-600']
+
+  const tone = (niveau: string) => {
+    if (!urgencyScale) return neutral[niveaux.indexOf(niveau) % neutral.length]
+    if (niveau.startsWith('Urgence')) return 'bg-rose-600'
+    if (niveau.startsWith('Avis')) return 'bg-amber-500'
+    return 'bg-emerald-600'
+  }
 
   const submit = () => {
     const ok = items.every((item, i) => answers[i] === item.niveau)

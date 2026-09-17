@@ -94,8 +94,10 @@ export const PART_ORDER = [
   'Comprendre',
   'Trier',
   'Interroger et examiner',
-  'Diagnostiquer',
+  'Classer pour décider',
+  'Répertoire des tableaux cliniques',
   'Traiter',
+  'Déjouer les pièges',
   'Orienter',
   'Intégrer',
 ] as const
