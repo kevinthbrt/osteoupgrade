@@ -23,6 +23,8 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/).
 
 ### Corrigé
 
+- **Le psoas n'est plus présenté comme un diagnostic lombaire** : le chapitre « diagnostics de voisinage » écrivait que le psoas « douloureux ou raccourci » donne une douleur lombaire basse, reproduite au test de Thomas. Le modèle du muscle raccourci qui tire sur le rachis n'est pas établi, la fiabilité du test de Thomas est moyenne, et aucun test ne désigne le psoas comme source d'une douleur lombaire. Le parcours se contredisait donc lui-même, puisque trois de ses chapitres démontrent qu'on ne nomme pas un tissu à partir d'un examen qui ne peut pas le nommer. Ce qui reste établi est gardé et nommé correctement : la douleur inguinale liée à l'ilio-psoas, selon la terminologie de l'accord de Doha, et l'abcès du psoas, qui est le véritable enjeu de ce muscle en consultation. Les notes des deux tests liés et la bibliographie du chapitre suivent.
+
 - **Entrée « Parcours régionaux » dans la navigation** : elle n'apparaît qu'une fois un parcours publié, ou pour un administrateur. Sans cette condition, une mise en production aurait envoyé tous les abonnés vers une page vide, le parcours lombaire étant encore en brouillon.
 - **Parité entre le dépôt et la base** : deux migrations appliquées sans fichier dans `supabase/migrations/` ont été ajoutées, la correction des sources officielles de juillet 2026 et l'arbre de décision. Une base reconstruite depuis les migrations produit de nouveau le même contenu que la production.
 
