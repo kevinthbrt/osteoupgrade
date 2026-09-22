@@ -92,10 +92,12 @@ export default async function FunnelPage({
   searchParams,
 }: {
   params: { slug: string }
-  searchParams: { preview?: string }
+  searchParams: { preview?: string; visiteur?: string }
 }) {
   const apercuDemande = searchParams.preview === '1'
   const apercu = apercuDemande && (await estAdmin())
+  /** En aperçu, permet de regarder la page avec les yeux d'un non-inscrit. */
+  const simulerVisiteur = apercu && searchParams.visiteur === '1'
 
   const funnel = await getFunnel(params.slug, apercu)
   if (!funnel) notFound()
@@ -108,8 +110,15 @@ export default async function FunnelPage({
   // aurait laissé le contenu lisible d'un clic droit, ce qui aurait vidé
   // l'inscription de son intérêt.
   const inscrit = Boolean(cookies().get(optinCookieName(funnel.slug))?.value)
-  const blocks = inscrit ? tousLesBlocs : tousLesBlocs.filter((b) => !b.gated)
+
+  // En aperçu, un admin voit la page entière : sinon il ne peut relire ni les
+  // vidéos, ni les tarifs, ni la garantie, soit l'essentiel de la page. Le
+  // portillon reste entier pour les visiteurs, et `?visiteur=1` permet de
+  // repasser sur leur vue depuis l'aperçu.
+  const toutVoir = inscrit || (apercu && !simulerVisiteur)
+  const blocks = toutVoir ? tousLesBlocs : tousLesBlocs.filter((b) => !b.gated)
   const blocsVerrouilles = tousLesBlocs.length - blocks.length
+  const nbReserves = tousLesBlocs.filter((b) => b.gated).length
 
   const brouillon = funnel.status !== 'published'
 
@@ -122,11 +131,26 @@ export default async function FunnelPage({
           {/* État du portillon, affiché en aperçu seulement. Sans ça,
               impossible de distinguer « le filtre ne marche pas » de « ce
               navigateur a déjà le cookie d'inscription ». */}
-          {tousLesBlocs.some((b) => b.gated) && (
+          {nbReserves > 0 && (
             <span className="mt-1 block font-normal">
-              {inscrit
-                ? `Contenu réservé débloqué sur ce navigateur : les ${tousLesBlocs.filter((b) => b.gated).length} blocs réservés sont affichés. Ouvrez une fenêtre privée pour voir la page comme un nouveau visiteur.`
-                : `${blocsVerrouilles} blocs réservés sont masqués, comme pour un visiteur non inscrit.`}
+              {simulerVisiteur ? (
+                <>
+                  Vue visiteur : {blocsVerrouilles} blocs réservés sont masqués.{' '}
+                  <a href={`/f/${funnel.slug}?preview=1`} className="underline">
+                    Revenir à l’aperçu complet
+                  </a>
+                </>
+              ) : inscrit ? (
+                `Contenu réservé affiché : ce navigateur porte le cookie d’inscription.`
+              ) : (
+                <>
+                  Aperçu admin : les {nbReserves} blocs réservés sont affichés, un visiteur ne les
+                  verrait qu’après avoir laissé son email.{' '}
+                  <a href={`/f/${funnel.slug}?preview=1&visiteur=1`} className="underline">
+                    Voir la page comme un visiteur
+                  </a>
+                </>
+              )}
             </span>
           )}
         </div>

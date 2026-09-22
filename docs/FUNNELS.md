@@ -182,6 +182,18 @@ Le déverrouillage repose sur le cookie `ou_optin_<slug>`, posé par
 appelle `router.refresh()` : le serveur refait le rendu et joint cette fois les
 blocs réservés.
 
+### Aperçu et vue visiteur
+
+En aperçu (`?preview=1`, admin connecté), la page entière est affichée,
+contenu réservé compris : un aperçu qui masque les vidéos et les tarifs ne
+permettrait pas de relire l'essentiel de la page.
+
+`?preview=1&visiteur=1` rétablit le portillon pour vérifier ce que voit un
+nouveau visiteur. Le bandeau d'aperçu indique l'état courant et propose le
+lien pour basculer.
+
+Le portillon reste entier hors aperçu : un visiteur ne devient jamais admin.
+
 ### Portée de l'accès
 
 L'accès est **lié au navigateur, pas à l'adresse email** : le cookie vaut 180
