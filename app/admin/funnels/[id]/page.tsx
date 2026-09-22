@@ -96,6 +96,14 @@ function blankBlock(type: FunnelBlockType): any {
       return { id, type, ctaLabel: 'Je m’abonne', ctaTarget: 'checkout' }
     case 'optin':
       return { id, type, title: 'Recevez la formation', askName: true }
+    case 'teaser':
+      return {
+        id, type,
+        title: 'Ce qui vous attend',
+        count: 7,
+        meta: ['7 vidéos', 'environ 1 h', 'Offert'],
+        ctaLabel: 'Débloquer',
+      }
     case 'text':
       return { id, type, body: '' }
     default:
