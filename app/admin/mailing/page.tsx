@@ -1,1532 +1,1041 @@
 'use client'
 
-import React, { useEffect, useState, useRef } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import {
-  Mail,
-  Send,
-  Loader2,
-  Plus,
-  Edit2,
-  Trash2,
-  Save,
-  X,
-  PlayCircle,
-  Clock,
-  Sparkles,
-  ChevronDown,
+  AlertTriangle,
+  Check,
+  Copy,
+  Eye,
   FileText,
-  Bold,
-  Italic,
-  Link2,
-  Image as ImageIcon,
-  List,
-  Heading2,
-  Paperclip,
-  Settings2,
-  Zap,
-  AlertTriangle
+  Loader2,
+  Mail,
+  Megaphone,
+  Plus,
+  Send,
+  Sparkles,
+  Trash2,
+  Users,
+  X
 } from 'lucide-react'
 import AuthLayout from '@/components/AuthLayout'
 import AdminBackButton from '@/components/AdminBackButton'
+import NewsletterEditor from '@/components/newsletter/NewsletterEditor'
 import { supabase } from '@/lib/supabase'
+import {
+  coerceDoc,
+  describeBlockers,
+  emptyDoc,
+  MERGE_TAGS,
+  renderNewsletterHtml,
+  type AudienceKind,
+  type DeliveryMode,
+  type NewsletterDoc
+} from '@/lib/newsletter'
 
-type Template = {
+/**
+ * Administration → Newsletter.
+ *
+ * Cette page ne sert qu'à une chose : écrire la newsletter du mois et l'envoyer.
+ * Pas de HTML, pas de gabarits à choisir, pas d'automatisations : les séquences
+ * déclenchées par les événements vivent dans Administration → Automatisations,
+ * et le gabarit de l'email est appliqué tout seul (`lib/newsletter.ts`).
+ *
+ * Le contenu est enregistré en continu côté serveur : on peut fermer l'onglet
+ * au milieu d'un paragraphe et reprendre depuis une autre machine.
+ */
+
+type NewsletterSummary = {
   id: string
-  name: string
+  title: string
   subject: string
-  description: string
-  html: string
-  text?: string
+  status: 'draft' | 'sent'
+  audience: AudienceKind
+  subscription_filter: string | null
+  delivery_mode: DeliveryMode
+  sent_at: string | null
+  sent_count: number | null
+  updated_at: string
 }
 
-type Attachment = {
-  name: string
-  content: string
-  type: string
-  cid?: string
-  disposition?: 'inline' | 'attachment'
+const PLAN_OPTIONS: { value: string; label: string }[] = [
+  { value: 'bundle', label: 'Offre Premium (les deux outils)' },
+  { value: 'osteoflow', label: 'Offre MyOsteoFlow seule' },
+  { value: 'osteoupgrade', label: 'Offre OsteoUpgrade seule' },
+  { value: 'free', label: 'Comptes gratuits' }
+]
+
+const AUDIENCE_LABELS: Record<AudienceKind, string> = {
+  all: 'Tous les inscrits à la newsletter',
+  plan: 'Une offre en particulier',
+  prelaunch: 'Contacts pré-lancement',
+  test: 'Adresses saisies à la main'
 }
 
-type AutomationStep = {
-  id: string
-  templateId: string
-  delayDays: number
-}
-
-type Automation = {
-  id: string
-  name: string
-  trigger: string
-  audience: string
-  schedule: string
-  steps: AutomationStep[]
-  active: boolean
-}
-
-
-export default function MailingAdminPage() {
+export default function NewsletterAdminPage() {
   const router = useRouter()
+
   const [loading, setLoading] = useState(true)
-  const editorRef = useRef<HTMLDivElement>(null)
-  const fileInputRef = useRef<HTMLInputElement>(null)
-  const attachmentInputRef = useRef<HTMLInputElement>(null)
+  const [list, setList] = useState<NewsletterSummary[]>([])
+  const [currentId, setCurrentId] = useState<string | null>(null)
+  const [title, setTitle] = useState('')
+  const [doc, setDoc] = useState<NewsletterDoc>(emptyDoc())
+  const [status, setStatus] = useState<'draft' | 'sent'>('draft')
 
-  // Newsletter state
-  const [toInput, setToInput] = useState('')
-  const [subject, setSubject] = useState('')
-  const [html, setHtml] = useState('<p>Rédigez votre newsletter ici...</p>')
-  const [selectedTemplateId, setSelectedTemplateId] = useState<string>('')
-  const [audienceMode, setAudienceMode] = useState<'manual' | 'all' | 'subscription'>('manual')
-  const [subscriptionFilter, setSubscriptionFilter] = useState<string>('bundle')
+  const [audience, setAudience] = useState<AudienceKind>('all')
+  const [planFilter, setPlanFilter] = useState('bundle')
+  const [deliveryMode, setDeliveryMode] = useState<DeliveryMode>('marketing')
+  const [audienceCount, setAudienceCount] = useState<number | null>(null)
+
+  const [saving, setSaving] = useState(false)
+  const [savedAt, setSavedAt] = useState<Date | null>(null)
   const [sending, setSending] = useState(false)
-  const [result, setResult] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
-  const [attachments, setAttachments] = useState<Attachment[]>([])
+  const [testOpen, setTestOpen] = useState(false)
+  const [testRecipients, setTestRecipients] = useState('')
+  const [confirmOpen, setConfirmOpen] = useState(false)
+  const [previewOpen, setPreviewOpen] = useState(false)
+  const [drawerOpen, setDrawerOpen] = useState(false)
+  const [notice, setNotice] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
+  // Les destinataires qu'un envoi direct n'a pas pu atteindre : ils restent à
+  // l'écran jusqu'à ce qu'on s'en occupe, sinon la liste serait perdue.
+  const [failedRecipients, setFailedRecipients] = useState<string[]>([])
 
-  // Templates state
-  const [templates, setTemplates] = useState<Template[]>([])
-  const [templateModalOpen, setTemplateModalOpen] = useState(false)
-  const [templateDraft, setTemplateDraft] = useState<Template>({
-    id: '',
-    name: '',
-    subject: '',
-    description: '',
-    html: '',
-    text: ''
-  })
-  const [editingTemplateId, setEditingTemplateId] = useState<string | null>(null)
-  const [templateSaving, setTemplateSaving] = useState(false)
-  const [showHtmlMode, setShowHtmlMode] = useState(false)
-  const [showMainHtmlMode, setShowMainHtmlMode] = useState(false)
-  const [showPreview, setShowPreview] = useState(false)
-  const templateEditorRef = useRef<HTMLDivElement>(null)
+  const lastEditable = useRef<HTMLElement | null>(null)
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const dirty = useRef(false)
+  const readOnly = status === 'sent'
 
-  // Initialize template editor content when modal opens
-  useEffect(() => {
-    if (templateModalOpen && templateEditorRef.current && !showHtmlMode) {
-      templateEditorRef.current.innerHTML = templateDraft.html
-    }
-  }, [templateModalOpen, showHtmlMode])
-
-  // Initialize main editor content
-  useEffect(() => {
-    if (editorRef.current && editorRef.current.innerHTML === '') {
-      editorRef.current.innerHTML = html
-    }
-  }, [])
-
-  // Automations state
-  const [automations, setAutomations] = useState<Automation[]>([])
-  const [automationModalOpen, setAutomationModalOpen] = useState(false)
-  const [togglingId, setTogglingId] = useState<string | null>(null)
-  const [previewAutomation, setPreviewAutomation] = useState<Automation | null>(null)
-  const [previewSteps, setPreviewSteps] = useState<{ subject: string; html: string; delayDays: number }[]>([])
-  const [activePreviewStep, setActivePreviewStep] = useState(0)
-  const [loadingPreview, setLoadingPreview] = useState(false)
-
-  const openAutomationPreview = async (automation: Automation) => {
-    if (previewAutomation?.id === automation.id) { setPreviewAutomation(null); setPreviewSteps([]); return }
-    setPreviewAutomation(automation)
-    setPreviewSteps([])
-    setActivePreviewStep(0)
-    if (!automation.steps.length) return
-    setLoadingPreview(true)
-    try {
-      const stepResults = await Promise.all(
-        automation.steps.map(async (step) => {
-          if (!step.templateId) return null
-          const { data } = await supabase
-            .from('mail_templates')
-            .select('html, subject')
-            .or(`id.eq.${step.templateId},name.eq.${step.templateId}`)
-            .single()
-          return data ? { subject: data.subject, html: data.html, delayDays: step.delayDays } : null
-        })
-      )
-      setPreviewSteps(stepResults.filter(Boolean) as { subject: string; html: string; delayDays: number }[])
-    } catch { setPreviewSteps([]) }
-    finally { setLoadingPreview(false) }
-  }
+  // ── Chargement ───────────────────────────────────────────────────────────
 
   useEffect(() => {
-    loadData()
-  }, [])
+    let cancelled = false
 
-  const loadData = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser()
+    const boot = async () => {
+      const {
+        data: { user }
+      } = await supabase.auth.getUser()
       if (!user) {
         router.push('/auth')
         return
       }
 
-      await Promise.all([loadTemplates(), loadAutomations()])
-    } catch (error) {
-      console.error('Error loading data:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
+      const summaries = await fetchList()
+      if (cancelled) return
 
-  const loadTemplates = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('mail_templates')
-        .select('*')
-        .order('created_at', { ascending: false })
-
-      if (error) throw error
-      setTemplates(data || [])
-    } catch (error) {
-      console.error('Error loading templates:', error)
-    }
-  }
-
-  const loadAutomations = async () => {
-    try {
-      const { data: automationData, error: automationError } = await supabase
-        .from('mail_automations')
-        .select('*')
-        .order('created_at', { ascending: false })
-
-      if (automationError) throw automationError
-
-      const automationsWithSteps = await Promise.all(
-        (automationData || []).map(async (auto) => {
-          const { data: stepsData } = await supabase
-            .from('mail_automation_steps')
-            .select('*')
-            .eq('automation_id', auto.id)
-            .order('step_order', { ascending: true })
-
-          return {
-            id: auto.id,
-            name: auto.name,
-            trigger: auto.trigger_event,
-            audience: 'Tous les membres',
-            schedule: 'Démarrage immédiat',
-            steps: (stepsData || []).map((step: any) => ({
-              id: step.id,
-              templateId: step.template_slug || '',
-              delayDays: Math.floor(step.wait_minutes / (24 * 60))
-            })),
-            active: auto.active
-          }
-        })
-      )
-
-      setAutomations(automationsWithSteps)
-    } catch (error) {
-      console.error('Error loading automations:', error)
-    }
-  }
-
-  // HTML formatting functions
-  const insertHtml = (tag: string, promptText?: string) => {
-    const editor = editorRef.current
-    if (!editor) return
-
-    const selection = window.getSelection()
-    if (!selection || selection.rangeCount === 0) return
-
-    const range = selection.getRangeAt(0)
-    let htmlToInsert = ''
-
-    if (tag === 'link') {
-      const url = prompt(promptText || 'Entrez l\'URL :')
-      if (!url) return
-      const selectedText = range.toString() || 'Lien'
-      htmlToInsert = `<a href="${url}" style="color:#7c3aed;text-decoration:underline;">${selectedText}</a>`
-    } else if (tag === 'h2') {
-      const selectedText = range.toString() || 'Titre'
-      htmlToInsert = `<h2 style="color:#7c3aed;font-size:24px;font-weight:bold;margin:16px 0 8px 0;">${selectedText}</h2>`
-    } else if (tag === 'ul') {
-      htmlToInsert = '<ul style="margin:12px 0;padding-left:24px;"><li>Élément de liste</li></ul>'
-    } else if (tag === 'br') {
-      htmlToInsert = '<br />'
-    } else {
-      const selectedText = range.toString() || 'Texte'
-      htmlToInsert = `<${tag}>${selectedText}</${tag}>`
-    }
-
-    range.deleteContents()
-    const fragment = range.createContextualFragment(htmlToInsert)
-    range.insertNode(fragment)
-
-    setHtml(editor.innerHTML)
-    editor.focus()
-  }
-
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-
-    if (!file.type.startsWith('image/')) {
-      alert('Veuillez sélectionner une image')
-      return
-    }
-
-    const reader = new FileReader()
-    reader.onload = () => {
-      const base64 = reader.result as string
-      const cid = `image-${Date.now()}`
-
-      setAttachments((prev) => [
-        ...prev,
-        {
-          name: file.name,
-          content: base64.split(',')[1],
-          type: file.type,
-          cid,
-          disposition: 'inline'
-        }
-      ])
-
-      const imgHtml = `<img src="cid:${cid}" alt="${file.name}" style="display:block;max-width:640px;width:100%;height:auto;margin:12px 0;" />`
-
-      if (editorRef.current) {
-        const selection = window.getSelection()
-        if (selection && selection.rangeCount > 0) {
-          const range = selection.getRangeAt(0)
-          range.deleteContents()
-          const fragment = range.createContextualFragment(imgHtml)
-          range.insertNode(fragment)
-        } else {
-          editorRef.current.innerHTML += imgHtml
-        }
-        setHtml(editorRef.current.innerHTML)
-      }
-    }
-    reader.readAsDataURL(file)
-
-    if (fileInputRef.current) {
-      fileInputRef.current.value = ''
-    }
-  }
-
-  const handleAttachmentUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-
-    const reader = new FileReader()
-    reader.onload = () => {
-      const base64 = reader.result as string
-      setAttachments((prev) => [
-        ...prev,
-        {
-          name: file.name,
-          content: base64.split(',')[1],
-          type: file.type || 'application/octet-stream',
-          disposition: 'attachment'
-        }
-      ])
-      alert(`Pièce jointe "${file.name}" ajoutée`)
-    }
-    reader.readAsDataURL(file)
-
-    if (attachmentInputRef.current) {
-      attachmentInputRef.current.value = ''
-    }
-  }
-
-  const removeAttachment = (index: number) => {
-    setAttachments((prev) => prev.filter((_, i) => i !== index))
-  }
-
-  // Template selection
-  const handleTemplateSelect = (templateId: string) => {
-    setSelectedTemplateId(templateId)
-    const template = templates.find(t => t.id === templateId)
-    if (template) {
-      setSubject(template.subject)
-      setHtml(template.html)
-      // Update editor content without using dangerouslySetInnerHTML
-      if (editorRef.current) {
-        editorRef.current.innerHTML = template.html
-      }
-    }
-  }
-
-  // Save template
-  const handleSaveTemplate = async () => {
-    if (!templateDraft.name || !templateDraft.subject) {
-      alert('Le nom et le sujet sont requis')
-      return
-    }
-
-    setTemplateSaving(true)
-    try {
-      const templateData = {
-        name: templateDraft.name,
-        subject: templateDraft.subject,
-        description: templateDraft.description,
-        html: templateDraft.html,
-        text: templateDraft.text || ''
-      }
-
-      if (editingTemplateId) {
-        // Update existing
-        const { error } = await supabase
-          .from('mail_templates')
-          .update(templateData)
-          .eq('id', editingTemplateId)
-
-        if (error) throw error
+      const draft = summaries.find((item) => item.status === 'draft')
+      if (draft) {
+        await openNewsletter(draft.id)
       } else {
-        // Create new
-        const { error } = await supabase
-          .from('mail_templates')
-          .insert(templateData)
-
-        if (error) throw error
+        await createNewsletter()
       }
-
-      await loadTemplates()
-      setTemplateModalOpen(false)
-      setEditingTemplateId(null)
-      setTemplateDraft({ id: '', name: '', subject: '', description: '', html: '', text: '' })
-      setResult({ type: 'success', message: 'Template sauvegardé !' })
-    } catch (error: any) {
-      setResult({ type: 'error', message: error.message })
-    } finally {
-      setTemplateSaving(false)
+      if (!cancelled) setLoading(false)
     }
-  }
 
-  // Delete template
-  const handleDeleteTemplate = async (templateId: string) => {
-    if (!confirm('Êtes-vous sûr de vouloir supprimer ce template ?')) return
-
-    try {
-      const { error } = await supabase
-        .from('mail_templates')
-        .delete()
-        .eq('id', templateId)
-
-      if (error) throw error
-      await loadTemplates()
-      if (selectedTemplateId === templateId) {
-        setSelectedTemplateId('')
-        setSubject('')
-        setHtml('<p>Rédigez votre newsletter ici...</p>')
-      }
-      setResult({ type: 'success', message: 'Template supprimé' })
-    } catch (error: any) {
-      setResult({ type: 'error', message: error.message })
+    boot()
+    return () => {
+      cancelled = true
     }
-  }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
-  // Send newsletter
-  const handleSend = async () => {
-    if (!subject || !html) {
-      setResult({ type: 'error', message: 'Le sujet et le contenu sont requis' })
+  // Les balises de personnalisation s'insèrent là où on écrivait juste avant.
+  useEffect(() => {
+    const remember = (event: FocusEvent) => {
+      const target = event.target as HTMLElement | null
+      if (target?.isContentEditable) lastEditable.current = target
+    }
+    document.addEventListener('focusin', remember)
+    return () => document.removeEventListener('focusin', remember)
+  }, [])
+
+  const fetchList = useCallback(async () => {
+    const response = await fetch('/api/admin/newsletters')
+    const data = await response.json()
+    const summaries: NewsletterSummary[] = data.newsletters || []
+    setList(summaries)
+    return summaries
+  }, [])
+
+  const openNewsletter = useCallback(async (id: string) => {
+    const response = await fetch(`/api/admin/newsletters/${id}`)
+    const data = await response.json()
+    if (!response.ok) {
+      setNotice({ type: 'error', message: data.error || 'Impossible d’ouvrir cette newsletter' })
       return
     }
+    const record = data.newsletter
+    setCurrentId(record.id)
+    setTitle(record.title)
+    setDoc(coerceDoc(record))
+    setStatus(record.status)
+    setAudience(record.audience)
+    setPlanFilter(record.audience === 'plan' && record.subscription_filter ? record.subscription_filter : 'bundle')
+    setDeliveryMode(record.delivery_mode)
+    setSavedAt(null)
+    dirty.current = false
+    setDrawerOpen(false)
+  }, [])
 
-    const recipients: string[] = []
-    if (audienceMode === 'manual') {
-      const emails = toInput.split(/[,;\n]/).map(e => e.trim()).filter(e => e)
-      if (emails.length === 0) {
-        setResult({ type: 'error', message: 'Ajoutez au moins un destinataire' })
+  const createNewsletter = useCallback(
+    async (duplicateOf?: string) => {
+      const response = await fetch('/api/admin/newsletters', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(duplicateOf ? { duplicateOf } : {})
+      })
+      const data = await response.json()
+      if (!response.ok) {
+        setNotice({ type: 'error', message: data.error || 'Création impossible' })
         return
       }
-      recipients.push(...emails)
+      await fetchList()
+      await openNewsletter(data.newsletter.id)
+    },
+    [fetchList, openNewsletter]
+  )
+
+  // ── Enregistrement ───────────────────────────────────────────────────────
+
+  /**
+   * Enregistre le brouillon, et LÈVE si l'écriture a échoué.
+   *
+   * L'appelant doit pouvoir décider : l'enregistrement automatique se contente
+   * d'afficher le message, mais un envoi doit s'interrompre. Le serveur
+   * reconstruit l'email depuis les blocs stockés, donc envoyer après un
+   * enregistrement raté ferait partir la version précédente pendant que
+   * l'écran affiche la nouvelle.
+   */
+  const save = useCallback(async () => {
+    if (!currentId || readOnly) return
+    setSaving(true)
+    try {
+      const response = await fetch(`/api/admin/newsletters/${currentId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title,
+          subject: doc.subject,
+          preheader: doc.preheader,
+          header: doc.header,
+          blocks: doc.blocks,
+          audience,
+          subscriptionFilter: audience === 'plan' ? planFilter : null,
+          deliveryMode
+        })
+      })
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.error || 'Enregistrement impossible')
+      dirty.current = false
+      setSavedAt(new Date())
+      setList((prev) => prev.map((item) => (item.id === currentId ? { ...item, title, subject: doc.subject } : item)))
+    } finally {
+      setSaving(false)
+    }
+  }, [audience, currentId, deliveryMode, doc, planFilter, readOnly, title])
+
+  /**
+   * Enregistrement avant un envoi : si le brouillon ne part pas en base, on
+   * n'envoie rien du tout, et on le dit sans ambiguïté.
+   */
+  const saveBeforeSend = useCallback(async () => {
+    if (saveTimer.current) clearTimeout(saveTimer.current)
+    if (!dirty.current) return
+    try {
+      await save()
+    } catch (error: any) {
+      throw new Error(
+        `Vos dernières modifications n’ont pas pu être enregistrées (${error.message}). Rien n’a été envoyé : réessayez dans un instant.`
+      )
+    }
+  }, [save])
+
+  // Enregistrement différé : on écrit une seconde et demie après la dernière frappe.
+  useEffect(() => {
+    if (!currentId || loading || readOnly) return
+    if (!dirty.current) return
+    if (saveTimer.current) clearTimeout(saveTimer.current)
+    saveTimer.current = setTimeout(() => {
+      save().catch((error: any) => setNotice({ type: 'error', message: error.message }))
+    }, 1500)
+    return () => {
+      if (saveTimer.current) clearTimeout(saveTimer.current)
+    }
+  }, [doc, title, audience, planFilter, deliveryMode, currentId, loading, readOnly, save])
+
+  const patchDoc = (next: NewsletterDoc) => {
+    dirty.current = true
+    setDoc(next)
+  }
+
+  // Les réglages de diffusion font partie du brouillon : les changer doit
+  // déclencher l'enregistrement différé comme une frappe dans le texte.
+  const chooseAudience = (value: AudienceKind) => {
+    dirty.current = true
+    setAudience(value)
+  }
+  const choosePlan = (value: string) => {
+    dirty.current = true
+    setPlanFilter(value)
+  }
+  const chooseDeliveryMode = (value: DeliveryMode) => {
+    dirty.current = true
+    setDeliveryMode(value)
+  }
+
+  // ── Compte des destinataires ─────────────────────────────────────────────
+
+  useEffect(() => {
+    if (audience === 'test') {
+      setAudienceCount(null)
+      return
+    }
+    let cancelled = false
+    const params = new URLSearchParams({ audience })
+    if (audience === 'plan') params.set('filter', planFilter)
+
+    setAudienceCount(null)
+    fetch(`/api/admin/newsletter-audience?${params}`)
+      .then((response) => response.json())
+      .then((data) => {
+        if (!cancelled && typeof data.count === 'number') setAudienceCount(data.count)
+      })
+      .catch(() => {})
+
+    return () => {
+      cancelled = true
+    }
+  }, [audience, planFilter])
+
+  // ── Envoi ────────────────────────────────────────────────────────────────
+
+  const testList = useMemo(
+    () =>
+      testRecipients
+        .split(/[,;\n]/)
+        .map((email) => email.trim())
+        .filter(Boolean),
+    [testRecipients]
+  )
+
+  // Ce qui empêche d'écrire un email valide, et ce qui manque en plus pour
+  // l'envoyer à la liste choisie. Un test de relecture ne dépend que du premier.
+  const contentBlockers = useMemo(() => describeBlockers(doc), [doc])
+
+  const blockers = useMemo(() => {
+    if (audience === 'test' && testList.length === 0) {
+      return [...contentBlockers, 'La liste « Adresses saisies à la main » est vide : ajoutez au moins une adresse.']
+    }
+    return contentBlockers
+  }, [audience, contentBlockers, testList])
+
+  const sendTest = async () => {
+    const recipients = testList
+
+    if (!recipients.length) {
+      setNotice({ type: 'error', message: 'Indiquez au moins une adresse de test.' })
+      return
     }
 
     setSending(true)
-    setResult(null)
-
     try {
+      await saveBeforeSend()
       const response = await fetch('/api/mailing/send', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          to: recipients,
-          subject,
-          html: showMainHtmlMode ? html : (editorRef.current?.innerHTML || html),
-          audienceMode,
-          subscriptionFilter: audienceMode === 'subscription' ? subscriptionFilter : undefined,
-          attachments: attachments.length > 0 ? attachments : undefined
-        })
+        body: JSON.stringify({ newsletterId: currentId, audience: 'test', to: recipients, preview: true })
       })
-
       const data = await response.json()
+      if (!response.ok) throw new Error(data.error || 'Envoi impossible')
+      setTestOpen(false)
 
-      if (!response.ok) {
-        throw new Error(data.error || 'Erreur lors de l\'envoi')
-      }
+      // Un renvoi part souvent d'ici : la liste des échecs doit refléter ce
+      // qu'il reste à rattraper, pas ce qu'elle contenait avant.
+      const stillFailing: string[] = data.failedRecipients || []
+      setFailedRecipients(stillFailing)
 
-      if (data.mode === 'broadcast') {
-        const syncFailures = data.syncErrors?.length || 0
-        const syncedMsg = syncFailures > 0
-          ? `${data.synced}/${data.totalContacts} contacts synchronisés (${syncFailures} échec(s) de synchronisation — voir la console pour le détail)`
-          : `${data.synced} contacts synchronisés`
-        setResult({
-          type: 'success',
-          message: `Campagne envoyée via Resend Broadcasts à ${data.totalContacts} destinataire(s). ${syncedMsg}.`
+      if (stillFailing.length > 0) {
+        setNotice({
+          type: 'error',
+          message: `Envoyé à ${data.sent} adresse${data.sent > 1 ? 's' : ''} sur ${data.total}. ${stillFailing.length} reste${stillFailing.length > 1 ? 'nt' : ''} en échec.`
         })
-        if (syncFailures > 0) {
-          console.error('Échecs de synchronisation des contacts Resend :', data.syncErrors)
-        }
+        console.error('Échecs d’envoi :', data.errors)
       } else {
-        const failures = data.total - data.sent
-        setResult({
+        setNotice({
           type: 'success',
-          message: failures > 0
-            ? `Email envoyé à ${data.sent}/${data.total} destinataire(s) — ${failures} échec(s), voir la console pour le détail.`
-            : `Email envoyé à ${data.sent} destinataire(s) !`
+          message: `Envoyé à ${data.sent} adresse${data.sent > 1 ? 's' : ''}. Les balises de personnalisation y sont remplacées par les vraies valeurs.`
         })
-        if (failures > 0) {
-          console.error('Échecs d\'envoi :', data.errors)
-        }
       }
-      setToInput('')
     } catch (error: any) {
-      setResult({ type: 'error', message: error.message })
+      setNotice({ type: 'error', message: error.message })
     } finally {
       setSending(false)
     }
   }
 
-  // Automation management
-  const toggleAutomation = async (automationId: string) => {
-    const automation = automations.find(a => a.id === automationId)
-    if (!automation || togglingId === automationId) return
-
-    setTogglingId(automationId)
+  const sendNewsletter = async () => {
+    setSending(true)
     try {
-      const response = await fetch(`/api/automations/${automationId}`, {
-        method: 'PATCH',
+      await saveBeforeSend()
+      const response = await fetch('/api/mailing/send', {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ active: !automation.active })
+        body: JSON.stringify({
+          newsletterId: currentId,
+          audience,
+          // La liste « Adresses saisies à la main » n'a de destinataires que
+          // ceux-là : sans eux, le serveur n'a personne à qui écrire.
+          to: audience === 'test' ? testList : undefined,
+          subscriptionFilter: audience === 'plan' ? planFilter : undefined,
+          deliveryMode
+        })
       })
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.error || 'Envoi impossible')
 
-      if (!response.ok) throw new Error('Impossible de mettre à jour')
+      setConfirmOpen(false)
+      // La newsletter ne se verrouille que si le serveur a pu l'enregistrer
+      // comme envoyée. L'écran ne doit pas affirmer ce que la base ignore.
+      if (data.newsletterStatus === 'sent') setStatus('sent')
+      setFailedRecipients(data.failedRecipients || [])
+      await fetchList()
 
-      setAutomations((prev) => prev.map((auto) => (auto.id === automationId ? { ...auto, active: !auto.active } : auto)))
+      // Le compte rendu d'abord, l'avertissement ensuite : savoir que l'email
+      // est parti compte plus que de savoir que la base n'a pas suivi.
+      let message: string
+      let ennui = false
+
+      if (data.mode === 'broadcast') {
+        const desyncs = data.syncErrors?.length || 0
+        message = `Newsletter partie en campagne à ${data.totalContacts} destinataire${data.totalContacts > 1 ? 's' : ''}.`
+        if (desyncs > 0) {
+          message += ` ${desyncs} contact(s) n’ont pas pu être synchronisés, voir la console.`
+          ennui = true
+          console.error('Échecs de synchronisation Resend :', data.syncErrors)
+        }
+      } else {
+        const echecs = data.total - data.sent
+        message = `Newsletter envoyée à ${data.sent}/${data.total} destinataire${data.total > 1 ? 's' : ''}.`
+        if (echecs > 0) {
+          ennui = true
+          console.error('Échecs d’envoi :', data.errors)
+        }
+      }
+
+      if (data.warning) {
+        message += ` ${data.warning}`
+        ennui = true
+      }
+
+      setNotice({ type: ennui ? 'error' : 'success', message })
     } catch (error: any) {
-      setResult({ type: 'error', message: error?.message || 'Erreur' })
+      setNotice({ type: 'error', message: error.message })
     } finally {
-      setTogglingId(null)
+      setSending(false)
     }
+  }
+
+  const removeNewsletter = async (id: string) => {
+    if (!confirm('Supprimer définitivement cette newsletter ?')) return
+    const response = await fetch(`/api/admin/newsletters/${id}`, { method: 'DELETE' })
+    if (!response.ok) {
+      setNotice({ type: 'error', message: 'Suppression impossible' })
+      return
+    }
+    const summaries = await fetchList()
+    if (id === currentId) {
+      const next = summaries.find((item) => item.status === 'draft')
+      if (next) await openNewsletter(next.id)
+      else await createNewsletter()
+    }
+  }
+
+  const insertMergeTag = (tag: string) => {
+    const target = lastEditable.current
+    if (!target) {
+      setNotice({ type: 'error', message: 'Cliquez d’abord dans un bloc de texte, puis choisissez la balise.' })
+      return
+    }
+    target.focus()
+    document.execCommand('insertText', false, tag)
+    target.dispatchEvent(new Event('input', { bubbles: true }))
   }
 
   if (loading) {
     return (
       <AuthLayout>
-        <div className="flex items-center justify-center h-96">
+        <div className="flex h-96 items-center justify-center">
           <Loader2 className="h-10 w-10 animate-spin text-purple-600" />
         </div>
       </AuthLayout>
     )
   }
 
+  const previewHtml = renderNewsletterHtml(doc, {
+    previewContact: { email: 'confrere@exemple.fr', firstName: 'Camille', lastName: 'Durand' }
+  })
+
   return (
     <AuthLayout>
-      {/* Template Modal */}
-      {templateModalOpen && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white/85 backdrop-blur-2xl border border-white/70 shadow-2xl ring-1 ring-inset ring-white/60 rounded-3xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b border-gray-200 flex items-center justify-between">
-              <h3 className="text-xl font-bold text-gray-900">
-                {editingTemplateId ? 'Modifier le template' : 'Nouveau template'}
-              </h3>
-              <button
-                onClick={() => {
-                  setTemplateModalOpen(false)
-                  setEditingTemplateId(null)
-                }}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <X className="h-6 w-6" />
-              </button>
-            </div>
-
-            <div className="p-6 space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Nom du template</label>
-                <input
-                  type="text"
-                  value={templateDraft.name}
-                  onChange={(e) => setTemplateDraft({ ...templateDraft, name: e.target.value })}
-                  placeholder="Ex: Bienvenue Premium"
-                  className="w-full bg-white/70 backdrop-blur-sm border border-blue-200/60 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-purple-300 outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Sujet</label>
-                <input
-                  type="text"
-                  value={templateDraft.subject}
-                  onChange={(e) => setTemplateDraft({ ...templateDraft, subject: e.target.value })}
-                  placeholder="Ex: Bienvenue sur OsteoUpgrade 🎉"
-                  className="w-full bg-white/70 backdrop-blur-sm border border-blue-200/60 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-purple-300 outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
-                <input
-                  type="text"
-                  value={templateDraft.description}
-                  onChange={(e) => setTemplateDraft({ ...templateDraft, description: e.target.value })}
-                  placeholder="Courte description du template"
-                  className="w-full bg-white/70 backdrop-blur-sm border border-blue-200/60 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-purple-300 outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Contenu HTML</label>
-
-                {/* Formatting toolbar for template */}
-                <div className="mb-2 space-y-2">
-                  <div className="flex items-center gap-2 p-3 bg-white/60 backdrop-blur-sm border-b border-white/40 rounded-t-lg flex-wrap">
-                    <span className="text-xs font-semibold text-gray-600 mr-2">Mise en forme :</span>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (templateEditorRef.current && !showHtmlMode) {
-                          const selection = window.getSelection()
-                          if (selection && selection.rangeCount > 0) {
-                            const range = selection.getRangeAt(0)
-                            const boldText = range.toString() || 'Texte en gras'
-                            range.deleteContents()
-                            const fragment = range.createContextualFragment(`<strong>${boldText}</strong>`)
-                            range.insertNode(fragment)
-                            setTemplateDraft({ ...templateDraft, html: templateEditorRef.current.innerHTML })
-                          }
-                        }
-                      }}
-                      className="px-3 py-1.5 bg-white hover:bg-gray-100 rounded-md transition border border-gray-300 flex items-center gap-1.5"
-                      title="Gras"
-                    >
-                      <Bold className="h-4 w-4 text-gray-700" />
-                      <span className="text-sm text-gray-700">Gras</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (templateEditorRef.current && !showHtmlMode) {
-                          const selection = window.getSelection()
-                          if (selection && selection.rangeCount > 0) {
-                            const range = selection.getRangeAt(0)
-                            const italicText = range.toString() || 'Texte en italique'
-                            range.deleteContents()
-                            const fragment = range.createContextualFragment(`<em>${italicText}</em>`)
-                            range.insertNode(fragment)
-                            setTemplateDraft({ ...templateDraft, html: templateEditorRef.current.innerHTML })
-                          }
-                        }
-                      }}
-                      className="px-3 py-1.5 bg-white hover:bg-gray-100 rounded-md transition border border-gray-300 flex items-center gap-1.5"
-                      title="Italique"
-                    >
-                      <Italic className="h-4 w-4 text-gray-700" />
-                      <span className="text-sm text-gray-700">Italique</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (templateEditorRef.current && !showHtmlMode) {
-                          const selection = window.getSelection()
-                          if (selection && selection.rangeCount > 0) {
-                            const range = selection.getRangeAt(0)
-                            const headingText = range.toString() || 'Titre'
-                            range.deleteContents()
-                            const fragment = range.createContextualFragment(`<h2 style="color:#7c3aed;font-size:24px;font-weight:bold;margin:16px 0 8px 0;">${headingText}</h2>`)
-                            range.insertNode(fragment)
-                            setTemplateDraft({ ...templateDraft, html: templateEditorRef.current.innerHTML })
-                          }
-                        }
-                      }}
-                      className="px-3 py-1.5 bg-white hover:bg-gray-100 rounded-md transition border border-gray-300 flex items-center gap-1.5"
-                      title="Titre"
-                    >
-                      <Heading2 className="h-4 w-4 text-gray-700" />
-                      <span className="text-sm text-gray-700">Titre</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (templateEditorRef.current && !showHtmlMode) {
-                          const selection = window.getSelection()
-                          if (selection && selection.rangeCount > 0) {
-                            const range = selection.getRangeAt(0)
-                            const linkText = range.toString() || 'Lien'
-                            const linkUrl = prompt('URL du lien :') || '#'
-                            range.deleteContents()
-                            const fragment = range.createContextualFragment(`<a href="${linkUrl}" style="color:#7c3aed;text-decoration:underline;">${linkText}</a>`)
-                            range.insertNode(fragment)
-                            setTemplateDraft({ ...templateDraft, html: templateEditorRef.current.innerHTML })
-                          }
-                        }
-                      }}
-                      className="px-3 py-1.5 bg-white hover:bg-gray-100 rounded-md transition border border-gray-300 flex items-center gap-1.5"
-                      title="Lien"
-                    >
-                      <Link2 className="h-4 w-4 text-gray-700" />
-                      <span className="text-sm text-gray-700">Lien</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (templateEditorRef.current && !showHtmlMode) {
-                          const selection = window.getSelection()
-                          if (selection && selection.rangeCount > 0) {
-                            const range = selection.getRangeAt(0)
-                            range.deleteContents()
-                            const fragment = range.createContextualFragment(`<ul style="margin:12px 0;padding-left:24px;"><li>Élément 1</li><li>Élément 2</li></ul>`)
-                            range.insertNode(fragment)
-                            setTemplateDraft({ ...templateDraft, html: templateEditorRef.current.innerHTML })
-                          }
-                        }
-                      }}
-                      className="px-3 py-1.5 bg-white hover:bg-gray-100 rounded-md transition border border-gray-300 flex items-center gap-1.5"
-                      title="Liste"
-                    >
-                      <List className="h-4 w-4 text-gray-700" />
-                      <span className="text-sm text-gray-700">Liste</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (templateEditorRef.current && !showHtmlMode) {
-                          const selection = window.getSelection()
-                          if (selection && selection.rangeCount > 0) {
-                            const range = selection.getRangeAt(0)
-                            const text = range.toString() || 'Votre texte ici...'
-                            range.deleteContents()
-                            const fragment = range.createContextualFragment(`<p style="margin:0 0 16px;line-height:1.6;color:#374151;">${text}</p>`)
-                            range.insertNode(fragment)
-                            setTemplateDraft({ ...templateDraft, html: templateEditorRef.current.innerHTML })
-                          }
-                        }
-                      }}
-                      className="px-3 py-1.5 bg-white hover:bg-gray-100 rounded-md transition border border-gray-300 flex items-center gap-1.5"
-                      title="Paragraphe"
-                    >
-                      <FileText className="h-4 w-4 text-gray-700" />
-                      <span className="text-sm text-gray-700">Paragraphe</span>
-                    </button>
-                  </div>
-
-                  {/* Variable selector */}
-                  <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
-                    <div className="flex items-start gap-3">
-                      <div className="flex-1">
-                        <p className="text-xs font-semibold text-blue-900 mb-2">📝 Variables disponibles (cliquez pour insérer) :</p>
-                        <div className="flex flex-wrap gap-2">
-                          {[
-                            { var: '{{nom}}', desc: 'Nom du plan (Premium)' },
-                            { var: '{{prix}}', desc: 'Prix de l’offre souscrite (29,99€ ou 49,99€/mois)' },
-                            { var: '{{date_fact}}', desc: 'Date de prochaine facturation' },
-                            { var: '{{date_renouv}}', desc: 'Date de renouvellement' },
-                            { var: '{{cycle}}', desc: 'Numéro du cycle' },
-                            { var: '{{jours}}', desc: 'Jours avant renouvellement' },
-                            { var: '{{full_name}}', desc: 'Nom complet' },
-                            { var: '{{email}}', desc: 'Email de l\'utilisateur' }
-                          ].map((variable) => (
-                            <button
-                              key={variable.var}
-                              type="button"
-                              onClick={() => {
-                                if (showHtmlMode) {
-                                  setTemplateDraft({ ...templateDraft, html: templateDraft.html + variable.var })
-                                } else if (templateEditorRef.current) {
-                                  const selection = window.getSelection()
-                                  if (selection && selection.rangeCount > 0) {
-                                    const range = selection.getRangeAt(0)
-                                    range.deleteContents()
-                                    const textNode = document.createTextNode(variable.var)
-                                    range.insertNode(textNode)
-                                  } else {
-                                    templateEditorRef.current.innerHTML += variable.var
-                                  }
-                                  setTemplateDraft({ ...templateDraft, html: templateEditorRef.current.innerHTML })
-                                }
-                              }}
-                              className="px-3 py-1.5 bg-white hover:bg-blue-100 rounded-md transition border border-blue-300 text-sm font-mono text-blue-900 hover:border-blue-400"
-                              title={variable.desc}
-                            >
-                              {variable.var}
-                            </button>
-                          ))}
-                        </div>
-                        <p className="text-xs text-blue-700 mt-2">💡 Cliquez sur une variable pour l'insérer dans votre template</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Mode toggle */}
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm text-gray-700 font-medium">
-                    {showHtmlMode ? '📝 Mode HTML' : '👁️ Mode Visuel'}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (!showHtmlMode && templateEditorRef.current) {
-                        setTemplateDraft({ ...templateDraft, html: templateEditorRef.current.innerHTML })
-                      }
-                      setShowHtmlMode(!showHtmlMode)
-                    }}
-                    className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-md transition text-sm font-medium"
-                  >
-                    {showHtmlMode ? '👁️ Passer en mode visuel' : '📝 Voir le code HTML'}
-                  </button>
-                </div>
-
-                {showHtmlMode ? (
-                  <textarea
-                    value={templateDraft.html}
-                    onChange={(e) => setTemplateDraft({ ...templateDraft, html: e.target.value })}
-                    rows={12}
-                    className="w-full bg-white/70 backdrop-blur-sm border border-blue-200/60 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-purple-300 outline-none font-mono text-sm"
-                    placeholder="<div>Votre HTML ici...</div>"
-                  />
-                ) : (
-                  <div
-                    ref={templateEditorRef}
-                    contentEditable
-                    onInput={(e) => setTemplateDraft({ ...templateDraft, html: e.currentTarget.innerHTML })}
-                    className="w-full min-h-[400px] p-6 bg-white/70 backdrop-blur-sm border border-blue-200/60 rounded-b-xl focus:outline-none overflow-y-auto"
-                    suppressContentEditableWarning
-                    style={{
-                      fontFamily: 'Inter, sans-serif',
-                      fontSize: '14px',
-                      lineHeight: '1.6'
-                    }}
-                  />
-                )}
-                <p className="text-xs text-gray-500 mt-2">
-                  💡 {showHtmlMode ? 'Éditez le code HTML directement' : 'Éditez directement dans la zone ci-dessus comme dans un traitement de texte'}
-                </p>
-              </div>
-
-              <div className="flex justify-end gap-3 pt-4">
-                <button
-                  onClick={() => {
-                    setTemplateModalOpen(false)
-                    setEditingTemplateId(null)
-                  }}
-                  className="px-6 py-2 bg-white/70 backdrop-blur-sm border border-blue-200/60 text-slate-700 rounded-xl hover:bg-white/90 transition"
-                >
-                  Annuler
-                </button>
-                <button
-                  onClick={handleSaveTemplate}
-                  disabled={templateSaving}
-                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-purple-500/90 backdrop-blur-sm border border-purple-400/30 text-white font-semibold hover:bg-purple-600/90 shadow-sm transition-all disabled:opacity-50"
-                >
-                  {templateSaving ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      Sauvegarde...
-                    </>
-                  ) : (
-                    <>
-                      <Save className="h-4 w-4" />
-                      Sauvegarder
-                    </>
-                  )}
-                </button>
-              </div>
+      <div className="-m-6 min-h-screen md:-m-8">
+        {/* Bandeau */}
+        <div className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 px-6 pb-6 pt-8 md:px-10">
+          <div className="absolute left-0 top-0 h-72 w-72 -translate-x-1/2 -translate-y-1/4 rounded-full bg-purple-500/15 blur-3xl" />
+          <div className="relative">
+            <AdminBackButton />
+            <div className="rounded-3xl border border-white/20 bg-white/[0.09] p-6 shadow-[0_12px_40px_rgba(0,8,30,0.65)] ring-1 ring-inset ring-white/15 backdrop-blur-xl md:p-8">
+              <p className="mb-1 flex items-center gap-2 text-sm font-medium tracking-wide text-purple-300">
+                <Mail className="h-4 w-4" /> Admin : Newsletter
+              </p>
+              <h1 className="bg-gradient-to-r from-white via-purple-100 to-indigo-200 bg-clip-text text-3xl font-bold tracking-tight text-transparent md:text-4xl">
+                La newsletter du mois
+              </h1>
+              <p className="mt-1.5 text-sm text-blue-300/70">
+                Empilez des blocs, écrivez dedans, choisissez à qui vous l’envoyez. Aucune ligne de code.
+              </p>
             </div>
           </div>
         </div>
-      )}
 
-      {/* Automations Manager Modal */}
-      {automationModalOpen && (() => {
-        const isSeminaire = (a: Automation) =>
-          a.trigger.toLowerCase().includes('seminar') || a.trigger.toLowerCase().includes('séminaire') ||
-          a.name.toLowerCase().includes('séminaire') || a.name.toLowerCase().includes('seminaire')
-        const abonnementAutomations = automations.filter(a => !isSeminaire(a))
-        const seminaireAutomations = automations.filter(isSeminaire)
-
-        const AutomationRow = ({ automation, isObsolete }: { automation: Automation; isObsolete: boolean }) => {
-          const isExpanded = previewAutomation?.id === automation.id
-          return (
-            <div className={`border-b border-slate-100 last:border-b-0 ${isObsolete ? 'opacity-60' : ''}`}>
+        {/* Corps */}
+        <div className="relative bg-gradient-to-br from-blue-100/90 via-sky-50 to-indigo-50/80 px-4 pb-16 pt-6 md:px-10">
+          <div className="relative mx-auto max-w-6xl space-y-6">
+            {notice && (
               <div
-                className={`flex items-center gap-4 px-6 py-4 cursor-pointer hover:bg-slate-50 transition-colors ${isExpanded ? 'bg-purple-50/60' : ''}`}
-                onClick={() => openAutomationPreview(automation)}
+                className={`flex items-start justify-between gap-4 rounded-xl border p-4 ${
+                  notice.type === 'success'
+                    ? 'border-emerald-200/60 bg-emerald-50/80 text-emerald-800'
+                    : 'border-red-200/60 bg-red-50/80 text-red-800'
+                }`}
               >
-                {/* Icon */}
-                <div className={`flex-shrink-0 w-9 h-9 rounded-xl flex items-center justify-center ${isObsolete ? 'bg-slate-100' : isExpanded ? 'bg-purple-200' : 'bg-purple-100'}`}>
-                  <Zap className={`h-4 w-4 ${isObsolete ? 'text-slate-400' : 'text-purple-600'}`} />
-                </div>
-
-                {/* Info */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-sm font-semibold text-slate-800 truncate">{automation.name}</span>
-                    {isObsolete && (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 text-xs font-medium flex-shrink-0">
-                        <AlertTriangle className="h-3 w-3" />
-                        Obsolète
-                      </span>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-3 mt-0.5 flex-wrap">
-                    <span className="text-xs text-slate-500 flex items-center gap-1">
-                      <PlayCircle className="h-3 w-3" />
-                      {automation.trigger}
-                    </span>
-                    <span className="text-xs text-slate-400 flex items-center gap-1">
-                      <Clock className="h-3 w-3" />
-                      {automation.steps.length} étape{automation.steps.length !== 1 ? 's' : ''}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Toggle */}
-                <button
-                  onClick={e => { e.stopPropagation(); if (!isObsolete) toggleAutomation(automation.id) }}
-                  disabled={togglingId === automation.id || isObsolete}
-                  className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors duration-200 focus:outline-none ${
-                    automation.active ? 'bg-emerald-500' : 'bg-slate-200'
-                  } ${isObsolete ? 'cursor-not-allowed' : 'cursor-pointer'} ${togglingId === automation.id ? 'opacity-50' : ''}`}
-                  title={isObsolete ? 'Automatisation obsolète' : automation.active ? 'Désactiver' : 'Activer'}
-                >
-                  <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform duration-200 ${automation.active ? 'translate-x-6' : 'translate-x-1'}`} />
+                <span className="text-sm">{notice.message}</span>
+                <button onClick={() => setNotice(null)} aria-label="Fermer">
+                  <X className="h-4 w-4" />
                 </button>
               </div>
+            )}
 
-              {/* Email preview panel */}
-              {isExpanded && (
-                <div className="border-t border-purple-100 bg-slate-50 px-6 py-4">
-                  {loadingPreview ? (
-                    <div className="flex items-center gap-2 text-sm text-slate-400 py-4 justify-center">
-                      <div className="h-4 w-4 rounded-full border-2 border-purple-400 border-t-transparent animate-spin" />
-                      Chargement des templates…
-                    </div>
-                  ) : previewSteps.length > 0 ? (
-                    <div>
-                      <div className="flex items-center justify-between mb-3">
-                        <p className="text-xs font-semibold text-slate-500 uppercase tracking-widest">Aperçu de l'email</p>
-                        {previewSteps.length > 1 && (
-                          <div className="flex gap-1">
-                            {previewSteps.map((step, idx) => (
-                              <button
-                                key={idx}
-                                onClick={() => setActivePreviewStep(idx)}
-                                className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-colors ${
-                                  activePreviewStep === idx
-                                    ? 'bg-purple-600 text-white'
-                                    : 'bg-white text-slate-500 border border-slate-200 hover:bg-slate-100'
-                                }`}
-                              >
-                                {step.delayDays === 0 ? 'Immédiat' : `J+${step.delayDays}`}
-                              </button>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                      {previewSteps[activePreviewStep] && (
+            {/* Barre d'actions */}
+            <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-white/70 bg-white/85 p-4 shadow-lg backdrop-blur-2xl">
+              <input
+                value={title}
+                onChange={(event) => {
+                  dirty.current = true
+                  setTitle(event.target.value)
+                }}
+                disabled={readOnly}
+                aria-label="Nom de la newsletter"
+                className="min-w-0 flex-1 rounded-xl border border-transparent bg-transparent px-2 py-1.5 text-lg font-bold text-slate-900 outline-none transition hover:border-slate-200 focus:border-violet-300"
+              />
+
+              <span className="text-xs text-slate-400">
+                {readOnly ? 'Envoyée' : saving ? 'Enregistrement…' : savedAt ? `Enregistré à ${savedAt.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}` : ''}
+              </span>
+
+              <button
+                type="button"
+                onClick={() => setDrawerOpen(true)}
+                className="inline-flex items-center gap-2 rounded-xl border border-blue-200/60 bg-white/70 px-3.5 py-2 text-sm font-semibold text-slate-700 transition hover:bg-white"
+              >
+                <FileText className="h-4 w-4" />
+                Mes newsletters
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setPreviewOpen(true)}
+                className="inline-flex items-center gap-2 rounded-xl border border-indigo-200 bg-indigo-50 px-3.5 py-2 text-sm font-semibold text-indigo-700 transition hover:bg-indigo-100"
+              >
+                <Eye className="h-4 w-4" />
+                Aperçu
+              </button>
+            </div>
+
+            {readOnly && (
+              <div className="flex items-center gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+                <Check className="h-5 w-5 flex-shrink-0" />
+                <p>
+                  Cette newsletter a déjà été envoyée, elle n’est plus modifiable. Pour repartir de son contenu,
+                  ouvrez « Mes newsletters » puis « Dupliquer ».
+                </p>
+              </div>
+            )}
+
+            {/* 1. L'objet */}
+            <Section number={1} title="Ce que le lecteur voit avant d’ouvrir">
+              <div className="grid gap-4 md:grid-cols-2">
+                <label className="block">
+                  <span className="mb-1.5 block text-sm font-medium text-slate-700">Objet de l’email</span>
+                  <input
+                    value={doc.subject}
+                    onChange={(event) => patchDoc({ ...doc, subject: event.target.value })}
+                    disabled={readOnly}
+                    placeholder="La newsletter OsteoUpgrade de septembre"
+                    className="w-full rounded-xl border border-blue-200/60 bg-white/70 px-4 py-2.5 outline-none focus:ring-2 focus:ring-purple-300"
+                  />
+                </label>
+                <label className="block">
+                  <span className="mb-1.5 block text-sm font-medium text-slate-700">
+                    Aperçu dans la boîte de réception
+                  </span>
+                  <input
+                    value={doc.preheader}
+                    onChange={(event) => patchDoc({ ...doc, preheader: event.target.value })}
+                    disabled={readOnly}
+                    placeholder="La ligne grise affichée à côté de l’objet"
+                    className="w-full rounded-xl border border-blue-200/60 bg-white/70 px-4 py-2.5 outline-none focus:ring-2 focus:ring-purple-300"
+                  />
+                </label>
+              </div>
+
+              <div className="mt-4 rounded-xl border border-violet-200 bg-violet-50/70 p-4">
+                <p className="text-sm font-semibold text-violet-900">Appeler chaque lecteur par son prénom</p>
+                <p className="mt-1 text-sm leading-relaxed text-violet-800/80">
+                  Cliquez dans un bloc de texte, puis choisissez une étiquette : elle sera remplacée par les
+                  informations du destinataire au moment de l’envoi.
+                </p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {MERGE_TAGS.map((tag) => (
+                    <button
+                      key={tag.tag}
+                      type="button"
+                      onMouseDown={(event) => event.preventDefault()}
+                      onClick={() => insertMergeTag(tag.tag)}
+                      disabled={readOnly}
+                      title={tag.help}
+                      className="rounded-lg border border-violet-300 bg-white px-3 py-1.5 text-sm font-medium text-violet-800 transition hover:bg-violet-100 disabled:opacity-50"
+                    >
+                      {tag.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </Section>
+
+            {/* 2. Le contenu */}
+            <Section number={2} title="Le contenu">
+              <NewsletterEditor doc={doc} onChange={patchDoc} disabled={readOnly} />
+            </Section>
+
+            {/* 3. La diffusion */}
+            <Section number={3} title="À qui, et comment">
+              <div className="space-y-5">
+                <div>
+                  <p className="mb-2 text-sm font-medium text-slate-700">La liste de diffusion</p>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    <ChoiceCard
+                      active={audience === 'all'}
+                      disabled={readOnly}
+                      onClick={() => chooseAudience('all')}
+                      icon={<Users className="h-4 w-4" />}
+                      title="Tous les inscrits à la newsletter"
+                      description="Tous les comptes qui ont accepté de la recevoir."
+                    />
+                    <ChoiceCard
+                      active={audience === 'plan'}
+                      disabled={readOnly}
+                      onClick={() => chooseAudience('plan')}
+                      icon={<Users className="h-4 w-4" />}
+                      title="Une offre en particulier"
+                      description="Les abonnés d’une offre, ou les comptes gratuits."
+                    />
+                    <ChoiceCard
+                      active={audience === 'prelaunch'}
+                      disabled={readOnly}
+                      onClick={() => chooseAudience('prelaunch')}
+                      icon={<Sparkles className="h-4 w-4" />}
+                      title="Contacts pré-lancement"
+                      description="Les personnes inscrites par un funnel, sans compte."
+                    />
+                    <ChoiceCard
+                      active={audience === 'test'}
+                      disabled={readOnly}
+                      onClick={() => chooseAudience('test')}
+                      icon={<Mail className="h-4 w-4" />}
+                      title="Adresses saisies à la main"
+                      description="Pour écrire à quelques personnes précises."
+                    />
+                  </div>
+
+                  {audience === 'plan' && (
+                    <select
+                      value={planFilter}
+                      onChange={(event) => choosePlan(event.target.value)}
+                      disabled={readOnly}
+                      className="mt-3 w-full rounded-xl border border-blue-200/60 bg-white/70 px-4 py-2.5 outline-none focus:ring-2 focus:ring-purple-300"
+                    >
+                      {PLAN_OPTIONS.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+
+                  {audience === 'test' && (
+                    <textarea
+                      value={testRecipients}
+                      onChange={(event) => setTestRecipients(event.target.value)}
+                      disabled={readOnly}
+                      rows={2}
+                      placeholder="prenom@exemple.fr, autre@exemple.fr"
+                      className="mt-3 w-full rounded-xl border border-blue-200/60 bg-white/70 px-4 py-2.5 outline-none focus:ring-2 focus:ring-purple-300"
+                    />
+                  )}
+
+                  {audience !== 'test' && (
+                    <p className="mt-2 text-sm text-slate-500">
+                      {audienceCount === null ? (
+                        'Comptage des destinataires…'
+                      ) : (
                         <>
-                          <p className="text-xs text-slate-400 mb-2 truncate">
-                            Sujet : <span className="text-slate-600 font-medium">{previewSteps[activePreviewStep].subject}</span>
-                          </p>
-                          <div className="rounded-xl border border-slate-200 bg-white overflow-auto max-h-72 shadow-inner">
-                            <iframe
-                              srcDoc={previewSteps[activePreviewStep].html}
-                              className="w-full h-64 border-0"
-                              sandbox="allow-same-origin allow-scripts"
-                              title="Aperçu email"
-                            />
-                          </div>
+                          <strong className="text-slate-700">{audienceCount}</strong> destinataire
+                          {audienceCount > 1 ? 's' : ''} dans cette liste.
                         </>
                       )}
-                    </div>
-                  ) : (
-                    <p className="text-sm text-slate-400 text-center py-4">
-                      {automation.steps.length ? 'Templates introuvables en base.' : 'Aucun template associé à cette automatisation.'}
                     </p>
                   )}
                 </div>
-              )}
-            </div>
-          )
-        }
 
-        return (
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-4">
-            <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full overflow-hidden max-h-[85vh] flex flex-col">
-              {/* Header */}
-              <div className="bg-gradient-to-r from-slate-800 to-slate-900 px-6 py-4 flex items-center justify-between flex-shrink-0">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-xl bg-white/10 flex items-center justify-center">
-                    <Settings2 className="h-4 w-4 text-white" />
-                  </div>
+                {audience !== 'test' && (
                   <div>
-                    <h3 className="text-base font-bold text-white">Automatisations email</h3>
-                    <p className="text-xs text-slate-400 mt-0.5">{automations.length} automatisation{automations.length !== 1 ? 's' : ''} configurée{automations.length !== 1 ? 's' : ''}</p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => setAutomationModalOpen(false)}
-                  className="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors"
-                >
-                  <X className="h-4 w-4 text-white" />
-                </button>
-              </div>
-
-              {/* Body */}
-              <div className="overflow-y-auto flex-1">
-                {automations.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
-                    <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center mb-3">
-                      <Zap className="h-6 w-6 text-slate-400" />
+                    <p className="mb-2 text-sm font-medium text-slate-700">La façon d’envoyer</p>
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      <ChoiceCard
+                        active={deliveryMode === 'marketing'}
+                        disabled={readOnly}
+                        onClick={() => chooseDeliveryMode('marketing')}
+                        icon={<Megaphone className="h-4 w-4" />}
+                        title="Campagne (commercial)"
+                        description="Le bon choix pour une newsletter. Un envoi groupé, avec un bouton « se désinscrire » en un clic, sur le quota marketing. Les prénoms sont personnalisés par Resend."
+                      />
+                      <ChoiceCard
+                        active={deliveryMode === 'direct'}
+                        disabled={readOnly}
+                        onClick={() => chooseDeliveryMode('direct')}
+                        icon={<Send className="h-4 w-4" />}
+                        title="Envoi direct (transactionnel)"
+                        description="Un message à la fois, comme un email de facture. Réservé aux petites listes : il consomme le quota des emails critiques (bienvenue, factures)."
+                      />
                     </div>
-                    <p className="text-sm font-medium text-slate-600">Aucune automatisation</p>
-                    <p className="text-xs text-slate-400 mt-1">Les automatisations sont configurées directement dans le code.</p>
+                    {deliveryMode === 'direct' && (
+                      <p className="mt-2 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+                        <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0" />
+                        L’envoi direct s’arrête à 200 destinataires, et il est déconseillé pour une newsletter :
+                        un abonné qui la signale comme indésirable abîme la réputation de l’adresse qui envoie
+                        aussi vos factures.
+                      </p>
+                    )}
                   </div>
-                ) : (
-                  <>
-                    {/* Abonnement section */}
-                    {abonnementAutomations.length > 0 && (
-                      <div>
-                        <div className="text-xs font-bold uppercase tracking-widest text-slate-500 px-6 py-3 bg-slate-50 border-b border-slate-100">
-                          Abonnement
-                        </div>
-                        {abonnementAutomations.map(auto => (
-                          <AutomationRow key={auto.id} automation={auto} isObsolete={false} />
-                        ))}
-                      </div>
-                    )}
-
-                    {/* Séminaires section */}
-                    {seminaireAutomations.length > 0 && (
-                      <div>
-                        <div className="text-xs font-bold uppercase tracking-widest text-slate-500 px-6 py-3 bg-slate-50 border-b border-slate-100 flex items-center gap-2">
-                          <span>Séminaires</span>
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 text-xs font-semibold normal-case tracking-normal">
-                            <AlertTriangle className="h-3 w-3" />
-                            Obsolètes
-                          </span>
-                        </div>
-                        {seminaireAutomations.map(auto => (
-                          <AutomationRow key={auto.id} automation={auto} isObsolete={true} />
-                        ))}
-                      </div>
-                    )}
-                  </>
                 )}
               </div>
+            </Section>
 
-              {/* Footer */}
-              <div className="border-t border-slate-100 px-6 py-3 bg-slate-50 flex-shrink-0">
-                <p className="text-xs text-slate-400 text-center">
-                  Les automatisations sont déclenchées automatiquement par les événements système. La configuration se fait dans le code.
-                </p>
+            {/* Envoi */}
+            <div className="rounded-2xl border border-white/70 bg-white/85 p-6 shadow-lg backdrop-blur-2xl">
+              {blockers.length > 0 && (
+                <ul className="mb-4 space-y-1 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+                  {blockers.map((problem) => (
+                    <li key={problem} className="flex items-start gap-2">
+                      <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0" />
+                      {problem}
+                    </li>
+                  ))}
+                </ul>
+              )}
+
+              {failedRecipients.length > 0 && (
+                <div className="mb-4 rounded-xl border border-red-200 bg-red-50 p-4">
+                  <p className="flex items-center gap-2 text-sm font-semibold text-red-900">
+                    <AlertTriangle className="h-4 w-4" />
+                    {failedRecipients.length} destinataire{failedRecipients.length > 1 ? 's n’ont' : ' n’a'} pas reçu la
+                    newsletter
+                  </p>
+                  <p className="mt-1 text-sm leading-relaxed text-red-800/80">
+                    Les autres l’ont bien reçue, la newsletter est donc close. Renvoyez-la à ces adresses seules, sans
+                    écrire une deuxième fois à toute la liste.
+                  </p>
+                  <textarea
+                    readOnly
+                    value={failedRecipients.join(', ')}
+                    rows={2}
+                    className="mt-3 w-full rounded-lg border border-red-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none"
+                  />
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setTestRecipients(failedRecipients.join(', '))
+                        setTestOpen(true)
+                      }}
+                      className="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-700"
+                    >
+                      Renvoyer à ces adresses
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setFailedRecipients([])}
+                      className="rounded-lg px-4 py-2 text-sm font-semibold text-red-700 transition hover:bg-red-100"
+                    >
+                      Ne rien faire
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex flex-wrap items-center justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setTestOpen(true)}
+                  disabled={contentBlockers.length > 0 || sending}
+                  className="inline-flex items-center gap-2 rounded-xl border border-blue-200/60 bg-white/70 px-5 py-3 font-semibold text-slate-700 transition hover:bg-white disabled:opacity-50"
+                >
+                  <Mail className="h-4 w-4" />
+                  Se l’envoyer pour relire
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setConfirmOpen(true)}
+                  disabled={readOnly || blockers.length > 0 || sending}
+                  className="inline-flex items-center gap-2 rounded-xl border border-purple-400/30 bg-purple-500/90 px-6 py-3 text-lg font-semibold text-white shadow-sm transition hover:bg-purple-600/90 disabled:opacity-50"
+                >
+                  {sending ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
+                  Envoyer la newsletter
+                </button>
               </div>
             </div>
           </div>
-        )
-      })()}
+        </div>
+      </div>
 
-      {/* Preview Modal */}
-      {showPreview && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 flex-shrink-0">
-              <div>
-                <h3 className="text-lg font-bold text-gray-900">Prévisualisation</h3>
-                {subject && <p className="text-sm text-gray-500 mt-0.5">Sujet : <span className="font-medium text-gray-700">{subject}</span></p>}
-              </div>
-              <button
-                onClick={() => setShowPreview(false)}
-                className="w-8 h-8 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition"
-              >
-                <X className="h-4 w-4 text-gray-600" />
+      {/* Tiroir : les newsletters */}
+      {drawerOpen && (
+        <div className="fixed inset-0 z-50 flex justify-end bg-black/40 backdrop-blur-sm" onClick={() => setDrawerOpen(false)}>
+          <div className="flex h-full w-full max-w-md flex-col bg-white shadow-2xl" onClick={(event) => event.stopPropagation()}>
+            <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
+              <h3 className="text-lg font-bold text-slate-900">Mes newsletters</h3>
+              <button onClick={() => setDrawerOpen(false)} aria-label="Fermer">
+                <X className="h-5 w-5 text-slate-400" />
               </button>
             </div>
-            <div className="flex-1 overflow-hidden">
-              <iframe
-                srcDoc={showMainHtmlMode ? html : (editorRef.current?.innerHTML || html)}
-                className="w-full h-full border-0"
-                sandbox="allow-same-origin"
-                title="Prévisualisation email"
-                style={{ minHeight: '600px' }}
-              />
+
+            <div className="border-b border-slate-100 p-4">
+              <button
+                type="button"
+                onClick={() => createNewsletter()}
+                className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-purple-500/90 px-4 py-2.5 font-semibold text-white transition hover:bg-purple-600/90"
+              >
+                <Plus className="h-4 w-4" />
+                Nouvelle newsletter
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto">
+              {list.map((item) => (
+                <div
+                  key={item.id}
+                  className={`border-b border-slate-100 px-6 py-4 ${item.id === currentId ? 'bg-violet-50' : ''}`}
+                >
+                  <button type="button" onClick={() => openNewsletter(item.id)} className="block w-full text-left">
+                    <p className="font-semibold text-slate-800">{item.title}</p>
+                    <p className="truncate text-sm text-slate-500">{item.subject || 'Sans objet'}</p>
+                    <p className="mt-1 text-xs text-slate-400">
+                      {item.status === 'sent'
+                        ? `Envoyée le ${new Date(item.sent_at || item.updated_at).toLocaleDateString('fr-FR')} à ${item.sent_count ?? '?'} personnes`
+                        : `Brouillon, modifié le ${new Date(item.updated_at).toLocaleDateString('fr-FR')}`}
+                    </p>
+                  </button>
+                  <div className="mt-2 flex gap-3">
+                    <button
+                      type="button"
+                      onClick={() => createNewsletter(item.id)}
+                      className="inline-flex items-center gap-1 text-xs font-semibold text-violet-700 hover:underline"
+                    >
+                      <Copy className="h-3 w-3" />
+                      Dupliquer
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => removeNewsletter(item.id)}
+                      className="inline-flex items-center gap-1 text-xs font-semibold text-red-600 hover:underline"
+                    >
+                      <Trash2 className="h-3 w-3" />
+                      Supprimer
+                    </button>
+                  </div>
+                </div>
+              ))}
+              {list.length === 0 && <p className="p-6 text-center text-sm text-slate-400">Aucune newsletter pour l’instant.</p>}
             </div>
           </div>
         </div>
       )}
 
-      <div className="min-h-screen -m-6 md:-m-8">
-        {/* Dark Header */}
-        <div className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 px-6 md:px-10 pt-8 pb-6">
-          <div className="absolute top-0 left-0 w-72 h-72 bg-purple-500/15 rounded-full blur-3xl animate-pulse -translate-x-1/2 -translate-y-1/4" style={{ animationDuration: '4s' }} />
-          <div className="absolute top-1/2 right-0 w-56 h-56 bg-indigo-400/10 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '6s', animationDelay: '2s' }} />
-          <div className="absolute bottom-0 right-1/4 w-48 h-48 bg-sky-400/15 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '5s', animationDelay: '1s' }} />
-          <div className="relative">
-            <AdminBackButton />
-            <div className="bg-white/[0.09] backdrop-blur-xl border border-white/20 ring-1 ring-inset ring-white/15 rounded-3xl shadow-[0_12px_40px_rgba(0,8,30,0.65),inset_0_1px_0_rgba(255,255,255,0.12)] p-6 md:p-8">
-              <p className="text-purple-300 text-sm font-medium mb-1 tracking-wide flex items-center gap-2"><Mail className="h-4 w-4" /> Admin — Mailing</p>
-              <h1 className="text-3xl md:text-4xl font-bold tracking-tight bg-gradient-to-r from-white via-purple-100 to-indigo-200 bg-clip-text text-transparent">Mailing & Automatisations</h1>
-              <p className="text-blue-300/70 text-sm mt-1.5">Envoyez des newsletters et créez des automatisations email</p>
-            </div>
-          </div>
-          <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-purple-400/40 to-transparent" />
-          <div className="absolute bottom-0 left-1/4 right-1/4 h-px bg-gradient-to-r from-transparent via-purple-300/50 to-transparent blur-sm" />
-        </div>
-
-        {/* Light body */}
-        <div className="relative overflow-hidden bg-gradient-to-br from-blue-100/90 via-sky-50 to-indigo-50/80 px-6 md:px-10 pt-8 pb-10">
-          <div className="pointer-events-none absolute top-0 left-1/4 w-96 h-96 bg-purple-400/20 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '6s' }} />
-          <div className="pointer-events-none absolute top-1/2 right-0 w-80 h-80 bg-sky-400/25 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '8s', animationDelay: '2s' }} />
-          <div className="pointer-events-none absolute bottom-0 left-0 w-72 h-72 bg-indigo-400/20 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '7s', animationDelay: '1s' }} />
-          <div className="relative space-y-6">
-
-        {/* Result notification */}
-        {result && (
-          <div className={result.type === 'success' ? 'bg-emerald-50/80 backdrop-blur-sm border border-emerald-200/60 text-emerald-800 rounded-xl p-4' : 'bg-red-50/80 backdrop-blur-sm border border-red-200/60 text-red-800 rounded-xl p-4'}>
-            <div className="flex items-center justify-between">
-              <span>{result.message}</span>
-              <button onClick={() => setResult(null)} className="text-gray-500 hover:text-gray-700">
-                <X className="h-4 w-4" />
+      {/* Aperçu */}
+      {previewOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+          <div className="flex h-full max-h-[90vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl">
+            <div className="flex flex-shrink-0 items-center justify-between border-b border-slate-200 px-6 py-4">
+              <div>
+                <h3 className="text-lg font-bold text-slate-900">Aperçu</h3>
+                <p className="mt-0.5 text-sm text-slate-500">
+                  Objet : <span className="font-medium text-slate-700">{doc.subject || '(vide)'}</span>. Les
+                  étiquettes de personnalisation sont remplacées par un exemple.
+                </p>
+              </div>
+              <button onClick={() => setPreviewOpen(false)} aria-label="Fermer">
+                <X className="h-5 w-5 text-slate-400" />
               </button>
             </div>
-          </div>
-        )}
-
-        {/* Newsletter Editor */}
-        <div className="bg-white/85 backdrop-blur-2xl border border-white/70 shadow-xl ring-1 ring-inset ring-white/60 rounded-2xl p-6">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-              <Send className="h-6 w-6 text-purple-600" />
-              Rédiger une newsletter
-            </h2>
-          </div>
-
-          <div className="space-y-6">
-            {/* Template selector and management */}
-            <div className="flex items-center gap-3">
-              <div className="flex-1">
-                <label className="block text-sm font-medium text-gray-700 mb-2">Template</label>
-                <div className="relative">
-                  <select
-                    value={selectedTemplateId}
-                    onChange={(e) => handleTemplateSelect(e.target.value)}
-                    className="w-full bg-white/70 backdrop-blur-sm border border-blue-200/60 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-purple-300 outline-none pr-10 appearance-none"
-                  >
-                    <option value="">Aucun template (rédaction libre)</option>
-                    {templates.map((template) => (
-                      <option key={template.id} value={template.id}>
-                        {template.name}
-                      </option>
-                    ))}
-                  </select>
-                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none" />
-                </div>
-              </div>
-
-              <div className="flex gap-2 pt-7">
-                <button
-                  onClick={() => {
-                    setTemplateModalOpen(true)
-                    setEditingTemplateId(null)
-                    setTemplateDraft({ id: '', name: '', subject: '', description: '', html: '<p>Contenu du template...</p>', text: '' })
-                    setShowHtmlMode(false)
-                  }}
-                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-purple-500/90 backdrop-blur-sm border border-purple-400/30 text-white font-semibold hover:bg-purple-600/90 shadow-sm transition-all disabled:opacity-50"
-                >
-                  <Plus className="h-4 w-4" />
-                  Nouveau
-                </button>
-
-                {selectedTemplateId && (
-                  <>
-                    <button
-                      onClick={() => {
-                        const template = templates.find(t => t.id === selectedTemplateId)
-                        if (template) {
-                          setTemplateModalOpen(true)
-                          setEditingTemplateId(template.id)
-                          setTemplateDraft(template)
-                          setShowHtmlMode(false)
-                        }
-                      }}
-                      className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/70 backdrop-blur-sm border border-blue-200/60 text-slate-700 font-semibold hover:bg-white/90 shadow-sm transition-all"
-                    >
-                      <Edit2 className="h-4 w-4" />
-                      Modifier
-                    </button>
-                    <button
-                      onClick={() => handleDeleteTemplate(selectedTemplateId)}
-                      className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-red-500/90 backdrop-blur-sm border border-red-400/30 text-white font-semibold hover:bg-red-600/90 shadow-sm transition-all"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                      Supprimer
-                    </button>
-                  </>
-                )}
-              </div>
-            </div>
-
-            {/* Subject */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Sujet</label>
-              <input
-                type="text"
-                value={subject}
-                onChange={(e) => setSubject(e.target.value)}
-                placeholder="Objet de l'email..."
-                className="w-full bg-white/70 backdrop-blur-sm border border-blue-200/60 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-purple-300 outline-none"
-              />
-            </div>
-
-            {/* Audience */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Destinataires</label>
-              <div className="flex gap-3 mb-3 flex-wrap">
-                <button
-                  onClick={() => setAudienceMode('manual')}
-                  className={`px-4 py-2 rounded-xl border backdrop-blur-sm transition font-medium ${audienceMode === 'manual' ? 'bg-purple-500/20 border-purple-400/50 text-purple-700' : 'bg-white/60 border-blue-200/60 text-slate-700 hover:bg-white/80'}`}
-                >
-                  Manuel
-                </button>
-                <button
-                  onClick={() => setAudienceMode('all')}
-                  className={`px-4 py-2 rounded-xl border backdrop-blur-sm transition font-medium ${audienceMode === 'all' ? 'bg-purple-500/20 border-purple-400/50 text-purple-700' : 'bg-white/60 border-blue-200/60 text-slate-700 hover:bg-white/80'}`}
-                >
-                  Tous les membres
-                </button>
-                <button
-                  onClick={() => setAudienceMode('subscription')}
-                  className={`px-4 py-2 rounded-xl border backdrop-blur-sm transition font-medium ${audienceMode === 'subscription' ? 'bg-purple-500/20 border-purple-400/50 text-purple-700' : 'bg-white/60 border-blue-200/60 text-slate-700 hover:bg-white/80'}`}
-                >
-                  Par abonnement
-                </button>
-              </div>
-
-              {audienceMode === 'manual' && (
-                <textarea
-                  value={toInput}
-                  onChange={(e) => setToInput(e.target.value)}
-                  placeholder="Entrez les emails (séparés par des virgules ou retours à la ligne)&#10;exemple@email.com, autre@email.com"
-                  rows={3}
-                  className="w-full bg-white/70 backdrop-blur-sm border border-blue-200/60 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-purple-300 outline-none"
-                />
-              )}
-
-              {audienceMode === 'subscription' && (
-                <select
-                  value={subscriptionFilter}
-                  onChange={(e) => setSubscriptionFilter(e.target.value)}
-                  className="w-full bg-white/70 backdrop-blur-sm border border-blue-200/60 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-purple-300 outline-none"
-                >
-                  <option value="bundle">Offre Premium (les deux outils)</option>
-                  <option value="osteoflow">Offre MyOsteoFlow seule</option>
-                  <option value="osteoupgrade">Offre OsteoUpgrade seule</option>
-                  <option value="free">Comptes gratuits</option>
-                  <option value="newsletter_pre_launch">Newsletter pré-lancement</option>
-                </select>
-              )}
-            </div>
-
-            {/* HTML Editor */}
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <label className="block text-sm font-medium text-gray-700">Contenu HTML</label>
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setShowPreview(true)}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-50 border border-indigo-200 text-indigo-700 text-sm font-semibold hover:bg-indigo-100 transition"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
-                    Prévisualiser
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (showMainHtmlMode) {
-                        // Switching from HTML textarea to visual: inject into div
-                        if (editorRef.current) {
-                          editorRef.current.innerHTML = html
-                        }
-                      } else {
-                        // Switching from visual to HTML textarea: sync html state
-                        if (editorRef.current) {
-                          setHtml(editorRef.current.innerHTML)
-                        }
-                      }
-                      setShowMainHtmlMode(!showMainHtmlMode)
-                    }}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-100 border border-gray-200 text-gray-700 text-sm font-semibold hover:bg-gray-200 transition"
-                  >
-                    {showMainHtmlMode ? '👁️ Mode visuel' : '📝 Mode HTML'}
-                  </button>
-                </div>
-              </div>
-
-              {/* Formatting toolbar */}
-              <div className="mb-2 space-y-2">
-                <div className="flex items-center gap-2 p-3 bg-white/60 backdrop-blur-sm border-b border-white/40 rounded-t-lg flex-wrap">
-                  <span className="text-xs font-semibold text-gray-600 mr-2">Mise en forme :</span>
-                  <button
-                    type="button"
-                    onClick={() => insertHtml('strong')}
-                    className="px-3 py-1.5 bg-white hover:bg-gray-100 rounded-md transition border border-gray-300 flex items-center gap-1.5"
-                    title="Gras"
-                  >
-                    <Bold className="h-4 w-4 text-gray-700" />
-                    <span className="text-sm text-gray-700">Gras</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => insertHtml('em')}
-                    className="px-3 py-1.5 bg-white hover:bg-gray-100 rounded-md transition border border-gray-300 flex items-center gap-1.5"
-                    title="Italique"
-                  >
-                    <Italic className="h-4 w-4 text-gray-700" />
-                    <span className="text-sm text-gray-700">Italique</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => insertHtml('h2')}
-                    className="px-3 py-1.5 bg-white hover:bg-gray-100 rounded-md transition border border-gray-300 flex items-center gap-1.5"
-                    title="Titre"
-                  >
-                    <Heading2 className="h-4 w-4 text-gray-700" />
-                    <span className="text-sm text-gray-700">Titre</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => insertHtml('link')}
-                    className="px-3 py-1.5 bg-white hover:bg-gray-100 rounded-md transition border border-gray-300 flex items-center gap-1.5"
-                    title="Lien"
-                  >
-                    <Link2 className="h-4 w-4 text-gray-700" />
-                    <span className="text-sm text-gray-700">Lien</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => insertHtml('ul')}
-                    className="px-3 py-1.5 bg-white hover:bg-gray-100 rounded-md transition border border-gray-300 flex items-center gap-1.5"
-                    title="Liste"
-                  >
-                    <List className="h-4 w-4 text-gray-700" />
-                    <span className="text-sm text-gray-700">Liste</span>
-                  </button>
-
-                  <div className="w-px h-6 bg-gray-300 mx-1"></div>
-
-                  <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    className="px-3 py-1.5 bg-white hover:bg-gray-100 rounded-md transition border border-gray-300 flex items-center gap-1.5"
-                    title="Insérer une image"
-                  >
-                    <ImageIcon className="h-4 w-4 text-gray-700" />
-                    <span className="text-sm text-gray-700">Image</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => attachmentInputRef.current?.click()}
-                    className="px-3 py-1.5 bg-white hover:bg-gray-100 rounded-md transition border border-gray-300 flex items-center gap-1.5"
-                    title="Ajouter une pièce jointe"
-                  >
-                    <Paperclip className="h-4 w-4 text-gray-700" />
-                    <span className="text-sm text-gray-700">Pièce jointe</span>
-                  </button>
-                </div>
-
-                {/* Variable selector */}
-                <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
-                  <div className="flex items-start gap-3">
-                    <div className="flex-1">
-                      <p className="text-xs font-semibold text-blue-900 mb-2">📝 Variables disponibles (cliquez pour insérer) :</p>
-                      <div className="flex flex-wrap gap-2">
-                        {[
-                          { var: '{{nom}}', desc: 'Nom du plan (Premium)' },
-                          { var: '{{prix}}', desc: 'Prix de l’offre souscrite (29,99€ ou 49,99€/mois)' },
-                          { var: '{{date_fact}}', desc: 'Date de prochaine facturation' },
-                          { var: '{{date_renouv}}', desc: 'Date de renouvellement' },
-                          { var: '{{cycle}}', desc: 'Numéro du cycle' },
-                          { var: '{{jours}}', desc: 'Jours avant renouvellement' },
-                          { var: '{{full_name}}', desc: 'Nom complet' },
-                          { var: '{{email}}', desc: 'Email de l\'utilisateur' }
-                        ].map((variable) => (
-                          <button
-                            key={variable.var}
-                            type="button"
-                            onClick={() => {
-                              if (editorRef.current) {
-                                const selection = window.getSelection()
-                                if (selection && selection.rangeCount > 0) {
-                                  const range = selection.getRangeAt(0)
-                                  range.deleteContents()
-                                  const textNode = document.createTextNode(variable.var)
-                                  range.insertNode(textNode)
-                                } else {
-                                  editorRef.current.innerHTML += variable.var
-                                }
-                                setHtml(editorRef.current.innerHTML)
-                              }
-                            }}
-                            className="px-3 py-1.5 bg-white hover:bg-blue-100 rounded-md transition border border-blue-300 text-sm font-mono text-blue-900 hover:border-blue-400"
-                            title={variable.desc}
-                          >
-                            {variable.var}
-                          </button>
-                        ))}
-                      </div>
-                      <p className="text-xs text-blue-700 mt-2">💡 Cliquez sur une variable pour l'insérer dans votre email</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Hidden file inputs */}
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                onChange={handleImageUpload}
-                className="hidden"
-              />
-              <input
-                ref={attachmentInputRef}
-                type="file"
-                onChange={handleAttachmentUpload}
-                className="hidden"
-              />
-
-              {/* Attachments list */}
-              {attachments.length > 0 && (
-                <div className="mb-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                  <p className="text-sm font-medium text-blue-900 mb-2">Pièces jointes ({attachments.length})</p>
-                  <div className="space-y-1">
-                    {attachments.map((attachment, index) => (
-                      <div key={index} className="flex items-center justify-between text-sm bg-white rounded px-3 py-2">
-                        <span className="flex items-center gap-2 text-gray-700">
-                          {attachment.disposition === 'inline' ? (
-                            <ImageIcon className="h-4 w-4 text-blue-600" />
-                          ) : (
-                            <Paperclip className="h-4 w-4 text-gray-600" />
-                          )}
-                          {attachment.name}
-                          {attachment.disposition === 'inline' && (
-                            <span className="text-xs text-blue-600">(inline)</span>
-                          )}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => removeAttachment(index)}
-                          className="text-red-600 hover:text-red-800 transition"
-                        >
-                          <X className="h-4 w-4" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {showMainHtmlMode ? (
-                <textarea
-                  value={html}
-                  onChange={(e) => setHtml(e.target.value)}
-                  rows={20}
-                  className="w-full bg-white/70 backdrop-blur-sm border border-blue-200/60 rounded-b-xl px-4 py-3 focus:ring-2 focus:ring-purple-300 outline-none font-mono text-sm"
-                  placeholder="Collez votre HTML ici..."
-                />
-              ) : (
-                <div
-                  ref={editorRef}
-                  contentEditable
-                  onInput={(e) => setHtml(e.currentTarget.innerHTML)}
-                  className="w-full min-h-[400px] p-6 bg-white/70 backdrop-blur-sm border border-blue-200/60 rounded-b-xl focus:outline-none overflow-y-auto"
-                  suppressContentEditableWarning
-                  style={{
-                    fontFamily: 'Inter, sans-serif',
-                    fontSize: '14px',
-                    lineHeight: '1.6'
-                  }}
-                />
-              )}
-              <p className="text-sm text-gray-500 mt-2">
-                {showMainHtmlMode
-                  ? '📝 Collez ou éditez votre HTML directement. Cliquez sur "Mode visuel" pour voir le rendu, ou "Prévisualiser" pour un aperçu complet.'
-                  : '💡 Utilisez "Mode HTML" pour coller du code HTML complet, ou éditez directement ici.'}
-              </p>
-            </div>
-
-            {/* Send button */}
-            <div className="flex justify-end">
-              <button
-                onClick={handleSend}
-                disabled={sending}
-                className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-purple-500/90 backdrop-blur-sm border border-purple-400/30 text-white font-semibold hover:bg-purple-600/90 shadow-sm transition-all disabled:opacity-50 text-lg"
-              >
-                {sending ? (
-                  <>
-                    <Loader2 className="h-5 w-5 animate-spin" />
-                    Envoi en cours...
-                  </>
-                ) : (
-                  <>
-                    <Send className="h-5 w-5" />
-                    Envoyer la newsletter
-                  </>
-                )}
-              </button>
-            </div>
+            <iframe srcDoc={previewHtml} className="flex-1 border-0" sandbox="" title="Aperçu de la newsletter" />
           </div>
         </div>
+      )}
 
-        {/* Automations Section */}
-        <div className="bg-white/85 backdrop-blur-2xl border border-white/70 shadow-xl ring-1 ring-inset ring-white/60 rounded-2xl p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-                <Sparkles className="h-6 w-6 text-purple-600" />
-                Automatisations
-              </h2>
-              <p className="text-gray-600 mt-1">
-                {automations.length > 0
-                  ? `${automations.filter(a => a.active).length} active${automations.filter(a => a.active).length !== 1 ? 's' : ''} sur ${automations.length}`
-                  : 'Séquences email déclenchées automatiquement'}
-              </p>
-            </div>
+      {/* Envoi de test */}
+      {testOpen && (
+        <Modal onClose={() => setTestOpen(false)} title="Se l’envoyer pour relire">
+          <p className="text-sm leading-relaxed text-slate-600">
+            La newsletter part telle quelle à ces adresses, sans toucher à votre liste de diffusion.
+          </p>
+          <textarea
+            value={testRecipients}
+            onChange={(event) => setTestRecipients(event.target.value)}
+            rows={3}
+            placeholder="votre@adresse.fr"
+            className="mt-4 w-full rounded-xl border border-slate-200 px-4 py-2.5 outline-none focus:ring-2 focus:ring-purple-300"
+          />
+          <div className="mt-5 flex justify-end gap-3">
+            <button type="button" onClick={() => setTestOpen(false)} className="rounded-xl px-4 py-2.5 font-semibold text-slate-500">
+              Annuler
+            </button>
             <button
-              onClick={() => setAutomationModalOpen(true)}
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/70 backdrop-blur-sm border border-blue-200/60 text-slate-700 font-semibold hover:bg-white/90 shadow-sm transition-all"
+              type="button"
+              onClick={sendTest}
+              disabled={sending}
+              className="inline-flex items-center gap-2 rounded-xl bg-purple-500/90 px-5 py-2.5 font-semibold text-white transition hover:bg-purple-600/90 disabled:opacity-50"
             >
-              <Settings2 className="h-4 w-4" />
-              Gérer les automatisations
+              {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+              Envoyer le test
             </button>
           </div>
+        </Modal>
+      )}
 
-          {/* Quick status preview */}
-          {automations.length > 0 && (
-            <div className="mt-4 flex flex-wrap gap-2">
-              {automations.map((automation) => (
-                <div
-                  key={automation.id}
-                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border ${
-                    automation.active
-                      ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
-                      : 'bg-slate-50 border-slate-200 text-slate-500'
-                  }`}
-                >
-                  <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${automation.active ? 'bg-emerald-500' : 'bg-slate-300'}`} />
-                  {automation.name}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
+      {/* Confirmation d'envoi */}
+      {confirmOpen && (
+        <Modal onClose={() => setConfirmOpen(false)} title="Envoyer la newsletter ?">
+          <dl className="space-y-3 text-sm">
+            <Row label="Objet" value={doc.subject} />
+            <Row
+              label="Liste"
+              value={
+                audience === 'plan'
+                  ? PLAN_OPTIONS.find((option) => option.value === planFilter)?.label || planFilter
+                  : AUDIENCE_LABELS[audience]
+              }
+            />
+            <Row
+              label="Destinataires"
+              value={audience === 'test' ? testRecipients || '(aucune adresse)' : `${audienceCount ?? '…'} personnes`}
+            />
+            <Row
+              label="Mode"
+              value={deliveryMode === 'marketing' ? 'Campagne (commercial)' : 'Envoi direct (transactionnel)'}
+            />
+          </dl>
+          <p className="mt-4 rounded-xl bg-amber-50 p-3 text-sm text-amber-900">
+            Un envoi ne se rattrape pas. Relisez l’aperçu si vous avez un doute.
+          </p>
+          <div className="mt-5 flex justify-end gap-3">
+            <button type="button" onClick={() => setConfirmOpen(false)} className="rounded-xl px-4 py-2.5 font-semibold text-slate-500">
+              Annuler
+            </button>
+            <button
+              type="button"
+              onClick={sendNewsletter}
+              disabled={sending}
+              className="inline-flex items-center gap-2 rounded-xl bg-purple-500/90 px-5 py-2.5 font-semibold text-white transition hover:bg-purple-600/90 disabled:opacity-50"
+            >
+              {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+              Confirmer l’envoi
+            </button>
           </div>
-        </div>
-      </div>
+        </Modal>
+      )}
     </AuthLayout>
+  )
+}
+
+// ── Petits éléments d'interface ─────────────────────────────────────────────
+
+function Section({ number, title, children }: { number: number; title: string; children: React.ReactNode }) {
+  return (
+    <section className="rounded-2xl border border-white/70 bg-white/85 p-6 shadow-lg backdrop-blur-2xl">
+      <h2 className="mb-5 flex items-center gap-3 text-xl font-bold text-slate-900">
+        <span className="flex h-7 w-7 items-center justify-center rounded-full bg-violet-100 text-sm font-bold text-violet-700">
+          {number}
+        </span>
+        {title}
+      </h2>
+      {children}
+    </section>
+  )
+}
+
+function ChoiceCard({
+  active,
+  disabled,
+  onClick,
+  icon,
+  title,
+  description
+}: {
+  active: boolean
+  disabled?: boolean
+  onClick: () => void
+  icon: React.ReactNode
+  title: string
+  description: string
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className={`rounded-xl border p-4 text-left transition disabled:opacity-60 ${
+        active ? 'border-violet-400 bg-violet-50 ring-1 ring-violet-300' : 'border-slate-200 bg-white/70 hover:border-violet-200'
+      }`}
+    >
+      <span className={`flex items-center gap-2 font-semibold ${active ? 'text-violet-800' : 'text-slate-700'}`}>
+        {icon}
+        {title}
+      </span>
+      <span className="mt-1 block text-sm leading-relaxed text-slate-500">{description}</span>
+    </button>
+  )
+}
+
+function Modal({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm" onClick={onClose}>
+      <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl" onClick={(event) => event.stopPropagation()}>
+        <div className="mb-4 flex items-center justify-between">
+          <h3 className="text-lg font-bold text-slate-900">{title}</h3>
+          <button onClick={onClose} aria-label="Fermer">
+            <X className="h-5 w-5 text-slate-400" />
+          </button>
+        </div>
+        {children}
+      </div>
+    </div>
+  )
+}
+
+function Row({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex gap-4">
+      <dt className="w-28 flex-shrink-0 text-slate-400">{label}</dt>
+      <dd className="font-medium text-slate-800">{value || '(vide)'}</dd>
+    </div>
   )
 }

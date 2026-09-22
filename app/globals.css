@@ -246,3 +246,25 @@
   color: #0369a1;
   text-decoration: underline;
 }
+
+/* Champ de rédaction de la newsletter (components/newsletter/RichText.tsx).
+   Tailwind remet les listes et le gras à zéro : sans ces règles, une liste
+   écrite dans l'éditeur n'aurait pas de puces alors qu'elle en aura dans
+   l'email, et l'aperçu mentirait. */
+.newsletter-richtext strong { font-weight: 700; }
+.newsletter-richtext em { font-style: italic; }
+.newsletter-richtext u { text-decoration: underline; }
+
+.newsletter-richtext a {
+  color: #7c3aed;
+  text-decoration: underline;
+}
+
+.newsletter-richtext ul,
+.newsletter-richtext ol {
+  margin: 0.5rem 0;
+  padding-left: 1.375rem;
+  list-style: disc;
+}
+
+.newsletter-richtext li { margin-bottom: 0.25rem; }

@@ -5,6 +5,27 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/).
 
 ---
 
+## [1.10.0] : 2026-09-22
+
+### Ajouté
+
+- **Newsletter rédigée par blocs (`/admin/mailing`)** : la page ne demande plus d'écrire du HTML. On fait glisser des blocs depuis une palette (titre, texte, image, bouton, encart, citation, séparateur, espace), on écrit directement dedans, et le gabarit maison est appliqué tout seul à l'envoi. Chaque geste au glisser a son équivalent au clic, parce qu'un glisser-déposer ne fonctionne ni au clavier ni sur un écran tactile. Voir `docs/NEWSLETTER.md`.
+- **Le gabarit n'est plus un choix** : bandeau dégradé violet, corps blanc, encarts lavande, bouton dégradé, pied de page gris et signature « L'équipe OsteoUpgrade × MyOsteoflow » sont produits par `lib/newsletter.ts`. C'est ce qui garantit qu'une newsletter reste indistinguable des emails de séquence, quel que soit celui qui l'écrit.
+- **Le choix de la liste et du mode de diffusion, expliqués sur place** : quatre listes (tous les inscrits, une offre, les contacts pré-lancement, des adresses saisies à la main) avec le nombre de destinataires affiché avant l'envoi, et deux modes décrits en français. La campagne marketing passe par les Broadcasts de Resend et son quota propre ; l'envoi direct passe par le canal transactionnel, celui des factures, et s'arrête à 200 destinataires.
+- **Les balises de personnalisation qui fonctionnent réellement** : les étiquettes Prénom, Nom et Email insèrent la syntaxe Resend à trois accolades (`{{{contact.first_name|cher confrère}}}`), avec sa valeur de repli. Les anciennes variables `{{nom}}` et `{{prix}}` appartiennent au moteur de séquences et n'étaient jamais résolues dans une newsletter : elles ne sont plus proposées ici. En envoi direct et pour les tests, la substitution est faite avant l'envoi, sinon le destinataire lirait la balise en toutes lettres.
+- **Brouillons et historique (table `newsletters`)** : le contenu est enregistré une seconde et demie après la dernière frappe, donc on peut fermer l'onglet et reprendre d'une autre machine. Une newsletter envoyée devient non modifiable, puisqu'elle est la trace de ce que les abonnés ont reçu ; la dupliquer reprend son contenu, sa liste et son mode. C'est `blocks` qui fait foi et non un HTML stocké : corriger le gabarit corrige aussi les brouillons déjà écrits.
+- **Envoi de test avant l'envoi réel** : la newsletter part telle quelle à une ou deux adresses, sans toucher à la liste ni créer de segment chez Resend.
+
+### Modifié
+
+- **La page Newsletter ne fait plus que la newsletter** : la bibliothèque de gabarits et le panneau des automatisations en ont été retirés. Les tables `mail_templates` et `mail_automations` sont intactes et continuent d'alimenter les séquences déclenchées par les événements.
+- **L'interrupteur des séquences a suivi les séquences** : il ne vivait que sur la page Newsletter, il est désormais sur `/admin/automations`, à côté des statistiques de la séquence qu'il commande.
+- **Les illustrations passent par une URL publique** (`/api/admin/newsletter-image-upload`, Vercel Blob) plutôt que par une pièce jointe `cid:` ou du base64 : une campagne Resend n'accepte pas les premières, et les secondes font grossir le message au point que Gmail le tronque.
+
+### Sécurité
+
+- **Le HTML envoyé est reconstruit sur le serveur** à partir des blocs stockés : ce que façonne le navigateur ne part jamais tel quel. Le texte enrichi est en outre réécrit à chaque frappe dans un format volontairement pauvre, puis réassaini au rendu : ni `<script>`, ni attribut d'événement, ni adresse `javascript:` ne survivent aux deux passes.
+
 ## [1.9.0] : 2026-09-18
 
 ### Ajouté

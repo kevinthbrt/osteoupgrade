@@ -64,6 +64,7 @@ export default function AutomationsManagementPage() {
   const [enrollments, setEnrollments] = useState<Enrollment[]>([])
   const [loadingEnrollments, setLoadingEnrollments] = useState(false)
   const [adminEmail, setAdminEmail] = useState('')
+  const [togglingId, setTogglingId] = useState<string | null>(null)
 
   // Test modal state
   const [testModal, setTestModal] = useState<{ automationId: string; automationName: string } | null>(null)
@@ -131,6 +132,33 @@ export default function AutomationsManagementPage() {
       setAutomations(stats)
     } catch (error) {
       console.error('Error loading automations:', error)
+    }
+  }
+
+  /**
+   * Activer ou couper une séquence. L'interrupteur vivait sur la page
+   * Newsletter, qui ne sert plus qu'à la rédaction : il a sa place ici, à côté
+   * des statistiques de la séquence qu'il commande.
+   */
+  const toggleAutomation = async (event: React.MouseEvent, automation: AutomationStats) => {
+    event.stopPropagation()
+    if (togglingId) return
+
+    setTogglingId(automation.id)
+    try {
+      const response = await fetch(`/api/automations/${automation.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ active: !automation.active })
+      })
+      if (!response.ok) throw new Error('Impossible de mettre à jour')
+      setAutomations(prev => prev.map(auto => (
+        auto.id === automation.id ? { ...auto, active: !auto.active } : auto
+      )))
+    } catch (error) {
+      console.error('Error toggling automation:', error)
+    } finally {
+      setTogglingId(null)
     }
   }
 
@@ -289,11 +317,19 @@ export default function AutomationsManagementPage() {
                               <p className="text-xs text-slate-500 mt-0.5 truncate">{auto.trigger_event}</p>
                             </div>
                             <div className="flex items-center gap-1.5 shrink-0">
-                              <span className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs ${
-                                auto.active ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-600'
-                              }`}>
+                              <button
+                                onClick={(e) => toggleAutomation(e, auto)}
+                                disabled={togglingId === auto.id}
+                                title={auto.active ? 'Désactiver cette séquence' : 'Activer cette séquence'}
+                                className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs transition-colors disabled:opacity-50 ${
+                                  auto.active
+                                    ? 'bg-green-100 text-green-700 hover:bg-green-200'
+                                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                                }`}
+                              >
+                                {togglingId === auto.id && <Loader2 className="h-3 w-3 animate-spin" />}
                                 {auto.active ? 'Actif' : 'Inactif'}
-                              </span>
+                              </button>
                               <button
                                 onClick={(e) => openTestModal(e, auto)}
                                 title="Envoyer un email de test"
