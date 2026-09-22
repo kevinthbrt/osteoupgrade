@@ -101,7 +101,8 @@ function blankBlock(type: FunnelBlockType): any {
         id, type,
         title: 'Ce qui vous attend',
         count: 7,
-        meta: ['7 vidéos', 'environ 1 h', 'Offert'],
+        meta: ['7 vidéos', 'Offert'],
+        thumbnails: [],
         ctaLabel: 'Débloquer',
       }
     case 'text':

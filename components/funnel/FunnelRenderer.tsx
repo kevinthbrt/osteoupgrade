@@ -768,28 +768,56 @@ function BlockView({
             </div>
           )}
 
-          {/* Cartes vides et cadenassées : elles disent combien il y a de
-              contenu et sous quelle forme, jamais ce qu'il contient. */}
+          {/* Cartes cadenassées : la vignette réelle, floutée assez fort pour
+              que les titres de diapositive restent illisibles. Elle dit qu'il y
+              a de vraies vidéos derrière le formulaire, jamais ce qu'elles
+              racontent. Sans vignette, la carte reste une silhouette. */}
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-            {Array.from({ length: block.count }).map((_, i) => (
-              <div
-                key={i}
-                className="relative flex aspect-video flex-col justify-end overflow-hidden rounded-2xl border border-slate-200 bg-gradient-to-br from-white to-slate-100 p-3"
-              >
-                <span className="absolute left-3 top-3 text-xs font-bold text-slate-400">
-                  {String(i + 1).padStart(2, '0')}
-                </span>
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white/90 shadow-sm">
-                    <Lock className="h-4 w-4 text-slate-400" />
+            {Array.from({ length: block.count }).map((_, i) => {
+              const vignette = block.thumbnails[i]
+              return (
+                <div
+                  key={i}
+                  className="relative flex aspect-video flex-col justify-end overflow-hidden rounded-2xl border border-slate-200 bg-gradient-to-br from-white to-slate-100 p-3"
+                >
+                  {/* `blur` déborde des bords : l'image est agrandie pour que
+                      le flou ne laisse pas de halo transparent. */}
+                  {vignette && (
+                    <Image
+                      src={vignette}
+                      alt=""
+                      aria-hidden
+                      fill
+                      unoptimized
+                      sizes="(min-width: 1024px) 25vw, (min-width: 640px) 33vw, 50vw"
+                      className="scale-110 object-cover blur-[8px]"
+                    />
+                  )}
+                  <span
+                    className={
+                      vignette
+                        ? // Sur une vignette sombre, un numéro gris disparaît :
+                          // la pastille lui donne un fond dans les deux cas.
+                          'absolute left-3 top-3 rounded-full bg-white/90 px-2 py-0.5 text-xs font-bold text-slate-600 shadow-sm'
+                        : 'absolute left-3 top-3 text-xs font-bold text-slate-400'
+                    }
+                  >
+                    {String(i + 1).padStart(2, '0')}
+                  </span>
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white/90 shadow-sm">
+                      <Lock className="h-4 w-4 text-slate-500" />
+                    </div>
                   </div>
+                  {!vignette && (
+                    <div className="space-y-1.5">
+                      <div className="h-1.5 w-3/4 rounded-full bg-slate-200" />
+                      <div className="h-1.5 w-1/2 rounded-full bg-slate-200" />
+                    </div>
+                  )}
                 </div>
-                <div className="space-y-1.5">
-                  <div className="h-1.5 w-3/4 rounded-full bg-slate-200" />
-                  <div className="h-1.5 w-1/2 rounded-full bg-slate-200" />
-                </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
 
           <div className="mt-8 text-center">

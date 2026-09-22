@@ -98,15 +98,15 @@ const ctaUrlSchema = z
  * (`/api/funnels/image-upload`), mais le champ accepte aussi une URL collée, et
  * un `javascript:`/`data:` n'a rien à faire dans un `src` de page publique.
  */
-const imageUrlSchema = z
+const httpsUrlSchema = z
   .string()
   .trim()
   .max(1000)
   .refine((url) => url === '' || /^https:\/\//i.test(url), {
     message: 'L’image doit être servie en https://',
   })
-  .optional()
-  .or(z.literal(''))
+
+const imageUrlSchema = httpsUrlSchema.optional().or(z.literal(''))
 
 const baseBlock = {
   id: z.string().trim().min(1).max(64),
@@ -296,6 +296,13 @@ const teaserSchema = z.object({
   count: z.number().int().min(1).max(24).default(7),
   /** Repères de format, pas de contenu : « 7 vidéos », « environ 1 h ». */
   meta: z.array(shortText).max(4).default([]),
+  /**
+   * Vignettes réelles des vidéos, affichées floutées derrière le cadenas.
+   * Facultatives : sans vignette, la carte reste une silhouette neutre. La
+   * liste est alignée sur `count` dans l'ordre des leçons ; une entrée vide
+   * laisse la carte correspondante en silhouette.
+   */
+  thumbnails: z.array(httpsUrlSchema).max(24).default([]),
   ctaLabel: optionalShort,
 })
 
