@@ -78,6 +78,17 @@ Chaque opt-in déclenche les automatisations dont le `trigger_event` vaut
 `funnel:<slug>`. L'éditeur affiche ce déclencheur, indique si une séquence
 l'écoute, et permet de la créer d'un bouton.
 
+### Où atterrissent les contacts
+
+Un opt-in crée un contact dans `mail_contacts`, étiqueté `funnel:<slug>` dans
+la colonne `tags`, plus une ligne dans `funnel_leads`.
+
+**Ce n'est pas la lettre d'information.** Un envoi « tous les inscrits » lit
+`profiles` avec `newsletter_opt_in = true` (`app/api/mailing/send/route.ts`) :
+un lead de funnel, qui n'a pas de compte, n'y figure pas et ne le recevra donc
+pas. `mail_contacts` alimente les séquences automatiques, pas les diffusions
+générales.
+
 Le contact est créé dans `mail_contacts` par `ensureMailContact()`, **avant**
 toute recherche de séquence. C'est délibéré : `triggerAutomations` sort dès
 qu'aucune séquence active ne correspond à l'événement, et lui déléguer la
@@ -157,6 +168,61 @@ session :
 
 Si le funnel n'a pas d'offre configurée mais contient un bloc `optin`, les CTA
 « souscription » basculent automatiquement vers le formulaire email.
+
+## Contenu réservé aux inscrits
+
+Chaque bloc porte un drapeau `gated`. Un bloc réservé n'est **pas envoyé au
+navigateur** tant que le visiteur n'a pas laissé son email : le tri se fait
+côté serveur dans `app/f/[slug]/page.tsx`. Le masquer en CSS aurait laissé les
+URL des vidéos lisibles dans la source de la page, ce qui vide l'inscription
+de son intérêt.
+
+Le déverrouillage repose sur le cookie `ou_optin_<slug>`, posé par
+`/api/funnels/lead` et propre à chaque funnel. Après l'inscription, la page
+appelle `router.refresh()` : le serveur refait le rendu et joint cette fois les
+blocs réservés.
+
+### Aperçu et vue visiteur
+
+En aperçu (`?preview=1`, admin connecté), la page entière est affichée,
+contenu réservé compris : un aperçu qui masque les vidéos et les tarifs ne
+permettrait pas de relire l'essentiel de la page.
+
+`?preview=1&visiteur=1` rétablit le portillon pour vérifier ce que voit un
+nouveau visiteur. Le bandeau d'aperçu indique l'état courant et propose le
+lien pour basculer.
+
+Le portillon reste entier hors aperçu : un visiteur ne devient jamais admin.
+
+### Portée de l'accès
+
+L'accès est **lié au navigateur, pas à l'adresse email** : le cookie vaut 180
+jours sur cet appareil. Sur un autre appareil, le visiteur redonne son email,
+ce qui met simplement à jour son lead sans le dupliquer.
+
+Rien n'empêche de partager la page, ni de relever l'URL de la vidéo dans la
+source une fois débloquée. C'est le comportement attendu d'un aimant à
+prospects : l'objectif est la diffusion, pas la rétention. Un accès réellement
+nominatif demanderait un lien signé envoyé par email, ou un compte.
+
+> **Portée du portillon.** Le cookie n'est pas signé : le forger donne accès à
+> un contenu offert en échange d'un email, pas à du contenu payant. C'est le
+> bon niveau pour un aimant à prospects. Du contenu réellement payant demande
+> un compte et un contrôle de droits, pas un cookie.
+
+## Vidéos
+
+Le champ accepte le lien du bouton **Partager** de Vimeo
+(`vimeo.com/123?share=copy`), converti en lien d'intégration à
+l'enregistrement par `toEmbedUrl`, qui réutilise `extractVimeoId` du module
+e-learning. Les formats YouTube `youtu.be/…` et `watch?v=…` sont également
+convertis. L'affichage reste filtré par `safeEmbedUrl`.
+
+## Deux offres sur une même page
+
+Un bloc tarifs peut porter son propre `planType`, qui prend le pas sur l'offre
+du funnel, et un drapeau `highlighted` pour la mise en avant. C'est ce qui
+permet d'afficher OsteoUpgrade et Premium côte à côte.
 
 ## Ce que l'opt-in fait et ne fait pas
 

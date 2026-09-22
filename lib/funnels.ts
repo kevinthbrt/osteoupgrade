@@ -13,6 +13,45 @@
  */
 
 import { z } from 'zod'
+import { extractVimeoId } from '@/lib/vimeo'
+
+/**
+ * Convertit une URL Vimeo ou YouTube en URL d'intégration.
+ *
+ * Réutilise `extractVimeoId`, déjà employé par le module e-learning, plutôt
+ * que d'écrire une deuxième analyse d'URL Vimeo dans le projet. Une URL déjà
+ * intégrable, ou non reconnue, est renvoyée telle quelle : c'est `safeEmbedUrl`
+ * qui tranche à l'affichage.
+ */
+export function toEmbedUrl(url: string): string {
+  const trimmed = url.trim()
+  if (!trimmed) return trimmed
+
+  try {
+    const parsed = new URL(trimmed)
+    const host = parsed.hostname.toLowerCase()
+
+    if (host.endsWith('vimeo.com')) {
+      if (host === 'player.vimeo.com') return trimmed
+      const id = extractVimeoId(trimmed)
+      if (id) return `https://player.vimeo.com/video/${id}`
+    }
+
+    if (host === 'youtu.be') {
+      const id = parsed.pathname.split('/').filter(Boolean)[0]
+      if (id) return `https://www.youtube.com/embed/${id}`
+    }
+
+    if (host.endsWith('youtube.com') && parsed.pathname === '/watch') {
+      const id = parsed.searchParams.get('v')
+      if (id) return `https://www.youtube.com/embed/${id}`
+    }
+  } catch {
+    // URL malformée : laissée telle quelle, refusée plus tard à l'affichage.
+  }
+
+  return trimmed
+}
 
 // ── Blocs ──────────────────────────────────────────────────────────────────
 
@@ -69,7 +108,18 @@ const imageUrlSchema = z
   .optional()
   .or(z.literal(''))
 
-const baseBlock = { id: z.string().trim().min(1).max(64) }
+const baseBlock = {
+  id: z.string().trim().min(1).max(64),
+  /**
+   * Bloc réservé aux visiteurs inscrits.
+   *
+   * Le tri est fait côté serveur (`app/f/[slug]/page.tsx`) : un bloc verrouillé
+   * n'est pas envoyé au navigateur tant que le visiteur n'a pas laissé son
+   * email. Masquer en CSS aurait laissé les URL des vidéos lisibles dans la
+   * source de la page, ce qui vide l'inscription de son intérêt.
+   */
+  gated: z.boolean().default(false),
+}
 
 const heroSchema = z.object({
   ...baseBlock,
@@ -90,8 +140,18 @@ const videoSchema = z.object({
   ...baseBlock,
   type: z.literal('video'),
   title: optionalShort,
-  /** URL d'iframe (Vimeo/YouTube). Validée à l'affichage, cf. `safeEmbedUrl`. */
-  embedUrl: z.string().trim().url().max(500),
+  /**
+   * URL d'intégration (Vimeo/YouTube), validée à l'affichage par
+   * `safeEmbedUrl`. Une URL de partage Vimeo (`vimeo.com/123?share=copy`) est
+   * convertie à l'enregistrement : c'est celle que donne le bouton Partager,
+   * donc celle qu'on colle naturellement, et elle ne s'intègre pas telle quelle.
+   */
+  embedUrl: z
+    .string()
+    .trim()
+    .url()
+    .max(500)
+    .transform((url) => toEmbedUrl(url)),
   caption: optionalShort,
 })
 
@@ -156,6 +216,13 @@ const pricingSchema = z.object({
   priceNote: optionalShort,
   features: z.array(shortText).max(20).default([]),
   ctaLabel: optionalShort,
+  /**
+   * Offre de ce bloc, quand elle diffère de celle du funnel. Permet d'afficher
+   * deux tarifs sur une même page. Vide : l'offre du funnel s'applique.
+   */
+  planType: z.string().trim().max(100).optional().or(z.literal('')),
+  /** Mise en avant visuelle quand deux offres se font face. */
+  highlighted: z.boolean().default(false),
 })
 
 const guaranteeSchema = z.object({
@@ -192,6 +259,7 @@ const optinSchema = z.object({
   text: z.string().trim().max(1000).optional().or(z.literal('')),
   buttonLabel: optionalShort,
   askName: z.boolean().default(true),
+  askLastName: z.boolean().default(false),
   /** Mention de consentement affichée sous le formulaire (RGPD). */
   consentText: z.string().trim().max(500).optional().or(z.literal('')),
   successMessage: z.string().trim().max(500).optional().or(z.literal('')),
@@ -412,6 +480,22 @@ export function leadDeadlineFor(
  * séminaire en 20260109) : un funnel peut donc avoir sa propre séquence, créée
  * dans /admin/automations sans toucher au code.
  */
+/**
+ * Nom du cookie attestant qu'un visiteur a laissé son email sur ce funnel.
+ *
+ * Posé par `/api/funnels/lead`, relu au rendu pour décider si les blocs
+ * verrouillés sont envoyés. Il n'est pas signé : le forger ne donne accès
+ * qu'à un contenu offert en échange d'un email, pas à du contenu payant. Pour
+ * du contenu réellement payant, il faudrait un compte et un contrôle de
+ * droits, pas un cookie.
+ */
+export function optinCookieName(slug: string): string {
+  return `ou_optin_${slug}`
+}
+
+/** 180 jours : un visiteur qui revient ne redonne pas son email. */
+export const OPTIN_COOKIE_MAX_AGE = 180 * 24 * 60 * 60
+
 export function funnelTriggerEvent(slug: string): `funnel:${string}` {
   return `funnel:${slug}`
 }

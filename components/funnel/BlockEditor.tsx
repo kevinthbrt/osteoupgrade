@@ -3,6 +3,17 @@
 import { useRef, useState } from 'react'
 import { ChevronDown, ChevronUp, Trash2, Upload, Loader2, X } from 'lucide-react'
 import { BLOCK_LABELS, type FunnelBlock } from '@/lib/funnels'
+import { OFFERS, formatAmount } from '@/lib/offers'
+
+/** Offres proposables, construites depuis `lib/offers` (jamais `lib/stripe`,
+ *  qui exige la clé secrète et ne peut pas être importé côté navigateur). */
+const PLAN_OPTIONS = OFFERS.flatMap((offer) => [
+  { value: offer.planType, label: `${offer.name} ${formatAmount(offer.monthlyAmount)}/mois` },
+  {
+    value: offer.foundingPlanType,
+    label: `${offer.name} Fondateur ${formatAmount(offer.foundingAnnualAmount)}/an`,
+  },
+])
 
 /**
  * Édition d'un bloc de funnel.
@@ -414,6 +425,22 @@ export default function BlockEditor({ block, index, total, onChange, onMove, onR
         </div>
       </div>
 
+      <label className="mb-4 flex items-start gap-2 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
+        <input
+          type="checkbox"
+          checked={block.gated ?? false}
+          onChange={(e) => set({ gated: e.target.checked })}
+          className="mt-0.5 h-4 w-4 rounded border-slate-300"
+        />
+        <span>
+          Réservé aux inscrits
+          <span className="mt-0.5 block text-xs text-slate-500">
+            Ce bloc n’est envoyé au navigateur qu’une fois l’email laissé. Avant
+            ça, son contenu est absent de la page, y compris de son code source.
+          </span>
+        </span>
+      </label>
+
       <div className="space-y-3">
         {block.type === 'hero' && (
           <>
@@ -451,8 +478,8 @@ export default function BlockEditor({ block, index, total, onChange, onMove, onR
               placeholder="https://player.vimeo.com/video/123456789"
             />
             <p className="text-xs text-slate-400">
-              Vimeo ou YouTube uniquement. Utilisez l’URL d’intégration (embed), pas celle de la barre
-              d’adresse.
+              Vimeo ou YouTube. Le lien du bouton Partager convient, il est converti en lien
+              d’intégration à l’enregistrement.
             </p>
             <Field label="Légende" value={block.caption} onChange={(v) => set({ caption: v })} />
           </>
@@ -590,6 +617,33 @@ export default function BlockEditor({ block, index, total, onChange, onMove, onR
               onChange={(features) => set({ features })}
             />
             <Field label="Libellé du bouton" value={block.ctaLabel} onChange={(v) => set({ ctaLabel: v })} />
+            <div>
+              <Label>Offre de ce bloc</Label>
+              <select
+                value={block.planType ?? ''}
+                onChange={(e) => set({ planType: e.target.value })}
+                className={inputClass}
+              >
+                <option value="">Celle du funnel</option>
+                {PLAN_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+              <p className="mt-1 text-xs text-slate-400">
+                À renseigner seulement pour afficher deux tarifs différents sur la même page.
+              </p>
+            </div>
+            <label className="flex items-center gap-2 text-sm text-slate-700">
+              <input
+                type="checkbox"
+                checked={block.highlighted ?? false}
+                onChange={(e) => set({ highlighted: e.target.checked })}
+                className="h-4 w-4 rounded border-slate-300"
+              />
+              Mettre ce tarif en avant
+            </label>
           </>
         )}
 
@@ -643,6 +697,15 @@ export default function BlockEditor({ block, index, total, onChange, onMove, onR
                 className="h-4 w-4 rounded border-slate-300"
               />
               Demander le prénom
+            </label>
+            <label className="flex items-center gap-2 text-sm text-slate-700">
+              <input
+                type="checkbox"
+                checked={block.askLastName ?? false}
+                onChange={(e) => set({ askLastName: e.target.checked })}
+                className="h-4 w-4 rounded border-slate-300"
+              />
+              Demander le nom
             </label>
             <TextArea
               label="Mention de consentement"

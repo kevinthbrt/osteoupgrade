@@ -3,7 +3,7 @@ import { cookies } from 'next/headers'
 import type { Metadata } from 'next'
 import { supabaseAdmin } from '@/lib/supabase-server'
 import { createServerComponentClient } from '@/lib/supabase-server-helpers'
-import { readFunnelContent, type Funnel } from '@/lib/funnels'
+import { readFunnelContent, optinCookieName, type Funnel } from '@/lib/funnels'
 import FunnelRenderer from '@/components/funnel/FunnelRenderer'
 import PublicFooter from '@/components/PublicFooter'
 
@@ -92,15 +92,34 @@ export default async function FunnelPage({
   searchParams,
 }: {
   params: { slug: string }
-  searchParams: { preview?: string }
+  searchParams: { preview?: string; visiteur?: string }
 }) {
   const apercuDemande = searchParams.preview === '1'
   const apercu = apercuDemande && (await estAdmin())
+  /** En aperçu, permet de regarder la page avec les yeux d'un non-inscrit. */
+  const simulerVisiteur = apercu && searchParams.visiteur === '1'
 
   const funnel = await getFunnel(params.slug, apercu)
   if (!funnel) notFound()
 
-  const blocks = readFunnelContent(funnel.content)
+  const tousLesBlocs = readFunnelContent(funnel.content)
+
+  // Portillon : les blocs réservés ne sont pas rendus tant que le visiteur n'a
+  // pas laissé son email. Le tri se fait ici, côté serveur, pour que les URL
+  // des vidéos soient absentes de la source de la page. Les masquer en CSS
+  // aurait laissé le contenu lisible d'un clic droit, ce qui aurait vidé
+  // l'inscription de son intérêt.
+  const inscrit = Boolean(cookies().get(optinCookieName(funnel.slug))?.value)
+
+  // En aperçu, un admin voit la page entière : sinon il ne peut relire ni les
+  // vidéos, ni les tarifs, ni la garantie, soit l'essentiel de la page. Le
+  // portillon reste entier pour les visiteurs, et `?visiteur=1` permet de
+  // repasser sur leur vue depuis l'aperçu.
+  const toutVoir = inscrit || (apercu && !simulerVisiteur)
+  const blocks = toutVoir ? tousLesBlocs : tousLesBlocs.filter((b) => !b.gated)
+  const blocsVerrouilles = tousLesBlocs.length - blocks.length
+  const nbReserves = tousLesBlocs.filter((b) => b.gated).length
+
   const brouillon = funnel.status !== 'published'
 
   return (
@@ -109,6 +128,31 @@ export default async function FunnelPage({
         <div className="sticky top-0 z-50 bg-amber-500 px-4 py-2.5 text-center text-sm font-semibold text-amber-950">
           Aperçu : cette page est en {funnel.status === 'draft' ? 'brouillon' : 'archive'} et
           renvoie une erreur 404 aux visiteurs. Passez son statut à « En ligne » pour la diffuser.
+          {/* État du portillon, affiché en aperçu seulement. Sans ça,
+              impossible de distinguer « le filtre ne marche pas » de « ce
+              navigateur a déjà le cookie d'inscription ». */}
+          {nbReserves > 0 && (
+            <span className="mt-1 block font-normal">
+              {simulerVisiteur ? (
+                <>
+                  Vue visiteur : {blocsVerrouilles} blocs réservés sont masqués.{' '}
+                  <a href={`/f/${funnel.slug}?preview=1`} className="underline">
+                    Revenir à l’aperçu complet
+                  </a>
+                </>
+              ) : inscrit ? (
+                `Contenu réservé affiché : ce navigateur porte le cookie d’inscription.`
+              ) : (
+                <>
+                  Aperçu admin : les {nbReserves} blocs réservés sont affichés, un visiteur ne les
+                  verrait qu’après avoir laissé son email.{' '}
+                  <a href={`/f/${funnel.slug}?preview=1&visiteur=1`} className="underline">
+                    Voir la page comme un visiteur
+                  </a>
+                </>
+              )}
+            </span>
+          )}
         </div>
       )}
       <FunnelRenderer
@@ -121,6 +165,7 @@ export default async function FunnelPage({
           deadline_at: funnel.deadline_mode === 'fixed' ? funnel.deadline_at : null,
         }}
         blocks={blocks}
+        lockedCount={blocsVerrouilles}
       />
       <PublicFooter />
     </main>

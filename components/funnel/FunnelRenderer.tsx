@@ -10,6 +10,7 @@ import {
   Quote,
   ShieldCheck,
   Sparkles,
+  Lock,
 } from 'lucide-react'
 import type { FunnelBlock } from '@/lib/funnels'
 import { safeEmbedUrl, safeLinkUrl } from '@/lib/funnels'
@@ -49,9 +50,12 @@ function readCookie(name: string): string | null {
 export default function FunnelRenderer({
   funnel,
   blocks,
+  lockedCount = 0,
 }: {
   funnel: FunnelSummary
   blocks: FunnelBlock[]
+  /** Nombre de blocs retenus par le portillon, pour l'annoncer au visiteur. */
+  lockedCount?: number
 }) {
   const router = useRouter()
   const [utm, setUtm] = useState<Utm>({})
@@ -133,13 +137,17 @@ export default function FunnelRenderer({
         localStorage.setItem(deadlineKey(funnel.slug), deadlineAt)
         setLeadDeadline(deadlineAt)
       }
+      // La route d'inscription a posé le cookie de déverrouillage. On demande
+      // au serveur de refaire le rendu : il joindra cette fois les blocs
+      // réservés, qui n'avaient jamais été envoyés au navigateur.
+      if (lockedCount > 0) router.refresh()
     },
-    [funnel.slug]
+    [funnel.slug, lockedCount, router]
   )
 
   // ── Appels à l'action ───────────────────────────────────────────────────
   const handleCta = useCallback(
-    (target: 'checkout' | 'optin' | 'url', url?: string) => {
+    (target: 'checkout' | 'optin' | 'url', url?: string, planType?: string) => {
       if (target === 'optin') {
         document.getElementById(OPTIN_ANCHOR)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
         track('cta_click', { target: 'optin' })
@@ -162,9 +170,13 @@ export default function FunnelRenderer({
       // `checkout` : la souscription exige un compte (l'API Stripe refuse un
       // appel anonyme). On envoie donc vers l'inscription en conservant
       // l'offre et le funnel d'origine, que /auth relaie après création.
-      track('checkout_started', { target: 'checkout' })
+      //
+      // L'offre vient du bloc quand il en porte une, ce qui permet deux tarifs
+      // sur une même page ; sinon celle du funnel s'applique.
+      const plan = planType || funnel.plan_type
+      track('checkout_started', { target: 'checkout', plan })
       const params = new URLSearchParams({ funnel: funnel.slug })
-      if (funnel.plan_type) params.set('plan', funnel.plan_type)
+      if (plan) params.set('plan', plan)
       router.push(`/auth?${params.toString()}`)
     },
     [funnel.plan_type, funnel.slug, router, track]
@@ -187,6 +199,7 @@ export default function FunnelRenderer({
           // Un CTA « checkout » sans offre configurée et sans formulaire dans
           // la page n'aurait nulle part où envoyer le visiteur.
           fallbackToOptin={!funnel.plan_type && hasOptinBlock}
+          lockedCount={lockedCount}
         />
       ))}
     </div>
@@ -201,9 +214,10 @@ type BlockViewProps = {
   deadline: string | null
   utm: Utm
   visitorId: string
-  onCta: (target: 'checkout' | 'optin' | 'url', url?: string) => void
+  onCta: (target: 'checkout' | 'optin' | 'url', url?: string, planType?: string) => void
   onOptin: (deadlineAt: string | null) => void
   fallbackToOptin: boolean
+  lockedCount: number
 }
 
 function Section({
@@ -232,20 +246,28 @@ function CtaButton({
   label,
   target,
   url,
+  planType,
   onCta,
   fallbackToOptin,
+  variant = 'plein',
 }: {
   label: string
   target: 'checkout' | 'optin' | 'url'
   url?: string
+  planType?: string
   onCta: BlockViewProps['onCta']
   fallbackToOptin: boolean
+  variant?: 'plein' | 'discret'
 }) {
   const effective = target === 'checkout' && fallbackToOptin ? 'optin' : target
+  const apparence =
+    variant === 'plein'
+      ? 'flow-gradient text-white shadow-lg shadow-blue-500/20'
+      : 'border border-slate-300 bg-white text-slate-800 hover:border-blue-400 hover:text-blue-700'
   return (
     <button
-      onClick={() => onCta(effective, url)}
-      className="flow-gradient group inline-flex items-center justify-center gap-2 rounded-xl px-8 py-4 text-base font-bold text-white shadow-lg shadow-blue-500/20 transition hover:opacity-90"
+      onClick={() => onCta(effective, url, planType)}
+      className={`group inline-flex items-center justify-center gap-2 rounded-xl px-8 py-4 text-base font-bold transition hover:opacity-90 ${apparence}`}
     >
       {label}
       <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
@@ -280,6 +302,7 @@ function BlockView({
   onCta,
   onOptin,
   fallbackToOptin,
+  lockedCount,
 }: BlockViewProps) {
   switch (block.type) {
     case 'hero': {
@@ -521,7 +544,13 @@ function BlockView({
           {block.subtitle && (
             <p className="-mt-4 mb-8 text-center text-slate-600">{block.subtitle}</p>
           )}
-          <div className="mx-auto max-w-lg rounded-3xl border-2 border-blue-500 bg-white p-8 shadow-xl shadow-blue-500/10">
+          <div
+            className={`mx-auto max-w-lg rounded-3xl bg-white p-8 ${
+              block.highlighted
+                ? 'border-2 border-blue-500 shadow-xl shadow-blue-500/10'
+                : 'border border-slate-200 shadow-sm'
+            }`}
+          >
             <div className="text-center">
               {block.originalAmount != null && (
                 <span className="mr-2 text-xl text-slate-400 line-through">
@@ -557,8 +586,10 @@ function BlockView({
               <CtaButton
                 label={block.ctaLabel || 'Je m’abonne'}
                 target="checkout"
+                planType={block.planType || undefined}
                 onCta={onCta}
                 fallbackToOptin={fallbackToOptin}
+                variant={block.highlighted ? 'plein' : 'discret'}
               />
             </div>
           </div>
@@ -649,12 +680,22 @@ function BlockView({
       return (
         <Section className="scroll-mt-8">
           <div id={OPTIN_ANCHOR}>
+            {/* Un visiteur non inscrit ne voit pas le contenu réservé : sans
+                cette mention, la page s'arrête sans qu'il sache qu'il manque
+                quelque chose, et le formulaire perd sa raison d'être. */}
+            {lockedCount > 0 && (
+              <p className="mb-4 flex items-center justify-center gap-2 text-sm font-medium text-slate-500">
+                <Lock className="h-4 w-4" />
+                Le contenu se débloque ici même, dès que vous validez.
+              </p>
+            )}
             <OptinForm
               slug={slug}
               title={block.title}
               text={block.text || undefined}
               buttonLabel={block.buttonLabel || undefined}
               askName={block.askName}
+              askLastName={block.askLastName}
               consentText={block.consentText || undefined}
               successMessage={block.successMessage || undefined}
               utm={utm}
