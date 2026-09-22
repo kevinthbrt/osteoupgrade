@@ -96,6 +96,9 @@ export default function NewsletterAdminPage() {
   const [previewOpen, setPreviewOpen] = useState(false)
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [notice, setNotice] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
+  // Les destinataires qu'un envoi direct n'a pas pu atteindre : ils restent à
+  // l'écran jusqu'à ce qu'on s'en occupe, sinon la liste serait perdue.
+  const [failedRecipients, setFailedRecipients] = useState<string[]>([])
 
   const lastEditable = useRef<HTMLElement | null>(null)
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -193,6 +196,15 @@ export default function NewsletterAdminPage() {
 
   // ── Enregistrement ───────────────────────────────────────────────────────
 
+  /**
+   * Enregistre le brouillon, et LÈVE si l'écriture a échoué.
+   *
+   * L'appelant doit pouvoir décider : l'enregistrement automatique se contente
+   * d'afficher le message, mais un envoi doit s'interrompre. Le serveur
+   * reconstruit l'email depuis les blocs stockés, donc envoyer après un
+   * enregistrement raté ferait partir la version précédente pendant que
+   * l'écran affiche la nouvelle.
+   */
   const save = useCallback(async () => {
     if (!currentId || readOnly) return
     setSaving(true)
@@ -216,12 +228,26 @@ export default function NewsletterAdminPage() {
       dirty.current = false
       setSavedAt(new Date())
       setList((prev) => prev.map((item) => (item.id === currentId ? { ...item, title, subject: doc.subject } : item)))
-    } catch (error: any) {
-      setNotice({ type: 'error', message: error.message })
     } finally {
       setSaving(false)
     }
   }, [audience, currentId, deliveryMode, doc, planFilter, readOnly, title])
+
+  /**
+   * Enregistrement avant un envoi : si le brouillon ne part pas en base, on
+   * n'envoie rien du tout, et on le dit sans ambiguïté.
+   */
+  const saveBeforeSend = useCallback(async () => {
+    if (saveTimer.current) clearTimeout(saveTimer.current)
+    if (!dirty.current) return
+    try {
+      await save()
+    } catch (error: any) {
+      throw new Error(
+        `Vos dernières modifications n’ont pas pu être enregistrées (${error.message}). Rien n’a été envoyé : réessayez dans un instant.`
+      )
+    }
+  }, [save])
 
   // Enregistrement différé : on écrit une seconde et demie après la dernière frappe.
   useEffect(() => {
@@ -229,7 +255,7 @@ export default function NewsletterAdminPage() {
     if (!dirty.current) return
     if (saveTimer.current) clearTimeout(saveTimer.current)
     saveTimer.current = setTimeout(() => {
-      save()
+      save().catch((error: any) => setNotice({ type: 'error', message: error.message }))
     }, 1500)
     return () => {
       if (saveTimer.current) clearTimeout(saveTimer.current)
@@ -282,13 +308,28 @@ export default function NewsletterAdminPage() {
 
   // ── Envoi ────────────────────────────────────────────────────────────────
 
-  const blockers = useMemo(() => describeBlockers(doc), [doc])
+  const testList = useMemo(
+    () =>
+      testRecipients
+        .split(/[,;\n]/)
+        .map((email) => email.trim())
+        .filter(Boolean),
+    [testRecipients]
+  )
+
+  // Ce qui empêche d'écrire un email valide, et ce qui manque en plus pour
+  // l'envoyer à la liste choisie. Un test de relecture ne dépend que du premier.
+  const contentBlockers = useMemo(() => describeBlockers(doc), [doc])
+
+  const blockers = useMemo(() => {
+    if (audience === 'test' && testList.length === 0) {
+      return [...contentBlockers, 'La liste « Adresses saisies à la main » est vide : ajoutez au moins une adresse.']
+    }
+    return contentBlockers
+  }, [audience, contentBlockers, testList])
 
   const sendTest = async () => {
-    const recipients = testRecipients
-      .split(/[,;\n]/)
-      .map((email) => email.trim())
-      .filter(Boolean)
+    const recipients = testList
 
     if (!recipients.length) {
       setNotice({ type: 'error', message: 'Indiquez au moins une adresse de test.' })
@@ -297,19 +338,33 @@ export default function NewsletterAdminPage() {
 
     setSending(true)
     try {
-      if (dirty.current) await save()
+      await saveBeforeSend()
       const response = await fetch('/api/mailing/send', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ newsletterId: currentId, audience: 'test', to: recipients })
+        body: JSON.stringify({ newsletterId: currentId, audience: 'test', to: recipients, preview: true })
       })
       const data = await response.json()
       if (!response.ok) throw new Error(data.error || 'Envoi impossible')
       setTestOpen(false)
-      setNotice({
-        type: 'success',
-        message: `Test envoyé à ${data.sent} adresse${data.sent > 1 ? 's' : ''}. Les balises de personnalisation y sont remplacées par les vraies valeurs.`
-      })
+
+      // Un renvoi part souvent d'ici : la liste des échecs doit refléter ce
+      // qu'il reste à rattraper, pas ce qu'elle contenait avant.
+      const stillFailing: string[] = data.failedRecipients || []
+      setFailedRecipients(stillFailing)
+
+      if (stillFailing.length > 0) {
+        setNotice({
+          type: 'error',
+          message: `Envoyé à ${data.sent} adresse${data.sent > 1 ? 's' : ''} sur ${data.total}. ${stillFailing.length} reste${stillFailing.length > 1 ? 'nt' : ''} en échec.`
+        })
+        console.error('Échecs d’envoi :', data.errors)
+      } else {
+        setNotice({
+          type: 'success',
+          message: `Envoyé à ${data.sent} adresse${data.sent > 1 ? 's' : ''}. Les balises de personnalisation y sont remplacées par les vraies valeurs.`
+        })
+      }
     } catch (error: any) {
       setNotice({ type: 'error', message: error.message })
     } finally {
@@ -320,13 +375,16 @@ export default function NewsletterAdminPage() {
   const sendNewsletter = async () => {
     setSending(true)
     try {
-      if (dirty.current) await save()
+      await saveBeforeSend()
       const response = await fetch('/api/mailing/send', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           newsletterId: currentId,
           audience,
+          // La liste « Adresses saisies à la main » n'a de destinataires que
+          // ceux-là : sans eux, le serveur n'a personne à qui écrire.
+          to: audience === 'test' ? testList : undefined,
           subscriptionFilter: audience === 'plan' ? planFilter : undefined,
           deliveryMode
         })
@@ -335,28 +393,40 @@ export default function NewsletterAdminPage() {
       if (!response.ok) throw new Error(data.error || 'Envoi impossible')
 
       setConfirmOpen(false)
-      setStatus('sent')
+      // La newsletter ne se verrouille que si le serveur a pu l'enregistrer
+      // comme envoyée. L'écran ne doit pas affirmer ce que la base ignore.
+      if (data.newsletterStatus === 'sent') setStatus('sent')
+      setFailedRecipients(data.failedRecipients || [])
       await fetchList()
 
+      // Le compte rendu d'abord, l'avertissement ensuite : savoir que l'email
+      // est parti compte plus que de savoir que la base n'a pas suivi.
+      let message: string
+      let ennui = false
+
       if (data.mode === 'broadcast') {
-        const failures = data.syncErrors?.length || 0
-        setNotice({
-          type: 'success',
-          message:
-            `Newsletter partie en campagne à ${data.totalContacts} destinataire${data.totalContacts > 1 ? 's' : ''}.` +
-            (failures > 0 ? ` ${failures} contact(s) n’ont pas pu être synchronisés, voir la console.` : '')
-        })
-        if (failures > 0) console.error('Échecs de synchronisation Resend :', data.syncErrors)
+        const desyncs = data.syncErrors?.length || 0
+        message = `Newsletter partie en campagne à ${data.totalContacts} destinataire${data.totalContacts > 1 ? 's' : ''}.`
+        if (desyncs > 0) {
+          message += ` ${desyncs} contact(s) n’ont pas pu être synchronisés, voir la console.`
+          ennui = true
+          console.error('Échecs de synchronisation Resend :', data.syncErrors)
+        }
       } else {
-        const failures = data.total - data.sent
-        setNotice({
-          type: 'success',
-          message:
-            `Newsletter envoyée à ${data.sent}/${data.total} destinataire${data.total > 1 ? 's' : ''}.` +
-            (failures > 0 ? ` ${failures} échec(s), voir la console.` : '')
-        })
-        if (failures > 0) console.error('Échecs d’envoi :', data.errors)
+        const echecs = data.total - data.sent
+        message = `Newsletter envoyée à ${data.sent}/${data.total} destinataire${data.total > 1 ? 's' : ''}.`
+        if (echecs > 0) {
+          ennui = true
+          console.error('Échecs d’envoi :', data.errors)
+        }
       }
+
+      if (data.warning) {
+        message += ` ${data.warning}`
+        ennui = true
+      }
+
+      setNotice({ type: ennui ? 'error' : 'success', message })
     } catch (error: any) {
       setNotice({ type: 'error', message: error.message })
     } finally {
@@ -673,11 +743,50 @@ export default function NewsletterAdminPage() {
                 </ul>
               )}
 
+              {failedRecipients.length > 0 && (
+                <div className="mb-4 rounded-xl border border-red-200 bg-red-50 p-4">
+                  <p className="flex items-center gap-2 text-sm font-semibold text-red-900">
+                    <AlertTriangle className="h-4 w-4" />
+                    {failedRecipients.length} destinataire{failedRecipients.length > 1 ? 's n’ont' : ' n’a'} pas reçu la
+                    newsletter
+                  </p>
+                  <p className="mt-1 text-sm leading-relaxed text-red-800/80">
+                    Les autres l’ont bien reçue, la newsletter est donc close. Renvoyez-la à ces adresses seules, sans
+                    écrire une deuxième fois à toute la liste.
+                  </p>
+                  <textarea
+                    readOnly
+                    value={failedRecipients.join(', ')}
+                    rows={2}
+                    className="mt-3 w-full rounded-lg border border-red-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none"
+                  />
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setTestRecipients(failedRecipients.join(', '))
+                        setTestOpen(true)
+                      }}
+                      className="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-700"
+                    >
+                      Renvoyer à ces adresses
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setFailedRecipients([])}
+                      className="rounded-lg px-4 py-2 text-sm font-semibold text-red-700 transition hover:bg-red-100"
+                    >
+                      Ne rien faire
+                    </button>
+                  </div>
+                </div>
+              )}
+
               <div className="flex flex-wrap items-center justify-end gap-3">
                 <button
                   type="button"
                   onClick={() => setTestOpen(true)}
-                  disabled={readOnly || blockers.length > 0 || sending}
+                  disabled={contentBlockers.length > 0 || sending}
                   className="inline-flex items-center gap-2 rounded-xl border border-blue-200/60 bg-white/70 px-5 py-3 font-semibold text-slate-700 transition hover:bg-white disabled:opacity-50"
                 >
                   <Mail className="h-4 w-4" />

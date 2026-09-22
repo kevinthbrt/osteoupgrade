@@ -108,6 +108,27 @@ envoie aussi les factures.
 Les adresses saisies à la main partent toujours en direct : un test n'a pas à
 créer un segment chez Resend.
 
+## Quand un envoi se passe mal
+
+Un envoi direct part un message à la fois : certains peuvent échouer alors que
+d'autres sont déjà arrivés. La newsletter est alors close quand même, parce que
+la laisser en brouillon inviterait à tout renvoyer, donc à écrire une deuxième
+fois à ceux qui l'avaient reçue. Les adresses en échec s'affichent sous les
+boutons d'envoi, et « Renvoyer à ces adresses » les rejoue sans toucher au
+reste de la liste. C'est le même chemin que la relecture, qui reste donc ouvert
+sur une newsletter déjà envoyée.
+
+Si le message part mais que l'état « envoyée » ne peut pas être écrit en base,
+l'interface le dit et demande de ne pas renvoyer : la base n'ayant pas gardé la
+trace, un second envoi partirait à toute la liste. `markSent` vérifie pour cela
+la ligne effectivement modifiée, et pas seulement l'absence d'erreur : un
+`update` qui ne touche aucune ligne n'en remonte pas.
+
+Enfin, un envoi ne part jamais sur un brouillon non enregistré. Le serveur
+reconstruit l'email depuis les blocs stockés : si l'enregistrement échoue,
+envoyer expédierait la version précédente pendant que l'écran affiche la
+nouvelle. L'envoi est donc interrompu et l'échec annoncé.
+
 ## Brouillons et historique
 
 Chaque newsletter est une ligne de la table `newsletters`. Le contenu est

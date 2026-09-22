@@ -140,6 +140,12 @@ export async function POST(request: Request) {
 
     const audience: AudienceKind = body.audience ?? legacyAudience(audienceMode, rawSubscriptionFilter)
 
+    // Un test de relecture et un envoi à des adresses saisies à la main
+    // empruntent le même chemin : seul ce drapeau les distingue. Le test ne
+    // clôt pas la newsletter et reste possible sur une newsletter déjà partie,
+    // ce qui est aussi le moyen de rattraper des destinataires en échec.
+    const isPreview = body.preview === true
+
     // Le HTML d'une newsletter est reconstruit ici, à partir des blocs stockés :
     // ce qui part n'est jamais le HTML façonné par le navigateur.
     let newsletter: { id: string; subject: string } | null = null
@@ -153,7 +159,7 @@ export async function POST(request: Request) {
       if (error || !data) {
         return NextResponse.json({ error: 'Newsletter introuvable' }, { status: 404 })
       }
-      if (data.status === 'sent' && audience !== 'test') {
+      if (data.status === 'sent' && !isPreview) {
         return NextResponse.json({ error: 'Cette newsletter a déjà été envoyée.' }, { status: 409 })
       }
 
@@ -187,7 +193,7 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: 'Aucun destinataire trouvé.' }, { status: 400 })
       }
 
-      const { sent, errors } = await sendDirect(recipients.map((email) => ({ email })), {
+      const { sent, errors, failed } = await sendDirect(recipients.map((email) => ({ email })), {
         subject,
         html,
         text,
@@ -196,12 +202,19 @@ export async function POST(request: Request) {
         attachments
       })
 
+      const marque = newsletter && !isPreview && sent > 0
+        ? await markSent(newsletter.id, sent, null)
+        : { done: false, warning: null as string | null }
+
       return NextResponse.json({
         success: true,
         mode: 'transactional',
         sent,
         total: recipients.length,
-        errors: errors.length > 0 ? errors : undefined
+        errors: errors.length > 0 ? errors : undefined,
+        failedRecipients: failed.length > 0 ? failed : undefined,
+        newsletterStatus: marque.done ? 'sent' : undefined,
+        warning: marque.warning || undefined
       })
     }
 
@@ -225,7 +238,7 @@ export async function POST(request: Request) {
         )
       }
 
-      const { sent, errors } = await sendDirect(contacts, {
+      const { sent, errors, failed } = await sendDirect(contacts, {
         subject,
         html,
         text,
@@ -234,14 +247,23 @@ export async function POST(request: Request) {
         attachments
       })
 
-      if (newsletter && sent > 0) await markSent(newsletter.id, sent, null)
+      // Même partiel, l'envoi est clos : laisser la newsletter en brouillon
+      // inviterait à tout renvoyer, donc à écrire deux fois à ceux qui l'ont
+      // déjà reçue. Les adresses en échec repartent dans la réponse, et se
+      // rattrapent en les collant dans « Adresses saisies à la main ».
+      const marque = newsletter && sent > 0
+        ? await markSent(newsletter.id, sent, null)
+        : { done: false, warning: null as string | null }
 
       return NextResponse.json({
         success: true,
         mode: 'transactional',
         sent,
         total: contacts.length,
-        errors: errors.length > 0 ? errors : undefined
+        errors: errors.length > 0 ? errors : undefined,
+        failedRecipients: failed.length > 0 ? failed : undefined,
+        newsletterStatus: marque.done ? 'sent' : undefined,
+        warning: marque.warning || undefined
       })
     }
 
@@ -259,7 +281,9 @@ export async function POST(request: Request) {
       name: `${segmentName} (${new Date().toISOString().slice(0, 10)})`
     })
 
-    if (newsletter) await markSent(newsletter.id, contacts.length, broadcast.id)
+    const marque = newsletter
+      ? await markSent(newsletter.id, contacts.length, broadcast.id)
+      : { done: false, warning: null as string | null }
 
     return NextResponse.json({
       success: true,
@@ -267,7 +291,9 @@ export async function POST(request: Request) {
       broadcastId: broadcast.id,
       totalContacts: contacts.length,
       synced,
-      syncErrors: syncErrors.length > 0 ? syncErrors : undefined
+      syncErrors: syncErrors.length > 0 ? syncErrors : undefined,
+      newsletterStatus: marque.done ? 'sent' : undefined,
+      warning: marque.warning || undefined
     })
   } catch (error: any) {
     console.error('Mailing send error:', error)
@@ -290,9 +316,12 @@ async function sendDirect(
     tags?: string[]
     attachments?: any[]
   }
-): Promise<{ sent: number; errors: string[] }> {
+): Promise<{ sent: number; errors: string[]; failed: string[] }> {
   let sent = 0
   const errors: string[] = []
+  // Les adresses seules, en plus du message d'erreur : c'est ce qu'on recolle
+  // dans « Adresses saisies à la main » pour rattraper un envoi partiel.
+  const failed: string[] = []
 
   for (const contact of contacts) {
     try {
@@ -308,6 +337,7 @@ async function sendDirect(
       sent++
     } catch (err: any) {
       errors.push(`${contact.email}: ${err.message}`)
+      failed.push(contact.email)
     }
     // Petite pause pour rester sous la limite de débit de Resend.
     if (contacts.length > 1) {
@@ -315,11 +345,30 @@ async function sendDirect(
     }
   }
 
-  return { sent, errors }
+  return { sent, errors, failed }
 }
 
-async function markSent(id: string, sentCount: number, broadcastId: string | null) {
-  await supabaseAdmin
+/**
+ * Clôt la newsletter, une fois le message accepté par Resend.
+ *
+ * Le client Supabase renvoie l'erreur plutôt que de la lever : sans ce
+ * contrôle, un échec d'écriture laissait la newsletter en brouillon alors que
+ * les abonnés l'avaient déjà reçue, et un second clic l'envoyait une deuxième
+ * fois à toute la liste.
+ *
+ * L'échec n'est pas relayé comme une erreur d'envoi, ce qu'il n'est pas : le
+ * message est parti. Il ressort en avertissement, pour que l'interface le dise
+ * sans laisser croire qu'il faut recommencer.
+ */
+async function markSent(
+  id: string,
+  sentCount: number,
+  broadcastId: string | null
+): Promise<{ done: boolean; warning: string | null }> {
+  // `.select()` est indispensable : sans lui, une mise à jour qui ne touche
+  // aucune ligne (newsletter supprimée entre-temps) ne remonte aucune erreur.
+  // C'est la ligne rendue, et non l'absence d'erreur, qui prouve l'écriture.
+  const { data, error } = await supabaseAdmin
     .from('newsletters')
     .update({
       status: 'sent',
@@ -328,4 +377,19 @@ async function markSent(id: string, sentCount: number, broadcastId: string | nul
       broadcast_id: broadcastId
     })
     .eq('id', id)
+    .select('id')
+
+  if (error || !data || data.length === 0) {
+    console.error(
+      `Newsletter ${id} envoyée, mais son état n'a pas pu être enregistré :`,
+      error?.message || 'aucune ligne mise à jour'
+    )
+    return {
+      done: false,
+      warning:
+        'La newsletter est bien partie, mais son état n’a pas pu être enregistré en base. Ne la renvoyez pas : marquez-la manuellement comme envoyée.'
+    }
+  }
+
+  return { done: true, warning: null }
 }
