@@ -119,6 +119,7 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/).
 
 ### Ajouté
 
+- **Bloc « Aperçu verrouillé »** : grille de cartes cadenassées et numérotées, avec des repères de format, pour montrer qu'il y a du contenu derrière le formulaire sans le dévoiler.
 - **Contenu réservé aux inscrits** : chaque bloc peut être marqué comme réservé. Il n'est alors pas envoyé au navigateur tant que le visiteur n'a pas laissé son email, le tri étant fait côté serveur. Déverrouillage par le cookie `ou_optin_<slug>` posé à l'inscription, puis nouveau rendu serveur.
 - **Nom et prénom** au formulaire de capture, en deux champs distincts.
 - **Liens Vimeo de partage acceptés** : `vimeo.com/123?share=copy` est converti en lien d'intégration à l'enregistrement, en réutilisant `extractVimeoId` du module e-learning. Idem pour `youtu.be` et `youtube.com/watch`.

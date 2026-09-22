@@ -27,7 +27,14 @@ couche « pages » : c'est ce que fait ce module.
 ## Blocs disponibles
 
 `hero`, `video`, `benefits`, `testimonials`, `curriculum`, `image`, `pricing`,
-`guarantee`, `faq`, `cta`, `optin`, `text`.
+`guarantee`, `faq`, `cta`, `optin`, `teaser`, `text`.
+
+Le bloc **`teaser`** (« Aperçu verrouillé ») montre qu'il y a du contenu
+derrière le formulaire sans dire lequel : une grille de cartes cadenassées et
+numérotées, plus des repères de format (« 7 vidéos », « environ 1 h »). Il
+répond au défaut d'une liste de bénéfices sur une page dont l'aimant EST le
+contenu : nommer ce qu'on va apprendre, c'est le dévoiler, donc vendre en
+spoilant. Ce bloc donne la forme et retient le fond.
 
 L'accroche peut porter un **filigrane de marque** : la sphère du logo, en
 débord à droite. C'est `public/logo-mark.png`, extrait du lockup

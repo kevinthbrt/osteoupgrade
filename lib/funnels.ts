@@ -279,6 +279,26 @@ const imageSchema = z.object({
   full: z.boolean().default(false),
 })
 
+/**
+ * Aperçu verrouillé : montre qu'il y a du contenu derrière le formulaire,
+ * sans dire lequel.
+ *
+ * Une liste de bénéfices nomme ce qu'on va apprendre, donc le dévoile : sur
+ * une page dont l'aimant EST le contenu, elle vend en spoilant. Ce bloc donne
+ * la forme (combien, quel format, quelle durée) et retient le fond.
+ */
+const teaserSchema = z.object({
+  ...baseBlock,
+  type: z.literal('teaser'),
+  title: optionalShort,
+  text: z.string().trim().max(600).optional().or(z.literal('')),
+  /** Nombre de cartes verrouillées affichées. */
+  count: z.number().int().min(1).max(24).default(7),
+  /** Repères de format, pas de contenu : « 7 vidéos », « environ 1 h ». */
+  meta: z.array(shortText).max(4).default([]),
+  ctaLabel: optionalShort,
+})
+
 const textSchema = z.object({
   ...baseBlock,
   type: z.literal('text'),
@@ -299,6 +319,7 @@ export const funnelBlockSchema = z.discriminatedUnion('type', [
   faqSchema,
   ctaSchema,
   optinSchema,
+  teaserSchema,
   textSchema,
 ])
 
@@ -317,6 +338,7 @@ export const FUNNEL_BLOCK_TYPES: FunnelBlockType[] = [
   'faq',
   'cta',
   'optin',
+  'teaser',
   'text',
 ]
 
@@ -332,6 +354,7 @@ export const BLOCK_LABELS: Record<FunnelBlockType, string> = {
   faq: 'FAQ',
   cta: 'Appel à l’action',
   optin: 'Formulaire (capture email)',
+  teaser: 'Aperçu verrouillé',
   text: 'Texte libre',
 }
 

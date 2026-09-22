@@ -741,6 +741,69 @@ function BlockView({
       )
     }
 
+    case 'teaser':
+      // Conteneur plus large que la colonne de lecture : contraintes à
+      // `max-w-3xl`, les sept cartes deviennent des vignettes et perdent leur
+      // effet d'abondance.
+      return (
+        <section className="bg-slate-50 px-5 py-14 sm:py-20">
+        <div className="mx-auto max-w-5xl">
+          {block.title && <SectionTitle>{block.title}</SectionTitle>}
+          {block.text && (
+            <div className="mx-auto -mt-4 mb-8 max-w-2xl space-y-3 text-center text-slate-600">
+              <Paragraphs text={block.text} />
+            </div>
+          )}
+
+          {block.meta.length > 0 && (
+            <div className="mb-8 flex flex-wrap items-center justify-center gap-2">
+              {block.meta.map((repere, i) => (
+                <span
+                  key={i}
+                  className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm"
+                >
+                  {repere}
+                </span>
+              ))}
+            </div>
+          )}
+
+          {/* Cartes vides et cadenassées : elles disent combien il y a de
+              contenu et sous quelle forme, jamais ce qu'il contient. */}
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+            {Array.from({ length: block.count }).map((_, i) => (
+              <div
+                key={i}
+                className="relative flex aspect-video flex-col justify-end overflow-hidden rounded-2xl border border-slate-200 bg-gradient-to-br from-white to-slate-100 p-3"
+              >
+                <span className="absolute left-3 top-3 text-xs font-bold text-slate-400">
+                  {String(i + 1).padStart(2, '0')}
+                </span>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white/90 shadow-sm">
+                    <Lock className="h-4 w-4 text-slate-400" />
+                  </div>
+                </div>
+                <div className="space-y-1.5">
+                  <div className="h-1.5 w-3/4 rounded-full bg-slate-200" />
+                  <div className="h-1.5 w-1/2 rounded-full bg-slate-200" />
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-8 text-center">
+            <CtaButton
+              label={block.ctaLabel || 'Débloquer'}
+              target="optin"
+              onCta={onCta}
+              fallbackToOptin={fallbackToOptin}
+            />
+          </div>
+        </div>
+        </section>
+      )
+
     case 'text':
       return (
         <Section>

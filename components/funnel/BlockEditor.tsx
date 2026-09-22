@@ -751,6 +751,38 @@ export default function BlockEditor({ block, index, total, onChange, onMove, onR
           </>
         )}
 
+        {block.type === 'teaser' && (
+          <>
+            <Field label="Titre" value={block.title} onChange={(v) => set({ title: v })} />
+            <TextArea label="Texte" value={block.text} onChange={(v) => set({ text: v })} rows={2} />
+            <div>
+              <Label>Nombre de cartes verrouillées</Label>
+              <input
+                type="number"
+                min={1}
+                max={24}
+                value={block.count ?? 7}
+                onChange={(e) => set({ count: Number(e.target.value) })}
+                className={inputClass}
+              />
+              <p className="mt-1 text-xs text-slate-400">
+                En général, le nombre de vidéos réservées.
+              </p>
+            </div>
+            <LinesField
+              label="Repères de format"
+              value={block.meta}
+              onChange={(meta) => set({ meta })}
+              hint="Une par ligne. Le format, jamais le contenu : « 7 vidéos », « environ 1 h », « Offert »."
+            />
+            <Field
+              label="Libellé du bouton"
+              value={block.ctaLabel}
+              onChange={(v) => set({ ctaLabel: v })}
+            />
+          </>
+        )}
+
         {block.type === 'text' && (
           <>
             <Field label="Titre de section" value={block.title} onChange={(v) => set({ title: v })} />
