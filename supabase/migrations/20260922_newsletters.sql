@@ -69,13 +69,19 @@ DROP POLICY IF EXISTS newsletters_admin_all ON public.newsletters;
 CREATE POLICY newsletters_admin_all ON public.newsletters
   FOR ALL USING (public.is_admin()) WITH CHECK (public.is_admin());
 
+-- `search_path` figé : sans ça, le linter de Supabase le signale, et un objet
+-- créé dans un schéma placé devant `public` pourrait détourner ce que la
+-- fonction appelle. Elle n'a besoin que de `now()`, qui vient de `pg_catalog`.
 CREATE OR REPLACE FUNCTION public.newsletters_touch_updated_at()
-RETURNS trigger AS $$
+RETURNS trigger
+LANGUAGE plpgsql
+SET search_path = ''
+AS $$
 BEGIN
   NEW.updated_at = now();
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql;
+$$;
 
 DROP TRIGGER IF EXISTS newsletters_set_updated_at ON public.newsletters;
 CREATE TRIGGER newsletters_set_updated_at
