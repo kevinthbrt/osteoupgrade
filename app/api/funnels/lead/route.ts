@@ -109,6 +109,31 @@ export async function POST(req: NextRequest) {
       console.error('Funnel opt-in : contact:', contactError)
     }
 
+    // Étiquette le contact avec le funnel d'origine.
+    //
+    // `mail_contacts` est une base unique, partagée avec les autres sources.
+    // Sans cette étiquette, rien ne distinguerait plus tard quelqu'un venu
+    // pour sept vidéos sur le cabinet d'un inscrit à la lettre d'information :
+    // on ne saurait ni le segmenter, ni lui écrire en connaissance de cause.
+    if (contactId) {
+      const { data: actuel } = await supabaseAdmin
+        .from('mail_contacts')
+        .select('tags')
+        .eq('id', contactId)
+        .maybeSingle()
+
+      const etiquette = `funnel:${slug}`
+      const tags: string[] = Array.isArray(actuel?.tags) ? actuel.tags : []
+
+      if (!tags.includes(etiquette)) {
+        const { error: tagError } = await supabaseAdmin
+          .from('mail_contacts')
+          .update({ tags: [...tags, etiquette] })
+          .eq('id', contactId)
+        if (tagError) console.error('Funnel opt-in, étiquetage:', tagError.message)
+      }
+    }
+
     // L'inscription à la liste est acquise à ce stade ; l'échec d'une séquence
     // ne doit donc pas faire échouer l'opt-in du visiteur.
     const triggerResult = await triggerAutomations(funnelTriggerEvent(slug), {
