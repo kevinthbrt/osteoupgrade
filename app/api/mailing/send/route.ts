@@ -1,11 +1,18 @@
 import { NextResponse } from 'next/server'
-import { cookies } from 'next/headers'
-import { createRouteHandlerClient } from '@/lib/supabase-server-helpers'
 import { sendTransactionalEmail } from '@/lib/mailing'
 import { getBroadcastFooterHtml } from '@/lib/email-footer'
+import { verifyAdmin } from '@/lib/api-guards'
 import { getOrCreateSegment, syncContactsToSegment, createAndSendBroadcast } from '@/lib/resend-marketing'
 import { supabaseAdmin } from '@/lib/supabase-server'
 import { isPlan, planLabel } from '@/lib/entitlements'
+import {
+  applyMergeTags,
+  coerceDoc,
+  renderNewsletterHtml,
+  renderNewsletterText,
+  type AudienceKind,
+  type DeliveryMode
+} from '@/lib/newsletter'
 
 // Synchroniser plusieurs centaines de contacts vers Resend (séquentiel, ~4 req/s)
 // peut prendre plusieurs minutes pour les grands segments.
@@ -17,6 +24,14 @@ interface Contact {
   lastName?: string | null
 }
 
+/**
+ * Un envoi direct part un message à la fois sur le quota transactionnel, celui
+ * des emails critiques (bienvenue, facture, confirmation d'abonnement). Au-delà
+ * de ce seuil, la campagne marketing est le seul chemin raisonnable, et le
+ * message d'erreur le dit plutôt que de laisser partir mille appels.
+ */
+const MAX_DIRECT_RECIPIENTS = 200
+
 function splitName(fullName?: string | null): { firstName: string | null; lastName: string | null } {
   const trimmed = fullName?.trim()
   if (!trimmed) return { firstName: null, lastName: null }
@@ -24,154 +39,293 @@ function splitName(fullName?: string | null): { firstName: string | null; lastNa
   return { firstName: first, lastName: rest.join(' ') || null }
 }
 
+/** Insère le pied de désinscription dans le corps du message, pas après lui. */
+function injectFooter(html: string, footer: string): string {
+  if (html.includes('</body>')) return html.replace('</body>', `${footer}</body>`)
+  return html + footer
+}
+
+/**
+ * Traduit le choix de liste en destinataires réels.
+ *
+ * RGPD : hors « pré-lancement » (des contacts qui se sont inscrits pour ça et
+ * pour rien d'autre), on ne retient que les comptes ayant coché la newsletter.
+ */
+async function resolveContacts(
+  audience: AudienceKind,
+  subscriptionFilter?: string
+): Promise<{ contacts: Contact[]; segmentName: string }> {
+  if (audience === 'all') {
+    const { data, error } = await supabaseAdmin
+      .from('profiles')
+      .select('email, full_name')
+      .not('email', 'is', null)
+      .eq('newsletter_opt_in', true)
+
+    if (error) throw new Error('Erreur lors de la récupération des emails')
+    return {
+      contacts: (data || []).map((p) => ({ email: p.email as string, ...splitName(p.full_name) })),
+      segmentName: 'Newsletter - Tous les inscrits'
+    }
+  }
+
+  if (audience === 'prelaunch') {
+    const { data, error } = await supabaseAdmin
+      .from('mail_contacts')
+      .select('email, first_name, last_name')
+      .eq('status', 'newsletter_pre_launch')
+      .not('email', 'is', null)
+
+    if (error) throw new Error('Erreur lors de la récupération des contacts newsletter')
+    return {
+      contacts: (data || []).map((c) => ({ email: c.email as string, firstName: c.first_name, lastName: c.last_name })),
+      segmentName: 'Newsletter pré-lancement'
+    }
+  }
+
+  // Le filtre porte sur l'offre souscrite, pas sur le rôle : `premium` recouvre
+  // le bundle ET l'offre OsteoUpgrade seule, et `trial` est le rôle miroir
+  // permanent de l'offre MyOsteoFlow. Les anciennes valeurs de rôle restent
+  // acceptées pour ne pas casser un envoi programmé avec l'ancienne interface.
+  const parOffre = isPlan(subscriptionFilter)
+  const colonne = parOffre ? 'plan' : 'role'
+
+  const { data, error } = await supabaseAdmin
+    .from('profiles')
+    .select('email, full_name')
+    .eq(colonne, subscriptionFilter)
+    .not('email', 'is', null)
+    .eq('newsletter_opt_in', true)
+
+  if (error) throw new Error('Erreur lors de la récupération des emails')
+
+  return {
+    contacts: (data || []).map((p) => ({ email: p.email as string, ...splitName(p.full_name) })),
+    segmentName: parOffre
+      ? `Newsletter - Offre ${planLabel(subscriptionFilter as any)}`
+      : `Newsletter - Rôle ${subscriptionFilter}`
+  }
+}
+
+/** L'ancienne interface envoyait `audienceMode` ; on la traduit sans la casser. */
+function legacyAudience(audienceMode: string | undefined, subscriptionFilter: string | undefined): AudienceKind {
+  if (audienceMode === 'all') return 'all'
+  if (audienceMode === 'subscription') {
+    return subscriptionFilter === 'newsletter_pre_launch' ? 'prelaunch' : 'plan'
+  }
+  return 'test'
+}
+
 export async function POST(request: Request) {
   try {
-    const supabase = createRouteHandlerClient({ cookies })
-    const { data: { user } } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single()
-
-    if (!profile || profile.role !== 'admin') {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    if (!(await verifyAdmin())) {
+      return NextResponse.json({ error: 'Non autorisé' }, { status: 403 })
     }
 
     const body = await request.json()
-    const { to, subject, html, text, from, tags, attachments, audienceMode, subscriptionFilter } = body
+    const {
+      newsletterId,
+      to,
+      from,
+      tags,
+      attachments,
+      audienceMode,
+      subscriptionFilter: rawSubscriptionFilter
+    } = body
 
-    if (!subject || !html) {
-      return NextResponse.json({ error: 'Sujet et contenu HTML sont requis.' }, { status: 400 })
+    let subject: string = body.subject
+    let html: string = body.html
+    let text: string | undefined = body.text
+    let subscriptionFilter: string | undefined = rawSubscriptionFilter
+
+    const audience: AudienceKind = body.audience ?? legacyAudience(audienceMode, rawSubscriptionFilter)
+
+    // Le HTML d'une newsletter est reconstruit ici, à partir des blocs stockés :
+    // ce qui part n'est jamais le HTML façonné par le navigateur.
+    let newsletter: { id: string; subject: string } | null = null
+    if (newsletterId) {
+      const { data, error } = await supabaseAdmin
+        .from('newsletters')
+        .select('id, subject, preheader, header, blocks, status')
+        .eq('id', newsletterId)
+        .single()
+
+      if (error || !data) {
+        return NextResponse.json({ error: 'Newsletter introuvable' }, { status: 404 })
+      }
+      if (data.status === 'sent' && audience !== 'test') {
+        return NextResponse.json({ error: 'Cette newsletter a déjà été envoyée.' }, { status: 409 })
+      }
+
+      const doc = coerceDoc(data)
+      subject = doc.subject
+      html = renderNewsletterHtml(doc)
+      text = renderNewsletterText(doc)
+      newsletter = { id: data.id, subject: doc.subject }
     }
 
-    // Envois en masse (segment ou tous les inscrits) -> API Marketing Resend
-    // (Broadcasts), pour ne jamais consommer le quota transactionnel partagé avec
-    // les emails critiques (bienvenue, facture, confirmation d'abonnement...).
-    if (audienceMode === 'all' || audienceMode === 'subscription') {
-      let contacts: Contact[] = []
-      let segmentName = ''
+    if (!subject || !html) {
+      return NextResponse.json({ error: 'Sujet et contenu sont requis.' }, { status: 400 })
+    }
 
-      // RGPD: Only send to users who have newsletter_opt_in = true for bulk sends
-      if (audienceMode === 'all') {
-        const { data: profiles, error } = await supabaseAdmin
-          .from('profiles')
-          .select('email, full_name')
-          .not('email', 'is', null)
-          .eq('newsletter_opt_in', true)
+    if (audience === 'prelaunch') subscriptionFilter = 'newsletter_pre_launch'
 
-        if (error) throw new Error('Erreur lors de la récupération des emails')
-        contacts = (profiles || []).map((p) => ({ email: p.email as string, ...splitName(p.full_name) }))
-        segmentName = 'Newsletter - Tous les inscrits'
-      } else if (subscriptionFilter === 'newsletter_pre_launch') {
-        const { data: rows, error } = await supabaseAdmin
-          .from('mail_contacts')
-          .select('email, first_name, last_name')
-          .eq('status', 'newsletter_pre_launch')
-          .not('email', 'is', null)
+    // Par défaut, une liste part en campagne marketing et un test part en direct.
+    const deliveryMode: DeliveryMode =
+      audience === 'test' ? 'direct' : body.deliveryMode === 'direct' ? 'direct' : 'marketing'
 
-        if (error) throw new Error('Erreur lors de la récupération des contacts newsletter')
-        contacts = (rows || []).map((c) => ({ email: c.email as string, firstName: c.first_name, lastName: c.last_name }))
-        segmentName = 'Newsletter pré-lancement'
-      } else {
-        // Le filtre porte sur l'offre souscrite, pas sur le rôle : `premium`
-        // recouvre désormais le bundle ET l'offre OsteoUpgrade seule, et
-        // `trial` est le rôle miroir permanent de l'offre MyOsteoFlow.
-        // Les anciennes valeurs de rôle restent acceptées pour ne pas casser
-        // un envoi programmé avec l'ancienne interface.
-        const parOffre = isPlan(subscriptionFilter)
-        const colonne = parOffre ? 'plan' : 'role'
+    // ── Liste explicite : le test de relecture, et l'ancienne composition ────
+    if (audience === 'test') {
+      const recipients = (Array.isArray(to)
+        ? to
+        : String(to || '')
+            .split(/[,;\n]/)
+            .map((email: string) => email.trim())
+            .filter(Boolean)) as string[]
 
-        const { data: profiles, error } = await supabaseAdmin
-          .from('profiles')
-          .select('email, full_name')
-          .eq(colonne, subscriptionFilter)
-          .not('email', 'is', null)
-          .eq('newsletter_opt_in', true)
-
-        if (error) throw new Error('Erreur lors de la récupération des emails')
-        contacts = (profiles || []).map((p) => ({ email: p.email as string, ...splitName(p.full_name) }))
-        segmentName = parOffre
-          ? `Newsletter - Offre ${planLabel(subscriptionFilter as any)}`
-          : `Newsletter - Rôle ${subscriptionFilter}`
+      if (!recipients.length) {
+        return NextResponse.json({ error: 'Aucun destinataire trouvé.' }, { status: 400 })
       }
 
-      if (!contacts.length) {
-        return NextResponse.json({ error: 'Aucun destinataire trouvé (vérifiez que des utilisateurs ont accepté la newsletter).' }, { status: 400 })
-      }
-
-      const segmentId = await getOrCreateSegment(segmentName)
-      const { synced, errors: syncErrors } = await syncContactsToSegment(contacts, segmentId)
-
-      const broadcast = await createAndSendBroadcast({
-        segmentId,
-        from: from || process.env.RESEND_FROM || '',
+      const { sent, errors } = await sendDirect(recipients.map((email) => ({ email })), {
         subject,
-        html: html + getBroadcastFooterHtml(),
+        html,
         text,
-        name: `${segmentName} — ${new Date().toISOString().slice(0, 10)}`
+        from,
+        tags: tags || ['newsletter'],
+        attachments
       })
 
       return NextResponse.json({
         success: true,
-        mode: 'broadcast',
-        broadcastId: broadcast.id,
-        totalContacts: contacts.length,
-        synced,
-        syncErrors: syncErrors.length > 0 ? syncErrors : undefined
+        mode: 'transactional',
+        sent,
+        total: recipients.length,
+        errors: errors.length > 0 ? errors : undefined
       })
     }
 
-    // Mode manuel : liste explicite de destinataires (volume faible, ad-hoc) —
-    // reste sur l'API transactionnelle, avec pied de page/désinscription géré
-    // automatiquement par sendTransactionalEmail.
-    const recipients = (Array.isArray(to) ? to : String(to || '')
-      .split(',')
-      .map((email: string) => email.trim())
-      .filter(Boolean)) as string[]
+    // ── Vraie liste de diffusion ────────────────────────────────────────────
+    const { contacts, segmentName } = await resolveContacts(audience, subscriptionFilter)
 
-    if (!recipients.length) {
-      return NextResponse.json({ error: 'Aucun destinataire trouvé.' }, { status: 400 })
+    if (!contacts.length) {
+      return NextResponse.json(
+        { error: 'Aucun destinataire trouvé (vérifiez que des utilisateurs ont accepté la newsletter).' },
+        { status: 400 }
+      )
     }
 
-    let sent = 0
-    const errors: string[] = []
+    if (deliveryMode === 'direct') {
+      if (contacts.length > MAX_DIRECT_RECIPIENTS) {
+        return NextResponse.json(
+          {
+            error: `L’envoi direct s’arrête à ${MAX_DIRECT_RECIPIENTS} destinataires (cette liste en compte ${contacts.length}). Choisissez le mode « campagne marketing ».`
+          },
+          { status: 400 }
+        )
+      }
 
-    for (const recipientEmail of recipients) {
-      try {
-        await sendTransactionalEmail({
-          to: recipientEmail,
-          subject,
-          html,
-          text,
-          from,
-          tags: tags || ['newsletter'],
-          attachments
-        })
-        sent++
-      } catch (err: any) {
-        errors.push(`${recipientEmail}: ${err.message}`)
-      }
-      // Small delay to avoid rate limits
-      if (recipients.length > 1) {
-        await new Promise(resolve => setTimeout(resolve, 100))
-      }
+      const { sent, errors } = await sendDirect(contacts, {
+        subject,
+        html,
+        text,
+        from,
+        tags: tags || ['newsletter'],
+        attachments
+      })
+
+      if (newsletter && sent > 0) await markSent(newsletter.id, sent, null)
+
+      return NextResponse.json({
+        success: true,
+        mode: 'transactional',
+        sent,
+        total: contacts.length,
+        errors: errors.length > 0 ? errors : undefined
+      })
     }
+
+    // Campagne marketing : un seul HTML pour tout le segment, les balises
+    // `{{{contact.*}}}` étant résolues par Resend pour chaque destinataire.
+    const segmentId = await getOrCreateSegment(segmentName)
+    const { synced, errors: syncErrors } = await syncContactsToSegment(contacts, segmentId)
+
+    const broadcast = await createAndSendBroadcast({
+      segmentId,
+      from: from || process.env.RESEND_FROM || '',
+      subject,
+      html: injectFooter(html, getBroadcastFooterHtml()),
+      text,
+      name: `${segmentName} (${new Date().toISOString().slice(0, 10)})`
+    })
+
+    if (newsletter) await markSent(newsletter.id, contacts.length, broadcast.id)
 
     return NextResponse.json({
       success: true,
-      mode: 'transactional',
-      sent,
-      total: recipients.length,
-      errors: errors.length > 0 ? errors : undefined
+      mode: 'broadcast',
+      broadcastId: broadcast.id,
+      totalContacts: contacts.length,
+      synced,
+      syncErrors: syncErrors.length > 0 ? syncErrors : undefined
     })
   } catch (error: any) {
     console.error('Mailing send error:', error)
     return NextResponse.json({ error: error?.message || 'Erreur interne' }, { status: 500 })
   }
+}
+
+/**
+ * Envoi un par un via l'API transactionnelle. Les balises Resend n'y sont pas
+ * résolues : on les remplace nous-mêmes, sinon le destinataire lirait
+ * `{{{contact.first_name}}}` en toutes lettres.
+ */
+async function sendDirect(
+  contacts: Contact[],
+  payload: {
+    subject: string
+    html: string
+    text?: string
+    from?: string
+    tags?: string[]
+    attachments?: any[]
+  }
+): Promise<{ sent: number; errors: string[] }> {
+  let sent = 0
+  const errors: string[] = []
+
+  for (const contact of contacts) {
+    try {
+      await sendTransactionalEmail({
+        to: contact.email,
+        subject: applyMergeTags(payload.subject, contact),
+        html: applyMergeTags(payload.html, contact),
+        text: payload.text ? applyMergeTags(payload.text, contact) : undefined,
+        from: payload.from,
+        tags: payload.tags,
+        attachments: payload.attachments
+      })
+      sent++
+    } catch (err: any) {
+      errors.push(`${contact.email}: ${err.message}`)
+    }
+    // Petite pause pour rester sous la limite de débit de Resend.
+    if (contacts.length > 1) {
+      await new Promise((resolve) => setTimeout(resolve, 100))
+    }
+  }
+
+  return { sent, errors }
+}
+
+async function markSent(id: string, sentCount: number, broadcastId: string | null) {
+  await supabaseAdmin
+    .from('newsletters')
+    .update({
+      status: 'sent',
+      sent_at: new Date().toISOString(),
+      sent_count: sentCount,
+      broadcast_id: broadcastId
+    })
+    .eq('id', id)
 }
