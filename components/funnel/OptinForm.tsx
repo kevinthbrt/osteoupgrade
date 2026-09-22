@@ -10,6 +10,7 @@ type Props = {
   text?: string
   buttonLabel?: string
   askName: boolean
+  askLastName: boolean
   consentText?: string
   successMessage?: string
   utm: Utm
@@ -24,6 +25,7 @@ export default function OptinForm({
   text,
   buttonLabel,
   askName,
+  askLastName,
   consentText,
   successMessage,
   utm,
@@ -31,7 +33,8 @@ export default function OptinForm({
   onOptin,
 }: Props) {
   const [email, setEmail] = useState('')
-  const [fullName, setFullName] = useState('')
+  const [firstName, setFirstName] = useState('')
+  const [lastName, setLastName] = useState('')
   const [status, setStatus] = useState<'idle' | 'loading' | 'done'>('idle')
   const [error, setError] = useState<string | null>(null)
 
@@ -47,7 +50,8 @@ export default function OptinForm({
         body: JSON.stringify({
           slug,
           email: email.trim(),
-          full_name: askName ? fullName.trim() : undefined,
+          first_name: askName ? firstName.trim() || undefined : undefined,
+          last_name: askLastName ? lastName.trim() || undefined : undefined,
           utm,
           visitor_id: visitorId,
           landing_path: typeof window !== 'undefined' ? window.location.pathname : undefined,
@@ -84,15 +88,29 @@ export default function OptinForm({
       {text && <p className="mt-2 text-slate-600">{text}</p>}
 
       <form onSubmit={submit} className="mt-5 space-y-3">
-        {askName && (
-          <input
-            type="text"
-            value={fullName}
-            onChange={(e) => setFullName(e.target.value)}
-            placeholder="Votre prénom"
-            autoComplete="given-name"
-            className="w-full rounded-xl border border-slate-300 px-4 py-3 text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-          />
+        {(askName || askLastName) && (
+          <div className={askName && askLastName ? 'grid gap-3 sm:grid-cols-2' : ''}>
+            {askName && (
+              <input
+                type="text"
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+                placeholder="Prénom"
+                autoComplete="given-name"
+                className="w-full rounded-xl border border-slate-300 px-4 py-3 text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+              />
+            )}
+            {askLastName && (
+              <input
+                type="text"
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+                placeholder="Nom"
+                autoComplete="family-name"
+                className="w-full rounded-xl border border-slate-300 px-4 py-3 text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+              />
+            )}
+          </div>
         )}
         <input
           type="email"

@@ -119,6 +119,12 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/).
 
 ### Ajouté
 
+- **Contenu réservé aux inscrits** : chaque bloc peut être marqué comme réservé. Il n'est alors pas envoyé au navigateur tant que le visiteur n'a pas laissé son email, le tri étant fait côté serveur. Déverrouillage par le cookie `ou_optin_<slug>` posé à l'inscription, puis nouveau rendu serveur.
+- **Nom et prénom** au formulaire de capture, en deux champs distincts.
+- **Liens Vimeo de partage acceptés** : `vimeo.com/123?share=copy` est converti en lien d'intégration à l'enregistrement, en réutilisant `extractVimeoId` du module e-learning. Idem pour `youtu.be` et `youtube.com/watch`.
+- **Deux offres sur une même page** : un bloc tarifs peut porter sa propre offre et sa mise en avant, pour présenter OsteoUpgrade et Premium côte à côte.
+- **Funnel « effet placebo »** : page en brouillon offrant les 7 vidéos du chapitre « Optimiser le Cabinet » contre un email, puis les deux offres.
+
 - **Funnels : pages de vente éditables** : nouveau module `/f/<slug>`, créé et modifié depuis **Administration → Funnels** sans redéploiement. Onze types de blocs (accroche, vidéo, bénéfices, témoignages, programme, tarifs, garantie, FAQ, appel à l'action, capture email, texte), réordonnables. Contenu stocké en JSONB, validé par `funnelInputSchema`. (`app/f/[slug]/`, `app/admin/funnels/`, `components/funnel/`, `lib/funnels.ts`)
 - **Capture de leads sans compte** : bloc formulaire alimentant `mail_contacts` via `triggerAutomations`, donc la même liste de diffusion que l'inscription. Chaque opt-in déclenche les automatisations dont le déclencheur vaut `funnel:<slug>` : une séquence par campagne, créée dans Automatisations sans écrire de code. (`app/api/funnels/lead/`)
 - **Échéance d'offre** : aucune, date fixe commune, ou J+N propre à chaque lead (offre permanente à fenêtre individuelle). Compte à rebours dans les blocs accroche, tarifs et appel à l'action. Un renvoi du formulaire ne repousse pas l'échéance.

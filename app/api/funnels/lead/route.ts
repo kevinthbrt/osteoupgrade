@@ -3,7 +3,13 @@ import { z } from 'zod'
 import { supabaseAdmin } from '@/lib/supabase-server'
 import { rateLimit } from '@/lib/rate-limit'
 import { ensureMailContact, triggerAutomations } from '@/lib/automation-triggers'
-import { funnelTriggerEvent, leadDeadlineFor, slugSchema } from '@/lib/funnels'
+import {
+  OPTIN_COOKIE_MAX_AGE,
+  funnelTriggerEvent,
+  leadDeadlineFor,
+  optinCookieName,
+  slugSchema,
+} from '@/lib/funnels'
 import { UTM_KEYS } from '@/lib/utm'
 
 /**
@@ -23,6 +29,9 @@ const utmSchema = z.record(z.string().max(200)).optional()
 const bodySchema = z.object({
   slug: slugSchema,
   email: z.string().trim().email().max(320),
+  first_name: z.string().trim().max(80).optional(),
+  last_name: z.string().trim().max(80).optional(),
+  /** Conservé pour les formulaires qui n'envoient qu'un seul champ. */
   full_name: z.string().trim().max(120).optional(),
   utm: utmSchema,
   visitor_id: z.string().trim().max(64).optional(),
@@ -60,8 +69,15 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    const { slug, email, full_name, visitor_id, landing_path } = parsed.data
+    const { slug, email, visitor_id, landing_path } = parsed.data
     const utm = pickUtm(parsed.data.utm)
+
+    // `ensureMailContact` attend un nom complet qu'il redécoupe. On recompose
+    // donc à partir des deux champs du formulaire quand ils sont fournis.
+    const full_name =
+      [parsed.data.first_name, parsed.data.last_name].filter(Boolean).join(' ').trim() ||
+      parsed.data.full_name ||
+      undefined
 
     // Le funnel doit exister ET être publié : sans ce filtre, un brouillon en
     // cours de rédaction collecterait déjà des emails.
@@ -181,11 +197,23 @@ export async function POST(req: NextRequest) {
       utm,
     })
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       ok: true,
       deadline_at: lead.deadline_at,
       enrolled: triggerResult.enrolled,
     })
+
+    // Déverrouille les blocs réservés de cette page. Lisible par le script de
+    // la page (pas `httpOnly`) pour qu'elle sache qu'elle peut se rafraîchir,
+    // et limité à ce funnel : s'inscrire à une campagne n'ouvre pas les autres.
+    response.cookies.set(optinCookieName(slug), '1', {
+      path: '/',
+      maxAge: OPTIN_COOKIE_MAX_AGE,
+      sameSite: 'lax',
+      secure: process.env.NODE_ENV === 'production',
+    })
+
+    return response
   } catch (err) {
     console.error('Funnel lead error:', err)
     return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })

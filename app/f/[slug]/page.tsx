@@ -3,7 +3,7 @@ import { cookies } from 'next/headers'
 import type { Metadata } from 'next'
 import { supabaseAdmin } from '@/lib/supabase-server'
 import { createServerComponentClient } from '@/lib/supabase-server-helpers'
-import { readFunnelContent, type Funnel } from '@/lib/funnels'
+import { readFunnelContent, optinCookieName, type Funnel } from '@/lib/funnels'
 import FunnelRenderer from '@/components/funnel/FunnelRenderer'
 import PublicFooter from '@/components/PublicFooter'
 
@@ -100,7 +100,17 @@ export default async function FunnelPage({
   const funnel = await getFunnel(params.slug, apercu)
   if (!funnel) notFound()
 
-  const blocks = readFunnelContent(funnel.content)
+  const tousLesBlocs = readFunnelContent(funnel.content)
+
+  // Portillon : les blocs réservés ne sont pas rendus tant que le visiteur n'a
+  // pas laissé son email. Le tri se fait ici, côté serveur, pour que les URL
+  // des vidéos soient absentes de la source de la page. Les masquer en CSS
+  // aurait laissé le contenu lisible d'un clic droit, ce qui aurait vidé
+  // l'inscription de son intérêt.
+  const inscrit = Boolean(cookies().get(optinCookieName(funnel.slug))?.value)
+  const blocks = inscrit ? tousLesBlocs : tousLesBlocs.filter((b) => !b.gated)
+  const blocsVerrouilles = tousLesBlocs.length - blocks.length
+
   const brouillon = funnel.status !== 'published'
 
   return (
@@ -121,6 +131,7 @@ export default async function FunnelPage({
           deadline_at: funnel.deadline_mode === 'fixed' ? funnel.deadline_at : null,
         }}
         blocks={blocks}
+        lockedCount={blocsVerrouilles}
       />
       <PublicFooter />
     </main>

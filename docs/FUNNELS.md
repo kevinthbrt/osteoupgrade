@@ -158,6 +158,38 @@ session :
 Si le funnel n'a pas d'offre configurée mais contient un bloc `optin`, les CTA
 « souscription » basculent automatiquement vers le formulaire email.
 
+## Contenu réservé aux inscrits
+
+Chaque bloc porte un drapeau `gated`. Un bloc réservé n'est **pas envoyé au
+navigateur** tant que le visiteur n'a pas laissé son email : le tri se fait
+côté serveur dans `app/f/[slug]/page.tsx`. Le masquer en CSS aurait laissé les
+URL des vidéos lisibles dans la source de la page, ce qui vide l'inscription
+de son intérêt.
+
+Le déverrouillage repose sur le cookie `ou_optin_<slug>`, posé par
+`/api/funnels/lead` et propre à chaque funnel. Après l'inscription, la page
+appelle `router.refresh()` : le serveur refait le rendu et joint cette fois les
+blocs réservés.
+
+> **Portée du portillon.** Le cookie n'est pas signé : le forger donne accès à
+> un contenu offert en échange d'un email, pas à du contenu payant. C'est le
+> bon niveau pour un aimant à prospects. Du contenu réellement payant demande
+> un compte et un contrôle de droits, pas un cookie.
+
+## Vidéos
+
+Le champ accepte le lien du bouton **Partager** de Vimeo
+(`vimeo.com/123?share=copy`), converti en lien d'intégration à
+l'enregistrement par `toEmbedUrl`, qui réutilise `extractVimeoId` du module
+e-learning. Les formats YouTube `youtu.be/…` et `watch?v=…` sont également
+convertis. L'affichage reste filtré par `safeEmbedUrl`.
+
+## Deux offres sur une même page
+
+Un bloc tarifs peut porter son propre `planType`, qui prend le pas sur l'offre
+du funnel, et un drapeau `highlighted` pour la mise en avant. C'est ce qui
+permet d'afficher OsteoUpgrade et Premium côte à côte.
+
 ## Ce que l'opt-in fait et ne fait pas
 
 Le formulaire crée un **contact de diffusion** (`mail_contacts`) et un **lead**
