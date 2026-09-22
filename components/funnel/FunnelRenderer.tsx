@@ -10,6 +10,7 @@ import {
   Quote,
   ShieldCheck,
   Sparkles,
+  Lock,
 } from 'lucide-react'
 import type { FunnelBlock } from '@/lib/funnels'
 import { safeEmbedUrl, safeLinkUrl } from '@/lib/funnels'
@@ -198,6 +199,7 @@ export default function FunnelRenderer({
           // Un CTA « checkout » sans offre configurée et sans formulaire dans
           // la page n'aurait nulle part où envoyer le visiteur.
           fallbackToOptin={!funnel.plan_type && hasOptinBlock}
+          lockedCount={lockedCount}
         />
       ))}
     </div>
@@ -215,6 +217,7 @@ type BlockViewProps = {
   onCta: (target: 'checkout' | 'optin' | 'url', url?: string, planType?: string) => void
   onOptin: (deadlineAt: string | null) => void
   fallbackToOptin: boolean
+  lockedCount: number
 }
 
 function Section({
@@ -299,6 +302,7 @@ function BlockView({
   onCta,
   onOptin,
   fallbackToOptin,
+  lockedCount,
 }: BlockViewProps) {
   switch (block.type) {
     case 'hero': {
@@ -676,6 +680,15 @@ function BlockView({
       return (
         <Section className="scroll-mt-8">
           <div id={OPTIN_ANCHOR}>
+            {/* Un visiteur non inscrit ne voit pas le contenu réservé : sans
+                cette mention, la page s'arrête sans qu'il sache qu'il manque
+                quelque chose, et le formulaire perd sa raison d'être. */}
+            {lockedCount > 0 && (
+              <p className="mb-4 flex items-center justify-center gap-2 text-sm font-medium text-slate-500">
+                <Lock className="h-4 w-4" />
+                Le contenu se débloque ici même, dès que vous validez.
+              </p>
+            )}
             <OptinForm
               slug={slug}
               title={block.title}

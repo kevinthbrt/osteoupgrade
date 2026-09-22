@@ -119,6 +119,16 @@ export default async function FunnelPage({
         <div className="sticky top-0 z-50 bg-amber-500 px-4 py-2.5 text-center text-sm font-semibold text-amber-950">
           Aperçu : cette page est en {funnel.status === 'draft' ? 'brouillon' : 'archive'} et
           renvoie une erreur 404 aux visiteurs. Passez son statut à « En ligne » pour la diffuser.
+          {/* État du portillon, affiché en aperçu seulement. Sans ça,
+              impossible de distinguer « le filtre ne marche pas » de « ce
+              navigateur a déjà le cookie d'inscription ». */}
+          {tousLesBlocs.some((b) => b.gated) && (
+            <span className="mt-1 block font-normal">
+              {inscrit
+                ? `Contenu réservé débloqué sur ce navigateur : les ${tousLesBlocs.filter((b) => b.gated).length} blocs réservés sont affichés. Ouvrez une fenêtre privée pour voir la page comme un nouveau visiteur.`
+                : `${blocsVerrouilles} blocs réservés sont masqués, comme pour un visiteur non inscrit.`}
+            </span>
+          )}
         </div>
       )}
       <FunnelRenderer
