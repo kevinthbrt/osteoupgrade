@@ -773,7 +773,13 @@ export default function BlockEditor({ block, index, total, onChange, onMove, onR
               label="Repères de format"
               value={block.meta}
               onChange={(meta) => set({ meta })}
-              hint="Une par ligne. Le format, jamais le contenu : « 7 vidéos », « environ 1 h », « Offert »."
+              hint="Une par ligne. Le format, jamais le contenu : « 7 vidéos », « 21 minutes », « Offert »."
+            />
+            <LinesField
+              label="Vignettes des vidéos"
+              value={block.thumbnails}
+              onChange={(thumbnails) => set({ thumbnails })}
+              hint="Une URL https par ligne, dans l’ordre des cartes. Elles s’affichent floutées derrière le cadenas. Vide : la carte reste une silhouette neutre."
             />
             <Field
               label="Libellé du bouton"

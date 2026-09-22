@@ -31,10 +31,27 @@ couche « pages » : c'est ce que fait ce module.
 
 Le bloc **`teaser`** (« Aperçu verrouillé ») montre qu'il y a du contenu
 derrière le formulaire sans dire lequel : une grille de cartes cadenassées et
-numérotées, plus des repères de format (« 7 vidéos », « environ 1 h »). Il
+numérotées, plus des repères de format (« 7 vidéos », « 21 minutes »). Il
 répond au défaut d'une liste de bénéfices sur une page dont l'aimant EST le
 contenu : nommer ce qu'on va apprendre, c'est le dévoiler, donc vendre en
 spoilant. Ce bloc donne la forme et retient le fond.
+
+Le champ **`thumbnails`** remplit ces cartes avec les vraies vignettes des
+vidéos, floutées à 8 px. Une carte vide prouve mal qu'il y a du contenu ;
+une vignette nette le dévoile. Pour des vidéos de formation, la vignette est
+souvent une diapositive entière : le titre de la leçon y redevient déchiffrable
+en dessous de 8 px, et la page publierait alors le programme qu'elle réserve.
+Le flou n'est pas une protection, seulement une mise en scène : l'URL de
+l'image reste lisible dans la source, contrairement aux vidéos elles-mêmes, qui
+ne sont pas envoyées au navigateur avant l'inscription. N'y mettre que des
+vignettes dont la version nette ne serait pas gênante. Les URL sont saisies une
+par ligne dans l'éditeur, dans l'ordre des cartes ; sans URL, la carte reste une
+silhouette neutre.
+
+Une vignette Vimeo s'obtient par l'API oembed, y compris pour une vidéo privée :
+`https://vimeo.com/api/oembed.json?url=<url>&width=640`, champ `thumbnail_url`.
+Le paramètre `?region=` renvoyé par l'API se retire sans conséquence.
+`i.vimeocdn.com` est déjà autorisé dans `next.config.js`.
 
 L'accroche peut porter un **filigrane de marque** : la sphère du logo, en
 débord à droite. C'est `public/logo-mark.png`, extrait du lockup
