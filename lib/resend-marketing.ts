@@ -57,7 +57,7 @@ export async function getOrCreateSegment(name: string): Promise<string> {
 
 /**
  * Ajoute ou met à jour un contact dans un segment Resend. Idempotent (déduplication
- * par email côté Resend) — peut être rappelé sans risque de doublon.
+ * par email côté Resend) : il peut être rappelé sans risque de doublon.
  */
 export async function upsertContactInSegment(
   email: string,
@@ -76,18 +76,115 @@ export async function upsertContactInSegment(
   })
 }
 
+interface ResendContact {
+  id: string
+  email: string
+  first_name: string | null
+  last_name: string | null
+  unsubscribed: boolean
+}
+
 /**
- * Synchronise une liste de contacts dans un segment Resend, en respectant la
- * limite de débit de l'API (séquentiel, avec un court délai entre chaque appel).
+ * Liste les contacts actuellement dans un segment, toutes pages confondues.
+ */
+export async function listSegmentContacts(segmentId: string): Promise<ResendContact[]> {
+  const tous: ResendContact[] = []
+  let after: string | undefined
+
+  // Garde-fou : 100 pages, soit 10 000 contacts. Au-delà, c'est une boucle
+  // infinie sur un curseur qui n'avance pas, pas une liste de diffusion.
+  for (let page = 0; page < 100; page++) {
+    const params = new URLSearchParams({ limit: '100' })
+    if (after) params.set('after', after)
+
+    const res = await resendRequest<{ data: ResendContact[]; has_more?: boolean }>(
+      `/segments/${segmentId}/contacts?${params.toString()}`
+    )
+    const lot = res.data ?? []
+    tous.push(...lot)
+
+    if (!res.has_more || lot.length === 0) break
+    after = lot[lot.length - 1].id
+    await sleep(REQUEST_DELAY_MS)
+  }
+
+  return tous
+}
+
+/**
+ * Retire un contact d'un segment. Le contact lui-même n'est pas supprimé :
+ * il garde son historique et son éventuelle désinscription.
+ */
+export async function removeContactFromSegment(
+  emailOrId: string,
+  segmentId: string
+): Promise<void> {
+  await resendRequest(
+    `/contacts/${encodeURIComponent(emailOrId)}/segments/${segmentId}`,
+    { method: 'DELETE' }
+  )
+}
+
+/**
+ * Aligne un segment Resend sur une audience calculée : ajoute ce qui manque,
+ * retire ce qui n'a plus sa place.
+ *
+ * Le retrait n'est pas un confort. Un segment qui ne fait qu'accumuler finit
+ * par contenir des gens qui ont décoché la lettre d'information dans
+ * l'application : ils sont bien exclus de la liste calculée ici, mais la
+ * campagne part au segment entier, donc ils la reçoivent quand même. Un
+ * désabonnement qui ne prend pas effet n'est pas un défaut de confort.
+ *
+ * Deux règles de prudence :
+ *   - un contact que Resend marque désinscrit n'est jamais réécrit, car un
+ *     nouvel envoi sur `/contacts` risquerait de remettre ce drapeau à zéro ;
+ *   - seuls les contacts absents ou dont le nom a changé sont réécrits. Envoyer
+ *     les centaines d'autres à chaque campagne coûtait des minutes, pour ne
+ *     rien changer.
  */
 export async function syncContactsToSegment(
   contacts: { email: string; firstName?: string | null; lastName?: string | null }[],
   segmentId: string
-): Promise<{ synced: number; errors: string[] }> {
+): Promise<{ synced: number; removed: number; errors: string[] }> {
   let synced = 0
+  let removed = 0
   const errors: string[] = []
 
+  // La comparaison se fait sur l'adresse en minuscules : Resend ne distingue
+  // pas la casse, la base non plus (citext), mais les deux sources peuvent
+  // renvoyer des graphies différentes.
+  const clef = (email: string) => email.trim().toLowerCase()
+
+  let presents = new Map<string, ResendContact>()
+  try {
+    for (const c of await listSegmentContacts(segmentId)) {
+      presents.set(clef(c.email), c)
+    }
+  } catch (err: any) {
+    // Sans la liste, on ne peut pas retirer, mais on peut encore ajouter.
+    // Mieux vaut une campagne qui part avec un segment imparfait qu'une
+    // campagne qui ne part pas du tout.
+    errors.push(`Lecture du segment impossible, aucun retrait effectué: ${err.message}`)
+    presents = new Map()
+  }
+
+  const voulus = new Set(contacts.map((c) => clef(c.email)))
+
   for (const contact of contacts) {
+    const existant = presents.get(clef(contact.email))
+
+    // Déjà présent, à jour, et non désinscrit : rien à faire.
+    if (existant) {
+      if (existant.unsubscribed) continue
+      const memeNom =
+        (existant.first_name || '') === (contact.firstName || '') &&
+        (existant.last_name || '') === (contact.lastName || '')
+      if (memeNom) {
+        synced++
+        continue
+      }
+    }
+
     try {
       await upsertContactInSegment(contact.email, segmentId, contact.firstName, contact.lastName)
       synced++
@@ -97,7 +194,18 @@ export async function syncContactsToSegment(
     await sleep(REQUEST_DELAY_MS)
   }
 
-  return { synced, errors }
+  for (const [email, contact] of presents) {
+    if (voulus.has(email)) continue
+    try {
+      await removeContactFromSegment(contact.id, segmentId)
+      removed++
+    } catch (err: any) {
+      errors.push(`retrait de ${contact.email}: ${err.message}`)
+    }
+    await sleep(REQUEST_DELAY_MS)
+  }
+
+  return { synced, removed, errors }
 }
 
 /**

@@ -108,6 +108,12 @@ export default function OptinForm({
                 . Il s’applique tout seul au moment de l’abonnement.
               </p>
             )}
+            {/* Le code est rattaché à l'adresse laissée ici. Créer son compte
+                avec une autre reviendrait à payer plein tarif sans comprendre
+                pourquoi : autant le dire avant, pas après. */}
+            <p className="mt-3 text-center text-xs text-slate-500">
+              Pensez à créer votre compte avec cette même adresse email.
+            </p>
           </div>
         )}
       </div>
