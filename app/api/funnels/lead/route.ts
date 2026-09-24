@@ -8,6 +8,7 @@ import {
   funnelTriggerEvent,
   leadDeadlineFor,
   optinCookieName,
+  promoCookieName,
   slugSchema,
 } from '@/lib/funnels'
 import {
@@ -89,7 +90,7 @@ export async function POST(req: NextRequest) {
     // cours de rédaction collecterait déjà des emails.
     const { data: funnel } = await supabaseAdmin
       .from('funnels')
-      .select('id, slug, deadline_mode, deadline_at, deadline_days')
+      .select('id, slug, deadline_mode, deadline_at, deadline_days, promo_enabled')
       .eq('slug', slug)
       .eq('status', 'published')
       .maybeSingle()
@@ -168,7 +169,7 @@ export async function POST(req: NextRequest) {
     // Quelqu'un qui en a déjà un ne peut pas s'en fabriquer un second en
     // renvoyant le formulaire, même expiré.
     let promo: { code: string; id: string; expiresAt: Date } | null = null
-    if (!existing?.promo_code) {
+    if (funnel.promo_enabled && !existing?.promo_code) {
       try {
         promo = await createLeadPromo(slug.replace(/-/g, '').slice(0, 8))
       } catch (err) {
@@ -301,6 +302,22 @@ export async function POST(req: NextRequest) {
       sameSite: 'lax',
       secure: process.env.NODE_ENV === 'production',
     })
+
+    // Échéance de la remise, pour l'affichage seulement : prix remisés dans
+    // les blocs tarifs et sur la page d'inscription tant que le code vaut. Le
+    // cookie expire avec le code, la page repasse d'elle-même au prix plein.
+    // Il n'accorde rien : la remise est relue sur le lead au paiement.
+    if (lead.promo_code && lead.promo_expires_at) {
+      const restant = Math.floor((new Date(lead.promo_expires_at).getTime() - Date.now()) / 1000)
+      if (restant > 0) {
+        response.cookies.set(promoCookieName(slug), lead.promo_expires_at, {
+          path: '/',
+          maxAge: restant,
+          sameSite: 'lax',
+          secure: process.env.NODE_ENV === 'production',
+        })
+      }
+    }
 
     return response
   } catch (err) {

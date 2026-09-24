@@ -7,6 +7,13 @@ import Image from 'next/image'
 import { supabase } from '@/lib/supabase'
 import { OFFERS, formatAmount } from '@/lib/offers'
 import {
+  activePromoExpiry,
+  discountedAmount,
+  promoCookieName,
+  PROMO_MONTHS,
+  PROMO_PERCENT,
+} from '@/lib/funnels'
+import {
   Eye,
   EyeOff,
   Loader2,
@@ -119,6 +126,8 @@ export default function AuthPage() {
   /** Offre choisie en amont (`?plan=`) : la page devient alors l'étape avant le paiement. */
   const [offre, setOffre] = useState<string | null>(null)
   const [depuisFunnel, setDepuisFunnel] = useState(false)
+  /** Échéance de la remise du visiteur, lue dans le cookie posé à l'inscription au funnel. */
+  const [promoExpire, setPromoExpire] = useState<Date | null>(null)
 
   // Arrivée avec une offre : on est presque toujours face à quelqu'un qui n'a
   // pas encore de compte, d'où le formulaire d'inscription par défaut. Et s'il
@@ -129,8 +138,20 @@ export default function AuthPage() {
     const plan = params.get('plan')
     if (!plan) return
     setOffre(plan)
-    setDepuisFunnel(Boolean(params.get('funnel')))
+    const funnel = params.get('funnel')
+    setDepuisFunnel(Boolean(funnel))
     setIsLogin(false)
+
+    // Affichage seulement : le prix remisé montré ici n'engage rien, c'est le
+    // serveur qui retrouve le code au paiement, à partir de l'adresse.
+    if (funnel) {
+      const nom = promoCookieName(funnel)
+      const brut = document.cookie
+        .split('; ')
+        .find((c) => c.startsWith(`${nom}=`))
+        ?.slice(nom.length + 1)
+      setPromoExpire(activePromoExpiry(brut))
+    }
 
     supabase.auth.getSession().then(({ data }) => {
       if (data.session) {
@@ -454,17 +475,35 @@ export default function AuthPage() {
                             <span className="block text-sm font-semibold text-slate-900">{o.name}</span>
                             <span className="block text-xs text-slate-500">{o.tagline}</span>
                           </span>
-                          <span className="whitespace-nowrap text-sm font-bold text-slate-900">
-                            {formatAmount(o.monthlyAmount)}
+                          <span className="whitespace-nowrap text-right text-sm font-bold text-slate-900">
+                            {promoExpire ? (
+                              <>
+                                <span className="mr-1 text-xs font-normal text-slate-400 line-through">
+                                  {formatAmount(o.monthlyAmount)}
+                                </span>
+                                {formatAmount(discountedAmount(o.monthlyAmount))}
+                              </>
+                            ) : (
+                              formatAmount(o.monthlyAmount)
+                            )}
                             <span className="text-xs font-normal text-slate-500"> / mois</span>
                           </span>
                         </label>
                       )
                     })}
                   </div>
+                  {promoExpire && (
+                    <p className="mt-2 rounded-lg bg-violet-50 px-3 py-2 text-xs text-violet-900">
+                      <strong>Votre remise de {PROMO_PERCENT} % pendant {PROMO_MONTHS} mois</strong> est
+                      appliquée automatiquement au paiement, jusqu’au{' '}
+                      {promoExpire.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}.
+                      Créez votre compte avec l’adresse laissée sur la page.
+                    </p>
+                  )}
                   <p className="mt-2 text-xs text-slate-500">
                     Sans engagement, 7 jours d’essai gratuit pour un premier abonnement.
                     {depuisFunnel &&
+                      !promoExpire &&
                       ' Si vous avez reçu un code de remise, il s’applique tout seul au paiement, à condition d’utiliser l’adresse laissée sur la page.'}
                   </p>
                 </fieldset>

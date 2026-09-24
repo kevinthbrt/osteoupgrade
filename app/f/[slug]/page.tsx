@@ -3,7 +3,13 @@ import { cookies } from 'next/headers'
 import type { Metadata } from 'next'
 import { supabaseAdmin } from '@/lib/supabase-server'
 import { createServerComponentClient } from '@/lib/supabase-server-helpers'
-import { readFunnelContent, optinCookieName, type Funnel } from '@/lib/funnels'
+import {
+  readFunnelContent,
+  optinCookieName,
+  promoCookieName,
+  activePromoExpiry,
+  type Funnel,
+} from '@/lib/funnels'
 import FunnelRenderer from '@/components/funnel/FunnelRenderer'
 import PublicFooter from '@/components/PublicFooter'
 
@@ -23,7 +29,7 @@ async function getFunnel(slug: string, autoriserBrouillon: boolean): Promise<Fun
   let query = supabaseAdmin
     .from('funnels')
     .select(
-      'id, slug, name, status, meta_title, meta_description, content, plan_type, deadline_mode, deadline_at, deadline_days, published_at, created_at, updated_at'
+      'id, slug, name, status, meta_title, meta_description, content, plan_type, deadline_mode, deadline_at, deadline_days, promo_enabled, published_at, created_at, updated_at'
     )
     .eq('slug', slug)
 
@@ -111,6 +117,12 @@ export default async function FunnelPage({
   // l'inscription de son intérêt.
   const inscrit = Boolean(cookies().get(optinCookieName(funnel.slug))?.value)
 
+  // Échéance de la remise de ce visiteur, s'il en a une en cours. Sert à
+  // afficher les prix remisés tant que le code vaut, et le prix plein ensuite.
+  const promoExpire = funnel.promo_enabled
+    ? activePromoExpiry(cookies().get(promoCookieName(funnel.slug))?.value)
+    : null
+
   // En aperçu, un admin voit la page entière : sinon il ne peut relire ni les
   // vidéos, ni les tarifs, ni la garantie, soit l'essentiel de la page. Le
   // portillon reste entier pour les visiteurs, et `?visiteur=1` permet de
@@ -163,6 +175,8 @@ export default async function FunnelPage({
           // Le mode `relative` dépend du lead : il est résolu côté client à
           // partir de l'échéance renvoyée à l'opt-in.
           deadline_at: funnel.deadline_mode === 'fixed' ? funnel.deadline_at : null,
+          promo_enabled: Boolean(funnel.promo_enabled),
+          promo_expires_at: promoExpire ? promoExpire.toISOString() : null,
         }}
         blocks={blocks}
         lockedCount={blocsVerrouilles}

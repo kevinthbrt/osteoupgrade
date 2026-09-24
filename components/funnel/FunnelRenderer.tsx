@@ -13,8 +13,15 @@ import {
   Lock,
 } from 'lucide-react'
 import type { FunnelBlock } from '@/lib/funnels'
-import { safeEmbedUrl, safeLinkUrl } from '@/lib/funnels'
-import { formatAmount } from '@/lib/offers'
+import {
+  safeEmbedUrl,
+  safeLinkUrl,
+  discountedAmount,
+  PROMO_MONTHS,
+  PROMO_PERCENT,
+  PROMO_VALID_DAYS,
+} from '@/lib/funnels'
+import { OFFERS, formatAmount } from '@/lib/offers'
 import {
   UTM_COOKIE,
   UTM_COOKIE_MAX_AGE,
@@ -33,6 +40,18 @@ type FunnelSummary = {
   deadline_mode: 'none' | 'fixed' | 'relative'
   /** Échéance déjà résolue côté serveur pour le mode `fixed`. */
   deadline_at: string | null
+  /** Le funnel offre une remise personnelle à chaque inscription. */
+  promo_enabled: boolean
+  /** Échéance de la remise de ce visiteur, si elle court encore. */
+  promo_expires_at: string | null
+}
+
+/** Remise telle que la voit un bloc. */
+type PromoView = {
+  enabled: boolean
+  expiresAt: string | null
+  /** Offre du funnel, pour les blocs tarifs qui n'en désignent pas. */
+  defaultPlan: string | null
 }
 
 const OPTIN_ANCHOR = 'funnel-optin'
@@ -200,6 +219,11 @@ export default function FunnelRenderer({
           // la page n'aurait nulle part où envoyer le visiteur.
           fallbackToOptin={!funnel.plan_type && hasOptinBlock}
           lockedCount={lockedCount}
+          promo={{
+            enabled: funnel.promo_enabled,
+            expiresAt: funnel.promo_expires_at,
+            defaultPlan: funnel.plan_type,
+          }}
         />
       ))}
     </div>
@@ -218,6 +242,7 @@ type BlockViewProps = {
   onOptin: (deadlineAt: string | null) => void
   fallbackToOptin: boolean
   lockedCount: number
+  promo: PromoView
 }
 
 function Section({
@@ -303,6 +328,7 @@ function BlockView({
   onOptin,
   fallbackToOptin,
   lockedCount,
+  promo,
 }: BlockViewProps) {
   switch (block.type) {
     case 'hero': {
@@ -537,7 +563,18 @@ function BlockView({
         </Section>
       )
 
-    case 'pricing':
+    case 'pricing': {
+      // La remise ne s'affiche que si elle s'applique vraiment : code en cours
+      // de validité, et offre mensuelle publique. Sur un tarif Fondateur, le
+      // coupon ne s'applique pas ; annoncer un prix remisé serait mentir.
+      const planDuBloc = block.planType || promo.defaultPlan
+      const remiseVisible =
+        Boolean(promo.expiresAt) &&
+        block.amount != null &&
+        OFFERS.some((o) => o.planType === planDuBloc)
+      const prixBarre = remiseVisible ? block.amount : block.originalAmount
+      const prixAffiche =
+        remiseVisible && block.amount != null ? discountedAmount(block.amount) : block.amount
       return (
         <Section>
           {block.title && <SectionTitle>{block.title}</SectionTitle>}
@@ -552,15 +589,20 @@ function BlockView({
             }`}
           >
             <div className="text-center">
-              {block.originalAmount != null && (
+              {prixBarre != null && (
                 <span className="mr-2 text-xl text-slate-400 line-through">
-                  {formatAmount(block.originalAmount)}
+                  {formatAmount(prixBarre)}
                 </span>
               )}
-              {block.amount != null && (
+              {prixAffiche != null && (
                 <span className="text-5xl font-bold tracking-tight text-slate-900">
-                  {formatAmount(block.amount)}
+                  {formatAmount(prixAffiche)}
                 </span>
+              )}
+              {remiseVisible && (
+                <p className="mt-3 inline-block rounded-full bg-violet-100 px-3 py-1 text-sm font-semibold text-violet-700">
+                  -{PROMO_PERCENT} % pendant {PROMO_MONTHS} mois avec votre code
+                </p>
               )}
               {block.priceNote && <p className="mt-2 text-sm text-slate-500">{block.priceNote}</p>}
             </div>
@@ -576,10 +618,21 @@ function BlockView({
               </ul>
             )}
 
-            {deadline && (
+            {deadline ? (
               <div className="mt-7">
                 <Countdown deadline={deadline} />
               </div>
+            ) : (
+              remiseVisible &&
+              promo.expiresAt && (
+                <div className="mt-7">
+                  <Countdown
+                    deadline={promo.expiresAt}
+                    caption="Votre remise expire dans"
+                    endedLabel="Votre remise a expiré, l’abonnement reste disponible"
+                  />
+                </div>
+              )
             )}
 
             <div className="mt-7 text-center">
@@ -595,6 +648,7 @@ function BlockView({
           </div>
         </Section>
       )
+    }
 
     case 'guarantee':
       return (
@@ -688,6 +742,19 @@ function BlockView({
                 <Lock className="h-4 w-4" />
                 Le contenu se débloque ici même, dès que vous validez.
               </p>
+            )}
+            {/* Annoncée avant l'inscription, sinon elle ne sert pas à la
+                décider. Masquée une fois le code obtenu : le formulaire
+                l'affiche alors lui-même, avec le code. */}
+            {promo.enabled && !promo.expiresAt && (
+              <div className="mb-4 flex items-start gap-3 rounded-2xl border border-violet-200 bg-violet-50 p-4 text-sm text-violet-900">
+                <Sparkles className="mt-0.5 h-5 w-5 shrink-0 text-violet-600" />
+                <p>
+                  <strong>En bonus : -{PROMO_PERCENT} % pendant {PROMO_MONTHS} mois</strong> sur
+                  l’abonnement de votre choix. Vous recevez un code personnel, valable{' '}
+                  {PROMO_VALID_DAYS} jours après l’inscription, qui s’applique tout seul au paiement.
+                </p>
+              </div>
             )}
             <OptinForm
               slug={slug}

@@ -11,7 +11,20 @@ import { Clock } from 'lucide-react'
  * afficherait la valeur figée au moment du build ou de la requête, et
  * divergerait immédiatement.
  */
-export default function Countdown({ deadline }: { deadline: string }) {
+export default function Countdown({
+  deadline,
+  caption,
+  endedLabel = 'Cette offre est terminée',
+}: {
+  deadline: string
+  /** Phrase affichée au-dessus du décompte, par exemple « Votre remise expire dans ». */
+  caption?: string
+  /**
+   * Message une fois l'échéance passée. Une remise qui expire ne ferme pas
+   * l'offre : dire « terminée » laisserait croire qu'on ne peut plus s'abonner.
+   */
+  endedLabel?: string
+}) {
   const target = new Date(deadline).getTime()
   const [remaining, setRemaining] = useState<number | null>(null)
 
@@ -30,7 +43,7 @@ export default function Countdown({ deadline }: { deadline: string }) {
     return (
       <div className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-500">
         <Clock className="h-4 w-4" />
-        Cette offre est terminée
+        {endedLabel}
       </div>
     )
   }
@@ -44,6 +57,12 @@ export default function Countdown({ deadline }: { deadline: string }) {
   ]
 
   return (
+    <div>
+    {caption && (
+      <p className="mb-2 text-center text-xs font-semibold uppercase tracking-wide text-slate-500">
+        {caption}
+      </p>
+    )}
     <div className="flex items-center justify-center gap-2 sm:gap-3" role="timer" aria-live="off">
       {parts.map((part) => (
         <div
@@ -58,6 +77,7 @@ export default function Countdown({ deadline }: { deadline: string }) {
           </div>
         </div>
       ))}
+    </div>
     </div>
   )
 }
