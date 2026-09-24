@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { createRouteHandlerClient } from '@/lib/supabase-server-helpers'
-import { stripe, STRIPE_PLANS, FREE_TRIAL_DAYS } from '@/lib/stripe'
+import { stripe, STRIPE_PLANS, FREE_TRIAL_DAYS, PUBLIC_PLAN_TYPES } from '@/lib/stripe'
 import { planOf } from '@/lib/entitlements'
 import { notifyAdmin } from '@/lib/admin-notify'
 import { UTM_COOKIE, parseAttributionCookie, attributionToStripeMetadata } from '@/lib/utm'
@@ -227,16 +227,33 @@ export async function POST(request: Request) {
     if (funnelSlug) {
       const { data: funnel } = await supabaseAdmin
         .from('funnels')
-        .select('id, plan_type, deadline_mode, deadline_at, deadline_days, deadline_blocks_checkout')
+        .select('id, plan_type, content, deadline_mode, deadline_at, deadline_days, deadline_blocks_checkout')
         .eq('slug', String(funnelSlug))
         .eq('status', 'published')
         .maybeSingle()
 
       if (funnel) {
-        // L'offre demandée doit être celle que la page annonçait : sans cette
-        // vérification, le slug d'un funnel encore ouvert servirait à valider
-        // n'importe quelle autre offre.
-        if (funnel.plan_type && funnel.plan_type !== planType) {
+        // L'offre demandée doit être l'une de celles que la page présente :
+        // sans cette vérification, le slug d'un funnel encore ouvert servirait
+        // à valider n'importe quelle autre offre.
+        //
+        // « L'une de celles » et non « celle du funnel » : une page peut porter
+        // deux offres, chaque bloc tarifs ou appel à l'action désignant la
+        // sienne. Ne comparer qu'à l'offre par défaut refusait la seconde, en
+        // silence, juste après la création du compte.
+        //
+        // Les offres mensuelles publiques passent toujours : n'importe qui peut
+        // les prendre depuis la page des tarifs, et la page d'inscription permet
+        // d'en changer. Seule une offre non publique (Fondateur) doit figurer sur
+        // la page pour être acceptée sous ce funnel.
+        const offresDeLaPage = new Set<string>(PUBLIC_PLAN_TYPES)
+        if (funnel.plan_type) offresDeLaPage.add(funnel.plan_type)
+        for (const bloc of Array.isArray(funnel.content) ? funnel.content : []) {
+          if (bloc && typeof bloc.planType === 'string' && bloc.planType) {
+            offresDeLaPage.add(bloc.planType)
+          }
+        }
+        if (offresDeLaPage.size > 0 && !offresDeLaPage.has(planType)) {
           return NextResponse.json(
             { error: 'Cette offre ne correspond pas à la page dont vous venez.' },
             { status: 400 }

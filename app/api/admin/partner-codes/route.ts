@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { createRouteHandlerClient } from '@/lib/supabase-server-helpers'
-import { stripe, PARTNER_PROMO_PURPOSE, PUBLIC_PLAN_TYPES, STRIPE_PLANS } from '@/lib/stripe'
+import { stripe, PARTNER_PROMO_PURPOSE, monthlyProductIds } from '@/lib/stripe'
 
 async function checkAdmin(supabase: any) {
   const { data: { user }, error } = await supabase.auth.getUser()
@@ -48,9 +48,7 @@ export async function POST(request: Request) {
     // La réduction partenaire s'applique aux trois offres mensuelles. Les
     // tarifs Fondateur en sont exclus : déjà à -50 % à vie, y empiler une
     // remise partenaire cumulerait deux avantages non prévus.
-    const prixEligibles = PUBLIC_PLAN_TYPES
-      .map((clef) => STRIPE_PLANS[clef]?.priceId)
-      .filter((id): id is string => Boolean(id))
+    const produitsEligibles = await monthlyProductIds()
 
     // Un coupon par lot généré, partagé par tous les codes du lot — chaque
     // code reste un code promo Stripe distinct et à usage unique.
@@ -66,8 +64,9 @@ export async function POST(request: Request) {
         ...(batchNote ? { batch_note: batchNote } : {})
       }
     }
-    if (prixEligibles.length > 0) {
-      couponParams.applies_to = { prices: prixEligibles }
+    // Par produit : Stripe refuse `applies_to.prices` et la création échouait.
+    if (produitsEligibles.length > 0) {
+      couponParams.applies_to = { products: produitsEligibles }
     }
 
     const coupon = await stripe.coupons.create(couponParams)

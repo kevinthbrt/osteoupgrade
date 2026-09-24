@@ -124,6 +124,33 @@ export const STRIPE_PLANS: Record<string, StripePlan> = {
 export const PUBLIC_PLAN_TYPES = ['premium_monthly', 'osteoflow_monthly', 'osteoupgrade_monthly'] as const
 
 /**
+ * Produits Stripe des trois offres mensuelles publiques.
+ *
+ * Un coupon se restreint par produit (`applies_to.products`), pas par prix :
+ * Stripe refuse `applies_to.prices` comme paramètre inconnu, et la création du
+ * coupon échoue alors entièrement.
+ *
+ * Limite à connaître : si un tarif Fondateur est rattaché au même produit
+ * qu'une offre mensuelle, la restriction ne l'écarte pas. L'exclusion des
+ * tarifs Fondateur repose alors sur le serveur, qui ne pose jamais de remise
+ * sur une session Fondateur (voir /api/stripe/checkout).
+ */
+export async function monthlyProductIds(): Promise<string[]> {
+  const prix = PUBLIC_PLAN_TYPES
+    .map((clef) => STRIPE_PLANS[clef]?.priceId)
+    .filter((id): id is string => Boolean(id))
+
+  const produits = await Promise.all(
+    prix.map(async (id) => {
+      const price = await stripe.prices.retrieve(id)
+      return typeof price.product === 'string' ? price.product : price.product.id
+    })
+  )
+
+  return Array.from(new Set(produits))
+}
+
+/**
  * Offre correspondant à un abonnement Stripe.
  *
  * L'ordre de résolution est délibéré :
