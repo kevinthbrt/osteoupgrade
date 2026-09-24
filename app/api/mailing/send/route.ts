@@ -270,7 +270,7 @@ export async function POST(request: Request) {
     // Campagne marketing : un seul HTML pour tout le segment, les balises
     // `{{{contact.*}}}` étant résolues par Resend pour chaque destinataire.
     const segmentId = await getOrCreateSegment(segmentName)
-    const { synced, errors: syncErrors } = await syncContactsToSegment(contacts, segmentId)
+    const { synced, removed, errors: syncErrors } = await syncContactsToSegment(contacts, segmentId)
 
     const broadcast = await createAndSendBroadcast({
       segmentId,
@@ -291,6 +291,9 @@ export async function POST(request: Request) {
       broadcastId: broadcast.id,
       totalContacts: contacts.length,
       synced,
+      // Nombre de contacts retirés du segment parce qu'ils ne font plus partie
+      // de l'audience : désinscrits dans l'application, ou changés d'offre.
+      removed,
       syncErrors: syncErrors.length > 0 ? syncErrors : undefined,
       newsletterStatus: marque.done ? 'sent' : undefined,
       warning: marque.warning || undefined
