@@ -2,6 +2,7 @@
 --
 -- Six emails sur huit jours, articulés autour d'un code de remise personnel
 -- créé à l'inscription (voir 20260924_funnel_promo.sql et lib/funnel-promo.ts).
+-- Le chapitre offert compte neuf vidéos, toutes débloquées dès l'inscription.
 --
 -- `wait_minutes` est un délai DEPUIS L'ÉTAPE PRÉCÉDENTE, pas depuis
 -- l'inscription : 0, 2880, 2880, 1440, 1440, 2880 place les messages à J+0,
@@ -85,35 +86,36 @@ DELETE FROM public.mail_templates WHERE name LIKE 'funnel-placebo-%';
 INSERT INTO public.mail_templates (name, subject, description, html, text) VALUES
 (
   'funnel-placebo-1-acces',
-  'Vos 7 vidéos, et votre code de remise',
+  'Vos 9 vidéos, et votre code de remise',
   'Funnel effet placebo : J+0, accès au contenu et code personnel',
   pg_temp.gabarit_placebo(
     '🎬',
-    'Vos 7 vidéos sont débloquées',
+    'Vos 9 vidéos sont débloquées',
     'Optimiser le cabinet, chapitre offert',
     pg_temp.para('Bonjour <strong>{{first_name}}</strong>,')
-    || pg_temp.para('Tout est ouvert sur votre page : <strong>sept vidéos, vingt et une minutes en tout</strong>. Vous pouvez y revenir autant de fois que vous voulez.')
+    || pg_temp.para('Tout est ouvert sur votre page : <strong>neuf vidéos, 31 minutes en tout</strong>. Vous pouvez y revenir autant de fois que vous voulez.')
     || pg_temp.bouton('Ouvrir mes vidéos', 'https://www.osteo-upgrade.fr/f/effet-placebo')
     || pg_temp.encart('<strong>Si vous changez d’appareil.</strong> L’accès est lié à ce navigateur. Sur un autre téléphone ou un autre ordinateur, remettez simplement votre adresse dans le formulaire de la page : tout se rouvre immédiatement.')
     || pg_temp.bloc_code()
   ),
-  E'Bonjour {{first_name}},\n\nTout est ouvert sur votre page : sept vidéos, vingt et une minutes en tout. Vous pouvez y revenir autant de fois que vous voulez.\n\nhttps://www.osteo-upgrade.fr/f/effet-placebo\n\nSi vous changez d’appareil : l’accès est lié à ce navigateur. Sur un autre téléphone ou un autre ordinateur, remettez simplement votre adresse dans le formulaire de la page.\n\nVotre code personnel : {{promo_code}}\n{{promo_percent}} % de remise pendant {{promo_months}} mois, valable jusqu’au {{promo_expires}}.\nIl s’applique tout seul au moment de l’abonnement.\nPensez à créer votre compte avec cette même adresse email.\n\nÀ très vite,\nL’équipe OsteoUpgrade × MyOsteoflow'
+  E'Bonjour {{first_name}},\n\nTout est ouvert sur votre page : neuf vidéos, 31 minutes en tout. Vous pouvez y revenir autant de fois que vous voulez.\n\nhttps://www.osteo-upgrade.fr/f/effet-placebo\n\nSi vous changez d’appareil : l’accès est lié à ce navigateur. Sur un autre téléphone ou un autre ordinateur, remettez simplement votre adresse dans le formulaire de la page.\n\nVotre code personnel : {{promo_code}}\n{{promo_percent}} % de remise pendant {{promo_months}} mois, valable jusqu’au {{promo_expires}}.\nIl s’applique tout seul au moment de l’abonnement.\nPensez à créer votre compte avec cette même adresse email.\n\nÀ très vite,\nL’équipe OsteoUpgrade × MyOsteoflow'
 ),
 (
-  'funnel-placebo-2-bonus',
-  'Deux vidéos de plus vous attendent',
-  'Funnel effet placebo : J+2, les deux leçons non annoncées',
+  'funnel-placebo-2-lumiere',
+  'La lumière est le réglage le moins cher de votre cabinet',
+  'Funnel effet placebo : J+2, un conseil applicable tout de suite',
   pg_temp.gabarit_placebo(
-    '🎁',
-    'Deux vidéos de plus',
-    'Elles n’étaient pas annoncées',
+    '💡',
+    'Le réglage le moins cher',
+    'Un après-midi, presque aucun budget',
     pg_temp.para('Bonjour <strong>{{first_name}}</strong>,')
-    || pg_temp.para('La page vous promettait sept vidéos. Le chapitre en compte neuf. <strong>Salle d’attente</strong> et <strong>Odeurs et thérapeute</strong> sont désormais sur votre page, à la suite des autres.')
-    || pg_temp.bouton('Voir les deux vidéos', 'https://www.osteo-upgrade.fr/f/effet-placebo')
-    || pg_temp.encart('<strong>Si vous ne changez qu’une chose cette semaine.</strong> La lumière. Orientez la table pour que le patient puisse voir l’extérieur, et remplacez le fluorescent froid par une température de couleur chaude à neutre. En 1984, dans <em>Science</em>, Ulrich a montré que des patients dont la chambre donnait sur des arbres quittaient l’hôpital plus tôt après leur opération que ceux qui faisaient face à un mur. Votre cabinet n’est pas un service de chirurgie, mais le mécanisme ne change pas de nature en changeant de lieu.')
+    || pg_temp.para('Sur les neuf points du chapitre, un seul se règle en un après-midi et presque sans budget : la lumière.')
+    || pg_temp.encart('<strong>Trois gestes.</strong> Orientez la table pour que le patient puisse voir l’extérieur. Remplacez le fluorescent froid par une lumière chaude à neutre. Gardez la lumière du jour autant que possible, plutôt que de baisser les stores par réflexe.')
+    || pg_temp.para('Pourquoi ça compte : en 1984, dans <em>Science</em>, Ulrich a montré que des patients dont la chambre donnait sur des arbres quittaient l’hôpital plus tôt après leur opération que ceux qui faisaient face à un mur. Votre cabinet n’est pas un service de chirurgie, mais le mécanisme ne change pas de nature en changeant de lieu.')
+    || pg_temp.bouton('Voir la vidéo sur l’éclairage', 'https://www.osteo-upgrade.fr/f/effet-placebo')
     || pg_temp.bloc_code()
   ),
-  E'Bonjour {{first_name}},\n\nLa page vous promettait sept vidéos. Le chapitre en compte neuf. « Salle d’attente » et « Odeurs et thérapeute » sont désormais sur votre page, à la suite des autres.\n\nhttps://www.osteo-upgrade.fr/f/effet-placebo\n\nSi vous ne changez qu’une chose cette semaine : la lumière. Orientez la table pour que le patient puisse voir l’extérieur, et remplacez le fluorescent froid par une température de couleur chaude à neutre. En 1984, dans Science, Ulrich a montré que des patients dont la chambre donnait sur des arbres quittaient l’hôpital plus tôt après leur opération que ceux qui faisaient face à un mur.\n\nVotre code personnel : {{promo_code}}\n{{promo_percent}} % de remise pendant {{promo_months}} mois, valable jusqu’au {{promo_expires}}.\nIl s’applique tout seul au moment de l’abonnement.\nPensez à créer votre compte avec cette même adresse email.\n\nÀ très vite,\nL’équipe OsteoUpgrade × MyOsteoflow'
+  E'Bonjour {{first_name}},\n\nSur les neuf points du chapitre, un seul se règle en un après-midi et presque sans budget : la lumière.\n\nTrois gestes. Orientez la table pour que le patient puisse voir l’extérieur. Remplacez le fluorescent froid par une lumière chaude à neutre. Gardez la lumière du jour autant que possible, plutôt que de baisser les stores par réflexe.\n\nPourquoi ça compte : en 1984, dans Science, Ulrich a montré que des patients dont la chambre donnait sur des arbres quittaient l’hôpital plus tôt après leur opération que ceux qui faisaient face à un mur.\n\nLa vidéo sur l’éclairage : https://www.osteo-upgrade.fr/f/effet-placebo\n\nVotre code personnel : {{promo_code}}\n{{promo_percent}} % de remise pendant {{promo_months}} mois, valable jusqu’au {{promo_expires}}.\nIl s’applique tout seul au moment de l’abonnement.\nPensez à créer votre compte avec cette même adresse email.\n\nÀ très vite,\nL’équipe OsteoUpgrade × MyOsteoflow'
 ),
 (
   'funnel-placebo-3-mecanisme',
@@ -124,14 +126,14 @@ INSERT INTO public.mail_templates (name, subject, description, html, text) VALUE
     'Ce n’est pas un truc',
     'C’est un mécanisme, et il se documente',
     pg_temp.para('Bonjour <strong>{{first_name}}</strong>,')
-    || pg_temp.para('Ce que vous venez de voir porte sur l’environnement. C’est la couche visible, celle qu’on peut changer dès lundi.')
+    || pg_temp.para('Le chapitre offert porte sur l’environnement. C’est la couche visible, celle qu’on peut changer dès lundi.')
     || pg_temp.para('En dessous, il y a une pharmacologie. Système opioïde endogène, endocannabinoïdes, dopamine, modulation descendante de la douleur. C’est le premier chapitre de la formation, et c’est ce qui sépare appliquer une recette de savoir pourquoi elle fonctionne, donc de savoir la rattraper quand elle ne fonctionne pas.')
     || pg_temp.encart('<strong>Les six chapitres restants.</strong> Comprendre l’effet placebo en thérapie manuelle, les facteurs contextuels, l’alliance thérapeutique, optimiser les attentes, le toucher thérapeutique intentionnel, l’intégration pratique.')
     || pg_temp.para('L’abonnement OsteoUpgrade ouvre cette formation en entier, et les six autres du catalogue. <strong>29,99 &euro; par mois, 20,99 &euro; avec votre code pendant trois mois.</strong> Les sept premiers jours ne sont pas prélevés.')
     || pg_temp.bouton('Découvrir OsteoUpgrade', 'https://www.osteo-upgrade.fr/auth?funnel=effet-placebo&amp;plan=osteoupgrade_monthly')
     || pg_temp.bloc_code()
   ),
-  E'Bonjour {{first_name}},\n\nCe que vous venez de voir porte sur l’environnement. C’est la couche visible.\n\nEn dessous, il y a une pharmacologie : système opioïde endogène, endocannabinoïdes, dopamine, modulation descendante de la douleur. C’est le premier chapitre de la formation, et c’est ce qui sépare appliquer une recette de savoir pourquoi elle fonctionne.\n\nLes six chapitres restants : comprendre l’effet placebo en thérapie manuelle, les facteurs contextuels, l’alliance thérapeutique, optimiser les attentes, le toucher thérapeutique intentionnel, l’intégration pratique.\n\nL’abonnement OsteoUpgrade ouvre cette formation en entier, et les six autres du catalogue. 29,99 EUR par mois, 20,99 EUR avec votre code pendant trois mois. Les sept premiers jours ne sont pas prélevés.\n\nhttps://www.osteo-upgrade.fr/auth?funnel=effet-placebo&plan=osteoupgrade_monthly\n\nVotre code personnel : {{promo_code}}\n{{promo_percent}} % de remise pendant {{promo_months}} mois, valable jusqu’au {{promo_expires}}.\nIl s’applique tout seul au moment de l’abonnement.\nPensez à créer votre compte avec cette même adresse email.\n\nÀ très vite,\nL’équipe OsteoUpgrade × MyOsteoflow'
+  E'Bonjour {{first_name}},\n\nLe chapitre offert porte sur l’environnement. C’est la couche visible.\n\nEn dessous, il y a une pharmacologie : système opioïde endogène, endocannabinoïdes, dopamine, modulation descendante de la douleur. C’est le premier chapitre de la formation, et c’est ce qui sépare appliquer une recette de savoir pourquoi elle fonctionne.\n\nLes six chapitres restants : comprendre l’effet placebo en thérapie manuelle, les facteurs contextuels, l’alliance thérapeutique, optimiser les attentes, le toucher thérapeutique intentionnel, l’intégration pratique.\n\nL’abonnement OsteoUpgrade ouvre cette formation en entier, et les six autres du catalogue. 29,99 EUR par mois, 20,99 EUR avec votre code pendant trois mois. Les sept premiers jours ne sont pas prélevés.\n\nhttps://www.osteo-upgrade.fr/auth?funnel=effet-placebo&plan=osteoupgrade_monthly\n\nVotre code personnel : {{promo_code}}\n{{promo_percent}} % de remise pendant {{promo_months}} mois, valable jusqu’au {{promo_expires}}.\nIl s’applique tout seul au moment de l’abonnement.\nPensez à créer votre compte avec cette même adresse email.\n\nÀ très vite,\nL’équipe OsteoUpgrade × MyOsteoflow'
 ),
 (
   'funnel-placebo-4-premium',
@@ -142,13 +144,13 @@ INSERT INTO public.mail_templates (name, subject, description, html, text) VALUE
     'La salle de soin, puis le bureau',
     'Premium : la formation et le logiciel de cabinet',
     pg_temp.para('Bonjour <strong>{{first_name}}</strong>,')
-    || pg_temp.para('Vous venez de passer quelques jours à repenser votre salle de soin. Il y a une autre pièce qui vous coûte du temps chaque semaine, et elle ne se range pas avec de la lumière chaude.')
+    || pg_temp.para('Le chapitre offert porte sur la salle de soin. Il y a une autre pièce qui vous coûte du temps chaque semaine, et elle ne se range pas avec de la lumière chaude.')
     || pg_temp.encart('<strong>MyOsteoflow.</strong> Dossiers patients et consultations, prise de note par dictée vocale, facturation et comptabilité, objectifs et statistiques de cabinet.')
     || pg_temp.para('Séparément, ce sont deux abonnements à 29,99 &euro;. Ensemble, <strong>Premium est à 49,99 &euro; par mois, soit 34,99 &euro; avec votre code pendant trois mois.</strong> Une seule facture, et les sept premiers jours ne sont pas prélevés non plus.')
     || pg_temp.bouton('Découvrir Premium', 'https://www.osteo-upgrade.fr/auth?funnel=effet-placebo&amp;plan=premium_monthly')
     || pg_temp.bloc_code()
   ),
-  E'Bonjour {{first_name}},\n\nVous venez de passer quelques jours à repenser votre salle de soin. Il y a une autre pièce qui vous coûte du temps chaque semaine, et elle ne se range pas avec de la lumière chaude.\n\nMyOsteoflow : dossiers patients et consultations, prise de note par dictée vocale, facturation et comptabilité, objectifs et statistiques de cabinet.\n\nSéparément, ce sont deux abonnements à 29,99 EUR. Ensemble, Premium est à 49,99 EUR par mois, soit 34,99 EUR avec votre code pendant trois mois.\n\nhttps://www.osteo-upgrade.fr/auth?funnel=effet-placebo&plan=premium_monthly\n\nVotre code personnel : {{promo_code}}\n{{promo_percent}} % de remise pendant {{promo_months}} mois, valable jusqu’au {{promo_expires}}.\nIl s’applique tout seul au moment de l’abonnement.\nPensez à créer votre compte avec cette même adresse email.\n\nÀ très vite,\nL’équipe OsteoUpgrade × MyOsteoflow'
+  E'Bonjour {{first_name}},\n\nLe chapitre offert porte sur la salle de soin. Il y a une autre pièce qui vous coûte du temps chaque semaine, et elle ne se range pas avec de la lumière chaude.\n\nMyOsteoflow : dossiers patients et consultations, prise de note par dictée vocale, facturation et comptabilité, objectifs et statistiques de cabinet.\n\nSéparément, ce sont deux abonnements à 29,99 EUR. Ensemble, Premium est à 49,99 EUR par mois, soit 34,99 EUR avec votre code pendant trois mois.\n\nhttps://www.osteo-upgrade.fr/auth?funnel=effet-placebo&plan=premium_monthly\n\nVotre code personnel : {{promo_code}}\n{{promo_percent}} % de remise pendant {{promo_months}} mois, valable jusqu’au {{promo_expires}}.\nIl s’applique tout seul au moment de l’abonnement.\nPensez à créer votre compte avec cette même adresse email.\n\nÀ très vite,\nL’équipe OsteoUpgrade × MyOsteoflow'
 ),
 (
   'funnel-placebo-5-dernier-jour',
@@ -210,8 +212,8 @@ INSERT INTO public.mail_automation_steps (automation_id, step_order, wait_minute
 SELECT a.id, e.step_order, e.wait_minutes, e.subject, e.template_slug
 FROM public.mail_automations a
 CROSS JOIN (VALUES
-  (1,     0, 'Vos 7 vidéos, et votre code de remise', 'funnel-placebo-1-acces'),
-  (2,  2880, 'Deux vidéos de plus vous attendent', 'funnel-placebo-2-bonus'),
+  (1,     0, 'Vos 9 vidéos, et votre code de remise', 'funnel-placebo-1-acces'),
+  (2,  2880, 'La lumière est le réglage le moins cher de votre cabinet', 'funnel-placebo-2-lumiere'),
   (3,  2880, 'Pourquoi ça marche, et pourquoi ce n’est pas un truc', 'funnel-placebo-3-mecanisme'),
   (4,  1440, 'L’autre pièce qui vous prend du temps', 'funnel-placebo-4-premium'),
   (5,  1440, 'Votre code expire demain', 'funnel-placebo-5-dernier-jour'),
