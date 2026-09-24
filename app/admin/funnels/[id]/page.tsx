@@ -37,6 +37,8 @@ type Lead = {
   utm: Record<string, string>
   created_at: string
   deadline_at: string | null
+  promo_code: string | null
+  promo_expires_at: string | null
 }
 
 const inputClass =
@@ -241,6 +243,7 @@ export default function FunnelEditorPage({ params }: { params: { id: string } })
             form.deadline_mode === 'relative' && form.deadline_days
               ? Number(form.deadline_days)
               : null,
+          deadline_blocks_checkout: form.deadline_blocks_checkout !== false,
         }),
       })
 
@@ -506,6 +509,25 @@ export default function FunnelEditorPage({ params }: { params: { id: string } })
                 </p>
               </div>
             )}
+
+            {form.deadline_mode !== 'none' && (
+              <label className="flex items-start gap-3 rounded-xl border border-slate-200 bg-white p-3">
+                <input
+                  type="checkbox"
+                  className="mt-1"
+                  checked={form.deadline_blocks_checkout !== false}
+                  onChange={(e) => set({ deadline_blocks_checkout: e.target.checked })}
+                />
+                <span className="text-sm text-slate-700">
+                  <span className="font-semibold">Fermer la vente à l’échéance</span>
+                  <span className="mt-0.5 block text-xs text-slate-500">
+                    Coché : l’offre disparaît vraiment, le paiement est refusé après la date.
+                    Décoché : le décompte n’est qu’un affichage et l’abonnement reste possible au
+                    plein tarif. À décocher quand l’échéance ne borne qu’une remise.
+                  </span>
+                </span>
+              </label>
+            )}
           </div>
         </section>
 
@@ -638,6 +660,7 @@ export default function FunnelEditorPage({ params }: { params: { id: string } })
                     <th className="pb-2">Email</th>
                     <th className="pb-2">Prénom</th>
                     <th className="pb-2">Campagne</th>
+                    <th className="pb-2">Code remise</th>
                     <th className="pb-2">Date</th>
                   </tr>
                 </thead>
@@ -648,6 +671,25 @@ export default function FunnelEditorPage({ params }: { params: { id: string } })
                       <td className="py-2 text-slate-600">{lead.full_name || ''}</td>
                       <td className="py-2 text-slate-500">
                         {lead.utm?.utm_campaign || lead.utm?.utm_source || ''}
+                      </td>
+                      {/* Le code sert au service client : « j'ai perdu mon
+                          code » se règle ici, sans ouvrir Stripe. Grisé une
+                          fois périmé. */}
+                      <td className="py-2 whitespace-nowrap font-mono text-xs">
+                        {lead.promo_code ? (
+                          <span
+                            className={
+                              lead.promo_expires_at &&
+                              new Date(lead.promo_expires_at).getTime() < Date.now()
+                                ? 'text-slate-300 line-through'
+                                : 'text-violet-700'
+                            }
+                          >
+                            {lead.promo_code}
+                          </span>
+                        ) : (
+                          <span className="text-slate-300">aucun</span>
+                        )}
                       </td>
                       <td className="py-2 whitespace-nowrap text-slate-500">
                         {new Date(lead.created_at).toLocaleDateString('fr-FR')}

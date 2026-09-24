@@ -29,7 +29,7 @@ export async function GET(_request: Request, { params }: { params: { id: string 
   const [{ data: leads }, { data: statsRows }] = await Promise.all([
     supabaseAdmin
       .from('funnel_leads')
-      .select('id, email, full_name, utm, created_at, deadline_at')
+      .select('id, email, full_name, utm, created_at, deadline_at, promo_code, promo_expires_at')
       .eq('funnel_id', params.id)
       .order('created_at', { ascending: false })
       .limit(50),

@@ -37,6 +37,13 @@ export default function OptinForm({
   const [lastName, setLastName] = useState('')
   const [status, setStatus] = useState<'idle' | 'loading' | 'done'>('idle')
   const [error, setError] = useState<string | null>(null)
+  /** Remise personnelle renvoyée par l'inscription, quand la page en accorde une. */
+  const [promo, setPromo] = useState<{
+    code: string
+    expires_at: string | null
+    percent: number
+    months: number
+  } | null>(null)
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -61,6 +68,7 @@ export default function OptinForm({
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Inscription impossible')
 
+      setPromo(data.promo ?? null)
       setStatus('done')
       onOptin?.(data.deadline_at ?? null)
     } catch (err: any) {
@@ -78,6 +86,30 @@ export default function OptinForm({
         <p className="font-semibold text-emerald-900">
           {successMessage || 'C’est noté ! Vérifiez votre boîte mail.'}
         </p>
+
+        {/* Le code est aussi envoyé par email : l'afficher ici évite d'obliger
+            à quitter la page pour aller le chercher dans sa boîte. */}
+        {promo && (
+          <div className="mt-5 rounded-xl border border-violet-200 bg-white p-4 text-left">
+            <p className="text-sm text-slate-600">
+              Votre code personnel, pour {promo.percent} % de remise pendant{' '}
+              {promo.months} mois sur l’abonnement de votre choix :
+            </p>
+            <p className="mt-2 text-center font-mono text-xl font-bold tracking-widest text-violet-700">
+              {promo.code}
+            </p>
+            {promo.expires_at && (
+              <p className="mt-2 text-center text-sm text-slate-500">
+                Valable jusqu’au{' '}
+                {new Date(promo.expires_at).toLocaleDateString('fr-FR', {
+                  day: 'numeric',
+                  month: 'long',
+                })}
+                . Il s’applique tout seul au moment de l’abonnement.
+              </p>
+            )}
+          </div>
+        )}
       </div>
     )
   }

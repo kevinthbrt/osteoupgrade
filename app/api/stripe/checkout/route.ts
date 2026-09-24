@@ -213,6 +213,11 @@ export async function POST(request: Request) {
       !trialProfile?.subscription_start_date &&
       !trialProfile?.is_founding_member
 
+    // Remise du funnel à appliquer, s'il y en a une de valide pour cette
+    // adresse. Renseignée dans le bloc ci-dessous, lue à la création de la
+    // session.
+    let promotionCodeId: string | null = null
+
     // 🕒 Échéance du funnel.
     //
     // Le compte à rebours affiché sur la page n'engage que le navigateur : un
@@ -222,7 +227,7 @@ export async function POST(request: Request) {
     if (funnelSlug) {
       const { data: funnel } = await supabaseAdmin
         .from('funnels')
-        .select('id, plan_type, deadline_mode, deadline_at, deadline_days')
+        .select('id, plan_type, deadline_mode, deadline_at, deadline_days, deadline_blocks_checkout')
         .eq('slug', String(funnelSlug))
         .eq('status', 'published')
         .maybeSingle()
@@ -256,7 +261,37 @@ export async function POST(request: Request) {
           if (lead?.deadline_at) echeance = new Date(lead.deadline_at)
         }
 
-        if (echeance && echeance.getTime() < Date.now()) {
+        // 🎟️ Remise personnelle.
+        //
+        // Le code n'est jamais accepté depuis la requête : il est relu sur le
+        // lead, à partir du funnel et de l'adresse. Le faire confiance au
+        // client reviendrait à laisser n'importe qui réclamer le code d'un
+        // autre. Stripe refuserait un code déjà consommé, mais il a aussi une
+        // date : autant ne pas ouvrir la question.
+        const { data: leadPromo } = await supabaseAdmin
+          .from('funnel_leads')
+          .select('promo_code_id, promo_expires_at')
+          .eq('funnel_id', funnel.id)
+          .eq('email', email)
+          .maybeSingle()
+
+        if (
+          leadPromo?.promo_code_id &&
+          leadPromo.promo_expires_at &&
+          new Date(leadPromo.promo_expires_at).getTime() > Date.now()
+        ) {
+          promotionCodeId = leadPromo.promo_code_id
+        }
+
+        // Une échéance ne ferme la vente que si la page le demande. Quand elle
+        // ne borne qu'une remise, refuser le paiement serait absurde : le
+        // prospect qui se décide au huitième jour doit pouvoir s'abonner au
+        // plein tarif. C'est Stripe qui refusera alors le code expiré.
+        if (
+          echeance &&
+          echeance.getTime() < Date.now() &&
+          funnel.deadline_blocks_checkout !== false
+        ) {
           console.warn('⏳ Offre expirée refusée:', { funnelSlug, planType, userId })
           return NextResponse.json(
             { error: 'Cette offre est terminée.' },
@@ -289,7 +324,13 @@ export async function POST(request: Request) {
       customer_email: email,
       client_reference_id: userId,
       payment_method_types: ['card'],
-      allow_promotion_codes: true,
+      // Stripe interdit les deux à la fois. Quand une remise personnelle
+      // s'applique, elle est posée d'office et le champ de saisie disparaît :
+      // demander à quelqu'un de recopier un code qu'on connaît déjà est une
+      // friction gratuite au moment le plus coûteux du parcours.
+      ...(promotionCodeId
+        ? { discounts: [{ promotion_code: promotionCodeId }] }
+        : { allow_promotion_codes: true }),
       line_items: [
         {
           price: plan.priceId,

@@ -10,6 +10,12 @@ import {
   optinCookieName,
   slugSchema,
 } from '@/lib/funnels'
+import {
+  PROMO_MONTHS,
+  PROMO_PERCENT,
+  createLeadPromo,
+  formatPromoDate,
+} from '@/lib/funnel-promo'
 import { UTM_KEYS } from '@/lib/utm'
 
 /**
@@ -134,33 +140,46 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // L'inscription à la liste est acquise à ce stade ; l'échec d'une séquence
-    // ne doit donc pas faire échouer l'opt-in du visiteur.
-    const triggerResult = await triggerAutomations(funnelTriggerEvent(slug), {
-      contact_id: contactId ?? undefined,
-      contact_email: email,
-      full_name,
-      metadata: { funnel_slug: slug, ...utm },
-    })
-
-    if (triggerResult.errors.length > 0) {
-      console.error('Funnel opt-in : erreurs d’automatisation:', triggerResult.errors)
-    }
-
     const contact = contactId ? { id: contactId } : null
 
     // Un renvoi du formulaire ne doit PAS repousser l'échéance : sinon il
     // suffirait de se réinscrire pour rouvrir indéfiniment une offre fermée.
     // On distingue donc création et mise à jour, plutôt qu'un upsert qui
-    // réécrirait `deadline_at` à chaque envoi.
+    // réécrirait `deadline_at` à chaque envoi. La règle vaut aussi pour la
+    // remise : un code déjà émis est renvoyé tel quel, avec sa date d'origine.
     const { data: existing } = await supabaseAdmin
       .from('funnel_leads')
-      .select('id, deadline_at')
+      .select('id, deadline_at, promo_code, promo_code_id, promo_expires_at')
       .eq('funnel_id', funnel.id)
       .eq('email', email)
       .maybeSingle()
 
-    let lead: { id: string; deadline_at: string | null } | null = null
+    type Lead = {
+      id: string
+      deadline_at: string | null
+      promo_code: string | null
+      promo_code_id: string | null
+      promo_expires_at: string | null
+    }
+
+    // Le code n'est créé que s'il n'en existe pas encore. Un lead sans code est
+    // soit un nouveau venu, soit quelqu'un dont la création a échoué chez
+    // Stripe la première fois : dans les deux cas une remise lui est due.
+    // Quelqu'un qui en a déjà un ne peut pas s'en fabriquer un second en
+    // renvoyant le formulaire, même expiré.
+    let promo: { code: string; id: string; expiresAt: Date } | null = null
+    if (!existing?.promo_code) {
+      try {
+        promo = await createLeadPromo(slug.replace(/-/g, '').slice(0, 8))
+      } catch (err) {
+        // Stripe indisponible ne doit pas coûter l'adresse email : le lead est
+        // enregistré sans code, et la séquence se replie sur un message sans
+        // remise plutôt que d'en promettre une qui n'existe pas.
+        console.error('Funnel opt-in, création du code promo:', err)
+      }
+    }
+
+    let lead: Lead | null = null
 
     if (existing) {
       // Mise à jour minimale : on ne renseigne que ce qu'on vient d'apprendre.
@@ -168,24 +187,29 @@ export async function POST(req: NextRequest) {
       const patch: Record<string, unknown> = {}
       if (full_name) patch.full_name = full_name
       if (contact?.id) patch.contact_id = contact.id
+      if (promo) {
+        patch.promo_code = promo.code
+        patch.promo_code_id = promo.id
+        patch.promo_expires_at = promo.expiresAt.toISOString()
+      }
 
       if (Object.keys(patch).length === 0) {
         // Rien de neuf à écrire : un `update({})` partirait quand même en base
         // pour ne rien changer.
-        lead = existing
+        lead = existing as Lead
       } else {
         const { data: updated, error: updateError } = await supabaseAdmin
           .from('funnel_leads')
           .update(patch)
           .eq('id', existing.id)
-          .select('id, deadline_at')
+          .select('id, deadline_at, promo_code, promo_code_id, promo_expires_at')
           .single()
 
         if (updateError) {
           console.error('Erreur de mise à jour du lead:', updateError.message)
           return NextResponse.json({ error: 'Enregistrement impossible' }, { status: 500 })
         }
-        lead = updated
+        lead = updated as Lead
       }
     } else {
       const { data: created, error: insertError } = await supabaseAdmin
@@ -199,19 +223,47 @@ export async function POST(req: NextRequest) {
           landing_path: landing_path || null,
           referrer: req.headers.get('referer')?.slice(0, 200) || null,
           deadline_at: deadline?.toISOString() ?? null,
+          promo_code: promo?.code ?? null,
+          promo_code_id: promo?.id ?? null,
+          promo_expires_at: promo?.expiresAt.toISOString() ?? null,
         })
-        .select('id, deadline_at')
+        .select('id, deadline_at, promo_code, promo_code_id, promo_expires_at')
         .single()
 
       if (insertError) {
         console.error('Erreur d’enregistrement du lead:', insertError.message)
         return NextResponse.json({ error: 'Enregistrement impossible' }, { status: 500 })
       }
-      lead = created
+      lead = created as Lead
     }
 
     if (!lead) {
       return NextResponse.json({ error: 'Enregistrement impossible' }, { status: 500 })
+    }
+
+    // La séquence part APRÈS l'enregistrement du lead, parce qu'elle a besoin
+    // du code : les clés passées ici deviennent les variables `{{...}}` des
+    // gabarits, sans modification du moteur d'envoi.
+    //
+    // L'inscription à la liste est acquise à ce stade ; l'échec d'une séquence
+    // ne doit donc pas faire échouer l'opt-in du visiteur.
+    const promoExpire = lead.promo_expires_at ? new Date(lead.promo_expires_at) : null
+    const triggerResult = await triggerAutomations(funnelTriggerEvent(slug), {
+      contact_id: contactId ?? undefined,
+      contact_email: email,
+      full_name,
+      metadata: {
+        funnel_slug: slug,
+        ...utm,
+        promo_code: lead.promo_code ?? '',
+        promo_expires: promoExpire ? formatPromoDate(promoExpire) : '',
+        promo_percent: String(PROMO_PERCENT),
+        promo_months: String(PROMO_MONTHS),
+      },
+    })
+
+    if (triggerResult.errors.length > 0) {
+      console.error('Funnel opt-in : erreurs d’automatisation:', triggerResult.errors)
     }
 
     await supabaseAdmin.from('funnel_events').insert({
@@ -222,10 +274,22 @@ export async function POST(req: NextRequest) {
       utm,
     })
 
+    // Le code est renvoyé au navigateur pour être affiché sur l'écran de
+    // confirmation. C'est le seul endroit où la page peut le montrer : le
+    // cookie de déverrouillage ne contient qu'un drapeau, donc un rendu
+    // serveur ultérieur ne sait pas quel visiteur il sert.
     const response = NextResponse.json({
       ok: true,
       deadline_at: lead.deadline_at,
       enrolled: triggerResult.enrolled,
+      promo: lead.promo_code
+        ? {
+            code: lead.promo_code,
+            expires_at: lead.promo_expires_at,
+            percent: PROMO_PERCENT,
+            months: PROMO_MONTHS,
+          }
+        : null,
     })
 
     // Déverrouille les blocs réservés de cette page. Lisible par le script de
