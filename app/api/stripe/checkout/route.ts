@@ -261,27 +261,6 @@ export async function POST(request: Request) {
           if (lead?.deadline_at) echeance = new Date(lead.deadline_at)
         }
 
-        // 🎟️ Remise personnelle.
-        //
-        // Le code n'est jamais accepté depuis la requête : il est relu sur le
-        // lead, à partir du funnel et de l'adresse. Le faire confiance au
-        // client reviendrait à laisser n'importe qui réclamer le code d'un
-        // autre. Stripe refuserait un code déjà consommé, mais il a aussi une
-        // date : autant ne pas ouvrir la question.
-        const { data: leadPromo } = await supabaseAdmin
-          .from('funnel_leads')
-          .select('promo_code_id, promo_expires_at')
-          .eq('funnel_id', funnel.id)
-          .eq('email', email)
-          .maybeSingle()
-
-        if (
-          leadPromo?.promo_code_id &&
-          leadPromo.promo_expires_at &&
-          new Date(leadPromo.promo_expires_at).getTime() > Date.now()
-        ) {
-          promotionCodeId = leadPromo.promo_code_id
-        }
 
         // Une échéance ne ferme la vente que si la page le demande. Quand elle
         // ne borne qu'une remise, refuser le paiement serait absurde : le
@@ -299,6 +278,34 @@ export async function POST(request: Request) {
           )
         }
       }
+    }
+
+    // 🎟️ Remise personnelle.
+    //
+    // Cherchée sur l'adresse du compte, et non sur le funnel d'arrivée. Quelqu'un
+    // qui ferme l'onglet, revient deux jours plus tard et s'abonne depuis la page
+    // des tarifs a perdu le paramètre `funnel` en route : lui refuser sa remise
+    // pour cette raison serait incompréhensible de son côté.
+    //
+    // Le code n'est jamais accepté depuis la requête. Faire confiance au client
+    // reviendrait à laisser n'importe qui réclamer le code d'un autre.
+    //
+    // Les tarifs Fondateur en sont exclus. Le coupon est restreint aux trois prix
+    // mensuels, donc le présenter sur une offre Fondateur ne raterait pas la
+    // remise : Stripe refuserait la session entière.
+    if (!plan.isFounding) {
+      const { data: leadPromo } = await supabaseAdmin
+        .from('funnel_leads')
+        .select('promo_code_id, promo_expires_at')
+        .eq('email', email)
+        .not('promo_code_id', 'is', null)
+        .gt('promo_expires_at', new Date().toISOString())
+        // Le code qui expire le plus tôt d'abord : c'est celui qu'on perdrait.
+        .order('promo_expires_at', { ascending: true })
+        .limit(1)
+        .maybeSingle()
+
+      if (leadPromo?.promo_code_id) promotionCodeId = leadPromo.promo_code_id
     }
 
     // Attribution de la campagne. Le cookie a été posé sur la page d'arrivée
@@ -320,7 +327,7 @@ export async function POST(request: Request) {
     })
 
     // Créer une session de paiement Stripe sans engagement
-    const session = await stripe.checkout.sessions.create({
+    const parametresSession: any = {
       customer_email: email,
       client_reference_id: userId,
       payment_method_types: ['card'],
@@ -366,7 +373,24 @@ export async function POST(request: Request) {
           ...attributionMetadata
         }
       }
-    })
+    }
+
+    // Un code que Stripe refuse fait échouer la session entière, pas seulement
+    // la remise. Cela arrive pour de vrai : un code déjà consommé par un premier
+    // abonnement, ou supprimé depuis le tableau de bord. Laisser l'erreur
+    // remonter interdirait de s'abonner à quelqu'un qui le veut et qui paie.
+    // On réessaie donc une fois sans remise, et on la laisse partir plutôt que
+    // la vente.
+    let session
+    try {
+      session = await stripe.checkout.sessions.create(parametresSession)
+    } catch (err: any) {
+      if (!promotionCodeId) throw err
+      console.warn('🎟️ Remise refusée par Stripe, reprise au plein tarif:', err?.message)
+      delete parametresSession.discounts
+      parametresSession.allow_promotion_codes = true
+      session = await stripe.checkout.sessions.create(parametresSession)
+    }
 
     console.log('✅ Stripe session created:', {
       sessionId: session.id,

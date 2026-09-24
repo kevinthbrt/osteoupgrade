@@ -370,8 +370,18 @@ Points de vigilance :
   à moitié prix à vie, une remise empilée reviendrait à offrir l'abonnement ;
 - changer le pourcentage impose de changer l'identifiant du coupon. Les
   abonnements déjà remisés courent dessus, il ne doit pas bouger sous eux ;
-- le code est relu sur le lead au moment du paiement, jamais accepté depuis la
-  requête : sinon n'importe qui réclamerait le code d'un autre ;
+- le code est relu au moment du paiement à partir de l'adresse du compte,
+  jamais accepté depuis la requête : sinon n'importe qui réclamerait le code
+  d'un autre. La recherche ne dépend pas du funnel d'arrivée, car quelqu'un qui
+  revient deux jours plus tard et s'abonne depuis la page des tarifs a perdu le
+  paramètre `funnel` en route ;
+- elle dépend en revanche de l'adresse : s'inscrire au funnel avec une adresse
+  et créer son compte avec une autre fait payer le plein tarif. C'est pour cela
+  que l'écran de confirmation et les emails rappellent d'utiliser la même ;
+- un code refusé par Stripe (déjà consommé, supprimé depuis le tableau de bord)
+  ferait échouer la session de paiement entière, pas seulement la remise. La
+  création est donc réessayée une fois sans remise : mieux vaut perdre la remise
+  que la vente ;
 - Stripe interdit `discounts` et `allow_promotion_codes` sur la même session.
   Quand une remise s'applique, le champ de saisie disparaît ;
 - si Stripe est indisponible à l'inscription, le lead est enregistré sans code
