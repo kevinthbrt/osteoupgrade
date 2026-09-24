@@ -348,3 +348,45 @@ supabase db push
   `mode: 'subscription'`. Vendre une formation à prix unique demanderait un
   mode `payment`, donc un parcours et des droits distincts.
 - Le compteur de vues n'exclut pas les robots.
+
+## Remise personnelle
+
+Chaque inscription à un funnel crée **son propre code promotionnel Stripe**,
+à usage unique, valable sept jours à compter de cette inscription
+(`lib/funnel-promo.ts`). Le coupon, qui porte la remise, est partagé et créé
+à la première utilisation sous un identifiant fixe ; les codes, qui sont les
+jetons d'accès à cette remise, sont individuels. C'est le découpage prévu par
+Stripe.
+
+Ce détour est ce qui rend l'échéance honnête. Un code de campagne unique porte
+une date de fin absolue, la même pour tout le monde, alors que les inscriptions
+arrivent en continu : écrire « il vous reste sept jours » dans une séquence
+permanente reviendrait sinon à annoncer une échéance qu'on n'applique pas.
+
+Points de vigilance :
+
+- le coupon est restreint aux trois offres mensuelles publiques. Les tarifs
+  Fondateur en sont exclus, comme ils le sont déjà de l'essai gratuit : ils sont
+  à moitié prix à vie, une remise empilée reviendrait à offrir l'abonnement ;
+- changer le pourcentage impose de changer l'identifiant du coupon. Les
+  abonnements déjà remisés courent dessus, il ne doit pas bouger sous eux ;
+- le code est relu sur le lead au moment du paiement, jamais accepté depuis la
+  requête : sinon n'importe qui réclamerait le code d'un autre ;
+- Stripe interdit `discounts` et `allow_promotion_codes` sur la même session.
+  Quand une remise s'applique, le champ de saisie disparaît ;
+- si Stripe est indisponible à l'inscription, le lead est enregistré sans code
+  et la tentative suivante en crée un. Entre les deux, les emails afficheront un
+  code vide : la liste des leads de l'administration affiche « aucun » pour
+  rendre le cas visible.
+
+L'essai gratuit de sept jours se cumule. Ce n'est pas un réglage du funnel mais
+une règle de compte, ouverte une fois dans la vie d'un compte gratuit : il n'est
+pas possible de le désactiver pour une seule page.
+
+### Échéance qui ferme, échéance qui affiche
+
+`deadline_blocks_checkout` sépare les deux usages. Une offre limitée doit
+vraiment se fermer, sinon le décompte n'est qu'un décor. Une remise limitée,
+non : passé le délai, le prospect doit pouvoir s'abonner au plein tarif plutôt
+que de se heurter à une porte fermée, et c'est Stripe qui refusera le code
+expiré.

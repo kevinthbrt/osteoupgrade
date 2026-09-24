@@ -5,6 +5,19 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/).
 
 ---
 
+## [1.11.0] : 2026-09-24
+
+### Ajouté
+
+- **Remise personnelle sur les funnels** : chaque inscription crée son propre code promotionnel Stripe, à usage unique, valable sept jours à compter de cette inscription. Trente pour cent sur les trois premières mensualités, restreint aux trois offres mensuelles publiques. Un code de campagne unique porte une date de fin absolue, identique pour tout le monde, alors que les inscriptions arrivent en continu : annoncer « il vous reste sept jours » dans une séquence permanente n'était donc possible qu'à ce prix. (`lib/funnel-promo.ts`, `supabase/migrations/20260924_funnel_promo.sql`)
+- **La remise s'applique sans être recopiée** : le code n'est jamais accepté depuis la requête, il est relu sur le lead à partir du funnel et de l'adresse, puis posé d'office sur la session Stripe. Demander de recopier un code qu'on connaît déjà est une friction gratuite au moment le plus coûteux du parcours. Le champ de saisie reste affiché quand aucune remise ne s'applique, les deux étant exclusifs chez Stripe.
+- **Le code survit au renvoi du formulaire** : un lead qui en possède déjà un le retrouve tel quel, avec sa date d'origine, même expiré. Un lead qui n'en a pas, parce que Stripe était indisponible, en obtient un à la tentative suivante. Il est visible dans la liste des leads de l'administration, barré une fois périmé, pour répondre à un « j'ai perdu mon code » sans ouvrir Stripe.
+- **Séquence email du funnel effet placebo** : six messages sur huit jours, articulés autour du code. Accès et code, les deux vidéos non annoncées, le mécanisme puis OsteoUpgrade, Premium, le rappel de la veille, et un dernier message après expiration qui ne propose plus de remise mais rappelle l'essai. Les variables `{{promo_code}}` et `{{promo_expires}}` passent par `mail_automation_enrollments.metadata` : le moteur d'envoi n'a pas eu à changer. Créée inactive. (`supabase/migrations/20260924_funnel_placebo_sequence.sql`)
+- **Deux vidéos de plus sur `/f/effet-placebo`** : « Salle d'attente » et « Odeurs et thérapeute ». Le chapitre offert en compte neuf, la page n'en montrait que sept. Elles sont réservées aux inscrits, comme les autres, ce qui donne à la séquence quelque chose à annoncer qui n'est pas un simple rappel.
+- **Échéance d'affichage** : une échéance de funnel ferme la vente ou se contente de l'annoncer, au choix (`deadline_blocks_checkout`). Une offre limitée doit vraiment se fermer, sinon le décompte est un décor ; une remise limitée, non : passé le délai, le prospect doit pouvoir s'abonner au plein tarif plutôt que de se heurter à une porte fermée.
+
+---
+
 ## [1.10.0] : 2026-09-22
 
 ### Ajouté

@@ -411,6 +411,14 @@ export const funnelInputSchema = z
     deadline_mode: z.enum(DEADLINE_MODES).default('none'),
     deadline_at: z.string().datetime({ offset: true }).optional().nullable(),
     deadline_days: z.number().int().min(1).max(365).optional().nullable(),
+    /**
+     * L'échéance ferme-t-elle la vente, ou n'est-elle qu'un affichage ?
+     *
+     * Une offre limitée doit vraiment se fermer, sinon le décompte est un
+     * décor. Une remise limitée, non : passé le délai, le prospect doit
+     * pouvoir s'abonner au plein tarif plutôt que de se heurter à une porte.
+     */
+    deadline_blocks_checkout: z.boolean().default(true),
   })
   // Même contrainte que `funnels_deadline_coherent` en base. Dupliquée ici
   // pour renvoyer un message utilisable dans l'éditeur plutôt qu'une erreur
@@ -463,6 +471,7 @@ export type Funnel = {
   deadline_mode: DeadlineMode
   deadline_at: string | null
   deadline_days: number | null
+  deadline_blocks_checkout: boolean
   published_at: string | null
   created_at: string
   updated_at: string
