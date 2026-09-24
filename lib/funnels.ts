@@ -419,6 +419,12 @@ export const funnelInputSchema = z
      * pouvoir s'abonner au plein tarif plutôt que de se heurter à une porte.
      */
     deadline_blocks_checkout: z.boolean().default(true),
+    /**
+     * Chaque inscription reçoit un code de remise personnel, annoncé sur la
+     * page. Désactivé par défaut : une page qui offre du contenu sans rien
+     * vendre n'a pas à distribuer de remise.
+     */
+    promo_enabled: z.boolean().default(false),
   })
   // Même contrainte que `funnels_deadline_coherent` en base. Dupliquée ici
   // pour renvoyer un message utilisable dans l'éditeur plutôt qu'une erreur
@@ -472,6 +478,7 @@ export type Funnel = {
   deadline_at: string | null
   deadline_days: number | null
   deadline_blocks_checkout: boolean
+  promo_enabled: boolean
   published_at: string | null
   created_at: string
   updated_at: string
@@ -534,6 +541,46 @@ export function optinCookieName(slug: string): string {
 
 /** 180 jours : un visiteur qui revient ne redonne pas son email. */
 export const OPTIN_COOKIE_MAX_AGE = 180 * 24 * 60 * 60
+
+// ── Remise personnelle ──────────────────────────────────────────────────────
+//
+// Les constantes vivent ici plutôt que dans `lib/funnel-promo.ts`, qui charge
+// le SDK Stripe : la page funnel et la page d'inscription, rendues dans le
+// navigateur, doivent pouvoir afficher la remise sans pouvoir la créer.
+
+/** Pourcentage de remise, appliqué aux premières mensualités. */
+export const PROMO_PERCENT = 30
+/** Nombre de mensualités remisées. */
+export const PROMO_MONTHS = 3
+/** Durée de validité du code, à compter de l'inscription. */
+export const PROMO_VALID_DAYS = 7
+
+/**
+ * Cookie portant l'échéance du code d'un inscrit, posé à l'inscription.
+ *
+ * Il ne sert qu'à l'affichage : montrer un prix remisé tant que le code vaut,
+ * et le prix plein ensuite. Il n'accorde rien. La remise elle-même est relue
+ * sur le lead au paiement, puis contrôlée par Stripe, qui refuse un code
+ * expiré. Un cookie modifié à la main ne change donc que ce qu'on voit.
+ */
+export function promoCookieName(slug: string): string {
+  return `ou_promo_${slug}`
+}
+
+/** Montant remisé, arrondi au centime comme le fait Stripe. */
+export function discountedAmount(cents: number): number {
+  return Math.round((cents * (100 - PROMO_PERCENT)) / 100)
+}
+
+/**
+ * Échéance lue dans le cookie de remise, ou `null` si absente ou passée.
+ */
+export function activePromoExpiry(valeur: string | undefined | null): Date | null {
+  if (!valeur) return null
+  const date = new Date(decodeURIComponent(valeur))
+  if (Number.isNaN(date.getTime()) || date.getTime() <= Date.now()) return null
+  return date
+}
 
 export function funnelTriggerEvent(slug: string): `funnel:${string}` {
   return `funnel:${slug}`

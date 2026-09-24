@@ -11,6 +11,9 @@ import {
   FUNNEL_BLOCK_TYPES,
   funnelTriggerEvent,
   type FunnelBlockType,
+  PROMO_MONTHS,
+  PROMO_PERCENT,
+  PROMO_VALID_DAYS,
 } from '@/lib/funnels'
 import { OFFERS, formatAmount } from '@/lib/offers'
 import {
@@ -244,6 +247,7 @@ export default function FunnelEditorPage({ params }: { params: { id: string } })
               ? Number(form.deadline_days)
               : null,
           deadline_blocks_checkout: form.deadline_blocks_checkout !== false,
+          promo_enabled: form.promo_enabled === true,
         }),
       })
 
@@ -529,6 +533,28 @@ export default function FunnelEditorPage({ params }: { params: { id: string } })
               </label>
             )}
           </div>
+        </section>
+
+        {/* Remise personnelle */}
+        <section className="mb-6 rounded-2xl border border-slate-200 bg-white p-6">
+          <label className="flex items-start gap-3">
+            <input
+              type="checkbox"
+              className="mt-1"
+              checked={form.promo_enabled === true}
+              onChange={(e) => set({ promo_enabled: e.target.checked })}
+            />
+            <span className="text-sm text-slate-700">
+              <span className="font-semibold">
+                Offrir une remise de {PROMO_PERCENT} % pendant {PROMO_MONTHS} mois
+              </span>
+              <span className="mt-0.5 block text-xs text-slate-500">
+                Chaque inscrit reçoit un code personnel, valable {PROMO_VALID_DAYS} jours, appliqué
+                automatiquement au paiement. La remise est annoncée sur le formulaire, et les prix
+                remisés s’affichent dans les blocs tarifs tant que le code est valable.
+              </span>
+            </span>
+          </label>
         </section>
 
         {/* Séquence email */}

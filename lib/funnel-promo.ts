@@ -1,4 +1,7 @@
 import { stripe, monthlyProductIds } from '@/lib/stripe'
+import { PROMO_MONTHS, PROMO_PERCENT, PROMO_VALID_DAYS } from '@/lib/funnels'
+
+export { PROMO_MONTHS, PROMO_PERCENT, PROMO_VALID_DAYS }
 
 /**
  * Remise personnelle d'un funnel.
@@ -13,11 +16,6 @@ import { stripe, monthlyProductIds } from '@/lib/stripe'
  * à cette remise) sont individuels. C'est le découpage prévu par Stripe.
  */
 
-/** Pourcentage de remise, appliqué aux trois premières mensualités. */
-export const PROMO_PERCENT = 30
-export const PROMO_MONTHS = 3
-/** Durée de validité du code, à compter de l'inscription. */
-export const PROMO_VALID_DAYS = 7
 
 /**
  * Identifiant fixe du coupon, choisi plutôt que laissé à Stripe.

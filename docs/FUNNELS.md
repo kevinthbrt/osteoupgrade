@@ -393,6 +393,30 @@ L'essai gratuit de sept jours se cumule. Ce n'est pas un réglage du funnel mais
 une règle de compte, ouverte une fois dans la vie d'un compte gratuit : il n'est
 pas possible de le désactiver pour une seule page.
 
+### Activer, afficher
+
+La remise est **désactivée par défaut** et s'active funnel par funnel
+(`promo_enabled`, case « Offrir une remise » dans l'éditeur). Sans elle, aucune
+inscription ne crée de code et la page n'en parle pas.
+
+Quand elle est active :
+
+- un encart l'annonce au-dessus du formulaire, avant l'inscription ;
+- l'inscription pose le cookie `ou_promo_<slug>`, qui porte l'échéance du code
+  et expire avec lui ;
+- tant que ce cookie vaut, les blocs tarifs d'une offre mensuelle publique
+  affichent le prix barré, le prix remisé et un compte à rebours, et la page
+  d'inscription remise ses trois abonnements. Un bloc tarifs Fondateur reste au
+  plein prix : le coupon ne s'y applique pas.
+
+Ce cookie ne sert qu'à l'affichage. Modifié à la main, il change ce qu'on voit,
+pas ce qu'on paie : la remise est relue sur le lead au paiement, puis contrôlée
+par Stripe.
+
+Les constantes (`PROMO_PERCENT`, `PROMO_MONTHS`, `PROMO_VALID_DAYS`) vivent dans
+`lib/funnels.ts`, lisible côté navigateur, et non dans `lib/funnel-promo.ts`,
+qui charge le SDK Stripe.
+
 ### Échéance qui ferme, échéance qui affiche
 
 `deadline_blocks_checkout` sépare les deux usages. Une offre limitée doit
