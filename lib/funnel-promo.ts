@@ -1,4 +1,4 @@
-import { stripe, PUBLIC_PLAN_TYPES, STRIPE_PLANS } from '@/lib/stripe'
+import { stripe, monthlyProductIds } from '@/lib/stripe'
 
 /**
  * Remise personnelle d'un funnel.
@@ -47,9 +47,7 @@ async function ensureFunnelCoupon(): Promise<string> {
     if (err?.code !== 'resource_missing') throw err
   }
 
-  const prixEligibles = PUBLIC_PLAN_TYPES
-    .map((clef) => STRIPE_PLANS[clef]?.priceId)
-    .filter((id): id is string => Boolean(id))
+  const produits = await monthlyProductIds()
 
   const params: any = {
     id: COUPON_ID,
@@ -59,8 +57,8 @@ async function ensureFunnelCoupon(): Promise<string> {
     name: `Funnel -${PROMO_PERCENT}% pendant ${PROMO_MONTHS} mois`,
     metadata: { purpose: 'funnel_discount' },
   }
-  if (prixEligibles.length > 0) {
-    params.applies_to = { prices: prixEligibles }
+  if (produits.length > 0) {
+    params.applies_to = { products: produits }
   }
 
   const coupon = await stripe.coupons.create(params)

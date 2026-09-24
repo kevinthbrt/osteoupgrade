@@ -1,10 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import { supabase } from '@/lib/supabase'
+import { OFFERS, formatAmount } from '@/lib/offers'
 import {
   Eye,
   EyeOff,
@@ -115,6 +116,39 @@ export default function AuthPage() {
   const [success, setSuccess] = useState<string | null>(null)
   const [acceptCgu, setAcceptCgu] = useState(false)
   const [newsletterOptIn, setNewsletterOptIn] = useState(false)
+  /** Offre choisie en amont (`?plan=`) : la page devient alors l'étape avant le paiement. */
+  const [offre, setOffre] = useState<string | null>(null)
+  const [depuisFunnel, setDepuisFunnel] = useState(false)
+
+  // Arrivée avec une offre : on est presque toujours face à quelqu'un qui n'a
+  // pas encore de compte, d'où le formulaire d'inscription par défaut. Et s'il
+  // est déjà connecté, lui faire remplir un formulaire serait absurde : il part
+  // directement au paiement.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const plan = params.get('plan')
+    if (!plan) return
+    setOffre(plan)
+    setDepuisFunnel(Boolean(params.get('funnel')))
+    setIsLogin(false)
+
+    supabase.auth.getSession().then(({ data }) => {
+      if (data.session) {
+        setSuccess('Vous êtes déjà connecté. Redirection vers le paiement sécurisé...')
+        void redirectAfterAuth(router)
+      }
+    })
+  }, [router])
+
+  // Changer d'offre réécrit l'URL plutôt qu'un état à part : c'est elle que
+  // `redirectAfterAuth` relit après l'inscription, et un rechargement de page
+  // retrouve ainsi le bon choix.
+  const choisirOffre = (planType: string) => {
+    setOffre(planType)
+    const url = new URL(window.location.href)
+    url.searchParams.set('plan', planType)
+    window.history.replaceState(null, '', url.toString())
+  }
 
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -208,8 +242,15 @@ export default function AuthPage() {
             console.error('Erreur lors du déclenchement des automatisations:', err)
           }
 
-          setSuccess('Compte créé avec succès ! Vous allez être redirigé...')
-          setTimeout(() => { void redirectAfterAuth(router) }, 2000)
+          // Avec une offre choisie, l'attente n'apporte rien : la personne
+          // vient de dire ce qu'elle voulait, on l'y emmène.
+          if (offre) {
+            setSuccess('Compte créé. Redirection vers le paiement sécurisé...')
+            await redirectAfterAuth(router)
+          } else {
+            setSuccess('Compte créé avec succès ! Vous allez être redirigé...')
+            setTimeout(() => { void redirectAfterAuth(router) }, 2000)
+          }
         }
       }
     } catch (error: any) {
@@ -354,9 +395,11 @@ export default function AuthPage() {
                   {isLogin ? 'Connexion' : 'Créer un compte'}
                 </h2>
                 <p className="text-sm text-slate-500">
-                  {isLogin
-                    ? 'Accédez à votre espace OsteoUpgrade'
-                    : 'Rejoignez 500+ ostéopathes sur la plateforme'}
+                  {offre
+                    ? 'Dernière étape avant le paiement sécurisé.'
+                    : isLogin
+                      ? 'Accédez à votre espace OsteoUpgrade'
+                      : 'Rejoignez 500+ ostéopathes sur la plateforme'}
                 </p>
               </div>
 
@@ -381,6 +424,51 @@ export default function AuthPage() {
                   Créer un compte
                 </button>
               </div>
+
+              {offre && (
+                // `min-w-0` : un fieldset prend par défaut la largeur de son
+                // contenu le plus long et déborde de l'écran sur mobile.
+                <fieldset className="min-w-0">
+                  <legend className="mb-2 text-sm font-semibold text-slate-700">Votre abonnement</legend>
+                  <div className="space-y-2">
+                    {OFFERS.map((o) => {
+                      const choisie = offre === o.planType
+                      return (
+                        <label
+                          key={o.planType}
+                          className={`flex cursor-pointer items-center justify-between gap-3 rounded-lg border p-3 transition-all ${
+                            choisie
+                              ? 'border-primary-500 bg-primary-50 ring-1 ring-primary-500'
+                              : 'border-slate-200 hover:border-slate-300'
+                          }`}
+                        >
+                          <input
+                            type="radio"
+                            name="offre"
+                            value={o.planType}
+                            checked={choisie}
+                            onChange={() => choisirOffre(o.planType)}
+                            className="sr-only"
+                          />
+                          <span className="min-w-0">
+                            <span className="block text-sm font-semibold text-slate-900">{o.name}</span>
+                            <span className="block text-xs text-slate-500">{o.tagline}</span>
+                          </span>
+                          <span className="whitespace-nowrap text-sm font-bold text-slate-900">
+                            {formatAmount(o.monthlyAmount)}
+                            <span className="text-xs font-normal text-slate-500"> / mois</span>
+                          </span>
+                        </label>
+                      )
+                    })}
+                  </div>
+                  <p className="mt-2 text-xs text-slate-500">
+                    Sans engagement, 7 jours d’essai gratuit pour un premier abonnement.
+                    {depuisFunnel &&
+                      ' Si vous avez reçu un code de remise, il s’applique tout seul au paiement, à condition d’utiliser l’adresse laissée sur la page.'}
+                  </p>
+                </fieldset>
+              )}
 
               {error && (
                 <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm">{error}</div>
@@ -490,7 +578,9 @@ export default function AuthPage() {
                 {loading ? (
                   <><Loader2 className="animate-spin h-4 w-4 mr-2" />Chargement...</>
                 ) : (
-                  isLogin ? 'Se connecter' : 'Créer mon compte'
+                  offre
+                    ? isLogin ? 'Se connecter et continuer' : 'Créer mon compte et continuer'
+                    : isLogin ? 'Se connecter' : 'Créer mon compte'
                 )}
               </button>
             </form>

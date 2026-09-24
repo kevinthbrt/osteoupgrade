@@ -20,6 +20,13 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/).
 - **Moins d'appels à Resend avant chaque campagne** : seuls les contacts absents du segment ou dont le nom a changé y sont réécrits, au lieu des centaines d'autres à chaque fois. Un contact que Resend marque désinscrit n'est jamais réécrit, un nouvel envoi risquant de remettre ce drapeau à zéro.
 - **Échéance d'affichage** : une échéance de funnel ferme la vente ou se contente de l'annoncer, au choix (`deadline_blocks_checkout`). Une offre limitée doit vraiment se fermer, sinon le décompte est un décor ; une remise limitée, non : passé le délai, le prospect doit pouvoir s'abonner au plein tarif plutôt que de se heurter à une porte fermée.
 
+- **Choix de l'offre sur la page d'inscription** : arrivé depuis une page de vente avec une offre choisie, le visiteur voit les trois abonnements sur la page de création de compte, peut en changer d'un clic, et part au paiement dès son compte créé, sans les deux secondes d'attente d'avant. Le formulaire s'ouvre directement sur l'inscription plutôt que sur la connexion, et quelqu'un de déjà connecté part au paiement sans rien remplir.
+
+### Corrigé
+
+- **Aucun code de remise n'était créé** : le coupon était restreint aux trois offres mensuelles par `applies_to.prices`, paramètre que Stripe ne connaît pas. Il refusait donc la création du coupon, l'inscription était enregistrée sans code, et le paiement se faisait au plein tarif. La restriction passe par les produits (`applies_to.products`), les seuls que Stripe accepte. Le générateur de codes promo et celui des codes partenaires de l'administration portaient le même défaut depuis juin et juillet : aucun code partenaire n'a pu être généré, et aucun compte n'en a jamais utilisé.
+- **La seconde offre d'une page était refusée au paiement** : le serveur vérifiait que l'offre demandée était celle de la page, et ne connaissait que l'offre par défaut. Sur la page effet placebo, réglée sur OsteoUpgrade, choisir Premium faisait refuser le paiement juste après la création du compte, en silence, avec un renvoi au tableau de bord. Le visiteur devait alors retrouver seul la page des abonnements. Toute offre mensuelle publique passe désormais ; seule une offre non publique doit figurer sur la page pour être acceptée.
+
 ---
 
 ## [1.10.0] : 2026-09-22

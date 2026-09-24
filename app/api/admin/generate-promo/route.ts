@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { createRouteHandlerClient } from '@/lib/supabase-server-helpers'
-import { stripe, PUBLIC_PLAN_TYPES, STRIPE_PLANS } from '@/lib/stripe'
+import { stripe, monthlyProductIds } from '@/lib/stripe'
 
 async function checkAdmin(supabase: any) {
   const { data: { user }, error } = await supabase.auth.getUser()
@@ -28,9 +28,7 @@ export async function POST(request: Request) {
     // Le code s'applique aux trois offres mensuelles. Les tarifs Fondateur en
     // sont exclus : ils sont déjà à -50 % à vie, empiler une remise dessus
     // reviendrait à offrir l'abonnement.
-    const prixEligibles = PUBLIC_PLAN_TYPES
-      .map((clef) => STRIPE_PLANS[clef]?.priceId)
-      .filter((id): id is string => Boolean(id))
+    const produitsEligibles = await monthlyProductIds()
 
     const couponParams: any = {
       amount_off: discountAmount,
@@ -44,8 +42,9 @@ export async function POST(request: Request) {
         plan: 'monthly'
       }
     }
-    if (prixEligibles.length > 0) {
-      couponParams.applies_to = { prices: prixEligibles }
+    // Par produit : Stripe refuse `applies_to.prices` et la création échouait.
+    if (produitsEligibles.length > 0) {
+      couponParams.applies_to = { products: produitsEligibles }
     }
 
     const coupon = await stripe.coupons.create(couponParams)
