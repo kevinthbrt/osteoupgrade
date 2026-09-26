@@ -1,0 +1,3 @@
+# L'app mobile Expo vit dans /mobile et n'a rien à voir avec le build Next.js
+# déployé sur Vercel. On l'exclut pour éviter qu'elle soit type-checkée/buildée.
+mobile
