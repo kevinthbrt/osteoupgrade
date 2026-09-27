@@ -40,6 +40,7 @@ const typeConfig: Record<NotifType, { icon: React.ComponentType<any>; color: str
 export default function AdminNotificationBell() {
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [open, setOpen] = useState(false)
+  const [expandedId, setExpandedId] = useState<string | null>(null)
 
   const unreadCount = notifications.filter(n => !n.read).length
 
@@ -139,7 +140,12 @@ export default function AdminNotificationBell() {
                   return (
                     <button
                       key={notif.id}
-                      onClick={() => markRead(notif.id)}
+                      onClick={() => {
+                        // Le clic déplie le texte complet (motif de résiliation,
+                        // commentaire client…) en plus de marquer comme lu.
+                        setExpandedId(prev => prev === notif.id ? null : notif.id)
+                        if (!notif.read) markRead(notif.id)
+                      }}
                       className={`w-full flex gap-3 px-4 py-3.5 text-left transition-colors hover:bg-white/5 ${notif.read ? 'opacity-50' : ''}`}
                     >
                       <div className={`shrink-0 w-9 h-9 rounded-xl flex items-center justify-center ${cfg.bg}`}>
@@ -153,7 +159,9 @@ export default function AdminNotificationBell() {
                           {!notif.read && <span className="shrink-0 w-2 h-2 rounded-full bg-amber-400 mt-0.5" />}
                         </div>
                         {notif.body && (
-                          <p className="text-xs text-slate-500 mt-0.5 line-clamp-2">{notif.body}</p>
+                          <p className={`text-xs mt-0.5 ${expandedId === notif.id ? 'text-slate-300 whitespace-pre-line break-words' : 'text-slate-500 line-clamp-2'}`}>
+                            {notif.body}
+                          </p>
                         )}
                         <p className="text-[10px] text-slate-600 mt-1">{timeAgo(notif.created_at)}</p>
                       </div>
