@@ -318,7 +318,7 @@ export function emailShell(params: {
   const boutonHtml = cta
     ? `<table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 32px auto 8px;">
          <tr>
-           <td style="border-radius: 8px; background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);">
+           <td style="border-radius: 8px; background-color: #7c3aed; background-image: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);">
              <a href="${cta.url}" style="display: inline-block; padding: 14px 32px; font-family: Inter, Arial, sans-serif; font-size: 15px; font-weight: 600; color: #ffffff; text-decoration: none; border-radius: 8px;">${cta.label}</a>
            </td>
          </tr>
@@ -334,7 +334,7 @@ export function emailShell(params: {
       <td align="center">
         <table role="presentation" width="600" cellspacing="0" cellpadding="0" border="0" style="max-width: 600px; width: 100%; background-color: #ffffff; border-radius: 12px; overflow: hidden;">
           <tr>
-            <td style="background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); padding: 32px 40px; text-align: center;">
+            <td style="background-color: #7c3aed; background-image: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); padding: 32px 40px; text-align: center;">
               <div style="font-size: 32px; line-height: 1;">${emoji}</div>
               <h1 style="margin: 12px 0 0; font-size: 24px; font-weight: 700; color: #ffffff;">${title}</h1>
               ${subtitle ? `<p style="margin: 8px 0 0; font-size: 15px; color: rgba(255,255,255,0.85);">${subtitle}</p>` : ''}

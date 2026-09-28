@@ -3,8 +3,10 @@ import { z } from 'zod'
 import { supabaseAdmin } from '@/lib/supabase-server'
 import { rateLimit } from '@/lib/rate-limit'
 import { ensureMailContact, triggerAutomations } from '@/lib/automation-triggers'
+import { verifyAdmin } from '@/lib/api-guards'
 import {
   OPTIN_COOKIE_MAX_AGE,
+  appFromUserAgent,
   funnelTriggerEvent,
   leadDeadlineFor,
   optinCookieName,
@@ -267,12 +269,17 @@ export async function POST(req: NextRequest) {
       console.error('Funnel opt-in : erreurs d’automatisation:', triggerResult.errors)
     }
 
+    // Un administrateur qui teste sa page obtient bien son lead, son code et
+    // sa séquence : c'est ce qu'il vient vérifier. Mais son inscription est
+    // écartée des statistiques, qui comptent des prospects.
     await supabaseAdmin.from('funnel_events').insert({
       funnel_id: funnel.id,
       lead_id: lead.id,
       type: 'optin',
       visitor_id: visitor_id || null,
       utm,
+      internal: await verifyAdmin(),
+      app: appFromUserAgent(req.headers.get('user-agent')),
     })
 
     // Le code est renvoyé au navigateur pour être affiché sur l'écran de

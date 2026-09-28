@@ -280,10 +280,32 @@ brouillon : une offre en préparation, ses prix et sa date de lancement.
 
 ## Statistiques
 
-Vues, clics CTA, opt-ins et départs au paiement sont écrits dans
-`funnel_events` par `/api/funnels/track` et `/api/funnels/lead`.
+Vues, formulaire vu, clics CTA, opt-ins, échecs d'opt-in et départs au
+paiement sont écrits dans `funnel_events` par `/api/funnels/track` et
+`/api/funnels/lead`.
 
-Deux points à connaître :
+L'éditeur affiche un entonnoir compté **en personnes** : visiteurs distincts,
+visiteurs arrivés jusqu'au formulaire (bloc visible à moitié à l'écran),
+inscrits (leads distincts), puis visiteurs partis au paiement. Chaque étape
+est rapportée à la précédente, pour voir où l'on décroche.
+
+- **Le trafic interne est écarté.** Un événement émis par un administrateur
+  connecté est marqué `internal` : gardé pour le débogage, exclu de tous les
+  compteurs. Sans ça, quelques essais de paiement suffisaient à afficher
+  « 4 vers paiement » sur une page que personne n'avait encore vue. Le
+  trafic antérieur au 27 septembre 2026, qui n'était que du test, a été
+  marqué rétroactivement. Un test fait depuis un navigateur non connecté
+  compte, lui, comme un vrai visiteur.
+- **Les échecs d'inscription sont mesurés** (`optin_error`), avec leur raison
+  (« 429 : Trop de tentatives », « réseau : Failed to fetch »…) dans
+  `detail`. Ils sont regroupés par raison et par navigateur sous l'entonnoir.
+- **Le navigateur intégré est relevé** (`app` : `instagram`, `facebook`,
+  `autre`), déduit du user-agent, qui n'est pas conservé. Les navigateurs
+  d'Instagram et de Facebook sont ceux où un formulaire a le plus de chances
+  de mal se comporter : c'est la première piste quand les visites montent et
+  que les inscriptions ne suivent pas.
+
+Deux autres points à connaître :
 
 - **Un brouillon n'enregistre rien.** Les deux routes refusent un funnel qui
   n'est pas `published`. Les visites d'aperçu ne comptent donc pas, et les

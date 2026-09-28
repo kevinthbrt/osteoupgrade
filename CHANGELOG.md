@@ -5,6 +5,19 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/).
 
 ---
 
+## [1.12.0] : 2026-09-28
+
+### Ajouté
+
+- **Entonnoir de funnel compté en personnes** : visiteurs, formulaire vu, inscrits, départs au paiement, chaque étape rapportée à la précédente. Les anciens compteurs additionnaient des événements : un même visiteur qui renvoyait le formulaire trois fois comptait pour trois leads, et un test de paiement pour un client. (`supabase/migrations/20260928_funnel_stats_v2.sql`)
+- **Formulaire vu** : un visiteur est compté quand le bloc d'inscription apparaît à moitié à l'écran. Sans cette étape, impossible de distinguer une page qu'on quitte avant d'arriver au formulaire d'un formulaire qu'on voit sans le remplir.
+- **Échecs d'inscription mesurés** : chaque envoi refusé ou perdu est enregistré avec sa raison et le navigateur d'origine, et affiché dans l'éditeur. Jusqu'ici un formulaire qui cassait dans le navigateur d'Instagram ne laissait aucune trace.
+- **Part des visiteurs venus d'Instagram ou Facebook**, déduite du user-agent sans le conserver.
+
+### Corrigé
+
+- **Les tests ne faussent plus les statistiques** : les événements émis par un administrateur connecté sont marqués internes et exclus des compteurs, et le trafic de test antérieur au 27 septembre a été marqué rétroactivement. Leur nombre reste affiché, pour savoir ce qui a été écarté.
+
 ## [1.11.0] : 2026-09-24
 
 ### Ajouté
@@ -28,6 +41,7 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/).
 
 ### Corrigé
 
+- **Boutons invisibles dans Outlook et Hotmail** : les boutons et le bandeau des emails avaient un fond en dégradé sans couleur de secours. Outlook, Hotmail et Outlook.com suppriment les dégradés, le fond devenait transparent, et le texte blanc disparaissait sur fond blanc : bouton cliquable mais invisible, titre du bandeau effacé. Les 33 gabarits étaient concernés, gabarit de référence compris, ainsi que l'email de suivi client (`lib/customer-tracking.ts`). Chaque dégradé est désormais doublé de sa couleur d'arrivée en fond uni ; rien ne change dans les clients qui affichent les dégradés. (`supabase/migrations/20260925_email_gradient_fallback.sql`)
 - **Aucun code de remise n'était créé** : le coupon était restreint aux trois offres mensuelles par `applies_to.prices`, paramètre que Stripe ne connaît pas. Il refusait donc la création du coupon, l'inscription était enregistrée sans code, et le paiement se faisait au plein tarif. La restriction passe par les produits (`applies_to.products`), les seuls que Stripe accepte. Le générateur de codes promo et celui des codes partenaires de l'administration portaient le même défaut depuis juin et juillet : aucun code partenaire n'a pu être généré, et aucun compte n'en a jamais utilisé.
 - **La seconde offre d'une page était refusée au paiement** : le serveur vérifiait que l'offre demandée était celle de la page, et ne connaissait que l'offre par défaut. Sur la page effet placebo, réglée sur OsteoUpgrade, choisir Premium faisait refuser le paiement juste après la création du compte, en silence, avec un renvoi au tableau de bord. Le visiteur devait alors retrouver seul la page des abonnements. Toute offre mensuelle publique passe désormais ; seule une offre non publique doit figurer sur la page pour être acceptée.
 

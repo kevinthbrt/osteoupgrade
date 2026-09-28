@@ -31,7 +31,42 @@ import {
   AlertTriangle,
 } from 'lucide-react'
 
-type Stats = { view: number; cta_click: number; optin: number; checkout_started: number }
+type Stats = {
+  views: number
+  visitors: number
+  form_views: number
+  cta_clicks: number
+  leads: number
+  optin_errors: number
+  checkouts: number
+  inapp_visitors: number
+  internal_events: number
+}
+type OptinErrorGroup = { detail: string; app: string; count: number; last_at: string }
+
+const EMPTY_STATS: Stats = {
+  views: 0,
+  visitors: 0,
+  form_views: 0,
+  cta_clicks: 0,
+  leads: 0,
+  optin_errors: 0,
+  checkouts: 0,
+  inapp_visitors: 0,
+  internal_events: 0,
+}
+
+const APP_LABELS: Record<string, string> = {
+  instagram: 'Instagram',
+  facebook: 'Facebook',
+  autre: 'Navigateur',
+}
+
+/** Part d'une étape par rapport à la précédente, sans diviser par zéro. */
+function part(n: number, sur: number): string | null {
+  if (sur <= 0) return null
+  return `${Math.round((n / sur) * 100)} %`
+}
 type FunnelAutomation = { id: string; name: string; active: boolean; steps_count: number }
 type Lead = {
   id: string
@@ -127,7 +162,8 @@ export default function FunnelEditorPage({ params }: { params: { id: string } })
 
   const [form, setForm] = useState<any>(null)
   const [blocks, setBlocks] = useState<any[]>([])
-  const [stats, setStats] = useState<Stats>({ view: 0, cta_click: 0, optin: 0, checkout_started: 0 })
+  const [stats, setStats] = useState<Stats>(EMPTY_STATS)
+  const [optinErrors, setOptinErrors] = useState<OptinErrorGroup[]>([])
   const [leads, setLeads] = useState<Lead[]>([])
   const [automation, setAutomation] = useState<FunnelAutomation | null>(null)
   const [creatingSequence, setCreatingSequence] = useState(false)
@@ -160,7 +196,8 @@ export default function FunnelEditorPage({ params }: { params: { id: string } })
       const data = await res.json()
       setForm(data.funnel)
       setBlocks(Array.isArray(data.funnel.content) ? data.funnel.content : [])
-      setStats(data.stats)
+      setStats({ ...EMPTY_STATS, ...data.stats })
+      setOptinErrors(data.optin_errors ?? [])
       setLeads(data.leads)
       await loadAutomation(data.funnel.slug)
       setLoading(false)
@@ -310,11 +347,33 @@ export default function FunnelEditorPage({ params }: { params: { id: string } })
 
   const estEnLigne = form.status === 'published'
 
+  // Chaque étape est rapportée à la précédente : c'est là qu'on voit où les
+  // visiteurs décrochent. Tout est compté en personnes, tests exclus.
   const statCards = [
-    { label: 'Vues', value: stats.view, icon: Eye },
-    { label: 'Clics CTA', value: stats.cta_click, icon: MousePointerClick },
-    { label: 'Leads', value: stats.optin, icon: Users },
-    { label: 'Vers paiement', value: stats.checkout_started, icon: CreditCard },
+    {
+      label: 'Visiteurs',
+      value: stats.visitors,
+      icon: Eye,
+      sub: `${stats.views} pages vues`,
+    },
+    {
+      label: 'Formulaire vu',
+      value: stats.form_views,
+      icon: MousePointerClick,
+      sub: part(stats.form_views, stats.visitors),
+    },
+    {
+      label: 'Inscrits',
+      value: stats.leads,
+      icon: Users,
+      sub: part(stats.leads, stats.form_views),
+    },
+    {
+      label: 'Vers paiement',
+      value: stats.checkouts,
+      icon: CreditCard,
+      sub: part(stats.checkouts, stats.leads),
+    },
   ]
 
   return (
@@ -382,9 +441,58 @@ export default function FunnelEditorPage({ params }: { params: { id: string } })
               <card.icon className="mb-1.5 h-4 w-4 text-slate-400" />
               <div className="text-2xl font-bold text-slate-900">{card.value}</div>
               <div className="text-xs text-slate-500">{card.label}</div>
+              {card.sub && <div className="mt-0.5 text-xs text-slate-400">{card.sub}</div>}
             </div>
           ))}
         </div>
+
+        <p className="-mt-3 mb-6 text-xs leading-relaxed text-slate-500">
+          {stats.cta_clicks} clic{stats.cta_clicks > 1 ? 's' : ''} sur un bouton
+          {' · '}
+          {stats.inapp_visitors} visiteur{stats.inapp_visitors > 1 ? 's' : ''} venu
+          {stats.inapp_visitors > 1 ? 's' : ''} d’Instagram ou Facebook
+          {part(stats.inapp_visitors, stats.visitors) && ` (${part(stats.inapp_visitors, stats.visitors)})`}
+          {' · '}
+          {stats.internal_events} événement{stats.internal_events > 1 ? 's' : ''} de test écarté
+          {stats.internal_events > 1 ? 's' : ''} (admins connectés). « Formulaire vu » est mesuré
+          depuis le 28 septembre 2026.
+        </p>
+
+        {optinErrors.length > 0 && (
+          <section className="mb-6 rounded-2xl border border-red-200 bg-red-50 p-5">
+            <h2 className="mb-1 flex items-center gap-2 font-bold text-red-900">
+              <AlertTriangle className="h-4 w-4" />
+              {stats.optin_errors} inscription{stats.optin_errors > 1 ? 's' : ''} en échec
+            </h2>
+            <p className="mb-3 text-xs text-red-800">
+              Envois du formulaire refusés ou perdus. Un même motif répété dans un seul
+              navigateur signale en général une panne, pas un visiteur maladroit.
+            </p>
+            <ul className="space-y-1.5">
+              {optinErrors.map((g) => (
+                <li
+                  key={`${g.app}|${g.detail}`}
+                  className="flex flex-wrap items-baseline gap-x-2 text-sm text-red-900"
+                >
+                  <span className="font-semibold">{g.count}×</span>
+                  <span className="rounded bg-white/70 px-1.5 text-xs">
+                    {APP_LABELS[g.app] ?? g.app}
+                  </span>
+                  <span className="min-w-0 break-words">{g.detail}</span>
+                  <span className="text-xs text-red-700/70">
+                    dernier le{' '}
+                    {new Date(g.last_at).toLocaleString('fr-FR', {
+                      day: 'numeric',
+                      month: 'short',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
 
         {/* Réglages */}
         <section className="mb-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">

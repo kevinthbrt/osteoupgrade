@@ -122,7 +122,10 @@ export default function FunnelRenderer({
   }, [funnel.slug])
 
   const track = useCallback(
-    (type: 'view' | 'cta_click' | 'checkout_started', extra?: Record<string, unknown>) => {
+    (
+      type: 'view' | 'form_view' | 'cta_click' | 'optin_error' | 'checkout_started',
+      extra?: Record<string, unknown>
+    ) => {
       // `keepalive` : le clic CTA déclenche une navigation, et une requête
       // normale serait annulée avant d'atteindre le serveur.
       fetch('/api/funnels/track', {
@@ -142,6 +145,41 @@ export default function FunnelRenderer({
     viewTracked.current = true
     track('view')
   }, [track, visitorId])
+
+  // Le visiteur est-il arrivé jusqu'au formulaire ? Sans cette mesure, « 50
+  // visiteurs, 0 inscrit » ne dit pas si la page n'a pas convaincu de
+  // descendre ou si le formulaire, vu, n'a pas convaincu de le remplir.
+  // Compté une fois par visite, dès que la moitié du formulaire est à l'écran.
+  const formViewTracked = useRef(false)
+  useEffect(() => {
+    if (formViewTracked.current || !visitorId) return
+    const cible = document.getElementById(OPTIN_ANCHOR)
+    if (!cible || typeof IntersectionObserver === 'undefined') return
+
+    const observateur = new IntersectionObserver(
+      (entrees) => {
+        if (formViewTracked.current) return
+        if (entrees.some((e) => e.isIntersecting)) {
+          formViewTracked.current = true
+          track('form_view')
+          observateur.disconnect()
+        }
+      },
+      { threshold: 0.5 }
+    )
+    observateur.observe(cible)
+    return () => observateur.disconnect()
+  }, [track, visitorId])
+
+  // Un envoi du formulaire qui échoue ne laisse aucune trace côté serveur :
+  // refusé avant d'arriver en base, ou perdu en route. Le client est le seul à
+  // le savoir, c'est donc lui qui le signale, avec la raison affichée.
+  const handleOptinError = useCallback(
+    (raison: string) => {
+      track('optin_error', { detail: raison.slice(0, 200) })
+    },
+    [track]
+  )
 
   // ── Échéance affichée ───────────────────────────────────────────────────
   const deadline = useMemo(() => {
@@ -215,6 +253,7 @@ export default function FunnelRenderer({
           visitorId={visitorId}
           onCta={handleCta}
           onOptin={handleOptin}
+          onOptinError={handleOptinError}
           // Un CTA « checkout » sans offre configurée et sans formulaire dans
           // la page n'aurait nulle part où envoyer le visiteur.
           fallbackToOptin={!funnel.plan_type && hasOptinBlock}
@@ -240,6 +279,7 @@ type BlockViewProps = {
   visitorId: string
   onCta: (target: 'checkout' | 'optin' | 'url', url?: string, planType?: string) => void
   onOptin: (deadlineAt: string | null) => void
+  onOptinError: (raison: string) => void
   fallbackToOptin: boolean
   lockedCount: number
   promo: PromoView
@@ -326,6 +366,7 @@ function BlockView({
   visitorId,
   onCta,
   onOptin,
+  onOptinError,
   fallbackToOptin,
   lockedCount,
   promo,
@@ -768,6 +809,7 @@ function BlockView({
               utm={utm}
               visitorId={visitorId}
               onOptin={onOptin}
+              onError={onOptinError}
             />
           </div>
         </Section>

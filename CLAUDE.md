@@ -26,6 +26,11 @@ message (référence : le gabarit `Onboarding gratuit - J+1` en base) :
 - bouton d'action en dégradé violet ;
 - pied de page gris `#f9fafb` avec la mention de copyright.
 
+**Tout dégradé est doublé d'une couleur unie** : `background-color: #7c3aed;
+background-image: linear-gradient(...)`, jamais `background: linear-gradient(...)`
+seul. Outlook et Hotmail suppriment les dégradés : sans couleur de secours, un
+bouton blanc sur fond devenu transparent reste cliquable mais invisible.
+
 Le pied de désinscription et les en-têtes `List-Unsubscribe` sont ajoutés
 automatiquement à l'envoi (`lib/mailing.ts`). Ne pas les écrire dans le gabarit.
 
