@@ -26,7 +26,7 @@ export async function GET(_request: Request, { params }: { params: { id: string 
   // Les 50 derniers leads pour la liste, mais les compteurs agrégés en SQL :
   // les compter à partir des lignes ramenées les aurait plafonnés à la limite
   // de lignes de PostgREST, sans erreur pour le signaler.
-  const [{ data: leads }, { data: statsRows }] = await Promise.all([
+  const [{ data: leads }, { data: statsRows }, { data: errorRows }] = await Promise.all([
     supabaseAdmin
       .from('funnel_leads')
       .select('id, email, full_name, utm, created_at, deadline_at, promo_code, promo_expires_at')
@@ -34,17 +34,45 @@ export async function GET(_request: Request, { params }: { params: { id: string 
       .order('created_at', { ascending: false })
       .limit(50),
     supabaseAdmin.rpc('funnel_stats', { p_funnel_ids: [params.id] }),
+    // Les derniers échecs d'inscription, tests écartés : leur raison et le
+    // navigateur d'origine disent si le formulaire casse quelque part.
+    supabaseAdmin
+      .from('funnel_events')
+      .select('detail, app, created_at')
+      .eq('funnel_id', params.id)
+      .eq('type', 'optin_error')
+      .eq('internal', false)
+      .order('created_at', { ascending: false })
+      .limit(200),
   ])
 
   const row = statsRows?.[0]
   const stats = {
-    view: Number(row?.views ?? 0),
-    cta_click: Number(row?.cta_clicks ?? 0),
-    optin: Number(row?.optins ?? 0),
-    checkout_started: Number(row?.checkouts ?? 0),
+    views: Number(row?.views ?? 0),
+    visitors: Number(row?.visitors ?? 0),
+    form_views: Number(row?.form_views ?? 0),
+    cta_clicks: Number(row?.cta_clicks ?? 0),
+    leads: Number(row?.leads ?? 0),
+    optin_errors: Number(row?.optin_errors ?? 0),
+    checkouts: Number(row?.checkouts ?? 0),
+    inapp_visitors: Number(row?.inapp_visitors ?? 0),
+    internal_events: Number(row?.internal_events ?? 0),
   }
 
-  return NextResponse.json({ funnel, leads: leads ?? [], stats })
+  // Regroupement par raison et par navigateur : dix fois la même erreur dans
+  // Instagram se lit mieux en une ligne qu'en dix.
+  const groups = new Map<string, { detail: string; app: string; count: number; last_at: string }>()
+  for (const e of errorRows ?? []) {
+    const detail = e.detail || 'raison inconnue'
+    const app = e.app || 'autre'
+    const key = `${app}|${detail}`
+    const g = groups.get(key)
+    if (g) g.count += 1
+    else groups.set(key, { detail, app, count: 1, last_at: e.created_at })
+  }
+  const optin_errors = Array.from(groups.values()).sort((a, b) => b.count - a.count)
+
+  return NextResponse.json({ funnel, leads: leads ?? [], stats, optin_errors })
 }
 
 /** PATCH : mise à jour complète du funnel (le formulaire renvoie tout). */

@@ -542,6 +542,25 @@ export function optinCookieName(slug: string): string {
 /** 180 jours : un visiteur qui revient ne redonne pas son email. */
 export const OPTIN_COOKIE_MAX_AGE = 180 * 24 * 60 * 60
 
+// ── Mesure ──────────────────────────────────────────────────────────────────
+
+/**
+ * Navigateur intégré d'où vient une visite, déduit du user-agent.
+ *
+ * Presque tout le trafic des réseaux s'ouvre dans le navigateur d'Instagram ou
+ * de Facebook, pas dans Safari ou Chrome. Un formulaire qui y échouerait
+ * resterait invisible dans les chiffres sans cette distinction. Le user-agent
+ * lui-même n'est pas conservé : seule la famille l'est.
+ */
+export type FunnelApp = 'instagram' | 'facebook' | 'autre'
+
+export function appFromUserAgent(ua: string | null | undefined): FunnelApp {
+  if (!ua) return 'autre'
+  if (/Instagram/i.test(ua)) return 'instagram'
+  if (/FBAN|FBAV|FB_IAB|FBIOS|Messenger/i.test(ua)) return 'facebook'
+  return 'autre'
+}
+
 // ── Remise personnelle ──────────────────────────────────────────────────────
 //
 // Les constantes vivent ici plutôt que dans `lib/funnel-promo.ts`, qui charge

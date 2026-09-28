@@ -17,6 +17,8 @@ type Props = {
   visitorId: string
   /** Remonte l'échéance individuelle renvoyée par le serveur (mode relatif). */
   onOptin?: (deadlineAt: string | null) => void
+  /** Signale un envoi en échec, avec sa raison, pour la mesure. */
+  onError?: (raison: string) => void
 }
 
 export default function OptinForm({
@@ -31,6 +33,7 @@ export default function OptinForm({
   utm,
   visitorId,
   onOptin,
+  onError,
 }: Props) {
   const [email, setEmail] = useState('')
   const [firstName, setFirstName] = useState('')
@@ -50,6 +53,10 @@ export default function OptinForm({
     setError(null)
     setStatus('loading')
 
+    // Code HTTP de la réponse, s'il y en a eu une : il distingue un refus du
+    // serveur (400, 429, 500) d'un envoi qui n'est jamais arrivé.
+    let statut: number | null = null
+
     try {
       const res = await fetch('/api/funnels/lead', {
         method: 'POST',
@@ -65,15 +72,20 @@ export default function OptinForm({
         }),
       })
 
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Inscription impossible')
+      statut = res.status
+      // Une page d'erreur de l'hébergeur n'est pas du JSON : on la traite
+      // comme un échec au lieu de laisser l'analyse planter sans explication.
+      const data = await res.json().catch(() => null)
+      if (!res.ok || !data) throw new Error(data?.error || 'Inscription impossible')
 
       setPromo(data.promo ?? null)
       setStatus('done')
       onOptin?.(data.deadline_at ?? null)
     } catch (err: any) {
-      setError(err.message || 'Une erreur est survenue')
+      const message = err?.message || 'Une erreur est survenue'
+      setError(message)
       setStatus('idle')
+      onError?.(statut ? `${statut} : ${message}` : `réseau : ${message}`)
     }
   }
 

@@ -5,6 +5,19 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/).
 
 ---
 
+## [1.12.0] : 2026-09-28
+
+### Ajouté
+
+- **Entonnoir de funnel compté en personnes** : visiteurs, formulaire vu, inscrits, départs au paiement, chaque étape rapportée à la précédente. Les anciens compteurs additionnaient des événements : un même visiteur qui renvoyait le formulaire trois fois comptait pour trois leads, et un test de paiement pour un client. (`supabase/migrations/20260928_funnel_stats_v2.sql`)
+- **Formulaire vu** : un visiteur est compté quand le bloc d'inscription apparaît à moitié à l'écran. Sans cette étape, impossible de distinguer une page qu'on quitte avant d'arriver au formulaire d'un formulaire qu'on voit sans le remplir.
+- **Échecs d'inscription mesurés** : chaque envoi refusé ou perdu est enregistré avec sa raison et le navigateur d'origine, et affiché dans l'éditeur. Jusqu'ici un formulaire qui cassait dans le navigateur d'Instagram ne laissait aucune trace.
+- **Part des visiteurs venus d'Instagram ou Facebook**, déduite du user-agent sans le conserver.
+
+### Corrigé
+
+- **Les tests ne faussent plus les statistiques** : les événements émis par un administrateur connecté sont marqués internes et exclus des compteurs, et le trafic de test antérieur au 27 septembre a été marqué rétroactivement. Leur nombre reste affiché, pour savoir ce qui a été écarté.
+
 ## [1.11.0] : 2026-09-24
 
 ### Ajouté
