@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import { Inter, Playfair_Display } from 'next/font/google'
 import './globals.css'
-import { Analytics } from '@vercel/analytics/react'
+import SiteAnalytics from '@/components/SiteAnalytics'
 import CookieBanner from '@/components/CookieBanner'
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
@@ -56,7 +56,7 @@ export default function RootLayout({
       <body className={inter.className}>
         {children}
         <CookieBanner />
-        <Analytics />
+        <SiteAnalytics />
       </body>
     </html>
   )

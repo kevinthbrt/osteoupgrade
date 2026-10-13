@@ -2,9 +2,11 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 
 export default function CookieBanner() {
   const [visible, setVisible] = useState(false)
+  const pathname = usePathname()
 
   useEffect(() => {
     const consent = localStorage.getItem('cookie_consent')
@@ -21,7 +23,8 @@ export default function CookieBanner() {
     setVisible(false)
   }
 
-  if (!visible) return null
+  // L'appli patient ne dépose aucun cookie : pas de bandeau.
+  if (!visible || pathname?.startsWith('/programme')) return null
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50 bg-slate-900 text-white shadow-2xl">
