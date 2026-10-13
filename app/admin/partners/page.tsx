@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import AuthLayout from '@/components/AuthLayout'
 import AdminBackButton from '@/components/AdminBackButton'
+import PartnerProgramsPanel from '@/components/admin/PartnerProgramsPanel'
 import {
   HeartHandshake,
   Plus,
@@ -199,6 +200,8 @@ export default function AdminPartnersPage() {
           <div className="pointer-events-none absolute top-1/2 right-0 w-80 h-80 bg-sky-400/25 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '8s', animationDelay: '2s' }} />
 
           <div className="relative space-y-6">
+
+            <PartnerProgramsPanel />
 
             {/* Formulaire de génération */}
             <div className="bg-white/85 backdrop-blur-2xl border border-white/70 shadow-xl ring-1 ring-inset ring-white/60 rounded-2xl p-6">

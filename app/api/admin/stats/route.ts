@@ -1,17 +1,21 @@
 import { NextResponse } from 'next/server'
 import { planOf, type Plan } from '@/lib/entitlements'
-import { OFFERS } from '@/lib/offers'
+import { OFFERS, billedPriceFor } from '@/lib/offers'
 
 /**
  * Contribution mensuelle d'un abonné au revenu récurrent.
  *
- * Les tarifs Fondateur sont annuels et à -50 % : on les ramène au mois pour
- * que le MRR reste comparable, plutôt que de les compter au prix public.
+ * Les tarifs annuels (Fondateur, standard, partenaire) sont ramenés au mois
+ * pour que le MRR reste comparable, plutôt que de les compter au prix public
+ * mensuel.
  */
-function mrrPourOffre(offre: Plan, fondateur?: boolean | null): number {
+function mrrPourOffre(
+  offre: Plan,
+  p: Pick<ProfileRow, 'is_founding_member' | 'billing_interval' | 'partner_discount_name'>
+): number {
   const o = OFFERS.find((x) => x.id === offre)
   if (!o) return 0
-  return fondateur ? Math.round(o.foundingAnnualAmount / 12) : o.monthlyAmount
+  return billedPriceFor(o, p).monthlyEquivalent
 }
 import { cookies } from 'next/headers'
 import { createRouteHandlerClient } from '@/lib/supabase-server-helpers'
@@ -30,6 +34,7 @@ type ProfileRow = {
   is_founding_member: boolean | null
   newsletter_opt_in: boolean | null
   partner_discount_name: string | null
+  billing_interval: string | null
   created_at: string | null
 }
 
@@ -71,7 +76,7 @@ export async function GET() {
     ticketsRes,
   ] = await Promise.all([
     supabaseAdmin.from('profiles')
-      .select('id, email, full_name, role, plan, subscription_status, is_complimentary, is_founding_member, newsletter_opt_in, partner_discount_name, created_at')
+      .select('id, email, full_name, role, plan, subscription_status, is_complimentary, is_founding_member, newsletter_opt_in, partner_discount_name, billing_interval, created_at')
       .order('created_at', { ascending: true }),
     supabaseAdmin.from('user_login_tracking').select('user_id, login_date'),
     supabaseAdmin.from('osteoflow_sessions').select('user_id, device_id, device_name, last_active_at, created_at'),
@@ -124,7 +129,7 @@ export async function GET() {
       if (enCoursDEssai) enEssai++
       else if (!p.is_complimentary) {
         abonnesPayants++
-        mrrCents += mrrPourOffre(offre, p.is_founding_member)
+        mrrCents += mrrPourOffre(offre, p)
       }
     }
 

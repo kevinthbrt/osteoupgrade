@@ -6,6 +6,7 @@ import { planOf } from '@/lib/entitlements'
 import { notifyAdmin } from '@/lib/admin-notify'
 import { UTM_COOKIE, parseAttributionCookie, attributionToStripeMetadata } from '@/lib/utm'
 import { supabaseAdmin } from '@/lib/supabase-server'
+import { activePartnerProgramFor } from '@/lib/partner-programs'
 
 export async function POST(request: Request) {
   try {
@@ -127,9 +128,30 @@ export async function POST(request: Request) {
       }
     }
 
-    // Valider le code de parrainage (applicable à l'offre unique)
+    // Les tarifs partenaires sont réservés aux stagiaires rattachés à une
+    // école partenaire encore ouverte (table à part, que le navigateur ne peut
+    // pas écrire). Même revérification que pour les tarifs Fondateur.
+    if (plan.isPartner) {
+      const programme = await activePartnerProgramFor(userId)
+      if (!programme) {
+        return NextResponse.json(
+          { error: 'Ce tarif est réservé aux stagiaires de nos écoles partenaires.' },
+          { status: 403 }
+        )
+      }
+    }
+
+    // Un tarif annuel standard ou partenaire est déjà remisé (deux mois
+    // offerts, puis -30 % pour les écoles) : on n'y empile ni code promo ni
+    // remise de funnel. Les tarifs Fondateur gardent leur comportement
+    // historique.
+    const tarifDejaRemise = plan.isAnnual && !plan.isFounding
+
+    // Valider le code de parrainage (applicable à l'offre unique). Le tarif
+    // partenaire en est exclu, comme le tarif Fondateur côté interface : il
+    // cumulerait deux avantages.
     let referrerUserId = null
-    const shouldProcessReferral = Boolean(referralCode)
+    const shouldProcessReferral = Boolean(referralCode) && !plan.isPartner
 
     if (shouldProcessReferral) {
       // 🚫 VÉRIFIER QUE L'UTILISATEUR N'A JAMAIS ÉTÉ PARRAINÉ (1 fois AU TOTAL, pas par année)
@@ -203,8 +225,8 @@ export async function POST(request: Request) {
       .eq('id', userId)
       .single()
 
-    // L'essai est ouvert aux trois offres mensuelles, mais reste unique par
-    // compte à vie : `trial_used_at` n'est pas remis à zéro d'une offre à
+    // L'essai est ouvert aux offres mensuelles, annuelles et partenaires, mais
+    // reste unique par compte à vie : `trial_used_at` n'est pas remis à zéro d'une offre à
     // l'autre. Les tarifs Fondateur en restent exclus.
     const isEligibleForTrial =
       !plan.isFounding &&
@@ -242,10 +264,11 @@ export async function POST(request: Request) {
         // sienne. Ne comparer qu'à l'offre par défaut refusait la seconde, en
         // silence, juste après la création du compte.
         //
-        // Les offres mensuelles publiques passent toujours : n'importe qui peut
-        // les prendre depuis la page des tarifs, et la page d'inscription permet
-        // d'en changer. Seule une offre non publique (Fondateur) doit figurer sur
-        // la page pour être acceptée sous ce funnel.
+        // Les offres publiques (mensuelles et annuelles standard) passent
+        // toujours : n'importe qui peut les prendre depuis la page des tarifs,
+        // et la page d'inscription permet d'en changer. Seule une offre non
+        // publique (Fondateur, partenaire) doit figurer sur la page pour être
+        // acceptée sous ce funnel.
         const offresDeLaPage = new Set<string>(PUBLIC_PLAN_TYPES)
         if (funnel.plan_type) offresDeLaPage.add(funnel.plan_type)
         for (const bloc of Array.isArray(funnel.content) ? funnel.content : []) {
@@ -310,7 +333,7 @@ export async function POST(request: Request) {
     // Les tarifs Fondateur en sont exclus. Le coupon est restreint aux trois prix
     // mensuels, donc le présenter sur une offre Fondateur ne raterait pas la
     // remise : Stripe refuserait la session entière.
-    if (!plan.isFounding) {
+    if (!plan.isFounding && !tarifDejaRemise) {
       const { data: leadPromo } = await supabaseAdmin
         .from('funnel_leads')
         .select('promo_code_id, promo_expires_at')
@@ -352,9 +375,16 @@ export async function POST(request: Request) {
       // s'applique, elle est posée d'office et le champ de saisie disparaît :
       // demander à quelqu'un de recopier un code qu'on connaît déjà est une
       // friction gratuite au moment le plus coûteux du parcours.
+      //
+      // Sur un tarif annuel déjà remisé, pas de champ de saisie du tout : les
+      // coupons sont restreints par produit, et les tarifs annuels partagent
+      // les produits des mensuels. Un code partenaire ou Gold s'y appliquerait
+      // donc sans que rien ne l'empêche côté Stripe.
       ...(promotionCodeId
         ? { discounts: [{ promotion_code: promotionCodeId }] }
-        : { allow_promotion_codes: true }),
+        : tarifDejaRemise
+          ? {}
+          : { allow_promotion_codes: true }),
       line_items: [
         {
           price: plan.priceId,

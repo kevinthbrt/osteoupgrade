@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import { supabase } from '@/lib/supabase'
-import { OFFERS, formatAmount } from '@/lib/offers'
+import { OFFERS, formatAmount, pricingFor } from '@/lib/offers'
 import {
   activePromoExpiry,
   discountedAmount,
@@ -164,6 +164,8 @@ export default function AuthPage() {
   // Changer d'offre réécrit l'URL plutôt qu'un état à part : c'est elle que
   // `redirectAfterAuth` relit après l'inscription, et un rechargement de page
   // retrouve ainsi le bon choix.
+  const offreAnnuelle = OFFERS.some((o) => o.annualPlanType === offre)
+
   const choisirOffre = (planType: string) => {
     setOffre(planType)
     const url = new URL(window.location.href)
@@ -451,9 +453,33 @@ export default function AuthPage() {
                 // contenu le plus long et déborde de l'écran sur mobile.
                 <fieldset className="min-w-0">
                   <legend className="mb-2 text-sm font-semibold text-slate-700">Votre abonnement</legend>
+                  {/* Mensuel ou annuel : bascule l'offre choisie vers son équivalent. */}
+                  <div className="mb-2 grid grid-cols-2 gap-1 rounded-lg bg-slate-100 p-1">
+                    {([false, true] as const).map((versAnnuel) => {
+                      const actif = offreAnnuelle === versAnnuel
+                      return (
+                        <button
+                          key={String(versAnnuel)}
+                          type="button"
+                          onClick={() => {
+                            const courante = OFFERS.find((o) => o.planType === offre || o.annualPlanType === offre) ?? OFFERS[0]
+                            choisirOffre(versAnnuel ? courante.annualPlanType : courante.planType)
+                          }}
+                          className={`rounded-md py-1.5 text-xs font-semibold transition ${
+                            actif ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-800'
+                          }`}
+                        >
+                          {versAnnuel ? 'Annuel · 2 mois offerts' : 'Mensuel'}
+                        </button>
+                      )
+                    })}
+                  </div>
                   <div className="space-y-2">
                     {OFFERS.map((o) => {
-                      const choisie = offre === o.planType
+                      const tarif = pricingFor(o, offreAnnuelle ? 'year' : 'month')
+                      const choisie = offre === tarif.planType
+                      // La remise de funnel ne porte que sur les tarifs mensuels.
+                      const remise = promoExpire && !offreAnnuelle
                       return (
                         <label
                           key={o.planType}
@@ -466,9 +492,9 @@ export default function AuthPage() {
                           <input
                             type="radio"
                             name="offre"
-                            value={o.planType}
+                            value={tarif.planType}
                             checked={choisie}
-                            onChange={() => choisirOffre(o.planType)}
+                            onChange={() => choisirOffre(tarif.planType)}
                             className="sr-only"
                           />
                           <span className="min-w-0">
@@ -476,7 +502,7 @@ export default function AuthPage() {
                             <span className="block text-xs text-slate-500">{o.tagline}</span>
                           </span>
                           <span className="whitespace-nowrap text-right text-sm font-bold text-slate-900">
-                            {promoExpire ? (
+                            {remise ? (
                               <>
                                 <span className="mr-1 text-xs font-normal text-slate-400 line-through">
                                   {formatAmount(o.monthlyAmount)}
@@ -484,15 +510,15 @@ export default function AuthPage() {
                                 {formatAmount(discountedAmount(o.monthlyAmount))}
                               </>
                             ) : (
-                              formatAmount(o.monthlyAmount)
+                              formatAmount(tarif.amount)
                             )}
-                            <span className="text-xs font-normal text-slate-500"> / mois</span>
+                            <span className="text-xs font-normal text-slate-500"> / {offreAnnuelle ? 'an' : 'mois'}</span>
                           </span>
                         </label>
                       )
                     })}
                   </div>
-                  {promoExpire && (
+                  {promoExpire && !offreAnnuelle && (
                     <p className="mt-2 rounded-lg bg-violet-50 px-3 py-2 text-xs text-violet-900">
                       <strong>Votre remise de {PROMO_PERCENT} % pendant {PROMO_MONTHS} mois</strong> est
                       appliquée automatiquement au paiement, jusqu’au{' '}

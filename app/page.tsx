@@ -40,7 +40,7 @@ import {
   Volume2,
   VolumeX,
 } from 'lucide-react'
-import { OFFERS, formatAmount, BUNDLE_SAVING } from '@/lib/offers'
+import { OFFERS, formatAmount, BUNDLE_SAVING, annualSavingOf } from '@/lib/offers'
 
 // Hook for scroll-triggered animations
 function useScrollReveal() {
@@ -179,6 +179,8 @@ export default function LandingPage() {
   const flow = useScrollReveal()
   const upgrade = useScrollReveal()
   const pricing = useScrollReveal()
+  /** Grille tarifaire affichée en facturation annuelle (deux mois offerts). */
+  const [tarifAnnuel, setTarifAnnuel] = useState(false)
   const partners = useScrollReveal()
   const cta = useScrollReveal()
 
@@ -1186,6 +1188,26 @@ export default function LandingPage() {
           <div className={`transition-all duration-700 delay-100 ${
             pricing.isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
           }`}>
+            {/* Mensuel ou annuel */}
+            <div className="flex justify-center mb-10">
+              <div className="inline-flex rounded-xl bg-white border border-slate-200 p-1 shadow-sm">
+                <button
+                  type="button"
+                  onClick={() => setTarifAnnuel(false)}
+                  className={`px-5 py-2 rounded-lg text-sm font-semibold transition ${!tarifAnnuel ? 'bg-slate-900 text-white' : 'text-slate-600 hover:text-slate-900'}`}
+                >
+                  Mensuel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTarifAnnuel(true)}
+                  className={`px-5 py-2 rounded-lg text-sm font-semibold transition ${tarifAnnuel ? 'bg-slate-900 text-white' : 'text-slate-600 hover:text-slate-900'}`}
+                >
+                  Annuel <span className={tarifAnnuel ? 'text-emerald-300' : 'text-emerald-600'}>2 mois offerts</span>
+                </button>
+              </div>
+            </div>
+
             {/* Pricing cards */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
               {OFFERS.map((offer) => (
@@ -1211,11 +1233,19 @@ export default function LandingPage() {
                       {offer.name}
                     </div>
                     <div className="flex items-baseline gap-1 mb-1">
-                      <span className="text-4xl font-bold text-slate-900">{formatAmount(offer.monthlyAmount)}</span>
-                      <span className="text-slate-400 text-sm">/mois</span>
+                      <span className="text-4xl font-bold text-slate-900">
+                        {formatAmount(tarifAnnuel ? offer.annualAmount : offer.monthlyAmount)}
+                      </span>
+                      <span className="text-slate-400 text-sm">{tarifAnnuel ? '/an' : '/mois'}</span>
                     </div>
-                    <p className="text-xs text-slate-400">Sans engagement &middot; annulable &agrave; tout moment</p>
-                    {offer.highlighted && (
+                    {tarifAnnuel ? (
+                      <p className="text-xs text-emerald-600 font-semibold">
+                        {annualSavingOf(offer).freeMonths} mois offerts &middot; au lieu de {formatAmount(annualSavingOf(offer).twelveMonthsAmount)}/an
+                      </p>
+                    ) : (
+                      <p className="text-xs text-slate-400">Sans engagement &middot; annulable &agrave; tout moment</p>
+                    )}
+                    {offer.highlighted && !tarifAnnuel && (
                       <p className="text-xs text-emerald-600 font-semibold mt-1">
                         {formatAmount(BUNDLE_SAVING.savedAmount)}/mois &eacute;conomis&eacute;s vs les deux offres s&eacute;par&eacute;es
                       </p>

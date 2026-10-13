@@ -24,14 +24,24 @@ export type StripePlan = {
   isAnnual: boolean
   /** Réservé aux comptes profiles.is_founding_member (revérifié côté serveur). */
   isFounding: boolean
+  /**
+   * Réservé aux stagiaires d'une école partenaire (table
+   * partner_program_members, revérifié côté serveur).
+   */
+  isPartner?: boolean
 }
 
 /**
- * Catalogue des offres, aligné sur les Price Stripe (cf. docs/PRICING_3_OFFRES.md).
+ * Catalogue des offres, aligné sur les Price Stripe (cf. docs/PRICING_3_OFFRES.md
+ * et docs/PRICING_ANNUEL_PARTENAIRE.md).
  *
- * Trois offres, chacune déclinée en tarif standard mensuel et en tarif
- * Fondateur annuel (-50 % à vie, réservé aux comptes marqués comme tels et
- * revérifié dans /api/stripe/checkout — jamais un simple code transmissible).
+ * Trois offres, chacune déclinée en quatre tarifs :
+ *   - standard mensuel ;
+ *   - standard annuel (deux mois offerts) ;
+ *   - partenaire annuel (-30 % sur l'annuel, réservé aux stagiaires d'une
+ *     école partenaire, revérifié dans /api/stripe/checkout) ;
+ *   - Fondateur annuel (-50 % à vie, réservé aux comptes marqués comme tels et
+ *     revérifié dans /api/stripe/checkout, jamais un simple code transmissible).
  *
  * Les clés de cet objet sont les `planType` transmis par le front et stockés
  * dans les metadata Stripe. L'offre réellement accordée est portée par le
@@ -53,6 +63,31 @@ export const STRIPE_PLANS: Record<string, StripePlan> = {
     interval: 'month',
     isAnnual: false,
     isFounding: false
+  },
+  premium_annual: {
+    name: 'Premium annuel',
+    plan: 'bundle',
+    priceId: process.env.STRIPE_PRICE_PREMIUM_ANNUAL || '',
+    amount: 49999,
+    displayPrice: '499,99€',
+    displayInterval: 'an',
+    currency: 'eur',
+    interval: 'year',
+    isAnnual: true,
+    isFounding: false
+  },
+  partner_premium_annual: {
+    name: 'Premium partenaire',
+    plan: 'bundle',
+    priceId: process.env.STRIPE_PRICE_PARTNER_PREMIUM_ANNUAL || '',
+    amount: 34999,
+    displayPrice: '349,99€',
+    displayInterval: 'an',
+    currency: 'eur',
+    interval: 'year',
+    isAnnual: true,
+    isFounding: false,
+    isPartner: true
   },
   founding_annual: {
     name: 'Premium Fondateur',
@@ -80,6 +115,31 @@ export const STRIPE_PLANS: Record<string, StripePlan> = {
     isAnnual: false,
     isFounding: false
   },
+  osteoflow_annual: {
+    name: 'MyOsteoFlow annuel',
+    plan: 'osteoflow',
+    priceId: process.env.STRIPE_PRICE_OSTEOFLOW_ANNUAL || '',
+    amount: 29999,
+    displayPrice: '299,99€',
+    displayInterval: 'an',
+    currency: 'eur',
+    interval: 'year',
+    isAnnual: true,
+    isFounding: false
+  },
+  partner_osteoflow_annual: {
+    name: 'MyOsteoFlow partenaire',
+    plan: 'osteoflow',
+    priceId: process.env.STRIPE_PRICE_PARTNER_OSTEOFLOW_ANNUAL || '',
+    amount: 20999,
+    displayPrice: '209,99€',
+    displayInterval: 'an',
+    currency: 'eur',
+    interval: 'year',
+    isAnnual: true,
+    isFounding: false,
+    isPartner: true
+  },
   founding_osteoflow_annual: {
     name: 'MyOsteoFlow Fondateur',
     plan: 'osteoflow',
@@ -106,6 +166,31 @@ export const STRIPE_PLANS: Record<string, StripePlan> = {
     isAnnual: false,
     isFounding: false
   },
+  osteoupgrade_annual: {
+    name: 'OsteoUpgrade annuel',
+    plan: 'osteoupgrade',
+    priceId: process.env.STRIPE_PRICE_OSTEOUPGRADE_ANNUAL || '',
+    amount: 29999,
+    displayPrice: '299,99€',
+    displayInterval: 'an',
+    currency: 'eur',
+    interval: 'year',
+    isAnnual: true,
+    isFounding: false
+  },
+  partner_osteoupgrade_annual: {
+    name: 'OsteoUpgrade partenaire',
+    plan: 'osteoupgrade',
+    priceId: process.env.STRIPE_PRICE_PARTNER_OSTEOUPGRADE_ANNUAL || '',
+    amount: 20999,
+    displayPrice: '209,99€',
+    displayInterval: 'an',
+    currency: 'eur',
+    interval: 'year',
+    isAnnual: true,
+    isFounding: false,
+    isPartner: true
+  },
   founding_osteoupgrade_annual: {
     name: 'OsteoUpgrade Fondateur',
     plan: 'osteoupgrade',
@@ -120,8 +205,19 @@ export const STRIPE_PLANS: Record<string, StripePlan> = {
   }
 }
 
-/** Offres proposées à la souscription (les tarifs Fondateur sont exclus). */
-export const PUBLIC_PLAN_TYPES = ['premium_monthly', 'osteoflow_monthly', 'osteoupgrade_monthly'] as const
+/** Offres mensuelles publiques (base des restrictions de coupon par produit). */
+export const MONTHLY_PLAN_TYPES = ['premium_monthly', 'osteoflow_monthly', 'osteoupgrade_monthly'] as const
+
+/**
+ * Offres ouvertes à tous à la souscription : les mensuelles et les annuelles
+ * standard. Les tarifs Fondateur et partenaire en sont exclus.
+ */
+export const PUBLIC_PLAN_TYPES = [
+  ...MONTHLY_PLAN_TYPES,
+  'premium_annual',
+  'osteoflow_annual',
+  'osteoupgrade_annual',
+] as const
 
 /**
  * Produits Stripe des trois offres mensuelles publiques.
@@ -136,7 +232,7 @@ export const PUBLIC_PLAN_TYPES = ['premium_monthly', 'osteoflow_monthly', 'osteo
  * sur une session Fondateur (voir /api/stripe/checkout).
  */
 export async function monthlyProductIds(): Promise<string[]> {
-  const prix = PUBLIC_PLAN_TYPES
+  const prix = MONTHLY_PLAN_TYPES
     .map((clef) => STRIPE_PLANS[clef]?.priceId)
     .filter((id): id is string => Boolean(id))
 
@@ -186,6 +282,15 @@ export function planFromSubscription(subscription: any): Plan {
 }
 
 /**
+ * Rythme de facturation d'un abonnement Stripe, écrit dans
+ * `profiles.billing_interval`. `null` si le prix n'est pas lisible.
+ */
+export function billingIntervalFromSubscription(subscription: any): 'month' | 'year' | null {
+  const interval = subscription?.items?.data?.[0]?.price?.recurring?.interval
+  return interval === 'month' || interval === 'year' ? interval : null
+}
+
+/**
  * Clé du catalogue (`STRIPE_PLANS`) correspondant à un abonnement Stripe.
  *
  * `subscription.metadata.planType` est figé au checkout : il ne suit pas un
@@ -205,15 +310,18 @@ export function planTypeFromSubscription(subscription: any, fallback = 'premium_
   }
 
   // Repli : l'offre est connue par les metadata du Price, mais la variable
-  // d'environnement du priceId n'est pas renseignée. L'intervalle départage
-  // le tarif standard du tarif Fondateur.
+  // d'environnement du priceId n'est pas renseignée. Plusieurs tarifs annuels
+  // coexistent pour une même offre (standard, partenaire, Fondateur) : le
+  // montant les départage, l'intervalle seul ne suffit plus.
   const planDuPrix = price?.metadata?.plan
   if (isPlan(planDuPrix)) {
     const annuel = price?.recurring?.interval === 'year'
-    const parPlan = Object.entries(STRIPE_PLANS).find(
+    const candidats = Object.entries(STRIPE_PLANS).filter(
       ([, p]) => p.plan === planDuPrix && p.isAnnual === annuel
     )
-    if (parPlan) return parPlan[0]
+    const parMontant = candidats.find(([, p]) => p.amount === price?.unit_amount)
+    if (parMontant) return parMontant[0]
+    if (candidats.length > 0) return candidats[0][0]
   }
 
   const legacy = subscription?.metadata?.planType

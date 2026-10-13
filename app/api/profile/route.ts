@@ -4,7 +4,7 @@ import { NextResponse } from 'next/server'
 import { planToRole, type Plan } from '@/lib/entitlements'
 import { SIMULATION_COOKIE, parseSimulatedPlan } from '@/lib/plan-simulation'
 
-const CHAMPS = 'id, email, full_name, role, plan, subscription_status, is_founding_member, trial_used_at, trial_ends_at'
+const CHAMPS = 'id, email, full_name, role, plan, subscription_status, is_founding_member, trial_used_at, trial_ends_at, billing_interval, partner_discount_name'
 
 /**
  * Applique la simulation d'offre d'un administrateur (cf. lib/plan-simulation.ts).

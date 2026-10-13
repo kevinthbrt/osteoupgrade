@@ -5,6 +5,20 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/).
 
 ---
 
+## [1.13.0] : 2026-10-13
+
+### Ajouté
+
+- **Facturation annuelle, deux mois offerts** : Premium 499,99 €/an (au lieu de 599,88 €), MyOsteoFlow et OsteoUpgrade 299,99 €/an (au lieu de 359,88 €). Bascule mensuel/annuel sur la page d'accueil, la page d'inscription et « Mon abonnement ». Les prix annuels sont rattachés aux produits des offres mensuelles, ce qui permet de passer de l'un à l'autre depuis le portail client. (`lib/stripe.ts`, `lib/offers.ts`)
+- **Tarif écoles partenaires** : -30 % sur l'annuel pour les stagiaires d'une école partenaire, soit Premium 349,99 €/an, MyOsteoFlow et OsteoUpgrade 209,99 €/an. Chaque école reçoit un code d'accès, géré depuis `/admin/partners` ; le stagiaire le saisit sur « Mon abonnement » ou suit le lien `/settings/subscription?ecole=CODE`. Le rattachement vit dans une table que le navigateur ne peut pas écrire, et le checkout le revérifie. (`supabase/migrations/20261013_annual_and_partner_pricing.sql`, `lib/partner-programs.ts`)
+- **Rythme de facturation sur le profil** (`profiles.billing_interval`), écrit par le webhook : l'essai, le tableau de bord et le MRR annoncent désormais le vrai montant d'un abonné annuel au lieu du tarif mensuel.
+- **Routes de mise en place** : `POST /api/admin/stripe-annual-prices-setup` crée les six prix annuels dans Stripe (idempotent), `POST /api/admin/stripe-portal-setup` ajoute les tarifs annuels au portail et crée la grille partenaire.
+
+### Modifié
+
+- **Pas de cumul sur les tarifs annuels** : ni code promo, ni remise de funnel sur un tarif annuel standard ou partenaire. Les coupons étant restreints par produit, et les prix annuels partageant les produits des mensuels, un code partenaire s'y serait appliqué sans que Stripe ne l'empêche. Le parrainage reste ouvert à l'annuel standard, pas au tarif école.
+- **CGU** : facturation annuelle et tarif écoles partenaires (articles 5.1 et 5.2).
+
 ## [1.12.0] : 2026-09-28
 
 ### Ajouté

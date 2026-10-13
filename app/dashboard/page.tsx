@@ -37,7 +37,7 @@ import {
   Route
 } from 'lucide-react'
 import { planOf, hasOsteoflow, hasOsteoupgrade } from '@/lib/entitlements'
-import { OFFERS, formatAmount, offerOf, BUNDLE_SAVING } from '@/lib/offers'
+import { OFFERS, formatAmount, offerOf, BUNDLE_SAVING, billedPriceFor } from '@/lib/offers'
 
 export default function Dashboard() {
   const router = useRouter()
@@ -315,9 +315,15 @@ export default function Dashboard() {
                 <div className="flex-1 min-w-0">
                   <p className="font-bold text-white">Essai {offerOf(planOf(profile))?.name ?? ''} en cours</p>
                   <p className="text-blue-50/90 text-sm mt-0.5">
-                    {profile?.trial_ends_at
-                      ? <>Jusqu&apos;au {new Date(profile.trial_ends_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })} — passé cette date, votre carte sera débitée de {formatAmount(offerOf(planOf(profile))?.monthlyAmount ?? 4999)}/mois sauf annulation.</>
-                      : <>Votre carte sera débitée de {formatAmount(offerOf(planOf(profile))?.monthlyAmount ?? 4999)}/mois à la fin de l&apos;essai, sauf annulation.</>}
+                    {(() => {
+                      // Annuel ou mensuel : le montant annoncé doit être celui du prélèvement.
+                      const offre = offerOf(planOf(profile))
+                      const tarif = offre ? billedPriceFor(offre, profile) : { amount: 4999, suffix: '/mois' }
+                      const montant = `${formatAmount(tarif.amount)}${tarif.suffix}`
+                      return profile?.trial_ends_at
+                        ? <>Jusqu&apos;au {new Date(profile.trial_ends_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}. Passé cette date, votre carte sera débitée de {montant} sauf annulation.</>
+                        : <>Votre carte sera débitée de {montant} à la fin de l&apos;essai, sauf annulation.</>
+                    })()}
                   </p>
                 </div>
                 <button onClick={() => router.push('/settings/subscription')} className="flex-shrink-0 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white text-blue-700 text-sm font-bold hover:bg-blue-50 transition-colors shadow-md">

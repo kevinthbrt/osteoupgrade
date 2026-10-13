@@ -3,8 +3,9 @@ import { stripe, STRIPE_PLANS } from '@/lib/stripe'
 import { verifyAdmin } from '@/lib/api-guards'
 
 /**
- * Crée (ou met à jour) les deux configurations du portail client Stripe qui
- * autorisent le changement d'offre — cf. docs/PRICING_3_OFFRES.md.
+ * Crée (ou met à jour) les trois configurations du portail client Stripe qui
+ * autorisent le changement d'offre (cf. docs/PRICING_3_OFFRES.md et
+ * docs/PRICING_ANNUEL_PARTENAIRE.md).
  *
  * Pourquoi une route d'administration plutôt qu'un script : la création d'une
  * configuration de portail n'est pas exposée par le dashboard Stripe, qui ne
@@ -15,7 +16,8 @@ import { verifyAdmin } from '@/lib/api-guards'
  * Pourquoi DEUX configurations : les tarifs Fondateur (-50 % à vie) vivent sur
  * les mêmes produits Stripe que les tarifs publics. Une grille unique ferait
  * basculer un membre fondateur qui change d'offre sur le tarif public — il
- * perdrait sa remise à vie sans en être averti.
+ * perdrait sa remise à vie sans en être averti. Même raisonnement pour la
+ * grille partenaire, ajoutée avec les tarifs écoles.
  *
  * Idempotent : les configurations sont retrouvées par leur metadata `grille`.
  *
@@ -27,8 +29,9 @@ import { verifyAdmin } from '@/lib/api-guards'
  *   await fetch('/api/admin/stripe-portal-setup', { method: 'POST' })
  *     .then(r => r.json()).then(console.log)
  *
- * La réponse contient les deux identifiants à reporter dans
- * STRIPE_PORTAL_CONFIG_PLANS et STRIPE_PORTAL_CONFIG_PLANS_FOUNDING, suivis
+ * La réponse contient les trois identifiants à reporter dans
+ * STRIPE_PORTAL_CONFIG_PLANS, STRIPE_PORTAL_CONFIG_PLANS_FOUNDING et
+ * STRIPE_PORTAL_CONFIG_PLANS_PARTNER, suivis
  * d'un redéploiement — les variables d'environnement ne sont lues qu'au build.
  */
 
@@ -36,14 +39,33 @@ export const dynamic = 'force-dynamic'
 
 const RETOUR = `${process.env.NEXT_PUBLIC_URL || 'https://www.osteo-upgrade.fr'}/settings/subscription`
 
-type Grille = 'standard' | 'fondateur'
+type Grille = 'standard' | 'fondateur' | 'partenaire'
 
-/** Produit et unique prix que chaque population a le droit de choisir. */
+/**
+ * Prix que chaque population a le droit de choisir.
+ *
+ *   - standard : mensuel et annuel (deux mois offerts), pour passer de l'un à
+ *     l'autre depuis le portail ;
+ *   - partenaire : mensuel et annuel partenaire (-30 %). Le tarif annuel
+ *     standard n'y figure pas : un stagiaire passant à l'annuel doit tomber
+ *     sur son tarif école, pas sur le tarif public ;
+ *   - fondateur : uniquement les tarifs Fondateur.
+ */
 function grilleDePrix(grille: Grille) {
   const clefs =
     grille === 'fondateur'
       ? ['founding_annual', 'founding_osteoflow_annual', 'founding_osteoupgrade_annual']
-      : ['premium_monthly', 'osteoflow_monthly', 'osteoupgrade_monthly']
+      : grille === 'partenaire'
+        ? [
+            'premium_monthly', 'partner_premium_annual',
+            'osteoflow_monthly', 'partner_osteoflow_annual',
+            'osteoupgrade_monthly', 'partner_osteoupgrade_annual',
+          ]
+        : [
+            'premium_monthly', 'premium_annual',
+            'osteoflow_monthly', 'osteoflow_annual',
+            'osteoupgrade_monthly', 'osteoupgrade_annual',
+          ]
 
   return clefs.map((clef) => {
     const plan = STRIPE_PLANS[clef]
@@ -59,9 +81,15 @@ async function produitDuPrix(priceId: string): Promise<string> {
 
 async function construireParametres(grille: Grille) {
   const plans = grilleDePrix(grille)
-  const produits = await Promise.all(
-    plans.map(async (p) => ({ product: await produitDuPrix(p.priceId), prices: [p.priceId] }))
-  )
+
+  // Le portail attend une entrée par produit, avec tous ses prix autorisés :
+  // mensuel et annuel d'une même offre partagent le même produit.
+  const parProduit = new Map<string, string[]>()
+  for (const p of plans) {
+    const produit = await produitDuPrix(p.priceId)
+    parProduit.set(produit, [...(parProduit.get(produit) ?? []), p.priceId])
+  }
+  const produits = Array.from(parProduit, ([product, prices]) => ({ product, prices }))
 
   return {
     business_profile: {
@@ -124,16 +152,19 @@ export async function POST() {
   try {
     const standard = await creerOuMettreAJour('standard')
     const fondateur = await creerOuMettreAJour('fondateur')
+    const partenaire = await creerOuMettreAJour('partenaire')
 
     return NextResponse.json({
       standard,
       fondateur,
+      partenaire,
       variables: {
         STRIPE_PORTAL_CONFIG_PLANS: standard.id,
         STRIPE_PORTAL_CONFIG_PLANS_FOUNDING: fondateur.id,
+        STRIPE_PORTAL_CONFIG_PLANS_PARTNER: partenaire.id,
       },
       rappel:
-        "Renseignez ces deux variables dans Vercel puis redéployez : les variables d'environnement ne sont lues qu'au build.",
+        "Renseignez ces trois variables dans Vercel puis redéployez : les variables d'environnement ne sont lues qu'au build.",
     })
   } catch (error: any) {
     console.error('[stripe-portal-setup]', error?.message)
