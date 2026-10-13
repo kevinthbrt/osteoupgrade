@@ -1,7 +1,8 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import type { LinkExercise, LinkProgram } from '@/lib/patient-link-codec'
+import type { LinkExercise } from '@/lib/patient-link-codec'
+import type { ViewProgram } from './PatientApp'
 import s from './patient-app.module.css'
 import { PainScale, Thumb, doseText } from './ui'
 import type { DayLog, Library } from './shared'
@@ -10,7 +11,7 @@ type Phase = 'intro' | 'work' | 'rest' | 'pain' | 'end'
 
 interface Props {
   mode: 'guided' | 'quick'
-  program: LinkProgram
+  program: ViewProgram
   library: Library
   todayLog: DayLog
   onChange: (patch: Partial<DayLog>) => void

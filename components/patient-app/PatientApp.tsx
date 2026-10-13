@@ -3,11 +3,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { createClient } from '@supabase/supabase-js'
 import {
-  decodeProgram, encodeFullReport, encodeShortCode, summarizeWeeks,
-  type FullReport, type LinkProgram,
+  activePhase, decodeProgram, encodeFullReport, encodeShortCode, phasesOf, summarizeWeeks,
+  type FullReport, type LinkExercise, type LinkProgram,
 } from '@/lib/patient-link-codec'
 import s from './patient-app.module.css'
 import Session from './Session'
+import UpdateProgram from './UpdateProgram'
 import { PainScale, Thumb, doseText } from './ui'
 import { addDays, dayOffset, isoDay, frDate, type DayLog, type Library, type LibraryItem } from './shared'
 
@@ -32,7 +33,29 @@ function write(key: string, value: unknown) {
 }
 
 type Tab = 'today' | 'program' | 'track' | 'report'
-type Programs = Record<string, { program: LinkProgram; savedAt: string }>
+type Programs = Record<string, { program: LinkProgram; savedAt: string; updated?: boolean }>
+/** Programme vu à une date : l'étape en cours remplace les exercices à plat. */
+export type ViewProgram = LinkProgram & { x: LinkExercise[] }
+
+/**
+ * Range un programme reçu (lien ouvert, lien collé ou QR code scanné). Un
+ * lien plus ancien que la version déjà présente ne l'écrase pas.
+ */
+export function receiveProgram(incoming: LinkProgram): { programs: Programs; message: string } {
+  const stored = read<Programs>(K_PROGRAMS, {})
+  const existing = stored[incoming.id]
+  let message: string
+  if (existing?.program.u && incoming.u && incoming.u < existing.program.u) {
+    message = 'Ce lien contient une version plus ancienne de votre programme : la plus récente est conservée.'
+  } else {
+    const changed = !!existing && JSON.stringify(existing.program) !== JSON.stringify(incoming)
+    stored[incoming.id] = { program: incoming, savedAt: new Date().toISOString(), updated: changed || existing?.updated }
+    message = existing ? (changed ? 'Programme mis à jour.' : 'Votre programme est déjà à jour.') : 'Programme ajouté.'
+  }
+  write(K_PROGRAMS, stored)
+  write(K_CURRENT, incoming.id)
+  return { programs: stored, message }
+}
 
 export default function PatientApp() {
   const [ready, setReady] = useState(false)
@@ -42,18 +65,19 @@ export default function PatientApp() {
   const [library, setLibrary] = useState<Library>({})
   const [tab, setTab] = useState<Tab>('today')
   const [session, setSession] = useState<null | 'guided' | 'quick'>(null)
+  const [flash, setFlash] = useState<string | null>(null)
   const today = isoDay(new Date())
 
   // Programme reçu dans le lien, puis retiré de la barre d'adresse.
   useEffect(() => {
-    const stored = read<Programs>(K_PROGRAMS, {})
+    let stored = read<Programs>(K_PROGRAMS, {})
     let current = read<string | null>(K_CURRENT, null)
     const fromLink = window.location.hash ? decodeProgram(window.location.hash.slice(1)) : null
     if (fromLink) {
-      stored[fromLink.id] = { program: fromLink, savedAt: new Date().toISOString() }
+      const received = receiveProgram(fromLink)
+      stored = received.programs
       current = fromLink.id
-      write(K_PROGRAMS, stored)
-      write(K_CURRENT, current)
+      if (received.message !== 'Programme ajouté.') setFlash(received.message)
       window.history.replaceState(null, '', window.location.pathname)
     }
     if (current && !stored[current]) current = Object.keys(stored)[0] ?? null
@@ -85,7 +109,19 @@ export default function PatientApp() {
       })
   }, [])
 
-  const program = currentId ? programs[currentId]?.program ?? null : null
+  const stored = currentId ? programs[currentId] ?? null : null
+  const program: ViewProgram | null = useMemo(() => {
+    if (!stored) return null
+    const phase = activePhase(stored.program, today)
+    return { ...stored.program, x: phase.x, n: phase.n, w: phase.w, i: phase.i }
+  }, [stored, today])
+
+  const onReceived = (next: Programs, id: string, message: string) => { setPrograms(next); setCurrentId(id); setTab('today'); setFlash(message) }
+  const dismissUpdate = () => {
+    if (!currentId) return
+    const next = { ...programs, [currentId]: { ...programs[currentId], updated: false } }
+    setPrograms(next); write(K_PROGRAMS, next)
+  }
 
   const saveLog = useCallback((next: Record<string, DayLog>) => {
     setLog(next)
@@ -96,7 +132,7 @@ export default function PatientApp() {
   const updateToday = (patch: Partial<DayLog>) => saveLog({ ...log, [today]: { ...todayLog, ...patch } })
 
   if (!ready) return <div className={s.app}><div className={s.screen} /></div>
-  if (!program) return <EmptyState />
+  if (!program || !stored) return <EmptyState onReceived={onReceived} />
 
   return (
     <div className={s.app}>
@@ -106,20 +142,24 @@ export default function PatientApp() {
           <h1>{{ today: 'Bonjour', program: 'Votre programme', track: 'Votre suivi', report: 'Votre bilan' }[tab]}</h1>
         </header>
         <main className={s.main}>
+          {flash && tab === 'today' && <p className={`${s.advice} ${s.ok}`} role="status">{flash}</p>}
           {tab === 'today' && (
-            <Today program={program} library={library} log={log} today={today} todayLog={todayLog}
-              onMorning={v => updateToday({ m: v })} onStart={() => setSession('guided')} onQuick={() => setSession('quick')} />
+            <>
+              <Notices raw={stored.program} updated={!!stored.updated} today={today} onDismissUpdate={dismissUpdate} />
+              <Today program={program} library={library} log={log} today={today} todayLog={todayLog}
+                onMorning={v => updateToday({ m: v })} onStart={() => setSession('guided')} onQuick={() => setSession('quick')} />
+            </>
           )}
           {tab === 'program' && (
-            <ProgramView program={program} library={library} programs={programs} currentId={currentId!}
-              onSwitch={id => { setCurrentId(id); write(K_CURRENT, id) }} />
+            <ProgramView program={program} raw={stored.program} today={today} library={library} programs={programs} currentId={currentId!}
+              onSwitch={id => { setCurrentId(id); write(K_CURRENT, id) }} onReceived={onReceived} />
           )}
           {tab === 'track' && <Track program={program} log={log} today={today} />}
           {tab === 'report' && <Report program={program} log={log} today={today} />}
         </main>
         <nav className={s.tabs} aria-label="Sections">
           {TABS.map(t => (
-            <button key={t.id} type="button" aria-current={tab === t.id ? 'page' : undefined} onClick={() => { setTab(t.id); window.scrollTo(0, 0) }}>
+            <button key={t.id} type="button" aria-current={tab === t.id ? 'page' : undefined} onClick={() => { setTab(t.id); setFlash(null); window.scrollTo(0, 0) }}>
               {t.icon}{t.label}
             </button>
           ))}
@@ -143,17 +183,34 @@ const TABS: Array<{ id: Tab; label: string; icon: JSX.Element }> = [
   { id: 'report', label: 'Bilan', icon: icon('M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h3v3M21 14v7h-4M14 18v3') },
 ]
 
-function EmptyState() {
+function EmptyState({ onReceived }: { onReceived: (p: Programs, id: string, message: string) => void }) {
   return (
     <div className={s.app}>
       <div className={s.screen}>
         <div className={s.empty}>
           <h1>Votre programme d’exercices</h1>
           <p className={s.muted}>Ouvrez le lien envoyé par votre praticien, ou scannez le QR code imprimé sur votre fiche d’exercices.</p>
+          <UpdateProgram onDecoded={pr => { const r = receiveProgram(pr); onReceived(r.programs, pr.id, r.message); return r.message }} />
           <p className={`${s.small} ${s.muted}`}>Votre programme et votre suivi restent sur ce téléphone. Rien n’est envoyé sur internet.</p>
         </div>
       </div>
     </div>
+  )
+}
+
+function Notices({ raw, updated, today, onDismissUpdate }: { raw: LinkProgram; updated: boolean; today: string; onDismissUpdate: () => void }) {
+  const phase = activePhase(raw, today)
+  const key = `ofp:seen-phase:${raw.id}:${phase.index}`
+  const [seen, setSeen] = useState(true)
+  useEffect(() => { setSeen(read<boolean>(key, false)) }, [key])
+  const freshStep = phase.index > 0 && !seen && dayOffset(phase.startsOn, today) <= 7
+  if (!updated && !freshStep) return null
+  return (
+    <section className={`${s.card} ${s.notice}`}>
+      {freshStep && <p><b>Nouvelle étape depuis le {frDate(phase.startsOn, true)}</b>{phase.l ? ` : ${phase.l}` : ''}. Vos exercices ont changé, prenez le temps de relire leurs consignes.</p>}
+      {updated && <p><b>Votre praticien a mis à jour votre programme.</b> Votre suivi est conservé.</p>}
+      <button type="button" className={s.link} onClick={() => { write(key, true); setSeen(true); onDismissUpdate() }}>J’ai compris</button>
+    </section>
   )
 }
 
@@ -165,14 +222,14 @@ function habitualMorning(log: Record<string, DayLog>, today: string): number | n
   return Math.round(past.reduce((a, [, l]) => a + (l.m as number), 0) / past.length)
 }
 
-function weekStats(program: LinkProgram, log: Record<string, DayLog>, today: string) {
+function weekStats(program: ViewProgram, log: Record<string, DayLog>, today: string) {
   const week = Math.floor(dayOffset(program.d, today) / 7)
   const done = Object.entries(log).filter(([d, l]) => l.complete && Math.floor(dayOffset(program.d, d) / 7) === week).length
   return { week, done }
 }
 
 function Today({ program, library, log, today, todayLog, onMorning, onStart, onQuick }: {
-  program: LinkProgram; library: Library; log: Record<string, DayLog>; today: string; todayLog: DayLog
+  program: ViewProgram; library: Library; log: Record<string, DayLog>; today: string; todayLog: DayLog
   onMorning: (v: number) => void; onStart: () => void; onQuick: () => void
 }) {
   const habitual = habitualMorning(log, today)
@@ -232,15 +289,36 @@ function Ring({ done, total }: { done: number; total: number }) {
 
 // ── Programme ───────────────────────────────────────────────────────────────
 
-function ProgramView({ program, library, programs, currentId, onSwitch }: {
-  program: LinkProgram; library: Library; programs: Programs; currentId: string; onSwitch: (id: string) => void
+function ProgramView({ program, raw, today, library, programs, currentId, onSwitch, onReceived }: {
+  program: ViewProgram; raw: LinkProgram; today: string; library: Library; programs: Programs; currentId: string
+  onSwitch: (id: string) => void; onReceived: (p: Programs, id: string, message: string) => void
 }) {
+  const phases = phasesOf(raw)
+  const current = activePhase(raw, today)
   const vigilance = (program.g || DEFAULT_VIGILANCE).split('\n').map(l => l.replace(/^\s*[•\-*]\s*/, '').trim()).filter(Boolean)
   const others = Object.values(programs).filter(p => p.program.id !== currentId)
   return (
     <>
       {program.i && <section className={s.card}><span className={s.label}>Le mot de votre praticien</span><p className={s.pre}>{program.i}</p></section>}
       {program.w && <section className={s.card}><span className={s.label}>Votre routine</span><p><b>{program.w}</b></p></section>}
+      {phases.length > 1 && (
+        <section className={s.card}>
+          <span className={s.label}>Les étapes de votre programme</span>
+          <ol className={s.stepsList}>
+            {phases.map((ph, k) => {
+              const state = k < current.index ? 'passée' : k === current.index ? 'en cours' : 'à venir'
+              return (
+                <li key={k} className={k === current.index ? s.stepNow : k < current.index ? s.stepPast : ''}>
+                  <b>Étape {k + 1}{ph.l && ph.l !== `Étape ${k + 1}` ? ` : ${ph.l}` : ''}</b>
+                  <span className={`${s.small} ${s.muted}`}>{k === 0 ? `dès le ${frDate(raw.d)}` : `à partir du ${frDate(addDays(raw.d, ph.o))}`} · {state}</span>
+                  {k > current.index && <span className={`${s.small} ${s.muted}`}>{ph.x.map(e => e.n).join(', ')}</span>}
+                </li>
+              )
+            })}
+          </ol>
+          {current.next && <p className={`${s.small} ${s.muted}`}>Vos exercices changeront d’eux-mêmes le {frDate(current.next.startsOn, true)}.</p>}
+        </section>
+      )}
       {program.x.map((ex, i) => {
         const lib = library[ex.e]
         const desc = ex.d ?? lib?.description ?? ''
@@ -269,6 +347,11 @@ function ProgramView({ program, library, programs, currentId, onSwitch }: {
         <span className={s.label}>Arrêtez et contactez votre praticien si</span>
         <ul>{vigilance.map(v => <li key={v}>{v}</li>)}</ul>
       </section>
+      <section className={s.card}>
+        <span className={s.label}>Mettre à jour mon programme</span>
+        <p className={`${s.small} ${s.muted}`}>Votre praticien a modifié votre programme ? Ouvrez le nouveau lien, collez-le ici ou scannez le QR code de votre nouvelle fiche.</p>
+        <UpdateProgram onDecoded={pr => { const r = receiveProgram(pr); onReceived(r.programs, pr.id, r.message); return r.message }} />
+      </section>
       {others.length > 0 && (
         <section className={s.card}>
           <span className={s.label}>Vos autres programmes</span>
@@ -285,7 +368,7 @@ function ProgramView({ program, library, programs, currentId, onSwitch }: {
 
 // ── Suivi ───────────────────────────────────────────────────────────────────
 
-function Track({ program, log, today }: { program: LinkProgram; log: Record<string, DayLog>; today: string }) {
+function Track({ program, log, today }: { program: ViewProgram; log: Record<string, DayLog>; today: string }) {
   const { done: weekDone } = weekStats(program, log, today)
   const total = Object.values(log).filter(l => l.complete).length
   const mornings = Object.entries(log).filter(([, l]) => l.m != null).sort(([a], [b]) => (a < b ? -1 : 1))
@@ -350,7 +433,7 @@ function PainChart({ points }: { points: Array<{ d: string; v: number }> }) {
 
 // ── Bilan ───────────────────────────────────────────────────────────────────
 
-export function buildReport(program: LinkProgram, log: Record<string, DayLog>, today: string): FullReport {
+export function buildReport(program: ViewProgram, log: Record<string, DayLog>, today: string): FullReport {
   const days = Object.entries(log)
     .filter(([d]) => d >= program.d && d <= today)
     .map(([d, l]) => ({
@@ -361,10 +444,10 @@ export function buildReport(program: LinkProgram, log: Record<string, DayLog>, t
     }))
     .filter(d => d.m != null || d.x || d.p != null)
     .sort((a, b) => a.o - b.o)
-  return { v: 1, id: program.id, s: program.d, at: today, n: program.n, days }
+  return { v: 1, id: program.id, s: program.d, at: today, u: program.u, n: program.n, days }
 }
 
-function Report({ program, log, today }: { program: LinkProgram; log: Record<string, DayLog>; today: string }) {
+function Report({ program, log, today }: { program: ViewProgram; log: Record<string, DayLog>; today: string }) {
   const report = useMemo(() => buildReport(program, log, today), [program, log, today])
   const weeks = useMemo(() => summarizeWeeks(report), [report])
   const full = useMemo(() => encodeFullReport(report), [report])
