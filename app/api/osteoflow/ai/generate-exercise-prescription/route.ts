@@ -3,6 +3,8 @@ import {
   ROLE, EBP_KNOWLEDGE, GENERATION_RULES, STYLE_RULES, VIGILANCE_POINTS, ITEM_SCHEMA,
   loadExercises, exerciseBlock, exercisePayload, callClaude,
 } from '@/lib/exercise-ai'
+import { getOsteoflowSessionUser } from '@/lib/osteoflow-auth'
+import { hasFeature } from '@/lib/features'
 
 export const dynamic = 'force-dynamic'
 // Plan Pro : jusqu'à 300 s. La réflexion clinique (thinking adaptatif, effort
@@ -89,7 +91,10 @@ export async function POST(req: Request) {
     consultationSections.push(`## DIAGNOSTIC DU PRATICIEN\n${diagnostic}`)
     // Nouvelle étape d'un programme en cours : étapes précédentes, bilans du
     // patient et modifications, pour une vraie progression.
-    if (typeof program_context === 'string' && program_context.trim()) {
+    // Le contexte de programme n'est pris en compte que pour les comptes qui
+    // ont accès aux programmes (fonction en test) : les autres gardent la
+    // génération habituelle.
+    if (typeof program_context === 'string' && program_context.trim() && hasFeature(await getOsteoflowSessionUser(req), 'programmes')) {
       consultationSections.push(`## PROGRAMME EN COURS\nTu prépares une nouvelle étape de ce programme. Pars de l'étape qui la précède et du suivi rapporté par le patient : progresse si la douleur au réveil reste sous 5 et revient à son niveau habituel, maintiens si elle stagne, allège si elle dépasse 5 ou si les séances ne sont pas faites. Dis dans clinical_notes ce qui change par rapport à l'étape précédente et pourquoi.\n\n${program_context.trim()}`)
     }
     consultationSections.push(
