@@ -3,6 +3,7 @@ import { supabaseAdmin } from '@/lib/supabase-server'
 import { createClient } from '@supabase/supabase-js'
 import { rateLimit } from '@/lib/rate-limit'
 import { entitlementsOf, hasOsteoflow, planOf } from '@/lib/entitlements'
+import { featuresOf } from '@/lib/features'
 import crypto from 'crypto'
 
 const SESSION_DURATION_MS = 30 * 24 * 60 * 60 * 1000
@@ -111,6 +112,7 @@ export async function POST(request: Request) {
         role: profile.role,
         plan: planOf(profile),
         entitlements: entitlementsOf(profile),
+        features: featuresOf(profile),
         expires_at: expiresAt,
       },
       { headers: CORS }

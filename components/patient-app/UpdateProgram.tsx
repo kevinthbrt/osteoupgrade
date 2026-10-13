@@ -9,12 +9,18 @@ import s from './patient-app.module.css'
  * iPhone, où l'appli installée ne partage pas ses données avec Safari.
  * Le patient colle le lien reçu ou scanne le QR code de sa fiche.
  */
-export default function UpdateProgram({ onDecoded }: { onDecoded: (program: LinkProgram) => string }) {
+export default function UpdateProgram({ onDecoded, onTransfer }: {
+  onDecoded: (program: LinkProgram) => string
+  /** Suivi copié depuis Safari (iPhone) : accepté aussi dans ce champ. */
+  onTransfer?: (text: string) => string | null
+}) {
   const [mode, setMode] = useState<null | 'paste' | 'scan'>(null)
   const [text, setText] = useState('')
   const [message, setMessage] = useState<string | null>(null)
 
   const tryDecode = (value: string): boolean => {
+    const transferred = onTransfer?.(value)
+    if (transferred) { setMessage(transferred); setMode(null); setText(''); return true }
     const hash = value.includes('#') ? value.slice(value.indexOf('#') + 1) : value
     const program = decodeProgram(hash.trim())
     if (!program) return false

@@ -1,4 +1,6 @@
 import { NextResponse } from 'next/server'
+import { getOsteoflowSessionUser } from '@/lib/osteoflow-auth'
+import { hasFeature } from '@/lib/features'
 import {
   ROLE, EBP_KNOWLEDGE, STYLE_RULES, ITEM_SCHEMA,
   loadExercises, exerciseBlock, exercisePayload, callClaude,
@@ -102,6 +104,12 @@ export async function POST(req: Request) {
   const authHeader = req.headers.get('x-osteoflow-secret')
   if (!process.env.OSTEOFLOW_PROXY_SECRET || authHeader !== process.env.OSTEOFLOW_PROXY_SECRET) {
     return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+  }
+  // Fonction en test : le secret identifie l'appli, la session identifie le
+  // compte, qui doit avoir accès aux programmes.
+  const user = await getOsteoflowSessionUser(req)
+  if (!hasFeature(user, 'programmes')) {
+    return NextResponse.json({ error: 'L’assistant de programme n’est pas encore disponible sur votre compte.', code: 'FEATURE_DISABLED' }, { status: 403 })
   }
 
   try {

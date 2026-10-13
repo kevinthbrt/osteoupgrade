@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase-server'
 import { entitlementsOf, hasOsteoflow, planOf } from '@/lib/entitlements'
+import { featuresOf } from '@/lib/features'
 
 const CONCURRENT_WINDOW_MS = 5 * 60 * 1000
 
@@ -99,6 +100,7 @@ export async function GET(request: Request) {
         role: profile.role,
         plan: planOf(profile),
         entitlements: entitlementsOf(profile),
+        features: featuresOf(profile),
         email: profile.email,
       },
       { headers: CORS }
