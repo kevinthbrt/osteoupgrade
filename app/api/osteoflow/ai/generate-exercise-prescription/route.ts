@@ -35,10 +35,18 @@ Un programme que le patient ne fait pas ne sert à rien. Plus il y a d'exercices
 - Gonarthrose et coxarthrose : renforcement et exercice neuromusculaire au cœur de la prise en charge (NICE NG226 2022, OARSI 2019, programme GLA:D), au moins 2 séances par semaine pendant 6 semaines et plus.
 - Douleur fémoro-patellaire : combiner renforcement de hanche (abducteurs, rotateurs latéraux) et de genou (quadriceps) (consensus Crossley 2016, Collins 2018).
 - Tendinopathies : chargement progressif guidé par la douleur (modèle de Silbernagel 2007). Un seul protocole de charge principal, choisi selon l'irritabilité.
-- Tendinopathie glutéale : éducation et renforcement (essai LEAP, Mellor 2018). Éviter les positions de compression en adduction : pas d'étirement du piriforme ni de jambes croisées, pas d'abduction couché sur le côté tant que le tendon est irritable ; commencer par de l'isométrie d'abduction.
+- Tendinopathie glutéale : éducation et renforcement (essai LEAP, Mellor 2018). Éviter les positions de compression en adduction : pas d'étirement du piriforme ni de jambes croisées, pas d'abduction couché sur le côté tant que le tendon est irritable ; commencer par « Isométrie d’abduction de hanche sur le dos ».
 - Épicondylalgie latérale : chargement progressif des extenseurs du poignet, de l'isométrie vers l'excentrique et le concentrique lents, 3 × 15, quotidien, douleur ≤ 5/10.
 - Entorse latérale de cheville : exercice et entraînement de l'équilibre à domicile pour réduire les récidives (guide Vuurberg 2018, Hupperets 2009 : programme de 8 semaines, 3 fois par semaine).
 - Fasciopathie plantaire : élévations de talon lourdes, unilatérales, serviette roulée sous les orteils (Rathleff 2015, guide JOSPT 2023) : 3 séries de 12 RM progressant vers 8 RM, un jour sur deux.
+- Lésion aiguë des ischio-jambiers : protocole L d'Askling (Askling 2013), plus rapide pour reprendre le sport qu'un protocole conventionnel. Le Nordic n'est pas un exercice de phase aiguë.
+- Capsulite rétractile : étirements dont l'intensité suit l'irritabilité (guide JOSPT Kelley 2013). Irritabilité forte : mouvements doux et courts, tenue de quelques secondes. Irritabilité faible : tenue de 10 à 30 s et plus, plusieurs fois par jour.
+- Dysfonction temporo-mandibulaire : l'exercice (contrôle de l'ouverture, langue au palais, stabilisation) réduit douleur et limitation (revue Armijo-Olivo 2016). Exercices de Rocabado : 6 répétitions, 6 fois par jour.
+- Céphalées cervicogènes et vertiges d'origine cervicale : fléchisseurs profonds et scapulaires (Jull 2002), complétés par l'entraînement sensorimoteur : repositionnement sur cible et stabilisation du regard (Treleaven, Jull 2007), 2 à 3 fois par jour, quelques minutes.
+- Prévention des chutes chez la personne âgée : équilibre et exercices fonctionnels, au moins 3 heures cumulées par semaine (Cochrane, Sherrington 2019 ; programme Otago). Marche en tandem, équilibre unipodal, levers de chaise, élévations de mollets.
+- Grossesse, post-partum, fuites urinaires : renforcement du plancher pelvien (Cochrane, Dumoulin 2018 ; Woodley 2020) : 3 séries de 8 à 12 contractions tenues, 3 fois par jour, au moins 12 semaines.
+- Rhizarthrose : exercices de la main et renforcement de l'abduction du pouce, base du pouce gardée arrondie (recommandations EULAR 2018 sur l'arthrose de la main).
+- Syndrome du canal carpien : glissements tendineux et neurodynamiques en complément de l'attelle ; niveau de preuve faible (Cochrane, Page 2012), ne pas en promettre plus.
 - Radiculalgie et sensibilité neurale : neurodynamique en glissement (slider) avant la mise en tension (tensioner) chez le patient irritable (revue Basson 2017).
 - Postopératoire : respecter le protocole du chirurgien et les délais de cicatrisation (pas de charge excentrique avant 6 semaines sans accord).
 
@@ -59,6 +67,7 @@ Rio 2015 décrivait un effet antalgique immédiat ; les essais suivants ne montr
 sets=5, reps="1", hold_time=45, rest_time=120, fréquence 1 à 2 fois par jour. Effort perçu environ 70 %.
 
 ### Heavy Slow Resistance (nom contenant « lourd lent (HSR) ») : Kongsgaard 2009, Beyer 2015
+Achille : « Calf raise lourd lent (HSR) ». Tendon rotulien : « Squat lourd lent (HSR) ».
 La charge AUGMENTE et les répétitions DIMINUENT : 3 × 15 RM la 1re semaine, puis 3 × 12 RM, 4 × 10 RM, 4 × 8 RM, jusqu'à 4 × 6 RM vers la 9e à 12e semaine.
 sets=3, reps="15 (puis 12, 10, 8, 6 en ajoutant de la charge)", tempo 3 s montée, 3 s descente, rest_time=150, 3 fois par semaine, jamais deux jours de suite.
 
@@ -79,7 +88,7 @@ sets=1, reps="10", hold_time=1, rest_time=15, toutes les 2 à 3 heures (4 à 6 f
 ### Copenhagen plank (nom contenant « Copenhagen plank ») : Ishøi 2016, Harøy 2019
 Version genou (niveau 2) : sets=3, reps="1", hold_time=20, rest_time=60. Version cheville (niveau 3) : sets=3, reps="1", hold_time=30, rest_time=90. 2 à 3 fois par semaine, puis 1 fois par semaine en entretien.
 
-### Équilibre et Star Excursion (nom contenant « Star Excursion » ou « Equilibre ») : Hupperets 2009, Gribble 2012
+### Équilibre et Star Excursion (nom contenant « Star Excursion » ou « Équilibre ») : Hupperets 2009, Gribble 2012
 Star Excursion : sets=3, reps="4 atteintes par direction", rest_time=30, 3 fois par semaine pendant au moins 8 semaines. Équilibre unipodal : 3 × 30 s par jambe.
 
 ### Fléchisseurs profonds cervicaux (« Renfo fléchisseurs profonds », « Double menton (chin tuck) ») : Jull 2002
@@ -90,6 +99,27 @@ sets=3, reps="6 à 8 respirations", rest_time=30. Inspiration 4 s avec expansion
 
 ### Neurodynamique (type « neurodynamique ») : Basson 2017
 Slider : sets=2 à 3, reps="10 mouvements lents", rest_time=30, 1 à 3 fois par jour. Les symptômes provoqués doivent rester légers et disparaître immédiatement.
+
+### Fasciopathie plantaire (« Élévation de talon lourde, serviette sous les orteils ») : Rathleff 2015
+sets=3, reps="12 (puis 10, puis 8 en ajoutant de la charge)", tempo 3 s montée, 2 s en haut, 3 s descente, rest_time=120, un jour sur deux.
+
+### Protocole Askling (nom contenant « protocole Askling ») : Askling 2013
+Extender : sets=3, reps="12", 2 fois par jour. Diver : sets=3, reps="6", 1 fois par jour. Glider : sets=3, reps="4", 1 jour sur 2. Toujours sans douleur ; commencer dès que la marche est indolore.
+
+### Capsulite (« Glissement du bras sur une table », « Rotation externe assistée au bâton », « Pendulaire ») : Kelley 2013
+sets=1, reps="5 à 10", hold_time de 5 (irritable) à 20 s (peu irritable), 2 à 3 fois par jour.
+
+### Mâchoire (région « ATM ») : Rocabado
+sets=1, reps="6", hold_time=5 pour la stabilisation, 6 fois par jour.
+
+### Sensorimoteur cervical (« Repositionnement cervical sur cible », « Stabilisation du regard »)
+Repositionnement : sets=1, reps="10", 2 fois par jour. Regard : 2 à 3 × 30 s à 1 min, 2 à 3 fois par jour ; un léger vertige passager est acceptable.
+
+### Prévention des chutes (« Marche en tandem ») : Otago
+sets=3, reps="10 pas", 3 fois par semaine, à associer à des levers de chaise et à la marche.
+
+### Plancher pelvien (« Contraction du plancher pelvien ») : Dumoulin 2018
+sets=3, reps="8 à 12", hold_time=8, rest_time=8, 3 fois par jour, au moins 12 semaines.
 
 ### Marche (« Marche confortable ») : Pocovi 2024
 Démarrer à une durée confortable sans majoration durable des symptômes, augmenter progressivement jusqu'à environ 30 min, 5 fois par semaine. Utiliser frequency et notes pour décrire la progression ; sets=null, reps=null.
