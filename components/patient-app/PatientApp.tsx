@@ -9,6 +9,7 @@ import {
 import s from './patient-app.module.css'
 import Session from './Session'
 import UpdateProgram from './UpdateProgram'
+import { decodeTransfer, encodeTransfer, isIos, isStandalone, type Transfer } from './transfer'
 import { PainScale, Thumb, doseText } from './ui'
 import { addDays, dayOffset, isoDay, frDate, type DayLog, type Library, type LibraryItem } from './shared'
 
@@ -57,6 +58,33 @@ export function receiveProgram(incoming: LinkProgram): { programs: Programs; mes
   return { programs: stored, message }
 }
 
+/**
+ * Reprend le programme et le suivi copiés depuis Safari. Un jour déjà saisi
+ * dans l'appli n'est jamais écrasé.
+ */
+export function importTransfer(data: Transfer): { programs: Programs; current: string | null; message: string } {
+  const stored = read<Programs>(K_PROGRAMS, {})
+  for (const [id, entry] of Object.entries(data.programs)) {
+    const mine = stored[id]
+    if (!mine || (entry.program.u && (!mine.program.u || entry.program.u > mine.program.u))) stored[id] = entry
+    const log = read<Record<string, DayLog>>(kLog(id), {})
+    write(kLog(id), { ...(data.logs[id] ?? {}), ...log })
+  }
+  write(K_PROGRAMS, stored)
+  const current = data.current && stored[data.current] ? data.current : Object.keys(stored)[0] ?? null
+  write(K_CURRENT, current)
+  const n = Object.keys(data.programs).length
+  return { programs: stored, current, message: n ? 'Votre programme et votre suivi sont dans l’appli.' : 'Ce lien ne contenait aucun programme.' }
+}
+
+/** Tout ce que l'appli garde sur ce téléphone, pour le transfert. */
+function collectTransfer(): Transfer {
+  const programs = read<Programs>(K_PROGRAMS, {})
+  const logs: Transfer['logs'] = {}
+  for (const id of Object.keys(programs)) logs[id] = read(kLog(id), {})
+  return { programs, logs, current: read<string | null>(K_CURRENT, null) }
+}
+
 export default function PatientApp() {
   const [ready, setReady] = useState(false)
   const [programs, setPrograms] = useState<Programs>({})
@@ -73,6 +101,14 @@ export default function PatientApp() {
     let stored = read<Programs>(K_PROGRAMS, {})
     let current = read<string | null>(K_CURRENT, null)
     const fromLink = window.location.hash ? decodeProgram(window.location.hash.slice(1)) : null
+    const transfer = !fromLink && window.location.hash ? decodeTransfer(window.location.hash) : null
+    if (transfer) {
+      const imported = importTransfer(transfer)
+      stored = imported.programs
+      current = imported.current
+      setFlash(imported.message)
+      window.history.replaceState(null, '', window.location.pathname)
+    }
     if (fromLink) {
       const received = receiveProgram(fromLink)
       stored = received.programs
@@ -117,6 +153,13 @@ export default function PatientApp() {
   }, [stored, today])
 
   const onReceived = (next: Programs, id: string, message: string) => { setPrograms(next); setCurrentId(id); setTab('today'); setFlash(message) }
+  const onTransfer = (text: string): string | null => {
+    const data = decodeTransfer(text)
+    if (!data) return null
+    const imported = importTransfer(data)
+    if (imported.current) onReceived(imported.programs, imported.current, imported.message)
+    return imported.message
+  }
   const dismissUpdate = () => {
     if (!currentId) return
     const next = { ...programs, [currentId]: { ...programs[currentId], updated: false } }
@@ -132,7 +175,7 @@ export default function PatientApp() {
   const updateToday = (patch: Partial<DayLog>) => saveLog({ ...log, [today]: { ...todayLog, ...patch } })
 
   if (!ready) return <div className={s.app}><div className={s.screen} /></div>
-  if (!program || !stored) return <EmptyState onReceived={onReceived} />
+  if (!program || !stored) return <EmptyState onReceived={onReceived} onTransfer={onTransfer} />
 
   return (
     <div className={s.app}>
@@ -148,11 +191,12 @@ export default function PatientApp() {
               <Notices raw={stored.program} updated={!!stored.updated} today={today} onDismissUpdate={dismissUpdate} />
               <Today program={program} library={library} log={log} today={today} todayLog={todayLog}
                 onMorning={v => updateToday({ m: v })} onStart={() => setSession('guided')} onQuick={() => setSession('quick')} />
+              <InstallCard />
             </>
           )}
           {tab === 'program' && (
             <ProgramView program={program} raw={stored.program} today={today} library={library} programs={programs} currentId={currentId!}
-              onSwitch={id => { setCurrentId(id); write(K_CURRENT, id) }} onReceived={onReceived} />
+              onSwitch={id => { setCurrentId(id); write(K_CURRENT, id) }} onReceived={onReceived} onTransfer={onTransfer} />
           )}
           {tab === 'track' && <Track program={program} log={log} today={today} />}
           {tab === 'report' && <Report program={program} log={log} today={today} />}
@@ -183,14 +227,22 @@ const TABS: Array<{ id: Tab; label: string; icon: JSX.Element }> = [
   { id: 'report', label: 'Bilan', icon: icon('M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h3v3M21 14v7h-4M14 18v3') },
 ]
 
-function EmptyState({ onReceived }: { onReceived: (p: Programs, id: string, message: string) => void }) {
+function EmptyState({ onReceived, onTransfer }: { onReceived: (p: Programs, id: string, message: string) => void; onTransfer: (text: string) => string | null }) {
+  const [installed, setInstalled] = useState(false)
+  useEffect(() => { setInstalled(isStandalone()) }, [])
   return (
     <div className={s.app}>
       <div className={s.screen}>
         <div className={s.empty}>
           <h1>Votre programme d’exercices</h1>
+          {installed && (
+            <section className={`${s.card} ${s.notice}`}>
+              <p><b>Vous venez d’installer l’appli ?</b> Si vous avez touché « Copier mon suivi » dans Safari, retrouvez ici votre programme et vos séances déjà faites.</p>
+              <PasteTransfer onTransfer={onTransfer} />
+            </section>
+          )}
           <p className={s.muted}>Ouvrez le lien envoyé par votre praticien, ou scannez le QR code imprimé sur votre fiche d’exercices.</p>
-          <UpdateProgram onDecoded={pr => { const r = receiveProgram(pr); onReceived(r.programs, pr.id, r.message); return r.message }} />
+          <UpdateProgram onTransfer={onTransfer} onDecoded={pr => { const r = receiveProgram(pr); onReceived(r.programs, pr.id, r.message); return r.message }} />
           <p className={`${s.small} ${s.muted}`}>Votre programme et votre suivi restent sur ce téléphone. Rien n’est envoyé sur internet.</p>
         </div>
       </div>
@@ -211,6 +263,122 @@ function Notices({ raw, updated, today, onDismissUpdate }: { raw: LinkProgram; u
       {updated && <p><b>Votre praticien a mis à jour votre programme.</b> Votre suivi est conservé.</p>}
       <button type="button" className={s.link} onClick={() => { write(key, true); setSeen(true); onDismissUpdate() }}>J’ai compris</button>
     </section>
+  )
+}
+
+// ── Installation ────────────────────────────────────────────────────────────
+
+const K_INSTALL_HIDDEN = 'ofp:install-hidden'
+type InstallPrompt = Event & { prompt: () => Promise<void>; userChoice: Promise<{ outcome: string }> }
+
+/**
+ * Explique comment mettre l'appli sur l'écran d'accueil. iPhone : Safari ne
+ * le propose jamais de lui-même, et l'appli installée repart d'un stockage
+ * vide ; d'où l'étape « Copier mon suivi ». Android : le navigateur installe
+ * l'appli en gardant les données, un bouton suffit.
+ */
+function InstallCard({ always = false }: { always?: boolean }) {
+  const [platform, setPlatform] = useState<null | 'ios' | 'other'>(null)
+  const [hidden, setHidden] = useState(true)
+  const [prompt, setPrompt] = useState<InstallPrompt | null>(null)
+  const [copied, setCopied] = useState<null | 'ok' | 'manual'>(null)
+  const [manual, setManual] = useState('')
+
+  useEffect(() => {
+    if (isStandalone()) return
+    setPlatform(isIos() ? 'ios' : 'other')
+    setHidden(!always && read<boolean>(K_INSTALL_HIDDEN, false))
+    const onPrompt = (e: Event) => { e.preventDefault(); setPrompt(e as InstallPrompt) }
+    window.addEventListener('beforeinstallprompt', onPrompt)
+    return () => window.removeEventListener('beforeinstallprompt', onPrompt)
+  }, [always])
+
+  if (!platform || hidden) return null
+  if (platform === 'other' && !prompt) return null
+
+  const copy = async () => {
+    const link = `${window.location.origin}/programme#${encodeTransfer(collectTransfer())}`
+    try {
+      await navigator.clipboard.writeText(link)
+      setCopied('ok')
+    } catch {
+      setManual(link)
+      setCopied('manual')
+    }
+  }
+
+  return (
+    <section className={s.card}>
+      <span className={s.label}>Installer l’appli sur votre téléphone</span>
+      {platform === 'ios' ? (
+        <>
+          <p className={s.small}>Une icône sur votre écran d’accueil, comme une vraie appli. Trois étapes :</p>
+          <ol className={s.stepsList}>
+            <li>
+              <b>Copiez votre suivi</b>
+              <span className={`${s.small} ${s.muted}`}>L’appli installée ne voit pas ce que vous avez fait dans Safari : ce lien lui transmet votre programme et vos séances.</span>
+              <button type="button" className={s.btn} onClick={copy}>{copied === 'ok' ? 'Suivi copié' : 'Copier mon suivi'}</button>
+              {copied === 'manual' && (
+                <textarea className={s.field} rows={3} readOnly value={manual} onFocus={e => e.currentTarget.select()} aria-label="Lien à copier" />
+              )}
+              {copied === 'manual' && <span className={`${s.small} ${s.muted}`}>Touchez le texte ci-dessus, puis « Copier ».</span>}
+            </li>
+            <li>
+              <b>Ajoutez l’appli</b>
+              <span className={`${s.small} ${s.muted}`}>
+                Touchez le bouton Partager
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-label="(carré avec une flèche vers le haut)" style={{ display: 'inline-block', verticalAlign: '-3px', margin: '0 4px' }}><path d="M12 3v12M8 7l4-4 4 4M5 11v8a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-8" /></svg>
+                en bas de Safari, puis « Sur l’écran d’accueil ». Si vous ne le voyez pas, faites défiler la liste vers le bas.
+              </span>
+            </li>
+            <li>
+              <b>Ouvrez « Mes exercices »</b>
+              <span className={`${s.small} ${s.muted}`}>Depuis l’écran d’accueil, puis touchez « Coller mon suivi ». Vous n’aurez plus besoin de Safari.</span>
+            </li>
+          </ol>
+        </>
+      ) : (
+        <>
+          <p className={s.small}>Une icône sur votre écran d’accueil, comme une vraie appli. Votre suivi est conservé.</p>
+          <button type="button" className={s.btn} onClick={async () => { await prompt!.prompt(); setPrompt(null) }}>Installer l’appli</button>
+        </>
+      )}
+      {!always && (
+        <button type="button" className={s.link} onClick={() => { write(K_INSTALL_HIDDEN, true); setHidden(true) }}>Plus tard</button>
+      )}
+    </section>
+  )
+}
+
+/** Dans l'appli installée : reprend le suivi copié depuis Safari. */
+function PasteTransfer({ onTransfer }: { onTransfer: (text: string) => string | null }) {
+  const [manual, setManual] = useState(false)
+  const [text, setText] = useState('')
+  const [error, setError] = useState<string | null>(null)
+  const NOT_FOUND = 'Aucun suivi trouvé. Dans Safari, touchez d’abord « Copier mon suivi », puis revenez ici.'
+
+  const fromClipboard = async () => {
+    setError(null)
+    try {
+      const value = await navigator.clipboard.readText()
+      if (!onTransfer(value)) setError(NOT_FOUND)
+    } catch {
+      setManual(true)
+    }
+  }
+
+  return (
+    <div style={{ display: 'grid', gap: 8 }}>
+      {!manual ? (
+        <button type="button" className={s.btn} onClick={fromClipboard}>Coller mon suivi</button>
+      ) : (
+        <>
+          <textarea className={s.field} rows={3} value={text} onChange={e => setText(e.target.value)} placeholder="Touchez ici puis « Coller »" aria-label="Suivi copié" />
+          <button type="button" className={s.btn} disabled={!text.trim()} onClick={() => { if (!onTransfer(text)) setError(NOT_FOUND) }}>Valider</button>
+        </>
+      )}
+      {error && <p className={`${s.advice} ${s.warn}`} role="status">{error}</p>}
+    </div>
   )
 }
 
@@ -289,9 +457,9 @@ function Ring({ done, total }: { done: number; total: number }) {
 
 // ── Programme ───────────────────────────────────────────────────────────────
 
-function ProgramView({ program, raw, today, library, programs, currentId, onSwitch, onReceived }: {
+function ProgramView({ program, raw, today, library, programs, currentId, onSwitch, onReceived, onTransfer }: {
   program: ViewProgram; raw: LinkProgram; today: string; library: Library; programs: Programs; currentId: string
-  onSwitch: (id: string) => void; onReceived: (p: Programs, id: string, message: string) => void
+  onSwitch: (id: string) => void; onReceived: (p: Programs, id: string, message: string) => void; onTransfer: (text: string) => string | null
 }) {
   const phases = phasesOf(raw)
   const current = activePhase(raw, today)
@@ -350,8 +518,9 @@ function ProgramView({ program, raw, today, library, programs, currentId, onSwit
       <section className={s.card}>
         <span className={s.label}>Mettre à jour mon programme</span>
         <p className={`${s.small} ${s.muted}`}>Votre praticien a modifié votre programme ? Ouvrez le nouveau lien, collez-le ici ou scannez le QR code de votre nouvelle fiche.</p>
-        <UpdateProgram onDecoded={pr => { const r = receiveProgram(pr); onReceived(r.programs, pr.id, r.message); return r.message }} />
+        <UpdateProgram onTransfer={onTransfer} onDecoded={pr => { const r = receiveProgram(pr); onReceived(r.programs, pr.id, r.message); return r.message }} />
       </section>
+      <InstallCard always />
       {others.length > 0 && (
         <section className={s.card}>
           <span className={s.label}>Vos autres programmes</span>
