@@ -1,0 +1,121 @@
+/* Appli patient : une colonne de téléphone, plein écran sur mobile, centrée sur ordinateur. */
+.app {
+  --bg: #e8efec; --surface: #f5f8f7; --card: #ffffff; --ink: #10201d; --muted: #566a65; --line: #d9e3df;
+  --accent: #0f766e; --accent-soft: #d6efe9; --on-accent: #ffffff;
+  --warn: #a14a06; --warn-soft: #fdf0d5; --good: #177a43; --good-soft: #dcf2e4;
+  --display: var(--pa-display), "Avenir Next", "Segoe UI", sans-serif;
+  --body: var(--pa-body), "Segoe UI", system-ui, sans-serif;
+  --r: 14px;
+  min-height: 100vh; min-height: 100dvh;
+  background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 16px; line-height: 1.45;
+  display: flex; justify-content: center;
+}
+@media (prefers-color-scheme: dark) {
+  .app {
+    --bg: #08110f; --surface: #0e1a17; --card: #152420; --ink: #e5efec; --muted: #94aaa4; --line: #233631;
+    --accent: #34d3bd; --accent-soft: #123d36; --on-accent: #04211c;
+    --warn: #f2a541; --warn-soft: #3a2a0f; --good: #4ccf86; --good-soft: #12301f;
+    color-scheme: dark;
+  }
+}
+.app *, .app *::before, .app *::after { box-sizing: border-box }
+.app h1, .app h2, .app h3 { font-family: var(--display); font-weight: 700; letter-spacing: -0.01em; text-wrap: balance; margin: 0 }
+.app p { margin: 0 }
+:where(.app button) { font: inherit; color: inherit; cursor: pointer }
+.app button:focus-visible, .app input:focus-visible, .app textarea:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px }
+
+.screen { position: relative; width: 100%; max-width: 480px; min-height: 100vh; min-height: 100dvh; background: var(--surface); display: flex; flex-direction: column }
+@media (min-width: 560px) { .screen { border-left: 1px solid var(--line); border-right: 1px solid var(--line) } }
+
+.top { padding: calc(20px + env(safe-area-inset-top, 0px)) 20px 8px; display: grid; gap: 2px }
+.who { font-size: 13px; color: var(--muted) }
+.top h1 { font-size: 24px }
+.main { flex: 1; padding: 6px 16px 96px; display: grid; gap: 14px; align-content: start }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: var(--r); padding: 16px; display: grid; gap: 10px; min-width: 0 }
+.label { font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted) }
+.muted { color: var(--muted) }
+.small { font-size: 14px }
+.num { font-variant-numeric: tabular-nums }
+
+.tabs { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 480px; display: grid; grid-template-columns: repeat(4, 1fr); border-top: 1px solid var(--line); background: var(--card); padding: 6px 4px calc(8px + env(safe-area-inset-bottom, 0px)); z-index: 4 }
+.tabs button { background: none; border: 0; padding: 8px 2px; display: grid; justify-items: center; gap: 3px; font-size: 12px; color: var(--muted); border-radius: 10px }
+.tabs button[aria-current="page"] { color: var(--accent); font-weight: 700 }
+.tabs svg { width: 22px; height: 22px }
+
+.scale { display: grid; grid-template-columns: repeat(11, 1fr); gap: 4px }
+.scale button { border: 1px solid var(--line); background: var(--surface); border-radius: 8px; padding: 9px 0; font-weight: 700; font-size: 14px }
+.scale button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--on-accent) }
+.scaleEnds { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted) }
+.advice { border-radius: 10px; padding: 10px 12px; font-size: 14px }
+.ok { background: var(--good-soft); color: var(--good) }
+.warn { background: var(--warn-soft); color: var(--warn) }
+
+.progress { display: flex; align-items: center; gap: 14px }
+.ring { width: 64px; height: 64px; flex: none }
+.ex { display: grid; grid-template-columns: 72px 1fr auto; gap: 12px; align-items: center }
+.thumb { width: 72px; height: 72px; border-radius: 12px; object-fit: contain; background: #fff; border: 1px solid var(--line); display: grid; place-items: center; font-family: var(--display); font-size: 24px; color: #0f766e; overflow: hidden }
+.thumb img { width: 100%; height: 100%; object-fit: contain }
+.exName { font-weight: 700; line-height: 1.25 }
+.dose { font-size: 13px; color: var(--muted) }
+.check { width: 30px; height: 30px; border-radius: 50%; border: 2px solid var(--line); display: grid; place-items: center; font-weight: 700 }
+.checkOn { background: var(--good); border-color: var(--good); color: var(--card) }
+.btn { border: 0; border-radius: 12px; padding: 14px 16px; font-weight: 700; font-size: 16px; background: var(--accent); color: var(--on-accent); width: 100% }
+.ghost { background: var(--accent-soft); color: var(--accent) }
+.link { background: none; border: 0; padding: 4px 0; color: var(--accent); text-decoration: underline; text-underline-offset: 3px; font-size: 14px; justify-self: center }
+.btn:disabled { opacity: .5; cursor: default }
+
+.details summary { list-style: none; display: grid; grid-template-columns: 60px 1fr auto; gap: 12px; align-items: center; cursor: pointer }
+.details summary::-webkit-details-marker { display: none }
+.details .thumb { width: 60px; height: 60px; font-size: 20px }
+.chev { transition: transform .2s; color: var(--muted) }
+.details[open] .chev { transform: rotate(180deg) }
+.chips { display: flex; flex-wrap: wrap; gap: 6px }
+.chip { background: var(--accent-soft); color: var(--accent); border-radius: 99px; padding: 4px 10px; font-size: 13px; font-weight: 700 }
+.vig { background: var(--warn-soft); border-color: transparent }
+.vig .label { color: var(--warn) }
+.vig ul { margin: 0; padding-left: 18px; display: grid; gap: 4px; font-size: 14px }
+.pre { white-space: pre-line }
+
+.stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px }
+.stat { background: var(--card); border: 1px solid var(--line); border-radius: var(--r); padding: 14px; display: grid; gap: 2px }
+.stat b { font-family: var(--display); font-size: 28px; line-height: 1 }
+.cal { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; text-align: center }
+.calH { font-size: 11px; color: var(--muted); font-weight: 700 }
+.day { aspect-ratio: 1; max-width: 100%; border-radius: 10px; display: grid; place-items: center; font-size: 13px; color: var(--muted); border: 1px solid transparent }
+.dayDone { background: var(--good); color: var(--card); font-weight: 700 }
+.dayToday { outline: 2px solid var(--accent); outline-offset: 1px; color: var(--ink) }
+.dayOut { opacity: .35 }
+.legend { display: flex; flex-wrap: wrap; gap: 12px; font-size: 12px; color: var(--muted) }
+.legend span { display: inline-flex; align-items: center; gap: 6px }
+.legend i { width: 12px; height: 12px; border-radius: 4px; display: inline-block }
+.chart svg { width: 100%; height: auto; display: block }
+
+.qrbox { background: #ffffff; border-radius: var(--r); padding: 14px; justify-self: center; width: 232px; height: 232px; display: grid; place-items: center }
+.qrbox img { width: 204px; height: 204px; image-rendering: pixelated }
+.code { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 22px; font-weight: 700; letter-spacing: .06em; text-align: center; word-break: break-word; background: var(--surface); border: 1px dashed var(--line); border-radius: 10px; padding: 12px }
+.privacy { display: grid; grid-template-columns: 22px 1fr; gap: 10px; align-items: start; font-size: 14px }
+.summary { display: grid; gap: 6px; font-size: 14px }
+.summary div { display: flex; justify-content: space-between; gap: 12px; border-bottom: 1px solid var(--line); padding-bottom: 6px }
+
+.session { position: fixed; inset: 0; background: var(--surface); display: flex; justify-content: center; z-index: 10 }
+.sessionInner { width: 100%; max-width: 480px; display: flex; flex-direction: column; overflow-y: auto }
+.sessionHead { display: flex; align-items: center; justify-content: space-between; padding: calc(18px + env(safe-area-inset-top, 0px)) 16px 6px }
+.sessionHead button { background: var(--card); border: 1px solid var(--line); border-radius: 99px; padding: 6px 12px; font-size: 14px }
+.sessionBody { flex: 1; padding: 8px 20px calc(24px + env(safe-area-inset-bottom, 0px)); display: grid; gap: 16px; align-content: start; text-align: center }
+.big { width: 100%; max-width: 260px; aspect-ratio: 1; justify-self: center; background: #fff; border-radius: 20px; border: 1px solid var(--line); display: grid; place-items: center; overflow: hidden; font-family: var(--display); font-size: 64px; color: #0f766e }
+.big img { width: 100%; height: 100%; object-fit: contain }
+.sessionBody h2 { font-size: 22px }
+.phase { font-family: var(--display); font-size: 40px; font-weight: 700; color: var(--accent); line-height: 1 }
+.bar { height: 10px; border-radius: 99px; background: var(--line); overflow: hidden }
+.bar > i { display: block; height: 100%; width: 0; background: var(--accent); border-radius: 99px }
+.timer { font-family: var(--display); font-size: 64px; font-weight: 700; line-height: 1 }
+.dots { display: flex; justify-content: center; gap: 8px }
+.dots i { width: 10px; height: 10px; border-radius: 50%; background: var(--line) }
+.dots i.dotOn { background: var(--accent) }
+.steps { display: flex; gap: 6px; padding: 0 16px }
+.steps i { flex: 1; height: 4px; border-radius: 99px; background: var(--line) }
+.steps i.dotOn { background: var(--accent) }
+
+.empty { padding: 48px 24px; display: grid; gap: 14px; text-align: center; align-content: center; min-height: 70vh }
+.empty h1 { font-size: 26px }
+@media (prefers-reduced-motion: reduce) { .app * { transition: none !important; animation: none !important } }
