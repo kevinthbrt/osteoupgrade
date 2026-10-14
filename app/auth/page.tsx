@@ -527,7 +527,9 @@ export default function AuthPage() {
                     </p>
                   )}
                   <p className="mt-2 text-xs text-slate-500">
-                    Sans engagement, 7 jours d’essai gratuit pour un premier abonnement.
+                    {offreAnnuelle
+                      ? 'Prélevé une fois par an, 7 jours d’essai gratuit pour un premier abonnement.'
+                      : 'Sans engagement, 7 jours d’essai gratuit pour un premier abonnement.'}
                     {depuisFunnel &&
                       !promoExpire &&
                       ' Si vous avez reçu un code de remise, il s’applique tout seul au paiement, à condition d’utiliser l’adresse laissée sur la page.'}

@@ -1176,7 +1176,9 @@ export default function LandingPage() {
               Prenez ce dont vous avez besoin.
               <br />
               <span className="bg-gradient-to-r from-sky-500 to-blue-600 bg-clip-text text-transparent">
-                &Agrave; partir de {formatAmount(2999)}/mois, sans engagement.
+                {tarifAnnuel
+                  ? <>&Agrave; partir de {formatAmount(Math.min(...OFFERS.map((o) => o.annualAmount)))}/an, deux mois offerts.</>
+                  : <>&Agrave; partir de {formatAmount(2999)}/mois, sans engagement.</>}
               </span>
             </h2>
             <p className="text-lg text-slate-500 max-w-xl mx-auto">
@@ -1263,7 +1265,10 @@ export default function LandingPage() {
                   </ul>
 
                   <button
-                    onClick={() => router.push('/auth')}
+                    // En annuel, l'offre est transmise à l'inscription : le visiteur
+                    // part ensuite directement au paiement de ce tarif. Le
+                    // mensuel garde le parcours habituel.
+                    onClick={() => router.push(tarifAnnuel ? `/auth?plan=${offer.annualPlanType}` : '/auth')}
                     className={`w-full py-3.5 rounded-xl font-bold text-sm transition-all ${
                       offer.highlighted
                         ? 'bg-gradient-to-r from-sky-500 to-blue-600 text-white hover:from-sky-400 hover:to-blue-500 shadow-lg shadow-sky-500/20'
@@ -1303,8 +1308,10 @@ export default function LandingPage() {
 
             <div className="mt-8 text-center">
               <p className="text-xs text-slate-400">
-                Sans engagement. Annulable à tout moment depuis votre compte. Déductible des frais professionnels.
-                Changement d&apos;offre possible à tout moment, avec prorata automatique.
+                {tarifAnnuel
+                  ? 'Prélevé une fois par an. Résiliable à tout moment depuis votre compte, effectif à la fin de l’année en cours. Déductible des frais professionnels.'
+                  : 'Sans engagement. Annulable à tout moment depuis votre compte. Déductible des frais professionnels.'}
+                {' '}Changement d&apos;offre possible à tout moment, avec prorata automatique.
               </p>
             </div>
           </div>
