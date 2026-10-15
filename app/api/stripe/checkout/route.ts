@@ -6,11 +6,11 @@ import { planOf } from '@/lib/entitlements'
 import { notifyAdmin } from '@/lib/admin-notify'
 import { UTM_COOKIE, parseAttributionCookie, attributionToStripeMetadata } from '@/lib/utm'
 import { supabaseAdmin } from '@/lib/supabase-server'
-import { activePartnerProgramFor } from '@/lib/partner-programs'
+import { studentVerificationFor, canUseStudentDiscount, ensureStudentCoupon } from '@/lib/student-offer'
 
 export async function POST(request: Request) {
   try {
-    const { planType, referralCode, funnelSlug } = await request.json()
+    const { planType, referralCode, funnelSlug, student } = await request.json()
 
     const supabase = createRouteHandlerClient({ cookies })
     const { data: { user }, error: authError } = await supabase.auth.getUser()
@@ -128,30 +128,39 @@ export async function POST(request: Request) {
       }
     }
 
-    // Les tarifs partenaires sont réservés aux stagiaires rattachés à une
-    // école partenaire encore ouverte (table à part, que le navigateur ne peut
-    // pas écrire). Même revérification que pour les tarifs Fondateur.
-    if (plan.isPartner) {
-      const programme = await activePartnerProgramFor(userId)
-      if (!programme) {
+    // La remise personnelle d'un funnel est restreinte aux produits mensuels :
+    // la poser sur une session annuelle ferait refuser la session entière.
+    // Les codes saisis par le client, eux, restent ouverts sur l'annuel : c'est
+    // le coupon de chaque code qui dit à quels produits il s'applique (voir
+    // /api/admin/partner-codes).
+    const tarifAnnuelStandard = plan.isAnnual && !plan.isFounding
+
+    // 🎓 Tarif étudiant : -50 % la première année, sur l'annuel uniquement.
+    // Il faut un justificatif déposé et non refusé, et une remise qui n'a
+    // jamais servi sur ce compte (vérifié côté serveur, jamais sur parole).
+    // Le justificatif est contrôlé à la main ensuite (/admin/etudiants).
+    const tarifEtudiant = Boolean(student)
+    let studentCouponId: string | null = null
+    if (tarifEtudiant) {
+      if (!tarifAnnuelStandard) {
         return NextResponse.json(
-          { error: 'Ce tarif est réservé aux stagiaires de nos écoles partenaires.' },
+          { error: 'Le tarif étudiant porte sur les offres annuelles.' },
+          { status: 400 }
+        )
+      }
+      if (!canUseStudentDiscount(await studentVerificationFor(userId))) {
+        return NextResponse.json(
+          { error: 'Déposez votre justificatif étudiant avant de choisir ce tarif.' },
           { status: 403 }
         )
       }
+      studentCouponId = await ensureStudentCoupon()
     }
 
-    // Un tarif annuel standard ou partenaire est déjà remisé (deux mois
-    // offerts, puis -30 % pour les écoles) : on n'y empile ni code promo ni
-    // remise de funnel. Les tarifs Fondateur gardent leur comportement
-    // historique.
-    const tarifDejaRemise = plan.isAnnual && !plan.isFounding
-
-    // Valider le code de parrainage (applicable à l'offre unique). Le tarif
-    // partenaire en est exclu, comme le tarif Fondateur côté interface : il
-    // cumulerait deux avantages.
+    // Valider le code de parrainage (applicable à l'offre unique)
     let referrerUserId = null
-    const shouldProcessReferral = Boolean(referralCode) && !plan.isPartner
+    // Pas de parrainage sur le tarif étudiant : il cumulerait deux avantages.
+    const shouldProcessReferral = Boolean(referralCode) && !tarifEtudiant
 
     if (shouldProcessReferral) {
       // 🚫 VÉRIFIER QUE L'UTILISATEUR N'A JAMAIS ÉTÉ PARRAINÉ (1 fois AU TOTAL, pas par année)
@@ -225,7 +234,7 @@ export async function POST(request: Request) {
       .eq('id', userId)
       .single()
 
-    // L'essai est ouvert aux offres mensuelles, annuelles et partenaires, mais
+    // L'essai est ouvert aux offres mensuelles et annuelles, mais
     // reste unique par compte à vie : `trial_used_at` n'est pas remis à zéro d'une offre à
     // l'autre. Les tarifs Fondateur en restent exclus.
     const isEligibleForTrial =
@@ -267,7 +276,7 @@ export async function POST(request: Request) {
         // Les offres publiques (mensuelles et annuelles standard) passent
         // toujours : n'importe qui peut les prendre depuis la page des tarifs,
         // et la page d'inscription permet d'en changer. Seule une offre non
-        // publique (Fondateur, partenaire) doit figurer sur la page pour être
+        // publique (Fondateur) doit figurer sur la page pour être
         // acceptée sous ce funnel.
         const offresDeLaPage = new Set<string>(PUBLIC_PLAN_TYPES)
         if (funnel.plan_type) offresDeLaPage.add(funnel.plan_type)
@@ -333,7 +342,7 @@ export async function POST(request: Request) {
     // Les tarifs Fondateur en sont exclus. Le coupon est restreint aux trois prix
     // mensuels, donc le présenter sur une offre Fondateur ne raterait pas la
     // remise : Stripe refuserait la session entière.
-    if (!plan.isFounding && !tarifDejaRemise) {
+    if (!plan.isFounding && !tarifAnnuelStandard) {
       const { data: leadPromo } = await supabaseAdmin
         .from('funnel_leads')
         .select('promo_code_id, promo_expires_at')
@@ -376,14 +385,12 @@ export async function POST(request: Request) {
       // demander à quelqu'un de recopier un code qu'on connaît déjà est une
       // friction gratuite au moment le plus coûteux du parcours.
       //
-      // Sur un tarif annuel déjà remisé, pas de champ de saisie du tout : les
-      // coupons sont restreints par produit, et les tarifs annuels partagent
-      // les produits des mensuels. Un code partenaire ou Gold s'y appliquerait
-      // donc sans que rien ne l'empêche côté Stripe.
-      ...(promotionCodeId
-        ? { discounts: [{ promotion_code: promotionCodeId }] }
-        : tarifDejaRemise
-          ? {}
+      // Le tarif étudiant pose son coupon de la même façon : pas de champ de
+      // code à côté, il ne se cumule avec aucune autre remise.
+      ...(studentCouponId
+        ? { discounts: [{ coupon: studentCouponId }] }
+        : promotionCodeId
+          ? { discounts: [{ promotion_code: promotionCodeId }] }
           : { allow_promotion_codes: true }),
       line_items: [
         {
@@ -404,6 +411,7 @@ export async function POST(request: Request) {
         referral_code: shouldProcessReferral ? referralCode || '' : '',
         referrer_user_id: shouldProcessReferral ? referrerUserId || '' : '',
         is_trial: isEligibleForTrial ? 'true' : 'false',
+        student: tarifEtudiant ? 'true' : 'false',
         ...attributionMetadata
       },
       subscription_data: {
@@ -417,6 +425,7 @@ export async function POST(request: Request) {
           referral_code: shouldProcessReferral ? referralCode || '' : '',
           referrer_user_id: shouldProcessReferral ? referrerUserId || '' : '',
           is_trial: isEligibleForTrial ? 'true' : 'false',
+          student: tarifEtudiant ? 'true' : 'false',
           ...attributionMetadata
         }
       }

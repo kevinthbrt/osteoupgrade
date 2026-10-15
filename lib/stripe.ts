@@ -24,22 +24,16 @@ export type StripePlan = {
   isAnnual: boolean
   /** Réservé aux comptes profiles.is_founding_member (revérifié côté serveur). */
   isFounding: boolean
-  /**
-   * Réservé aux stagiaires d'une école partenaire (table
-   * partner_program_members, revérifié côté serveur).
-   */
-  isPartner?: boolean
 }
 
 /**
  * Catalogue des offres, aligné sur les Price Stripe (cf. docs/PRICING_3_OFFRES.md
- * et docs/PRICING_ANNUEL_PARTENAIRE.md).
+ * et docs/PRICING_ANNUEL.md).
  *
- * Trois offres, chacune déclinée en quatre tarifs :
- *   - standard mensuel ;
- *   - standard annuel (deux mois offerts) ;
- *   - partenaire annuel (-30 % sur l'annuel, réservé aux stagiaires d'une
- *     école partenaire, revérifié dans /api/stripe/checkout) ;
+ * Trois offres, chacune déclinée en trois tarifs :
+ *   - mensuel ;
+ *   - annuel (deux mois offerts), sur un produit Stripe distinct du mensuel
+ *     pour qu'un code promo puisse viser l'un ou l'autre ;
  *   - Fondateur annuel (-50 % à vie, réservé aux comptes marqués comme tels et
  *     revérifié dans /api/stripe/checkout, jamais un simple code transmissible).
  *
@@ -75,19 +69,6 @@ export const STRIPE_PLANS: Record<string, StripePlan> = {
     interval: 'year',
     isAnnual: true,
     isFounding: false
-  },
-  partner_premium_annual: {
-    name: 'Premium tarif école',
-    plan: 'bundle',
-    priceId: process.env.STRIPE_PRICE_PARTNER_PREMIUM_ANNUAL || '',
-    amount: 34999,
-    displayPrice: '349,99€',
-    displayInterval: 'an',
-    currency: 'eur',
-    interval: 'year',
-    isAnnual: true,
-    isFounding: false,
-    isPartner: true
   },
   founding_annual: {
     name: 'Premium Fondateur',
@@ -127,19 +108,6 @@ export const STRIPE_PLANS: Record<string, StripePlan> = {
     isAnnual: true,
     isFounding: false
   },
-  partner_osteoflow_annual: {
-    name: 'MyOsteoFlow tarif école',
-    plan: 'osteoflow',
-    priceId: process.env.STRIPE_PRICE_PARTNER_OSTEOFLOW_ANNUAL || '',
-    amount: 20999,
-    displayPrice: '209,99€',
-    displayInterval: 'an',
-    currency: 'eur',
-    interval: 'year',
-    isAnnual: true,
-    isFounding: false,
-    isPartner: true
-  },
   founding_osteoflow_annual: {
     name: 'MyOsteoFlow Fondateur',
     plan: 'osteoflow',
@@ -178,19 +146,6 @@ export const STRIPE_PLANS: Record<string, StripePlan> = {
     isAnnual: true,
     isFounding: false
   },
-  partner_osteoupgrade_annual: {
-    name: 'OsteoUpgrade tarif école',
-    plan: 'osteoupgrade',
-    priceId: process.env.STRIPE_PRICE_PARTNER_OSTEOUPGRADE_ANNUAL || '',
-    amount: 20999,
-    displayPrice: '209,99€',
-    displayInterval: 'an',
-    currency: 'eur',
-    interval: 'year',
-    isAnnual: true,
-    isFounding: false,
-    isPartner: true
-  },
   founding_osteoupgrade_annual: {
     name: 'OsteoUpgrade Fondateur',
     plan: 'osteoupgrade',
@@ -210,7 +165,7 @@ export const MONTHLY_PLAN_TYPES = ['premium_monthly', 'osteoflow_monthly', 'oste
 
 /**
  * Offres ouvertes à tous à la souscription : les mensuelles et les annuelles
- * standard. Les tarifs Fondateur et partenaire en sont exclus.
+ * standard. Les tarifs Fondateur en sont exclus.
  */
 export const PUBLIC_PLAN_TYPES = [
   ...MONTHLY_PLAN_TYPES,
@@ -218,6 +173,32 @@ export const PUBLIC_PLAN_TYPES = [
   'osteoflow_annual',
   'osteoupgrade_annual',
 ] as const
+
+/** Offres annuelles publiques. */
+export const ANNUAL_PLAN_TYPES = ['premium_annual', 'osteoflow_annual', 'osteoupgrade_annual'] as const
+
+/**
+ * Produits Stripe portant les tarifs donnés (clés de `STRIPE_PLANS`).
+ *
+ * Sert à restreindre un code promo : Stripe ne sait restreindre un coupon que
+ * par produit. C'est pourquoi chaque offre a deux produits, l'un pour le prix
+ * mensuel, l'autre pour le prix annuel (voir /api/admin/stripe-annual-prices-setup).
+ * Un tarif sans Price ID configuré est ignoré.
+ */
+export async function productIdsFor(planTypes: readonly string[]): Promise<string[]> {
+  const prix = planTypes
+    .map((clef) => STRIPE_PLANS[clef]?.priceId)
+    .filter((id): id is string => Boolean(id))
+
+  const produits = await Promise.all(
+    prix.map(async (id) => {
+      const price = await stripe.prices.retrieve(id)
+      return typeof price.product === 'string' ? price.product : price.product.id
+    })
+  )
+
+  return Array.from(new Set(produits))
+}
 
 /**
  * Produits Stripe des trois offres mensuelles publiques.
@@ -232,18 +213,7 @@ export const PUBLIC_PLAN_TYPES = [
  * sur une session Fondateur (voir /api/stripe/checkout).
  */
 export async function monthlyProductIds(): Promise<string[]> {
-  const prix = MONTHLY_PLAN_TYPES
-    .map((clef) => STRIPE_PLANS[clef]?.priceId)
-    .filter((id): id is string => Boolean(id))
-
-  const produits = await Promise.all(
-    prix.map(async (id) => {
-      const price = await stripe.prices.retrieve(id)
-      return typeof price.product === 'string' ? price.product : price.product.id
-    })
-  )
-
-  return Array.from(new Set(produits))
+  return productIdsFor(MONTHLY_PLAN_TYPES)
 }
 
 /**
@@ -311,7 +281,7 @@ export function planTypeFromSubscription(subscription: any, fallback = 'premium_
 
   // Repli : l'offre est connue par les metadata du Price, mais la variable
   // d'environnement du priceId n'est pas renseignée. Plusieurs tarifs annuels
-  // coexistent pour une même offre (standard, partenaire, Fondateur) : le
+  // coexistent pour une même offre (standard, Fondateur) : le
   // montant les départage, l'intervalle seul ne suffit plus.
   const planDuPrix = price?.metadata?.plan
   if (isPlan(planDuPrix)) {

@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic'
 /**
  * Vérifie que chaque offre du catalogue pointe vers le bon tarif Stripe.
  *
- * Les douze Price ID (mensuels, annuels, partenaires, Fondateur) vivent dans
+ * Les neuf Price ID (mensuels, annuels, Fondateur) vivent dans
  * des variables d'environnement. En intervertir deux ne provoque aucune erreur : la souscription aboutit, au mauvais montant
  * et pour le mauvais produit, et le webhook accorde ensuite l'offre du prix
  * réellement payé — sans qu'aucun signal ne remonte. C'est arrivé en

@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import AuthLayout from '@/components/AuthLayout'
 import AdminBackButton from '@/components/AdminBackButton'
-import PartnerProgramsPanel from '@/components/admin/PartnerProgramsPanel'
 import {
   HeartHandshake,
   Plus,
@@ -16,6 +15,17 @@ import {
   AlertCircle
 } from 'lucide-react'
 
+/** Tarifs qu'un lot peut viser : offre × rythme de facturation. */
+const OFFRES_CIBLES = [
+  { nom: 'Premium', mensuel: 'premium_monthly', annuel: 'premium_annual' },
+  { nom: 'MyOsteoFlow', mensuel: 'osteoflow_monthly', annuel: 'osteoflow_annual' },
+  { nom: 'OsteoUpgrade', mensuel: 'osteoupgrade_monthly', annuel: 'osteoupgrade_annual' },
+]
+const CIBLES = OFFRES_CIBLES.flatMap((o) => [
+  { clef: o.mensuel, libelle: `${o.nom} mensuel` },
+  { clef: o.annuel, libelle: `${o.nom} annuel` },
+])
+
 interface PartnerCode {
   id: string
   code: string
@@ -23,6 +33,8 @@ interface PartnerCode {
   note: string | null
   percentOff: number | null
   durationInMonths: number | null
+  /** Tarifs visés, ex. « Premium annuel ». */
+  cibles?: string[]
   maxRedemptions: number | null
   timesRedeemed: number
   active: boolean
@@ -45,6 +57,8 @@ export default function AdminPartnersPage() {
   const [formDuration, setFormDuration] = useState('12')
   const [formCount, setFormCount] = useState('20')
   const [formNote, setFormNote] = useState('')
+  /** Tarifs visés par le lot (clés du catalogue). Tous cochés par défaut. */
+  const [formCibles, setFormCibles] = useState<string[]>(CIBLES.map((c) => c.clef))
 
   useEffect(() => {
     checkAdminAndLoad()
@@ -92,6 +106,11 @@ export default function AdminPartnersPage() {
       setGenerating(false)
       return
     }
+    if (formCibles.length === 0) {
+      setError('Cochez au moins une offre.')
+      setGenerating(false)
+      return
+    }
     if (isNaN(count) || count < 1 || count > 200) {
       setError('Le nombre de codes doit être entre 1 et 200.')
       setGenerating(false)
@@ -107,7 +126,8 @@ export default function AdminPartnersPage() {
           percentOff,
           durationInMonths,
           count,
-          note: formNote.trim() || undefined
+          note: formNote.trim() || undefined,
+          cibles: formCibles
         })
       })
 
@@ -179,14 +199,14 @@ export default function AdminPartnersPage() {
           <div className="bg-white/[0.09] backdrop-blur-xl border border-white/20 ring-1 ring-inset ring-white/15 rounded-3xl shadow-[0_12px_40px_rgba(0,8,30,0.65),inset_0_1px_0_rgba(255,255,255,0.12)] p-6 md:p-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
               <p className="text-purple-300 text-sm font-medium mb-1 tracking-wide flex items-center gap-2">
-                <HeartHandshake className="h-4 w-4" /> Admin — Partenaires
+                <HeartHandshake className="h-4 w-4" /> Admin · Partenaires
               </p>
               <h1 className="text-3xl md:text-4xl font-bold tracking-tight bg-gradient-to-r from-white via-purple-100 to-indigo-200 bg-clip-text text-transparent">
                 Codes partenaires
               </h1>
               <p className="text-white/60 text-sm mt-2">
-                Générez des lots de codes à usage unique pour vos partenaires (ex. IFCOPS).
-                Réservés aux nouveaux clients, saisis dans le champ "Code promo" au paiement Stripe.
+                Générez des lots de codes à usage unique pour vos partenaires (organismes de formation,
+                écoles). Réservés aux nouveaux clients, saisis dans le champ « Code promo » au paiement Stripe.
               </p>
             </div>
           </div>
@@ -200,8 +220,6 @@ export default function AdminPartnersPage() {
           <div className="pointer-events-none absolute top-1/2 right-0 w-80 h-80 bg-sky-400/25 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '8s', animationDelay: '2s' }} />
 
           <div className="relative space-y-6">
-
-            <PartnerProgramsPanel />
 
             {/* Formulaire de génération */}
             <div className="bg-white/85 backdrop-blur-2xl border border-white/70 shadow-xl ring-1 ring-inset ring-white/60 rounded-2xl p-6">
@@ -274,6 +292,48 @@ export default function AdminPartnersPage() {
                 </div>
 
                 <div>
+                  <p className="block text-sm font-medium text-gray-700 mb-2">
+                    S&apos;applique à <span className="text-red-500">*</span>
+                  </p>
+                  <div className="overflow-x-auto">
+                    <table className="text-sm">
+                      <thead>
+                        <tr className="text-gray-500">
+                          <th className="text-left font-medium pr-6 pb-1"></th>
+                          <th className="font-medium px-4 pb-1">Mensuel</th>
+                          <th className="font-medium px-4 pb-1">Annuel</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {OFFRES_CIBLES.map((o) => (
+                          <tr key={o.nom}>
+                            <td className="pr-6 py-1 text-gray-800 font-medium">{o.nom}</td>
+                            {[o.mensuel, o.annuel].map((clef) => (
+                              <td key={clef} className="px-4 py-1 text-center">
+                                <input
+                                  type="checkbox"
+                                  checked={formCibles.includes(clef)}
+                                  onChange={(e) =>
+                                    setFormCibles((prev) =>
+                                      e.target.checked ? [...prev, clef] : prev.filter((c) => c !== clef)
+                                    )
+                                  }
+                                  className="h-4 w-4 accent-purple-600"
+                                />
+                              </td>
+                            ))}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Sur un tarif annuel, la remise porte sur chaque facture annuelle émise pendant la durée
+                    choisie : 12 mois correspond à la première année. Les tarifs Fondateur ne sont jamais concernés.
+                  </p>
+                </div>
+
+                <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Note <span className="text-gray-400 font-normal">(optionnel, ex. "Session du 22/07/2026")</span>
                   </label>
@@ -294,7 +354,12 @@ export default function AdminPartnersPage() {
                       Chaque code généré est à <strong>usage unique</strong> et réservé aux{' '}
                       <strong>nouveaux clients</strong> (vérifié nativement par Stripe). Il applique
                       <strong> -{formPercentOff || '?'}%</strong> pendant <strong>{formDuration || '?'} mois</strong>,
-                      puis le tarif repasse au plein prix.
+                      puis le tarif repasse au plein prix. Valable sur :{' '}
+                      <strong>
+                        {formCibles.length === CIBLES.length
+                          ? 'toutes les offres, mensuelles et annuelles'
+                          : CIBLES.filter((c) => formCibles.includes(c.clef)).map((c) => c.libelle).join(', ') || 'aucune offre'}
+                      </strong>.
                     </p>
                   </div>
                 </div>
@@ -397,6 +462,7 @@ export default function AdminPartnersPage() {
                             </div>
                             <p className="text-xs text-gray-500 mt-0.5">
                               {pc.partner} · -{pc.percentOff ?? '?'}% pendant {pc.durationInMonths ?? '?'} mois
+                              {pc.cibles?.length ? ` · ${pc.cibles.length === CIBLES.length ? 'toutes offres' : pc.cibles.join(', ')}` : ''}
                               {pc.note ? ` · ${pc.note}` : ''} · Créé le {new Date(pc.created * 1000).toLocaleDateString('fr-FR')}
                             </p>
                           </div>

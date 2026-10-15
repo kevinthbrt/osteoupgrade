@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import AuthLayout from '@/components/AuthLayout'
 import {
+  GraduationCap,
   ClipboardList,
   Users,
   Shield,
@@ -215,6 +216,14 @@ export default function AdminPage() {
       iconColor: 'text-cyan-600',
       iconBg: 'bg-cyan-100',
       href: '/admin/partners',
+    },
+    {
+      title: 'Étudiants',
+      description: 'Justificatifs du tarif étudiant à vérifier',
+      icon: GraduationCap,
+      iconColor: 'text-indigo-600',
+      iconBg: 'bg-indigo-100',
+      href: '/admin/etudiants',
     },
     {
       title: 'Cache IA',
