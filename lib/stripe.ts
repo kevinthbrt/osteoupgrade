@@ -77,7 +77,7 @@ export const STRIPE_PLANS: Record<string, StripePlan> = {
     isFounding: false
   },
   partner_premium_annual: {
-    name: 'Premium partenaire',
+    name: 'Premium tarif école',
     plan: 'bundle',
     priceId: process.env.STRIPE_PRICE_PARTNER_PREMIUM_ANNUAL || '',
     amount: 34999,
@@ -128,7 +128,7 @@ export const STRIPE_PLANS: Record<string, StripePlan> = {
     isFounding: false
   },
   partner_osteoflow_annual: {
-    name: 'MyOsteoFlow partenaire',
+    name: 'MyOsteoFlow tarif école',
     plan: 'osteoflow',
     priceId: process.env.STRIPE_PRICE_PARTNER_OSTEOFLOW_ANNUAL || '',
     amount: 20999,
@@ -179,7 +179,7 @@ export const STRIPE_PLANS: Record<string, StripePlan> = {
     isFounding: false
   },
   partner_osteoupgrade_annual: {
-    name: 'OsteoUpgrade partenaire',
+    name: 'OsteoUpgrade tarif école',
     plan: 'osteoupgrade',
     priceId: process.env.STRIPE_PRICE_PARTNER_OSTEOUPGRADE_ANNUAL || '',
     amount: 20999,

@@ -179,6 +179,42 @@ export function billedPriceFor(
   return { amount: offer.monthlyAmount, suffix: '/mois', monthlyEquivalent: offer.monthlyAmount }
 }
 
+/** Montant rond sans décimales (« 20 € »), sinon au format habituel. */
+function montantCourt(cents: number): string {
+  return cents % 100 === 0 ? `${cents / 100} €` : formatAmount(cents)
+}
+
+/**
+ * Variables de l'email d'incitation au bundle (J+21), au tarif de l'abonné.
+ *
+ * L'email citait en dur les tarifs mensuels publics : faux pour un abonné
+ * annuel, un stagiaire d'école ou un membre fondateur, à qui Premium coûte
+ * aussi autre chose. On compare donc son offre et Premium sur la même grille.
+ * `null` pour le bundle lui-même, qui n'a rien à ajouter.
+ */
+export function upsellVariablesFor(planType: string): Record<string, string> | null {
+  const offre = OFFERS.find((o) =>
+    [o.planType, o.annualPlanType, o.partnerPlanType, o.foundingPlanType].includes(planType)
+  )
+  const bundle = OFFERS.find((o) => o.id === 'bundle')
+  if (!offre || !bundle || offre.id === 'bundle') return null
+
+  const grille =
+    planType === offre.foundingPlanType ? 'foundingAnnualAmount'
+      : planType === offre.partnerPlanType ? 'partnerAnnualAmount'
+        : planType === offre.annualPlanType ? 'annualAmount'
+          : 'monthlyAmount'
+  const suffixe = grille === 'monthlyAmount' ? '/mois' : '/an'
+  const periode = grille === 'monthlyAmount' ? 'par mois' : 'par an'
+
+  return {
+    upsell_prix_actuel: `${formatAmount(offre[grille])}${suffixe}`,
+    upsell_prix_premium: `${formatAmount(bundle[grille])}${suffixe}`,
+    upsell_ecart: `${montantCourt(bundle[grille] - offre[grille])} de plus ${periode}`,
+    upsell_prix_seul: `${formatAmount(offre[grille])}${suffixe}`,
+  }
+}
+
 /** Offres complémentaires proposées à un abonné (upsell vers le bundle). */
 export function upgradeTargetsFor(plan: Plan): Offer[] {
   if (plan === 'osteoflow' || plan === 'osteoupgrade') {

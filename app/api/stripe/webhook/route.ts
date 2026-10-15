@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { headers } from 'next/headers'
 import { stripe, referralFreeMonthAmount, PARTNER_PROMO_PURPOSE, STRIPE_PLANS, planFromSubscription, planTypeFromSubscription, billingIntervalFromSubscription } from '@/lib/stripe'
 import { activePartnerProgramFor, partnerProgramNameFor } from '@/lib/partner-programs'
+import { upsellVariablesFor } from '@/lib/offers'
 import { planLabel, describePlanChange, type Plan } from '@/lib/entitlements'
 import { supabaseAdmin } from '@/lib/supabase-server'
 import { sendTransactionalEmail } from '@/lib/mailing'
@@ -603,6 +604,9 @@ async function handleCheckoutCompleted(session: any) {
         contact_email: profile.email,
         full_name: profile.full_name,
         metadata: {
+          // Tarifs de l'email J+21 (incitation au bundle), à la grille de
+          // l'abonné : mensuelle, annuelle, école ou fondateur.
+          ...(upsellVariablesFor(planType) ?? {}),
           nom: planNom,
           prix: planPrix,
           interval: planInterval,
@@ -917,7 +921,8 @@ async function handleSubscriptionUpdated(subscription: any) {
               : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)).toLocaleDateString('fr-FR'),
             essai_gratuit: 'true',
             code_parrainage: userReferralCode,
-            facture_url: factureUrl
+            facture_url: factureUrl,
+            ...(upsellVariablesFor(planTypeFromSubscription(subscription)) ?? {})
           }
         })
       })
