@@ -9,6 +9,7 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/).
 
 ### Ajouté
 
+- **Offre étudiant** : -50 % la première année sur les trois offres annuelles (Premium 249,99 €, MyOsteoFlow et OsteoUpgrade 149,99 €), débloquée dès le dépôt d'un justificatif sur « Mon abonnement ». Vérification manuelle dans `/admin/etudiants` : un refus retire la remise, facture la différence si la première année est déjà payée, et envoie un email avec le motif. Justificatifs dans un stockage privé, supprimés dès la décision. (`lib/student-offer.ts`, `docs/OFFRE_ETUDIANT.md`)
 - **Codes partenaires ciblés** : à la génération d'un lot (`/admin/partners`), on coche les tarifs visés, offre par offre et rythme par rythme (Premium, MyOsteoFlow, OsteoUpgrade × mensuel, annuel). Sur l'annuel, une durée de 12 mois couvre la première année : Stripe arrête la remise seul. La cible s'affiche dans la liste des codes.
 - **Un produit Stripe par rythme** : les prix annuels vivent sur un produit « … (annuel) » distinct du mensuel. C'est la condition pour qu'un code vise l'un sans l'autre, Stripe ne restreignant un coupon que par produit. Le passage mensuel ↔ annuel reste possible depuis le portail.
 

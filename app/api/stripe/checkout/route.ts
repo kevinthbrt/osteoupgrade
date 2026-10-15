@@ -6,10 +6,11 @@ import { planOf } from '@/lib/entitlements'
 import { notifyAdmin } from '@/lib/admin-notify'
 import { UTM_COOKIE, parseAttributionCookie, attributionToStripeMetadata } from '@/lib/utm'
 import { supabaseAdmin } from '@/lib/supabase-server'
+import { studentVerificationFor, canUseStudentDiscount, ensureStudentCoupon } from '@/lib/student-offer'
 
 export async function POST(request: Request) {
   try {
-    const { planType, referralCode, funnelSlug } = await request.json()
+    const { planType, referralCode, funnelSlug, student } = await request.json()
 
     const supabase = createRouteHandlerClient({ cookies })
     const { data: { user }, error: authError } = await supabase.auth.getUser()
@@ -134,9 +135,32 @@ export async function POST(request: Request) {
     // /api/admin/partner-codes).
     const tarifAnnuelStandard = plan.isAnnual && !plan.isFounding
 
+    // 🎓 Tarif étudiant : -50 % la première année, sur l'annuel uniquement.
+    // Il faut un justificatif déposé et non refusé, et une remise qui n'a
+    // jamais servi sur ce compte (vérifié côté serveur, jamais sur parole).
+    // Le justificatif est contrôlé à la main ensuite (/admin/etudiants).
+    const tarifEtudiant = Boolean(student)
+    let studentCouponId: string | null = null
+    if (tarifEtudiant) {
+      if (!tarifAnnuelStandard) {
+        return NextResponse.json(
+          { error: 'Le tarif étudiant porte sur les offres annuelles.' },
+          { status: 400 }
+        )
+      }
+      if (!canUseStudentDiscount(await studentVerificationFor(userId))) {
+        return NextResponse.json(
+          { error: 'Déposez votre justificatif étudiant avant de choisir ce tarif.' },
+          { status: 403 }
+        )
+      }
+      studentCouponId = await ensureStudentCoupon()
+    }
+
     // Valider le code de parrainage (applicable à l'offre unique)
     let referrerUserId = null
-    const shouldProcessReferral = Boolean(referralCode)
+    // Pas de parrainage sur le tarif étudiant : il cumulerait deux avantages.
+    const shouldProcessReferral = Boolean(referralCode) && !tarifEtudiant
 
     if (shouldProcessReferral) {
       // 🚫 VÉRIFIER QUE L'UTILISATEUR N'A JAMAIS ÉTÉ PARRAINÉ (1 fois AU TOTAL, pas par année)
@@ -360,9 +384,14 @@ export async function POST(request: Request) {
       // s'applique, elle est posée d'office et le champ de saisie disparaît :
       // demander à quelqu'un de recopier un code qu'on connaît déjà est une
       // friction gratuite au moment le plus coûteux du parcours.
-      ...(promotionCodeId
-        ? { discounts: [{ promotion_code: promotionCodeId }] }
-        : { allow_promotion_codes: true }),
+      //
+      // Le tarif étudiant pose son coupon de la même façon : pas de champ de
+      // code à côté, il ne se cumule avec aucune autre remise.
+      ...(studentCouponId
+        ? { discounts: [{ coupon: studentCouponId }] }
+        : promotionCodeId
+          ? { discounts: [{ promotion_code: promotionCodeId }] }
+          : { allow_promotion_codes: true }),
       line_items: [
         {
           price: plan.priceId,
@@ -382,6 +411,7 @@ export async function POST(request: Request) {
         referral_code: shouldProcessReferral ? referralCode || '' : '',
         referrer_user_id: shouldProcessReferral ? referrerUserId || '' : '',
         is_trial: isEligibleForTrial ? 'true' : 'false',
+        student: tarifEtudiant ? 'true' : 'false',
         ...attributionMetadata
       },
       subscription_data: {
@@ -395,6 +425,7 @@ export async function POST(request: Request) {
           referral_code: shouldProcessReferral ? referralCode || '' : '',
           referrer_user_id: shouldProcessReferral ? referrerUserId || '' : '',
           is_trial: isEligibleForTrial ? 'true' : 'false',
+          student: tarifEtudiant ? 'true' : 'false',
           ...attributionMetadata
         }
       }

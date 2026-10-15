@@ -14,6 +14,8 @@ import {
   upgradeTargetsFor,
   BUNDLE_SAVING,
   annualSavingOf,
+  studentFirstYearAmount,
+  STUDENT_DISCOUNT_PERCENT,
   billedPriceFor,
   pricingFor,
   type Offer,
@@ -37,6 +39,15 @@ function SubscriptionContent() {
   } | null>(null)
   /** Rythme de facturation affiché sur la grille des offres. */
   const [billingInterval, setBillingInterval] = useState<BillingInterval>('month')
+  /** Offre étudiant : état du justificatif et choix d'appliquer le tarif. */
+  const [student, setStudent] = useState<{ eligible: boolean; status: string | null; discountUsed: boolean } | null>(null)
+  const [studentSelected, setStudentSelected] = useState(false)
+  const [studentFile, setStudentFile] = useState<File | null>(null)
+  const [studentUploading, setStudentUploading] = useState(false)
+  const [studentError, setStudentError] = useState<string | null>(null)
+  /** Tarif étudiant appliqué à la grille : justificatif déposé, case cochée, annuel. */
+  const tarifEtudiantActif =
+    Boolean(student?.eligible) && studentSelected && billingInterval === 'year' && !profile?.is_founding_member
 
   // Récupérer le code de parrainage depuis l'URL si présent
   useEffect(() => {
@@ -49,7 +60,41 @@ function SubscriptionContent() {
 
   useEffect(() => {
     loadProfile()
+    loadStudent()
   }, [])
+
+  const loadStudent = async () => {
+    try {
+      const res = await fetch('/api/student-verification')
+      if (!res.ok) return
+      const data = await res.json()
+      setStudent(data)
+      if (data.eligible) setStudentSelected(true)
+    } catch {
+      // Sans réponse, l'offre étudiant n'est simplement pas proposée.
+    }
+  }
+
+  const uploadStudentDocument = async () => {
+    if (!studentFile) return
+    setStudentUploading(true)
+    setStudentError(null)
+    try {
+      const form = new FormData()
+      form.append('file', studentFile)
+      const res = await fetch('/api/student-verification', { method: 'POST', body: form })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || "Le justificatif n'a pas pu être envoyé.")
+      setStudentFile(null)
+      setStudentSelected(true)
+      setBillingInterval('year')
+      await loadStudent()
+    } catch (err: any) {
+      setStudentError(err.message)
+    } finally {
+      setStudentUploading(false)
+    }
+  }
 
   const loadProfile = async () => {
     try {
@@ -122,7 +167,8 @@ function SubscriptionContent() {
           planType,
           userId: profile.id,
           email: profile.email,
-          referralCode: isReferralEligiblePlan(planType) && codeValidation?.valid ? referralCode : undefined
+          referralCode: isReferralEligiblePlan(planType) && codeValidation?.valid ? referralCode : undefined,
+          student: tarifEtudiantActif && planType.endsWith('_annual') && !planType.startsWith('founding_')
         })
       })
 
@@ -146,7 +192,8 @@ function SubscriptionContent() {
   }
 
   // Le parrainage ne s'applique pas aux offres Fondateur, déjà à -50%
-  const isReferralEligiblePlan = (planType: string) => !planType.startsWith('founding_')
+  const isReferralEligiblePlan = (planType: string) =>
+    !planType.startsWith('founding_') && !(tarifEtudiantActif && planType.endsWith('_annual'))
 
   const handleUpgrade = (planType: string) => {
 
@@ -639,6 +686,68 @@ function SubscriptionContent() {
               </div>
             )}
 
+            {/* ── Offre étudiant : -50 % la première année sur l'annuel, sur justificatif ── */}
+            {!isFounder && student && !student.discountUsed && (
+              <div className="rounded-2xl border border-indigo-200 bg-indigo-50/90 backdrop-blur-2xl p-5 space-y-3">
+                <div className="flex items-start gap-3">
+                  <GraduationCap className="h-5 w-5 text-indigo-700 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-bold text-indigo-900">
+                      Étudiant ou jeune diplômé : -{STUDENT_DISCOUNT_PERCENT} % la première année sur l&apos;abonnement annuel
+                    </p>
+                    <p className="text-sm text-indigo-800/90 mt-0.5">
+                      Joignez une copie de votre carte étudiante, certificat de scolarité, diplôme ou avis de
+                      situation INSEE. Le tarif est débloqué tout de suite ; nous vérifions votre justificatif dans
+                      les jours qui suivent. S&apos;il n&apos;est pas valable, l&apos;abonnement repasse au plein tarif
+                      et la différence vous est facturée.
+                    </p>
+                  </div>
+                </div>
+
+                {student.eligible ? (
+                  <label className="flex items-center gap-2 text-sm text-indigo-900 font-semibold cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={studentSelected}
+                      onChange={(e) => {
+                        setStudentSelected(e.target.checked)
+                        if (e.target.checked) setBillingInterval('year')
+                      }}
+                      className="h-4 w-4 accent-indigo-600"
+                    />
+                    Justificatif reçu : appliquer le tarif étudiant aux offres annuelles
+                  </label>
+                ) : (
+                  <div className="space-y-2">
+                    {student.status === 'rejected' && (
+                      <p className="text-sm text-red-700">
+                        Votre précédent justificatif n&apos;a pas pu être validé. Vous pouvez en déposer un autre.
+                      </p>
+                    )}
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      <input
+                        type="file"
+                        accept="application/pdf,image/jpeg,image/png,image/webp,image/heic"
+                        onChange={(e) => setStudentFile(e.target.files?.[0] ?? null)}
+                        className="text-sm text-indigo-900 file:mr-3 file:rounded-lg file:border-0 file:bg-white file:px-3 file:py-2 file:text-sm file:font-semibold file:text-indigo-700"
+                      />
+                      <button
+                        type="button"
+                        onClick={uploadStudentDocument}
+                        disabled={!studentFile || studentUploading}
+                        className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-700 disabled:opacity-50"
+                      >
+                        {studentUploading && <Loader2 className="h-4 w-4 animate-spin" />}
+                        Envoyer mon justificatif
+                      </button>
+                    </div>
+                    <p className="text-xs text-indigo-800/70">PDF ou photo, 10 Mo maximum. Le fichier est supprimé dès la vérification faite.</p>
+                  </div>
+                )}
+                {studentError && <p className="text-sm text-red-600">{studentError}</p>}
+              </div>
+            )}
+
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 items-start">
               {OFFERS.map((offer) => {
                 const tarif = tarifFor(offer)
@@ -670,10 +779,16 @@ function SubscriptionContent() {
 
                     <div className="mb-4">
                       <div className="flex items-baseline gap-1">
-                        <span className="text-3xl font-bold text-gray-900">{formatAmount(tarif.amount)}</span>
+                        <span className="text-3xl font-bold text-gray-900">
+                          {formatAmount(tarifEtudiantActif ? studentFirstYearAmount(offer) : tarif.amount)}
+                        </span>
                         <span className="text-gray-500 text-sm">{tarif.suffix}</span>
                       </div>
-                      {isFounder ? (
+                      {tarifEtudiantActif ? (
+                        <p className="text-xs text-indigo-700 font-semibold mt-1">
+                          Tarif étudiant la première année, puis {formatAmount(offer.annualAmount)}/an
+                        </p>
+                      ) : isFounder ? (
                         <p className="text-xs text-amber-700 font-semibold mt-1">
                           Tarif fondateur · -50 % à vie · au lieu de {formatAmount(offer.monthlyAmount * 12)}/an
                         </p>

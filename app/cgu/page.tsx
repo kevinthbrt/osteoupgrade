@@ -185,6 +185,17 @@ export default function CGUPage() {
                     concernées (mensuelles, annuelles ou les deux) et sa durée sont indiquées lors du paiement. À
                     l&apos;issue de cette durée, l&apos;abonnement se poursuit au tarif en vigueur.
                   </p>
+                  <p className="text-sm text-gray-700 mt-3">
+                    <strong>Tarif étudiant :</strong> les étudiants et jeunes diplômés bénéficient de 50 % de remise sur
+                    la première année d&apos;un abonnement annuel (Premium 249,99 €, MyOsteoFlow ou OsteoUpgrade 149,99 €),
+                    puis du tarif annuel en vigueur. Ce tarif suppose le dépôt d&apos;un justificatif (carte étudiante,
+                    certificat de scolarité, diplôme ou avis de situation INSEE), vérifié par OsteoUpgrade après la
+                    souscription. Si le justificatif n&apos;est pas valable, la remise est retirée : pendant l&apos;essai
+                    gratuit, le premier prélèvement se fait au plein tarif ; après le premier prélèvement, la remise déjà
+                    accordée est facturée à l&apos;Abonné, qui en est informé par email. Le tarif étudiant est utilisable une
+                    seule fois par compte et ne se cumule ni avec un code promotionnel ni avec le Programme Ambassadeur.
+                    Le justificatif est supprimé dès la vérification faite.
+                  </p>
                 </div>
               </div>
 

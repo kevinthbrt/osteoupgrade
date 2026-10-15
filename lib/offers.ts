@@ -129,6 +129,17 @@ export function annualSavingOf(offer: Offer) {
   }
 }
 
+/** Offre étudiant : remise sur la première année d'un tarif annuel. */
+export const STUDENT_DISCOUNT_PERCENT = 50
+
+/**
+ * Prix de la première année au tarif étudiant. Stripe arrondit la remise au
+ * centime : 50 % de 499,99 € donnent 249,99 € la première année.
+ */
+export function studentFirstYearAmount(offer: Offer): number {
+  return offer.annualAmount - Math.round((offer.annualAmount * STUDENT_DISCOUNT_PERCENT) / 100)
+}
+
 export type BillingInterval = 'month' | 'year'
 
 /** Clé de tarif et montant d'une offre pour un rythme de facturation donné. */
