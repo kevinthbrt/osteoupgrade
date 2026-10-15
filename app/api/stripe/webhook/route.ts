@@ -1149,7 +1149,12 @@ async function handlePaymentSucceeded(invoice: any) {
         full_name: profile.full_name,
         metadata: {
           nom: planLabel(profile.plan),
-          date_fact: new Date().toLocaleDateString('fr-FR'),
+          // Prochaine facturation : la fin de la période que cette facture
+          // vient de payer (dans un mois ou dans un an), et non la date du
+          // jour, que l'email annonçait jusqu'ici.
+          date_fact: (invoice.lines?.data?.[0]?.period?.end
+            ? new Date(invoice.lines.data[0].period.end * 1000)
+            : new Date()).toLocaleDateString('fr-FR'),
           facture_url: invoice.hosted_invoice_url || invoice.invoice_pdf || ''
         }
       })
