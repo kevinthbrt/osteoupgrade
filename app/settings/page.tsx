@@ -22,7 +22,7 @@ import {
   Globe
 } from 'lucide-react'
 import { planOf, planLabel } from '@/lib/entitlements'
-import { formatAmount, offerOf } from '@/lib/offers'
+import { formatAmount, offerOf, billedPriceFor } from '@/lib/offers'
 
 export default function SettingsPage() {
   const router = useRouter()
@@ -98,17 +98,21 @@ export default function SettingsPage() {
   }
 
 
+  // La résiliation se fait dans le portail client Stripe, seul endroit qui
+  // annule réellement l'abonnement. L'ancien bouton modifiait le profil en
+  // base sans rien résilier chez Stripe (et échouait de toute façon : le
+  // rôle n'est pas modifiable depuis le navigateur).
   const handleCancelSubscription = async () => {
-    if (!confirm('Êtes-vous sûr de vouloir annuler votre abonnement ?')) return
     setSaving(true)
     try {
-      const { error } = await supabase.from('profiles').update({ role: 'free', subscription_status: 'cancelled', subscription_end_date: new Date().toISOString() }).eq('id', user.id)
-      if (error) throw error
-      alert('Abonnement annulé. Vous conservez l\'accès Premium jusqu\'à la fin de la période payée.')
-      loadUserData()
+      const response = await fetch('/api/stripe/portal', { method: 'POST' })
+      const data = await response.json()
+      if (!response.ok || !data.url) throw new Error(data.error || "Impossible d'ouvrir le portail")
+      window.location.href = data.url
     } catch (error: any) {
-      alert('Erreur lors de l\'annulation: ' + error.message)
-    } finally { setSaving(false) }
+      alert('Erreur : ' + error.message)
+      setSaving(false)
+    }
   }
 
   const handleUpdateNotifications = async () => {
@@ -303,7 +307,17 @@ export default function SettingsPage() {
                           <Crown className="h-8 w-8 text-emerald-600 flex-shrink-0" />
                           <div>
                             <h3 className="font-semibold text-slate-900">Abonnement {offerOf(planOf(profile))?.name ?? planLabel(planOf(profile))} actif</h3>
-                            <p className="text-slate-600 text-sm mt-1">{formatAmount(offerOf(planOf(profile))?.monthlyAmount ?? 4999)}/mois, sans engagement</p>
+                            <p className="text-slate-600 text-sm mt-1">
+                              {(() => {
+                                const offre = offerOf(planOf(profile))
+                                if (profile.is_complimentary) return 'Offert, sans facturation'
+                                if (!offre) return ''
+                                const tarif = billedPriceFor(offre, profile)
+                                return tarif.suffix === '/an'
+                                  ? `${formatAmount(tarif.amount)}/an, facturation annuelle`
+                                  : `${formatAmount(tarif.amount)}/mois, sans engagement`
+                              })()}
+                            </p>
                             {profile.subscription_end_date && (
                               <p className="text-sm text-slate-500 mt-1.5 flex items-center gap-1.5">
                                 <Calendar className="h-4 w-4" />
@@ -325,10 +339,13 @@ export default function SettingsPage() {
                         </div>
                       </div>
                       <div className="pt-2 border-t border-blue-100/60">
-                        <button onClick={handleCancelSubscription}
+                        <button onClick={handleCancelSubscription} disabled={saving}
                           className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-red-500/10 backdrop-blur-sm border border-red-300/30 text-red-600 text-sm font-medium hover:bg-red-500/20 transition-all">
-                          Annuler l'abonnement
+                          {saving ? 'Ouverture du portail...' : "Gérer ou résilier l'abonnement"}
                         </button>
+                        <p className="text-xs text-slate-500 mt-2">
+                          La résiliation prend effet à la fin de la période déjà payée.
+                        </p>
                       </div>
                     </div>
                   ) : (

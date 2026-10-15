@@ -47,9 +47,10 @@ Plus `STRIPE_PORTAL_CONFIG_PLANS_PARTNER` pour la grille du portail client.
   `role`. Une colonne de profil serait donc modifiable depuis le navigateur.
 - Le stagiaire saisit le code sur « Mon abonnement », ou suit le lien
   `/settings/subscription?ecole=CODE` (bouton « Copier le lien » dans
-  `/admin/partners`). Sans compte, il est renvoyé vers l'inscription ; le
-  code est gardé dans son navigateur et appliqué à son prochain passage sur
-  « Mon abonnement ».
+  `/admin/partners`). Sans être connecté, le middleware l'envoie sur
+  `/auth?ecole=CODE` (et non sur l'accueil), qui garde le code dans le
+  navigateur et ouvre l'inscription. Après inscription ou connexion, il est
+  renvoyé sur « Mon abonnement », où le code est appliqué.
 - `/api/stripe/checkout` revérifie le rattachement pour tout tarif
   partenaire ; le webhook écrit le nom de l'école dans
   `profiles.partner_discount_name` (badge visible dans `/admin/users`).
