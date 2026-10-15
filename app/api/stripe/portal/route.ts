@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server'
 import { createRouteHandlerClient } from '@/lib/supabase-server-helpers'
 import { cookies } from 'next/headers'
 import { stripe } from '@/lib/stripe'
-import { activePartnerProgramFor } from '@/lib/partner-programs'
 
 export async function POST(request: Request) {
   try {
@@ -55,15 +54,9 @@ export async function POST(request: Request) {
     // Repli sur les configurations historiques si les nouvelles ne sont pas
     // encore renseignées : le portail garde alors exactement le comportement
     // actuel, sans changement d'offre.
-    //
-    // Les stagiaires d'une école partenaire ont leur propre grille : sans
-    // elle, passer à l'annuel depuis le portail les ferait payer le tarif
-    // annuel public au lieu de leur tarif école.
-    const programmePartenaire = profile.is_founding_member ? null : await activePartnerProgramFor(user.id)
-
     const configPlans = profile.is_founding_member
       ? process.env.STRIPE_PORTAL_CONFIG_PLANS_FOUNDING
-      : (programmePartenaire && process.env.STRIPE_PORTAL_CONFIG_PLANS_PARTNER) || process.env.STRIPE_PORTAL_CONFIG_PLANS
+      : process.env.STRIPE_PORTAL_CONFIG_PLANS
 
     const portalConfig = isInCommitment
       ? process.env.STRIPE_PORTAL_CONFIG_ENGAGEMENT  // Configuration avec annulation bloquée

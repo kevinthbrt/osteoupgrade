@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server'
 import { headers } from 'next/headers'
 import { stripe, referralFreeMonthAmount, PARTNER_PROMO_PURPOSE, STRIPE_PLANS, planFromSubscription, planTypeFromSubscription, billingIntervalFromSubscription } from '@/lib/stripe'
-import { activePartnerProgramFor, partnerProgramNameFor } from '@/lib/partner-programs'
 import { upsellVariablesFor } from '@/lib/offers'
 import { planLabel, describePlanChange, type Plan } from '@/lib/entitlements'
 import { supabaseAdmin } from '@/lib/supabase-server'
@@ -432,13 +431,6 @@ async function handleCheckoutCompleted(session: any) {
   const rythme = subscription ? billingIntervalFromSubscription(subscription) : null
   if (rythme) updateData.billing_interval = rythme
 
-  // 🏫 Tarif école partenaire : même traçabilité que les codes partenaires,
-  // pour que l'école apparaisse dans /admin/users et /admin/stats.
-  if (STRIPE_PLANS[planType]?.isPartner) {
-    const programme = await activePartnerProgramFor(userId)
-    if (programme) updateData.partner_discount_name = programme.name
-  }
-
   const { data: updatedProfile, error: updateError } = await supabaseAdmin
     .from('profiles')
     .update(updateData)
@@ -605,7 +597,7 @@ async function handleCheckoutCompleted(session: any) {
         full_name: profile.full_name,
         metadata: {
           // Tarifs de l'email J+21 (incitation au bundle), à la grille de
-          // l'abonné : mensuelle, annuelle, école ou fondateur.
+          // l'abonné : mensuelle, annuelle ou fondateur.
           ...(upsellVariablesFor(planType) ?? {}),
           nom: planNom,
           prix: planPrix,
@@ -678,7 +670,7 @@ async function handleSubscriptionUpdated(subscription: any) {
   // Trouver l'utilisateur par son stripe_customer_id
   const { data: profile, error: profileError } = await supabaseAdmin
     .from('profiles')
-    .select('id, role, plan, subscription_status, email, full_name, partner_discount_name')
+    .select('id, role, plan, subscription_status, email, full_name')
     .eq('stripe_customer_id', customerId)
     .single()
 
@@ -696,21 +688,6 @@ async function handleSubscriptionUpdated(subscription: any) {
   const rythme = billingIntervalFromSubscription(subscription)
   if (rythme) updateData.billing_interval = rythme
 
-  // 🏫 Le tarif école se lit sur le prix porté par l'abonnement, pas sur
-  // l'état figé au checkout : un abonné mensuel qui rejoint une école puis
-  // passe au tarif partenaire depuis le portail doit être marqué comme tel
-  // (sinon le site lui annonce 499,99 € et le MRR compte le tarif public),
-  // et celui qui quitte le tarif école ne doit pas garder le nom de l'école.
-  // Le nom d'un code partenaire (IFCOPS…) n'est jamais touché ici.
-  const tarifCourant = STRIPE_PLANS[planTypeFromSubscription(subscription, '')]
-  if (tarifCourant) {
-    const ecole = await partnerProgramNameFor(profile.id)
-    if (tarifCourant.isPartner && ecole) {
-      updateData.partner_discount_name = ecole
-    } else if (!tarifCourant.isPartner && ecole && profile.partner_discount_name === ecole) {
-      updateData.partner_discount_name = null
-    }
-  }
   if (subscription.status !== 'trialing') {
     updateData.trial_ends_at = null
   }

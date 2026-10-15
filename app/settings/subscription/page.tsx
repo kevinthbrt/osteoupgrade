@@ -13,7 +13,6 @@ import {
   offerOf,
   upgradeTargetsFor,
   BUNDLE_SAVING,
-  PARTNER_ANNUAL_DISCOUNT_PERCENT,
   annualSavingOf,
   billedPriceFor,
   pricingFor,
@@ -38,12 +37,6 @@ function SubscriptionContent() {
   } | null>(null)
   /** Rythme de facturation affiché sur la grille des offres. */
   const [billingInterval, setBillingInterval] = useState<BillingInterval>('month')
-  /** École partenaire du compte, si elle ouvre encore ses tarifs. */
-  const [partnerProgram, setPartnerProgram] = useState<{ id: string; name: string } | null>(null)
-  const [partnerCode, setPartnerCode] = useState('')
-  const [partnerCodeOpen, setPartnerCodeOpen] = useState(false)
-  const [partnerCodeError, setPartnerCodeError] = useState<string | null>(null)
-  const [joiningPartner, setJoiningPartner] = useState(false)
 
   // Récupérer le code de parrainage depuis l'URL si présent
   useEffect(() => {
@@ -56,78 +49,7 @@ function SubscriptionContent() {
 
   useEffect(() => {
     loadProfile()
-    loadPartnerProgram()
   }, [])
-
-  // Lien transmis par une école : /settings/subscription?ecole=CODE.
-  // Le code est aussi gardé dans le navigateur : un stagiaire sans compte est
-  // renvoyé vers l'inscription et perd le paramètre en route. Il est appliqué
-  // à son prochain passage sur cette page.
-  useEffect(() => {
-    let codeEcole = searchParams?.get('ecole') || null
-    try {
-      if (codeEcole) localStorage.setItem('ecole_code', codeEcole)
-      else codeEcole = localStorage.getItem('ecole_code')
-    } catch {
-      // Stockage indisponible (navigation privée) : seul le lien fait foi.
-    }
-    if (codeEcole) {
-      setPartnerCode(codeEcole.toUpperCase())
-      setPartnerCodeOpen(true)
-      void joinPartnerProgram(codeEcole)
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams])
-
-  const loadPartnerProgram = async () => {
-    try {
-      const res = await fetch('/api/partner-program')
-      if (!res.ok) return
-      const data = await res.json()
-      if (data.program) {
-        setPartnerProgram(data.program)
-        // Le tarif école n'existe qu'en annuel : c'est lui qu'on montre d'abord.
-        setBillingInterval('year')
-      }
-    } catch {
-      // Sans réponse, la page reste sur les tarifs standard.
-    }
-  }
-
-  const joinPartnerProgram = async (code: string) => {
-    if (!code.trim()) return
-    setJoiningPartner(true)
-    setPartnerCodeError(null)
-    try {
-      const res = await fetch('/api/partner-program', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code })
-      })
-      const data = await res.json()
-      if (!res.ok) {
-        // Un code refusé n'a pas à être retenté à chaque visite. Seul un
-        // visiteur non connecté (401) le garde pour après son inscription.
-        if (res.status !== 401) {
-          try {
-            localStorage.removeItem('ecole_code')
-          } catch {}
-          setPartnerCodeError(data.error || 'Code école invalide.')
-        }
-        return
-      }
-      setPartnerProgram(data.program)
-      setBillingInterval('year')
-      setPartnerCodeOpen(false)
-      try {
-        localStorage.removeItem('ecole_code')
-      } catch {}
-    } catch {
-      setPartnerCodeError('Impossible de vérifier le code. Réessayez.')
-    } finally {
-      setJoiningPartner(false)
-    }
-  }
 
   const loadProfile = async () => {
     try {
@@ -223,10 +145,8 @@ function SubscriptionContent() {
     }
   }
 
-  // Le parrainage ne s'applique pas aux offres Fondateur (déjà à -50 %) ni aux
-  // tarifs écoles partenaires (déjà à -30 % sur l'annuel).
-  const isReferralEligiblePlan = (planType: string) =>
-    !planType.startsWith('founding_') && !planType.startsWith('partner_')
+  // Le parrainage ne s'applique pas aux offres Fondateur, déjà à -50%
+  const isReferralEligiblePlan = (planType: string) => !planType.startsWith('founding_')
 
   const handleUpgrade = (planType: string) => {
 
@@ -297,11 +217,10 @@ function SubscriptionContent() {
   const pendingPlanSupportsReferral = pendingPlanType ? isReferralEligiblePlan(pendingPlanType) : false
   const isTrialEligible = plan === 'free' && !profile?.trial_used_at && !isFounder
 
-  const isPartner = Boolean(partnerProgram) && !isFounder
   const tarifFor = (offer: Offer) =>
     isFounder
       ? { planType: offer.foundingPlanType, amount: offer.foundingAnnualAmount, suffix: '/an' }
-      : pricingFor(offer, billingInterval, isPartner)
+      : pricingFor(offer, billingInterval)
 
   // Tarif réellement payé par l'abonné, pour l'encart « Votre abonnement ».
   const isAnnualSubscriber = profile?.billing_interval === 'year'
@@ -461,7 +380,7 @@ function SubscriptionContent() {
                       : isFounder
                         ? `${formatAmount(currentOffer.foundingAnnualAmount)}/an · tarif fondateur -50 % à vie`
                         : isAnnualSubscriber
-                          ? `${formatAmount(currentAmount(currentOffer))}/an · ${profile?.partner_discount_name ? `tarif ${profile.partner_discount_name}` : 'facturation annuelle'}`
+                          ? `${formatAmount(currentAmount(currentOffer))}/an · facturation annuelle`
                           : `${formatAmount(currentOffer.monthlyAmount)}/mois · sans engagement`}
                   </p>
                 )}
@@ -693,21 +612,6 @@ function SubscriptionContent() {
               </div>
             )}
 
-            {isPartner && (
-              <div className="rounded-2xl border-2 border-emerald-400 bg-emerald-50/90 backdrop-blur-2xl p-5 flex items-start gap-3">
-                <GraduationCap className="h-5 w-5 text-emerald-700 flex-shrink-0 mt-0.5" />
-                <div>
-                  <p className="text-sm font-bold text-emerald-900">
-                    Tarif {partnerProgram?.name} : -{PARTNER_ANNUAL_DISCOUNT_PERCENT} % sur l&apos;abonnement annuel
-                  </p>
-                  <p className="text-sm text-emerald-800/90 mt-0.5">
-                    En tant que stagiaire de {partnerProgram?.name}, vous bénéficiez d&apos;un tarif réservé
-                    sur la facturation annuelle, quelle que soit l&apos;offre choisie.
-                  </p>
-                </div>
-              </div>
-            )}
-
             {/* Choix du rythme de facturation (les fondateurs n'ont qu'un tarif annuel) */}
             {!isFounder && (
               <div className="flex justify-center">
@@ -725,7 +629,7 @@ function SubscriptionContent() {
                         <>
                           Annuel{' '}
                           <span className={billingInterval === rythme ? 'text-emerald-300' : 'text-emerald-600'}>
-                            {isPartner ? `-${PARTNER_ANNUAL_DISCOUNT_PERCENT} % école` : '2 mois offerts'}
+                            2 mois offerts
                           </span>
                         </>
                       )}
@@ -772,10 +676,6 @@ function SubscriptionContent() {
                       {isFounder ? (
                         <p className="text-xs text-amber-700 font-semibold mt-1">
                           Tarif fondateur · -50 % à vie · au lieu de {formatAmount(offer.monthlyAmount * 12)}/an
-                        </p>
-                      ) : billingInterval === 'year' && isPartner ? (
-                        <p className="text-xs text-emerald-700 font-semibold mt-1">
-                          Tarif {partnerProgram?.name} · au lieu de {formatAmount(offer.annualAmount)}/an
                         </p>
                       ) : billingInterval === 'year' ? (
                         <p className="text-xs text-emerald-700 font-semibold mt-1">
@@ -830,47 +730,6 @@ function SubscriptionContent() {
                 )
               })}
             </div>
-          </div>
-        )}
-
-        {/* ── Code école partenaire ── */}
-        {!isFounder && !isPartner && (
-          <div className="text-center">
-            {partnerCodeOpen ? (
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault()
-                  void joinPartnerProgram(partnerCode)
-                }}
-                className="inline-flex flex-col sm:flex-row items-stretch gap-2 bg-white/85 backdrop-blur-2xl border border-white/70 shadow rounded-xl p-3"
-              >
-                <input
-                  type="text"
-                  value={partnerCode}
-                  onChange={(e) => setPartnerCode(e.target.value.toUpperCase())}
-                  placeholder="Code de votre école"
-                  className="px-3 py-2 border border-gray-300 rounded-lg text-sm uppercase focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                />
-                <button
-                  type="submit"
-                  disabled={joiningPartner || !partnerCode.trim()}
-                  className="px-4 py-2 rounded-lg bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700 disabled:opacity-50 inline-flex items-center justify-center gap-2"
-                >
-                  {joiningPartner && <Loader2 className="h-4 w-4 animate-spin" />}
-                  Valider
-                </button>
-              </form>
-            ) : (
-              <button
-                type="button"
-                onClick={() => setPartnerCodeOpen(true)}
-                className="text-sm text-emerald-700 font-semibold hover:underline inline-flex items-center gap-1"
-              >
-                <GraduationCap className="h-4 w-4" />
-                Stagiaire d&apos;une école partenaire ? Saisissez votre code
-              </button>
-            )}
-            {partnerCodeError && <p className="text-sm text-red-600 mt-2">{partnerCodeError}</p>}
           </div>
         )}
 

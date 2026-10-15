@@ -180,10 +180,10 @@ export default function CGUPage() {
                     <li>✓ OsteoUpgrade : <strong>299,99 €/an</strong> au lieu de 359,88 € (12 × 29,99 €)</li>
                   </ul>
                   <p className="text-sm text-gray-700 mt-3">
-                    <strong>Tarif écoles partenaires :</strong> les stagiaires d&apos;une école ayant conclu un partenariat
-                    avec OsteoUpgrade bénéficient, sur présentation du code transmis par leur école, d&apos;une remise de
-                    30 % sur la facturation annuelle : Premium 349,99 €/an, MyOsteoFlow 209,99 €/an, OsteoUpgrade 209,99 €/an.
-                    Ce tarif ne se cumule ni avec un code promotionnel ni avec le Programme Ambassadeur.
+                    <strong>Codes partenaires :</strong> un organisme partenaire (école, organisme de formation) peut
+                    remettre à ses membres un code à usage unique, réservé aux nouveaux abonnés. La remise, les offres
+                    concernées (mensuelles, annuelles ou les deux) et sa durée sont indiquées lors du paiement. À
+                    l&apos;issue de cette durée, l&apos;abonnement se poursuit au tarif en vigueur.
                   </p>
                 </div>
               </div>

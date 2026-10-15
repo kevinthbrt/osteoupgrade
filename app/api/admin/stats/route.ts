@@ -11,7 +11,7 @@ import { OFFERS, billedPriceFor } from '@/lib/offers'
  */
 function mrrPourOffre(
   offre: Plan,
-  p: Pick<ProfileRow, 'is_founding_member' | 'billing_interval' | 'partner_discount_name'>
+  p: Pick<ProfileRow, 'is_founding_member' | 'billing_interval'>
 ): number {
   const o = OFFERS.find((x) => x.id === offre)
   if (!o) return 0

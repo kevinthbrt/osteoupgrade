@@ -15,15 +15,6 @@ export async function middleware(req: NextRequest) {
   const isProtectedRoute = protectedRoutes.some(route => req.nextUrl.pathname.startsWith(route))
 
   if (isProtectedRoute && !session) {
-    // Lien d'une école partenaire (/settings/subscription?ecole=CODE) ouvert
-    // sans être connecté : on passe par l'inscription en gardant le code,
-    // sinon le stagiaire atterrirait sur l'accueil et perdrait son tarif.
-    const codeEcole = req.nextUrl.searchParams.get('ecole')
-    if (codeEcole) {
-      const versAuth = new URL('/auth', req.url)
-      versAuth.searchParams.set('ecole', codeEcole)
-      return NextResponse.redirect(versAuth)
-    }
     return NextResponse.redirect(new URL('/', req.url))
   }
 

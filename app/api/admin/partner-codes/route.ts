@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { createRouteHandlerClient } from '@/lib/supabase-server-helpers'
-import { stripe, PARTNER_PROMO_PURPOSE, monthlyProductIds } from '@/lib/stripe'
+import { stripe, PARTNER_PROMO_PURPOSE, PUBLIC_PLAN_TYPES, MONTHLY_PLAN_TYPES, STRIPE_PLANS, productIdsFor } from '@/lib/stripe'
 
 async function checkAdmin(supabase: any) {
   const { data: { user }, error } = await supabase.auth.getUser()
@@ -17,8 +17,23 @@ function randomSuffix(length = 5) {
   return out
 }
 
+/**
+ * Tarifs qu'un lot peut viser : les mensuels et annuels publics. Les tarifs
+ * Fondateur n'en font jamais partie (déjà à -50 % à vie).
+ */
+const CIBLES_POSSIBLES: readonly string[] = PUBLIC_PLAN_TYPES
+
+/** Libellé court d'un tarif, pour la liste des codes : « Premium annuel ». */
+function libelleCible(clef: string): string {
+  const offre = STRIPE_PLANS[clef]
+  if (!offre) return clef
+  const nom = offre.plan === 'bundle' ? 'Premium' : offre.plan === 'osteoflow' ? 'MyOsteoFlow' : 'OsteoUpgrade'
+  return `${nom} ${offre.isAnnual ? 'annuel' : 'mensuel'}`
+}
+
 // POST /api/admin/partner-codes — Crée un coupon partenaire + un lot de codes
 // promo Stripe à usage unique (ex: -10% pendant 12 mois pour les diplômés IFCOPS).
+// `cibles` : clés des tarifs visés (ex. ['premium_annual']), toutes par défaut.
 // Réservé aux nouveaux clients via restrictions.first_time_transaction, géré
 // nativement par Stripe (pas de vérification côté app à écrire).
 export async function POST(request: Request) {
@@ -27,7 +42,7 @@ export async function POST(request: Request) {
     const admin = await checkAdmin(supabase)
     if (!admin) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-    const { partner, percentOff, durationInMonths, count, note } = await request.json()
+    const { partner, percentOff, durationInMonths, count, note, cibles } = await request.json()
 
     const partnerName = typeof partner === 'string' ? partner.trim() : ''
     if (!partnerName) {
@@ -45,10 +60,24 @@ export async function POST(request: Request) {
 
     const batchNote = typeof note === 'string' ? note.trim() : ''
 
-    // La réduction partenaire s'applique aux trois offres mensuelles. Les
-    // tarifs Fondateur en sont exclus : déjà à -50 % à vie, y empiler une
-    // remise partenaire cumulerait deux avantages non prévus.
-    const produitsEligibles = await monthlyProductIds()
+    // Tarifs visés par le lot. Stripe restreint un coupon par produit, et
+    // chaque tarif (mensuel ou annuel d'une offre) a son propre produit : le
+    // coupon ne s'appliquera qu'aux tarifs cochés. Les tarifs Fondateur ne
+    // sont jamais proposés, déjà à -50 % à vie.
+    const ciblesRetenues: string[] = Array.isArray(cibles) && cibles.length > 0
+      ? cibles.filter((c: unknown): c is string => typeof c === 'string' && CIBLES_POSSIBLES.includes(c))
+      : [...CIBLES_POSSIBLES]
+    if (ciblesRetenues.length === 0) {
+      return NextResponse.json({ error: 'Choisissez au moins une offre.' }, { status: 400 })
+    }
+    const sansPrix = ciblesRetenues.filter((c) => !STRIPE_PLANS[c]?.priceId)
+    if (sansPrix.length > 0) {
+      return NextResponse.json(
+        { error: `Prix Stripe non configuré pour : ${sansPrix.map(libelleCible).join(', ')}` },
+        { status: 400 }
+      )
+    }
+    const produitsEligibles = await productIdsFor(ciblesRetenues)
 
     // Un coupon par lot généré, partagé par tous les codes du lot — chaque
     // code reste un code promo Stripe distinct et à usage unique.
@@ -61,6 +90,7 @@ export async function POST(request: Request) {
         created_by: admin.id,
         purpose: PARTNER_PROMO_PURPOSE,
         partner: partnerName,
+        cibles: ciblesRetenues.join(','),
         ...(batchNote ? { batch_note: batchNote } : {})
       }
     }
@@ -114,6 +144,7 @@ export async function POST(request: Request) {
       couponId: coupon.id,
       percentOff,
       durationInMonths,
+      cibles: ciblesRetenues.map(libelleCible),
       codes
     })
   } catch (error: any) {
@@ -161,6 +192,12 @@ export async function GET(request: Request) {
           partner: pc.metadata?.partner || (typeof coupon === 'object' ? coupon?.metadata?.partner : null) || 'N/A',
           note: pc.metadata?.batch_note || (typeof coupon === 'object' ? coupon?.metadata?.batch_note : null) || null,
           percentOff: typeof coupon === 'object' ? coupon?.percent_off ?? null : null,
+          // Lots créés avant le choix des cibles : restreints aux trois
+          // offres mensuelles, ce que dit la valeur par défaut.
+          cibles: ((typeof coupon === 'object' && coupon?.metadata?.cibles)
+            ? String(coupon.metadata.cibles).split(',')
+            : [...MONTHLY_PLAN_TYPES]
+          ).map(libelleCible),
           durationInMonths: typeof coupon === 'object' ? coupon?.duration_in_months ?? null : null,
           maxRedemptions: pc.max_redemptions,
           timesRedeemed: pc.times_redeemed,

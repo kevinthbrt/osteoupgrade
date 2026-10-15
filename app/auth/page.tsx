@@ -87,16 +87,7 @@ async function redirectAfterAuth(router: ReturnType<typeof useRouter>) {
   const funnelSlug = params.get('funnel')
 
   if (!planType) {
-    // Stagiaire arrivé par le lien de son école : le code a été gardé dans le
-    // navigateur par « Mon abonnement » avant la redirection vers cette page.
-    // On l'y renvoie pour qu'il voie ses tarifs, plutôt que le tableau de bord.
-    let codeEcole: string | null = null
-    try {
-      codeEcole = localStorage.getItem('ecole_code')
-    } catch {
-      // Stockage indisponible : parcours habituel.
-    }
-    router.push(codeEcole ? '/settings/subscription' : '/dashboard')
+    router.push('/dashboard')
     return
   }
 
@@ -135,8 +126,6 @@ export default function AuthPage() {
   /** Offre choisie en amont (`?plan=`) : la page devient alors l'étape avant le paiement. */
   const [offre, setOffre] = useState<string | null>(null)
   const [depuisFunnel, setDepuisFunnel] = useState(false)
-  /** Arrivée par le lien d'une école partenaire (`?ecole=`). */
-  const [depuisEcole, setDepuisEcole] = useState(false)
   /** Échéance de la remise du visiteur, lue dans le cookie posé à l'inscription au funnel. */
   const [promoExpire, setPromoExpire] = useState<Date | null>(null)
 
@@ -144,21 +133,6 @@ export default function AuthPage() {
   // pas encore de compte, d'où le formulaire d'inscription par défaut. Et s'il
   // est déjà connecté, lui faire remplir un formulaire serait absurde : il part
   // directement au paiement.
-  // Stagiaire venu du lien de son école : on garde le code pour « Mon
-  // abonnement », où il est appliqué après l'inscription (voir
-  // redirectAfterAuth), et on ouvre directement le formulaire d'inscription.
-  useEffect(() => {
-    const codeEcole = new URLSearchParams(window.location.search).get('ecole')
-    if (!codeEcole) return
-    try {
-      localStorage.setItem('ecole_code', codeEcole)
-    } catch {
-      // Stockage indisponible : le stagiaire saisira le code à la main.
-    }
-    setDepuisEcole(true)
-    setIsLogin(false)
-  }, [])
-
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     const plan = params.get('plan')
@@ -473,13 +447,6 @@ export default function AuthPage() {
                   Créer un compte
                 </button>
               </div>
-
-              {depuisEcole && !offre && (
-                <p className="rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-900">
-                  <strong>Tarif école partenaire</strong> : créez votre compte (ou connectez-vous),
-                  votre tarif réservé s’affichera ensuite automatiquement.
-                </p>
-              )}
 
               {offre && (
                 // `min-w-0` : un fieldset prend par défaut la largeur de son
