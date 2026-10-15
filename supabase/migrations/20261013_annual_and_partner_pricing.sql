@@ -12,8 +12,9 @@
 --    tarifs annuels partenaires (-30 % sur l'annuel).
 --
 --    L'appartenance vit dans une table à part et non dans `profiles` : la
---    politique RLS de mise à jour de `profiles` laisse l'utilisateur modifier
---    toutes ses colonnes sauf `role`. Une colonne de profil serait donc
+--    politique RLS de mise à jour de `profiles` laissait l'utilisateur modifier
+--    toutes ses colonnes sauf `role` (corrigé depuis par
+--    20261014_protect_profile_columns.sql). Une colonne de profil serait donc
 --    modifiable depuis le navigateur, et le tarif partenaire accessible à
 --    n'importe qui. Ici, aucune politique d'écriture : seules les routes
 --    serveur (clé service-role) rattachent un compte, après vérification du
@@ -64,11 +65,11 @@ COMMENT ON TABLE public.partner_program_members IS
 ALTER TABLE public.partner_programs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.partner_program_members ENABLE ROW LEVEL SECURITY;
 
--- Lecture de son propre rattachement uniquement. Aucune politique d'écriture,
--- et aucune lecture des programmes : les codes d'accès ne doivent jamais
--- être exposés au navigateur.
-DROP POLICY IF EXISTS "Users can view own partner membership" ON public.partner_program_members;
-CREATE POLICY "Users can view own partner membership"
-  ON public.partner_program_members
-  FOR SELECT
-  USING (auth.uid() = user_id);
+-- Aucune politique, ni en lecture ni en écriture : seul le serveur (clé
+-- service-role) lit et écrit ces tables. Les codes d'accès ne doivent jamais
+-- atteindre le navigateur, et le rattachement d'un stagiaire est toujours lu
+-- côté serveur (lib/partner-programs.ts), y compris pour l'affichage.
+--
+-- Appliquée en production le 15/10/2026, par morceaux (les commandes qui
+-- demandent un verrou exclusif sur `profiles` dépassent sinon le délai du
+-- connecteur Supabase). Rattrapage : 3 abonnés annuels, 6 mensuels.

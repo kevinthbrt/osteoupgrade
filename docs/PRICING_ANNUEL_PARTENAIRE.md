@@ -61,11 +61,10 @@ Plus `STRIPE_PORTAL_CONFIG_PLANS_PARTNER` pour la grille du portail client.
 
 ## 4. Mise en production, dans cet ordre
 
-1. **Migration** `supabase/migrations/20261013_annual_and_partner_pricing.sql`.
-   À appliquer **avant** le déploiement : le webhook écrit
-   `profiles.billing_interval`, et une colonne absente ferait échouer la mise
-   à jour du profil après paiement. Testée dans une transaction annulée le
-   13/10/2026 (backfill : 3 annuels fondateurs, 6 mensuels).
+1. **Migrations : déjà appliquées en production le 15/10/2026.**
+   `20261013_annual_and_partner_pricing.sql` (tables écoles, `billing_interval`)
+   et `20261014_protect_profile_columns.sql` (sauf la suppression de la
+   politique d'insertion, à relancer seule à une heure creuse).
 2. **Déployer** le code. Tant que les nouvelles variables ne sont pas
    renseignées, choisir un tarif annuel renvoie une erreur (« Price ID not
    configured ») ; les tarifs mensuels ne changent pas. Enchaîner l'étape 3
