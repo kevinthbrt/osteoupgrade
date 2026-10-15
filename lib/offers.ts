@@ -215,6 +215,24 @@ export function upsellVariablesFor(planType: string): Record<string, string> | n
   }
 }
 
+/**
+ * Supplément pour passer d'une offre seule à Premium, au tarif de l'abonné :
+ * « 20 € de plus par mois » en mensuel, « 200 € de plus par an » en annuel,
+ * « 140 € » pour un stagiaire d'école, « 120 € » pour un fondateur.
+ * `null` si l'abonné n'a pas d'offre seule.
+ */
+export function upgradeSupplementFor(
+  plan: Plan,
+  profile: Parameters<typeof billedPriceFor>[1]
+): string | null {
+  const actuelle = plan === 'osteoflow' || plan === 'osteoupgrade' ? offerOf(plan) : null
+  const bundle = offerOf('bundle')
+  if (!actuelle || !bundle) return null
+  const avant = billedPriceFor(actuelle, profile)
+  const apres = billedPriceFor(bundle, profile)
+  return `${montantCourt(apres.amount - avant.amount)} de plus ${avant.suffix === '/an' ? 'par an' : 'par mois'}`
+}
+
 /** Offres complémentaires proposées à un abonné (upsell vers le bundle). */
 export function upgradeTargetsFor(plan: Plan): Offer[] {
   if (plan === 'osteoflow' || plan === 'osteoupgrade') {

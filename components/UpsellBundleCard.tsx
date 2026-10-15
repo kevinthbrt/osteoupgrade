@@ -5,7 +5,7 @@ import { createPortal } from 'react-dom'
 import { useRouter } from 'next/navigation'
 import { ArrowRight, Crown, GraduationCap, Stethoscope, X } from 'lucide-react'
 import { planOf, type Plan } from '@/lib/entitlements'
-import { BUNDLE_SAVING, formatAmount, offerOf } from '@/lib/offers'
+import { offerOf, upgradeSupplementFor } from '@/lib/offers'
 
 /**
  * Proposition de passage au bundle, pour les abonnés à une seule des deux
@@ -60,7 +60,8 @@ export default function UpsellBundleCard({ profile }: { profile: any }) {
   const bundle = offerOf('bundle')
   if (!manquante || !bundle) return null
 
-  const supplement = bundle.monthlyAmount - (offerOf(plan)?.monthlyAmount ?? 0)
+  // Au tarif de l'abonné (mensuel, annuel, école ou fondateur).
+  const supplement = upgradeSupplementFor(plan, profile)
   const Icone = plan === 'osteoflow' ? GraduationCap : Stethoscope
 
   const reporter = () => {
@@ -106,8 +107,7 @@ export default function UpsellBundleCard({ profile }: { profile: any }) {
             </div>
             <p className="text-sm text-slate-700 leading-snug">
               Ajoutez <strong>{manquante.name}</strong> à votre abonnement pour{' '}
-              <strong>{formatAmount(supplement)} de plus par mois</strong> — soit{' '}
-              {formatAmount(BUNDLE_SAVING.savedAmount)}/mois de moins que de le prendre séparément.
+              <strong>{supplement}</strong>, moins cher que de le prendre séparément.
             </p>
           </div>
 

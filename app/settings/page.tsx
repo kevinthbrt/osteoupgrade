@@ -279,7 +279,7 @@ export default function SettingsPage() {
                           <Crown className="h-8 w-8 text-amber-500 flex-shrink-0" />
                           <div className="flex-1">
                             <h3 className="font-semibold text-slate-900 mb-1">Choisissez votre offre</h3>
-                            <p className="text-slate-600 text-sm mb-4">MyOsteoFlow ou OsteoUpgrade à {formatAmount(2999)}/mois, les deux réunis à {formatAmount(4999)}/mois — sans engagement</p>
+                            <p className="text-slate-600 text-sm mb-4">MyOsteoFlow ou OsteoUpgrade à {formatAmount(2999)}/mois, les deux réunis à {formatAmount(4999)}/mois, sans engagement. Deux mois offerts à l&apos;année.</p>
                             <div className="grid sm:grid-cols-2 gap-2 mb-4">
                               {premiumFeatures.map((f, i) => (
                                 <div key={i} className="flex items-center gap-2">

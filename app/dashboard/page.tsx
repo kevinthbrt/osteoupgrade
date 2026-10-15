@@ -37,7 +37,7 @@ import {
   Route
 } from 'lucide-react'
 import { planOf, hasOsteoflow, hasOsteoupgrade } from '@/lib/entitlements'
-import { OFFERS, formatAmount, offerOf, BUNDLE_SAVING, billedPriceFor } from '@/lib/offers'
+import { OFFERS, formatAmount, offerOf, BUNDLE_SAVING, billedPriceFor, upgradeSupplementFor } from '@/lib/offers'
 
 export default function Dashboard() {
   const router = useRouter()
@@ -296,7 +296,7 @@ export default function Dashboard() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="font-bold text-amber-900">Choisissez votre offre</p>
-                  <p className="text-amber-800/80 text-sm mt-0.5">MyOsteoFlow ou OsteoUpgrade à {formatAmount(2999)}/mois, les deux réunis à {formatAmount(4999)}/mois — sans engagement</p>
+                  <p className="text-amber-800/80 text-sm mt-0.5">MyOsteoFlow ou OsteoUpgrade à {formatAmount(2999)}/mois, les deux réunis à {formatAmount(4999)}/mois, sans engagement. Deux mois offerts à l&apos;année.</p>
                 </div>
                 <button onClick={() => router.push('/settings/subscription')} className="flex-shrink-0 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-amber-900 text-amber-100 text-sm font-bold hover:bg-amber-800 transition-colors shadow-md">
                   Passer Premium <ArrowRight className="h-4 w-4" />
@@ -416,7 +416,7 @@ export default function Dashboard() {
                 </p>
                 <button onClick={() => router.push('/settings/subscription')} className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-700 text-white text-sm font-bold hover:bg-emerald-800 transition-colors shadow-md">
                   <Crown className="h-4 w-4" />
-                  Ajouter OsteoUpgrade pour {formatAmount(BUNDLE_SAVING.bundleAmount - (offerOf('osteoflow')?.monthlyAmount ?? 0))}/mois de plus
+                  Ajouter OsteoUpgrade pour {upgradeSupplementFor('osteoflow', profile)}
                   <ArrowRight className="h-4 w-4" />
                 </button>
               </div>
@@ -550,7 +550,7 @@ export default function Dashboard() {
                   <button onClick={() => router.push('/settings/subscription')} className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-violet-700 text-white text-sm font-bold hover:bg-violet-800 transition-colors shadow-md">
                     {planOf(profile) === 'osteoupgrade' || profile?.trial_used_at || profile?.is_founding_member ? <Crown className="h-4 w-4" /> : <Gift className="h-4 w-4" />}
                     {planOf(profile) === 'osteoupgrade'
-                      ? `Ajouter MyOsteoFlow pour ${formatAmount(BUNDLE_SAVING.bundleAmount - (offerOf('osteoupgrade')?.monthlyAmount ?? 0))}/mois de plus`
+                      ? `Ajouter MyOsteoFlow pour ${upgradeSupplementFor('osteoupgrade', profile)}`
                       : (profile?.trial_used_at || profile?.is_founding_member)
                         ? 'Découvrir MyOsteoFlow en Premium'
                         : 'Essayer MyOsteoFlow gratuitement 7 jours'}
