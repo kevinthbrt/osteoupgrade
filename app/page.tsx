@@ -97,7 +97,7 @@ function AnimatedCounter({ target, suffix = '', duration = 2000 }: { target: num
   return <span ref={ref}>{count}{suffix}</span>
 }
 
-// Brand lockup — "OsteoUpgrade × MyOsteoflow"
+// Brand lockup : "OsteoUpgrade × MyOsteoflow"
 function BrandLockup({ className = '' }: { className?: string }) {
   return (
     <span className={`inline-flex items-center gap-2 font-bold tracking-tight ${className}`}>
@@ -440,7 +440,7 @@ export default function LandingPage() {
         )}
       </nav>
 
-      {/* ─── HERO — DEUX PILIERS ─── */}
+      {/* ─── HERO : DEUX PILIERS ─── */}
       <section className="relative pt-24 lg:pt-32 pb-16 lg:pb-24 overflow-hidden">
         {/* Background */}
         <div className="absolute inset-0 bg-gradient-to-b from-[#070b19] via-[#0c1226] to-[#0f132a]" />
@@ -451,7 +451,7 @@ export default function LandingPage() {
           backgroundSize: '60px 60px'
         }} />
 
-        {/* Ambient glow — blue (MyOsteoflow) + violet to signal the two pillars */}
+        {/* Ambient glow : blue (MyOsteoflow) + violet to signal the two pillars */}
         <div className="absolute top-10 left-1/4 w-[520px] h-[520px] rounded-full bg-[#4169F6]/[0.10] blur-[130px]" />
         <div className="absolute bottom-0 right-1/4 w-[440px] h-[440px] rounded-full bg-violet-500/[0.08] blur-[110px]" />
 
@@ -771,7 +771,7 @@ export default function LandingPage() {
             </p>
           </div>
 
-          {/* HERO FEATURE — AI voice dictation */}
+          {/* HERO FEATURE : AI voice dictation */}
           <div className={`grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-14 items-center mb-16 transition-all duration-700 delay-100 ${
             flow.isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
           }`}>
@@ -1182,7 +1182,7 @@ export default function LandingPage() {
               </span>
             </h2>
             <p className="text-lg text-slate-500 max-w-xl mx-auto">
-              Le logiciel de cabinet, la plateforme de formation, ou les deux &mdash;
+              Le logiciel de cabinet, la plateforme de formation, ou les deux,
               r&eacute;unis avec {BUNDLE_SAVING.savedPercent}&nbsp;% de remise.
             </p>
           </div>
@@ -1337,6 +1337,8 @@ export default function LandingPage() {
           <p className="text-lg text-slate-400 mb-4 max-w-lg mx-auto">
             MyOsteoflow pour gérer, OsteoUpgrade pour progresser.
             Séparément à {formatAmount(2999)}/mois, ou réunis à {formatAmount(4999)}/mois.
+            <br />
+            Deux mois offerts en formule annuelle.
           </p>
           <p className="text-sm text-slate-500 mb-10 max-w-md mx-auto">
             Commencez gratuitement avec le module épaule. Sans carte bancaire.

@@ -4,7 +4,7 @@
  * Volontairement séparé de `lib/stripe.ts` : ce dernier instancie le SDK Stripe
  * et exige `STRIPE_SECRET_KEY`, il ne peut donc jamais être importé par un
  * composant client. Ce module-ci ne contient que des données d'affichage et
- * reste utilisable partout — landing publique comprise.
+ * reste utilisable partout, landing publique comprise.
  *
  * Les montants sont la source unique des prix affichés : plus aucun
  * « 49,99€ » en dur dans les pages.
@@ -101,7 +101,7 @@ export const OFFERS: Offer[] = [
       'E-learning complet et quiz',
       'Bibliothèque de tests orthopédiques + suggestions par IA',
       'Module pratique en vidéo',
-      'OsteoFlash — flashcards',
+      'OsteoFlash : flashcards',
       'Revue de littérature mensuelle',
       'Topographie clinique',
     ],
