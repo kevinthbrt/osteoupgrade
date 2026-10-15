@@ -59,3 +59,34 @@ UPDATE public.mail_automation_steps SET payload = coalesce(payload, '{}'::jsonb)
   'upsell_ecart', '20 € de plus par mois',
   'upsell_prix_seul', '29,99 €/mois')
 WHERE template_slug IN ('a2000000-0000-4000-8000-000000000001', 'b3000000-0000-4000-8000-000000000001');
+
+-- Relances des comptes gratuits (Onboarding J+1, Relance Premium J+7, J+15,
+-- J+30) : mention de la formule annuelle, coquille « Le nos offres »
+-- corrigée, tirets cadratins remplacés.
+UPDATE public.mail_templates t SET html =
+  replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(t.html,
+  'Sans engagement · annulable à tout moment</p>',
+  'Sans engagement · annulable à tout moment</p>
+              <p style="margin: 6px 0 0; font-size: 12px; font-weight: 700; color: #059669;">Ou à l''année : deux mois offerts, dès 299,99 €/an</p>'),
+  'color: #7c3aed;">dès 29,99 €/mois</p>',
+  'color: #7c3aed;">dès 29,99 €/mois</p>
+              <p style="margin: 2px 0 0; font-size: 11px; color: #059669;">ou 299,99 €/an, deux mois offerts</p>'),
+  'Découvrir les offres — dès 29,99 €/mois', 'Découvrir les offres : dès 29,99 €/mois'),
+  'MyOsteoflow ? Le <a ', 'MyOsteoflow ? Découvrez <a '),
+  'les deux réunis à 49,99 €/mois.</p>', 'les deux réunis à 49,99 €/mois. En formule annuelle, deux mois sont offerts.</p>'),
+  'vous attend — gratuitement.', 'vous attend, gratuitement.'),
+  '</strong> — et validez', '</strong>, et validez'),
+  '</strong> — pour orienter', '</strong>, pour orienter'),
+  'filleul annuel — 10 filleuls = abonnement remboursé.', 'filleul. Avec 10 filleuls, votre abonnement annuel est remboursé.'),
+  '</strong> — ', '</strong> : '),
+  ' — ', ' : '),
+  updated_at = now()
+WHERE t.id::text IN (
+  'f5555555-5555-5555-5555-555555555555',
+  'f1111111-1111-1111-1111-111111111111',
+  'f2222222-2222-2222-2222-222222222222',
+  'f3333333-3333-3333-3333-333333333333'
+)
+-- Garde-fou d'idempotence : le premier remplacement ajouterait sinon une
+-- seconde ligne « Ou à l'année » à chaque passage.
+AND t.html NOT LIKE '%299,99 €/an%';
