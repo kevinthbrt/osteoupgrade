@@ -90,6 +90,7 @@ const inputClass =
  */
 const PLAN_OPTIONS = OFFERS.flatMap((offer) => [
   { value: offer.planType, label: `${offer.name} : ${formatAmount(offer.monthlyAmount)}/mois` },
+  { value: offer.annualPlanType, label: `${offer.name} annuel : ${formatAmount(offer.annualAmount)}/an` },
   {
     value: offer.foundingPlanType,
     label: `${offer.name} Fondateur : ${formatAmount(offer.foundingAnnualAmount)}/an`,

@@ -40,7 +40,7 @@ import {
   Volume2,
   VolumeX,
 } from 'lucide-react'
-import { OFFERS, formatAmount, BUNDLE_SAVING } from '@/lib/offers'
+import { OFFERS, formatAmount, BUNDLE_SAVING, annualSavingOf } from '@/lib/offers'
 
 // Hook for scroll-triggered animations
 function useScrollReveal() {
@@ -97,7 +97,7 @@ function AnimatedCounter({ target, suffix = '', duration = 2000 }: { target: num
   return <span ref={ref}>{count}{suffix}</span>
 }
 
-// Brand lockup — "OsteoUpgrade × MyOsteoflow"
+// Brand lockup : "OsteoUpgrade × MyOsteoflow"
 function BrandLockup({ className = '' }: { className?: string }) {
   return (
     <span className={`inline-flex items-center gap-2 font-bold tracking-tight ${className}`}>
@@ -179,6 +179,8 @@ export default function LandingPage() {
   const flow = useScrollReveal()
   const upgrade = useScrollReveal()
   const pricing = useScrollReveal()
+  /** Grille tarifaire affichée en facturation annuelle (deux mois offerts). */
+  const [tarifAnnuel, setTarifAnnuel] = useState(false)
   const partners = useScrollReveal()
   const cta = useScrollReveal()
 
@@ -438,7 +440,7 @@ export default function LandingPage() {
         )}
       </nav>
 
-      {/* ─── HERO — DEUX PILIERS ─── */}
+      {/* ─── HERO : DEUX PILIERS ─── */}
       <section className="relative pt-24 lg:pt-32 pb-16 lg:pb-24 overflow-hidden">
         {/* Background */}
         <div className="absolute inset-0 bg-gradient-to-b from-[#070b19] via-[#0c1226] to-[#0f132a]" />
@@ -449,7 +451,7 @@ export default function LandingPage() {
           backgroundSize: '60px 60px'
         }} />
 
-        {/* Ambient glow — blue (MyOsteoflow) + violet to signal the two pillars */}
+        {/* Ambient glow : blue (MyOsteoflow) + violet to signal the two pillars */}
         <div className="absolute top-10 left-1/4 w-[520px] h-[520px] rounded-full bg-[#4169F6]/[0.10] blur-[130px]" />
         <div className="absolute bottom-0 right-1/4 w-[440px] h-[440px] rounded-full bg-violet-500/[0.08] blur-[110px]" />
 
@@ -769,7 +771,7 @@ export default function LandingPage() {
             </p>
           </div>
 
-          {/* HERO FEATURE — AI voice dictation */}
+          {/* HERO FEATURE : AI voice dictation */}
           <div className={`grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-14 items-center mb-16 transition-all duration-700 delay-100 ${
             flow.isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
           }`}>
@@ -1174,11 +1176,13 @@ export default function LandingPage() {
               Prenez ce dont vous avez besoin.
               <br />
               <span className="bg-gradient-to-r from-sky-500 to-blue-600 bg-clip-text text-transparent">
-                &Agrave; partir de {formatAmount(2999)}/mois, sans engagement.
+                {tarifAnnuel
+                  ? <>&Agrave; partir de {formatAmount(Math.min(...OFFERS.map((o) => o.annualAmount)))}/an, deux mois offerts.</>
+                  : <>&Agrave; partir de {formatAmount(2999)}/mois, sans engagement.</>}
               </span>
             </h2>
             <p className="text-lg text-slate-500 max-w-xl mx-auto">
-              Le logiciel de cabinet, la plateforme de formation, ou les deux &mdash;
+              Le logiciel de cabinet, la plateforme de formation, ou les deux,
               r&eacute;unis avec {BUNDLE_SAVING.savedPercent}&nbsp;% de remise.
             </p>
           </div>
@@ -1186,6 +1190,26 @@ export default function LandingPage() {
           <div className={`transition-all duration-700 delay-100 ${
             pricing.isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
           }`}>
+            {/* Mensuel ou annuel */}
+            <div className="flex justify-center mb-10">
+              <div className="inline-flex rounded-xl bg-white border border-slate-200 p-1 shadow-sm">
+                <button
+                  type="button"
+                  onClick={() => setTarifAnnuel(false)}
+                  className={`px-5 py-2 rounded-lg text-sm font-semibold transition ${!tarifAnnuel ? 'bg-slate-900 text-white' : 'text-slate-600 hover:text-slate-900'}`}
+                >
+                  Mensuel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTarifAnnuel(true)}
+                  className={`px-5 py-2 rounded-lg text-sm font-semibold transition ${tarifAnnuel ? 'bg-slate-900 text-white' : 'text-slate-600 hover:text-slate-900'}`}
+                >
+                  Annuel <span className={tarifAnnuel ? 'text-emerald-300' : 'text-emerald-600'}>2 mois offerts</span>
+                </button>
+              </div>
+            </div>
+
             {/* Pricing cards */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
               {OFFERS.map((offer) => (
@@ -1211,11 +1235,19 @@ export default function LandingPage() {
                       {offer.name}
                     </div>
                     <div className="flex items-baseline gap-1 mb-1">
-                      <span className="text-4xl font-bold text-slate-900">{formatAmount(offer.monthlyAmount)}</span>
-                      <span className="text-slate-400 text-sm">/mois</span>
+                      <span className="text-4xl font-bold text-slate-900">
+                        {formatAmount(tarifAnnuel ? offer.annualAmount : offer.monthlyAmount)}
+                      </span>
+                      <span className="text-slate-400 text-sm">{tarifAnnuel ? '/an' : '/mois'}</span>
                     </div>
-                    <p className="text-xs text-slate-400">Sans engagement &middot; annulable &agrave; tout moment</p>
-                    {offer.highlighted && (
+                    {tarifAnnuel ? (
+                      <p className="text-xs text-emerald-600 font-semibold">
+                        {annualSavingOf(offer).freeMonths} mois offerts &middot; au lieu de {formatAmount(annualSavingOf(offer).twelveMonthsAmount)}/an
+                      </p>
+                    ) : (
+                      <p className="text-xs text-slate-400">Sans engagement &middot; annulable &agrave; tout moment</p>
+                    )}
+                    {offer.highlighted && !tarifAnnuel && (
                       <p className="text-xs text-emerald-600 font-semibold mt-1">
                         {formatAmount(BUNDLE_SAVING.savedAmount)}/mois &eacute;conomis&eacute;s vs les deux offres s&eacute;par&eacute;es
                       </p>
@@ -1233,7 +1265,10 @@ export default function LandingPage() {
                   </ul>
 
                   <button
-                    onClick={() => router.push('/auth')}
+                    // En annuel, l'offre est transmise à l'inscription : le visiteur
+                    // part ensuite directement au paiement de ce tarif. Le
+                    // mensuel garde le parcours habituel.
+                    onClick={() => router.push(tarifAnnuel ? `/auth?plan=${offer.annualPlanType}` : '/auth')}
                     className={`w-full py-3.5 rounded-xl font-bold text-sm transition-all ${
                       offer.highlighted
                         ? 'bg-gradient-to-r from-sky-500 to-blue-600 text-white hover:from-sky-400 hover:to-blue-500 shadow-lg shadow-sky-500/20'
@@ -1273,8 +1308,10 @@ export default function LandingPage() {
 
             <div className="mt-8 text-center">
               <p className="text-xs text-slate-400">
-                Sans engagement. Annulable à tout moment depuis votre compte. Déductible des frais professionnels.
-                Changement d&apos;offre possible à tout moment, avec prorata automatique.
+                {tarifAnnuel
+                  ? 'Prélevé une fois par an. Résiliable à tout moment depuis votre compte, effectif à la fin de l’année en cours. Déductible des frais professionnels.'
+                  : 'Sans engagement. Annulable à tout moment depuis votre compte. Déductible des frais professionnels.'}
+                {' '}Changement d&apos;offre possible à tout moment, avec prorata automatique.
               </p>
             </div>
           </div>
@@ -1300,6 +1337,8 @@ export default function LandingPage() {
           <p className="text-lg text-slate-400 mb-4 max-w-lg mx-auto">
             MyOsteoflow pour gérer, OsteoUpgrade pour progresser.
             Séparément à {formatAmount(2999)}/mois, ou réunis à {formatAmount(4999)}/mois.
+            <br />
+            Deux mois offerts en formule annuelle.
           </p>
           <p className="text-sm text-slate-500 mb-10 max-w-md mx-auto">
             Commencez gratuitement avec le module épaule. Sans carte bancaire.

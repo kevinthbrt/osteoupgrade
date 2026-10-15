@@ -1,4 +1,8 @@
 /**
+ * OBSOLÈTE : remplacé par la route POST /api/admin/stripe-portal-setup, qui
+ * gère aussi les tarifs annuels et la grille partenaire. Relancer ce script
+ * retirerait les tarifs annuels du portail : ne plus l'utiliser.
+ *
  * Crée les deux configurations du portail client Stripe qui autorisent le
  * changement d'offre (cf. docs/PRICING_3_OFFRES.md, phase 3).
  *

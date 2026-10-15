@@ -17,7 +17,7 @@ export default function CGUPage() {
           </h1>
 
           <p className="text-gray-600 mb-8">
-            Dernière mise à jour : 15 juillet 2026
+            Dernière mise à jour : 13 octobre 2026
           </p>
 
           <div className="prose prose-blue max-w-none space-y-8">
@@ -167,6 +167,25 @@ export default function CGUPage() {
                     <li>✓ Programme Ambassadeur (1 mois offert pour le parrain et le filleul à chaque parrainage)</li>
                   </ul>
                 </div>
+
+                {/* Facturation annuelle */}
+                <div className="border border-emerald-200 rounded-lg p-5 bg-emerald-50">
+                  <h4 className="font-bold text-lg text-emerald-700 mb-1">Facturation annuelle (deux mois offerts)</h4>
+                  <p className="text-sm text-gray-700">
+                    Chaque offre peut être réglée à l&apos;année, pour un contenu identique à la formule mensuelle :
+                  </p>
+                  <ul className="mt-3 space-y-1 text-sm text-gray-700">
+                    <li>✓ Premium : <strong>499,99 €/an</strong> au lieu de 599,88 € (12 × 49,99 €)</li>
+                    <li>✓ MyOsteoFlow : <strong>299,99 €/an</strong> au lieu de 359,88 € (12 × 29,99 €)</li>
+                    <li>✓ OsteoUpgrade : <strong>299,99 €/an</strong> au lieu de 359,88 € (12 × 29,99 €)</li>
+                  </ul>
+                  <p className="text-sm text-gray-700 mt-3">
+                    <strong>Tarif écoles partenaires :</strong> les stagiaires d&apos;une école ayant conclu un partenariat
+                    avec OsteoUpgrade bénéficient, sur présentation du code transmis par leur école, d&apos;une remise de
+                    30 % sur la facturation annuelle : Premium 349,99 €/an, MyOsteoFlow 209,99 €/an, OsteoUpgrade 209,99 €/an.
+                    Ce tarif ne se cumule ni avec un code promotionnel ni avec le Programme Ambassadeur.
+                  </p>
+                </div>
               </div>
 
               <p className="text-sm text-gray-600 italic">
@@ -187,6 +206,12 @@ export default function CGUPage() {
               <p className="text-gray-700 leading-relaxed">
                 Le premier prélèvement intervient à la date de souscription. Les prélèvements suivants ont lieu
                 <strong> chaque mois, à la même date que la souscription initiale</strong>, jusqu&apos;à résiliation.
+              </p>
+
+              <p className="text-gray-700 leading-relaxed mt-4">
+                En facturation annuelle, le prélèvement a lieu <strong>une fois par an</strong>, à la date anniversaire
+                de la souscription. La résiliation prend effet à la fin de l&apos;année en cours, sans remboursement
+                de la période déjà réglée (hors droit de rétractation, voir Article 7).
               </p>
 
               <p className="text-gray-700 leading-relaxed mt-4">

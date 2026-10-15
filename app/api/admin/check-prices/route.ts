@@ -8,15 +8,15 @@ export const dynamic = 'force-dynamic'
 /**
  * Vérifie que chaque offre du catalogue pointe vers le bon tarif Stripe.
  *
- * Les six Price ID vivent dans des variables d'environnement. En intervertir
- * deux ne provoque aucune erreur : la souscription aboutit, au mauvais montant
+ * Les douze Price ID (mensuels, annuels, partenaires, Fondateur) vivent dans
+ * des variables d'environnement. En intervertir deux ne provoque aucune erreur : la souscription aboutit, au mauvais montant
  * et pour le mauvais produit, et le webhook accorde ensuite l'offre du prix
  * réellement payé — sans qu'aucun signal ne remonte. C'est arrivé en
  * production le 20/08/2026 sur STRIPE_PRICE_PREMIUM_MONTHLY.
  *
  * Le checkout refuse désormais une souscription incohérente, mais il ne le
  * découvre qu'au moment où un client se présente. Cette route permet de
- * vérifier les six d'un coup, après toute modification des variables.
+ * vérifier tous les tarifs d'un coup, après toute modification des variables.
  *
  * Depuis la console du navigateur, connecté en administrateur :
  *
@@ -62,7 +62,7 @@ export async function GET() {
   return NextResponse.json({
     conforme: problemes.length === 0,
     resume: problemes.length === 0
-      ? 'Les six offres pointent vers le bon tarif.'
+      ? `Les ${resultats.length} tarifs pointent vers le bon prix Stripe.`
       : `${problemes.length} offre(s) à corriger.`,
     offres: resultats,
   })

@@ -7,7 +7,19 @@ import AuthLayout from '@/components/AuthLayout'
 import { Crown, Check, Sparkles, Loader2, ArrowLeft, ExternalLink, Gift, Shield, Calendar, ChevronRight, Stethoscope, GraduationCap } from 'lucide-react'
 import Link from 'next/link'
 import { planOf, planLabel } from '@/lib/entitlements'
-import { OFFERS, formatAmount, offerOf, upgradeTargetsFor, BUNDLE_SAVING, type Offer } from '@/lib/offers'
+import {
+  OFFERS,
+  formatAmount,
+  offerOf,
+  upgradeTargetsFor,
+  BUNDLE_SAVING,
+  PARTNER_ANNUAL_DISCOUNT_PERCENT,
+  annualSavingOf,
+  billedPriceFor,
+  pricingFor,
+  type Offer,
+  type BillingInterval,
+} from '@/lib/offers'
 
 function SubscriptionContent() {
   const router = useRouter()
@@ -24,6 +36,14 @@ function SubscriptionContent() {
     message: string
     referrerName?: string
   } | null>(null)
+  /** Rythme de facturation affiché sur la grille des offres. */
+  const [billingInterval, setBillingInterval] = useState<BillingInterval>('month')
+  /** École partenaire du compte, si elle ouvre encore ses tarifs. */
+  const [partnerProgram, setPartnerProgram] = useState<{ id: string; name: string } | null>(null)
+  const [partnerCode, setPartnerCode] = useState('')
+  const [partnerCodeOpen, setPartnerCodeOpen] = useState(false)
+  const [partnerCodeError, setPartnerCodeError] = useState<string | null>(null)
+  const [joiningPartner, setJoiningPartner] = useState(false)
 
   // Récupérer le code de parrainage depuis l'URL si présent
   useEffect(() => {
@@ -36,7 +56,78 @@ function SubscriptionContent() {
 
   useEffect(() => {
     loadProfile()
+    loadPartnerProgram()
   }, [])
+
+  // Lien transmis par une école : /settings/subscription?ecole=CODE.
+  // Le code est aussi gardé dans le navigateur : un stagiaire sans compte est
+  // renvoyé vers l'inscription et perd le paramètre en route. Il est appliqué
+  // à son prochain passage sur cette page.
+  useEffect(() => {
+    let codeEcole = searchParams?.get('ecole') || null
+    try {
+      if (codeEcole) localStorage.setItem('ecole_code', codeEcole)
+      else codeEcole = localStorage.getItem('ecole_code')
+    } catch {
+      // Stockage indisponible (navigation privée) : seul le lien fait foi.
+    }
+    if (codeEcole) {
+      setPartnerCode(codeEcole.toUpperCase())
+      setPartnerCodeOpen(true)
+      void joinPartnerProgram(codeEcole)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams])
+
+  const loadPartnerProgram = async () => {
+    try {
+      const res = await fetch('/api/partner-program')
+      if (!res.ok) return
+      const data = await res.json()
+      if (data.program) {
+        setPartnerProgram(data.program)
+        // Le tarif école n'existe qu'en annuel : c'est lui qu'on montre d'abord.
+        setBillingInterval('year')
+      }
+    } catch {
+      // Sans réponse, la page reste sur les tarifs standard.
+    }
+  }
+
+  const joinPartnerProgram = async (code: string) => {
+    if (!code.trim()) return
+    setJoiningPartner(true)
+    setPartnerCodeError(null)
+    try {
+      const res = await fetch('/api/partner-program', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code })
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        // Un code refusé n'a pas à être retenté à chaque visite. Seul un
+        // visiteur non connecté (401) le garde pour après son inscription.
+        if (res.status !== 401) {
+          try {
+            localStorage.removeItem('ecole_code')
+          } catch {}
+          setPartnerCodeError(data.error || 'Code école invalide.')
+        }
+        return
+      }
+      setPartnerProgram(data.program)
+      setBillingInterval('year')
+      setPartnerCodeOpen(false)
+      try {
+        localStorage.removeItem('ecole_code')
+      } catch {}
+    } catch {
+      setPartnerCodeError('Impossible de vérifier le code. Réessayez.')
+    } finally {
+      setJoiningPartner(false)
+    }
+  }
 
   const loadProfile = async () => {
     try {
@@ -132,8 +223,10 @@ function SubscriptionContent() {
     }
   }
 
-  // Le parrainage ne s'applique pas aux offres Fondateur, déjà à -50%
-  const isReferralEligiblePlan = (planType: string) => !planType.startsWith('founding_')
+  // Le parrainage ne s'applique pas aux offres Fondateur (déjà à -50 %) ni aux
+  // tarifs écoles partenaires (déjà à -30 % sur l'annuel).
+  const isReferralEligiblePlan = (planType: string) =>
+    !planType.startsWith('founding_') && !planType.startsWith('partner_')
 
   const handleUpgrade = (planType: string) => {
 
@@ -204,9 +297,15 @@ function SubscriptionContent() {
   const pendingPlanSupportsReferral = pendingPlanType ? isReferralEligiblePlan(pendingPlanType) : false
   const isTrialEligible = plan === 'free' && !profile?.trial_used_at && !isFounder
 
-  const planTypeFor = (offer: Offer) => (isFounder ? offer.foundingPlanType : offer.planType)
-  const amountFor = (offer: Offer) => (isFounder ? offer.foundingAnnualAmount : offer.monthlyAmount)
-  const intervalFor = () => (isFounder ? '/an' : '/mois')
+  const isPartner = Boolean(partnerProgram) && !isFounder
+  const tarifFor = (offer: Offer) =>
+    isFounder
+      ? { planType: offer.foundingPlanType, amount: offer.foundingAnnualAmount, suffix: '/an' }
+      : pricingFor(offer, billingInterval, isPartner)
+
+  // Tarif réellement payé par l'abonné, pour l'encart « Votre abonnement ».
+  const isAnnualSubscriber = profile?.billing_interval === 'year'
+  const currentAmount = (offer: Offer) => billedPriceFor(offer, profile).amount
 
   const OfferIcon = ({ id, className }: { id: string; className?: string }) =>
     id === 'osteoflow' ? <Stethoscope className={className} />
@@ -361,7 +460,9 @@ function SubscriptionContent() {
                       ? 'Offert · sans facturation'
                       : isFounder
                         ? `${formatAmount(currentOffer.foundingAnnualAmount)}/an · tarif fondateur -50 % à vie`
-                        : `${formatAmount(currentOffer.monthlyAmount)}/mois · sans engagement`}
+                        : isAnnualSubscriber
+                          ? `${formatAmount(currentAmount(currentOffer))}/an · ${profile?.partner_discount_name ? `tarif ${profile.partner_discount_name}` : 'facturation annuelle'}`
+                          : `${formatAmount(currentOffer.monthlyAmount)}/mois · sans engagement`}
                   </p>
                 )}
               </div>
@@ -400,7 +501,8 @@ function SubscriptionContent() {
                             })}
                           </strong>
                           . Passé cette date, votre carte sera automatiquement débitée de{' '}
-                          {currentOffer ? formatAmount(currentOffer.monthlyAmount) : ''} pour le premier mois,
+                          {currentOffer ? formatAmount(currentAmount(currentOffer)) : ''}{' '}
+                          {isAnnualSubscriber ? 'pour la première année' : 'pour le premier mois'},
                           sauf si vous annulez avant.
                         </>
                       ) : (
@@ -591,9 +693,53 @@ function SubscriptionContent() {
               </div>
             )}
 
+            {isPartner && (
+              <div className="rounded-2xl border-2 border-emerald-400 bg-emerald-50/90 backdrop-blur-2xl p-5 flex items-start gap-3">
+                <GraduationCap className="h-5 w-5 text-emerald-700 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm font-bold text-emerald-900">
+                    Tarif {partnerProgram?.name} : -{PARTNER_ANNUAL_DISCOUNT_PERCENT} % sur l&apos;abonnement annuel
+                  </p>
+                  <p className="text-sm text-emerald-800/90 mt-0.5">
+                    En tant que stagiaire de {partnerProgram?.name}, vous bénéficiez d&apos;un tarif réservé
+                    sur la facturation annuelle, quelle que soit l&apos;offre choisie.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Choix du rythme de facturation (les fondateurs n'ont qu'un tarif annuel) */}
+            {!isFounder && (
+              <div className="flex justify-center">
+                <div className="inline-flex rounded-xl bg-white/80 p-1 shadow ring-1 ring-inset ring-white/60">
+                  {(['month', 'year'] as const).map((rythme) => (
+                    <button
+                      key={rythme}
+                      type="button"
+                      onClick={() => setBillingInterval(rythme)}
+                      className={`px-4 py-2 rounded-lg text-sm font-semibold transition ${
+                        billingInterval === rythme ? 'bg-slate-800 text-white shadow' : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      {rythme === 'month' ? 'Mensuel' : (
+                        <>
+                          Annuel{' '}
+                          <span className={billingInterval === rythme ? 'text-emerald-300' : 'text-emerald-600'}>
+                            {isPartner ? `-${PARTNER_ANNUAL_DISCOUNT_PERCENT} % école` : '2 mois offerts'}
+                          </span>
+                        </>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 items-start">
               {OFFERS.map((offer) => {
-                const planType = planTypeFor(offer)
+                const tarif = tarifFor(offer)
+                const planType = tarif.planType
+                const economieAnnuelle = annualSavingOf(offer)
                 const enCours = processingPlan === planType
                 return (
                   <div
@@ -620,17 +766,25 @@ function SubscriptionContent() {
 
                     <div className="mb-4">
                       <div className="flex items-baseline gap-1">
-                        <span className="text-3xl font-bold text-gray-900">{formatAmount(amountFor(offer))}</span>
-                        <span className="text-gray-500 text-sm">{intervalFor()}</span>
+                        <span className="text-3xl font-bold text-gray-900">{formatAmount(tarif.amount)}</span>
+                        <span className="text-gray-500 text-sm">{tarif.suffix}</span>
                       </div>
                       {isFounder ? (
                         <p className="text-xs text-amber-700 font-semibold mt-1">
                           Tarif fondateur · -50 % à vie · au lieu de {formatAmount(offer.monthlyAmount * 12)}/an
                         </p>
+                      ) : billingInterval === 'year' && isPartner ? (
+                        <p className="text-xs text-emerald-700 font-semibold mt-1">
+                          Tarif {partnerProgram?.name} · au lieu de {formatAmount(offer.annualAmount)}/an
+                        </p>
+                      ) : billingInterval === 'year' ? (
+                        <p className="text-xs text-emerald-700 font-semibold mt-1">
+                          {economieAnnuelle.freeMonths} mois offerts · au lieu de {formatAmount(economieAnnuelle.twelveMonthsAmount)}/an
+                        </p>
                       ) : (
                         <p className="text-xs text-gray-500 mt-1">Sans engagement · annulable à tout moment</p>
                       )}
-                      {offer.highlighted && !isFounder && (
+                      {offer.highlighted && !isFounder && billingInterval === 'month' && (
                         <p className="text-xs text-emerald-600 font-semibold mt-1">
                           {formatAmount(BUNDLE_SAVING.savedAmount)}/mois économisés vs les deux offres séparées
                         </p>
@@ -679,6 +833,47 @@ function SubscriptionContent() {
           </div>
         )}
 
+        {/* ── Code école partenaire ── */}
+        {!isFounder && !isPartner && (
+          <div className="text-center">
+            {partnerCodeOpen ? (
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault()
+                  void joinPartnerProgram(partnerCode)
+                }}
+                className="inline-flex flex-col sm:flex-row items-stretch gap-2 bg-white/85 backdrop-blur-2xl border border-white/70 shadow rounded-xl p-3"
+              >
+                <input
+                  type="text"
+                  value={partnerCode}
+                  onChange={(e) => setPartnerCode(e.target.value.toUpperCase())}
+                  placeholder="Code de votre école"
+                  className="px-3 py-2 border border-gray-300 rounded-lg text-sm uppercase focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                />
+                <button
+                  type="submit"
+                  disabled={joiningPartner || !partnerCode.trim()}
+                  className="px-4 py-2 rounded-lg bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700 disabled:opacity-50 inline-flex items-center justify-center gap-2"
+                >
+                  {joiningPartner && <Loader2 className="h-4 w-4 animate-spin" />}
+                  Valider
+                </button>
+              </form>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setPartnerCodeOpen(true)}
+                className="text-sm text-emerald-700 font-semibold hover:underline inline-flex items-center gap-1"
+              >
+                <GraduationCap className="h-4 w-4" />
+                Stagiaire d&apos;une école partenaire ? Saisissez votre code
+              </button>
+            )}
+            {partnerCodeError && <p className="text-sm text-red-600 mt-2">{partnerCodeError}</p>}
+          </div>
+        )}
+
         {/* ── Faire évoluer son offre (abonnés MyOsteoFlow ou OsteoUpgrade) ── */}
         {isSubscribed && upgradeTargets.length > 0 && (
           <div className="bg-white/85 backdrop-blur-2xl border border-white/70 shadow-xl ring-1 ring-inset ring-white/60 rounded-2xl p-6">
@@ -694,8 +889,12 @@ function SubscriptionContent() {
                   <p className="text-sm text-gray-600">
                     Vous avez {currentOffer?.name}. Ajoutez{' '}
                     {plan === 'osteoflow' ? 'OsteoUpgrade' : 'MyOsteoFlow'} pour{' '}
-                    {formatAmount(cible.monthlyAmount - (currentOffer?.monthlyAmount ?? 0))} de plus par mois —
-                    soit {formatAmount(BUNDLE_SAVING.savedAmount)} de moins que les deux offres séparées.
+                    {isAnnualSubscriber && currentOffer
+                      ? `${formatAmount(currentAmount(cible) - currentAmount(currentOffer))} de plus par an.`
+                      : <>
+                          {formatAmount(cible.monthlyAmount - (currentOffer?.monthlyAmount ?? 0))} de plus par mois,
+                          soit {formatAmount(BUNDLE_SAVING.savedAmount)} de moins que les deux offres séparées.
+                        </>}
                     Le changement est immédiat et proratisé par Stripe.
                     {isTrialing && (
                       <>
@@ -733,6 +932,7 @@ function SubscriptionContent() {
               <p>✅ <strong>7 jours d&apos;essai gratuit</strong> à la première souscription, sur l&apos;offre de votre choix : carte requise, débitée automatiquement à la fin de l&apos;essai sauf annulation. Accès complet à l&apos;offre pendant l&apos;essai. Un seul essai par compte.</p>
             )}
             <p>✅ <strong>Sans engagement</strong> : {OFFERS.map((o) => `${o.name} ${formatAmount(o.monthlyAmount)}/mois`).join(' · ')}. Prélevé automatiquement chaque mois, annulable à tout moment.</p>
+            <p>✅ <strong>Facturation annuelle</strong> : deux mois offerts ({OFFERS.map((o) => `${o.name} ${formatAmount(o.annualAmount)}/an`).join(' · ')}). Prélevé une fois par an, résiliable à tout moment pour la fin de l&apos;année en cours.</p>
             <p>✅ <strong>Changement d&apos;offre à tout moment</strong> depuis « Gérer mon abonnement » — Stripe calcule le prorata automatiquement</p>
             {isTrialing && (
               <p>✅ <strong>Pendant l&apos;essai</strong>, vous pouvez changer d&apos;offre sans perdre vos jours gratuits : l&apos;essai se poursuit jusqu&apos;à son terme, et c&apos;est le tarif de votre nouvelle offre qui s&apos;appliquera au premier prélèvement.</p>

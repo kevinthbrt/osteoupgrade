@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { headers } from 'next/headers'
-import { stripe, referralFreeMonthAmount, PARTNER_PROMO_PURPOSE, STRIPE_PLANS, planFromSubscription, planTypeFromSubscription } from '@/lib/stripe'
+import { stripe, referralFreeMonthAmount, PARTNER_PROMO_PURPOSE, STRIPE_PLANS, planFromSubscription, planTypeFromSubscription, billingIntervalFromSubscription } from '@/lib/stripe'
+import { activePartnerProgramFor, partnerProgramNameFor } from '@/lib/partner-programs'
+import { upsellVariablesFor } from '@/lib/offers'
 import { planLabel, describePlanChange, type Plan } from '@/lib/entitlements'
 import { supabaseAdmin } from '@/lib/supabase-server'
 import { sendTransactionalEmail } from '@/lib/mailing'
@@ -156,7 +158,7 @@ async function creditReferral(params: {
       // On historise l'offre (`plan`) et non la clé de tarif : la contrainte
       // CHECK de la colonne accepte désormais les quatre offres.
       subscription_type: plan,
-      subscription_plan: 'monthly',
+      subscription_plan: STRIPE_PLANS[planType]?.isAnnual ? 'annual' : 'monthly',
       subscription_amount: freeMonthAmount,
       // On stocke la valeur du mois offert (sert d'historique de la récompense)
       commission_amount: freeMonthAmount,
@@ -426,6 +428,17 @@ async function handleCheckoutCompleted(session: any) {
     updateData.partner_discount_code = partnerDiscount.code
   }
 
+  // Mensuel ou annuel : l'offre (`plan`) est la même, seul le prix le dit.
+  const rythme = subscription ? billingIntervalFromSubscription(subscription) : null
+  if (rythme) updateData.billing_interval = rythme
+
+  // 🏫 Tarif école partenaire : même traçabilité que les codes partenaires,
+  // pour que l'école apparaisse dans /admin/users et /admin/stats.
+  if (STRIPE_PLANS[planType]?.isPartner) {
+    const programme = await activePartnerProgramFor(userId)
+    if (programme) updateData.partner_discount_name = programme.name
+  }
+
   const { data: updatedProfile, error: updateError } = await supabaseAdmin
     .from('profiles')
     .update(updateData)
@@ -591,10 +604,19 @@ async function handleCheckoutCompleted(session: any) {
         contact_email: profile.email,
         full_name: profile.full_name,
         metadata: {
+          // Tarifs de l'email J+21 (incitation au bundle), à la grille de
+          // l'abonné : mensuelle, annuelle, école ou fondateur.
+          ...(upsellVariablesFor(planType) ?? {}),
           nom: planNom,
           prix: planPrix,
           interval: planInterval,
-          date_fact: (trialEndsAt ? new Date(trialEndsAt) : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)).toLocaleDateString('fr-FR'),
+          // Prochaine échéance réelle : dans un an pour un tarif annuel, pas
+          // dans trente jours.
+          date_fact: (trialEndsAt
+            ? new Date(trialEndsAt)
+            : subscription?.current_period_end
+              ? new Date(subscription.current_period_end * 1000)
+              : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)).toLocaleDateString('fr-FR'),
           date_fin_essai: trialEndsAt ? new Date(trialEndsAt).toLocaleDateString('fr-FR') : '',
           essai_gratuit: isTrial ? 'true' : 'false',
           code_parrainage: userReferralCode,
@@ -656,7 +678,7 @@ async function handleSubscriptionUpdated(subscription: any) {
   // Trouver l'utilisateur par son stripe_customer_id
   const { data: profile, error: profileError } = await supabaseAdmin
     .from('profiles')
-    .select('id, role, plan, subscription_status, email, full_name')
+    .select('id, role, plan, subscription_status, email, full_name, partner_discount_name')
     .eq('stripe_customer_id', customerId)
     .single()
 
@@ -669,6 +691,25 @@ async function handleSubscriptionUpdated(subscription: any) {
   // de l'essai gratuit, une fois le premier prélèvement effectué)
   const updateData: Record<string, any> = {
     subscription_status: subscription.status
+  }
+  // Suit un passage mensuel ↔ annuel fait depuis le portail client.
+  const rythme = billingIntervalFromSubscription(subscription)
+  if (rythme) updateData.billing_interval = rythme
+
+  // 🏫 Le tarif école se lit sur le prix porté par l'abonnement, pas sur
+  // l'état figé au checkout : un abonné mensuel qui rejoint une école puis
+  // passe au tarif partenaire depuis le portail doit être marqué comme tel
+  // (sinon le site lui annonce 499,99 € et le MRR compte le tarif public),
+  // et celui qui quitte le tarif école ne doit pas garder le nom de l'école.
+  // Le nom d'un code partenaire (IFCOPS…) n'est jamais touché ici.
+  const tarifCourant = STRIPE_PLANS[planTypeFromSubscription(subscription, '')]
+  if (tarifCourant) {
+    const ecole = await partnerProgramNameFor(profile.id)
+    if (tarifCourant.isPartner && ecole) {
+      updateData.partner_discount_name = ecole
+    } else if (!tarifCourant.isPartner && ecole && profile.partner_discount_name === ecole) {
+      updateData.partner_discount_name = null
+    }
   }
   if (subscription.status !== 'trialing') {
     updateData.trial_ends_at = null
@@ -873,10 +914,15 @@ async function handleSubscriptionUpdated(subscription: any) {
             nom: trialPlanNom,
             prix: trialPlanPrix,
             interval: trialPlanInterval,
-            date_fact: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString('fr-FR'),
+            // Prochaine échéance réelle : dans un an après la conversion d'un
+            // essai sur un tarif annuel, pas dans trente jours.
+            date_fact: (subscription.current_period_end
+              ? new Date(subscription.current_period_end * 1000)
+              : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)).toLocaleDateString('fr-FR'),
             essai_gratuit: 'true',
             code_parrainage: userReferralCode,
-            facture_url: factureUrl
+            facture_url: factureUrl,
+            ...(upsellVariablesFor(planTypeFromSubscription(subscription)) ?? {})
           }
         })
       })
@@ -1108,7 +1154,12 @@ async function handlePaymentSucceeded(invoice: any) {
         full_name: profile.full_name,
         metadata: {
           nom: planLabel(profile.plan),
-          date_fact: new Date().toLocaleDateString('fr-FR'),
+          // Prochaine facturation : la fin de la période que cette facture
+          // vient de payer (dans un mois ou dans un an), et non la date du
+          // jour, que l'email annonçait jusqu'ici.
+          date_fact: (invoice.lines?.data?.[0]?.period?.end
+            ? new Date(invoice.lines.data[0].period.end * 1000)
+            : new Date()).toLocaleDateString('fr-FR'),
           facture_url: invoice.hosted_invoice_url || invoice.invoice_pdf || ''
         }
       })

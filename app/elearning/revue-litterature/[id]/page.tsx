@@ -7,7 +7,7 @@ import { supabase } from '@/lib/supabase'
 import { MarkdownContent } from '@/components/MarkdownContent'
 import { ThrustScore } from '@/components/ThrustScore'
 import { planOf, hasOsteoupgrade } from '@/lib/entitlements'
-import { OFFERS, formatAmount, offerOf } from '@/lib/offers'
+import { OFFERS, upgradeSupplementFor } from '@/lib/offers'
 import {
   ArrowLeft,
   Calendar,
@@ -81,7 +81,7 @@ export default function LiteratureReviewDetailPage() {
 
       const { data: profileData } = await supabase
         .from('profiles')
-        .select('role, plan')
+        .select('role, plan, billing_interval, is_founding_member, partner_discount_name')
         .eq('id', user.id)
         .maybeSingle()
       setProfile(profileData)
@@ -240,7 +240,7 @@ export default function LiteratureReviewDetailPage() {
               className="inline-flex items-center gap-2 rounded-xl bg-amber-500 px-5 py-2.5 text-sm font-bold text-white hover:bg-amber-600 transition-colors shadow"
             >
               {offre === 'osteoflow' && complet
-                ? `Ajouter OsteoUpgrade pour ${formatAmount(complet.monthlyAmount - (offerOf('osteoflow')?.monthlyAmount ?? 0))}/mois de plus`
+                ? `Ajouter OsteoUpgrade pour ${upgradeSupplementFor('osteoflow', profile)}`
                 : 'Voir les offres'}
             </a>
           </div>
