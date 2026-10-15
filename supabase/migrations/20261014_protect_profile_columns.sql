@@ -59,6 +59,13 @@ CREATE TRIGGER trigger_protect_profile_columns
   FOR EACH ROW
   EXECUTE FUNCTION public.protect_profile_columns();
 
+-- État en production (15/10/2026) : fonction et trigger appliqués et
+-- vérifiés sur la vraie table. Le DROP POLICY ci-dessous n'a pas pu passer :
+-- il attend un verrou exclusif sur `profiles` que le trafic du site ne lui
+-- laisse pas, et le connecteur Supabase coupe au bout de 60 s. Le risque
+-- restant est faible (chaque compte a déjà sa ligne, l'insertion échoue sur
+-- la clé primaire) ; à relancer seul, à une heure creuse.
+--
 -- Le profil est créé à l'inscription par `handle_new_user` (SECURITY DEFINER,
 -- propriétaire postgres, RLS contournée). Aucune page n'insère de profil
 -- depuis le navigateur : cette politique ne servait qu'à permettre d'en

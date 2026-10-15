@@ -7,6 +7,9 @@
 -- signale un problème à corriger avant d'appliquer la migration.
 --
 -- Utilisateurs de test : un abonné non admin (9fcd…) et un admin (5dc1…).
+-- Les valeurs sont inversées plutôt que forcées : forcer une valeur déjà en
+-- place (l'abonné de test est déjà fondateur) ne change rien, et le trigger
+-- laisse passer une écriture qui ne modifie pas la colonne.
 
 SET LOCAL lock_timeout = '8s';
 -- Verrouille les colonnes sensibles de `profiles`.
@@ -92,14 +95,14 @@ BEGIN
 
   -- 2. Se déclarer fondateur : refuse
   BEGIN
-    UPDATE profiles SET is_founding_member = true WHERE id = u;
+    UPDATE profiles SET is_founding_member = NOT coalesce(is_founding_member, false) WHERE id = u;
     RAISE EXCEPTION 'T2 ECHEC: fondateur accepte';
   EXCEPTION WHEN insufficient_privilege THEN res := res || 'T2 refuse ok; ';
   END;
 
   -- 3. Effacer son essai : refuse
   BEGIN
-    UPDATE profiles SET trial_used_at = NULL, stripe_customer_id = 'cus_x' WHERE id = u;
+    UPDATE profiles SET trial_used_at = now() - interval '1 year', stripe_customer_id = 'cus_x' WHERE id = u;
     RAISE EXCEPTION 'T3 ECHEC';
   EXCEPTION WHEN insufficient_privilege THEN res := res || 'T3 refuse ok; ';
   END;
@@ -114,7 +117,7 @@ BEGIN
 
   -- 5. Admin connecté : peut modifier un autre profil
   PERFORM set_config('request.jwt.claims', json_build_object('sub', a, 'role', 'authenticated')::text, true);
-  UPDATE profiles SET is_founding_member = true WHERE id = u;
+  UPDATE profiles SET is_founding_member = NOT coalesce(is_founding_member, false) WHERE id = u;
   GET DIAGNOSTICS n = ROW_COUNT;
   IF n <> 1 THEN RAISE EXCEPTION 'T5 admin: % ligne', n; END IF;
   res := res || 'T5 admin ok; ';
