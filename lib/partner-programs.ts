@@ -38,6 +38,20 @@ export async function activePartnerProgramFor(userId: string): Promise<PartnerPr
 }
 
 /**
+ * Nom de l'école à laquelle le compte est rattaché, que son programme soit
+ * encore ouvert ou non : un abonné garde son tarif école après la fermeture
+ * du programme, et son profil doit continuer de le dire.
+ */
+export async function partnerProgramNameFor(userId: string): Promise<string | null> {
+  const { data } = await supabaseAdmin
+    .from('partner_program_members')
+    .select('program:partner_programs(name)')
+    .eq('user_id', userId)
+    .maybeSingle()
+  return (data as any)?.program?.name ?? null
+}
+
+/**
  * Rattache un compte au programme dont il présente le code d'accès.
  * Un compte n'appartient qu'à un programme : un nouveau code remplace l'ancien.
  */

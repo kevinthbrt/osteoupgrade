@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { headers } from 'next/headers'
 import { stripe, referralFreeMonthAmount, PARTNER_PROMO_PURPOSE, STRIPE_PLANS, planFromSubscription, planTypeFromSubscription, billingIntervalFromSubscription } from '@/lib/stripe'
-import { activePartnerProgramFor } from '@/lib/partner-programs'
+import { activePartnerProgramFor, partnerProgramNameFor } from '@/lib/partner-programs'
 import { planLabel, describePlanChange, type Plan } from '@/lib/entitlements'
 import { supabaseAdmin } from '@/lib/supabase-server'
 import { sendTransactionalEmail } from '@/lib/mailing'
@@ -674,7 +674,7 @@ async function handleSubscriptionUpdated(subscription: any) {
   // Trouver l'utilisateur par son stripe_customer_id
   const { data: profile, error: profileError } = await supabaseAdmin
     .from('profiles')
-    .select('id, role, plan, subscription_status, email, full_name')
+    .select('id, role, plan, subscription_status, email, full_name, partner_discount_name')
     .eq('stripe_customer_id', customerId)
     .single()
 
@@ -691,6 +691,22 @@ async function handleSubscriptionUpdated(subscription: any) {
   // Suit un passage mensuel ↔ annuel fait depuis le portail client.
   const rythme = billingIntervalFromSubscription(subscription)
   if (rythme) updateData.billing_interval = rythme
+
+  // 🏫 Le tarif école se lit sur le prix porté par l'abonnement, pas sur
+  // l'état figé au checkout : un abonné mensuel qui rejoint une école puis
+  // passe au tarif partenaire depuis le portail doit être marqué comme tel
+  // (sinon le site lui annonce 499,99 € et le MRR compte le tarif public),
+  // et celui qui quitte le tarif école ne doit pas garder le nom de l'école.
+  // Le nom d'un code partenaire (IFCOPS…) n'est jamais touché ici.
+  const tarifCourant = STRIPE_PLANS[planTypeFromSubscription(subscription, '')]
+  if (tarifCourant) {
+    const ecole = await partnerProgramNameFor(profile.id)
+    if (tarifCourant.isPartner && ecole) {
+      updateData.partner_discount_name = ecole
+    } else if (!tarifCourant.isPartner && ecole && profile.partner_discount_name === ecole) {
+      updateData.partner_discount_name = null
+    }
+  }
   if (subscription.status !== 'trialing') {
     updateData.trial_ends_at = null
   }
@@ -894,7 +910,11 @@ async function handleSubscriptionUpdated(subscription: any) {
             nom: trialPlanNom,
             prix: trialPlanPrix,
             interval: trialPlanInterval,
-            date_fact: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString('fr-FR'),
+            // Prochaine échéance réelle : dans un an après la conversion d'un
+            // essai sur un tarif annuel, pas dans trente jours.
+            date_fact: (subscription.current_period_end
+              ? new Date(subscription.current_period_end * 1000)
+              : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)).toLocaleDateString('fr-FR'),
             essai_gratuit: 'true',
             code_parrainage: userReferralCode,
             facture_url: factureUrl
