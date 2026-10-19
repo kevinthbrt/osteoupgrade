@@ -87,7 +87,9 @@ async function redirectAfterAuth(router: ReturnType<typeof useRouter>) {
   const funnelSlug = params.get('funnel')
 
   if (!planType) {
-    router.push('/dashboard')
+    // Venu de l'offre étudiant : on l'amène directement là où il dépose son
+    // justificatif, plutôt que sur le tableau de bord.
+    router.push(params.get('etudiant') ? '/settings/subscription?etudiant=1' : '/dashboard')
     return
   }
 
@@ -126,6 +128,8 @@ export default function AuthPage() {
   /** Offre choisie en amont (`?plan=`) : la page devient alors l'étape avant le paiement. */
   const [offre, setOffre] = useState<string | null>(null)
   const [depuisFunnel, setDepuisFunnel] = useState(false)
+  /** Arrivée par l'offre étudiant de l'accueil (`?etudiant=1`). */
+  const [depuisEtudiant, setDepuisEtudiant] = useState(false)
   /** Échéance de la remise du visiteur, lue dans le cookie posé à l'inscription au funnel. */
   const [promoExpire, setPromoExpire] = useState<Date | null>(null)
 
@@ -133,6 +137,17 @@ export default function AuthPage() {
   // pas encore de compte, d'où le formulaire d'inscription par défaut. Et s'il
   // est déjà connecté, lui faire remplir un formulaire serait absurde : il part
   // directement au paiement.
+  // Offre étudiant : inscription par défaut, et un compte déjà connecté part
+  // directement déposer son justificatif.
+  useEffect(() => {
+    if (!new URLSearchParams(window.location.search).get('etudiant')) return
+    setDepuisEtudiant(true)
+    setIsLogin(false)
+    supabase.auth.getSession().then(({ data }) => {
+      if (data.session) router.push('/settings/subscription?etudiant=1')
+    })
+  }, [router])
+
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     const plan = params.get('plan')
@@ -447,6 +462,13 @@ export default function AuthPage() {
                   Créer un compte
                 </button>
               </div>
+
+              {depuisEtudiant && !offre && (
+                <p className="rounded-lg bg-indigo-50 px-3 py-2 text-sm text-indigo-900">
+                  <strong>Offre étudiant</strong> : -50 % la première année sur l’abonnement annuel. Créez votre
+                  compte, vous déposerez ensuite votre justificatif pour débloquer le tarif.
+                </p>
+              )}
 
               {offre && (
                 // `min-w-0` : un fieldset prend par défaut la largeur de son

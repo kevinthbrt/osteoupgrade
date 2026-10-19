@@ -63,6 +63,17 @@ function SubscriptionContent() {
     loadStudent()
   }, [])
 
+  // Venu de l'offre étudiant (accueil, inscription) : grille en annuel et
+  // encart étudiant amené à l'écran.
+  useEffect(() => {
+    if (!searchParams?.get('etudiant')) return
+    setBillingInterval('year')
+    const t = setTimeout(() => {
+      document.getElementById('offre-etudiant')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }, 600)
+    return () => clearTimeout(t)
+  }, [searchParams])
+
   const loadStudent = async () => {
     try {
       const res = await fetch('/api/student-verification')
@@ -688,7 +699,7 @@ function SubscriptionContent() {
 
             {/* ── Offre étudiant : -50 % la première année sur l'annuel, sur justificatif ── */}
             {!isFounder && student && !student.discountUsed && (
-              <div className="rounded-2xl border border-indigo-200 bg-indigo-50/90 backdrop-blur-2xl p-5 space-y-3">
+              <div id="offre-etudiant" className="rounded-2xl border border-indigo-200 bg-indigo-50/90 backdrop-blur-2xl p-5 space-y-3">
                 <div className="flex items-start gap-3">
                   <GraduationCap className="h-5 w-5 text-indigo-700 flex-shrink-0 mt-0.5" />
                   <div>

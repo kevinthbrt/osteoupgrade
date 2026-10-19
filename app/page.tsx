@@ -40,7 +40,7 @@ import {
   Volume2,
   VolumeX,
 } from 'lucide-react'
-import { OFFERS, formatAmount, BUNDLE_SAVING, annualSavingOf, studentFirstYearAmount } from '@/lib/offers'
+import { OFFERS, formatAmount, BUNDLE_SAVING, annualSavingOf, studentFirstYearAmount, STUDENT_DISCOUNT_PERCENT } from '@/lib/offers'
 
 // Hook for scroll-triggered animations
 function useScrollReveal() {
@@ -375,6 +375,16 @@ export default function LandingPage() {
 
       {/* ─── NAVIGATION ─── */}
       <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-xl border-b border-slate-200/50">
+        {/* Bandeau offre étudiant : visible sur toute la page, la barre étant fixe. */}
+        <button
+          type="button"
+          onClick={() => { setTarifAnnuel(true); scrollTo('etudiants') }}
+          className="block w-full bg-indigo-600 hover:bg-indigo-700 transition-colors text-white text-xs sm:text-sm font-semibold px-4 py-2 text-center"
+        >
+          <GraduationCap className="inline h-4 w-4 -mt-0.5 mr-1.5" />
+          &Eacute;tudiants et jeunes dipl&ocirc;m&eacute;s : -{STUDENT_DISCOUNT_PERCENT}&nbsp;% la premi&egrave;re ann&eacute;e sur l&apos;abonnement annuel
+          <span className="underline underline-offset-2 ml-2">En profiter</span>
+        </button>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16 lg:h-18">
             <BrandLockup className="text-base sm:text-lg" />
@@ -441,7 +451,7 @@ export default function LandingPage() {
       </nav>
 
       {/* ─── HERO : DEUX PILIERS ─── */}
-      <section className="relative pt-24 lg:pt-32 pb-16 lg:pb-24 overflow-hidden">
+      <section className="relative pt-32 lg:pt-40 pb-16 lg:pb-24 overflow-hidden">
         {/* Background */}
         <div className="absolute inset-0 bg-gradient-to-b from-[#070b19] via-[#0c1226] to-[#0f132a]" />
 
@@ -493,6 +503,16 @@ export default function LandingPage() {
                   Découvrir les deux outils
                 </button>
               </div>
+
+              <button
+                type="button"
+                onClick={() => { setTarifAnnuel(true); scrollTo('etudiants') }}
+                className="mb-8 inline-flex items-center gap-2 rounded-full border border-indigo-400/40 bg-indigo-500/15 px-4 py-2 text-sm font-semibold text-indigo-100 hover:bg-indigo-500/25 transition-colors"
+              >
+                <GraduationCap className="h-4 w-4" />
+                &Eacute;tudiant ? -{STUDENT_DISCOUNT_PERCENT}&nbsp;% la premi&egrave;re ann&eacute;e, d&egrave;s {formatAmount(Math.min(...OFFERS.map(studentFirstYearAmount)))}
+                <ArrowRight className="h-3.5 w-3.5" />
+              </button>
 
               <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-slate-500">
                 <div className="flex items-center gap-2">
@@ -1210,6 +1230,43 @@ export default function LandingPage() {
               </div>
             </div>
 
+            {/* Offre étudiant */}
+            <div id="etudiants" className="scroll-mt-32 mb-10 rounded-2xl bg-indigo-600 text-white p-6 sm:p-8 shadow-xl shadow-indigo-600/20">
+              <div className="flex flex-col lg:flex-row lg:items-center gap-6">
+                <div className="flex-1">
+                  <div className="inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1 text-xs font-bold uppercase tracking-wider mb-3">
+                    <GraduationCap className="h-4 w-4" />
+                    Offre &eacute;tudiant
+                  </div>
+                  <h3 className="text-2xl font-bold mb-2">
+                    -{STUDENT_DISCOUNT_PERCENT}&nbsp;% la premi&egrave;re ann&eacute;e sur l&apos;abonnement annuel
+                  </h3>
+                  <p className="text-sm text-indigo-100">
+                    Pour les &eacute;tudiants et jeunes dipl&ocirc;m&eacute;s, sur justificatif (carte &eacute;tudiante,
+                    certificat de scolarit&eacute;, dipl&ocirc;me ou avis de situation INSEE). Le tarif est d&eacute;bloqu&eacute;
+                    d&egrave;s l&apos;envoi du justificatif, puis l&apos;abonnement se poursuit au tarif annuel.
+                  </p>
+                </div>
+                <div className="grid grid-cols-3 gap-3 lg:w-[420px]">
+                  {OFFERS.map((o) => (
+                    <div key={o.id} className="rounded-xl bg-white/10 px-3 py-3 text-center">
+                      <p className="text-xs text-indigo-100">{o.name}</p>
+                      <p className="text-lg font-bold">{formatAmount(studentFirstYearAmount(o))}</p>
+                      <p className="text-[11px] text-indigo-200 line-through">{formatAmount(o.annualAmount)}</p>
+                    </div>
+                  ))}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => router.push('/auth?etudiant=1')}
+                  className="lg:self-center inline-flex items-center justify-center gap-2 rounded-xl bg-white px-6 py-3 text-sm font-bold text-indigo-700 hover:bg-indigo-50 transition-colors"
+                >
+                  J&apos;en profite
+                  <ArrowRight className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+
             {/* Pricing cards */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
               {OFFERS.map((offer) => (
@@ -1245,13 +1302,13 @@ export default function LandingPage() {
                         {annualSavingOf(offer).freeMonths} mois offerts &middot; au lieu de {formatAmount(annualSavingOf(offer).twelveMonthsAmount)}/an
                       </p>
                     ) : null}
-                    {tarifAnnuel ? (
-                      <p className="text-xs text-indigo-600 font-semibold mt-0.5">
-                        &Eacute;tudiant : {formatAmount(studentFirstYearAmount(offer))} la premi&egrave;re ann&eacute;e, sur justificatif
-                      </p>
-                    ) : (
+                    {!tarifAnnuel && (
                       <p className="text-xs text-slate-400">Sans engagement &middot; annulable &agrave; tout moment</p>
                     )}
+                    <p className="text-xs text-indigo-600 font-semibold mt-0.5 inline-flex items-center gap-1">
+                      <GraduationCap className="h-3.5 w-3.5" />
+                      &Eacute;tudiant : {formatAmount(studentFirstYearAmount(offer))} la 1re ann&eacute;e en annuel
+                    </p>
                     {offer.highlighted && !tarifAnnuel && (
                       <p className="text-xs text-emerald-600 font-semibold mt-1">
                         {formatAmount(BUNDLE_SAVING.savedAmount)}/mois &eacute;conomis&eacute;s vs les deux offres s&eacute;par&eacute;es
@@ -1347,6 +1404,10 @@ export default function LandingPage() {
           </p>
           <p className="text-sm text-slate-500 mb-10 max-w-md mx-auto">
             Commencez gratuitement avec le module épaule. Sans carte bancaire.
+            <br />
+            <span className="text-indigo-300 font-semibold">
+              Étudiant ou jeune diplômé : -{STUDENT_DISCOUNT_PERCENT} % la première année sur l&apos;annuel.
+            </span>
           </p>
           <button
             onClick={() => router.push('/auth')}
