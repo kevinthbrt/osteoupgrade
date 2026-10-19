@@ -13,8 +13,9 @@ import {
   offerOf,
   upgradeTargetsFor,
   BUNDLE_SAVING,
-  PARTNER_ANNUAL_DISCOUNT_PERCENT,
   annualSavingOf,
+  studentFirstYearAmount,
+  STUDENT_DISCOUNT_PERCENT,
   billedPriceFor,
   pricingFor,
   type Offer,
@@ -38,12 +39,15 @@ function SubscriptionContent() {
   } | null>(null)
   /** Rythme de facturation affiché sur la grille des offres. */
   const [billingInterval, setBillingInterval] = useState<BillingInterval>('month')
-  /** École partenaire du compte, si elle ouvre encore ses tarifs. */
-  const [partnerProgram, setPartnerProgram] = useState<{ id: string; name: string } | null>(null)
-  const [partnerCode, setPartnerCode] = useState('')
-  const [partnerCodeOpen, setPartnerCodeOpen] = useState(false)
-  const [partnerCodeError, setPartnerCodeError] = useState<string | null>(null)
-  const [joiningPartner, setJoiningPartner] = useState(false)
+  /** Offre étudiant : état du justificatif et choix d'appliquer le tarif. */
+  const [student, setStudent] = useState<{ eligible: boolean; status: string | null; discountUsed: boolean } | null>(null)
+  const [studentSelected, setStudentSelected] = useState(false)
+  const [studentFile, setStudentFile] = useState<File | null>(null)
+  const [studentUploading, setStudentUploading] = useState(false)
+  const [studentError, setStudentError] = useState<string | null>(null)
+  /** Tarif étudiant appliqué à la grille : justificatif déposé, case cochée, annuel. */
+  const tarifEtudiantActif =
+    Boolean(student?.eligible) && studentSelected && billingInterval === 'year' && !profile?.is_founding_member
 
   // Récupérer le code de parrainage depuis l'URL si présent
   useEffect(() => {
@@ -56,76 +60,39 @@ function SubscriptionContent() {
 
   useEffect(() => {
     loadProfile()
-    loadPartnerProgram()
+    loadStudent()
   }, [])
 
-  // Lien transmis par une école : /settings/subscription?ecole=CODE.
-  // Le code est aussi gardé dans le navigateur : un stagiaire sans compte est
-  // renvoyé vers l'inscription et perd le paramètre en route. Il est appliqué
-  // à son prochain passage sur cette page.
-  useEffect(() => {
-    let codeEcole = searchParams?.get('ecole') || null
+  const loadStudent = async () => {
     try {
-      if (codeEcole) localStorage.setItem('ecole_code', codeEcole)
-      else codeEcole = localStorage.getItem('ecole_code')
-    } catch {
-      // Stockage indisponible (navigation privée) : seul le lien fait foi.
-    }
-    if (codeEcole) {
-      setPartnerCode(codeEcole.toUpperCase())
-      setPartnerCodeOpen(true)
-      void joinPartnerProgram(codeEcole)
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams])
-
-  const loadPartnerProgram = async () => {
-    try {
-      const res = await fetch('/api/partner-program')
+      const res = await fetch('/api/student-verification')
       if (!res.ok) return
       const data = await res.json()
-      if (data.program) {
-        setPartnerProgram(data.program)
-        // Le tarif école n'existe qu'en annuel : c'est lui qu'on montre d'abord.
-        setBillingInterval('year')
-      }
+      setStudent(data)
+      if (data.eligible) setStudentSelected(true)
     } catch {
-      // Sans réponse, la page reste sur les tarifs standard.
+      // Sans réponse, l'offre étudiant n'est simplement pas proposée.
     }
   }
 
-  const joinPartnerProgram = async (code: string) => {
-    if (!code.trim()) return
-    setJoiningPartner(true)
-    setPartnerCodeError(null)
+  const uploadStudentDocument = async () => {
+    if (!studentFile) return
+    setStudentUploading(true)
+    setStudentError(null)
     try {
-      const res = await fetch('/api/partner-program', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code })
-      })
+      const form = new FormData()
+      form.append('file', studentFile)
+      const res = await fetch('/api/student-verification', { method: 'POST', body: form })
       const data = await res.json()
-      if (!res.ok) {
-        // Un code refusé n'a pas à être retenté à chaque visite. Seul un
-        // visiteur non connecté (401) le garde pour après son inscription.
-        if (res.status !== 401) {
-          try {
-            localStorage.removeItem('ecole_code')
-          } catch {}
-          setPartnerCodeError(data.error || 'Code école invalide.')
-        }
-        return
-      }
-      setPartnerProgram(data.program)
+      if (!res.ok) throw new Error(data.error || "Le justificatif n'a pas pu être envoyé.")
+      setStudentFile(null)
+      setStudentSelected(true)
       setBillingInterval('year')
-      setPartnerCodeOpen(false)
-      try {
-        localStorage.removeItem('ecole_code')
-      } catch {}
-    } catch {
-      setPartnerCodeError('Impossible de vérifier le code. Réessayez.')
+      await loadStudent()
+    } catch (err: any) {
+      setStudentError(err.message)
     } finally {
-      setJoiningPartner(false)
+      setStudentUploading(false)
     }
   }
 
@@ -200,7 +167,8 @@ function SubscriptionContent() {
           planType,
           userId: profile.id,
           email: profile.email,
-          referralCode: isReferralEligiblePlan(planType) && codeValidation?.valid ? referralCode : undefined
+          referralCode: isReferralEligiblePlan(planType) && codeValidation?.valid ? referralCode : undefined,
+          student: tarifEtudiantActif && planType.endsWith('_annual') && !planType.startsWith('founding_')
         })
       })
 
@@ -223,10 +191,9 @@ function SubscriptionContent() {
     }
   }
 
-  // Le parrainage ne s'applique pas aux offres Fondateur (déjà à -50 %) ni aux
-  // tarifs écoles partenaires (déjà à -30 % sur l'annuel).
+  // Le parrainage ne s'applique pas aux offres Fondateur, déjà à -50%
   const isReferralEligiblePlan = (planType: string) =>
-    !planType.startsWith('founding_') && !planType.startsWith('partner_')
+    !planType.startsWith('founding_') && !(tarifEtudiantActif && planType.endsWith('_annual'))
 
   const handleUpgrade = (planType: string) => {
 
@@ -297,11 +264,10 @@ function SubscriptionContent() {
   const pendingPlanSupportsReferral = pendingPlanType ? isReferralEligiblePlan(pendingPlanType) : false
   const isTrialEligible = plan === 'free' && !profile?.trial_used_at && !isFounder
 
-  const isPartner = Boolean(partnerProgram) && !isFounder
   const tarifFor = (offer: Offer) =>
     isFounder
       ? { planType: offer.foundingPlanType, amount: offer.foundingAnnualAmount, suffix: '/an' }
-      : pricingFor(offer, billingInterval, isPartner)
+      : pricingFor(offer, billingInterval)
 
   // Tarif réellement payé par l'abonné, pour l'encart « Votre abonnement ».
   const isAnnualSubscriber = profile?.billing_interval === 'year'
@@ -461,7 +427,7 @@ function SubscriptionContent() {
                       : isFounder
                         ? `${formatAmount(currentOffer.foundingAnnualAmount)}/an · tarif fondateur -50 % à vie`
                         : isAnnualSubscriber
-                          ? `${formatAmount(currentAmount(currentOffer))}/an · ${profile?.partner_discount_name ? `tarif ${profile.partner_discount_name}` : 'facturation annuelle'}`
+                          ? `${formatAmount(currentAmount(currentOffer))}/an · facturation annuelle`
                           : `${formatAmount(currentOffer.monthlyAmount)}/mois · sans engagement`}
                   </p>
                 )}
@@ -693,21 +659,6 @@ function SubscriptionContent() {
               </div>
             )}
 
-            {isPartner && (
-              <div className="rounded-2xl border-2 border-emerald-400 bg-emerald-50/90 backdrop-blur-2xl p-5 flex items-start gap-3">
-                <GraduationCap className="h-5 w-5 text-emerald-700 flex-shrink-0 mt-0.5" />
-                <div>
-                  <p className="text-sm font-bold text-emerald-900">
-                    Tarif {partnerProgram?.name} : -{PARTNER_ANNUAL_DISCOUNT_PERCENT} % sur l&apos;abonnement annuel
-                  </p>
-                  <p className="text-sm text-emerald-800/90 mt-0.5">
-                    En tant que stagiaire de {partnerProgram?.name}, vous bénéficiez d&apos;un tarif réservé
-                    sur la facturation annuelle, quelle que soit l&apos;offre choisie.
-                  </p>
-                </div>
-              </div>
-            )}
-
             {/* Choix du rythme de facturation (les fondateurs n'ont qu'un tarif annuel) */}
             {!isFounder && (
               <div className="flex justify-center">
@@ -725,13 +676,75 @@ function SubscriptionContent() {
                         <>
                           Annuel{' '}
                           <span className={billingInterval === rythme ? 'text-emerald-300' : 'text-emerald-600'}>
-                            {isPartner ? `-${PARTNER_ANNUAL_DISCOUNT_PERCENT} % école` : '2 mois offerts'}
+                            2 mois offerts
                           </span>
                         </>
                       )}
                     </button>
                   ))}
                 </div>
+              </div>
+            )}
+
+            {/* ── Offre étudiant : -50 % la première année sur l'annuel, sur justificatif ── */}
+            {!isFounder && student && !student.discountUsed && (
+              <div className="rounded-2xl border border-indigo-200 bg-indigo-50/90 backdrop-blur-2xl p-5 space-y-3">
+                <div className="flex items-start gap-3">
+                  <GraduationCap className="h-5 w-5 text-indigo-700 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-bold text-indigo-900">
+                      Étudiant ou jeune diplômé : -{STUDENT_DISCOUNT_PERCENT} % la première année sur l&apos;abonnement annuel
+                    </p>
+                    <p className="text-sm text-indigo-800/90 mt-0.5">
+                      Joignez une copie de votre carte étudiante, certificat de scolarité, diplôme ou avis de
+                      situation INSEE. Le tarif est débloqué tout de suite ; nous vérifions votre justificatif dans
+                      les jours qui suivent. S&apos;il n&apos;est pas valable, l&apos;abonnement repasse au plein tarif
+                      et la différence vous est facturée.
+                    </p>
+                  </div>
+                </div>
+
+                {student.eligible ? (
+                  <label className="flex items-center gap-2 text-sm text-indigo-900 font-semibold cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={studentSelected}
+                      onChange={(e) => {
+                        setStudentSelected(e.target.checked)
+                        if (e.target.checked) setBillingInterval('year')
+                      }}
+                      className="h-4 w-4 accent-indigo-600"
+                    />
+                    Justificatif reçu : appliquer le tarif étudiant aux offres annuelles
+                  </label>
+                ) : (
+                  <div className="space-y-2">
+                    {student.status === 'rejected' && (
+                      <p className="text-sm text-red-700">
+                        Votre précédent justificatif n&apos;a pas pu être validé. Vous pouvez en déposer un autre.
+                      </p>
+                    )}
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      <input
+                        type="file"
+                        accept="application/pdf,image/jpeg,image/png,image/webp,image/heic"
+                        onChange={(e) => setStudentFile(e.target.files?.[0] ?? null)}
+                        className="text-sm text-indigo-900 file:mr-3 file:rounded-lg file:border-0 file:bg-white file:px-3 file:py-2 file:text-sm file:font-semibold file:text-indigo-700"
+                      />
+                      <button
+                        type="button"
+                        onClick={uploadStudentDocument}
+                        disabled={!studentFile || studentUploading}
+                        className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-700 disabled:opacity-50"
+                      >
+                        {studentUploading && <Loader2 className="h-4 w-4 animate-spin" />}
+                        Envoyer mon justificatif
+                      </button>
+                    </div>
+                    <p className="text-xs text-indigo-800/70">PDF ou photo, 10 Mo maximum. Le fichier est supprimé dès la vérification faite.</p>
+                  </div>
+                )}
+                {studentError && <p className="text-sm text-red-600">{studentError}</p>}
               </div>
             )}
 
@@ -766,16 +779,18 @@ function SubscriptionContent() {
 
                     <div className="mb-4">
                       <div className="flex items-baseline gap-1">
-                        <span className="text-3xl font-bold text-gray-900">{formatAmount(tarif.amount)}</span>
+                        <span className="text-3xl font-bold text-gray-900">
+                          {formatAmount(tarifEtudiantActif ? studentFirstYearAmount(offer) : tarif.amount)}
+                        </span>
                         <span className="text-gray-500 text-sm">{tarif.suffix}</span>
                       </div>
-                      {isFounder ? (
+                      {tarifEtudiantActif ? (
+                        <p className="text-xs text-indigo-700 font-semibold mt-1">
+                          Tarif étudiant la première année, puis {formatAmount(offer.annualAmount)}/an
+                        </p>
+                      ) : isFounder ? (
                         <p className="text-xs text-amber-700 font-semibold mt-1">
                           Tarif fondateur · -50 % à vie · au lieu de {formatAmount(offer.monthlyAmount * 12)}/an
-                        </p>
-                      ) : billingInterval === 'year' && isPartner ? (
-                        <p className="text-xs text-emerald-700 font-semibold mt-1">
-                          Tarif {partnerProgram?.name} · au lieu de {formatAmount(offer.annualAmount)}/an
                         </p>
                       ) : billingInterval === 'year' ? (
                         <p className="text-xs text-emerald-700 font-semibold mt-1">
@@ -830,47 +845,6 @@ function SubscriptionContent() {
                 )
               })}
             </div>
-          </div>
-        )}
-
-        {/* ── Code école partenaire ── */}
-        {!isFounder && !isPartner && (
-          <div className="text-center">
-            {partnerCodeOpen ? (
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault()
-                  void joinPartnerProgram(partnerCode)
-                }}
-                className="inline-flex flex-col sm:flex-row items-stretch gap-2 bg-white/85 backdrop-blur-2xl border border-white/70 shadow rounded-xl p-3"
-              >
-                <input
-                  type="text"
-                  value={partnerCode}
-                  onChange={(e) => setPartnerCode(e.target.value.toUpperCase())}
-                  placeholder="Code de votre école"
-                  className="px-3 py-2 border border-gray-300 rounded-lg text-sm uppercase focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                />
-                <button
-                  type="submit"
-                  disabled={joiningPartner || !partnerCode.trim()}
-                  className="px-4 py-2 rounded-lg bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700 disabled:opacity-50 inline-flex items-center justify-center gap-2"
-                >
-                  {joiningPartner && <Loader2 className="h-4 w-4 animate-spin" />}
-                  Valider
-                </button>
-              </form>
-            ) : (
-              <button
-                type="button"
-                onClick={() => setPartnerCodeOpen(true)}
-                className="text-sm text-emerald-700 font-semibold hover:underline inline-flex items-center gap-1"
-              >
-                <GraduationCap className="h-4 w-4" />
-                Stagiaire d&apos;une école partenaire ? Saisissez votre code
-              </button>
-            )}
-            {partnerCodeError && <p className="text-sm text-red-600 mt-2">{partnerCodeError}</p>}
           </div>
         )}
 

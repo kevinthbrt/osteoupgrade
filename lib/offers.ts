@@ -20,8 +20,6 @@ export type Offer = {
   planType: string
   /** Clé du catalogue Stripe pour le tarif standard annuel. */
   annualPlanType: string
-  /** Clé du catalogue Stripe pour le tarif partenaire annuel (écoles). */
-  partnerPlanType: string
   /** Clé du catalogue Stripe pour le tarif Fondateur annuel. */
   foundingPlanType: string
   name: string
@@ -29,8 +27,6 @@ export type Offer = {
   monthlyAmount: number
   /** Tarif annuel standard : deux mois offerts par rapport au mensuel. */
   annualAmount: number
-  /** Tarif annuel partenaire : -30 % sur le tarif annuel standard. */
-  partnerAnnualAmount: number
   foundingAnnualAmount: number
   features: string[]
   /** Mise en avant sur la grille tarifaire. */
@@ -47,13 +43,11 @@ export const OFFERS: Offer[] = [
     id: 'osteoflow',
     planType: 'osteoflow_monthly',
     annualPlanType: 'osteoflow_annual',
-    partnerPlanType: 'partner_osteoflow_annual',
     foundingPlanType: 'founding_osteoflow_annual',
     name: 'MyOsteoFlow',
     tagline: 'Le logiciel de cabinet, pour gérer votre pratique au quotidien.',
     monthlyAmount: 2999,
     annualAmount: 29999,
-    partnerAnnualAmount: 20999,
     foundingAnnualAmount: 17994,
     features: [
       'Dossiers patients et consultations',
@@ -69,13 +63,11 @@ export const OFFERS: Offer[] = [
     id: 'bundle',
     planType: 'premium_monthly',
     annualPlanType: 'premium_annual',
-    partnerPlanType: 'partner_premium_annual',
     foundingPlanType: 'founding_annual',
     name: 'Premium',
     tagline: 'Les deux outils réunis. Gérer votre cabinet et faire progresser votre pratique.',
     monthlyAmount: 4999,
     annualAmount: 49999,
-    partnerAnnualAmount: 34999,
     foundingAnnualAmount: 29994,
     features: [
       'Tout MyOsteoFlow',
@@ -89,13 +81,11 @@ export const OFFERS: Offer[] = [
     id: 'osteoupgrade',
     planType: 'osteoupgrade_monthly',
     annualPlanType: 'osteoupgrade_annual',
-    partnerPlanType: 'partner_osteoupgrade_annual',
     foundingPlanType: 'founding_osteoupgrade_annual',
     name: 'OsteoUpgrade',
     tagline: 'La plateforme de formation, pour faire progresser votre pratique.',
     monthlyAmount: 2999,
     annualAmount: 29999,
-    partnerAnnualAmount: 20999,
     foundingAnnualAmount: 17994,
     features: [
       'E-learning complet et quiz',
@@ -125,9 +115,6 @@ export const BUNDLE_SAVING = (() => {
   }
 })()
 
-/** Remise de l'offre partenaire sur le tarif annuel standard. */
-export const PARTNER_ANNUAL_DISCOUNT_PERCENT = 30
-
 /**
  * Économie de l'annuel par rapport à douze mensualités : « deux mois offerts ».
  * Calculée plutôt qu'écrite, pour rester juste si un tarif change.
@@ -142,39 +129,43 @@ export function annualSavingOf(offer: Offer) {
   }
 }
 
+/** Offre étudiant : remise sur la première année d'un tarif annuel. */
+export const STUDENT_DISCOUNT_PERCENT = 50
+
+/**
+ * Prix de la première année au tarif étudiant. Stripe arrondit la remise au
+ * centime : 50 % de 499,99 € donnent 249,99 € la première année.
+ */
+export function studentFirstYearAmount(offer: Offer): number {
+  return offer.annualAmount - Math.round((offer.annualAmount * STUDENT_DISCOUNT_PERCENT) / 100)
+}
+
 export type BillingInterval = 'month' | 'year'
 
 /** Clé de tarif et montant d'une offre pour un rythme de facturation donné. */
-export function pricingFor(offer: Offer, interval: BillingInterval, partner = false) {
-  if (interval === 'month') {
-    return { planType: offer.planType, amount: offer.monthlyAmount, suffix: '/mois' }
-  }
-  return partner
-    ? { planType: offer.partnerPlanType, amount: offer.partnerAnnualAmount, suffix: '/an' }
+export function pricingFor(offer: Offer, interval: BillingInterval) {
+  return interval === 'month'
+    ? { planType: offer.planType, amount: offer.monthlyAmount, suffix: '/mois' }
     : { planType: offer.annualPlanType, amount: offer.annualAmount, suffix: '/an' }
 }
 
 /**
- * Tarif réellement facturé à un abonné, d'après son profil.
- *
- * Un abonné annuel hors Fondateur portant un nom de partenaire est un
- * stagiaire d'école : les codes partenaires ne s'appliquent pas aux tarifs
- * annuels (cf. /api/stripe/checkout), seul le tarif école pose ce nom.
+ * Tarif catalogue facturé à un abonné, d'après son profil (mensuel, annuel ou
+ * Fondateur). Une remise par code promo n'y figure pas, comme partout ailleurs
+ * sur le site : Stripe l'applique sur la facture.
  */
 export function billedPriceFor(
   offer: Offer,
   profile: {
     billing_interval?: string | null
     is_founding_member?: boolean | null
-    partner_discount_name?: string | null
   } | null | undefined
 ): { amount: number; suffix: '/mois' | '/an'; monthlyEquivalent: number } {
   if (profile?.is_founding_member) {
     return { amount: offer.foundingAnnualAmount, suffix: '/an', monthlyEquivalent: Math.round(offer.foundingAnnualAmount / 12) }
   }
   if (profile?.billing_interval === 'year') {
-    const amount = profile.partner_discount_name ? offer.partnerAnnualAmount : offer.annualAmount
-    return { amount, suffix: '/an', monthlyEquivalent: Math.round(amount / 12) }
+    return { amount: offer.annualAmount, suffix: '/an', monthlyEquivalent: Math.round(offer.annualAmount / 12) }
   }
   return { amount: offer.monthlyAmount, suffix: '/mois', monthlyEquivalent: offer.monthlyAmount }
 }
@@ -188,20 +179,19 @@ function montantCourt(cents: number): string {
  * Variables de l'email d'incitation au bundle (J+21), au tarif de l'abonné.
  *
  * L'email citait en dur les tarifs mensuels publics : faux pour un abonné
- * annuel, un stagiaire d'école ou un membre fondateur, à qui Premium coûte
+ * annuel ou un membre fondateur, à qui Premium coûte
  * aussi autre chose. On compare donc son offre et Premium sur la même grille.
  * `null` pour le bundle lui-même, qui n'a rien à ajouter.
  */
 export function upsellVariablesFor(planType: string): Record<string, string> | null {
   const offre = OFFERS.find((o) =>
-    [o.planType, o.annualPlanType, o.partnerPlanType, o.foundingPlanType].includes(planType)
+    [o.planType, o.annualPlanType, o.foundingPlanType].includes(planType)
   )
   const bundle = OFFERS.find((o) => o.id === 'bundle')
   if (!offre || !bundle || offre.id === 'bundle') return null
 
   const grille =
     planType === offre.foundingPlanType ? 'foundingAnnualAmount'
-      : planType === offre.partnerPlanType ? 'partnerAnnualAmount'
         : planType === offre.annualPlanType ? 'annualAmount'
           : 'monthlyAmount'
   const suffixe = grille === 'monthlyAmount' ? '/mois' : '/an'
@@ -218,7 +208,7 @@ export function upsellVariablesFor(planType: string): Record<string, string> | n
 /**
  * Supplément pour passer d'une offre seule à Premium, au tarif de l'abonné :
  * « 20 € de plus par mois » en mensuel, « 200 € de plus par an » en annuel,
- * « 140 € » pour un stagiaire d'école, « 120 € » pour un fondateur.
+ * « 120 € » pour un fondateur.
  * `null` si l'abonné n'a pas d'offre seule.
  */
 export function upgradeSupplementFor(

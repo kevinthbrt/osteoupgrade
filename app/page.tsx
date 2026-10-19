@@ -40,7 +40,7 @@ import {
   Volume2,
   VolumeX,
 } from 'lucide-react'
-import { OFFERS, formatAmount, BUNDLE_SAVING, annualSavingOf } from '@/lib/offers'
+import { OFFERS, formatAmount, BUNDLE_SAVING, annualSavingOf, studentFirstYearAmount } from '@/lib/offers'
 
 // Hook for scroll-triggered animations
 function useScrollReveal() {
@@ -1243,6 +1243,11 @@ export default function LandingPage() {
                     {tarifAnnuel ? (
                       <p className="text-xs text-emerald-600 font-semibold">
                         {annualSavingOf(offer).freeMonths} mois offerts &middot; au lieu de {formatAmount(annualSavingOf(offer).twelveMonthsAmount)}/an
+                      </p>
+                    ) : null}
+                    {tarifAnnuel ? (
+                      <p className="text-xs text-indigo-600 font-semibold mt-0.5">
+                        &Eacute;tudiant : {formatAmount(studentFirstYearAmount(offer))} la premi&egrave;re ann&eacute;e, sur justificatif
                       </p>
                     ) : (
                       <p className="text-xs text-slate-400">Sans engagement &middot; annulable &agrave; tout moment</p>

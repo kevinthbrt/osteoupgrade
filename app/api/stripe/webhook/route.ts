@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server'
 import { headers } from 'next/headers'
 import { stripe, referralFreeMonthAmount, PARTNER_PROMO_PURPOSE, STRIPE_PLANS, planFromSubscription, planTypeFromSubscription, billingIntervalFromSubscription } from '@/lib/stripe'
-import { activePartnerProgramFor, partnerProgramNameFor } from '@/lib/partner-programs'
 import { upsellVariablesFor } from '@/lib/offers'
 import { planLabel, describePlanChange, type Plan } from '@/lib/entitlements'
 import { supabaseAdmin } from '@/lib/supabase-server'
@@ -77,7 +76,8 @@ async function fetchPartnerDiscount(subscriptionId: string): Promise<ReturnType<
 // moment (ou l'email "Membre fondateur activé" envoyé plus tôt par l'admin).
 function describePlanPricing(
   planType: string,
-  partnerDiscount: { partner: string; percentOff: number | null; durationInMonths: number | null } | null
+  partnerDiscount: { partner: string; percentOff: number | null; durationInMonths: number | null } | null,
+  etudiant = false
 ): { nom: string; prix: string; interval: string } {
   const plan = STRIPE_PLANS[planType]
   const nom = plan?.name || 'Premium'
@@ -86,6 +86,12 @@ function describePlanPricing(
 
   if (partnerDiscount && partnerDiscount.percentOff) {
     prix += ` (-${partnerDiscount.percentOff}% pendant ${partnerDiscount.durationInMonths ?? '?'} mois grâce à ${partnerDiscount.partner}, puis retour au tarif normal)`
+  }
+
+  // Tarif étudiant : -50 % sur la première facture annuelle seulement.
+  if (etudiant && plan?.isAnnual) {
+    const premiereAnnee = (plan.amount - Math.round(plan.amount / 2)) / 100
+    prix = `${premiereAnnee.toFixed(2).replace('.', ',')}€ la première année (tarif étudiant), puis ${plan.displayPrice}/an`
   }
 
   return { nom, prix, interval }
@@ -432,18 +438,33 @@ async function handleCheckoutCompleted(session: any) {
   const rythme = subscription ? billingIntervalFromSubscription(subscription) : null
   if (rythme) updateData.billing_interval = rythme
 
-  // 🏫 Tarif école partenaire : même traçabilité que les codes partenaires,
-  // pour que l'école apparaisse dans /admin/users et /admin/stats.
-  if (STRIPE_PLANS[planType]?.isPartner) {
-    const programme = await activePartnerProgramFor(userId)
-    if (programme) updateData.partner_discount_name = programme.name
-  }
+  // 🎓 Tarif étudiant : visible dans /admin/users comme une remise partenaire.
+  const tarifEtudiant = session.metadata?.student === 'true'
+  if (tarifEtudiant) updateData.partner_discount_name = 'Tarif étudiant'
 
   const { data: updatedProfile, error: updateError } = await supabaseAdmin
     .from('profiles')
     .update(updateData)
     .eq('id', userId)
     .select()
+
+  // 🎓 La remise étudiant est posée : on note sur quel abonnement, pour pouvoir
+  // la retirer (et facturer la différence) si le justificatif est refusé.
+  if (tarifEtudiant && session.subscription) {
+    const { error: etudiantError } = await supabaseAdmin
+      .from('student_verifications')
+      .update({ stripe_subscription_id: session.subscription, discount_applied_at: new Date().toISOString() })
+      .eq('user_id', userId)
+    if (etudiantError) console.error('Error recording student discount')
+    await notifyAdmin(
+      'other',
+      'Abonnement au tarif étudiant',
+      `${session.customer_details?.email || userId} a souscrit au tarif étudiant. ` +
+        (trialEndsAt
+          ? `Vérifiez le justificatif avant le ${new Date(trialEndsAt).toLocaleDateString('fr-FR')} (fin de l'essai) : un refus d'ici là ne facture rien de plus.`
+          : 'Vérifiez le justificatif dans /admin/etudiants.')
+    )
+  }
 
   if (updateError) {
     console.error('Error updating profile on checkout completed')
@@ -591,7 +612,7 @@ async function handleCheckoutCompleted(session: any) {
   // (contenu spécifique : MyOsteoflow uniquement, reste verrouillé), sinon
   // "Passage à Premium" classique. La conversion réelle de l'essai déclenche
   // sa propre "Passage à Premium" dans handleSubscriptionUpdated.
-  const { nom: planNom, prix: planPrix, interval: planInterval } = describePlanPricing(planType, partnerDiscount)
+  const { nom: planNom, prix: planPrix, interval: planInterval } = describePlanPricing(planType, partnerDiscount, tarifEtudiant)
   try {
     await fetch(`${process.env.NEXT_PUBLIC_URL || 'http://localhost:3000'}/api/automations/trigger`, {
       method: 'POST',
@@ -605,7 +626,7 @@ async function handleCheckoutCompleted(session: any) {
         full_name: profile.full_name,
         metadata: {
           // Tarifs de l'email J+21 (incitation au bundle), à la grille de
-          // l'abonné : mensuelle, annuelle, école ou fondateur.
+          // l'abonné : mensuelle, annuelle ou fondateur.
           ...(upsellVariablesFor(planType) ?? {}),
           nom: planNom,
           prix: planPrix,
@@ -678,7 +699,7 @@ async function handleSubscriptionUpdated(subscription: any) {
   // Trouver l'utilisateur par son stripe_customer_id
   const { data: profile, error: profileError } = await supabaseAdmin
     .from('profiles')
-    .select('id, role, plan, subscription_status, email, full_name, partner_discount_name')
+    .select('id, role, plan, subscription_status, email, full_name')
     .eq('stripe_customer_id', customerId)
     .single()
 
@@ -696,21 +717,6 @@ async function handleSubscriptionUpdated(subscription: any) {
   const rythme = billingIntervalFromSubscription(subscription)
   if (rythme) updateData.billing_interval = rythme
 
-  // 🏫 Le tarif école se lit sur le prix porté par l'abonnement, pas sur
-  // l'état figé au checkout : un abonné mensuel qui rejoint une école puis
-  // passe au tarif partenaire depuis le portail doit être marqué comme tel
-  // (sinon le site lui annonce 499,99 € et le MRR compte le tarif public),
-  // et celui qui quitte le tarif école ne doit pas garder le nom de l'école.
-  // Le nom d'un code partenaire (IFCOPS…) n'est jamais touché ici.
-  const tarifCourant = STRIPE_PLANS[planTypeFromSubscription(subscription, '')]
-  if (tarifCourant) {
-    const ecole = await partnerProgramNameFor(profile.id)
-    if (tarifCourant.isPartner && ecole) {
-      updateData.partner_discount_name = ecole
-    } else if (!tarifCourant.isPartner && ecole && profile.partner_discount_name === ecole) {
-      updateData.partner_discount_name = null
-    }
-  }
   if (subscription.status !== 'trialing') {
     updateData.trial_ends_at = null
   }
@@ -897,7 +903,13 @@ async function handleSubscriptionUpdated(subscription: any) {
     // met fin à l'essai (portail Stripe) et arrive ici avec des metadata
     // périmées, qui annonceraient l'ancienne offre et son ancien prix.
     const { nom: trialPlanNom, prix: trialPlanPrix, interval: trialPlanInterval } =
-      describePlanPricing(planTypeFromSubscription(subscription), trialConversionPartnerDiscount)
+      describePlanPricing(
+        planTypeFromSubscription(subscription),
+        trialConversionPartnerDiscount,
+        // Remise étudiant encore en place : retirée si le justificatif a été
+        // refusé pendant l'essai, le premier prélèvement est alors plein tarif.
+        subscription.metadata?.student === 'true' && Boolean(subscription.discount || subscription.discounts?.length)
+      )
 
     try {
       await fetch(`${process.env.NEXT_PUBLIC_URL || 'http://localhost:3000'}/api/automations/trigger`, {
