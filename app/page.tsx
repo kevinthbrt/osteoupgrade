@@ -1327,10 +1327,10 @@ export default function LandingPage() {
                   </ul>
 
                   <button
-                    // En annuel, l'offre est transmise à l'inscription : le visiteur
-                    // part ensuite directement au paiement de ce tarif. Le
-                    // mensuel garde le parcours habituel.
-                    onClick={() => router.push(tarifAnnuel ? `/auth?plan=${offer.annualPlanType}` : '/auth')}
+                    // L'offre choisie (mensuelle ou annuelle) est transmise à
+                    // l'inscription : le visiteur part ensuite directement au
+                    // paiement de ce tarif.
+                    onClick={() => router.push(`/auth?plan=${tarifAnnuel ? offer.annualPlanType : offer.planType}`)}
                     className={`w-full py-3.5 rounded-xl font-bold text-sm transition-all ${
                       offer.highlighted
                         ? 'bg-gradient-to-r from-sky-500 to-blue-600 text-white hover:from-sky-400 hover:to-blue-500 shadow-lg shadow-sky-500/20'
