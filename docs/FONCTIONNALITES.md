@@ -103,6 +103,20 @@ MyOsteoflow
     └── ● Import de patients depuis un fichier CSV
 ```
 
+## Contenus OsteoUpgrade (relevé du 4 novembre 2026)
+
+| Contenu | Volume |
+|---|---|
+| Formations en ligne | 7 formations, 220 parties, 177 questions de quiz |
+| Tests orthopédiques | 135 tests, 9 clusters |
+| Vidéos de pratique | 246 |
+| Revues de littérature | 27 |
+| Flashcards OsteoFlash | 356, en 3 decks |
+| Exercices de rééducation | 137 |
+| Pathologies décrites | 53 |
+
+À relever de nouveau avant chaque mise à jour de la landing.
+
 ## Proposition de tri
 
 À confirmer avec les chiffres d’usage réels : MyOsteoflow ne mesure pas
@@ -124,8 +138,10 @@ fonctionnalité, sans donnée patient, permettrait de trancher.
 - diffusion à tous les patients : utile ponctuellement, risque de spam.
 
 **À vérifier avant toute promesse** :
-- « 200+ tests » sur la landing : le changelog parle de 116 tests dans la
-  bibliothèque. Aligner le chiffre sur la base réelle ;
+- « 200+ tests » sur la landing : la base compte 135 tests orthopédiques et
+  9 clusters (relevé du 4 novembre 2026). Aligner le chiffre ;
+- « 150+ techniques en vidéo » : la base compte 246 vidéos de pratique, le
+  chiffre peut être relevé ;
 - « Suivi automatique 7 jours » : le délai est réglable par consultation, la
   formulation peut le dire (« J+7 ou à la date de votre choix ») ;
 - « 100 % local » : vrai pour le dossier patient, mais les emails, l’IA et les
