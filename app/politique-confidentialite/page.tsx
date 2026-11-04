@@ -108,6 +108,17 @@ export default function PolitiqueConfidentialitePage() {
             vos données (contrôle d’accès, chiffrement en transit, journalisation).
           </p>
         </section>
+
+        <section className="space-y-4">
+          <h2 className="text-xl font-semibold text-slate-900">9. Extension « Osteoflow : import Doctolib »</h2>
+          <p className="text-slate-700">
+            L’extension navigateur qui copie les rendez-vous Doctolib vers MyOsteoflow a sa propre politique :{' '}
+            <a className="text-sky-600 underline" href="/politique-confidentialite/extension-doctolib">
+              confidentialité de l’extension
+            </a>
+            . Ses données restent sur le poste du praticien.
+          </p>
+        </section>
       </div>
       </div>
       <PublicFooter />
