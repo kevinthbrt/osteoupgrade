@@ -472,14 +472,20 @@ export default function LandingPage() {
               </button>
             ))}
           </div>
-          <Image
-            src="/landing/v2/tableau-de-bord.webp"
-            alt="Tableau de bord de MyOsteoflow : patients du jour, factures à traiter, relances"
-            width={2240}
-            height={1400}
-            priority
-            className="w-full max-w-5xl mt-8 -mb-1 h-auto"
-          />
+          {/* Aperçu en vidéo : recherche d'un patient, dictée structurée, drapeaux rouges, hypothèses */}
+          <div className="w-full max-w-5xl mt-8 rounded-t-2xl overflow-hidden bg-white shadow-2xl shadow-black/40 ring-1 ring-white/10">
+            <div className="flex items-center gap-2 h-8 px-4 bg-slate-100 border-b border-slate-200" aria-hidden="true">
+              <span className="h-3 w-3 rounded-full bg-[#ff5f57]" />
+              <span className="h-3 w-3 rounded-full bg-[#febc2e]" />
+              <span className="h-3 w-3 rounded-full bg-[#28c840]" />
+            </div>
+            <DemoVideo
+              src="/landing/v2/apercu.mp4"
+              poster="/landing/v2/poster-apercu.webp"
+              label="Aperçu de MyOsteoflow : recherche d’un patient, dictée de l’anamnèse structurée, drapeaux rouges et hypothèses cliniques"
+              className="block w-full h-auto"
+            />
+          </div>
         </div>
       </section>
 
