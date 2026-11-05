@@ -2,15 +2,15 @@ import { Metadata } from 'next'
 import PublicFooter from '@/components/PublicFooter'
 
 /**
- * Politique de confidentialité de l'extension navigateur « Osteoflow : import
- * Doctolib ». Page publique : son adresse est exigée par le Chrome Web Store.
+ * Politique de confidentialité de l'extension navigateur « MyOsteoFlow, synchro
+ * d’agenda pour Doctolib ». Page publique : son adresse est exigée par le Chrome Web Store.
  * Le texte source est tenu à jour dans le dépôt Osteoflow
  * (doctolib-extension/PRIVACY.md) : les deux doivent rester identiques.
  */
 export const metadata: Metadata = {
-  title: 'Confidentialité de l’extension Osteoflow : import Doctolib | OsteoUpgrade & MyOsteoflow',
+  title: 'Confidentialité de l’extension MyOsteoFlow, synchro d’agenda pour Doctolib | OsteoUpgrade & MyOsteoflow',
   description:
-    'Données traitées par l’extension navigateur « Osteoflow : import Doctolib » : uniquement sur le poste du praticien, sans serveur intermédiaire.',
+    'Données traitées par l’extension navigateur « MyOsteoFlow, synchro d’agenda pour Doctolib » : uniquement sur le poste du praticien, sans serveur intermédiaire.',
 }
 
 export default function PolitiqueConfidentialiteExtensionDoctolibPage() {
@@ -20,7 +20,7 @@ export default function PolitiqueConfidentialiteExtensionDoctolibPage() {
         <div className="max-w-4xl mx-auto bg-white rounded-2xl shadow-sm p-8 space-y-10">
           <header className="space-y-3">
             <h1 className="text-3xl font-bold text-slate-900">
-              Politique de confidentialité de l’extension « Osteoflow : import Doctolib »
+              Politique de confidentialité de l’extension « MyOsteoFlow, synchro d’agenda pour Doctolib »
             </h1>
             <p className="text-slate-600">
               Dernière mise à jour : <strong>5 novembre 2026</strong>

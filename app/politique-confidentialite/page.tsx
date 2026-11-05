@@ -110,7 +110,7 @@ export default function PolitiqueConfidentialitePage() {
         </section>
 
         <section className="space-y-4">
-          <h2 className="text-xl font-semibold text-slate-900">9. Extension « Osteoflow : import Doctolib »</h2>
+          <h2 className="text-xl font-semibold text-slate-900">9. Extension « MyOsteoFlow, synchro d’agenda pour Doctolib »</h2>
           <p className="text-slate-700">
             L’extension navigateur qui copie les rendez-vous Doctolib vers MyOsteoflow a sa propre politique :{' '}
             <a className="text-sky-600 underline" href="/politique-confidentialite/extension-doctolib">
