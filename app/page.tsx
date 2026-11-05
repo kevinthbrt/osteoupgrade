@@ -19,6 +19,9 @@ import {
   DatabaseBackup,
   Plus,
   Minus,
+  FileCheck2,
+  ClipboardList,
+  Send,
 } from 'lucide-react'
 import { OFFERS, formatAmount, BUNDLE_SAVING, annualSavingOf, studentFirstYearAmount, STUDENT_DISCOUNT_PERCENT } from '@/lib/offers'
 
@@ -169,9 +172,9 @@ const APP_STEPS = [
 ]
 
 const DAILY = [
-  { title: 'Finalisation en une fenêtre', text: 'Facture PDF avec votre tampon, conseils post-séance choisis pour le patient, suivi et relance programmés.' },
-  { title: 'Suivi après la séance', text: 'Un questionnaire part au délai que vous choisissez : douleur, mobilité, satisfaction, analysés dans l’appli.' },
-  { title: 'Relance des patients', text: 'Retrouvez ceux que vous n’avez pas revus et relancez-les avec votre lien de prise de rendez-vous.' },
+  { icon: FileCheck2, title: 'Finalisation en une fenêtre', text: 'Facture PDF avec votre tampon, conseils post-séance choisis pour le patient, suivi et relance programmés.' },
+  { icon: ClipboardList, title: 'Suivi après la séance', text: 'Un questionnaire part au délai que vous choisissez : douleur, mobilité, satisfaction, analysés dans l’appli.' },
+  { icon: Send, title: 'Relance des patients', text: 'Retrouvez ceux que vous n’avez pas revus et relancez-les avec votre lien de prise de rendez-vous.' },
 ]
 
 // Volumes relevés dans la base le 4 novembre 2026 (docs/FONCTIONNALITES.md)
@@ -550,13 +553,15 @@ export default function LandingPage() {
           </Reveal>
 
           <Reveal className="flex flex-col-reverse lg:flex-row items-center gap-12">
-            <Image
-              src="/landing/v2/hypotheses.webp"
-              alt="Hypothèses cliniques avec probabilités, questions à poser et tests à réaliser"
-              width={1132}
-              height={1660}
-              className="flex-1 w-full max-w-lg h-auto rounded-2xl border border-slate-200 shadow-2xl shadow-slate-900/10"
-            />
+            <figure className="flex-1 w-full max-w-lg flex flex-col gap-2.5">
+              <DemoVideo
+                src="/landing/v2/hypotheses.mp4"
+                poster="/landing/v2/poster-hypotheses.webp"
+                label="Démonstration : une réponse et des tests cochés font évoluer les pourcentages des hypothèses cliniques"
+                className="w-full h-auto rounded-2xl border border-slate-200 shadow-2xl shadow-slate-900/10 bg-white"
+              />
+              <figcaption className="text-sm text-slate-500">Chaque réponse et chaque test coché recalculent le classement.</figcaption>
+            </figure>
             <div className="flex-1 flex flex-col gap-4">
               <span className="text-sm font-bold text-violet-700">Hypothèses cliniques</span>
               <h3 className="text-3xl font-extrabold tracking-tight">Un doute ? Les hypothèses, et les tests pour trancher.</h3>
@@ -697,7 +702,12 @@ export default function LandingPage() {
             </article>
             {DAILY.map((card) => (
               <article key={card.title} className="bg-white border border-slate-200 rounded-2xl p-7 flex flex-col justify-center gap-2.5">
-                <h3 className="text-lg font-bold">{card.title}</h3>
+                <h3 className="flex items-center gap-3 text-lg font-bold">
+                  <span className="flex h-9 w-9 flex-none items-center justify-center rounded-xl bg-blue-50 text-blue-600" aria-hidden="true">
+                    <card.icon className="h-5 w-5" />
+                  </span>
+                  {card.title}
+                </h3>
                 <p className="text-slate-600 leading-relaxed">{card.text}</p>
               </article>
             ))}
