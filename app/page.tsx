@@ -176,7 +176,7 @@ const DAILY = [
 
 // Volumes relevés dans la base le 4 novembre 2026 (docs/FONCTIONNALITES.md)
 const OU_STATS = [
-  { value: '7', label: 'formations en ligne' },
+  { value: '7', label: 'formations en ligne, une nouvelle chaque mois' },
   { value: '135', label: 'tests orthopédiques filmés' },
   { value: '246', label: 'vidéos de techniques' },
   { value: '356', label: 'flashcards OsteoFlash' },
@@ -189,7 +189,7 @@ const OU_TABS = [
     label: 'E-learning',
     title: 'Des formations courtes, construites par région',
     text: 'Chaque formation suit le raisonnement clinique : épidémiologie, anamnèse, triage, examen, tests, prise en charge. En vidéo, chapitre par chapitre, avec un quiz pour valider.',
-    points: ['7 formations, 220 parties', 'Quiz de validation et attestation de fin', 'Votre progression, reprise là où vous l’avez laissée'],
+    points: ['7 formations, et une nouvelle chaque mois', 'Quiz de validation et attestation de fin', 'Votre progression, reprise là où vous l’avez laissée'],
     img: '/landing/screenshots/elearning.png',
     alt: 'Formation en ligne sur l’examen clinique de l’épaule',
     w: 1652, h: 909,
