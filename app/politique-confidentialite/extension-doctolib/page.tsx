@@ -23,7 +23,7 @@ export default function PolitiqueConfidentialiteExtensionDoctolibPage() {
               Politique de confidentialité de l’extension « Osteoflow : import Doctolib »
             </h1>
             <p className="text-slate-600">
-              Dernière mise à jour : <strong>4 novembre 2026</strong>
+              Dernière mise à jour : <strong>5 novembre 2026</strong>
             </p>
             <p className="text-slate-700">
               Cette extension pour Chrome et Edge est éditée par SAS OsteoUpgrade, éditeur du logiciel MyOsteoflow.
@@ -34,18 +34,20 @@ export default function PolitiqueConfidentialiteExtensionDoctolibPage() {
           <section className="space-y-4">
             <h2 className="text-xl font-semibold text-slate-900">1. À quoi sert l’extension</h2>
             <p className="text-slate-700">
-              Elle permet à un praticien qui utilise Doctolib Pro et MyOsteoflow de copier les rendez-vous d’un jour
-              de son agenda Doctolib vers « Ma journée » de MyOsteoflow, installé sur son propre ordinateur. C’est sa
-              seule fonction.
+              Elle permet à un praticien qui utilise Doctolib Pro et MyOsteoflow de copier les rendez-vous de son
+              agenda Doctolib (la semaine en cours, ou un jour qu’il choisit) vers « Ma journée » et l’agenda de
+              MyOsteoflow, installé sur son propre ordinateur. C’est sa seule fonction.
             </p>
           </section>
 
           <section className="space-y-4">
             <h2 className="text-xl font-semibold text-slate-900">2. Données traitées</h2>
             <p className="text-slate-700">
-              Quand le praticien clique sur « Envoyer les rendez-vous », et seulement à ce moment, l’extension lit
-              dans son agenda Doctolib Pro, avec sa session déjà ouverte, les rendez-vous du jour qu’il a choisi.
-              Elle conserve uniquement :
+              Tant que l’agenda Doctolib Pro est ouvert dans le navigateur, l’extension lit, avec la session déjà
+              ouverte, les rendez-vous de la semaine en cours : à l’ouverture de l’agenda, puis toutes les 10
+              minutes. Le praticien peut désactiver cette synchronisation automatique dans les réglages de
+              l’extension : elle ne lit alors l’agenda que lorsqu’il clique sur « Synchroniser » ou « Envoyer ce
+              jour ». Elle conserve uniquement :
             </p>
             <ul className="list-disc pl-6 text-slate-700 space-y-2">
               <li>l’identifiant, le type, le statut, l’heure de début et de fin du rendez-vous ;</li>
@@ -72,12 +74,16 @@ export default function PolitiqueConfidentialiteExtensionDoctolibPage() {
               transitent par aucun serveur de l’éditeur ni d’un tiers. L’éditeur n’y a pas accès.
             </p>
             <p className="text-slate-700">
-              Dans MyOsteoflow, elles sont enregistrées dans la base de données locale du praticien, en attente de sa
-              validation. Rien n’est ajouté sans son accord.
+              Dans MyOsteoflow, elles sont enregistrées dans la base de données locale du praticien. Si le praticien
+              a laissé l’option active, les patients reconnus avec certitude (nom, prénom et date de naissance
+              identiques à un dossier existant) sont ajoutés à « Ma journée » ; les autres rendez-vous attendent sa
+              validation. Aucun dossier patient n’est créé sans son accord. Les rendez-vous de plus de trois
+              semaines sont effacés de cette copie locale.
             </p>
             <p className="text-slate-700">
               L’extension garde seulement dans le navigateur, sur l’ordinateur du praticien, ses réglages : le code
-              d’appairage avec MyOsteoflow et, s’il est renseigné, l’identifiant de l’agenda Doctolib.
+              d’appairage et l’adresse locale de MyOsteoflow, ses préférences (synchronisation automatique,
+              affichage du bouton) et, s’il est renseigné, l’identifiant de l’agenda Doctolib.
             </p>
           </section>
 
@@ -88,7 +94,7 @@ export default function PolitiqueConfidentialiteExtensionDoctolibPage() {
               <li>Elle n’utilise aucun outil de mesure d’audience, de publicité ou de suivi.</li>
               <li>
                 Elle ne lit rien en dehors de <code className="rounded bg-slate-100 px-1">pro.doctolib.fr</code>, et
-                rien sans clic du praticien.
+                seulement les rendez-vous de l’agenda, quand le praticien l’a ouvert.
               </li>
               <li>Elle ne connaît ni l’identifiant ni le mot de passe Doctolib.</li>
             </ul>
