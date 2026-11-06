@@ -23,7 +23,7 @@ import {
   ClipboardList,
   Send,
 } from 'lucide-react'
-import { ClinicalStory, HeroShowcase, ScrollProgressBar, useScrollStoryEnabled, type StoryStep } from '@/components/landing/ScrollStory'
+import { ClinicalStory, CountUp, HeroShowcase, Parallax, PhoneStory, ScrollCascade, ScrollProgressBar, useScrollStoryEnabled, type StoryStep } from '@/components/landing/ScrollStory'
 import { OFFERS, formatAmount, BUNDLE_SAVING, annualSavingOf, studentFirstYearAmount, STUDENT_DISCOUNT_PERCENT } from '@/lib/offers'
 
 /*
@@ -475,7 +475,7 @@ export default function LandingPage() {
 
 
       {/* ─── PROMESSE ─── */}
-      <section className="relative bg-[#0B1220] text-white pt-40 lg:pt-44 px-4 sm:px-6 lg:px-8 overflow-hidden">
+      <section className="relative bg-[#0B1220] text-white pt-40 lg:pt-44 pb-16 lg:pb-24 px-4 sm:px-6 lg:px-8 overflow-hidden">
         <div className="max-w-6xl mx-auto flex flex-col items-center text-center gap-6">
           <HeroShowcase
             intro={
@@ -526,17 +526,12 @@ export default function LandingPage() {
               </>
             }
           >
-              {/* Aperçu en vidéo : recherche d'un patient, dictée structurée, drapeaux rouges, hypothèses */}
-              <div className="rounded-t-2xl overflow-hidden bg-white shadow-2xl shadow-black/40 ring-1 ring-white/10">
-                <div className="flex items-center gap-2 h-8 px-4 bg-slate-100 border-b border-slate-200" aria-hidden="true">
-                  <span className="h-3 w-3 rounded-full bg-[#ff5f57]" />
-                  <span className="h-3 w-3 rounded-full bg-[#febc2e]" />
-                  <span className="h-3 w-3 rounded-full bg-[#28c840]" />
-                </div>
+              {/* Bienvenue dans l'écosystème : formation OsteoUpgrade, journée et consultation MyOsteoflow, comptabilité */}
+              <div className="rounded-2xl overflow-hidden bg-white shadow-2xl shadow-black/40 ring-1 ring-white/10">
                 <DemoVideo
-                  src="/landing/v2/apercu.mp4"
-                  poster="/landing/v2/poster-apercu.webp"
-                  label="Aperçu de MyOsteoflow : recherche d’un patient, dictée de l’anamnèse structurée, drapeaux rouges et hypothèses cliniques"
+                  src="/landing/v2/ecosysteme.mp4"
+                  poster="/landing/v2/poster-ecosysteme.webp"
+                  label="Bienvenue dans l’écosystème OsteoUpgrade × MyOsteoflow : une formation sur l’épaule le matin, la journée prête dans MyOsteoflow, la consultation dictée, puis la comptabilité le soir"
                   className="block w-full h-auto"
                 />
               </div>
@@ -659,15 +654,15 @@ export default function LandingPage() {
               ].map((t) => <li key={t} className="flex gap-2.5"><Check />{t}</li>)}
             </ul>
           </div>
-          <div className="flex-1 w-full flex justify-center">
+          <Parallax className="flex-1 w-full flex justify-center" distance={40} rotate={-5}>
             <Image
               src="/landing/v2/courrier.webp"
               alt="Courrier d’adressage généré : patient, motif, drapeaux rouges, examen, demande de bilan"
               width={1200}
               height={985}
-              className="w-full max-w-xl h-auto bg-white rounded-md shadow-2xl shadow-slate-900/20 ring-1 ring-slate-900/5 -rotate-1"
+              className="w-full max-w-xl h-auto bg-white rounded-md shadow-2xl shadow-slate-900/20 ring-1 ring-slate-900/5"
             />
-          </div>
+          </Parallax>
         </Reveal>
       </section>
 
@@ -682,28 +677,32 @@ export default function LandingPage() {
               Il est guidé à chaque séance, et vous retrouvez son suivi à la consultation suivante.
             </p>
           </Reveal>
-          <Reveal className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {APP_STEPS.map((step, index) => (
-              <div key={step.title} className="flex flex-col gap-5">
-                <div className="flex justify-center bg-white/[0.04] rounded-3xl pt-7 h-[440px] lg:h-[500px] overflow-hidden">
-                  <Image
-                    src={step.img}
-                    alt={step.alt}
-                    width={780}
-                    height={1328}
-                    className="w-[230px] lg:w-[260px] h-auto self-start rounded-t-[28px] ring-8 ring-[#1F3D38] shadow-2xl shadow-black/50"
-                  />
-                </div>
-                <div className="flex gap-3.5">
-                  <span className="flex-none w-9 h-9 rounded-full bg-emerald-400 text-[#0F2A26] flex items-center justify-center font-extrabold">{index + 1}</span>
-                  <div className="flex flex-col gap-1.5">
-                    <span className="text-xl font-bold">{step.title}</span>
-                    <span className="text-base leading-relaxed text-emerald-50/80">{step.text}</span>
+          {storyEnabled ? (
+            <PhoneStory steps={APP_STEPS} />
+          ) : (
+            <Reveal className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              {APP_STEPS.map((step, index) => (
+                <div key={step.title} className="flex flex-col gap-5">
+                  <div className="flex justify-center bg-white/[0.04] rounded-3xl pt-7 h-[440px] lg:h-[500px] overflow-hidden">
+                    <Image
+                      src={step.img}
+                      alt={step.alt}
+                      width={780}
+                      height={1328}
+                      className="w-[230px] lg:w-[260px] h-auto self-start rounded-t-[28px] ring-8 ring-[#1F3D38] shadow-2xl shadow-black/50"
+                    />
+                  </div>
+                  <div className="flex gap-3.5">
+                    <span className="flex-none w-9 h-9 rounded-full bg-emerald-400 text-[#0F2A26] flex items-center justify-center font-extrabold">{index + 1}</span>
+                    <div className="flex flex-col gap-1.5">
+                      <span className="text-xl font-bold">{step.title}</span>
+                      <span className="text-base leading-relaxed text-emerald-50/80">{step.text}</span>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
-          </Reveal>
+              ))}
+            </Reveal>
+          )}
         </div>
       </section>
 
@@ -718,7 +717,9 @@ export default function LandingPage() {
           </Reveal>
           <Reveal className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-start">
             <article className="flex flex-col gap-5">
-              <Image src="/landing/v2/objectifs.webp" alt="Objectifs : trajectoire annuelle, avance sur l’objectif, projection de fin d’année" width={1600} height={793} className="w-full h-auto rounded-2xl shadow-2xl shadow-slate-900/15" />
+              <Parallax distance={24}>
+                <Image src="/landing/v2/objectifs.webp" alt="Objectifs : trajectoire annuelle, avance sur l’objectif, projection de fin d’année" width={1600} height={793} className="w-full h-auto rounded-2xl shadow-2xl shadow-slate-900/15" />
+              </Parallax>
               <h3 className="text-2xl font-extrabold tracking-tight">Objectifs : en avance ou en retard, au jour près</h3>
               <p className="text-base lg:text-lg leading-relaxed text-slate-600">
                 Fixez votre chiffre d’affaires annuel : MyOsteoflow le traduit en objectif du jour, de la semaine et du mois,
@@ -726,7 +727,9 @@ export default function LandingPage() {
               </p>
             </article>
             <article className="flex flex-col gap-5">
-              <Image src="/landing/v2/remuneration.webp" alt="Ma rémunération : virement vers le compte perso, net dans votre poche, détail du mois" width={1600} height={1321} className="w-full h-auto rounded-2xl shadow-2xl shadow-slate-900/15" />
+              <Parallax distance={56}>
+                <Image src="/landing/v2/remuneration.webp" alt="Ma rémunération : virement vers le compte perso, net dans votre poche, détail du mois" width={1600} height={1321} className="w-full h-auto rounded-2xl shadow-2xl shadow-slate-900/15" />
+              </Parallax>
               <h3 className="text-2xl font-extrabold tracking-tight">Ma rémunération : le virement à faire, chaque mois</h3>
               <p className="text-base lg:text-lg leading-relaxed text-slate-600">
                 Encaissements, charges, Urssaf, impôt et marge de sécurité : vous savez ce que vous pouvez virer sur votre compte perso,
@@ -744,8 +747,9 @@ export default function LandingPage() {
             <h2 className="text-3xl sm:text-4xl font-extrabold leading-tight tracking-tight">Et tout le reste se fait en un clic.</h2>
             <p className="text-lg text-slate-600">Pensé pour enchaîner les patients sans chercher où cliquer.</p>
           </Reveal>
-          <Reveal className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <article className="md:col-span-2 lg:row-span-3 bg-white border border-slate-200 rounded-2xl overflow-hidden flex flex-col">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <ScrollCascade className="md:col-span-2 lg:row-span-3">
+            <article className="h-full bg-white border border-slate-200 rounded-2xl overflow-hidden flex flex-col">
               <DemoVideo
                 src="/landing/v2/palette-ctrl-k.mp4"
                 poster="/landing/v2/poster-palette.webp"
@@ -759,8 +763,10 @@ export default function LandingPage() {
                 </p>
               </div>
             </article>
-            {DAILY.map((card) => (
-              <article key={card.title} className="bg-white border border-slate-200 rounded-2xl p-7 flex flex-col justify-center gap-2.5">
+            </ScrollCascade>
+            {DAILY.map((card, index) => (
+              <ScrollCascade key={card.title} index={index + 1}>
+              <article className="h-full bg-white border border-slate-200 rounded-2xl p-7 flex flex-col justify-center gap-2.5">
                 <h3 className="flex items-center gap-3 text-lg font-bold">
                   <span className="flex h-9 w-9 flex-none items-center justify-center rounded-xl bg-blue-50 text-blue-600" aria-hidden="true">
                     <card.icon className="h-5 w-5" />
@@ -769,8 +775,9 @@ export default function LandingPage() {
                 </h3>
                 <p className="text-slate-600 leading-relaxed">{card.text}</p>
               </article>
+              </ScrollCascade>
             ))}
-          </Reveal>
+          </div>
         </div>
       </section>
 
@@ -799,7 +806,7 @@ export default function LandingPage() {
           <Reveal className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
             {OU_STATS.map((st) => (
               <div key={st.label} className="bg-white border border-sky-200 rounded-2xl px-5 py-4 flex flex-col gap-1">
-                <span className="text-3xl font-extrabold tracking-tight text-sky-700">{st.value}</span>
+                <CountUp value={st.value} className="text-3xl font-extrabold tracking-tight text-sky-700" />
                 <span className="text-sm leading-snug text-slate-600">{st.label}</span>
               </div>
             ))}

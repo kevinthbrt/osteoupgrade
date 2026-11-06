@@ -204,11 +204,12 @@ export function ClinicalStory({ steps, redFlags }: { steps: StoryStep[]; redFlag
     '0 30px 80px -20px rgba(124,58,237,.3)',
   ])
   const railScale = useTransform(progress, [0, 1], [0, 1])
+  const screenRatio = useTransform(progress, [0, 0.62, 0.72, 1], [1.6, 1.6, 1.05, 1.05])
 
   return (
     <motion.div ref={ref} style={{ background, height: `${count * 100 + 40}vh` }} className="relative -mx-4 sm:-mx-6 lg:-mx-8">
       <div className="sticky top-0 h-screen flex items-center px-8">
-        <div className="max-w-6xl w-full mx-auto grid grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] gap-14 items-center pt-16">
+        <div className="max-w-7xl w-full mx-auto grid grid-cols-[minmax(0,0.75fr)_minmax(0,1.25fr)] gap-12 items-center pt-16">
           {/* Étapes et texte */}
           <div className="flex gap-8">
             <div className="relative flex flex-col justify-between py-1" aria-hidden="true">
@@ -231,22 +232,23 @@ export function ClinicalStory({ steps, redFlags }: { steps: StoryStep[]; redFlag
           {/* L'écran, qui se transforme */}
           <motion.div
             style={{ borderColor: frameColor, boxShadow: glow }}
-            className="relative w-full aspect-[16/10] rounded-2xl border-2 bg-white overflow-hidden"
+            className="relative w-full flex flex-col rounded-2xl border-2 bg-white overflow-hidden"
           >
-            <div className="absolute inset-x-0 top-0 z-10 flex items-center gap-2 h-8 px-4 bg-slate-100/95 border-b border-slate-200" aria-hidden="true">
+            <div className="flex-none flex items-center gap-2 h-8 px-4 bg-slate-100 border-b border-slate-200" aria-hidden="true">
               <span className="h-3 w-3 rounded-full bg-[#ff5f57]" />
               <span className="h-3 w-3 rounded-full bg-[#febc2e]" />
               <span className="h-3 w-3 rounded-full bg-[#28c840]" />
               <span className="ml-3 text-xs font-medium text-slate-500">{steps[active]?.label}</span>
             </div>
-            <div className="absolute inset-x-0 bottom-0 top-8">
+            {/* L'écran s'agrandit en hauteur pour les hypothèses, plus lisibles ainsi */}
+            <motion.div style={{ aspectRatio: screenRatio, maxHeight: 'calc(100vh - 200px)' }} className="relative w-full">
               <Layer index={0} count={count} progress={progress} className="bg-[#0B1220]">
                 <StepVideo
                   src="/landing/v2/dictee-ia.mp4"
                   poster="/landing/v2/poster-dictee.webp"
                   label="Démonstration : dictée de l’anamnèse, structuration, drapeaux rouges et hypothèses cliniques"
                   active={active === 0}
-                  className="h-full w-full object-cover object-top"
+                  className="h-full w-full object-contain"
                 />
               </Layer>
               <Layer index={1} count={count} progress={progress} className="bg-red-50 flex flex-col items-center justify-center gap-6 p-8">
@@ -263,16 +265,16 @@ export function ClinicalStory({ steps, redFlags }: { steps: StoryStep[]; redFlag
                   ))}
                 </div>
               </Layer>
-              <Layer index={2} count={count} progress={progress} className="bg-slate-50 flex items-center justify-center p-4">
+              <Layer index={2} count={count} progress={progress} className="bg-slate-50 flex items-center justify-center p-2">
                 <StepVideo
                   src="/landing/v2/hypotheses.mp4"
                   poster="/landing/v2/poster-hypotheses.webp"
                   label="Démonstration : une réponse et des tests cochés font évoluer les pourcentages des hypothèses cliniques"
                   active={active === 2}
-                  className="h-full w-auto rounded-xl border border-slate-200 shadow-lg bg-white"
+                  className="h-full w-auto max-w-full object-contain rounded-xl border border-slate-200 shadow-lg bg-white"
                 />
               </Layer>
-            </div>
+            </motion.div>
           </motion.div>
         </div>
       </div>
@@ -291,5 +293,135 @@ export function ScrollCascade({ children, index = 0, className = '' }: { childre
     <motion.div ref={ref} style={reduced ? undefined : { opacity, y }} className={className}>
       {children}
     </motion.div>
+  )
+}
+
+/**
+ * Léger effet de profondeur : l'élément glisse un peu moins vite que la page,
+ * et peut se redresser en arrivant (rotation de départ).
+ */
+export function Parallax({ children, className = '', distance = 50, rotate = 0 }: { children: React.ReactNode; className?: string; distance?: number; rotate?: number }) {
+  const ref = useRef<HTMLDivElement>(null)
+  const reduced = useReducedMotion()
+  const { scrollYProgress } = useScroll({ target: ref, offset: ['start end', 'end start'] })
+  const y = useTransform(scrollYProgress, [0, 1], [distance, -distance])
+  const r = useTransform(scrollYProgress, [0, 0.45], [rotate, rotate === 0 ? 0 : rotate / 4])
+  return (
+    <motion.div ref={ref} style={reduced ? undefined : { y, rotate: r }} className={className}>
+      {children}
+    </motion.div>
+  )
+}
+
+/** Chiffre qui défile jusqu'à sa valeur quand il arrive à l'écran. */
+export function CountUp({ value, className = '' }: { value: string; className?: string }) {
+  const ref = useRef<HTMLSpanElement>(null)
+  const reduced = useReducedMotion()
+  const target = parseInt(value, 10)
+  const [shown, setShown] = useState(value)
+  useEffect(() => {
+    const el = ref.current
+    if (!el || reduced || Number.isNaN(target)) return
+    setShown('0')
+    let frame = 0
+    const observer = new IntersectionObserver(([entry]) => {
+      if (!entry.isIntersecting) return
+      observer.disconnect()
+      const startAt = performance.now()
+      const duration = 1400
+      const tick = (now: number) => {
+        const t = Math.min(1, (now - startAt) / duration)
+        const eased = 1 - Math.pow(1 - t, 3)
+        setShown(String(Math.round(target * eased)))
+        if (t < 1) frame = requestAnimationFrame(tick)
+      }
+      frame = requestAnimationFrame(tick)
+    }, { threshold: 0.6 })
+    observer.observe(el)
+    return () => {
+      observer.disconnect()
+      cancelAnimationFrame(frame)
+    }
+  }, [reduced, target])
+  return <span ref={ref} className={`tabular-nums ${className}`}>{shown}</span>
+}
+
+export interface PhoneStep {
+  img: string
+  alt: string
+  title: string
+  text: string
+}
+
+function PhoneText({ step, index, count, progress }: { step: PhoneStep; index: number; count: number; progress: MotionValue<number> }) {
+  const { opacity, y } = useTextMotion(progress, index, count)
+  return (
+    <motion.div style={{ opacity, y }} className="absolute inset-0 flex flex-col justify-center gap-4">
+      <span className="flex h-11 w-11 items-center justify-center rounded-full bg-emerald-400 text-lg font-extrabold text-[#0F2A26]">{index + 1}</span>
+      <h3 className="text-3xl xl:text-4xl font-extrabold tracking-tight leading-tight">{step.title}</h3>
+      <p className="text-lg leading-relaxed text-emerald-50/80">{step.text}</p>
+    </motion.div>
+  )
+}
+
+function PhoneScreen({ step, index, count, progress }: { step: PhoneStep; index: number; count: number; progress: MotionValue<number> }) {
+  const opacity = useStepOpacity(progress, index, count)
+  const y = useTransform(progress, [index / count - 0.06, index / count + 0.04], [index === 0 ? 0 : 60, 0])
+  return (
+    <motion.div style={{ opacity, y }} className="absolute inset-0">
+      <Image src={step.img} alt={step.alt} width={780} height={1328} className="h-full w-full object-cover object-top" />
+    </motion.div>
+  )
+}
+
+/**
+ * L'appli patient racontée en une scène : le téléphone reste au centre,
+ * l'écran change à chaque étape et le téléphone pivote légèrement.
+ */
+export function PhoneStory({ steps }: { steps: PhoneStep[] }) {
+  const ref = useRef<HTMLDivElement>(null)
+  const { scrollYProgress } = useScroll({ target: ref, offset: ['start start', 'end end'] })
+  const progress = useSpring(scrollYProgress, { stiffness: 160, damping: 32, mass: 0.4 })
+  const count = steps.length
+  const rotate = useTransform(progress, [0, 0.5, 1], [-6, 0, 6])
+  const rotateY = useTransform(progress, [0, 0.5, 1], [14, 0, -14])
+  const halo = useTransform(progress, [0, 1], [0.35, 0.6])
+  const [active, setActive] = useState(0)
+  useMotionValueEvent(scrollYProgress, 'change', (value) => {
+    setActive(Math.min(count - 1, Math.max(0, Math.floor(value * count))))
+  })
+
+  return (
+    <div ref={ref} style={{ height: `${count * 100 + 30}vh` }} className="relative">
+      <div className="sticky top-0 h-screen flex items-center">
+        <div className="max-w-6xl w-full mx-auto grid grid-cols-2 gap-16 items-center pt-16">
+          <div className="flex gap-8">
+            <div className="flex flex-col justify-center gap-3" aria-hidden="true">
+              {steps.map((step, index) => (
+                <span key={step.title} className={`h-10 w-1.5 rounded-full transition-colors duration-300 ${index <= active ? 'bg-emerald-400' : 'bg-white/15'}`} />
+              ))}
+            </div>
+            <div className="relative flex-1 min-h-[320px]">
+              {steps.map((step, index) => (
+                <PhoneText key={step.title} step={step} index={index} count={count} progress={progress} />
+              ))}
+            </div>
+          </div>
+          <div className="relative flex justify-center" style={{ perspective: 1200 }}>
+            <motion.div style={{ opacity: halo }} className="absolute inset-0 m-auto h-[70%] w-[70%] rounded-full bg-emerald-400/40 blur-3xl" aria-hidden="true" />
+            <motion.div
+              style={{ rotate, rotateY }}
+              className="relative h-[min(72vh,620px)] aspect-[780/1360] rounded-[44px] bg-[#0b1513] p-3 shadow-2xl shadow-black/60 ring-1 ring-white/10"
+            >
+              <div className="relative h-full w-full overflow-hidden rounded-[34px] bg-white">
+                {steps.map((step, index) => (
+                  <PhoneScreen key={step.img} step={step} index={index} count={count} progress={progress} />
+                ))}
+              </div>
+            </motion.div>
+          </div>
+        </div>
+      </div>
+    </div>
   )
 }
