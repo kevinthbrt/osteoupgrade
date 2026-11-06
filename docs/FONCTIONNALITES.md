@@ -112,7 +112,7 @@ MyOsteoflow
 | Vidéos de pratique | 246 |
 | Revues de littérature | 27 |
 | Flashcards OsteoFlash | 356, en 3 decks |
-| Exercices de rééducation | 137 |
+| Exercices illustrés | 137 |
 | Pathologies décrites | 53 |
 
 À relever de nouveau avant chaque mise à jour de la landing.

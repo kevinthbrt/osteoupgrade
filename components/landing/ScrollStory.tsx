@@ -386,6 +386,7 @@ export function PhoneStory({ steps }: { steps: PhoneStep[] }) {
   const rotate = useTransform(progress, [0, 0.5, 1], [-6, 0, 6])
   const rotateY = useTransform(progress, [0, 0.5, 1], [14, 0, -14])
   const halo = useTransform(progress, [0, 1], [0.35, 0.6])
+  const lockY = useTransform(progress, [0.02, 0.12], ['0%', '-100%'])
   const [active, setActive] = useState(0)
   useMotionValueEvent(scrollYProgress, 'change', (value) => {
     setActive(Math.min(count - 1, Math.max(0, Math.floor(value * count))))
@@ -417,11 +418,127 @@ export function PhoneStory({ steps }: { steps: PhoneStep[] }) {
                 {steps.map((step, index) => (
                   <PhoneScreen key={step.img} step={step} index={index} count={count} progress={progress} />
                 ))}
+                {/* Le téléphone se déverrouille au début de la scène */}
+                <motion.div style={{ y: lockY }} className="absolute inset-0 z-10" aria-hidden="true">
+                  <LockScreen />
+                </motion.div>
               </div>
             </motion.div>
           </div>
         </div>
       </div>
+    </div>
+  )
+}
+
+/**
+ * Le courrier sort de son enveloppe au fil du défilement : le rabat s'ouvre,
+ * la lettre monte. Fonctionne aussi sur téléphone (pas d'épinglage).
+ */
+export function EnvelopeReveal({ src, alt, width, height }: { src: string; alt: string; width: number; height: number }) {
+  const ref = useRef<HTMLDivElement>(null)
+  const reduced = useReducedMotion()
+  const { scrollYProgress } = useScroll({ target: ref, offset: ['start 0.8', 'end 0.55'] })
+  const p = useSpring(scrollYProgress, { stiffness: 140, damping: 30, mass: 0.4 })
+  const flap = useTransform(p, [0.08, 0.38], [0, 180])
+  const flapZ = useTransform(p, (v) => (v < 0.25 ? 4 : 1))
+  const letterY = useTransform(p, [0.38, 0.92], ['62%', '0%'])
+  const letterScale = useTransform(p, [0.38, 0.92], [0.86, 1])
+  const envelopeY = useTransform(p, [0.6, 1], ['0%', '14%'])
+  const envelopeOpacity = useTransform(p, [0.8, 1], [1, 0.35])
+  const labelOpacity = useTransform(p, [0.45, 0.62], [1, 0])
+
+  if (reduced) {
+    return <Image src={src} alt={alt} width={width} height={height} className="w-full max-w-xl h-auto bg-white rounded-md shadow-2xl shadow-slate-900/20 ring-1 ring-slate-900/5" />
+  }
+
+  return (
+    // Découpe en bas seulement : la lettre reste cachée sous l'enveloppe, le rabat peut dépasser en haut
+    <div ref={ref} className="relative w-full max-w-xl" style={{ perspective: 1200, clipPath: 'inset(-60% -12% 0 -12%)' }}>
+      {/* La lettre, dans le flux : elle donne sa hauteur à la scène */}
+      <div className="relative" style={{ paddingBottom: '22%' }}>
+        <motion.div style={{ y: letterY, scale: letterScale }} className="relative z-[2] origin-bottom">
+          <Image src={src} alt={alt} width={width} height={height} className="w-full h-auto bg-white rounded-md shadow-2xl shadow-slate-900/20 ring-1 ring-slate-900/5" />
+        </motion.div>
+      </div>
+      {/* L'enveloppe : dos, poche avant, rabat */}
+      <motion.div style={{ y: envelopeY, opacity: envelopeOpacity }} className="pointer-events-none absolute inset-x-[-4%] bottom-0 h-[46%]" aria-hidden="true">
+        <div className="absolute inset-0 z-[1] rounded-xl bg-[#bcd0f0] ring-1 ring-[#9fb8e3] shadow-2xl shadow-blue-900/30" />
+        <svg className="absolute inset-0 z-[3] h-full w-full" viewBox="0 0 100 60" preserveAspectRatio="none">
+          <path d="M0 6 L50 36 L100 6 L100 60 L0 60 Z" fill="#dbe7fb" />
+          <path d="M0 60 L50 30 L100 60" fill="none" stroke="#b3c8ec" strokeWidth="0.6" />
+          <path d="M0 6 L50 36 L100 6" fill="none" stroke="#b3c8ec" strokeWidth="0.5" />
+        </svg>
+        <motion.svg style={{ rotateX: flap, zIndex: flapZ, transformOrigin: 'top' }} className="absolute inset-x-0 top-0 h-[62%] w-full" viewBox="0 0 100 40" preserveAspectRatio="none">
+          <path d="M0 0 L100 0 L50 40 Z" fill="#a9c1ea" stroke="#94b0e0" strokeWidth="0.5" />
+        </motion.svg>
+        <motion.span style={{ opacity: labelOpacity }} className="absolute bottom-[14%] left-1/2 z-[4] -translate-x-1/2 rounded-md bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 shadow-sm">À l’attention du Dr Rousseau, médecin traitant</motion.span>
+      </motion.div>
+    </div>
+  )
+}
+
+/** Écran verrouillé du téléphone du patient, avec la notification de sa séance. */
+function LockScreen() {
+  return (
+    <div className="absolute inset-0 flex flex-col items-center bg-gradient-to-b from-[#0f3d36] via-[#145c50] to-[#0b2a26] px-4 pt-10 text-white">
+      <span className="text-xs font-medium text-emerald-100/80">Vendredi 6 novembre</span>
+      <span className="mt-1 text-6xl font-semibold tracking-tight tabular-nums">8:02</span>
+      <div className="mt-8 w-full rounded-2xl bg-white/15 p-3 backdrop-blur-md">
+        <div className="flex items-center gap-2 text-[11px] font-semibold text-emerald-50/90">
+          <span className="flex h-5 w-5 items-center justify-center rounded-md bg-emerald-400 text-[10px] font-extrabold text-[#0F2A26]">✓</span>
+          Mes exercices · maintenant
+        </div>
+        <p className="mt-1.5 text-sm font-semibold">Votre séance du jour est prête</p>
+        <p className="text-xs text-emerald-50/80">3 exercices, 12 minutes, conseillés par votre ostéopathe</p>
+      </div>
+      <div className="mt-auto mb-3 flex flex-col items-center gap-2">
+        <span className="text-[11px] text-emerald-50/70">Glissez vers le haut pour ouvrir</span>
+        <span className="h-1 w-24 rounded-full bg-white/80" />
+      </div>
+    </div>
+  )
+}
+
+/**
+ * Téléphone qui se déverrouille quand il arrive à l'écran (version sans
+ * épinglage, pour le téléphone et les petits écrans).
+ */
+export function PhoneUnlock({ src, alt }: { src: string; alt: string }) {
+  const ref = useRef<HTMLDivElement>(null)
+  const reduced = useReducedMotion()
+  const { scrollYProgress } = useScroll({ target: ref, offset: ['start 0.9', 'center 0.5'] })
+  const p = useSpring(scrollYProgress, { stiffness: 140, damping: 30, mass: 0.4 })
+  const lockY = useTransform(p, [0.45, 0.9], ['0%', '-100%'])
+  return (
+    <div ref={ref} className="relative w-[230px] lg:w-[260px] self-start overflow-hidden rounded-t-[28px] ring-8 ring-[#1F3D38] shadow-2xl shadow-black/50">
+      <Image src={src} alt={alt} width={780} height={1328} className="w-full h-auto" />
+      {!reduced && (
+        <motion.div style={{ y: lockY }} className="absolute inset-0" aria-hidden="true">
+          <LockScreen />
+        </motion.div>
+      )}
+    </div>
+  )
+}
+
+/** Petites étiquettes qui s'allument une à une à l'arrivée à l'écran. */
+export function StaggerChips({ items, className, chipClassName }: { items: string[]; className?: string; chipClassName: string }) {
+  const reduced = useReducedMotion()
+  return (
+    <div className={className}>
+      {items.map((item, index) => (
+        <motion.span
+          key={item}
+          initial={reduced ? false : { opacity: 0, y: 12, scale: 0.9 }}
+          whileInView={{ opacity: 1, y: 0, scale: 1 }}
+          viewport={{ once: true, amount: 0.8 }}
+          transition={{ delay: index * 0.09, duration: 0.35, ease: 'easeOut' }}
+          className={chipClassName}
+        >
+          {item}
+        </motion.span>
+      ))}
     </div>
   )
 }

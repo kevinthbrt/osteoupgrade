@@ -23,7 +23,7 @@ import {
   ClipboardList,
   Send,
 } from 'lucide-react'
-import { ClinicalStory, CountUp, HeroShowcase, Parallax, PhoneStory, ScrollCascade, ScrollProgressBar, useScrollStoryEnabled, type StoryStep } from '@/components/landing/ScrollStory'
+import { ClinicalStory, CountUp, EnvelopeReveal, HeroShowcase, Parallax, PhoneStory, PhoneUnlock, ScrollCascade, ScrollProgressBar, StaggerChips, useScrollStoryEnabled, type StoryStep } from '@/components/landing/ScrollStory'
 import { OFFERS, formatAmount, BUNDLE_SAVING, annualSavingOf, studentFirstYearAmount, STUDENT_DISCOUNT_PERCENT } from '@/lib/offers'
 
 /*
@@ -194,8 +194,8 @@ const APP_STEPS = [
   {
     img: '/landing/v2/appli-patient-1.webp',
     alt: 'Appli patient : douleur du matin et séance du jour avec trois exercices illustrés',
-    title: 'Vous prescrivez, il reçoit un lien',
-    text: 'L’IA propose un programme adapté au patient, vous l’ajustez. Il reçoit un simple lien, ouvert sur son téléphone : rien à installer.',
+    title: 'Vous conseillez, il reçoit un lien',
+    text: 'L’IA vous suggère des exercices adaptés au patient, vous choisissez ceux que vous lui conseillez. Il reçoit un simple lien, ouvert sur son téléphone : rien à installer.',
   },
   {
     img: '/landing/v2/appli-patient-2.webp',
@@ -224,7 +224,7 @@ const OU_STATS = [
   { value: '246', label: 'vidéos de techniques' },
   { value: '356', label: 'flashcards OsteoFlash' },
   { value: '27', label: 'revues de littérature' },
-  { value: '137', label: 'exercices de rééducation' },
+  { value: '137', label: 'exercices illustrés' },
 ]
 
 const OU_TABS = [
@@ -590,11 +590,11 @@ export default function LandingPage() {
                 À chaque anamnèse, l’IA passe en revue les signaux qui imposent de réorienter, même quand le patient les évoque en passant.
                 Et ce que vous n’avez pas demandé est signalé.
               </p>
-              <div className="flex flex-wrap gap-2">
-                {RED_FLAGS.map((f) => (
-                  <span key={f} className="text-sm font-medium text-red-800 bg-white border border-red-300 rounded-full px-3 py-1.5">{f}</span>
-                ))}
-              </div>
+              <StaggerChips
+                items={RED_FLAGS}
+                className="flex flex-wrap gap-2"
+                chipClassName="text-sm font-medium text-red-800 bg-white border border-red-300 rounded-full px-3 py-1.5"
+              />
             </div>
             <Image
               src="/landing/v2/drapeaux-rouges.webp"
@@ -654,15 +654,14 @@ export default function LandingPage() {
               ].map((t) => <li key={t} className="flex gap-2.5"><Check />{t}</li>)}
             </ul>
           </div>
-          <Parallax className="flex-1 w-full flex justify-center" distance={40} rotate={-5}>
-            <Image
+          <div className="flex-1 w-full flex justify-center">
+            <EnvelopeReveal
               src="/landing/v2/courrier.webp"
               alt="Courrier d’adressage généré : patient, motif, drapeaux rouges, examen, demande de bilan"
               width={1200}
               height={985}
-              className="w-full max-w-xl h-auto bg-white rounded-md shadow-2xl shadow-slate-900/20 ring-1 ring-slate-900/5"
             />
-          </Parallax>
+          </div>
         </Reveal>
       </section>
 
@@ -684,13 +683,17 @@ export default function LandingPage() {
               {APP_STEPS.map((step, index) => (
                 <div key={step.title} className="flex flex-col gap-5">
                   <div className="flex justify-center bg-white/[0.04] rounded-3xl pt-7 h-[440px] lg:h-[500px] overflow-hidden">
-                    <Image
-                      src={step.img}
-                      alt={step.alt}
-                      width={780}
-                      height={1328}
-                      className="w-[230px] lg:w-[260px] h-auto self-start rounded-t-[28px] ring-8 ring-[#1F3D38] shadow-2xl shadow-black/50"
-                    />
+                    {index === 0 ? (
+                      <PhoneUnlock src={step.img} alt={step.alt} />
+                    ) : (
+                      <Image
+                        src={step.img}
+                        alt={step.alt}
+                        width={780}
+                        height={1328}
+                        className="w-[230px] lg:w-[260px] h-auto self-start rounded-t-[28px] ring-8 ring-[#1F3D38] shadow-2xl shadow-black/50"
+                      />
+                    )}
                   </div>
                   <div className="flex gap-3.5">
                     <span className="flex-none w-9 h-9 rounded-full bg-emerald-400 text-[#0F2A26] flex items-center justify-center font-extrabold">{index + 1}</span>
