@@ -536,3 +536,58 @@ export async function outboundThreadHead(threadId: string) {
     outbound: true,
   }
 }
+
+// ── Pièces jointes des réponses ────────────────────────────────────────────
+
+export const INBOX_BUCKET = 'inbox-attachments'
+export const MAX_ATTACHMENT_BYTES = 25 * 1024 * 1024
+/** Resend refuse au-delà de 40 Mo par email : on garde une marge. */
+export const MAX_TOTAL_ATTACHMENT_BYTES = 35 * 1024 * 1024
+const MAX_ATTACHMENTS = 10
+
+export interface StoredAttachment {
+  path: string
+  filename: string
+  size: number
+  contentType: string | null
+}
+
+/**
+ * Valide les pièces jointes annoncées par le composeur (déjà déposées dans le
+ * bucket) et prépare, pour Resend, un lien de lecture temporaire par fichier.
+ */
+export async function resolveAttachments(raw: unknown): Promise<{
+  stored: StoredAttachment[]
+  forResend: { filename: string; path: string; type?: string }[]
+}> {
+  if (raw == null) return { stored: [], forResend: [] }
+  if (!Array.isArray(raw)) throw new Error('Pièces jointes invalides')
+  if (raw.length > MAX_ATTACHMENTS) throw new Error(`${MAX_ATTACHMENTS} pièces jointes au plus`)
+
+  const stored: StoredAttachment[] = raw.map((a: any) => {
+    const path = typeof a?.path === 'string' ? a.path : ''
+    if (!/^[0-9a-f-]{36}\/[^/]{1,200}$/.test(path)) throw new Error('Pièce jointe invalide')
+    return {
+      path,
+      filename: typeof a.filename === 'string' && a.filename.trim() ? a.filename.trim().slice(0, 200) : path.split('/')[1],
+      size: Number(a.size) || 0,
+      contentType: typeof a.contentType === 'string' ? a.contentType.slice(0, 120) : null,
+    }
+  })
+  const total = stored.reduce((n, a) => n + a.size, 0)
+  if (total > MAX_TOTAL_ATTACHMENT_BYTES) throw new Error('Pièces jointes trop lourdes (35 Mo au total)')
+
+  const forResend = []
+  for (const a of stored) {
+    const { data, error } = await supabaseAdmin.storage.from(INBOX_BUCKET).createSignedUrl(a.path, 60 * 30)
+    if (error || !data?.signedUrl) throw new Error(`Pièce jointe introuvable : ${a.filename}`)
+    forResend.push({ filename: a.filename, path: data.signedUrl, ...(a.contentType ? { type: a.contentType } : {}) })
+  }
+  return { stored, forResend }
+}
+
+/** Nom de fichier sûr pour un chemin de stockage (le nom affiché reste l'original). */
+export function safeStorageName(name: string): string {
+  const base = name.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-zA-Z0-9._-]+/g, '-').replace(/-+/g, '-')
+  return base.replace(/^-|-$/g, '').slice(-120) || 'fichier'
+}

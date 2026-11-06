@@ -4,7 +4,7 @@ import { currentAdmin } from '@/lib/api-guards'
 import { supabaseAdmin } from '@/lib/supabase-server'
 import { sendTransactionalEmail } from '@/lib/mailing'
 import { planLabel, planOf } from '@/lib/entitlements'
-import { findProfileByEmail, getInboxSettings } from '@/lib/inbox'
+import { findProfileByEmail, getInboxSettings, resolveAttachments } from '@/lib/inbox'
 import { guessFirstName, mergeVariables, renderReplyHtml, renderReplyText, type InboxLayout } from '@/lib/inbox-render'
 
 export const dynamic = 'force-dynamic'
@@ -51,6 +51,13 @@ export async function POST(request: Request) {
     quote: null,
   }
   const html = renderReplyHtml(renderInput)
+  let pieces: Awaited<ReturnType<typeof resolveAttachments>>
+  try {
+    pieces = await resolveAttachments(payload.attachments)
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message }, { status: 400 })
+  }
+
   const threadId = randomUUID()
   const ligne = {
     thread_id: threadId,
@@ -60,6 +67,7 @@ export async function POST(request: Request) {
     body_text: texte,
     html,
     layout,
+    attachments: pieces.stored,
     template_id: typeof payload.templateId === 'string' && payload.templateId ? payload.templateId : null,
     sent_by: admin.id,
   }
@@ -74,6 +82,7 @@ export async function POST(request: Request) {
       text: renderReplyText(renderInput),
       tags: ['boite-mail'],
       skipUnsubscribeFooter: true,
+      attachments: pieces.forResend.length ? pieces.forResend : undefined,
     })
     await supabaseAdmin.from('inbox_replies').insert({ ...ligne, provider_message_id: envoi?.id || null, status: 'sent' })
     return NextResponse.json({ success: true, threadId })

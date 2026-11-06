@@ -2,8 +2,9 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import {
-  ChevronDown, Eye, EyeOff, FileText, Loader2, Quote, Send, Sparkles, Wand2, X, CheckCircle2,
+  ChevronDown, Eye, EyeOff, FileText, Loader2, Paperclip, Quote, Send, Sparkles, Wand2, X, CheckCircle2, AlertTriangle,
 } from 'lucide-react'
+import { supabase } from '@/lib/supabase'
 import {
   CATEGORY_LABELS,
   guessFirstName,
@@ -13,6 +14,24 @@ import {
 } from '@/lib/inbox-render'
 import { planLabel, planOf } from '@/lib/entitlements'
 import { api, type InboxCategory, type InboxLayout, type InboxSettings, type InboxTemplate, type ThreadDetail } from './inbox-types'
+
+const MAX_FILE = 25 * 1024 * 1024
+const MAX_TOTAL = 35 * 1024 * 1024
+
+interface PieceJointe {
+  key: string
+  filename: string
+  size: number
+  contentType: string | null
+  path?: string
+  status: 'uploading' | 'ready' | 'error'
+  error?: string
+}
+
+function tailleLisible(octets: number): string {
+  if (octets < 1024 * 1024) return `${Math.max(1, Math.round(octets / 1024))} Ko`
+  return `${(octets / 1024 / 1024).toFixed(1).replace('.', ',')} Mo`
+}
 
 const VARIABLES = [
   { key: 'prenom', label: 'Prénom' },
@@ -68,6 +87,45 @@ export default function Composer({ mode, detail, templates, settings, aiAvailabl
   const [sending, setSending] = useState<null | 'waiting' | 'done'>(null)
   const [error, setError] = useState<string | null>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [pieces, setPieces] = useState<PieceJointe[]>([])
+  const [survol, setSurvol] = useState(false)
+
+  /**
+   * Dépose chaque fichier directement dans le stockage privé (lien signé
+   * fourni par l'API) : les routes Vercel n'acceptent pas de gros corps de
+   * requête. Seul le chemin du fichier part ensuite avec l'email.
+   */
+  async function ajouterFichiers(fichiers: FileList | File[]) {
+    const liste = Array.from(fichiers)
+    let total = pieces.reduce((n, p) => n + p.size, 0)
+    for (const f of liste) {
+      const key = `${Date.now()}-${Math.random().toString(36).slice(2)}`
+      if (f.size > MAX_FILE) {
+        setPieces((p) => [...p, { key, filename: f.name, size: f.size, contentType: f.type || null, status: 'error', error: 'Plus de 25 Mo' }])
+        continue
+      }
+      if (total + f.size > MAX_TOTAL) {
+        setPieces((p) => [...p, { key, filename: f.name, size: f.size, contentType: f.type || null, status: 'error', error: 'Total au-delà de 35 Mo' }])
+        continue
+      }
+      total += f.size
+      setPieces((p) => [...p, { key, filename: f.name, size: f.size, contentType: f.type || null, status: 'uploading' }])
+      try {
+        const { path, token } = await api<{ path: string; token: string }>('/api/admin/inbox/attachments', {
+          method: 'POST',
+          json: { filename: f.name, size: f.size },
+        })
+        const { error: upErr } = await supabase.storage.from('inbox-attachments').uploadToSignedUrl(path, token, f, {
+          contentType: f.type || 'application/octet-stream',
+        })
+        if (upErr) throw new Error(upErr.message)
+        setPieces((p) => p.map((x) => (x.key === key ? { ...x, path, status: 'ready' } : x)))
+      } catch (e: any) {
+        setPieces((p) => p.map((x) => (x.key === key ? { ...x, status: 'error', error: e.message || 'Échec du dépôt' } : x)))
+      }
+    }
+  }
   const draftKey = mode === 'reply' && tete ? `inbox-draft:${tete.thread_id}` : 'inbox-draft:new'
 
   // Brouillon local : changer de conversation ne fait pas perdre une réponse
@@ -175,17 +233,19 @@ export default function Composer({ mode, detail, templates, settings, aiAvailabl
       if (mode === 'reply' && tete) {
         const res = await api<{ status: string }>(`/api/admin/inbox/${tete.thread_id}/reply`, {
           method: 'POST',
-          json: { body, subject, to, layout, templateId, includeQuote, markAs, emoji, bannerTitle },
+          json: { body, subject, to, layout, templateId, includeQuote, markAs, emoji, bannerTitle, attachments: piecesPretes },
         })
         setBody('')
+        setPieces([])
         try { localStorage.removeItem(draftKey) } catch {}
         onSent({ status: res.status })
       } else {
         const res = await api<{ threadId: string }>('/api/admin/inbox/compose', {
           method: 'POST',
-          json: { to, subject, body, layout, templateId, emoji, bannerTitle },
+          json: { to, subject, body, layout, templateId, emoji, bannerTitle, attachments: piecesPretes },
         })
         setBody('')
+        setPieces([])
         try { localStorage.removeItem(draftKey) } catch {}
         onSent({ threadId: res.threadId })
       }
@@ -197,11 +257,27 @@ export default function Composer({ mode, detail, templates, settings, aiAvailabl
   }
 
   const aCompleter = /\[À COMPLÉTER/i.test(body)
-  const peutEnvoyer = body.trim() && !aCompleter && to.trim() && (mode === 'reply' || subject)
+  const enDepot = pieces.some((p) => p.status === 'uploading')
+  const piecesPretes = pieces
+    .filter((p) => p.status === 'ready' && p.path)
+    .map((p) => ({ path: p.path, filename: p.filename, size: p.size, contentType: p.contentType }))
+  const peutEnvoyer = body.trim() && !aCompleter && !enDepot && to.trim() && (mode === 'reply' || subject)
 
   return (
     <div
-      className="flex flex-col bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden"
+      className={`relative flex flex-col bg-white rounded-2xl border shadow-sm overflow-hidden ${survol ? 'border-violet-400 ring-2 ring-violet-200' : 'border-slate-200'}`}
+      onDragOver={(e) => {
+        if (e.dataTransfer.types.includes('Files')) { e.preventDefault(); setSurvol(true) }
+      }}
+      onDragLeave={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget as Node)) setSurvol(false)
+      }}
+      onDrop={(e) => {
+        if (!e.dataTransfer.files?.length) return
+        e.preventDefault()
+        setSurvol(false)
+        ajouterFichiers(e.dataTransfer.files)
+      }}
       onKeyDown={(e) => {
         if ((e.metaKey || e.ctrlKey) && e.key === 'Enter' && peutEnvoyer && !sending) {
           e.preventDefault()
@@ -277,6 +353,25 @@ export default function Composer({ mode, detail, templates, settings, aiAvailabl
             <Quote className="h-3.5 w-3.5" /> Citation
           </button>
         )}
+
+        <button
+          type="button"
+          onClick={() => fileInputRef.current?.click()}
+          title="Joindre des fichiers (ou glissez-les ici)"
+          className="inline-flex items-center gap-1 px-2 py-1.5 rounded-lg text-[11px] font-medium text-slate-500 hover:bg-white transition"
+        >
+          <Paperclip className="h-3.5 w-3.5" /> Joindre
+        </button>
+        <input
+          ref={fileInputRef}
+          type="file"
+          multiple
+          className="hidden"
+          onChange={(e) => {
+            if (e.target.files?.length) ajouterFichiers(e.target.files)
+            e.target.value = ''
+          }}
+        />
 
         <button
           type="button"
@@ -386,6 +481,39 @@ export default function Composer({ mode, detail, templates, settings, aiAvailabl
             {settings.signature || 'Aucune signature'}
             <span className="ml-2 text-[10px] italic">(signature ajoutée automatiquement)</span>
           </div>
+        </div>
+      )}
+
+      {pieces.length > 0 && (
+        <div className="flex flex-wrap gap-2 px-4 pb-2">
+          {pieces.map((p) => (
+            <span
+              key={p.key}
+              title={p.error || ''}
+              className={`inline-flex items-center gap-1.5 pl-2.5 pr-1 py-1 rounded-lg text-xs border ${
+                p.status === 'error' ? 'bg-rose-50 border-rose-200 text-rose-700' : 'bg-slate-50 border-slate-200 text-slate-700'
+              }`}
+            >
+              {p.status === 'uploading' ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin text-violet-500" />
+              ) : p.status === 'error' ? (
+                <AlertTriangle className="h-3.5 w-3.5" />
+              ) : (
+                <Paperclip className="h-3.5 w-3.5 text-slate-400" />
+              )}
+              <span className="max-w-[180px] truncate">{p.filename}</span>
+              <span className="text-slate-400">{p.status === 'error' ? p.error : tailleLisible(p.size)}</span>
+              <button type="button" onClick={() => setPieces((l) => l.filter((x) => x.key !== p.key))} className="p-0.5 rounded hover:bg-white">
+                <X className="h-3 w-3" />
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
+
+      {survol && (
+        <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center bg-violet-50/80 text-sm font-medium text-violet-700">
+          <Paperclip className="h-4 w-4 mr-2" /> Déposez les fichiers pour les joindre
         </div>
       )}
 

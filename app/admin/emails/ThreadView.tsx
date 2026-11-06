@@ -84,15 +84,21 @@ function ReceivedItem({ m, expanded, onToggle }: { m: ReceivedMessage; expanded:
                   type="button"
                   onClick={async () => {
                     if (!m.resend_email_id || !att.id) return alert('Pièce jointe indisponible')
-                    const res = await fetch(`/api/emails/${m.resend_email_id}/attachments/${att.id}`)
-                    if (!res.ok) return alert('Impossible de télécharger la pièce jointe')
-                    const blob = await res.blob()
-                    const url = URL.createObjectURL(blob)
-                    const a = document.createElement('a')
-                    a.href = url
-                    a.download = att.filename || 'piece-jointe'
-                    a.click()
-                    URL.revokeObjectURL(url)
+                    // La route renvoie un lien signé Resend (valable une heure),
+                    // pas le fichier. La fenêtre est ouverte avant l'appel pour
+                    // ne pas être bloquée comme fenêtre surgissante.
+                    const fenetre = window.open('', '_blank')
+                    try {
+                      const res = await fetch(`/api/emails/${m.resend_email_id}/attachments/${att.id}`)
+                      const data = await res.json().catch(() => ({}))
+                      const url = data?.attachment?.downloadUrl
+                      if (!res.ok || !url) throw new Error()
+                      if (fenetre) fenetre.location.href = url
+                      else window.location.href = url
+                    } catch {
+                      fenetre?.close()
+                      alert('Impossible de télécharger la pièce jointe')
+                    }
                   }}
                   className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-700 hover:bg-violet-50 hover:border-violet-200"
                 >
@@ -125,6 +131,33 @@ function ReplyItem({ r }: { r: SentReply }) {
       <div className="px-4 pb-3">
         <p className={`text-sm text-slate-700 whitespace-pre-wrap leading-relaxed ${open ? '' : 'line-clamp-3'}`}>{r.body_text}</p>
         {failed && r.error && <p className="mt-2 text-xs text-rose-600">{r.error}</p>}
+        {r.attachments && r.attachments.length > 0 && (
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            {r.attachments.map((a) => (
+              <button
+                key={a.path}
+                type="button"
+                onClick={async () => {
+                  const fenetre = window.open('', '_blank')
+                  try {
+                    const res = await fetch(`/api/admin/inbox/attachments?path=${encodeURIComponent(a.path)}`)
+                    const data = await res.json().catch(() => ({}))
+                    if (!res.ok || !data.url) throw new Error()
+                    if (fenetre) fenetre.location.href = data.url
+                    else window.location.href = data.url
+                  } catch {
+                    fenetre?.close()
+                    alert('Pièce jointe indisponible')
+                  }
+                }}
+                className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg bg-white border border-violet-100 text-[11px] text-slate-700 hover:border-violet-300"
+              >
+                <Paperclip className="h-3 w-3 text-violet-400" />
+                <span className="max-w-[160px] truncate">{a.filename}</span>
+              </button>
+            ))}
+          </div>
+        )}
         {open && (
           <div className="mt-3 rounded-xl border border-violet-100 bg-white overflow-hidden">
             <iframe title="Email envoyé" srcDoc={r.html} sandbox="" className="w-full h-80" />
