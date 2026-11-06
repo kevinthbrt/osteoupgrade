@@ -4,7 +4,7 @@ import { supabaseAdmin } from '@/lib/supabase-server'
 import { sendTransactionalEmail } from '@/lib/mailing'
 import { logCustomerEvent } from '@/lib/customer-events'
 import { planLabel, planOf } from '@/lib/entitlements'
-import { findProfileByEmail, getInboxSettings, getThreadHead, outboundThreadHead } from '@/lib/inbox'
+import { findProfileByEmail, getInboxSettings, getThreadHead, outboundThreadHead, resolveAttachments } from '@/lib/inbox'
 import {
   guessFirstName,
   htmlToText,
@@ -116,6 +116,13 @@ export async function POST(request: Request, { params }: { params: { threadId: s
   if (tete.resend_message_id) headers['In-Reply-To'] = tete.resend_message_id
   if (references.length) headers['References'] = references.slice(-20).join(' ')
 
+  let pieces: Awaited<ReturnType<typeof resolveAttachments>>
+  try {
+    pieces = await resolveAttachments(payload.attachments)
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message }, { status: 400 })
+  }
+
   const now = new Date().toISOString()
   const ligne = {
     email_id: tete.id,
@@ -126,6 +133,7 @@ export async function POST(request: Request, { params }: { params: { threadId: s
     body_text: texte,
     html,
     layout,
+    attachments: pieces.stored,
     template_id: typeof payload.templateId === 'string' && payload.templateId ? payload.templateId : null,
     sent_by: admin.id,
   }
@@ -141,12 +149,13 @@ export async function POST(request: Request, { params }: { params: { threadId: s
       headers,
       tags: ['boite-mail'],
       skipUnsubscribeFooter: true,
+      attachments: pieces.forResend.length ? pieces.forResend : undefined,
     })
 
     const { data: reply } = await supabaseAdmin
       .from('inbox_replies')
       .insert({ ...ligne, provider_message_id: envoi?.id || null, status: 'sent' })
-      .select('id, email_id, to_email, from_email, subject, body_text, html, layout, status, error, created_at, sent_by')
+      .select('id, email_id, to_email, from_email, subject, body_text, html, layout, attachments, status, error, created_at, sent_by')
       .single()
 
     await supabaseAdmin

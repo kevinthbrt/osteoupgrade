@@ -9,7 +9,9 @@ interface EmailPayload {
   tags?: string[]
   attachments?: {
     filename: string
-    content: string
+    /** Contenu en base64, ou bien `path` : une URL que Resend télécharge. */
+    content?: string
+    path?: string
     type?: string
     cid?: string
     content_id?: string
@@ -96,7 +98,9 @@ async function sendWithResend(payload: EmailPayload) {
       attachments: payload.attachments?.map((file) => ({
         filename: file.filename,
         content: file.content,
+        path: file.path,
         type: file.type,
+        content_type: file.type,
         cid: file.cid || file.content_id,
         content_id: file.content_id || file.cid,
         disposition: file.disposition

@@ -78,6 +78,7 @@ export interface SentReply {
   body_text: string
   html: string
   layout: InboxLayout
+  attachments?: { path: string; filename: string; size: number; contentType: string | null }[]
   status: 'sent' | 'failed'
   error: string | null
   created_at: string

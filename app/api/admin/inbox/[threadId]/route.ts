@@ -33,7 +33,7 @@ export async function GET(_request: Request, { params }: { params: { threadId: s
   const [{ data: replies }, profile] = await Promise.all([
     supabaseAdmin
       .from('inbox_replies')
-      .select('id, email_id, to_email, from_email, subject, body_text, html, layout, status, error, created_at, sent_by')
+      .select('id, email_id, to_email, from_email, subject, body_text, html, layout, attachments, status, error, created_at, sent_by')
       .eq('thread_id', params.threadId)
       .order('created_at', { ascending: true }),
     tete.profile_id
