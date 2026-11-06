@@ -23,7 +23,7 @@ import {
   ClipboardList,
   Send,
 } from 'lucide-react'
-import { ClinicalStory, ColorFlow, CountUp, EnvelopeReveal, HeroShowcase, PhoneStory, PhoneUnlock, ScrollCascade, ScrollProgressBar, StaggerChips, useScrollStoryEnabled, type StoryStep } from '@/components/landing/ScrollStory'
+import { ClinicalStory, ColorFlow, CountUp, EnvelopeReveal, HeroFilm, HeroShowcase, ScrubOnScroll, PhoneStory, PhoneUnlock, ScrollCascade, ScrollProgressBar, StaggerChips, useScrollStoryEnabled, type StoryStep } from '@/components/landing/ScrollStory'
 import { ObjectivesCard, PayCard } from '@/components/landing/PilotageCards'
 import { OFFERS, formatAmount, BUNDLE_SAVING, annualSavingOf, studentFirstYearAmount, STUDENT_DISCOUNT_PERCENT } from '@/lib/offers'
 
@@ -477,7 +477,7 @@ export default function LandingPage() {
 
 
       {/* ─── PROMESSE ─── */}
-      <section data-flow-bg="#0B1220" className="relative bg-[#0B1220] text-white pt-40 lg:pt-44 pb-16 lg:pb-24 px-4 sm:px-6 lg:px-8 overflow-hidden">
+      <section data-flow-bg="#0B1220" className="relative bg-[#0B1220] text-white pt-40 lg:pt-44 pb-16 lg:pb-24 px-4 sm:px-6 lg:px-8 overflow-clip">
         <div className="max-w-6xl mx-auto flex flex-col items-center text-center gap-6">
           <HeroShowcase
             intro={
@@ -528,16 +528,27 @@ export default function LandingPage() {
               </>
             }
           >
-              {/* Bienvenue dans l'écosystème : formation OsteoUpgrade, journée et consultation MyOsteoflow, comptabilité */}
-              <div className="rounded-2xl overflow-hidden bg-white shadow-2xl shadow-black/40 ring-1 ring-white/10">
-                <DemoVideo
-                  src="/landing/v2/ecosysteme.mp4"
-                  poster="/landing/v2/poster-ecosysteme.webp"
-                  label="Bienvenue dans l’écosystème OsteoUpgrade × MyOsteoflow : une formation sur l’épaule le matin, la journée prête dans MyOsteoflow, la consultation dictée, puis la comptabilité le soir"
-                  className="block w-full h-auto"
-                />
-              </div>
+              {/* Sur téléphone : le film tourne seul. Sur ordinateur, il se déroule à la molette (plus bas). */}
+              {!storyEnabled && (
+                <div className="rounded-2xl overflow-hidden bg-white shadow-2xl shadow-black/40 ring-1 ring-white/10">
+                  <DemoVideo
+                    src="/landing/v2/ecosysteme.mp4"
+                    poster="/landing/v2/poster-ecosysteme.webp"
+                    label="Bienvenue dans l’écosystème OsteoUpgrade × MyOsteoflow : une formation sur l’épaule le matin, la journée prête dans MyOsteoflow, la consultation dictée, puis la comptabilité le soir"
+                    className="block w-full h-auto"
+                  />
+                </div>
+              )}
           </HeroShowcase>
+          {storyEnabled && (
+            <div className="w-full">
+              <HeroFilm
+                src="/landing/v2/ecosysteme-scrub.mp4"
+                poster="/landing/v2/poster-ecosysteme.webp"
+                label="Bienvenue dans l’écosystème OsteoUpgrade × MyOsteoflow : une formation sur l’épaule le matin, la journée prête dans MyOsteoflow, la consultation dictée, puis la comptabilité le soir"
+              />
+            </div>
+          )}
         </div>
       </section>
 
@@ -751,12 +762,21 @@ export default function LandingPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <ScrollCascade className="md:col-span-2 lg:row-span-3">
             <article className="h-full bg-white border border-slate-200 rounded-2xl overflow-hidden flex flex-col">
-              <DemoVideo
-                src="/landing/v2/palette-ctrl-k.mp4"
-                poster="/landing/v2/poster-palette.webp"
-                label="Démonstration : Ctrl + K, recherche d’un patient, ouverture d’une consultation"
-                className="w-full bg-[#0B1220]"
-              />
+              {storyEnabled ? (
+                <ScrubOnScroll
+                  src="/landing/v2/palette-ctrl-k-scrub.mp4"
+                  poster="/landing/v2/poster-palette.webp"
+                  label="Démonstration : Ctrl + K, recherche d’un patient, ouverture d’une consultation"
+                  className="block w-full bg-[#0B1220]"
+                />
+              ) : (
+                <DemoVideo
+                  src="/landing/v2/palette-ctrl-k.mp4"
+                  poster="/landing/v2/poster-palette.webp"
+                  label="Démonstration : Ctrl + K, recherche d’un patient, ouverture d’une consultation"
+                  className="w-full bg-[#0B1220]"
+                />
+              )}
               <div className="p-6 lg:p-7 flex flex-col gap-2">
                 <h3 className="text-xl font-bold">Ctrl + K, onglets patients, Ma journée</h3>
                 <p className="text-slate-600 leading-relaxed">
