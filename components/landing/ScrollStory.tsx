@@ -542,3 +542,57 @@ export function StaggerChips({ items, className, chipClassName }: { items: strin
     </div>
   )
 }
+
+/**
+ * Fond continu de la page : chaque section donne sa couleur (`data-flow-bg`)
+ * et le fond passe de l'une à l'autre en douceur au défilement, au lieu de
+ * bandes nettes. Les sections gardent leur propre fond tant que ce script
+ * n'a pas pris la main (chargement, JavaScript désactivé).
+ */
+export function ColorFlow() {
+  const layer = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    const root = document.documentElement
+    root.dataset.colorFlow = '1'
+    const hex = (value: string) => {
+      const n = parseInt(value.replace('#', ''), 16)
+      return [(n >> 16) & 255, (n >> 8) & 255, n & 255]
+    }
+    let frame = 0
+    const update = () => {
+      frame = 0
+      const sections = Array.from(document.querySelectorAll<HTMLElement>('[data-flow-bg]'))
+      if (!sections.length || !layer.current) return
+      const vh = window.innerHeight
+      const center = window.scrollY + vh * 0.5
+      let color = hex(sections[0].dataset.flowBg!)
+      for (let i = 1; i < sections.length; i++) {
+        const top = sections[i].getBoundingClientRect().top + window.scrollY
+        // Fondu quand la limite entre deux sections traverse le milieu de l'écran
+        const t = Math.max(0, Math.min(1, (center - (top - vh * 0.4)) / (vh * 0.5)))
+        if (t <= 0) break
+        const next = hex(sections[i].dataset.flowBg!)
+        color = color.map((c, k) => Math.round(c + (next[k] - c) * t))
+      }
+      layer.current.style.backgroundColor = `rgb(${color.join(',')})`
+    }
+    const schedule = () => {
+      if (!frame) frame = requestAnimationFrame(update)
+    }
+    update()
+    window.addEventListener('scroll', schedule, { passive: true })
+    window.addEventListener('resize', schedule)
+    return () => {
+      delete root.dataset.colorFlow
+      cancelAnimationFrame(frame)
+      window.removeEventListener('scroll', schedule)
+      window.removeEventListener('resize', schedule)
+    }
+  }, [])
+  return (
+    <>
+      <style>{'html[data-color-flow] [data-flow-bg],html[data-color-flow] [data-flow-root]{background-color:transparent!important;border-color:transparent!important}'}</style>
+      <div ref={layer} aria-hidden="true" className="pointer-events-none fixed inset-0 -z-10 transition-[background-color] duration-150" />
+    </>
+  )
+}

@@ -23,7 +23,8 @@ import {
   ClipboardList,
   Send,
 } from 'lucide-react'
-import { ClinicalStory, CountUp, EnvelopeReveal, HeroShowcase, Parallax, PhoneStory, PhoneUnlock, ScrollCascade, ScrollProgressBar, StaggerChips, useScrollStoryEnabled, type StoryStep } from '@/components/landing/ScrollStory'
+import { ClinicalStory, ColorFlow, CountUp, EnvelopeReveal, HeroShowcase, PhoneStory, PhoneUnlock, ScrollCascade, ScrollProgressBar, StaggerChips, useScrollStoryEnabled, type StoryStep } from '@/components/landing/ScrollStory'
+import { ObjectivesCard, PayCard } from '@/components/landing/PilotageCards'
 import { OFFERS, formatAmount, BUNDLE_SAVING, annualSavingOf, studentFirstYearAmount, STUDENT_DISCOUNT_PERCENT } from '@/lib/offers'
 
 /*
@@ -393,7 +394,8 @@ export default function LandingPage() {
   return (
     // overflow-x-clip et non hidden : « hidden » empêcherait les éléments
     // épinglés (position sticky) de la scène clinique de tenir en place.
-    <div className="min-h-screen bg-[#fafafa] text-slate-900 overflow-x-clip">
+    <div data-flow-root className="min-h-screen bg-[#fafafa] text-slate-900 overflow-x-clip">
+      <ColorFlow />
       <ScrollProgressBar />
 
       {/* ─── NAVIGATION ─── */}
@@ -475,7 +477,7 @@ export default function LandingPage() {
 
 
       {/* ─── PROMESSE ─── */}
-      <section className="relative bg-[#0B1220] text-white pt-40 lg:pt-44 pb-16 lg:pb-24 px-4 sm:px-6 lg:px-8 overflow-hidden">
+      <section data-flow-bg="#0B1220" className="relative bg-[#0B1220] text-white pt-40 lg:pt-44 pb-16 lg:pb-24 px-4 sm:px-6 lg:px-8 overflow-hidden">
         <div className="max-w-6xl mx-auto flex flex-col items-center text-center gap-6">
           <HeroShowcase
             intro={
@@ -540,7 +542,7 @@ export default function LandingPage() {
       </section>
 
       {/* ─── PENDANT LA SÉANCE ─── */}
-      <section id="clinique" className={`scroll-mt-28 pt-24 lg:pt-28 px-4 sm:px-6 lg:px-8 bg-white ${storyEnabled ? '' : 'pb-24 lg:pb-28'}`}>
+      <section id="clinique" data-flow-bg="#ffffff" className={`scroll-mt-28 pt-24 lg:pt-28 px-4 sm:px-6 lg:px-8 bg-white ${storyEnabled ? '' : 'pb-24 lg:pb-28'}`}>
         <div className="max-w-6xl mx-auto flex flex-col gap-20 lg:gap-24">
           <Reveal className="text-center flex flex-col items-center gap-3">
             <p className="text-sm font-bold uppercase tracking-wider text-blue-600">Pendant la séance</p>
@@ -637,7 +639,7 @@ export default function LandingPage() {
       </section>
 
       {/* ─── COURRIERS ─── */}
-      <section id="courriers" className="scroll-mt-28 py-24 px-4 sm:px-6 lg:px-8 bg-slate-50">
+      <section id="courriers" data-flow-bg="#f8fafc" className="scroll-mt-28 py-24 px-4 sm:px-6 lg:px-8 bg-slate-50">
         <Reveal className="max-w-6xl mx-auto flex flex-col lg:flex-row items-center gap-12">
           <div className="flex-1 flex flex-col gap-4">
             <span className="text-sm font-bold text-blue-600">Courriers rédigés pour vous</span>
@@ -666,7 +668,7 @@ export default function LandingPage() {
       </section>
 
       {/* ─── EXERCICES ET APPLI PATIENT ─── */}
-      <section id="exercices" className="scroll-mt-28 py-24 lg:py-28 px-4 sm:px-6 lg:px-8 bg-[#0F2A26] text-white">
+      <section id="exercices" data-flow-bg="#0F2A26" className="scroll-mt-28 py-24 lg:py-28 px-4 sm:px-6 lg:px-8 bg-[#0F2A26] text-white">
         <div className="max-w-6xl mx-auto flex flex-col gap-14">
           <Reveal className="max-w-3xl flex flex-col gap-3">
             <p className="text-sm font-bold uppercase tracking-wider text-emerald-300">Exercices et appli patient</p>
@@ -710,7 +712,7 @@ export default function LandingPage() {
       </section>
 
       {/* ─── PILOTAGE ─── */}
-      <section id="pilotage" className="scroll-mt-28 py-24 lg:py-28 px-4 sm:px-6 lg:px-8 bg-white">
+      <section id="pilotage" data-flow-bg="#ffffff" className="scroll-mt-28 py-24 lg:py-28 px-4 sm:px-6 lg:px-8 bg-white">
         <div className="max-w-6xl mx-auto flex flex-col gap-12">
           <Reveal className="text-center flex flex-col items-center gap-3">
             <p className="text-sm font-bold uppercase tracking-wider text-blue-600">Pilotage du cabinet</p>
@@ -720,9 +722,7 @@ export default function LandingPage() {
           </Reveal>
           <Reveal className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-start">
             <article className="flex flex-col gap-5">
-              <Parallax distance={24}>
-                <Image src="/landing/v2/objectifs.webp" alt="Objectifs : trajectoire annuelle, avance sur l’objectif, projection de fin d’année" width={1600} height={793} className="w-full h-auto rounded-2xl shadow-2xl shadow-slate-900/15" />
-              </Parallax>
+              <ObjectivesCard />
               <h3 className="text-2xl font-extrabold tracking-tight">Objectifs : en avance ou en retard, au jour près</h3>
               <p className="text-base lg:text-lg leading-relaxed text-slate-600">
                 Fixez votre chiffre d’affaires annuel : MyOsteoflow le traduit en objectif du jour, de la semaine et du mois,
@@ -730,9 +730,7 @@ export default function LandingPage() {
               </p>
             </article>
             <article className="flex flex-col gap-5">
-              <Parallax distance={56}>
-                <Image src="/landing/v2/remuneration.webp" alt="Ma rémunération : virement vers le compte perso, net dans votre poche, détail du mois" width={1600} height={1321} className="w-full h-auto rounded-2xl shadow-2xl shadow-slate-900/15" />
-              </Parallax>
+              <PayCard />
               <h3 className="text-2xl font-extrabold tracking-tight">Ma rémunération : le virement à faire, chaque mois</h3>
               <p className="text-base lg:text-lg leading-relaxed text-slate-600">
                 Encaissements, charges, Urssaf, impôt et marge de sécurité : vous savez ce que vous pouvez virer sur votre compte perso,
@@ -744,7 +742,7 @@ export default function LandingPage() {
       </section>
 
       {/* ─── LE RESTE EN UN CLIC ─── */}
-      <section className="py-24 px-4 sm:px-6 lg:px-8 bg-slate-50">
+      <section data-flow-bg="#f8fafc" className="py-24 px-4 sm:px-6 lg:px-8 bg-slate-50">
         <div className="max-w-6xl mx-auto flex flex-col gap-10">
           <Reveal className="max-w-3xl flex flex-col gap-3">
             <h2 className="text-3xl sm:text-4xl font-extrabold leading-tight tracking-tight">Et tout le reste se fait en un clic.</h2>
@@ -785,7 +783,7 @@ export default function LandingPage() {
       </section>
 
       {/* ─── OSTEOUPGRADE ─── */}
-      <section id="osteoupgrade" className="scroll-mt-28 py-24 lg:py-28 px-4 sm:px-6 lg:px-8 bg-sky-50 border-y border-sky-200">
+      <section id="osteoupgrade" data-flow-bg="#e0f2fe" className="scroll-mt-28 py-24 lg:py-28 px-4 sm:px-6 lg:px-8 bg-sky-50 border-y border-sky-200">
         <div className="max-w-6xl mx-auto flex flex-col gap-10">
           <Reveal className="flex flex-col lg:flex-row lg:items-end justify-between gap-6">
             <div className="max-w-3xl flex flex-col gap-3">
@@ -845,7 +843,7 @@ export default function LandingPage() {
       </section>
 
       {/* ─── CONFIANCE ─── */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-[#0B1220] text-white">
+      <section data-flow-bg="#0B1220" className="py-20 px-4 sm:px-6 lg:px-8 bg-[#0B1220] text-white">
         <div className="max-w-6xl mx-auto flex flex-col gap-10">
           <h2 className="text-3xl font-extrabold tracking-tight">Vos dossiers restent chez vous.</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -861,7 +859,7 @@ export default function LandingPage() {
       </section>
 
       {/* ─── TOUTES LES FONCTIONNALITÉS ─── */}
-      <section id="fonctionnalites" className="scroll-mt-28 py-24 px-4 sm:px-6 lg:px-8 bg-white">
+      <section id="fonctionnalites" data-flow-bg="#ffffff" className="scroll-mt-28 py-24 px-4 sm:px-6 lg:px-8 bg-white">
         <div className="max-w-4xl mx-auto flex flex-col gap-8">
           <div className="flex flex-col gap-3">
             <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight">Toutes les fonctionnalités</h2>
@@ -904,7 +902,7 @@ export default function LandingPage() {
       </section>
 
       {/* ─── TARIFS ─── */}
-      <section id="pricing" ref={pricing.ref} className="scroll-mt-28 py-24 lg:py-28 px-4 sm:px-6 lg:px-8 bg-slate-50 relative overflow-hidden">
+      <section id="pricing" data-flow-bg="#f8fafc" ref={pricing.ref} className="scroll-mt-28 py-24 lg:py-28 px-4 sm:px-6 lg:px-8 bg-slate-50 relative overflow-hidden">
 
         <div className="relative max-w-6xl mx-auto">
           <div className={`text-center mb-14 transition-all duration-700 ${
@@ -1103,8 +1101,7 @@ export default function LandingPage() {
       </section>
 
       {/* ─── FINAL CTA ─── */}
-      <section ref={cta.ref} className="relative py-24 lg:py-32 px-4 sm:px-6 lg:px-8 overflow-hidden">
-        <div className="absolute inset-0 bg-[#0B1220]" />
+      <section ref={cta.ref} data-flow-bg="#0B1220" className="relative bg-[#0B1220] py-24 lg:py-32 px-4 sm:px-6 lg:px-8 overflow-hidden">
 
         <div className={`relative max-w-3xl mx-auto text-center transition-all duration-700 ${
           cta.isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
@@ -1138,7 +1135,7 @@ export default function LandingPage() {
       </section>
 
       {/* ─── PARTENAIRES ─── */}
-      <section id="partenaires" ref={partners.ref} className="py-16 lg:py-20 px-4 sm:px-6 lg:px-8 bg-white border-t border-slate-100">
+      <section id="partenaires" data-flow-bg="#ffffff" ref={partners.ref} className="py-16 lg:py-20 px-4 sm:px-6 lg:px-8 bg-white border-t border-slate-100">
         <div className="max-w-6xl mx-auto">
           <div className={`text-center mb-12 transition-all duration-700 ${
             partners.isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
