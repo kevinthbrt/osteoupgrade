@@ -10,6 +10,7 @@
     "verifier:questionnaires": "tsc lib/questionnaires.ts scripts/verifier-questionnaires.ts --module commonjs --target es2020 --esModuleInterop --outDir .verif && node .verif/scripts/verifier-questionnaires.js"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^1.6.0",
     "@react-pdf/renderer": "^3.4.4",
     "@resvg/resvg-js": "^2.6.2",
     "@supabase/auth-helpers-nextjs": "^0.8.7",

@@ -235,14 +235,15 @@ notification et devoir ouvrir l'application pour savoir s'il valait la peine
 d'être lu ne sont pas la même chose, et un client qui vient d'expliquer son
 départ est précisément celui qu'on peut encore rappeler.
 
-**Une réponse par email, en revanche, ne déclenche rien.** Si un client répond
-à une relance, le message arrive dans `received_emails` via
-`/api/emails/inbound` et se compte dans la pastille « Boite mail » du tableau
-de bord admin, sans notification sur la cloche. C'est un choix par défaut, pas
-un oubli du module : l'adresse de réception encaisse aussi des retours
-automatiques et des désabonnements, et une notification par message reçu
-rendrait la cloche inutilisable. À rebrancher si le volume réel dit le
-contraire.
+**Une réponse par email arrive dans la boîte mail admin** (`/admin/emails`)
+via `/api/emails/inbound`. Elle est rattachée à son compte et à sa
+conversation (en-têtes `In-Reply-To` / `References`, sinon même expéditeur et
+même objet), puis classée : règles de l'admin, spam, messages automatiques,
+mots-clés, et l'IA en dernier recours. La cloche n'est notifiée que pour un
+message « à traiter » dans les catégories choisies dans les réglages de la
+boîte, ou venant d'un client : spam, notifications et prospection n'y
+apparaissent jamais. Le compteur « Boite mail » du tableau de bord compte les
+conversations à traiter, pas les messages non lus.
 
 ## Suivi des ouvertures
 
