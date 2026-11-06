@@ -84,15 +84,21 @@ function ReceivedItem({ m, expanded, onToggle }: { m: ReceivedMessage; expanded:
                   type="button"
                   onClick={async () => {
                     if (!m.resend_email_id || !att.id) return alert('Pièce jointe indisponible')
-                    const res = await fetch(`/api/emails/${m.resend_email_id}/attachments/${att.id}`)
-                    if (!res.ok) return alert('Impossible de télécharger la pièce jointe')
-                    const blob = await res.blob()
-                    const url = URL.createObjectURL(blob)
-                    const a = document.createElement('a')
-                    a.href = url
-                    a.download = att.filename || 'piece-jointe'
-                    a.click()
-                    URL.revokeObjectURL(url)
+                    // La route renvoie un lien signé Resend (valable une heure),
+                    // pas le fichier. La fenêtre est ouverte avant l'appel pour
+                    // ne pas être bloquée comme fenêtre surgissante.
+                    const fenetre = window.open('', '_blank')
+                    try {
+                      const res = await fetch(`/api/emails/${m.resend_email_id}/attachments/${att.id}`)
+                      const data = await res.json().catch(() => ({}))
+                      const url = data?.attachment?.downloadUrl
+                      if (!res.ok || !url) throw new Error()
+                      if (fenetre) fenetre.location.href = url
+                      else window.location.href = url
+                    } catch {
+                      fenetre?.close()
+                      alert('Impossible de télécharger la pièce jointe')
+                    }
                   }}
                   className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-700 hover:bg-violet-50 hover:border-violet-200"
                 >
