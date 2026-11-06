@@ -2,10 +2,10 @@
 
 import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
-import { Bell, Bug, CreditCard, Users, UserPlus, Gift, X, CheckCheck } from 'lucide-react'
+import { Bell, Bug, CreditCard, Users, UserPlus, Gift, Mail, X, CheckCheck } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 
-type NotifType = 'bug_report' | 'new_subscription' | 'referral' | 'signup' | 'partner_discount' | 'other'
+type NotifType = 'bug_report' | 'new_subscription' | 'referral' | 'signup' | 'partner_discount' | 'inbox' | 'other'
 
 type Notification = {
   id: string
@@ -34,6 +34,7 @@ const typeConfig: Record<NotifType, { icon: React.ComponentType<any>; color: str
   signup:           { icon: UserPlus,   color: 'text-sky-400',   bg: 'bg-sky-500/10'   },
   referral:         { icon: Users,      color: 'text-blue-400',  bg: 'bg-blue-500/10'  },
   partner_discount: { icon: Gift,       color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
+  inbox:            { icon: Mail,       color: 'text-violet-400', bg: 'bg-violet-500/10' },
   other:            { icon: Bell,       color: 'text-slate-400', bg: 'bg-slate-500/10' },
 }
 

@@ -1,6 +1,22 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase-server'
 import { Webhook } from 'svix'
+import { randomUUID } from 'crypto'
+import { notifyAdmin } from '@/lib/admin-notify'
+import { htmlToText } from '@/lib/inbox-render'
+import {
+  classifyEmail,
+  findProfileByEmail,
+  findThread,
+  getInboxSettings,
+  normalizeHeaders,
+  parseMessageIds,
+  recordRuleHit,
+} from '@/lib/inbox'
+import { aiAvailable, triageWithAi } from '@/lib/inbox-ai'
+
+// Le tri par l'IA s'ajoute au temps de traitement du webhook.
+export const maxDuration = 60
 
 /**
  * POST /api/emails/inbound
@@ -179,52 +195,36 @@ export async function POST(request: Request) {
       bodyKeys: emailPayload?.body ? Object.keys(emailPayload.body) : []
     })
 
-    // If no content in webhook, fetch it from Resend API
+    // Le webhook ne transporte ni les en-têtes ni, souvent, le contenu : on
+    // relit le message complet via l'API Resend. Les en-têtes servent à
+    // rattacher une réponse à sa conversation (In-Reply-To, References) et à
+    // reconnaître les réponses automatiques (Auto-Submitted).
     let finalHtml = html
     let finalText = text
+    let rawHeaders: unknown = headers
 
-    if ((!html && !text) && email_id) {
-      console.log('📥 No content in webhook payload. Fetching from Resend API...')
-
+    const resendApiKey = process.env.RESEND_API_KEY
+    if (email_id && resendApiKey) {
       try {
-        const resendApiKey = process.env.RESEND_API_KEY
-        if (!resendApiKey) {
-          console.warn('⚠️  RESEND_API_KEY not configured. Cannot fetch email content.')
-        } else {
-          const response = await fetch(
-            `https://api.resend.com/emails/receiving/${email_id}`,
-            {
-              method: 'GET',
-              headers: {
-                'Authorization': `Bearer ${resendApiKey}`,
-                'Content-Type': 'application/json',
-              },
-            }
-          )
-
-          if (response.ok) {
-            const emailData = await response.json()
-            finalHtml = emailData.html || null
-            finalText = emailData.text || null
-            console.log('✅ Email content fetched from Resend API:', {
-              hasHtml: !!finalHtml,
-              hasText: !!finalText,
-              htmlLength: finalHtml?.length || 0,
-              textLength: finalText?.length || 0,
-            })
-          } else {
-            console.error('❌ Failed to fetch email content from Resend API:', {
-              status: response.status,
-              statusText: response.statusText,
-            })
+        const response = await fetch(`https://api.resend.com/emails/receiving/${email_id}`, {
+          method: 'GET',
+          headers: { Authorization: `Bearer ${resendApiKey}`, 'Content-Type': 'application/json' },
+        })
+        if (response.ok) {
+          const emailData = await response.json()
+          finalHtml = finalHtml || emailData.html || null
+          finalText = finalText || emailData.text || null
+          if (emailData.headers && Object.keys(normalizeHeaders(emailData.headers)).length) {
+            rawHeaders = emailData.headers
           }
+        } else {
+          console.error('❌ Failed to fetch email from Resend API:', response.status, response.statusText)
         }
       } catch (error: any) {
-        console.error('❌ Error fetching email content from Resend API:', error.message)
+        console.error('❌ Error fetching email from Resend API:', error.message)
       }
     }
 
-    // Warn if still no content after API call
     if (!finalHtml && !finalText) {
       console.warn('⚠️  No email content found after webhook and API check.')
     }
@@ -244,19 +244,83 @@ export async function POST(request: Request) {
     const fromName = fromResolved.name
     const fromEmail = fromResolved.email || ''
     const toEmail = toResolved.email || ''
+    const normalizedHeaders = normalizeHeaders(rawHeaders)
+    const plainText = finalText || (finalHtml ? htmlToText(finalHtml) : '')
 
-    // Auto-categorize based on sender or content
-    let category = 'general'
-    const lowerSubject = subject.toLowerCase()
-    const lowerFrom = fromEmail.toLowerCase()
-
-    if (lowerSubject.includes('parrain') || lowerSubject.includes('référal') || lowerSubject.includes('commission')) {
-      category = 'parrainage'
-    } else if (lowerSubject.includes('support') || lowerSubject.includes('aide') || lowerSubject.includes('problème')) {
-      category = 'support'
-    } else if (lowerFrom.includes('spam') || lowerSubject.includes('viagra') || lowerSubject.includes('casino')) {
-      category = 'spam'
+    // Idempotence : Resend peut rejouer un webhook.
+    if (message_id) {
+      const { data: deja } = await supabaseAdmin
+        .from('received_emails')
+        .select('id')
+        .eq('resend_message_id', message_id)
+        .limit(1)
+      if (deja?.[0]) {
+        return NextResponse.json({ success: true, emailId: deja[0].id, duplicate: true })
+      }
     }
+
+    const profile = await findProfileByEmail(fromEmail)
+    const inReplyTo = parseMessageIds(normalizedHeaders['in-reply-to'])[0] || null
+    const references = parseMessageIds(normalizedHeaders['references'])
+
+    // Conversation existante ?
+    const thread = await findThread({
+      fromEmail,
+      subject,
+      messageIds: [...(inReplyTo ? [inReplyTo] : []), ...references],
+    })
+
+    // Classement
+    const settings = await getInboxSettings()
+    const classification = await classifyEmail({
+      fromEmail,
+      fromName,
+      subject,
+      text: plainText,
+      headers: normalizedHeaders,
+      isKnownCustomer: Boolean(profile),
+    })
+
+    let category = classification.category
+    let status = classification.status
+    let categorySource: string = classification.source
+    let categoryReason = classification.reason
+    let aiSummary: string | null = null
+
+    // Une réponse dans un fil garde la catégorie du fil (surtout si elle a été
+    // choisie à la main), sauf si le nouveau message est clairement autre chose.
+    if (thread && category !== 'spam' && category !== 'notification' && classification.source !== 'rule') {
+      if (thread.category !== 'general' || thread.category_source === 'manual') {
+        category = thread.category
+        categorySource = thread.category_source === 'manual' ? 'manual' : categorySource
+        categoryReason = 'Suite d’une conversation'
+      }
+      status = 'todo'
+    }
+
+    // L'IA tranche quand le tri déterministe hésite, et résume ce qui mérite
+    // d'être lu.
+    if (settings.ai_enabled && aiAvailable() && category !== 'spam' && category !== 'notification') {
+      const triage = await triageWithAi({
+        fromEmail,
+        fromName,
+        subject,
+        text: plainText,
+        isKnownCustomer: Boolean(profile),
+        heuristicHint: `${classification.category} (${classification.reason})`,
+      })
+      if (triage) {
+        aiSummary = triage.summary || null
+        if (!classification.confident && !thread && classification.source !== 'rule') {
+          category = profile && (triage.category === 'spam' || triage.category === 'prospection') ? category : triage.category
+          categorySource = 'ai'
+          categoryReason = 'Classé par l’IA'
+          status = category === 'spam' || category === 'notification' || category === 'prospection' || !triage.needs_reply ? 'done' : 'todo'
+        }
+      }
+    }
+
+    if (classification.ruleId) await recordRuleHit(classification.ruleId)
 
     // Process attachments to extract relevant info
     const processedAttachments = (attachments || []).map((att: any) => ({
@@ -265,11 +329,20 @@ export async function POST(request: Request) {
       contentType: att.content_type,
       size: att.size,
       contentId: att.content_id,
-      // Note: Resend doesn't send the actual file content in webhooks
-      // You need to fetch it separately using their API if needed
     }))
 
-    // Insert email into database
+    const now = new Date().toISOString()
+    const threadId = thread?.thread_id || randomUUID()
+
+    // Le nouveau message devient la tête de la conversation.
+    if (thread) {
+      await supabaseAdmin
+        .from('received_emails')
+        .update({ is_latest: false })
+        .eq('thread_id', threadId)
+        .eq('is_latest', true)
+    }
+
     const { data: insertedEmail, error: insertError } = await supabaseAdmin
       .from('received_emails')
       .insert({
@@ -281,41 +354,64 @@ export async function POST(request: Request) {
         text_content: finalText || null,
         resend_message_id: message_id || null,
         resend_email_id: email_id || null,
-        headers: headers || {},
+        headers: normalizedHeaders,
         attachments: processedAttachments,
-        category: category,
+        category,
+        category_source: categorySource,
+        category_reason: categoryReason,
+        ai_summary: aiSummary,
+        status,
+        status_changed_at: now,
+        thread_id: threadId,
+        is_latest: true,
+        profile_id: profile?.id || null,
+        in_reply_to: inReplyTo,
+        references_ids: references,
         is_read: false,
         is_archived: false,
-        received_at: new Date().toISOString()
+        received_at: now,
       })
       .select()
       .single()
 
     if (insertError) {
       console.error('❌ Error inserting email into database:', insertError)
+      if (thread) {
+        // Remet l'ancienne tête de fil en place.
+        const { data: precedent } = await supabaseAdmin
+          .from('received_emails')
+          .select('id')
+          .eq('thread_id', threadId)
+          .order('received_at', { ascending: false })
+          .limit(1)
+        if (precedent?.[0]) {
+          await supabaseAdmin.from('received_emails').update({ is_latest: true }).eq('id', precedent[0].id)
+        }
+      }
       return NextResponse.json(
         { error: 'Failed to store email', details: insertError.message },
         { status: 500 }
       )
     }
 
-    console.log('✅ Email stored successfully:', {
-      id: insertedEmail.id,
-      from: fromEmail,
-      subject: subject,
-      category: category
-    })
+    console.log('✅ Email stored successfully:', { id: insertedEmail.id, from: fromEmail, category, status })
 
-    // TODO: Send notification to admin if important category
-    if (category === 'parrainage' || category === 'support') {
-      // Could trigger a push notification or browser notification here
-      console.log('📬 Important email received in category:', category)
+    // Cloche admin : seulement ce qui attend une réponse, dans les catégories
+    // choisies, ou venant d'un client. Le reste (spam, notifications,
+    // prospection) rendrait la cloche inutilisable.
+    if (status === 'todo' && (settings.notify_categories.includes(category) || profile)) {
+      await notifyAdmin(
+        'inbox',
+        `${thread ? 'Nouvelle réponse' : 'Nouvel email'} de ${fromName || fromEmail}`,
+        aiSummary || subject
+      )
     }
 
     return NextResponse.json({
       success: true,
       emailId: insertedEmail.id,
-      category: category
+      category,
+      status,
     })
   } catch (error: any) {
     console.error('❌ Error processing inbound email webhook:', error)

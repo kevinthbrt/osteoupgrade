@@ -74,7 +74,7 @@ export default function AdminPage() {
     try {
       const [ticketsRes, emailsRes] = await Promise.all([
         fetch('/api/admin/support'),
-        fetch('/api/emails/list?is_read=false&is_archived=false&limit=100'),
+        fetch('/api/admin/inbox?view=todo&limit=1'),
       ])
 
       const newCounts: Counts = { tickets: 0, emails: 0 }
@@ -85,7 +85,8 @@ export default function AdminPage() {
       }
       if (emailsRes.ok) {
         const d = await emailsRes.json()
-        newCounts.emails = d.emails?.length ?? 0
+        // Conversations « à traiter » : un email lu mais sans réponse compte encore.
+        newCounts.emails = d.counts?.todo ?? 0
       }
 
       setCounts(newCounts)

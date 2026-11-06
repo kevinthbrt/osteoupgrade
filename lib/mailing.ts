@@ -17,6 +17,9 @@ interface EmailPayload {
   }[]
   /** Set to true to skip appending the unsubscribe footer (e.g. for transactional-only emails) */
   skipUnsubscribeFooter?: boolean
+  /** En-têtes supplémentaires (ex. In-Reply-To / References pour répondre dans un fil). */
+  headers?: Record<string, string>
+  replyTo?: string | string[]
 }
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY
@@ -66,13 +69,13 @@ async function sendWithResend(payload: EmailPayload) {
 
   // For marketing/newsletter emails, inject unsubscribe footer and headers
   let finalHtml = payload.html
-  let headers: Record<string, string> = {}
+  let headers: Record<string, string> = { ...(payload.headers || {}) }
 
   if (!payload.skipUnsubscribeFooter && recipients.length > 0) {
     // Use the first recipient for single sends; for bulk, each email should ideally be sent individually
     const primaryRecipient = recipients[0]
     finalHtml = injectUnsubscribeFooter(payload.html, primaryRecipient)
-    headers = getUnsubscribeHeaders(primaryRecipient)
+    headers = { ...headers, ...getUnsubscribeHeaders(primaryRecipient) }
   }
 
   const response = await fetch('https://api.resend.com/emails', {
@@ -88,6 +91,7 @@ async function sendWithResend(payload: EmailPayload) {
       html: finalHtml,
       text: payload.text,
       tags,
+      reply_to: payload.replyTo,
       headers: Object.keys(headers).length > 0 ? headers : undefined,
       attachments: payload.attachments?.map((file) => ({
         filename: file.filename,

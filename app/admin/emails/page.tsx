@@ -1,483 +1,592 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import {
-  Mail, MailOpen, Archive, Trash2, Search, RefreshCw,
-  ChevronLeft, Clock, User, Paperclip, Pencil, Reply,
-  Send, X, Loader2
+  Archive, CheckCircle2, Clock, Inbox, Loader2, Mail, MailOpen, Paperclip, Pencil, RefreshCw,
+  Reply, Search, Settings2, ShieldAlert, Sparkles, X, Crown, Layers, CircleDot,
 } from 'lucide-react'
 import AuthLayout from '@/components/AuthLayout'
 import AdminBackButton from '@/components/AdminBackButton'
+import FicheClient from '@/app/admin/clients/FicheClient'
+import { CATEGORY_LABELS, INBOX_CATEGORIES, STATUS_LABELS } from '@/lib/inbox-render'
+import { planLabel, planOf } from '@/lib/entitlements'
+import Composer from './Composer'
+import SettingsDrawer from './SettingsDrawer'
+import ThreadView from './ThreadView'
+import {
+  CATEGORY_STYLE, STATUS_STYLE, api, avatarColor, initials, relativeDate, sinceLabel,
+  type InboxCategory, type InboxCounts, type InboxSettings, type InboxStatus, type InboxTemplate, type InboxView,
+  type ThreadDetail, type ThreadRow,
+} from './inbox-types'
 
-interface Email {
-  id: string
-  from_email: string
-  from_name: string | null
-  to_email: string
-  subject: string
-  html_content?: string
-  text_content?: string
-  resend_email_id?: string
-  category: 'parrainage' | 'support' | 'general' | 'spam'
-  is_read: boolean
-  is_archived: boolean
-  received_at: string
-  attachments: any[]
-  tags: string[]
+const VIEWS: { key: InboxView; label: string; icon: any }[] = [
+  { key: 'todo', label: 'À traiter', icon: CircleDot },
+  { key: 'waiting', label: 'En attente du client', icon: Clock },
+  { key: 'done', label: 'Traités', icon: CheckCircle2 },
+  { key: 'unread', label: 'Non lus', icon: Mail },
+  { key: 'all', label: 'Tout', icon: Layers },
+  { key: 'archived', label: 'Archivés', icon: Archive },
+]
+
+const DEFAULT_SETTINGS: InboxSettings = {
+  from_name: 'OsteoUpgrade',
+  signature: 'Belle journée,\nL’équipe OsteoUpgrade × MyOsteoflow',
+  default_layout: 'simple',
+  quote_original: true,
+  ai_enabled: true,
+  notify_categories: ['support', 'facturation', 'parrainage'],
 }
 
-interface EmailCounts {
-  total: number
-  unread: number
-  parrainage: number
-  support: number
-  general: number
-  spam: number
-}
+type Patch = { status?: InboxStatus; category?: InboxCategory; is_read?: boolean; is_archived?: boolean }
 
-interface ComposeData {
-  to: string
-  subject: string
-  body: string
-}
-
-const CATEGORY_STYLES: Record<string, { label: string; pill: string; sidebar: string }> = {
-  parrainage: { label: 'Parrainage', pill: 'bg-amber-100 text-amber-800 border-amber-300', sidebar: 'bg-amber-50 text-amber-700 hover:bg-amber-100' },
-  support:    { label: 'Support',    pill: 'bg-blue-100 text-blue-800 border-blue-300',   sidebar: 'bg-blue-50 text-blue-700 hover:bg-blue-100' },
-  general:    { label: 'Général',    pill: 'bg-slate-100 text-slate-700 border-slate-300', sidebar: 'bg-slate-50 text-slate-700 hover:bg-slate-100' },
-  spam:       { label: 'Spam',       pill: 'bg-red-100 text-red-700 border-red-300',       sidebar: 'bg-red-50 text-red-700 hover:bg-red-100' },
-}
-
-function relativeDate(dateStr: string) {
-  const diff = Date.now() - new Date(dateStr).getTime()
-  const mins = Math.floor(diff / 60000)
-  const hours = Math.floor(diff / 3600000)
-  const days = Math.floor(diff / 86400000)
-  if (mins < 60) return `${mins}m`
-  if (hours < 24) return `${hours}h`
-  if (days === 1) return 'Hier'
-  if (days < 7) return `${days}j`
-  return new Date(dateStr).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' })
-}
-
-function fullDate(dateStr: string) {
-  return new Date(dateStr).toLocaleString('fr-FR', {
-    day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit'
-  })
-}
-
-export default function AdminEmailsPage() {
-  const [emails, setEmails] = useState<Email[]>([])
-  const [selectedEmail, setSelectedEmail] = useState<Email | null>(null)
+export default function AdminInboxPage() {
+  const [view, setView] = useState<InboxView>('todo')
+  const [category, setCategory] = useState<InboxCategory | null>(null)
+  const [query, setQuery] = useState('')
+  const [debouncedQuery, setDebouncedQuery] = useState('')
+  const [threads, setThreads] = useState<ThreadRow[]>([])
+  const [counts, setCounts] = useState<InboxCounts | null>(null)
   const [loading, setLoading] = useState(true)
-  const [counts, setCounts] = useState<EmailCounts>({ total: 0, unread: 0, parrainage: 0, support: 0, general: 0, spam: 0 })
+  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [detail, setDetail] = useState<ThreadDetail | null>(null)
+  const [detailLoading, setDetailLoading] = useState(false)
+  const [checked, setChecked] = useState<Set<string>>(new Set())
+  const [composerOpen, setComposerOpen] = useState(false)
+  const [newOpen, setNewOpen] = useState(false)
+  const [settingsOpen, setSettingsOpen] = useState(false)
+  const [templates, setTemplates] = useState<InboxTemplate[]>([])
+  const [settings, setSettings] = useState<InboxSettings>(DEFAULT_SETTINGS)
+  const [aiAvailable, setAiAvailable] = useState(false)
+  const [ficheId, setFicheId] = useState<string | null>(null)
+  const [toast, setToast] = useState<string | null>(null)
+  const listRef = useRef<HTMLDivElement>(null)
 
-  const [categoryFilter, setCategoryFilter] = useState<string | null>(null)
-  const [isReadFilter, setIsReadFilter] = useState<boolean | null>(null)
-  const [searchQuery, setSearchQuery] = useState('')
-  const searchTimeout = useRef<ReturnType<typeof setTimeout>>()
-
-  // Compose modal
-  const [showCompose, setShowCompose] = useState(false)
-  const [compose, setCompose] = useState<ComposeData>({ to: '', subject: '', body: '' })
-  const [sending, setSending] = useState(false)
-  const [sendResult, setSendResult] = useState<{ ok: boolean; msg: string } | null>(null)
-
-  useEffect(() => { loadEmails() }, [categoryFilter, isReadFilter])
+  const notify = useCallback((msg: string) => {
+    setToast(msg)
+    setTimeout(() => setToast(null), 3500)
+  }, [])
 
   useEffect(() => {
-    clearTimeout(searchTimeout.current)
-    searchTimeout.current = setTimeout(loadEmails, 400)
-    return () => clearTimeout(searchTimeout.current)
-  }, [searchQuery])
+    const t = setTimeout(() => setDebouncedQuery(query.trim()), 250)
+    return () => clearTimeout(t)
+  }, [query])
 
-  async function loadEmails() {
+  const loadThreads = useCallback(async () => {
     setLoading(true)
     try {
-      const p = new URLSearchParams()
-      if (categoryFilter) p.set('category', categoryFilter)
-      if (isReadFilter !== null) p.set('is_read', String(isReadFilter))
-      if (searchQuery) p.set('search', searchQuery)
-      p.set('is_archived', 'false')
-      const res = await fetch(`/api/emails/list?${p}`)
-      const data = await res.json()
-      if (res.ok) { setEmails(data.emails || []); setCounts(data.counts || counts) }
-    } catch (e) { console.error(e) } finally { setLoading(false) }
+      const p = new URLSearchParams({ view })
+      if (category) p.set('category', category)
+      if (debouncedQuery) p.set('q', debouncedQuery)
+      const data = await api<{ threads: ThreadRow[]; counts: InboxCounts }>(`/api/admin/inbox?${p}`)
+      setThreads(data.threads)
+      setCounts(data.counts)
+    } catch (e: any) {
+      notify(e.message)
+    } finally {
+      setLoading(false)
+    }
+  }, [view, category, debouncedQuery, notify])
+
+  useEffect(() => {
+    loadThreads()
+    setChecked(new Set())
+  }, [loadThreads])
+
+  useEffect(() => {
+    Promise.all([
+      api<{ templates: InboxTemplate[] }>('/api/admin/inbox/templates'),
+      api<{ settings: InboxSettings; aiAvailable: boolean }>('/api/admin/inbox/settings'),
+    ])
+      .then(([t, s]) => {
+        setTemplates(t.templates)
+        setSettings(s.settings)
+        setAiAvailable(s.aiAvailable)
+      })
+      .catch(() => {})
+  }, [])
+
+  // Rafraîchissement discret toutes les 60 s, onglet visible seulement.
+  useEffect(() => {
+    const id = setInterval(() => {
+      if (document.visibilityState === 'visible' && !composerOpen && !newOpen) loadThreads()
+    }, 60000)
+    return () => clearInterval(id)
+  }, [loadThreads, composerOpen, newOpen])
+
+  const openThread = useCallback(async (threadId: string, opts?: { reply?: boolean }) => {
+    setSelectedId(threadId)
+    setComposerOpen(Boolean(opts?.reply))
+    setDetailLoading(true)
+    try {
+      const d = await api<ThreadDetail>(`/api/admin/inbox/${threadId}`)
+      setDetail(d)
+      setThreads((prev) => prev.map((t) => (t.thread_id === threadId ? { ...t, is_read: true } : t)))
+      setCounts((prev) => {
+        const row = threads.find((t) => t.thread_id === threadId)
+        return prev && row && !row.is_read ? { ...prev, unread: Math.max(0, prev.unread - 1) } : prev
+      })
+    } catch (e: any) {
+      notify(e.message)
+      setDetail(null)
+    } finally {
+      setDetailLoading(false)
+    }
+  }, [threads, notify])
+
+  async function patchThreads(threadIds: string[], patch: Patch, opts?: { silent?: boolean }) {
+    if (!threadIds.length) return
+    try {
+      await api('/api/admin/inbox', { method: 'PATCH', json: { threadIds, patch } })
+    } catch (e: any) {
+      return notify(e.message)
+    }
+    const sortDeLaVue = (t: ThreadRow) => {
+      const merged = { ...t, ...patch }
+      if (view === 'archived') return !merged.is_archived
+      if (merged.is_archived) return true
+      if (view === 'todo' || view === 'waiting' || view === 'done') return merged.status !== view
+      if (view === 'unread') return merged.is_read
+      if (category && merged.category !== category) return true
+      return false
+    }
+    setThreads((prev) =>
+      prev
+        .map((t) => (threadIds.includes(t.thread_id) ? { ...t, ...patch } : t))
+        .filter((t) => !(threadIds.includes(t.thread_id) && sortDeLaVue(t)))
+    )
+    if (detail && threadIds.includes(detail.thread.thread_id)) {
+      setDetail({ ...detail, thread: { ...detail.thread, ...patch } as any })
+    }
+    if (!opts?.silent) {
+      const libelle = patch.status
+        ? `Marqué « ${STATUS_LABELS[patch.status]} »`
+        : patch.category
+          ? `Classé en ${CATEGORY_LABELS[patch.category]}`
+          : patch.is_archived !== undefined
+            ? patch.is_archived ? 'Archivé' : 'Désarchivé'
+            : patch.is_read === false ? 'Marqué non lu' : 'Mis à jour'
+      notify(threadIds.length > 1 ? `${libelle} (${threadIds.length})` : libelle)
+    }
+    setChecked(new Set())
+    // Les compteurs se recalculent côté serveur.
+    loadCountsSoon()
   }
 
-  async function openEmail(email: Email) {
-    const res = await fetch(`/api/emails/${email.id}`)
-    const data = await res.json()
-    if (res.ok) {
-      setSelectedEmail(data.email)
-      setEmails(prev => prev.map(e => e.id === email.id ? { ...e, is_read: true } : e))
-      if (!email.is_read) setCounts(prev => ({ ...prev, unread: Math.max(0, prev.unread - 1) }))
+  const countsTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  function loadCountsSoon() {
+    if (countsTimer.current) clearTimeout(countsTimer.current)
+    countsTimer.current = setTimeout(async () => {
+      try {
+        const p = new URLSearchParams({ view, limit: '1' })
+        const data = await api<{ counts: InboxCounts }>(`/api/admin/inbox?${p}`)
+        setCounts(data.counts)
+      } catch {}
+    }, 400)
+  }
+
+  /** Après une action sur la conversation ouverte, passe à la suivante. */
+  function advanceFrom(threadId: string) {
+    const idx = threads.findIndex((t) => t.thread_id === threadId)
+    const next = threads[idx + 1] || threads[idx - 1]
+    if (next && next.thread_id !== threadId) openThread(next.thread_id)
+    else {
+      setSelectedId(null)
+      setDetail(null)
     }
   }
 
-  async function patchEmail(emailId: string, patch: object) {
-    await fetch(`/api/emails/${emailId}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(patch)
-    })
+  async function patchCurrent(patch: Patch) {
+    if (!detail) return
+    const id = detail.thread.thread_id
+    const quitteLaVue =
+      patch.is_archived !== undefined ||
+      (patch.status && (view === 'todo' || view === 'waiting' || view === 'done') && patch.status !== view)
+    await patchThreads([id], patch)
+    if (patch.is_read === false) {
+      setSelectedId(null)
+      setDetail(null)
+    } else if (quitteLaVue) advanceFrom(id)
   }
 
-  async function toggleRead(email: Email) {
-    await patchEmail(email.id, { is_read: !email.is_read })
-    const delta = email.is_read ? 1 : -1
-    setEmails(prev => prev.map(e => e.id === email.id ? { ...e, is_read: !email.is_read } : e))
-    if (selectedEmail?.id === email.id) setSelectedEmail({ ...selectedEmail, is_read: !email.is_read })
-    setCounts(prev => ({ ...prev, unread: prev.unread + delta }))
-  }
-
-  async function changeCategory(email: Email, category: string) {
-    await patchEmail(email.id, { category })
-    setEmails(prev => prev.map(e => e.id === email.id ? { ...e, category: category as Email['category'] } : e))
-    if (selectedEmail?.id === email.id) setSelectedEmail({ ...selectedEmail, category: category as Email['category'] })
-  }
-
-  async function archiveEmail(emailId: string) {
-    await patchEmail(emailId, { is_archived: true })
-    setEmails(prev => prev.filter(e => e.id !== emailId))
-    if (selectedEmail?.id === emailId) setSelectedEmail(null)
-  }
-
-  async function deleteEmail(emailId: string) {
-    if (!confirm('Supprimer cet email définitivement ?')) return
-    await fetch(`/api/emails/${emailId}`, { method: 'DELETE' })
-    setEmails(prev => prev.filter(e => e.id !== emailId))
-    if (selectedEmail?.id === emailId) setSelectedEmail(null)
-  }
-
-  function openReply(email: Email) {
-    setCompose({ to: email.from_email, subject: `Re: ${email.subject}`, body: '' })
-    setShowCompose(true)
-    setSendResult(null)
-  }
-
-  function openCompose() {
-    setCompose({ to: '', subject: '', body: '' })
-    setShowCompose(true)
-    setSendResult(null)
-  }
-
-  async function handleSend() {
-    if (!compose.to || !compose.subject || !compose.body) return
-    setSending(true)
-    setSendResult(null)
+  async function deleteCurrent() {
+    if (!detail) return
+    if (!confirm('Supprimer définitivement toute la conversation ?')) return
+    const id = detail.thread.thread_id
     try {
-      const res = await fetch('/api/mailing/send', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          to: compose.to,
-          subject: compose.subject,
-          html: compose.body.replace(/\n/g, '<br>'),
-          text: compose.body,
-          audienceMode: 'manual'
-        })
-      })
-      const data = await res.json()
-      if (res.ok) {
-        setSendResult({ ok: true, msg: 'Email envoyé avec succès !' })
-        setTimeout(() => setShowCompose(false), 1500)
-      } else {
-        setSendResult({ ok: false, msg: data.error || 'Erreur lors de l\'envoi' })
-      }
-    } catch { setSendResult({ ok: false, msg: 'Erreur réseau' }) }
-    finally { setSending(false) }
+      await api(`/api/admin/inbox/${id}`, { method: 'DELETE' })
+      advanceFrom(id)
+      setThreads((prev) => prev.filter((t) => t.thread_id !== id))
+      notify('Conversation supprimée')
+      loadCountsSoon()
+    } catch (e: any) {
+      notify(e.message)
+    }
   }
 
-  const navItems = [
-    { label: 'Tous', count: counts.total, active: !categoryFilter && isReadFilter === null, onClick: () => { setCategoryFilter(null); setIsReadFilter(null) }, style: 'bg-purple-100 text-purple-700' },
-    { label: 'Non lus', count: counts.unread, active: isReadFilter === false && !categoryFilter, onClick: () => { setCategoryFilter(null); setIsReadFilter(false) }, style: 'bg-purple-100 text-purple-700' },
-  ]
+  // ── Raccourcis clavier ───────────────────────────────────────────────────
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      const el = e.target as HTMLElement
+      if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT' || el.isContentEditable)) return
+      if (e.metaKey || e.ctrlKey || e.altKey) return
+      if (settingsOpen || newOpen || ficheId) return
+      const idx = threads.findIndex((t) => t.thread_id === selectedId)
+      if (e.key === 'j' || e.key === 'ArrowDown') {
+        const next = threads[Math.min(idx + 1, threads.length - 1)]
+        if (next) { e.preventDefault(); openThread(next.thread_id) }
+      } else if (e.key === 'k' || e.key === 'ArrowUp') {
+        const prev = threads[Math.max(idx - 1, 0)]
+        if (prev) { e.preventDefault(); openThread(prev.thread_id) }
+      } else if (e.key === 'r' && detail) {
+        e.preventDefault()
+        setComposerOpen(true)
+      } else if (e.key === 'e' && detail) {
+        e.preventDefault()
+        patchCurrent({ status: 'done' })
+      } else if (e.key === 'a' && detail) {
+        e.preventDefault()
+        patchCurrent({ is_archived: true })
+      } else if (e.key === 'u' && detail) {
+        e.preventDefault()
+        patchCurrent({ is_read: false })
+      } else if (e.key === 'c') {
+        e.preventDefault()
+        setNewOpen(true)
+      } else if (e.key === '/') {
+        e.preventDefault()
+        document.getElementById('inbox-search')?.focus()
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  })
+
+  useEffect(() => {
+    if (!selectedId) return
+    listRef.current?.querySelector(`[data-thread="${selectedId}"]`)?.scrollIntoView({ block: 'nearest' })
+  }, [selectedId])
+
+  const allChecked = threads.length > 0 && threads.every((t) => checked.has(t.thread_id))
+  const checkedIds = Array.from(checked)
 
   return (
     <AuthLayout>
-      <div className="min-h-screen -m-6 md:-m-8">
-
-        {/* ── Header ── */}
-        <div className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 px-6 md:px-10 pt-8 pb-6">
-          <div className="absolute top-0 left-0 w-72 h-72 bg-purple-500/15 rounded-full blur-3xl animate-pulse -translate-x-1/2 -translate-y-1/4" style={{ animationDuration: '4s' }} />
-          <div className="absolute top-1/2 right-0 w-56 h-56 bg-indigo-400/10 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '6s', animationDelay: '2s' }} />
-          <div className="absolute bottom-0 right-1/4 w-48 h-48 bg-sky-400/15 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '5s', animationDelay: '1s' }} />
-          <div className="relative">
-            <div className="bg-white/[0.09] backdrop-blur-xl border border-white/20 ring-1 ring-inset ring-white/15 rounded-3xl p-6 md:p-8 shadow-[0_12px_40px_rgba(0,8,30,0.65),inset_0_1px_0_rgba(255,255,255,0.12)] flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-              <div>
-                <p className="text-purple-300 text-sm font-medium mb-1 tracking-wide flex items-center gap-2">
-                  <AdminBackButton />
-                  <Mail className="h-4 w-4" /> Administration
+      <div className="-m-6 md:-m-8 min-h-screen bg-gradient-to-br from-slate-50 via-violet-50/40 to-sky-50/60 flex flex-col">
+        {/* ── En-tête ── */}
+        <header className="relative overflow-hidden bg-gradient-to-r from-slate-900 via-indigo-950 to-violet-950 px-4 md:px-8 py-5">
+          <div className="pointer-events-none absolute -top-16 -left-10 w-72 h-72 bg-violet-500/20 rounded-full blur-3xl" />
+          <div className="pointer-events-none absolute -bottom-20 right-10 w-72 h-72 bg-sky-400/10 rounded-full blur-3xl" />
+          <div className="relative flex flex-wrap items-center gap-4">
+            <div className="flex-1 min-w-[200px]">
+              <p className="text-violet-300 text-xs font-medium tracking-wide flex items-center gap-2">
+                <AdminBackButton /> Administration
+              </p>
+              <h1 className="mt-0.5 text-2xl md:text-3xl font-bold tracking-tight text-white flex items-center gap-2.5">
+                <Inbox className="h-7 w-7 text-violet-300" /> Boîte mail
+              </h1>
+              {counts && (
+                <p className="text-sm text-slate-300 mt-1">
+                  <span className="font-semibold text-white">{counts.todo}</span> à traiter
+                  <span className="mx-2 text-slate-500">·</span>
+                  {counts.waiting} en attente du client
+                  <span className="mx-2 text-slate-500">·</span>
+                  {counts.unread} non lu{counts.unread > 1 ? 's' : ''}
                 </p>
-                <h1 className="text-3xl md:text-4xl font-bold tracking-tight bg-gradient-to-r from-white via-purple-100 to-indigo-200 bg-clip-text text-transparent">
-                  Boîte mail
-                </h1>
-                <p className="text-blue-300/70 text-sm mt-1.5">{counts.unread} message{counts.unread !== 1 ? 's' : ''} non lu{counts.unread !== 1 ? 's' : ''}</p>
-              </div>
-              <div className="flex items-center gap-3">
-                <button onClick={loadEmails} className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/10 backdrop-blur-sm border border-white/20 text-white text-sm font-medium hover:bg-white/15 transition-all">
-                  <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-                  Actualiser
-                </button>
-                <button onClick={openCompose} className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-purple-500/90 backdrop-blur-sm border border-purple-400/30 text-white text-sm font-semibold hover:bg-purple-600 shadow-sm transition-all">
-                  <Pencil className="h-4 w-4" /> Composer
-                </button>
-              </div>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              <button type="button" onClick={loadThreads} title="Actualiser" className="p-2.5 rounded-xl bg-white/10 border border-white/15 text-white hover:bg-white/15">
+                <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+              </button>
+              <button type="button" onClick={() => setSettingsOpen(true)} className="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-white/10 border border-white/15 text-white text-sm hover:bg-white/15">
+                <Settings2 className="h-4 w-4" /> <span className="hidden sm:inline">Modèles et réglages</span>
+              </button>
+              <button type="button" onClick={() => setNewOpen(true)} className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-violet-500 text-white text-sm font-semibold hover:bg-violet-400 shadow-lg shadow-violet-900/40">
+                <Pencil className="h-4 w-4" /> Nouveau message
+              </button>
             </div>
           </div>
-          <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-purple-400/40 to-transparent" />
-        </div>
+        </header>
 
-        {/* ── Body ── */}
-        <div className="relative overflow-hidden bg-gradient-to-br from-blue-100/90 via-sky-50 to-indigo-50/80 px-4 md:px-6 pt-6 pb-10">
-          <div className="pointer-events-none absolute top-0 left-1/4 w-96 h-96 bg-purple-400/15 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '6s' }} />
-          <div className="pointer-events-none absolute bottom-0 left-0 w-72 h-72 bg-indigo-400/20 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '7s', animationDelay: '1s' }} />
-
-          <div className="relative flex gap-4 h-[calc(100vh-260px)] min-h-[500px]">
-
-            {/* ── Sidebar ── */}
-            <div className="w-48 flex-shrink-0 flex flex-col gap-2">
-              <div className="bg-white/85 backdrop-blur-2xl border border-white/70 shadow-xl ring-1 ring-inset ring-white/60 rounded-2xl p-3 flex flex-col gap-1">
-
-                {/* Search */}
-                <div className="relative mb-2">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
-                  <input
-                    type="text"
-                    placeholder="Rechercher…"
-                    value={searchQuery}
-                    onChange={e => setSearchQuery(e.target.value)}
-                    className="w-full pl-8 pr-3 py-2 text-xs bg-white/70 border border-blue-200/60 rounded-xl focus:ring-2 focus:ring-purple-300 outline-none"
-                  />
-                </div>
-
-                {navItems.map(item => (
-                  <button key={item.label} onClick={item.onClick}
-                    className={`flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition-colors ${item.active ? item.style : 'text-slate-600 hover:bg-white/60'}`}>
-                    <span>{item.label}</span>
-                    <span className="text-[11px] opacity-70">{item.count}</span>
-                  </button>
-                ))}
-
-                <div className="border-t border-blue-100/60 my-1" />
-                <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 px-3 py-1">Catégories</p>
-
-                {Object.entries(CATEGORY_STYLES).map(([key, cfg]) => (
-                  <button key={key} onClick={() => { setCategoryFilter(key); setIsReadFilter(null) }}
-                    className={`flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition-colors ${categoryFilter === key ? cfg.sidebar : 'text-slate-600 hover:bg-white/60'}`}>
-                    <span>{cfg.label}</span>
-                    <span className="text-[11px] opacity-70">{counts[key as keyof EmailCounts]}</span>
-                  </button>
-                ))}
-
-                <div className="border-t border-blue-100/60 my-1" />
-                <button onClick={() => { setCategoryFilter(null); setIsReadFilter(null); /* fetch archived */ }}
-                  className="flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium text-slate-500 hover:bg-white/60 transition-colors">
-                  <span>Archivés</span>
-                  <Archive className="h-3 w-3 opacity-50" />
+        {/* ── Corps ── */}
+        <div className="flex-1 flex min-h-0 h-[calc(100vh-128px)]">
+          {/* Barre latérale */}
+          <aside className="hidden md:flex w-60 shrink-0 flex-col gap-4 p-3 border-r border-slate-200/70 bg-white/60 backdrop-blur overflow-y-auto">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+              <input
+                id="inbox-search"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Rechercher  /"
+                className="w-full pl-8 pr-7 py-2 text-sm bg-white border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-violet-200"
+              />
+              {query && (
+                <button type="button" onClick={() => setQuery('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400">
+                  <X className="h-3.5 w-3.5" />
                 </button>
-              </div>
-            </div>
-
-            {/* ── Email list ── */}
-            <div className="w-72 flex-shrink-0 bg-white/85 backdrop-blur-2xl border border-white/70 shadow-xl ring-1 ring-inset ring-white/60 rounded-2xl overflow-hidden flex flex-col">
-              <div className="px-4 py-3 border-b border-blue-100/60 flex items-center justify-between">
-                <span className="text-xs font-semibold text-slate-600">{emails.length} message{emails.length !== 1 ? 's' : ''}</span>
-              </div>
-              <div className="flex-1 overflow-y-auto divide-y divide-blue-50">
-                {loading ? (
-                  <div className="flex items-center justify-center h-32 text-slate-400 text-sm gap-2">
-                    <Loader2 className="h-4 w-4 animate-spin" /> Chargement…
-                  </div>
-                ) : emails.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center h-40 text-slate-400 text-sm gap-2">
-                    <Mail className="h-8 w-8 opacity-30" />
-                    <span>Aucun email</span>
-                  </div>
-                ) : emails.map(email => (
-                  <button key={email.id} onClick={() => openEmail(email)}
-                    className={`w-full text-left px-4 py-3 hover:bg-purple-50/60 transition-colors relative ${selectedEmail?.id === email.id ? 'bg-purple-50/80 border-l-2 border-purple-500' : ''} ${!email.is_read ? 'bg-blue-50/40' : ''}`}>
-                    {!email.is_read && <span className="absolute left-1.5 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-purple-500" />}
-                    <div className="flex items-center justify-between mb-1 gap-2">
-                      <span className={`text-xs truncate ${!email.is_read ? 'font-bold text-slate-900' : 'font-medium text-slate-700'}`}>
-                        {email.from_name || email.from_email}
-                      </span>
-                      <span className="text-[10px] text-slate-400 flex-shrink-0">{relativeDate(email.received_at)}</span>
-                    </div>
-                    <p className={`text-xs truncate mb-1 ${!email.is_read ? 'font-semibold text-slate-800' : 'text-slate-600'}`}>
-                      {email.subject}
-                    </p>
-                    <div className="flex items-center gap-1.5">
-                      <span className={`px-1.5 py-0.5 rounded text-[10px] border ${CATEGORY_STYLES[email.category]?.pill || ''}`}>
-                        {CATEGORY_STYLES[email.category]?.label || email.category}
-                      </span>
-                      {email.attachments?.length > 0 && <Paperclip className="h-3 w-3 text-slate-400" />}
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* ── Detail panel ── */}
-            <div className="flex-1 bg-white/85 backdrop-blur-2xl border border-white/70 shadow-xl ring-1 ring-inset ring-white/60 rounded-2xl overflow-hidden flex flex-col">
-              {selectedEmail ? (
-                <>
-                  {/* Detail header */}
-                  <div className="px-6 py-4 border-b border-blue-100/60 flex items-start justify-between gap-4">
-                    <div className="flex-1 min-w-0">
-                      <h2 className="text-lg font-bold text-slate-900 truncate mb-1">{selectedEmail.subject}</h2>
-                      <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500">
-                        <span className="flex items-center gap-1">
-                          <User className="h-3.5 w-3.5" />
-                          <span className="font-medium text-slate-700">{selectedEmail.from_name || selectedEmail.from_email}</span>
-                          {selectedEmail.from_name && <span className="text-slate-400">&lt;{selectedEmail.from_email}&gt;</span>}
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <Clock className="h-3.5 w-3.5" />
-                          {fullDate(selectedEmail.received_at)}
-                        </span>
-                        <select
-                          value={selectedEmail.category}
-                          onChange={e => changeCategory(selectedEmail, e.target.value)}
-                          className={`px-2 py-0.5 rounded-full border text-[10px] font-semibold cursor-pointer outline-none ${CATEGORY_STYLES[selectedEmail.category]?.pill}`}
-                        >
-                          {Object.entries(CATEGORY_STYLES).map(([k, v]) => (
-                            <option key={k} value={k}>{v.label}</option>
-                          ))}
-                        </select>
-                      </div>
-                    </div>
-                    {/* Actions */}
-                    <div className="flex items-center gap-2 flex-shrink-0">
-                      <button onClick={() => openReply(selectedEmail)}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-500/90 text-white text-xs font-semibold hover:bg-purple-600 transition-all">
-                        <Reply className="h-3.5 w-3.5" /> Répondre
-                      </button>
-                      <button onClick={() => toggleRead(selectedEmail)} title={selectedEmail.is_read ? 'Marquer non lu' : 'Marquer lu'}
-                        className="p-2 rounded-xl bg-white/70 border border-blue-200/60 text-slate-500 hover:bg-white/90 transition-all">
-                        {selectedEmail.is_read ? <Mail className="h-4 w-4" /> : <MailOpen className="h-4 w-4" />}
-                      </button>
-                      <button onClick={() => archiveEmail(selectedEmail.id)} title="Archiver"
-                        className="p-2 rounded-xl bg-white/70 border border-blue-200/60 text-slate-500 hover:bg-white/90 transition-all">
-                        <Archive className="h-4 w-4" />
-                      </button>
-                      <button onClick={() => deleteEmail(selectedEmail.id)} title="Supprimer"
-                        className="p-2 rounded-xl bg-red-50 border border-red-200/60 text-red-500 hover:bg-red-100 transition-all">
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Body */}
-                  <div className="flex-1 overflow-y-auto px-6 py-5">
-                    {selectedEmail.html_content ? (
-                      <div className="prose prose-sm max-w-none text-slate-700"
-                        dangerouslySetInnerHTML={{ __html: selectedEmail.html_content }} />
-                    ) : (
-                      <pre className="whitespace-pre-wrap text-sm text-slate-700 font-sans">
-                        {selectedEmail.text_content || 'Aucun contenu'}
-                      </pre>
-                    )}
-                  </div>
-
-                  {/* Attachments */}
-                  {selectedEmail.attachments?.length > 0 && (
-                    <div className="border-t border-blue-100/60 px-6 py-4">
-                      <p className="text-xs font-semibold text-slate-600 mb-2 flex items-center gap-1">
-                        <Paperclip className="h-3.5 w-3.5" /> {selectedEmail.attachments.length} pièce{selectedEmail.attachments.length > 1 ? 's' : ''} jointe{selectedEmail.attachments.length > 1 ? 's' : ''}
-                      </p>
-                      <div className="flex flex-wrap gap-2">
-                        {selectedEmail.attachments.map((att: any, i: number) => (
-                          <button key={i} onClick={async () => {
-                            const res = await fetch(`/api/emails/${selectedEmail.resend_email_id}/attachments/${att.id}`)
-                            if (res.ok) { const d = await res.json(); window.open(d.attachment.downloadUrl, '_blank') }
-                          }}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/70 border border-blue-200/60 text-xs text-slate-700 hover:bg-white/90 transition-all">
-                            <Paperclip className="h-3 w-3 text-slate-400" />
-                            {att.filename} <span className="text-slate-400">({Math.round(att.size / 1024)} KB)</span>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </>
-              ) : (
-                <div className="flex-1 flex flex-col items-center justify-center text-slate-400 gap-3">
-                  <MailOpen className="h-12 w-12 opacity-20" />
-                  <p className="text-sm">Sélectionnez un email pour le lire</p>
-                  <button onClick={openCompose}
-                    className="mt-2 inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-purple-500/90 text-white text-sm font-semibold hover:bg-purple-600 transition-all">
-                    <Pencil className="h-4 w-4" /> Nouveau message
-                  </button>
-                </div>
               )}
             </div>
 
-          </div>
-        </div>
+            <nav className="flex flex-col gap-0.5">
+              {VIEWS.map((v) => {
+                const n = counts ? (counts as any)[v.key] : null
+                const actif = view === v.key && !category
+                return (
+                  <button
+                    key={v.key}
+                    type="button"
+                    onClick={() => { setView(v.key); setCategory(null) }}
+                    className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm transition ${actif ? 'bg-violet-600 text-white shadow-sm' : view === v.key ? 'bg-violet-100 text-violet-800' : 'text-slate-600 hover:bg-white'}`}
+                  >
+                    <v.icon className="h-4 w-4" />
+                    <span className="flex-1 text-left">{v.label}</span>
+                    {n != null && n > 0 && (
+                      <span className={`text-[11px] font-semibold ${actif ? 'text-violet-100' : v.key === 'todo' ? 'text-violet-700' : 'text-slate-400'}`}>{n}</span>
+                    )}
+                  </button>
+                )
+              })}
+            </nav>
 
-        {/* ── Compose modal ── */}
-        {showCompose && (
-          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-4">
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col">
-              {/* Modal header */}
-              <div className="bg-gradient-to-r from-slate-800 to-slate-900 px-5 py-4 flex items-center justify-between">
-                <div className="flex items-center gap-2.5">
-                  <div className="flex items-center justify-center w-8 h-8 rounded-xl bg-purple-500/20 border border-purple-400/30">
-                    <Pencil className="h-4 w-4 text-purple-300" />
-                  </div>
-                  <h3 className="text-white font-semibold">{compose.subject.startsWith('Re:') ? 'Répondre' : 'Nouveau message'}</h3>
-                </div>
-                <button onClick={() => setShowCompose(false)} className="p-1.5 hover:bg-white/10 rounded-lg text-slate-400 hover:text-white transition">
-                  <X className="h-5 w-5" />
-                </button>
-              </div>
-
-              {/* Fields */}
-              <div className="p-5 space-y-3">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-500 mb-1">À</label>
-                  <input type="email" value={compose.to} onChange={e => setCompose(p => ({ ...p, to: e.target.value }))}
-                    placeholder="destinataire@email.com"
-                    className="w-full px-3 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-purple-300 focus:border-purple-400 outline-none" />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-slate-500 mb-1">Objet</label>
-                  <input type="text" value={compose.subject} onChange={e => setCompose(p => ({ ...p, subject: e.target.value }))}
-                    placeholder="Objet de l'email"
-                    className="w-full px-3 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-purple-300 focus:border-purple-400 outline-none" />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-slate-500 mb-1">Message</label>
-                  <textarea value={compose.body} onChange={e => setCompose(p => ({ ...p, body: e.target.value }))}
-                    rows={8} placeholder="Écrivez votre message…"
-                    className="w-full px-3 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-purple-300 focus:border-purple-400 outline-none resize-none" />
-                </div>
-
-                {sendResult && (
-                  <p className={`text-sm px-3 py-2 rounded-xl ${sendResult.ok ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'}`}>
-                    {sendResult.msg}
-                  </p>
-                )}
-              </div>
-
-              {/* Footer */}
-              <div className="px-5 pb-5 flex items-center justify-between">
-                <button onClick={() => setShowCompose(false)} className="px-4 py-2 text-sm text-slate-600 hover:text-slate-900 transition">
-                  Annuler
-                </button>
-                <button onClick={handleSend} disabled={sending || !compose.to || !compose.subject || !compose.body}
-                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-purple-600 text-white text-sm font-semibold hover:bg-purple-700 disabled:opacity-50 transition-all">
-                  {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                  {sending ? 'Envoi…' : 'Envoyer'}
-                </button>
+            <div>
+              <p className="px-3 mb-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400">Catégories</p>
+              <div className="flex flex-col gap-0.5">
+                {INBOX_CATEGORIES.map((c) => {
+                  const n = counts?.categories[c]
+                  const actif = category === c
+                  return (
+                    <button
+                      key={c}
+                      type="button"
+                      onClick={() => setCategory(actif ? null : c)}
+                      className={`flex items-center gap-2.5 px-3 py-1.5 rounded-xl text-sm transition ${actif ? 'bg-white shadow-sm ring-1 ring-slate-200 text-slate-900 font-medium' : 'text-slate-600 hover:bg-white'}`}
+                    >
+                      <span className={`w-2 h-2 rounded-full ${CATEGORY_STYLE[c].dot}`} />
+                      <span className="flex-1 text-left">{CATEGORY_LABELS[c]}</span>
+                      {n && n.todo > 0 && c !== 'spam' && c !== 'notification' ? (
+                        <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-violet-100 text-violet-700">{n.todo}</span>
+                      ) : n ? (
+                        <span className="text-[11px] text-slate-400">{n.total}</span>
+                      ) : null}
+                    </button>
+                  )
+                })}
               </div>
             </div>
-          </div>
-        )}
 
+            <div className="mt-auto px-3 py-3 rounded-xl bg-white/70 border border-slate-200/70 text-[11px] text-slate-500 leading-relaxed">
+              <p className="font-semibold text-slate-700 mb-1">Raccourcis</p>
+              <p><kbd>j</kbd>/<kbd>k</kbd> naviguer · <kbd>r</kbd> répondre</p>
+              <p><kbd>e</kbd> traité · <kbd>a</kbd> archiver · <kbd>u</kbd> non lu</p>
+              <p><kbd>c</kbd> nouveau · <kbd>/</kbd> rechercher</p>
+            </div>
+          </aside>
+
+          {/* Liste */}
+          <section className={`${selectedId ? 'hidden lg:flex' : 'flex'} w-full lg:w-[400px] xl:w-[440px] shrink-0 flex-col border-r border-slate-200/70 bg-white/70 min-h-0`}>
+            {/* Filtres mobiles */}
+            <div className="md:hidden flex gap-1.5 overflow-x-auto px-3 pt-3">
+              {VIEWS.slice(0, 5).map((v) => (
+                <button key={v.key} type="button" onClick={() => { setView(v.key); setCategory(null) }} className={`shrink-0 px-3 py-1.5 rounded-full text-xs ${view === v.key ? 'bg-violet-600 text-white' : 'bg-white text-slate-600 border border-slate-200'}`}>
+                  {v.label}{counts && (counts as any)[v.key] ? ` ${(counts as any)[v.key]}` : ''}
+                </button>
+              ))}
+            </div>
+            <div className="md:hidden px-3 pt-2">
+              <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Rechercher" className="w-full px-3 py-2 text-sm bg-white border border-slate-200 rounded-xl" />
+            </div>
+
+            <div className="flex items-center gap-2 px-3 py-2.5 border-b border-slate-100">
+              <input
+                type="checkbox"
+                checked={allChecked}
+                onChange={() => setChecked(allChecked ? new Set() : new Set(threads.map((t) => t.thread_id)))}
+                className="accent-violet-600"
+                title="Tout sélectionner"
+              />
+              {checked.size > 0 ? (
+                <div className="flex flex-wrap items-center gap-1 text-xs">
+                  <span className="font-medium text-slate-700 mr-1">{checked.size} sélection{checked.size > 1 ? 's' : ''}</span>
+                  <button type="button" onClick={() => patchThreads(checkedIds, { status: 'done' })} className="px-2 py-1 rounded-lg hover:bg-emerald-50 text-emerald-700">Traité</button>
+                  <button type="button" onClick={() => patchThreads(checkedIds, { status: 'todo' })} className="px-2 py-1 rounded-lg hover:bg-violet-50 text-violet-700">À traiter</button>
+                  <button type="button" onClick={() => patchThreads(checkedIds, { is_read: true })} className="px-2 py-1 rounded-lg hover:bg-slate-100 text-slate-600">Lu</button>
+                  <button type="button" onClick={() => patchThreads(checkedIds, { is_archived: view !== 'archived' })} className="px-2 py-1 rounded-lg hover:bg-slate-100 text-slate-600">{view === 'archived' ? 'Désarchiver' : 'Archiver'}</button>
+                  <select
+                    value=""
+                    onChange={(e) => e.target.value && patchThreads(checkedIds, { category: e.target.value as InboxCategory })}
+                    className="px-1.5 py-1 rounded-lg border border-slate-200 bg-white text-xs"
+                  >
+                    <option value="">Classer…</option>
+                    {INBOX_CATEGORIES.map((c) => <option key={c} value={c}>{CATEGORY_LABELS[c]}</option>)}
+                  </select>
+                </div>
+              ) : (
+                <p className="text-xs text-slate-500">
+                  <span className="font-medium text-slate-700">{category ? CATEGORY_LABELS[category] : VIEWS.find((v) => v.key === view)?.label}</span>
+                  {category && view !== 'all' ? ` · ${VIEWS.find((v) => v.key === view)?.label.toLowerCase()}` : ''}
+                  {` · ${threads.length} conversation${threads.length > 1 ? 's' : ''}`}
+                </p>
+              )}
+            </div>
+
+            <div ref={listRef} className="flex-1 overflow-y-auto">
+              {loading && threads.length === 0 ? (
+                <div className="flex justify-center py-16"><Loader2 className="h-5 w-5 animate-spin text-violet-500" /></div>
+              ) : threads.length === 0 ? (
+                <div className="flex flex-col items-center py-16 px-6 text-center">
+                  <div className="w-14 h-14 rounded-2xl bg-emerald-50 flex items-center justify-center mb-3">
+                    <CheckCircle2 className="h-6 w-6 text-emerald-500" />
+                  </div>
+                  <p className="text-sm font-medium text-slate-700">{view === 'todo' && !debouncedQuery ? 'Tout est traité' : 'Aucune conversation'}</p>
+                  <p className="text-xs text-slate-400 mt-1">{view === 'todo' && !debouncedQuery ? 'Rien n’attend de réponse pour l’instant.' : 'Essayez une autre vue ou une autre recherche.'}</p>
+                </div>
+              ) : (
+                threads.map((t) => {
+                  const actif = t.thread_id === selectedId
+                  const coche = checked.has(t.thread_id)
+                  return (
+                    <div
+                      key={t.thread_id}
+                      data-thread={t.thread_id}
+                      onClick={() => openThread(t.thread_id)}
+                      className={`group relative flex gap-3 px-3 py-3 cursor-pointer border-b border-slate-100 transition ${actif ? 'bg-violet-50' : coche ? 'bg-violet-50/50' : 'hover:bg-slate-50'}`}
+                    >
+                      {actif && <span className="absolute left-0 top-0 bottom-0 w-0.5 bg-violet-600" />}
+                      <div className="relative shrink-0" onClick={(e) => e.stopPropagation()}>
+                        <div className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold transition ${coche ? 'opacity-0' : 'group-hover:opacity-0'} ${avatarColor(t.from_email)}`}>
+                          {initials(t.from_name, t.from_email)}
+                        </div>
+                        <input
+                          type="checkbox"
+                          checked={coche}
+                          onChange={() => setChecked((prev) => { const n = new Set(prev); n.has(t.thread_id) ? n.delete(t.thread_id) : n.add(t.thread_id); return n })}
+                          className={`absolute inset-0 m-auto w-4 h-4 accent-violet-600 transition ${coche ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
+                        />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          {!t.is_read && <span className="w-2 h-2 rounded-full bg-violet-600 shrink-0" />}
+                          <span className={`text-sm truncate ${t.is_read ? 'text-slate-700' : 'font-semibold text-slate-900'}`}>{t.from_name || t.from_email}</span>
+                          {t.profile && (
+                            <span className="shrink-0 inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded-md bg-indigo-50 text-indigo-700" title="A un compte OsteoUpgrade">
+                              {t.profile.is_founding_member && <Crown className="h-2.5 w-2.5 text-amber-500" />}
+                              {planLabel(planOf(t.profile as any))}
+                            </span>
+                          )}
+                          {t.message_count > 1 && <span className="shrink-0 text-[10px] text-slate-400">{t.message_count}</span>}
+                          <span className={`ml-auto shrink-0 text-[11px] ${t.is_read ? 'text-slate-400' : 'text-violet-700 font-semibold'}`}>{relativeDate(t.received_at)}</span>
+                        </div>
+                        <p className={`text-[13px] truncate mt-0.5 ${t.is_read ? 'text-slate-600' : 'font-medium text-slate-800'}`}>{t.subject || '(sans objet)'}</p>
+                        <p className="text-xs text-slate-500 line-clamp-1 mt-0.5 flex items-center gap-1">
+                          {t.ai_summary ? <><Sparkles className="h-3 w-3 text-violet-400 shrink-0" /><span className="truncate">{t.ai_summary}</span></> : t.snippet}
+                        </p>
+                        <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
+                          <span className={`inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-md ring-1 ring-inset ${CATEGORY_STYLE[t.category].pill}`}>
+                            {t.category === 'spam' && <ShieldAlert className="h-2.5 w-2.5" />}
+                            {CATEGORY_LABELS[t.category]}
+                          </span>
+                          {(view === 'all' || view === 'unread' || view === 'archived' || category) && (
+                            <span className={`text-[10px] px-1.5 py-0.5 rounded-md ${STATUS_STYLE[t.status]}`}>{STATUS_LABELS[t.status]}</span>
+                          )}
+                          {t.last_reply_at ? (
+                            <span className="inline-flex items-center gap-1 text-[10px] text-emerald-700">
+                              <Reply className="h-2.5 w-2.5" /> Répondu {sinceLabel(t.last_reply_at)}
+                            </span>
+                          ) : t.status === 'todo' && t.category !== 'spam' ? (
+                            <span className="text-[10px] text-slate-400">Sans réponse</span>
+                          ) : null}
+                          {t.attachments?.length > 0 && <Paperclip className="h-3 w-3 text-slate-400" />}
+                        </div>
+                      </div>
+                      {/* Actions rapides au survol */}
+                      <div className="absolute right-2 bottom-2 hidden group-hover:flex items-center gap-0.5 bg-white/95 rounded-lg shadow-sm border border-slate-200 p-0.5" onClick={(e) => e.stopPropagation()}>
+                        {t.status !== 'done' && (
+                          <button type="button" title="Traité" onClick={() => patchThreads([t.thread_id], { status: 'done' })} className="p-1.5 rounded-md text-slate-500 hover:text-emerald-600 hover:bg-emerald-50"><CheckCircle2 className="h-3.5 w-3.5" /></button>
+                        )}
+                        <button type="button" title={t.is_read ? 'Marquer non lu' : 'Marquer lu'} onClick={() => patchThreads([t.thread_id], { is_read: !t.is_read }, { silent: true })} className="p-1.5 rounded-md text-slate-500 hover:bg-slate-100">
+                          {t.is_read ? <Mail className="h-3.5 w-3.5" /> : <MailOpen className="h-3.5 w-3.5" />}
+                        </button>
+                        <button type="button" title="Archiver" onClick={() => patchThreads([t.thread_id], { is_archived: !t.is_archived })} className="p-1.5 rounded-md text-slate-500 hover:bg-slate-100"><Archive className="h-3.5 w-3.5" /></button>
+                      </div>
+                    </div>
+                  )
+                })
+              )}
+            </div>
+          </section>
+
+          {/* Conversation */}
+          <main className={`${selectedId ? 'flex' : 'hidden lg:flex'} flex-1 min-w-0 flex-col min-h-0`}>
+            <ThreadView
+              detail={detail}
+              loading={detailLoading}
+              templates={templates}
+              settings={settings}
+              composerOpen={composerOpen}
+              setComposerOpen={setComposerOpen}
+              onBack={() => { setSelectedId(null); setDetail(null) }}
+              onPatch={patchCurrent}
+              onDelete={deleteCurrent}
+              onOpenProfile={(id) => setFicheId(id)}
+              onRuleCreated={(msg) => { notify(msg); loadThreads() }}
+              onSent={async (status) => {
+                notify(status === 'done' ? 'Réponse envoyée, conversation close' : 'Réponse envoyée')
+                setComposerOpen(false)
+                const id = detail?.thread.thread_id
+                if (!id) return
+                if (view === 'todo') {
+                  setThreads((prev) => prev.filter((t) => t.thread_id !== id))
+                  advanceFrom(id)
+                } else {
+                  await openThread(id)
+                  loadThreads()
+                }
+                loadCountsSoon()
+              }}
+            />
+          </main>
+        </div>
       </div>
+
+      {/* Nouveau message */}
+      {newOpen && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-6 bg-slate-900/40 backdrop-blur-sm" onClick={() => setNewOpen(false)}>
+          <div className="w-full max-w-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="px-4 py-3 rounded-t-2xl bg-gradient-to-r from-violet-600 to-indigo-600 text-white text-sm font-semibold flex items-center gap-2">
+              <Pencil className="h-4 w-4" /> Nouveau message
+            </div>
+            <Composer
+              mode="new"
+              templates={templates}
+              settings={settings}
+              aiAvailable={false}
+              autoFocus
+              onCancel={() => setNewOpen(false)}
+              onSent={() => { setNewOpen(false); notify('Message envoyé') }}
+            />
+          </div>
+        </div>
+      )}
+
+      <SettingsDrawer
+        open={settingsOpen}
+        templates={templates}
+        settings={settings}
+        aiAvailable={aiAvailable}
+        onClose={() => setSettingsOpen(false)}
+        onTemplatesChange={setTemplates}
+        onSettingsChange={setSettings}
+        onReclassified={(msg) => { notify(msg); loadThreads() }}
+      />
+
+      {ficheId && <FicheClient clientId={ficheId} onClose={() => setFicheId(null)} onChange={() => {}} />}
+
+      {toast && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[60] px-4 py-2.5 rounded-xl bg-slate-900 text-white text-sm shadow-2xl">
+          {toast}
+        </div>
+      )}
     </AuthLayout>
   )
 }
