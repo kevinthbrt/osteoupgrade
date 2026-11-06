@@ -23,6 +23,8 @@ import {
   ClipboardList,
   Send,
 } from 'lucide-react'
+import { ClinicalStory, ColorFlow, CountUp, EnvelopeReveal, HeroShowcase, PhoneStory, PhoneUnlock, ScrollCascade, ScrollProgressBar, StaggerChips, useScrollStoryEnabled, type StoryStep } from '@/components/landing/ScrollStory'
+import { ObjectivesCard, PayCard } from '@/components/landing/PilotageCards'
 import { OFFERS, formatAmount, BUNDLE_SAVING, annualSavingOf, studentFirstYearAmount, STUDENT_DISCOUNT_PERCENT } from '@/lib/offers'
 
 /*
@@ -150,12 +152,51 @@ const RED_FLAGS = [
   'Céphalée brutale',
 ]
 
+const STORY_STEPS: StoryStep[] = [
+  {
+    key: 'dictee',
+    label: 'Prise de notes par IA',
+    tone: 'blue',
+    title: 'Dictez. L’anamnèse se range toute seule.',
+    text: 'Parlez comme d’habitude : histoire, douleur, facteurs modulants, antécédents, traitements, retentissement. Tout arrive classé, en style télégraphique, prêt à relire.',
+    points: [
+      'Les antécédents repérés dans la dictée vous sont proposés un par un, à valider',
+      'Ce que vous n’avez pas abordé est signalé : rien ne manque au dossier',
+      'Reconnexion automatique si le réseau coupe pendant la dictée',
+    ],
+  },
+  {
+    key: 'drapeaux',
+    label: 'Dépistage actif des drapeaux rouges',
+    tone: 'red',
+    title: 'Les signes d’alerte ne passent plus inaperçus.',
+    text: 'À chaque anamnèse, l’IA passe en revue les signaux qui imposent de réorienter, même quand le patient les évoque en passant. Et ce que vous n’avez pas demandé est signalé.',
+    points: [
+      'Signes d’alerte repérés dans la dictée, même évoqués en passant',
+      'Questions à poser pour ceux qui n’ont pas été abordés',
+    ],
+  },
+  {
+    key: 'hypotheses',
+    label: 'Hypothèses cliniques',
+    tone: 'violet',
+    title: 'Un doute ? Les hypothèses, et les tests pour trancher.',
+    text: 'À partir de l’anamnèse, MyOsteoflow propose les hypothèses les plus probables, les questions à poser et les tests à réaliser. Cochez un résultat : le classement se met à jour sous vos yeux.',
+    points: [
+      'Hypothèses classées avec leur probabilité et leur justification',
+      'Questions à poser au patient, dont chaque réponse compte',
+      'Tests à réaliser, liés à l’hypothèse qu’ils départagent',
+    ],
+    note: 'Aide à la décision indicative : l’examen et la décision restent les vôtres.',
+  },
+]
+
 const APP_STEPS = [
   {
     img: '/landing/v2/appli-patient-1.webp',
     alt: 'Appli patient : douleur du matin et séance du jour avec trois exercices illustrés',
-    title: 'Vous prescrivez, il reçoit un lien',
-    text: 'L’IA propose un programme adapté au patient, vous l’ajustez. Il reçoit un simple lien, ouvert sur son téléphone : rien à installer.',
+    title: 'Vous conseillez, il reçoit un lien',
+    text: 'L’IA vous suggère des exercices adaptés au patient, vous choisissez ceux que vous lui conseillez. Il reçoit un simple lien, ouvert sur son téléphone : rien à installer.',
   },
   {
     img: '/landing/v2/appli-patient-2.webp',
@@ -184,7 +225,7 @@ const OU_STATS = [
   { value: '246', label: 'vidéos de techniques' },
   { value: '356', label: 'flashcards OsteoFlash' },
   { value: '27', label: 'revues de littérature' },
-  { value: '137', label: 'exercices de rééducation' },
+  { value: '137', label: 'exercices illustrés' },
 ]
 
 const OU_TABS = [
@@ -347,9 +388,15 @@ export default function LandingPage() {
   ]
 
   const ou = OU_TABS[ouTab]
+  // Scène clinique épinglée : grand écran, animations autorisées
+  const storyEnabled = useScrollStoryEnabled()
 
   return (
-    <div className="min-h-screen bg-[#fafafa] text-slate-900 overflow-x-hidden">
+    // overflow-x-clip et non hidden : « hidden » empêcherait les éléments
+    // épinglés (position sticky) de la scène clinique de tenir en place.
+    <div data-flow-root className="min-h-screen bg-[#fafafa] text-slate-900 overflow-x-clip">
+      <ColorFlow />
+      <ScrollProgressBar />
 
       {/* ─── NAVIGATION ─── */}
       <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-xl border-b border-slate-200/50">
@@ -430,70 +477,72 @@ export default function LandingPage() {
 
 
       {/* ─── PROMESSE ─── */}
-      <section className="relative bg-[#0B1220] text-white pt-40 lg:pt-44 px-4 sm:px-6 lg:px-8 overflow-hidden">
+      <section data-flow-bg="#0B1220" className="relative bg-[#0B1220] text-white pt-40 lg:pt-44 pb-16 lg:pb-24 px-4 sm:px-6 lg:px-8 overflow-hidden">
         <div className="max-w-6xl mx-auto flex flex-col items-center text-center gap-6">
-          <span className="text-sm font-semibold text-sky-200 border border-sky-200/30 rounded-full px-4 py-1.5">
-            Pour les ostéopathes, étiopathes et chiropracteurs
-          </span>
-          <h1 className="max-w-4xl text-4xl sm:text-5xl lg:text-6xl font-extrabold leading-[1.05] tracking-tight">
-            Vous soignez. MyOsteoflow prend les notes, repère les alertes et fait le reste.
-          </h1>
-          <p className="max-w-3xl text-lg lg:text-xl leading-relaxed text-slate-300">
-            L’anamnèse se rédige pendant que vous parlez, les drapeaux rouges sont signalés, les hypothèses vous aident à trancher.
-            Après la séance, le courrier est écrit, les exercices sont sur le téléphone du patient, et vous savez ce que vous pouvez vous verser.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-3 mt-2">
-            <button
-              onClick={() => router.push('/auth')}
-              className="group flow-gradient text-white px-7 py-4 rounded-xl font-bold text-base hover:opacity-90 transition-all shadow-lg shadow-blue-500/20 inline-flex items-center justify-center gap-2"
-            >
-              Commencer gratuitement
-              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-            </button>
-            <button
-              onClick={() => scrollTo('clinique')}
-              className="text-white border border-white/25 px-7 py-4 rounded-xl font-semibold text-base hover:bg-white/5 transition-all"
-            >
-              Voir comment ça marche
-            </button>
-          </div>
-          <div className="flex flex-wrap justify-center gap-2.5 mt-1">
-            {[
-              ['Notes par IA', 'clinique'],
-              ['Drapeaux rouges', 'clinique'],
-              ['Hypothèses cliniques', 'clinique'],
-              ['Courriers', 'courriers'],
-              ['Exercices et appli patient', 'exercices'],
-              ['Objectifs et rémunération', 'pilotage'],
-            ].map(([label, id]) => (
-              <button
-                key={label}
-                onClick={() => scrollTo(id)}
-                className="text-sm font-semibold text-slate-200 bg-white/5 border border-white/15 rounded-full px-3.5 py-2 hover:bg-white/10 transition-colors"
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-          {/* Aperçu en vidéo : recherche d'un patient, dictée structurée, drapeaux rouges, hypothèses */}
-          <div className="w-full max-w-5xl mt-8 rounded-t-2xl overflow-hidden bg-white shadow-2xl shadow-black/40 ring-1 ring-white/10">
-            <div className="flex items-center gap-2 h-8 px-4 bg-slate-100 border-b border-slate-200" aria-hidden="true">
-              <span className="h-3 w-3 rounded-full bg-[#ff5f57]" />
-              <span className="h-3 w-3 rounded-full bg-[#febc2e]" />
-              <span className="h-3 w-3 rounded-full bg-[#28c840]" />
-            </div>
-            <DemoVideo
-              src="/landing/v2/apercu.mp4"
-              poster="/landing/v2/poster-apercu.webp"
-              label="Aperçu de MyOsteoflow : recherche d’un patient, dictée de l’anamnèse structurée, drapeaux rouges et hypothèses cliniques"
-              className="block w-full h-auto"
-            />
-          </div>
+          <HeroShowcase
+            intro={
+              <>
+                  <span className="text-sm font-semibold text-sky-200 border border-sky-200/30 rounded-full px-4 py-1.5">
+                    Pour les ostéopathes, étiopathes et chiropracteurs
+                  </span>
+                  <h1 className="max-w-4xl text-4xl sm:text-5xl lg:text-6xl font-extrabold leading-[1.05] tracking-tight">
+                    Vous soignez. MyOsteoflow prend les notes, repère les alertes et fait le reste.
+                  </h1>
+                  <p className="max-w-3xl text-lg lg:text-xl leading-relaxed text-slate-300">
+                    L’anamnèse se rédige pendant que vous parlez, les drapeaux rouges sont signalés, les hypothèses vous aident à trancher.
+                    Après la séance, le courrier est écrit, les exercices sont sur le téléphone du patient, et vous savez ce que vous pouvez vous verser.
+                  </p>
+                  <div className="flex flex-col sm:flex-row gap-3 mt-2">
+                    <button
+                      onClick={() => router.push('/auth')}
+                      className="group flow-gradient text-white px-7 py-4 rounded-xl font-bold text-base hover:opacity-90 transition-all shadow-lg shadow-blue-500/20 inline-flex items-center justify-center gap-2"
+                    >
+                      Commencer gratuitement
+                      <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                    </button>
+                    <button
+                      onClick={() => scrollTo('clinique')}
+                      className="text-white border border-white/25 px-7 py-4 rounded-xl font-semibold text-base hover:bg-white/5 transition-all"
+                    >
+                      Voir comment ça marche
+                    </button>
+                  </div>
+                  <div className="flex flex-wrap justify-center gap-2.5 mt-1">
+                    {[
+                      ['Notes par IA', 'clinique'],
+                      ['Drapeaux rouges', 'clinique'],
+                      ['Hypothèses cliniques', 'clinique'],
+                      ['Courriers', 'courriers'],
+                      ['Exercices et appli patient', 'exercices'],
+                      ['Objectifs et rémunération', 'pilotage'],
+                    ].map(([label, id]) => (
+                      <button
+                        key={label}
+                        onClick={() => scrollTo(id)}
+                        className="text-sm font-semibold text-slate-200 bg-white/5 border border-white/15 rounded-full px-3.5 py-2 hover:bg-white/10 transition-colors"
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+              </>
+            }
+          >
+              {/* Bienvenue dans l'écosystème : formation OsteoUpgrade, journée et consultation MyOsteoflow, comptabilité */}
+              <div className="rounded-2xl overflow-hidden bg-white shadow-2xl shadow-black/40 ring-1 ring-white/10">
+                <DemoVideo
+                  src="/landing/v2/ecosysteme.mp4"
+                  poster="/landing/v2/poster-ecosysteme.webp"
+                  label="Bienvenue dans l’écosystème OsteoUpgrade × MyOsteoflow : une formation sur l’épaule le matin, la journée prête dans MyOsteoflow, la consultation dictée, puis la comptabilité le soir"
+                  className="block w-full h-auto"
+                />
+              </div>
+          </HeroShowcase>
         </div>
       </section>
 
       {/* ─── PENDANT LA SÉANCE ─── */}
-      <section id="clinique" className="scroll-mt-28 py-24 lg:py-28 px-4 sm:px-6 lg:px-8 bg-white">
+      <section id="clinique" data-flow-bg="#ffffff" className={`scroll-mt-28 pt-24 lg:pt-28 px-4 sm:px-6 lg:px-8 bg-white ${storyEnabled ? '' : 'pb-24 lg:pb-28'}`}>
         <div className="max-w-6xl mx-auto flex flex-col gap-20 lg:gap-24">
           <Reveal className="text-center flex flex-col items-center gap-3">
             <p className="text-sm font-bold uppercase tracking-wider text-blue-600">Pendant la séance</p>
@@ -501,6 +550,12 @@ export default function LandingPage() {
               Un deuxième regard clinique, pendant que vous écoutez le patient.
             </h2>
           </Reveal>
+        </div>
+
+        {storyEnabled ? (
+          <ClinicalStory steps={STORY_STEPS} redFlags={RED_FLAGS} />
+        ) : (
+          <div className="max-w-6xl mx-auto mt-20 lg:mt-24 flex flex-col gap-20 lg:gap-24">
 
           <Reveal className="flex flex-col lg:flex-row items-center gap-12">
             <div className="flex-1 flex flex-col gap-4">
@@ -537,11 +592,11 @@ export default function LandingPage() {
                 À chaque anamnèse, l’IA passe en revue les signaux qui imposent de réorienter, même quand le patient les évoque en passant.
                 Et ce que vous n’avez pas demandé est signalé.
               </p>
-              <div className="flex flex-wrap gap-2">
-                {RED_FLAGS.map((f) => (
-                  <span key={f} className="text-sm font-medium text-red-800 bg-white border border-red-300 rounded-full px-3 py-1.5">{f}</span>
-                ))}
-              </div>
+              <StaggerChips
+                items={RED_FLAGS}
+                className="flex flex-wrap gap-2"
+                chipClassName="text-sm font-medium text-red-800 bg-white border border-red-300 rounded-full px-3 py-1.5"
+              />
             </div>
             <Image
               src="/landing/v2/drapeaux-rouges.webp"
@@ -579,11 +634,12 @@ export default function LandingPage() {
               <p className="text-sm text-slate-500">Aide à la décision indicative : l’examen et la décision restent les vôtres.</p>
             </div>
           </Reveal>
-        </div>
+          </div>
+        )}
       </section>
 
       {/* ─── COURRIERS ─── */}
-      <section id="courriers" className="scroll-mt-28 py-24 px-4 sm:px-6 lg:px-8 bg-slate-50">
+      <section id="courriers" data-flow-bg="#f8fafc" className="scroll-mt-28 py-24 px-4 sm:px-6 lg:px-8 bg-slate-50">
         <Reveal className="max-w-6xl mx-auto flex flex-col lg:flex-row items-center gap-12">
           <div className="flex-1 flex flex-col gap-4">
             <span className="text-sm font-bold text-blue-600">Courriers rédigés pour vous</span>
@@ -601,19 +657,18 @@ export default function LandingPage() {
             </ul>
           </div>
           <div className="flex-1 w-full flex justify-center">
-            <Image
+            <EnvelopeReveal
               src="/landing/v2/courrier.webp"
               alt="Courrier d’adressage généré : patient, motif, drapeaux rouges, examen, demande de bilan"
               width={1200}
               height={985}
-              className="w-full max-w-xl h-auto bg-white rounded-md shadow-2xl shadow-slate-900/20 ring-1 ring-slate-900/5 -rotate-1"
             />
           </div>
         </Reveal>
       </section>
 
       {/* ─── EXERCICES ET APPLI PATIENT ─── */}
-      <section id="exercices" className="scroll-mt-28 py-24 lg:py-28 px-4 sm:px-6 lg:px-8 bg-[#0F2A26] text-white">
+      <section id="exercices" data-flow-bg="#0F2A26" className="scroll-mt-28 py-24 lg:py-28 px-4 sm:px-6 lg:px-8 bg-[#0F2A26] text-white">
         <div className="max-w-6xl mx-auto flex flex-col gap-14">
           <Reveal className="max-w-3xl flex flex-col gap-3">
             <p className="text-sm font-bold uppercase tracking-wider text-emerald-300">Exercices et appli patient</p>
@@ -623,33 +678,41 @@ export default function LandingPage() {
               Il est guidé à chaque séance, et vous retrouvez son suivi à la consultation suivante.
             </p>
           </Reveal>
-          <Reveal className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {APP_STEPS.map((step, index) => (
-              <div key={step.title} className="flex flex-col gap-5">
-                <div className="flex justify-center bg-white/[0.04] rounded-3xl pt-7 h-[440px] lg:h-[500px] overflow-hidden">
-                  <Image
-                    src={step.img}
-                    alt={step.alt}
-                    width={780}
-                    height={1328}
-                    className="w-[230px] lg:w-[260px] h-auto self-start rounded-t-[28px] ring-8 ring-[#1F3D38] shadow-2xl shadow-black/50"
-                  />
-                </div>
-                <div className="flex gap-3.5">
-                  <span className="flex-none w-9 h-9 rounded-full bg-emerald-400 text-[#0F2A26] flex items-center justify-center font-extrabold">{index + 1}</span>
-                  <div className="flex flex-col gap-1.5">
-                    <span className="text-xl font-bold">{step.title}</span>
-                    <span className="text-base leading-relaxed text-emerald-50/80">{step.text}</span>
+          {storyEnabled ? (
+            <PhoneStory steps={APP_STEPS} />
+          ) : (
+            <Reveal className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              {APP_STEPS.map((step, index) => (
+                <div key={step.title} className="flex flex-col gap-5">
+                  <div className="flex justify-center bg-white/[0.04] rounded-3xl pt-7 h-[440px] lg:h-[500px] overflow-hidden">
+                    {index === 0 ? (
+                      <PhoneUnlock src={step.img} alt={step.alt} />
+                    ) : (
+                      <Image
+                        src={step.img}
+                        alt={step.alt}
+                        width={780}
+                        height={1328}
+                        className="w-[230px] lg:w-[260px] h-auto self-start rounded-t-[28px] ring-8 ring-[#1F3D38] shadow-2xl shadow-black/50"
+                      />
+                    )}
+                  </div>
+                  <div className="flex gap-3.5">
+                    <span className="flex-none w-9 h-9 rounded-full bg-emerald-400 text-[#0F2A26] flex items-center justify-center font-extrabold">{index + 1}</span>
+                    <div className="flex flex-col gap-1.5">
+                      <span className="text-xl font-bold">{step.title}</span>
+                      <span className="text-base leading-relaxed text-emerald-50/80">{step.text}</span>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
-          </Reveal>
+              ))}
+            </Reveal>
+          )}
         </div>
       </section>
 
       {/* ─── PILOTAGE ─── */}
-      <section id="pilotage" className="scroll-mt-28 py-24 lg:py-28 px-4 sm:px-6 lg:px-8 bg-white">
+      <section id="pilotage" data-flow-bg="#ffffff" className="scroll-mt-28 py-24 lg:py-28 px-4 sm:px-6 lg:px-8 bg-white">
         <div className="max-w-6xl mx-auto flex flex-col gap-12">
           <Reveal className="text-center flex flex-col items-center gap-3">
             <p className="text-sm font-bold uppercase tracking-wider text-blue-600">Pilotage du cabinet</p>
@@ -659,7 +722,7 @@ export default function LandingPage() {
           </Reveal>
           <Reveal className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-start">
             <article className="flex flex-col gap-5">
-              <Image src="/landing/v2/objectifs.webp" alt="Objectifs : trajectoire annuelle, avance sur l’objectif, projection de fin d’année" width={1600} height={793} className="w-full h-auto rounded-2xl shadow-2xl shadow-slate-900/15" />
+              <ObjectivesCard />
               <h3 className="text-2xl font-extrabold tracking-tight">Objectifs : en avance ou en retard, au jour près</h3>
               <p className="text-base lg:text-lg leading-relaxed text-slate-600">
                 Fixez votre chiffre d’affaires annuel : MyOsteoflow le traduit en objectif du jour, de la semaine et du mois,
@@ -667,7 +730,7 @@ export default function LandingPage() {
               </p>
             </article>
             <article className="flex flex-col gap-5">
-              <Image src="/landing/v2/remuneration.webp" alt="Ma rémunération : virement vers le compte perso, net dans votre poche, détail du mois" width={1600} height={1321} className="w-full h-auto rounded-2xl shadow-2xl shadow-slate-900/15" />
+              <PayCard />
               <h3 className="text-2xl font-extrabold tracking-tight">Ma rémunération : le virement à faire, chaque mois</h3>
               <p className="text-base lg:text-lg leading-relaxed text-slate-600">
                 Encaissements, charges, Urssaf, impôt et marge de sécurité : vous savez ce que vous pouvez virer sur votre compte perso,
@@ -679,14 +742,15 @@ export default function LandingPage() {
       </section>
 
       {/* ─── LE RESTE EN UN CLIC ─── */}
-      <section className="py-24 px-4 sm:px-6 lg:px-8 bg-slate-50">
+      <section data-flow-bg="#f8fafc" className="py-24 px-4 sm:px-6 lg:px-8 bg-slate-50">
         <div className="max-w-6xl mx-auto flex flex-col gap-10">
           <Reveal className="max-w-3xl flex flex-col gap-3">
             <h2 className="text-3xl sm:text-4xl font-extrabold leading-tight tracking-tight">Et tout le reste se fait en un clic.</h2>
             <p className="text-lg text-slate-600">Pensé pour enchaîner les patients sans chercher où cliquer.</p>
           </Reveal>
-          <Reveal className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <article className="md:col-span-2 lg:row-span-3 bg-white border border-slate-200 rounded-2xl overflow-hidden flex flex-col">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <ScrollCascade className="md:col-span-2 lg:row-span-3">
+            <article className="h-full bg-white border border-slate-200 rounded-2xl overflow-hidden flex flex-col">
               <DemoVideo
                 src="/landing/v2/palette-ctrl-k.mp4"
                 poster="/landing/v2/poster-palette.webp"
@@ -700,8 +764,10 @@ export default function LandingPage() {
                 </p>
               </div>
             </article>
-            {DAILY.map((card) => (
-              <article key={card.title} className="bg-white border border-slate-200 rounded-2xl p-7 flex flex-col justify-center gap-2.5">
+            </ScrollCascade>
+            {DAILY.map((card, index) => (
+              <ScrollCascade key={card.title} index={index + 1}>
+              <article className="h-full bg-white border border-slate-200 rounded-2xl p-7 flex flex-col justify-center gap-2.5">
                 <h3 className="flex items-center gap-3 text-lg font-bold">
                   <span className="flex h-9 w-9 flex-none items-center justify-center rounded-xl bg-blue-50 text-blue-600" aria-hidden="true">
                     <card.icon className="h-5 w-5" />
@@ -710,13 +776,14 @@ export default function LandingPage() {
                 </h3>
                 <p className="text-slate-600 leading-relaxed">{card.text}</p>
               </article>
+              </ScrollCascade>
             ))}
-          </Reveal>
+          </div>
         </div>
       </section>
 
       {/* ─── OSTEOUPGRADE ─── */}
-      <section id="osteoupgrade" className="scroll-mt-28 py-24 lg:py-28 px-4 sm:px-6 lg:px-8 bg-sky-50 border-y border-sky-200">
+      <section id="osteoupgrade" data-flow-bg="#e0f2fe" className="scroll-mt-28 py-24 lg:py-28 px-4 sm:px-6 lg:px-8 bg-sky-50 border-y border-sky-200">
         <div className="max-w-6xl mx-auto flex flex-col gap-10">
           <Reveal className="flex flex-col lg:flex-row lg:items-end justify-between gap-6">
             <div className="max-w-3xl flex flex-col gap-3">
@@ -740,7 +807,7 @@ export default function LandingPage() {
           <Reveal className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
             {OU_STATS.map((st) => (
               <div key={st.label} className="bg-white border border-sky-200 rounded-2xl px-5 py-4 flex flex-col gap-1">
-                <span className="text-3xl font-extrabold tracking-tight text-sky-700">{st.value}</span>
+                <CountUp value={st.value} className="text-3xl font-extrabold tracking-tight text-sky-700" />
                 <span className="text-sm leading-snug text-slate-600">{st.label}</span>
               </div>
             ))}
@@ -776,7 +843,7 @@ export default function LandingPage() {
       </section>
 
       {/* ─── CONFIANCE ─── */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-[#0B1220] text-white">
+      <section data-flow-bg="#0B1220" className="py-20 px-4 sm:px-6 lg:px-8 bg-[#0B1220] text-white">
         <div className="max-w-6xl mx-auto flex flex-col gap-10">
           <h2 className="text-3xl font-extrabold tracking-tight">Vos dossiers restent chez vous.</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -792,7 +859,7 @@ export default function LandingPage() {
       </section>
 
       {/* ─── TOUTES LES FONCTIONNALITÉS ─── */}
-      <section id="fonctionnalites" className="scroll-mt-28 py-24 px-4 sm:px-6 lg:px-8 bg-white">
+      <section id="fonctionnalites" data-flow-bg="#ffffff" className="scroll-mt-28 py-24 px-4 sm:px-6 lg:px-8 bg-white">
         <div className="max-w-4xl mx-auto flex flex-col gap-8">
           <div className="flex flex-col gap-3">
             <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight">Toutes les fonctionnalités</h2>
@@ -835,7 +902,7 @@ export default function LandingPage() {
       </section>
 
       {/* ─── TARIFS ─── */}
-      <section id="pricing" ref={pricing.ref} className="scroll-mt-28 py-24 lg:py-28 px-4 sm:px-6 lg:px-8 bg-slate-50 relative overflow-hidden">
+      <section id="pricing" data-flow-bg="#f8fafc" ref={pricing.ref} className="scroll-mt-28 py-24 lg:py-28 px-4 sm:px-6 lg:px-8 bg-slate-50 relative overflow-hidden">
 
         <div className="relative max-w-6xl mx-auto">
           <div className={`text-center mb-14 transition-all duration-700 ${
@@ -1034,8 +1101,7 @@ export default function LandingPage() {
       </section>
 
       {/* ─── FINAL CTA ─── */}
-      <section ref={cta.ref} className="relative py-24 lg:py-32 px-4 sm:px-6 lg:px-8 overflow-hidden">
-        <div className="absolute inset-0 bg-[#0B1220]" />
+      <section ref={cta.ref} data-flow-bg="#0B1220" className="relative bg-[#0B1220] py-24 lg:py-32 px-4 sm:px-6 lg:px-8 overflow-hidden">
 
         <div className={`relative max-w-3xl mx-auto text-center transition-all duration-700 ${
           cta.isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
@@ -1069,7 +1135,7 @@ export default function LandingPage() {
       </section>
 
       {/* ─── PARTENAIRES ─── */}
-      <section id="partenaires" ref={partners.ref} className="py-16 lg:py-20 px-4 sm:px-6 lg:px-8 bg-white border-t border-slate-100">
+      <section id="partenaires" data-flow-bg="#ffffff" ref={partners.ref} className="py-16 lg:py-20 px-4 sm:px-6 lg:px-8 bg-white border-t border-slate-100">
         <div className="max-w-6xl mx-auto">
           <div className={`text-center mb-12 transition-all duration-700 ${
             partners.isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
