@@ -166,6 +166,9 @@ function FlagChip({ label, order, total, progress }: { label: string; order: num
   )
 }
 
+/** Longueur de défilement de chaque étape de la scène clinique, en écrans. */
+const STEP_SCREENS = [5.5, 1.6, 4]
+
 /**
  * La séance racontée en une scène : l'écran reste au centre pendant que le
  * texte défile, et se transforme à chaque étape.
@@ -173,10 +176,17 @@ function FlagChip({ label, order, total, progress }: { label: string; order: num
 export function ClinicalStory({ steps, redFlags }: { steps: StoryStep[]; redFlags: string[] }) {
   const ref = useRef<HTMLDivElement>(null)
   const { scrollYProgress } = useScroll({ target: ref, offset: ['start start', 'end end'] })
-  const progress = useSpring(scrollYProgress, { stiffness: 160, damping: 32, mass: 0.4 })
   const count = steps.length
+  // Défilement réparti selon la durée de chaque étape (en écrans) : la dictée
+  // et les hypothèses, filmées, demandent plus de molette que les drapeaux
+  // rouges. Le reste de la scène raisonne en tiers égaux.
+  const screens = STEP_SCREENS.slice(0, count)
+  const total = screens.reduce((sum, n) => sum + n, 0)
+  const bounds = screens.reduce<number[]>((acc, n) => [...acc, acc[acc.length - 1] + n / total], [0])
+  const warped = useTransform(scrollYProgress, bounds, bounds.map((_, i) => i / count))
+  const progress = useSpring(warped, { stiffness: 70, damping: 26, mass: 0.6 })
   const [active, setActive] = useState(0)
-  useMotionValueEvent(scrollYProgress, 'change', (value) => {
+  useMotionValueEvent(warped, 'change', (value) => {
     setActive(Math.min(count - 1, Math.max(0, Math.floor(value * count))))
   })
 
@@ -194,7 +204,7 @@ export function ClinicalStory({ steps, redFlags }: { steps: StoryStep[]; redFlag
   const screenRatio = useTransform(progress, [0, 0.62, 0.72, 1], [1.6, 1.6, 1.05, 1.05])
 
   return (
-    <motion.div ref={ref} style={{ background, height: `${count * 130 + 40}vh` }} className="relative -mx-4 sm:-mx-6 lg:-mx-8">
+    <motion.div ref={ref} style={{ background, height: `${total * 100 + 40}vh` }} className="relative -mx-4 sm:-mx-6 lg:-mx-8">
       <div className="sticky top-0 h-screen flex items-center px-8">
         <div className="max-w-7xl w-full mx-auto grid grid-cols-[minmax(0,0.75fr)_minmax(0,1.25fr)] gap-12 items-center pt-16">
           {/* Étapes et texte */}
@@ -687,12 +697,12 @@ export function HeroFilm({ src, poster, label }: { src: string; poster: string; 
   const ref = useRef<HTMLDivElement>(null)
   const { scrollYProgress: arrival } = useScroll({ target: ref, offset: ['start end', 'start start'] })
   const { scrollYProgress } = useScroll({ target: ref, offset: ['start start', 'end end'] })
-  const progress = useSpring(scrollYProgress, { stiffness: 200, damping: 34, mass: 0.3 })
+  const progress = useSpring(scrollYProgress, { stiffness: 70, damping: 26, mass: 0.6 })
   const rotateX = useTransform(arrival, [0.2, 1], [18, 0])
   const scale = useTransform(arrival, [0.2, 1], [0.86, 1])
-  const hint = useTransform(scrollYProgress, [0, 0.06], [1, 0])
+  const hint = useTransform(scrollYProgress, [0, 0.03], [1, 0])
   return (
-    <div ref={ref} style={{ height: '360vh' }} className="relative">
+    <div ref={ref} style={{ height: '900vh' }} className="relative">
       <div className="sticky top-0 h-screen flex flex-col items-center justify-center gap-4 pt-16" style={{ perspective: 1400 }}>
         <motion.div
           style={{ rotateX, scale, transformOrigin: 'center top', width: 'min(1100px, calc((100vh - 190px) * 1.6))' }}

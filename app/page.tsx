@@ -23,7 +23,7 @@ import {
   ClipboardList,
   Send,
 } from 'lucide-react'
-import { ClinicalStory, ColorFlow, CountUp, EnvelopeReveal, HeroFilm, HeroShowcase, ScrubOnScroll, PhoneStory, PhoneUnlock, ScrollCascade, ScrollProgressBar, StaggerChips, useScrollStoryEnabled, type StoryStep } from '@/components/landing/ScrollStory'
+import { ClinicalStory, ColorFlow, CountUp, EnvelopeReveal, HeroFilm, HeroShowcase, PhoneStory, PhoneUnlock, ScrollCascade, ScrollProgressBar, StaggerChips, useScrollStoryEnabled, type StoryStep } from '@/components/landing/ScrollStory'
 import { ObjectivesCard, PayCard } from '@/components/landing/PilotageCards'
 import { OFFERS, formatAmount, BUNDLE_SAVING, annualSavingOf, studentFirstYearAmount, STUDENT_DISCOUNT_PERCENT } from '@/lib/offers'
 
@@ -762,21 +762,12 @@ export default function LandingPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <ScrollCascade className="md:col-span-2 lg:row-span-3">
             <article className="h-full bg-white border border-slate-200 rounded-2xl overflow-hidden flex flex-col">
-              {storyEnabled ? (
-                <ScrubOnScroll
-                  src="/landing/v2/palette-ctrl-k-scrub.mp4"
-                  poster="/landing/v2/poster-palette.webp"
-                  label="Démonstration : Ctrl + K, recherche d’un patient, ouverture d’une consultation"
-                  className="block w-full bg-[#0B1220]"
-                />
-              ) : (
-                <DemoVideo
-                  src="/landing/v2/palette-ctrl-k.mp4"
-                  poster="/landing/v2/poster-palette.webp"
-                  label="Démonstration : Ctrl + K, recherche d’un patient, ouverture d’une consultation"
-                  className="w-full bg-[#0B1220]"
-                />
-              )}
+              <DemoVideo
+                src="/landing/v2/palette-ctrl-k.mp4"
+                poster="/landing/v2/poster-palette.webp"
+                label="Démonstration : Ctrl + K, recherche d’un patient, ouverture d’une consultation"
+                className="w-full bg-[#0B1220]"
+              />
               <div className="p-6 lg:p-7 flex flex-col gap-2">
                 <h3 className="text-xl font-bold">Ctrl + K, onglets patients, Ma journée</h3>
                 <p className="text-slate-600 leading-relaxed">
