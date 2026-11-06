@@ -55,7 +55,7 @@ export function ScrollProgressBar() {
  * Aperçu du hero : l'écran part incliné, en perspective, et se redresse
  * pendant que le titre s'efface au défilement.
  */
-export function HeroShowcase({ intro, children }: { intro: React.ReactNode; children: React.ReactNode }) {
+export function HeroShowcase({ intro, children }: { intro: React.ReactNode; children?: React.ReactNode }) {
   const ref = useRef<HTMLDivElement>(null)
   const reduced = useReducedMotion()
   const { scrollYProgress } = useScroll({ target: ref, offset: ['start start', 'end start'] })
@@ -70,29 +70,16 @@ export function HeroShowcase({ intro, children }: { intro: React.ReactNode; chil
       <motion.div style={reduced ? undefined : { opacity: introOpacity, y: introY }} className="w-full flex flex-col items-center gap-6">
         {intro}
       </motion.div>
-      <div className="w-full flex justify-center" style={{ perspective: 1400 }}>
+      {children && <div className="w-full flex justify-center" style={{ perspective: 1400 }}>
         <motion.div
           style={reduced ? undefined : { rotateX, scale, y: frameY, transformOrigin: 'center top' }}
           className="w-full max-w-5xl mt-8"
         >
           {children}
         </motion.div>
-      </div>
+      </div>}
     </div>
   )
-}
-
-/** Vidéo d'une étape : ne tourne que lorsque l'étape est à l'écran. */
-function StepVideo({ src, poster, label, active, className }: { src: string; poster: string; label: string; active: boolean; className: string }) {
-  const ref = useRef<HTMLVideoElement>(null)
-  useEffect(() => {
-    const el = ref.current
-    if (!el) return
-    el.muted = true
-    if (active) el.play().catch(() => {})
-    else el.pause()
-  }, [active])
-  return <video ref={ref} src={src} poster={poster} muted loop playsInline preload="metadata" aria-label={label} className={className} />
 }
 
 export interface StoryStep {
@@ -179,6 +166,9 @@ function FlagChip({ label, order, total, progress }: { label: string; order: num
   )
 }
 
+/** Longueur de défilement de chaque étape de la scène clinique, en écrans. */
+const STEP_SCREENS = [5.5, 1.6, 4]
+
 /**
  * La séance racontée en une scène : l'écran reste au centre pendant que le
  * texte défile, et se transforme à chaque étape.
@@ -186,10 +176,17 @@ function FlagChip({ label, order, total, progress }: { label: string; order: num
 export function ClinicalStory({ steps, redFlags }: { steps: StoryStep[]; redFlags: string[] }) {
   const ref = useRef<HTMLDivElement>(null)
   const { scrollYProgress } = useScroll({ target: ref, offset: ['start start', 'end end'] })
-  const progress = useSpring(scrollYProgress, { stiffness: 160, damping: 32, mass: 0.4 })
   const count = steps.length
+  // Défilement réparti selon la durée de chaque étape (en écrans) : la dictée
+  // et les hypothèses, filmées, demandent plus de molette que les drapeaux
+  // rouges. Le reste de la scène raisonne en tiers égaux.
+  const screens = STEP_SCREENS.slice(0, count)
+  const total = screens.reduce((sum, n) => sum + n, 0)
+  const bounds = screens.reduce<number[]>((acc, n) => [...acc, acc[acc.length - 1] + n / total], [0])
+  const warped = useTransform(scrollYProgress, bounds, bounds.map((_, i) => i / count))
+  const progress = useSpring(warped, { stiffness: 70, damping: 26, mass: 0.6 })
   const [active, setActive] = useState(0)
-  useMotionValueEvent(scrollYProgress, 'change', (value) => {
+  useMotionValueEvent(warped, 'change', (value) => {
     setActive(Math.min(count - 1, Math.max(0, Math.floor(value * count))))
   })
 
@@ -207,7 +204,7 @@ export function ClinicalStory({ steps, redFlags }: { steps: StoryStep[]; redFlag
   const screenRatio = useTransform(progress, [0, 0.62, 0.72, 1], [1.6, 1.6, 1.05, 1.05])
 
   return (
-    <motion.div ref={ref} style={{ background, height: `${count * 100 + 40}vh` }} className="relative -mx-4 sm:-mx-6 lg:-mx-8">
+    <motion.div ref={ref} style={{ background, height: `${total * 100 + 40}vh` }} className="relative -mx-4 sm:-mx-6 lg:-mx-8">
       <div className="sticky top-0 h-screen flex items-center px-8">
         <div className="max-w-7xl w-full mx-auto grid grid-cols-[minmax(0,0.75fr)_minmax(0,1.25fr)] gap-12 items-center pt-16">
           {/* Étapes et texte */}
@@ -243,11 +240,12 @@ export function ClinicalStory({ steps, redFlags }: { steps: StoryStep[]; redFlag
             {/* L'écran s'agrandit en hauteur pour les hypothèses, plus lisibles ainsi */}
             <motion.div style={{ aspectRatio: screenRatio, maxHeight: 'calc(100vh - 200px)' }} className="relative w-full">
               <Layer index={0} count={count} progress={progress} className="bg-[#0B1220]">
-                <StepVideo
-                  src="/landing/v2/dictee-ia.mp4"
+                <ScrubVideo
+                  src="/landing/v2/dictee-ia-scrub.mp4"
                   poster="/landing/v2/poster-dictee.webp"
-                  label="Démonstration : dictée de l’anamnèse, structuration, drapeaux rouges et hypothèses cliniques"
-                  active={active === 0}
+                  label="Démonstration : dictée de l’anamnèse, puis structuration automatique"
+                  progress={progress}
+                  range={[0.02, 0.3]}
                   className="h-full w-full object-contain"
                 />
               </Layer>
@@ -266,11 +264,12 @@ export function ClinicalStory({ steps, redFlags }: { steps: StoryStep[]; redFlag
                 </div>
               </Layer>
               <Layer index={2} count={count} progress={progress} className="bg-slate-50 flex items-center justify-center p-2">
-                <StepVideo
-                  src="/landing/v2/hypotheses.mp4"
+                <ScrubVideo
+                  src="/landing/v2/hypotheses-scrub.mp4"
                   poster="/landing/v2/poster-hypotheses.webp"
                   label="Démonstration : une réponse et des tests cochés font évoluer les pourcentages des hypothèses cliniques"
-                  active={active === 2}
+                  progress={progress}
+                  range={[0.7, 0.97]}
                   className="h-full w-auto max-w-full object-contain rounded-xl border border-slate-200 shadow-lg bg-white"
                 />
               </Layer>
@@ -594,5 +593,125 @@ export function ColorFlow() {
       <style>{'html[data-color-flow] [data-flow-bg],html[data-color-flow] [data-flow-root]{background-color:transparent!important;border-color:transparent!important}'}</style>
       <div ref={layer} aria-hidden="true" className="pointer-events-none fixed inset-0 -z-10 transition-[background-color] duration-150" />
     </>
+  )
+}
+
+/**
+ * Vidéo pilotée par le défilement : elle ne tourne pas seule, la molette la
+ * fait avancer et reculer (fichiers encodés avec une image clé toutes les
+ * 6 images, pour que la lecture suive sans à-coups). Le fichier n'est chargé
+ * qu'à l'approche de la vidéo.
+ */
+export function ScrubVideo({ src, poster, label, progress, range, className }: {
+  src: string
+  poster: string
+  label: string
+  progress: MotionValue<number>
+  /** Portion de l'avancement (0 à 1) sur laquelle la vidéo se déroule */
+  range: [number, number]
+  className?: string
+}) {
+  const ref = useRef<HTMLVideoElement>(null)
+  const [near, setNear] = useState(false)
+  const pending = useRef<number | null>(null)
+
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) {
+        setNear(true)
+        observer.disconnect()
+      }
+    }, { rootMargin: '1500px 0px' })
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [])
+
+  const seek = (value: number) => {
+    const el = ref.current
+    if (!el || !el.duration || Number.isNaN(el.duration)) return
+    const [a, b] = range
+    const t = Math.max(0, Math.min(1, (value - a) / (b - a))) * (el.duration - 0.05)
+    if (el.seeking) {
+      pending.current = t
+      return
+    }
+    if (Math.abs(el.currentTime - t) > 1 / 48) el.currentTime = t
+  }
+
+  useMotionValueEvent(progress, 'change', seek)
+
+  useEffect(() => {
+    const el = ref.current
+    if (!el || !near) return
+    el.muted = true
+    const onSeeked = () => {
+      if (pending.current !== null) {
+        const t = pending.current
+        pending.current = null
+        el.currentTime = t
+      }
+    }
+    const onReady = () => seek(progress.get())
+    el.addEventListener('seeked', onSeeked)
+    el.addEventListener('loadedmetadata', onReady)
+    return () => {
+      el.removeEventListener('seeked', onSeeked)
+      el.removeEventListener('loadedmetadata', onReady)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [near])
+
+  return (
+    <video
+      ref={ref}
+      src={near ? src : undefined}
+      poster={poster}
+      muted
+      playsInline
+      preload="auto"
+      aria-label={label}
+      className={className}
+    />
+  )
+}
+
+/** Vidéo pilotée par le défilement, sans épinglage : elle se déroule pendant qu'elle traverse l'écran. */
+export function ScrubOnScroll(props: { src: string; poster: string; label: string; className?: string }) {
+  const ref = useRef<HTMLDivElement>(null)
+  const { scrollYProgress } = useScroll({ target: ref, offset: ['start 0.85', 'end 0.25'] })
+  const progress = useSpring(scrollYProgress, { stiffness: 200, damping: 34, mass: 0.3 })
+  return (
+    <div ref={ref}>
+      <ScrubVideo {...props} progress={progress} range={[0, 1]} />
+    </div>
+  )
+}
+
+/**
+ * Film d'ouverture épinglé : l'écran arrive incliné, se redresse, puis le
+ * film se déroule au rythme de la molette.
+ */
+export function HeroFilm({ src, poster, label }: { src: string; poster: string; label: string }) {
+  const ref = useRef<HTMLDivElement>(null)
+  const { scrollYProgress: arrival } = useScroll({ target: ref, offset: ['start end', 'start start'] })
+  const { scrollYProgress } = useScroll({ target: ref, offset: ['start start', 'end end'] })
+  const progress = useSpring(scrollYProgress, { stiffness: 70, damping: 26, mass: 0.6 })
+  const rotateX = useTransform(arrival, [0.2, 1], [18, 0])
+  const scale = useTransform(arrival, [0.2, 1], [0.86, 1])
+  const hint = useTransform(scrollYProgress, [0, 0.03], [1, 0])
+  return (
+    <div ref={ref} style={{ height: '900vh' }} className="relative">
+      <div className="sticky top-0 h-screen flex flex-col items-center justify-center gap-4 pt-16" style={{ perspective: 1400 }}>
+        <motion.div
+          style={{ rotateX, scale, transformOrigin: 'center top', width: 'min(1100px, calc((100vh - 190px) * 1.6))' }}
+          className="rounded-2xl overflow-hidden bg-white shadow-2xl shadow-black/40 ring-1 ring-white/10"
+        >
+          <ScrubVideo src={src} poster={poster} label={label} progress={progress} range={[0.02, 0.98]} className="block w-full h-auto" />
+        </motion.div>
+        <motion.p style={{ opacity: hint }} className="text-sm text-slate-400">Faites défiler pour découvrir la journée ↓</motion.p>
+      </div>
+    </div>
   )
 }
