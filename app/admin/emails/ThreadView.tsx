@@ -275,6 +275,7 @@ export default function ThreadView({
             )}
           </div>
           <div className="flex items-center gap-0.5 shrink-0">
+            {messages.length > 0 && <>
             <button type="button" title="Classer automatiquement les emails de cet expéditeur" onClick={() => setRuleOpen(true)} className="p-2 rounded-lg text-slate-500 hover:bg-slate-100 hover:text-violet-600">
               <Filter className="h-4 w-4" />
             </button>
@@ -284,12 +285,18 @@ export default function ThreadView({
             <button type="button" title={thread.is_archived ? 'Désarchiver' : 'Archiver'} onClick={() => onPatch({ is_archived: !thread.is_archived })} className="p-2 rounded-lg text-slate-500 hover:bg-slate-100">
               {thread.is_archived ? <ArchiveRestore className="h-4 w-4" /> : <Archive className="h-4 w-4" />}
             </button>
+            </>}
             <button type="button" title="Supprimer la conversation" onClick={onDelete} className="p-2 rounded-lg text-slate-500 hover:bg-rose-50 hover:text-rose-600">
               <Trash2 className="h-4 w-4" />
             </button>
           </div>
         </div>
 
+        {messages.length === 0 ? (
+          <p className="mt-2 text-xs text-amber-700 bg-amber-50 inline-block px-2.5 py-1 rounded-lg">
+            Message envoyé depuis la boîte, en attente d’une réponse de {thread.from_email}.
+          </p>
+        ) : (
         <div className="mt-3 flex flex-wrap items-center gap-2">
           <div className="inline-flex p-0.5 rounded-xl bg-slate-100 text-xs font-medium">
             {(['todo', 'waiting', 'done'] as const).map((s) => (
@@ -330,6 +337,7 @@ export default function ThreadView({
             </span>
           )}
         </div>
+        )}
       </div>
 
       <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-4 space-y-3 bg-slate-50/60">

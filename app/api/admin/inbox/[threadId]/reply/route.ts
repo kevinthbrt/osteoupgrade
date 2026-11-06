@@ -4,7 +4,7 @@ import { supabaseAdmin } from '@/lib/supabase-server'
 import { sendTransactionalEmail } from '@/lib/mailing'
 import { logCustomerEvent } from '@/lib/customer-events'
 import { planLabel, planOf } from '@/lib/entitlements'
-import { findProfileByEmail, getInboxSettings } from '@/lib/inbox'
+import { findProfileByEmail, getInboxSettings, getThreadHead, outboundThreadHead } from '@/lib/inbox'
 import {
   guessFirstName,
   htmlToText,
@@ -57,12 +57,7 @@ export async function POST(request: Request, { params }: { params: { threadId: s
     return NextResponse.json({ error: 'Le brouillon contient encore un passage « À COMPLÉTER ».' }, { status: 400 })
   }
 
-  const { data: tete } = await supabaseAdmin
-    .from('received_emails')
-    .select('*')
-    .eq('thread_id', params.threadId)
-    .eq('is_latest', true)
-    .maybeSingle()
+  const tete: any = (await getThreadHead(params.threadId)) || (await outboundThreadHead(params.threadId))
   if (!tete) return NextResponse.json({ error: 'Conversation introuvable' }, { status: 404 })
 
   const settings = await getInboxSettings()
@@ -90,7 +85,7 @@ export async function POST(request: Request, { params }: { params: { threadId: s
     offre: profile ? planLabel(planOf(profile)) : null,
   })
 
-  const quote = includeQuote
+  const quote = includeQuote && tete.id
     ? {
         fromName: tete.from_name,
         fromEmail: tete.from_email,

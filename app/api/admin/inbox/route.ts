@@ -13,7 +13,7 @@ const LIST_FIELDS =
  * GET /api/admin/inbox
  *
  * Liste des conversations (une ligne par fil : son dernier message).
- *   view     : todo | waiting | done | unread | all | archived  (défaut : todo)
+ *   view     : todo | waiting | done | unread | all | archived | sent  (défaut : todo)
  *   category : filtre de catégorie
  *   q        : recherche dans l'expéditeur et l'objet
  */
@@ -26,6 +26,12 @@ export async function GET(request: Request) {
   const q = searchParams.get('q')?.trim()
   const limit = Math.min(parseInt(searchParams.get('limit') || '100', 10) || 100, 300)
   const offset = Math.max(parseInt(searchParams.get('offset') || '0', 10) || 0, 0)
+
+  if (view === 'sent') {
+    const { threads, total } = await outboundThreads(q)
+    const counts = await computeCounts(total)
+    return NextResponse.json({ threads, counts })
+  }
 
   let query = supabaseAdmin
     .from('received_emails')
@@ -55,7 +61,7 @@ export async function GET(request: Request) {
   const threadIds = Array.from(new Set((rows || []).map((r: any) => r.thread_id)))
   const profileIds = Array.from(new Set((rows || []).map((r: any) => r.profile_id).filter(Boolean)))
 
-  const [messages, replies, profiles, all] = await Promise.all([
+  const [messages, replies, profiles] = await Promise.all([
     threadIds.length
       ? supabaseAdmin.from('received_emails').select('thread_id').in('thread_id', threadIds)
       : Promise.resolve({ data: [] as any[] }),
@@ -70,12 +76,6 @@ export async function GET(request: Request) {
     profileIds.length
       ? supabaseAdmin.from('profiles').select('id, full_name, plan, role, is_founding_member').in('id', profileIds)
       : Promise.resolve({ data: [] as any[] }),
-    // Compteurs : quelques centaines de lignes au plus, autant les compter ici.
-    supabaseAdmin
-      .from('received_emails')
-      .select('status, category, is_read, is_archived')
-      .eq('is_latest', true)
-      .limit(10000),
   ])
 
   const nbMessages = new Map<string, number>()
@@ -98,14 +98,28 @@ export async function GET(request: Request) {
     profile: r.profile_id ? profilParId.get(r.profile_id) || null : null,
   }))
 
-  const actifs = (all.data || []).filter((r: any) => !r.is_archived)
-  const counts = {
+  const counts = await computeCounts()
+
+  return NextResponse.json({ threads, counts })
+}
+
+/** Compteurs de la barre latérale (quelques centaines de lignes au plus). */
+async function computeCounts(sentTotal?: number) {
+  const { data } = await supabaseAdmin
+    .from('received_emails')
+    .select('status, category, is_read, is_archived')
+    .eq('is_latest', true)
+    .limit(10000)
+  const all = data || []
+  const actifs = all.filter((r: any) => !r.is_archived)
+  return {
     todo: actifs.filter((r: any) => r.status === 'todo').length,
     waiting: actifs.filter((r: any) => r.status === 'waiting').length,
     done: actifs.filter((r: any) => r.status === 'done').length,
     unread: actifs.filter((r: any) => !r.is_read && r.category !== 'spam').length,
     all: actifs.filter((r: any) => r.category !== 'spam').length,
-    archived: (all.data || []).length - actifs.length,
+    archived: all.length - actifs.length,
+    sent: sentTotal ?? (await outboundThreads()).total,
     categories: Object.fromEntries(
       INBOX_CATEGORIES.map((c) => [
         c,
@@ -116,8 +130,69 @@ export async function GET(request: Request) {
       ])
     ),
   }
+}
 
-  return NextResponse.json({ threads, counts })
+/**
+ * Conversations ouvertes depuis « Nouveau message » et restées sans réponse :
+ * elles n'ont aucun message reçu, donc n'apparaissent pas dans les autres vues.
+ */
+async function outboundThreads(q?: string) {
+  const { data: envois } = await supabaseAdmin
+    .from('inbox_replies')
+    .select('id, thread_id, to_email, subject, body_text, status, created_at')
+    .is('email_id', null)
+    .order('created_at', { ascending: false })
+    .limit(500)
+  const parFil = new Map<string, any[]>()
+  for (const e of envois || []) {
+    if (!parFil.has(e.thread_id)) parFil.set(e.thread_id, [])
+    parFil.get(e.thread_id)!.push(e)
+  }
+  const ids = Array.from(parFil.keys())
+  const { data: recus } = ids.length
+    ? await supabaseAdmin.from('received_emails').select('thread_id').in('thread_id', ids)
+    : { data: [] as any[] }
+  const avecReponse = new Set((recus || []).map((r: any) => r.thread_id))
+
+  let threads = ids
+    .filter((id) => !avecReponse.has(id))
+    .map((id) => {
+      const liste = parFil.get(id)!
+      const dernier = liste[0]
+      return {
+        id: dernier.id,
+        thread_id: id,
+        from_email: dernier.to_email,
+        from_name: null,
+        to_email: '',
+        subject: dernier.subject,
+        snippet: (dernier.body_text || '').replace(/\s+/g, ' ').trim().slice(0, 180),
+        category: 'general',
+        category_source: 'manual',
+        category_reason: null,
+        ai_summary: null,
+        status: 'waiting',
+        status_changed_at: null,
+        replied_at: dernier.created_at,
+        is_read: true,
+        is_archived: false,
+        received_at: dernier.created_at,
+        attachments: [],
+        profile_id: null,
+        message_count: 0,
+        reply_count: liste.length,
+        last_reply_at: dernier.status === 'sent' ? dernier.created_at : null,
+        profile: null,
+        outbound: true,
+        failed: dernier.status === 'failed',
+      }
+    })
+  const total = threads.length
+  if (q) {
+    const motif = q.toLowerCase()
+    threads = threads.filter((t) => t.from_email.toLowerCase().includes(motif) || (t.subject || '').toLowerCase().includes(motif))
+  }
+  return { threads, total }
 }
 
 /**

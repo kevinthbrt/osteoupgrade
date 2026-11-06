@@ -58,7 +58,8 @@ export default function Composer({ mode, detail, templates, settings, aiAvailabl
   const [templateId, setTemplateId] = useState<string | null>(null)
   const [emoji, setEmoji] = useState<string>('✉️')
   const [bannerTitle, setBannerTitle] = useState('')
-  const [includeQuote, setIncludeQuote] = useState(settings.quote_original)
+  const aDesMessages = Boolean(detail?.messages.length)
+  const [includeQuote, setIncludeQuote] = useState(settings.quote_original && Boolean(detail?.messages.length))
   const [preview, setPreview] = useState(false)
   const [showTemplates, setShowTemplates] = useState(false)
   const [instruction, setInstruction] = useState('')
@@ -266,7 +267,7 @@ export default function Composer({ mode, detail, templates, settings, aiAvailabl
           ))}
         </div>
 
-        {mode === 'reply' && (
+        {mode === 'reply' && aDesMessages && (
           <button
             type="button"
             onClick={() => setIncludeQuote((v) => !v)}
@@ -285,7 +286,7 @@ export default function Composer({ mode, detail, templates, settings, aiAvailabl
           {preview ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />} Aperçu
         </button>
 
-        {mode === 'reply' && aiAvailable && settings.ai_enabled && (
+        {mode === 'reply' && aDesMessages && aiAvailable && settings.ai_enabled && (
           <button
             type="button"
             onClick={() => setShowAi((v) => !v)}

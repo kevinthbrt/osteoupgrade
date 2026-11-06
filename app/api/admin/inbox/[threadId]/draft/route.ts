@@ -36,8 +36,10 @@ export async function POST(request: Request, { params }: { params: { threadId: s
       .order('created_at', { ascending: true }),
   ])
 
-  if (!messages?.length) return NextResponse.json({ error: 'Conversation introuvable' }, { status: 404 })
-  const tete = messages.find((m: any) => m.is_latest) || messages[messages.length - 1]
+  if (!messages?.length) {
+    return NextResponse.json({ error: 'Pas encore de réponse du destinataire : rien à quoi répondre.' }, { status: 400 })
+  }
+  const tete = messages[messages.length - 1]
 
   const thread: DraftThreadMessage[] = [
     ...messages.map((m: any) => ({

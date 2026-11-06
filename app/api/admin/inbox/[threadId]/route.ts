@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { verifyAdmin } from '@/lib/api-guards'
 import { supabaseAdmin } from '@/lib/supabase-server'
-import { escapeLike, findProfileByEmail } from '@/lib/inbox'
+import { escapeLike, findProfileByEmail, outboundThreadHead } from '@/lib/inbox'
 import { aiAvailable } from '@/lib/inbox-ai'
 
 export const dynamic = 'force-dynamic'
@@ -23,9 +23,12 @@ export async function GET(_request: Request, { params }: { params: { threadId: s
     .order('received_at', { ascending: true })
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  if (!messages?.length) return NextResponse.json({ error: 'Conversation introuvable' }, { status: 404 })
 
-  const tete = messages.find((m: any) => m.is_latest) || messages[messages.length - 1]
+  // Sans message reçu : conversation ouverte par nous, pas encore de réponse.
+  const tete: any = messages?.length
+    ? messages.reduce((a: any, b: any) => (b.received_at >= a.received_at ? b : a))
+    : await outboundThreadHead(params.threadId)
+  if (!tete) return NextResponse.json({ error: 'Conversation introuvable' }, { status: 404 })
 
   const [{ data: replies }, profile] = await Promise.all([
     supabaseAdmin
@@ -57,7 +60,7 @@ export async function GET(_request: Request, { params }: { params: { threadId: s
     history = { conversations: conv || 0, customerEmails: suivis || 0 }
   }
 
-  if (messages.some((m: any) => !m.is_read)) {
+  if (messages?.some((m: any) => !m.is_read)) {
     await supabaseAdmin
       .from('received_emails')
       .update({ is_read: true, read_at: new Date().toISOString() })
@@ -67,7 +70,7 @@ export async function GET(_request: Request, { params }: { params: { threadId: s
 
   return NextResponse.json({
     thread: { ...tete, is_read: true },
-    messages: messages.map((m: any) => ({ ...m, is_read: true })),
+    messages: (messages || []).map((m: any) => ({ ...m, is_read: true })),
     replies: replies || [],
     profile: profile || null,
     history,

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   Archive, CheckCircle2, Clock, Inbox, Loader2, Mail, MailOpen, Paperclip, Pencil, RefreshCw,
-  Reply, Search, Settings2, ShieldAlert, Sparkles, X, Crown, Layers, CircleDot,
+  Reply, Search, Send, Settings2, ShieldAlert, Sparkles, X, Crown, Layers, CircleDot,
 } from 'lucide-react'
 import AuthLayout from '@/components/AuthLayout'
 import AdminBackButton from '@/components/AdminBackButton'
@@ -26,6 +26,7 @@ const VIEWS: { key: InboxView; label: string; icon: any }[] = [
   { key: 'unread', label: 'Non lus', icon: Mail },
   { key: 'all', label: 'Tout', icon: Layers },
   { key: 'archived', label: 'Archivés', icon: Archive },
+  { key: 'sent', label: 'Envoyés sans réponse', icon: Send },
 ]
 
 const DEFAULT_SETTINGS: InboxSettings = {
@@ -113,12 +114,18 @@ export default function AdminInboxPage() {
     return () => clearInterval(id)
   }, [loadThreads, composerOpen, newOpen])
 
+  // Seule la dernière conversation demandée a le droit d'afficher sa réponse :
+  // un clic rapide sur A puis B ne doit pas laisser A s'afficher sous B.
+  const requestRef = useRef(0)
   const openThread = useCallback(async (threadId: string, opts?: { reply?: boolean }) => {
+    const requestId = ++requestRef.current
     setSelectedId(threadId)
     setComposerOpen(Boolean(opts?.reply))
+    setDetail((prev) => (prev?.thread.thread_id === threadId ? prev : null))
     setDetailLoading(true)
     try {
       const d = await api<ThreadDetail>(`/api/admin/inbox/${threadId}`)
+      if (requestId !== requestRef.current) return
       setDetail(d)
       setThreads((prev) => prev.map((t) => (t.thread_id === threadId ? { ...t, is_read: true } : t)))
       setCounts((prev) => {
@@ -126,10 +133,11 @@ export default function AdminInboxPage() {
         return prev && row && !row.is_read ? { ...prev, unread: Math.max(0, prev.unread - 1) } : prev
       })
     } catch (e: any) {
+      if (requestId !== requestRef.current) return
       notify(e.message)
       setDetail(null)
     } finally {
-      setDetailLoading(false)
+      if (requestId === requestRef.current) setDetailLoading(false)
     }
   }, [threads, notify])
 
@@ -453,7 +461,7 @@ export default function AdminInboxPage() {
                       className={`group relative flex gap-3 px-3 py-3 cursor-pointer border-b border-slate-100 transition ${actif ? 'bg-violet-50' : coche ? 'bg-violet-50/50' : 'hover:bg-slate-50'}`}
                     >
                       {actif && <span className="absolute left-0 top-0 bottom-0 w-0.5 bg-violet-600" />}
-                      <div className="relative shrink-0" onClick={(e) => e.stopPropagation()}>
+                      <div className={`relative shrink-0 ${t.outbound ? 'pointer-events-none' : ''}`} onClick={(e) => e.stopPropagation()}>
                         <div className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold transition ${coche ? 'opacity-0' : 'group-hover:opacity-0'} ${avatarColor(t.from_email)}`}>
                           {initials(t.from_name, t.from_email)}
                         </div>
@@ -467,7 +475,7 @@ export default function AdminInboxPage() {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-1.5">
                           {!t.is_read && <span className="w-2 h-2 rounded-full bg-violet-600 shrink-0" />}
-                          <span className={`text-sm truncate ${t.is_read ? 'text-slate-700' : 'font-semibold text-slate-900'}`}>{t.from_name || t.from_email}</span>
+                          <span className={`text-sm truncate ${t.is_read ? 'text-slate-700' : 'font-semibold text-slate-900'}`}>{t.outbound ? `À : ${t.from_email}` : t.from_name || t.from_email}</span>
                           {t.profile && (
                             <span className="shrink-0 inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded-md bg-indigo-50 text-indigo-700" title="A un compte OsteoUpgrade">
                               {t.profile.is_founding_member && <Crown className="h-2.5 w-2.5 text-amber-500" />}
@@ -482,14 +490,20 @@ export default function AdminInboxPage() {
                           {t.ai_summary ? <><Sparkles className="h-3 w-3 text-violet-400 shrink-0" /><span className="truncate">{t.ai_summary}</span></> : t.snippet}
                         </p>
                         <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
+                          {t.outbound ? (
+                            <span className={`text-[10px] px-1.5 py-0.5 rounded-md ${t.failed ? 'bg-rose-50 text-rose-700' : 'bg-amber-50 text-amber-800'}`}>
+                              {t.failed ? 'Échec de l’envoi' : 'En attente de réponse'}
+                            </span>
+                          ) : (
                           <span className={`inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-md ring-1 ring-inset ${CATEGORY_STYLE[t.category].pill}`}>
                             {t.category === 'spam' && <ShieldAlert className="h-2.5 w-2.5" />}
                             {CATEGORY_LABELS[t.category]}
                           </span>
-                          {(view === 'all' || view === 'unread' || view === 'archived' || category) && (
+                          )}
+                          {!t.outbound && (view === 'all' || view === 'unread' || view === 'archived' || category) && (
                             <span className={`text-[10px] px-1.5 py-0.5 rounded-md ${STATUS_STYLE[t.status]}`}>{STATUS_LABELS[t.status]}</span>
                           )}
-                          {t.last_reply_at ? (
+                          {t.outbound ? null : t.last_reply_at ? (
                             <span className="inline-flex items-center gap-1 text-[10px] text-emerald-700">
                               <Reply className="h-2.5 w-2.5" /> Répondu {sinceLabel(t.last_reply_at)}
                             </span>
@@ -500,7 +514,7 @@ export default function AdminInboxPage() {
                         </div>
                       </div>
                       {/* Actions rapides au survol */}
-                      <div className="absolute right-2 bottom-2 hidden group-hover:flex items-center gap-0.5 bg-white/95 rounded-lg shadow-sm border border-slate-200 p-0.5" onClick={(e) => e.stopPropagation()}>
+                      {!t.outbound && <div className="absolute right-2 bottom-2 hidden group-hover:flex items-center gap-0.5 bg-white/95 rounded-lg shadow-sm border border-slate-200 p-0.5" onClick={(e) => e.stopPropagation()}>
                         {t.status !== 'done' && (
                           <button type="button" title="Traité" onClick={() => patchThreads([t.thread_id], { status: 'done' })} className="p-1.5 rounded-md text-slate-500 hover:text-emerald-600 hover:bg-emerald-50"><CheckCircle2 className="h-3.5 w-3.5" /></button>
                         )}
@@ -508,7 +522,7 @@ export default function AdminInboxPage() {
                           {t.is_read ? <Mail className="h-3.5 w-3.5" /> : <MailOpen className="h-3.5 w-3.5" />}
                         </button>
                         <button type="button" title="Archiver" onClick={() => patchThreads([t.thread_id], { is_archived: !t.is_archived })} className="p-1.5 rounded-md text-slate-500 hover:bg-slate-100"><Archive className="h-3.5 w-3.5" /></button>
-                      </div>
+                      </div>}
                     </div>
                   )
                 })
@@ -563,7 +577,7 @@ export default function AdminInboxPage() {
               aiAvailable={false}
               autoFocus
               onCancel={() => setNewOpen(false)}
-              onSent={() => { setNewOpen(false); notify('Message envoyé') }}
+              onSent={() => { setNewOpen(false); notify('Message envoyé (visible dans « Envoyés sans réponse »)'); loadCountsSoon() }}
             />
           </div>
         </div>

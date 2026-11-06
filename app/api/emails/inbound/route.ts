@@ -10,6 +10,7 @@ import {
   findThread,
   getInboxSettings,
   normalizeHeaders,
+  normalizeThreadHead,
   parseMessageIds,
   recordRuleHit,
 } from '@/lib/inbox'
@@ -376,23 +377,17 @@ export async function POST(request: Request) {
 
     if (insertError) {
       console.error('❌ Error inserting email into database:', insertError)
-      if (thread) {
-        // Remet l'ancienne tête de fil en place.
-        const { data: precedent } = await supabaseAdmin
-          .from('received_emails')
-          .select('id')
-          .eq('thread_id', threadId)
-          .order('received_at', { ascending: false })
-          .limit(1)
-        if (precedent?.[0]) {
-          await supabaseAdmin.from('received_emails').update({ is_latest: true }).eq('id', precedent[0].id)
-        }
-      }
+      // Remet l'ancienne tête de fil en place.
+      if (thread) await normalizeThreadHead(threadId)
       return NextResponse.json(
         { error: 'Failed to store email', details: insertError.message },
         { status: 500 }
       )
     }
+
+    // Une seule tête par conversation, même si une autre réception du même
+    // fil s'est intercalée entre la mise à jour et l'insertion.
+    if (thread) await normalizeThreadHead(threadId)
 
     console.log('✅ Email stored successfully:', { id: insertedEmail.id, from: fromEmail, category, status })
 

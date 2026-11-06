@@ -34,6 +34,9 @@ export interface ThreadRow {
   reply_count: number
   last_reply_at: string | null
   profile: ThreadProfile | null
+  /** Conversation ouverte par nous, sans réponse reçue. */
+  outbound?: boolean
+  failed?: boolean
 }
 
 export interface InboxCounts {
@@ -43,6 +46,7 @@ export interface InboxCounts {
   unread: number
   all: number
   archived: number
+  sent: number
   categories: Record<InboxCategory, { total: number; todo: number }>
 }
 
@@ -121,7 +125,7 @@ export interface InboxSettings {
   notify_categories: string[]
 }
 
-export type InboxView = 'todo' | 'waiting' | 'done' | 'unread' | 'all' | 'archived'
+export type InboxView = 'todo' | 'waiting' | 'done' | 'unread' | 'all' | 'archived' | 'sent'
 
 // ── Styles ─────────────────────────────────────────────────────────────────
 

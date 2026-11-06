@@ -434,7 +434,10 @@ export async function reclassifyExisting(): Promise<{ examined: number; changed:
     })
     // Une catégorie posée par l'IA n'est remplacée que par un résultat sûr.
     if (r.category_source === 'ai' && !c.confident) continue
-    if (c.category === r.category) continue
+    // Même catégorie : rien à faire, sauf si une règle « traité d'office »
+    // doit clore une conversation encore à traiter.
+    const doitClore = r.status === 'todo' && c.status === 'done'
+    if (c.category === r.category && !doitClore) continue
 
     const updates: Record<string, unknown> = {
       category: c.category,
@@ -450,4 +453,86 @@ export async function reclassifyExisting(): Promise<{ examined: number; changed:
     changed++
   }
   return { examined: rows?.length || 0, changed }
+}
+
+// ── Tête de conversation ───────────────────────────────────────────────────
+
+/**
+ * Le message le plus récent d'une conversation, sans se fier à `is_latest` :
+ * deux webhooks simultanés sur le même fil peuvent laisser brièvement deux
+ * têtes, et une réponse ne doit pas échouer pour autant.
+ */
+export async function getThreadHead(threadId: string) {
+  const { data } = await supabaseAdmin
+    .from('received_emails')
+    .select('*')
+    .eq('thread_id', threadId)
+    .order('received_at', { ascending: false })
+    .order('created_at', { ascending: false })
+    .limit(1)
+  return data?.[0] || null
+}
+
+/**
+ * Remet une seule tête par conversation : le message le plus récent. Appelé
+ * après chaque insertion, il rattrape aussi le cas où deux réceptions
+ * concurrentes ont chacune posé la leur (chacune recalcule la même tête).
+ */
+export async function normalizeThreadHead(threadId: string) {
+  const tete = await getThreadHead(threadId)
+  if (!tete) return
+  await supabaseAdmin
+    .from('received_emails')
+    .update({ is_latest: false })
+    .eq('thread_id', threadId)
+    .neq('id', tete.id)
+    .eq('is_latest', true)
+  if (!tete.is_latest) {
+    await supabaseAdmin.from('received_emails').update({ is_latest: true }).eq('id', tete.id)
+  }
+}
+
+// ── Conversations ouvertes par nous ────────────────────────────────────────
+
+/**
+ * Une conversation commencée depuis « Nouveau message » n'a, tant que le
+ * destinataire n'a pas répondu, aucun message reçu. On lui fabrique une tête
+ * à partir du dernier envoi, de la même forme qu'un message reçu, pour que la
+ * liste, le fil et le composeur la traitent comme les autres.
+ */
+export async function outboundThreadHead(threadId: string) {
+  const { data } = await supabaseAdmin
+    .from('inbox_replies')
+    .select('id, thread_id, to_email, from_email, subject, body_text, created_at')
+    .eq('thread_id', threadId)
+    .order('created_at', { ascending: false })
+    .limit(1)
+  const r = data?.[0]
+  if (!r) return null
+  return {
+    id: null,
+    thread_id: r.thread_id,
+    from_email: r.to_email,
+    from_name: null,
+    to_email: r.from_email || '',
+    subject: r.subject,
+    html_content: null,
+    text_content: null,
+    resend_email_id: null,
+    resend_message_id: null,
+    references_ids: [] as string[],
+    received_at: r.created_at,
+    attachments: [],
+    category: 'general' as InboxCategory,
+    category_source: 'manual',
+    category_reason: 'Message envoyé depuis la boîte',
+    ai_summary: null,
+    status: 'waiting' as InboxStatus,
+    is_latest: true,
+    is_read: true,
+    is_archived: false,
+    profile_id: null,
+    replied_at: r.created_at,
+    outbound: true,
+  }
 }
