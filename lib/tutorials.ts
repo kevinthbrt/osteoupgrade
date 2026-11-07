@@ -10,8 +10,27 @@ export interface TutorialStep {
   text: string
 }
 
+/**
+ * Rubriques de la section Tutoriels, dans l'ordre d'affichage. MyOsteoflow
+ * les lit dans le catalogue (`/tutoriels/catalogue.json`) : une rubrique sans
+ * tutoriel n'y est pas affichée.
+ */
+export const TUTORIAL_CATEGORIES = [
+  { id: 'prise-en-main', label: 'Prise en main' },
+  { id: 'consultation', label: 'Consultation' },
+  { id: 'patients', label: 'Patients et suivi' },
+  { id: 'agenda', label: 'Agenda et Doctolib' },
+  { id: 'gestion', label: 'Gestion du cabinet' },
+  { id: 'interface', label: 'Interface et raccourcis' },
+] as const
+
+export type TutorialCategory = (typeof TUTORIAL_CATEGORIES)[number]['id']
+
 export interface Tutorial {
-  slug: 'exercices' | 'doctolib' | 'tableau-de-bord' | 'onglets-et-recherche' | 'consultation'
+  slug: string
+  category: TutorialCategory
+  /** Date de mise en ligne (AAAA-MM-JJ) : MyOsteoflow marque « Nouveau » les plus récents */
+  addedAt: string
   kicker: string
   title: string
   summary: string
@@ -25,6 +44,8 @@ export interface Tutorial {
 export const TUTORIALS: Tutorial[] = [
   {
     slug: 'exercices',
+    category: 'patients',
+    addedAt: '2026-11-07',
     kicker: 'Exercices et appli patient',
     title: 'Des exercices que vos patients font vraiment',
     summary: 'Programme suggéré par l’IA, séance guidée sur le téléphone du patient, bilan importé dans votre dossier.',
@@ -54,6 +75,8 @@ export const TUTORIALS: Tutorial[] = [
   },
   {
     slug: 'doctolib',
+    category: 'agenda',
+    addedAt: '2026-11-07',
     kicker: 'Agenda Doctolib',
     title: 'Votre agenda Doctolib, synchronisé tout seul',
     summary: 'Une extension Chrome gratuite : la semaine arrive dans Ma journée et sur votre accueil, sans rien ressaisir.',
@@ -80,6 +103,8 @@ export const TUTORIALS: Tutorial[] = [
   },
   {
     slug: 'tableau-de-bord',
+    category: 'interface',
+    addedAt: '2026-11-07',
     kicker: 'Tableau de bord',
     title: 'Un tableau de bord à votre façon',
     summary: 'Déplacez, élargissez ou masquez chaque bloc : votre accueil montre ce qui compte pour vous.',
@@ -102,6 +127,8 @@ export const TUTORIALS: Tutorial[] = [
   },
   {
     slug: 'onglets-et-recherche',
+    category: 'interface',
+    addedAt: '2026-11-07',
     kicker: 'Onglets et recherche',
     title: 'Onglets patients et recherche Ctrl + K',
     summary: 'Plusieurs dossiers ouverts à la fois, un patient ou une action en trois touches, et un bouton « Nouveau » partout.',
@@ -123,6 +150,8 @@ export const TUTORIALS: Tutorial[] = [
   },
   {
     slug: 'consultation',
+    category: 'consultation',
+    addedAt: '2026-11-07',
     kicker: 'Consultation',
     title: 'Une consultation plus épurée',
     summary: 'Une seule feuille, un brouillon qui s’enregistre tout seul, et le plein écran pour vous concentrer.',
