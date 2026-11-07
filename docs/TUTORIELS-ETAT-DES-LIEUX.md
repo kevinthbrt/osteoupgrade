@@ -16,10 +16,11 @@ minute et ses étapes en capture.
    suivantes) l’affiche dans sa section « Tutoriels » sans nouvelle version,
    avec le badge « Nouveau » pendant 45 jours.
 
-Tournage : cabinet de démonstration aux données fictives uniquement, comme
-pour les cinq premiers.
+Tournage : cabinet de démonstration aux données fictives uniquement. Ce qui
+dépend d’un service extérieur est simulé sur un cas inventé : test de
+connexion email, transcription et structuration de la dictée, hypothèses.
 
-## Déjà en ligne (9)
+## Déjà en ligne (13)
 
 | Rubrique | Tutoriel | Ce qu’il couvre |
 |---|---|---|
@@ -31,9 +32,13 @@ pour les cinq premiers.
 | Prise en main | `premiers-pas` | Complétude du profil, coordonnées et mentions, facturation, tampon, types de séance, objectifs, verrouillage |
 | Prise en main | `connexion-email` | Fournisseur, mot de passe d’application, test, synchronisation |
 | Prise en main | `sauvegarde` | Bouton de l’en-tête, disque externe ou clé USB, rappel quotidien, restauration |
+| Consultation | `dictee-anamnese` | Dictée, structuration en cartes, drapeaux rouges, informations détectées validées au dossier |
+| Consultation | `aide-diagnostic` | Hypothèses classées, questions, tests positif ou négatif, saisie sur téléphone |
+| Consultation | `finaliser-consultation` | Fenêtre de fin de séance : facture, envoi, conseils post-séance, suivi à J+7, relance |
+| Agenda et Doctolib | `ma-journee` | Ajouter, réordonner (flèches), créer un patient, « Vu », jours suivants, bloc « Aujourd’hui » |
 | Gestion du cabinet | `facturation` | Fin de séance, type et mode de paiement, envoi, dossier patient, « À traiter » |
 
-## Manquants (17)
+## Manquants (13)
 
 Les arbres décisionnels (lombalgie, cervicalgie) ne sont pas utilisés
 aujourd’hui : pas de tutoriel prévu.
@@ -54,9 +59,6 @@ moins fréquentes. Priorité 3 : compléments.
 
 | Prio | Slug proposé | Tutoriel | À montrer |
 |---|---|---|---|
-| 1 | `dictee-anamnese` | Dicter l’anamnèse | Enregistrement, structuration en cartes, antécédents et champs patient détectés (accepter ou ignorer), effacer et recommencer |
-| 1 | `aide-diagnostic` | Hypothèses cliniques et drapeaux rouges | Hypothèses, questions complémentaires et tests suggérés après la dictée, code couleur des drapeaux |
-| 1 | `finaliser-consultation` | Terminer la séance | Assistant de fin : facture et mode d’envoi, conseils post-séance cochés pour ce patient, suivi à J+x, relance à 3, 6 ou 12 mois |
 | 2 | `examen-clinique` | Examen clinique : tests et techniques | `@ec` + région, `@tech` et sa bibliothèque (Paramètres, Contenu clinique), « Tests orthos » et clusters, Topographie |
 
 ### Patients et suivi
@@ -73,7 +75,6 @@ moins fréquentes. Priorité 3 : compléments.
 
 | Prio | Slug proposé | Tutoriel | À montrer |
 |---|---|---|---|
-| 1 | `ma-journee` | Préparer sa journée | Ordre de passage, glisser pour réorganiser, vu ou à revoir, création rapide d’un patient, sans Doctolib (le tutoriel `doctolib` ne couvre que la synchronisation) |
 
 ### Gestion du cabinet
 
@@ -96,7 +97,7 @@ moins fréquentes. Priorité 3 : compléments.
 1. **Lot 1, le premier jour** : `premiers-pas`, `connexion-email`,
    `sauvegarde`, `facturation`. **En ligne.**
 2. **Lot 2, la séance** : `dictee-anamnese`, `aide-diagnostic`,
-   `finaliser-consultation`, `ma-journee`.
+   `finaliser-consultation`, `ma-journee`. **En ligne.**
 3. **Lot 3, ce qui fait la différence** : `courriers`, `ma-remuneration`,
    `examen-clinique`, `relances`, `suivi-j7`.
 4. **Lot 4, le reste** : tous les tutoriels de priorité 2 et 3 restants.
