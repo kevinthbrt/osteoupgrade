@@ -8,7 +8,7 @@ import { TUTORIALS } from '@/lib/tutorials'
 
 export const metadata: Metadata = {
   title: 'Tutoriels MyOsteoflow | OsteoUpgrade & MyOsteoflow',
-  description: 'Les nouveautés de MyOsteoflow en vidéo et pas à pas : exercices et appli patient, agenda Doctolib, tableau de bord, onglets, consultation.',
+  description: 'MyOsteoflow en vidéo et pas à pas : configurer son cabinet, connecter sa boîte email, sauvegarder, facturer, exercices, agenda Doctolib, consultation.',
 }
 
 export default function TutorialsPage() {
@@ -18,7 +18,7 @@ export default function TutorialsPage() {
       <main className="mx-auto max-w-6xl px-4 py-14 sm:px-6 lg:px-8 lg:py-20">
         <div className="max-w-3xl">
           <p className="text-sm font-bold uppercase tracking-wider text-blue-600">Tutoriels</p>
-          <h1 className="mt-2 text-4xl font-extrabold tracking-tight sm:text-5xl">Les nouveautés de MyOsteoflow, pas à pas</h1>
+          <h1 className="mt-2 text-4xl font-extrabold tracking-tight sm:text-5xl">MyOsteoflow, pas à pas</h1>
           <p className="mt-4 text-lg leading-relaxed text-slate-600">
             Une courte vidéo par fonctionnalité, puis chaque étape en capture, avec les réponses aux questions fréquentes.
           </p>
