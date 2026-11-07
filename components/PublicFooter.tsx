@@ -23,6 +23,7 @@ export default function PublicFooter() {
                 { label: 'MyOsteoflow', href: '/#myosteoflow' },
                 { label: 'OsteoUpgrade', href: '/#osteoupgrade' },
                 { label: 'Tarifs', href: '/#pricing' },
+                { label: 'Tutoriels', href: '/tutoriels' },
                 { label: 'Essai gratuit', href: '/auth' },
               ].map((link) => (
                 <li key={link.label}>
