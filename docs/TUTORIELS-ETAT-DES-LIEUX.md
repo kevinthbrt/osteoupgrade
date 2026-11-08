@@ -24,7 +24,7 @@ réponses de suivi J+7, les relances passées et les techniques montrées sont
 des données de démonstration retirées après le tournage, comme les conversations
 de la messagerie, les patients importés et le cabinet créé pour la vidéo multi-cabinet.
 
-## Déjà en ligne (27)
+## Déjà en ligne (28)
 
 | Rubrique | Tutoriel | Ce qu’il couvre |
 |---|---|---|
@@ -54,6 +54,7 @@ de la messagerie, les patients importés et le cabinet créé pour la vidéo mul
 | Gestion du cabinet | `objectifs` | Réalisé face à l’objectif, trajectoire, en patients, détail mensuel, paramétrage |
 | Gestion du cabinet | `statistiques` | Filtres, chiffres clés, patients et canaux, consultations et motifs, revenus |
 | Gestion du cabinet | `export-csv` | Période, données, colonnes, données de santé décochées, CSV pour Excel |
+| Patients et suivi | `diffusion` | Email à tous les patients : compteur, filtre par date, bouton de rendez-vous, envoi étalé à 450 par jour, bandeau de suivi |
 | Gestion du cabinet | `facturation` | Fin de séance, type et mode de paiement, envoi, dossier patient, « À traiter » |
 
 ## Manquants (1)
