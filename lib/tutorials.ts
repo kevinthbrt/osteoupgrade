@@ -461,6 +461,7 @@ export const TUTORIALS: Tutorial[] = [
       { q: '@ec ne propose rien.', a: 'La bibliothèque de tests fait partie d’OsteoUpgrade : elle demande une formule qui l’inclut et une connexion internet. @tech fonctionne avec toutes les formules.' },
       { q: 'Quelle région taper ?', a: 'Le début suffit, sans accent ni majuscule : @eccerv, @eclomb, @ecepaule. La recherche porte aussi sur le nom du test.' },
       { q: 'Puis-je modifier une technique ?', a: 'Oui, dans Paramètres, Pratique, Contenu clinique : le crayon la modifie, la corbeille la supprime.' },
+      { q: 'Et mes propres tests ?', a: 'Ajoutez-les dans Paramètres, Pratique, Contenu clinique, « Mes tests personnalisés », puis tapez @test suivi de la région : ils s’insèrent avec leur résultat, comme les tests @ec.' },
     ],
   },
   {
