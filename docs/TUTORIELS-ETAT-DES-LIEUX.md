@@ -24,7 +24,7 @@ réponses de suivi J+7, les relances passées et les techniques montrées sont
 des données de démonstration retirées après le tournage, comme les conversations
 de la messagerie, les patients importés et le cabinet créé pour la vidéo multi-cabinet.
 
-## Déjà en ligne (28)
+## Déjà en ligne (29)
 
 | Rubrique | Tutoriel | Ce qu’il couvre |
 |---|---|---|
@@ -39,6 +39,7 @@ de la messagerie, les patients importés et le cabinet créé pour la vidéo mul
 | Consultation | `dictee-anamnese` | Dictée, structuration en cartes, drapeaux rouges, informations détectées validées au dossier |
 | Consultation | `aide-diagnostic` | Hypothèses classées, questions, tests positif ou négatif, saisie sur téléphone |
 | Consultation | `finaliser-consultation` | Fenêtre de fin de séance : facture, envoi, conseils post-séance, suivi à J+7, relance |
+| Agenda et Doctolib | `agenda` | Agenda de la semaine comme poste de travail : couleurs, 1re consultation, démarrer la séance, marquer vu, vérification sur place, Ma journée qui suit l’agenda |
 | Agenda et Doctolib | `ma-journee` | Ajouter, réordonner (flèches), créer un patient, « Vu », jours suivants, bloc « Aujourd’hui » |
 | Consultation | `examen-clinique` | Techniques dans Contenu clinique, `@ec` + région avec résultat, `@tech` + région |
 | Patients et suivi | `courriers` | Patient et consultation, adressage, destinataire et consigne, relecture, PDF avec tampon |
