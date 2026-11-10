@@ -1078,9 +1078,21 @@ async function handleSubscriptionDeleted(subscription: any) {
   }
 }
 
+// Abonnement rattaché à une facture. Depuis l'API Stripe `2025-03-31.basil`,
+// `invoice.subscription` n'existe plus : l'identifiant est passé dans
+// `invoice.parent.subscription_details.subscription`. Le compte étant en
+// `2025-11-17.clover`, lire l'ancien champ seul faisait sortir les deux
+// gestionnaires de facture sans rien faire : aucune relance d'impayé, aucun
+// renouvellement tracé. On lit les deux pour rester compatible.
+function invoiceSubscriptionId(invoice: any): string | null {
+  const ref = invoice?.parent?.subscription_details?.subscription ?? invoice?.subscription
+  if (!ref) return null
+  return typeof ref === 'string' ? ref : ref.id ?? null
+}
+
 // Paiement réussi (renouvellement)
 async function handlePaymentSucceeded(invoice: any) {
-  const subscriptionId = invoice.subscription
+  const subscriptionId = invoiceSubscriptionId(invoice)
 
   if (!subscriptionId) {
     return
@@ -1103,9 +1115,7 @@ async function handlePaymentSucceeded(invoice: any) {
   // En cas d'échec de la lecture Stripe on laisse passer : un accusé de
   // paiement en double vaut mieux qu'une facture jamais transmise.
   try {
-    const sub = await stripe.subscriptions.retrieve(
-      typeof subscriptionId === 'string' ? subscriptionId : subscriptionId.id
-    )
+    const sub = await stripe.subscriptions.retrieve(subscriptionId)
     const finEssai = (sub as any).trial_end as number | null
     const debutPeriode = (invoice.lines?.data?.[0]?.period?.start ?? invoice.period_start) as number | undefined
     if (finEssai && debutPeriode && Math.abs(debutPeriode - finEssai) < 3600) {
@@ -1183,7 +1193,7 @@ async function handlePaymentSucceeded(invoice: any) {
 
 // Paiement échoué
 async function handlePaymentFailed(invoice: any) {
-  const subscriptionId = invoice.subscription
+  const subscriptionId = invoiceSubscriptionId(invoice)
   if (!subscriptionId) {
     return
   }
