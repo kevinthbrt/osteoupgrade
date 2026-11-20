@@ -7,6 +7,8 @@ import { notifyAdmin } from '@/lib/admin-notify'
 import { UTM_COOKIE, parseAttributionCookie, attributionToStripeMetadata } from '@/lib/utm'
 import { supabaseAdmin } from '@/lib/supabase-server'
 import { studentVerificationFor, canUseStudentDiscount, ensureStudentCoupon } from '@/lib/student-offer'
+import { isBlackFridayActive } from '@/lib/black-friday'
+import { ensureBlackFridayCoupon } from '@/lib/black-friday-server'
 
 export async function POST(request: Request) {
   try {
@@ -234,10 +236,38 @@ export async function POST(request: Request) {
       .eq('id', userId)
       .single()
 
+    // 🖤 Black Friday : -30 % la première année sur l'annuel standard, posé
+    // d'office pendant la période (voir docs/BLACK_FRIDAY_2026.md). Ni
+    // fondateur (déjà à -50 % à vie), ni tarif étudiant (plus favorable, il
+    // passe avant), et pas d'essai gratuit en plus : la remise se paie
+    // aussitôt.
+    const tarifBlackFriday =
+      tarifAnnuelStandard &&
+      !tarifEtudiant &&
+      !trialProfile?.is_founding_member &&
+      isBlackFridayActive()
+    // Un coupon introuvable ne doit pas bloquer la vente : on facture alors
+    // au tarif annuel normal, avec l'essai habituel, et l'admin est prévenu.
+    let blackFridayCouponId: string | null = null
+    if (tarifBlackFriday) {
+      try {
+        blackFridayCouponId = await ensureBlackFridayCoupon()
+      } catch (err: any) {
+        console.error('🖤 Coupon Black Friday indisponible:', err?.message)
+        try {
+          await notifyAdmin('other', 'Black Friday : coupon indisponible', `Souscription ${planType} facturée sans remise : ${err?.message || 'erreur inconnue'}`)
+        } catch {
+          // La notification ne doit jamais bloquer le paiement.
+        }
+      }
+    }
+
     // L'essai est ouvert aux offres mensuelles et annuelles, mais
     // reste unique par compte à vie : `trial_used_at` n'est pas remis à zéro d'une offre à
-    // l'autre. Les tarifs Fondateur en restent exclus.
+    // l'autre. Les tarifs Fondateur en restent exclus, comme les
+    // souscriptions Black Friday.
     const isEligibleForTrial =
+      !blackFridayCouponId &&
       !plan.isFounding &&
       planOf(trialProfile) === 'free' &&
       !trialProfile?.trial_used_at &&
@@ -389,7 +419,9 @@ export async function POST(request: Request) {
       // code à côté, il ne se cumule avec aucune autre remise.
       ...(studentCouponId
         ? { discounts: [{ coupon: studentCouponId }] }
-        : promotionCodeId
+        : blackFridayCouponId
+          ? { discounts: [{ coupon: blackFridayCouponId }] }
+          : promotionCodeId
           ? { discounts: [{ promotion_code: promotionCodeId }] }
           : { allow_promotion_codes: true }),
       line_items: [
@@ -412,6 +444,7 @@ export async function POST(request: Request) {
         referrer_user_id: shouldProcessReferral ? referrerUserId || '' : '',
         is_trial: isEligibleForTrial ? 'true' : 'false',
         student: tarifEtudiant ? 'true' : 'false',
+        black_friday: blackFridayCouponId ? 'true' : 'false',
         ...attributionMetadata
       },
       subscription_data: {
@@ -426,6 +459,7 @@ export async function POST(request: Request) {
           referrer_user_id: shouldProcessReferral ? referrerUserId || '' : '',
           is_trial: isEligibleForTrial ? 'true' : 'false',
           student: tarifEtudiant ? 'true' : 'false',
+          black_friday: blackFridayCouponId ? 'true' : 'false',
           ...attributionMetadata
         }
       }

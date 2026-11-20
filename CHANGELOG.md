@@ -5,6 +5,14 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/).
 
 ---
 
+## [1.14.0] : 2026-11-20
+
+### Ajouté
+
+- **Black Friday 2026** : -30 % sur la première année des trois offres annuelles (Premium 349,99 €, MyOsteoFlow et OsteoUpgrade 209,99 €), du 23 au 30 novembre. Bandeau en tête de la landing et grille ouverte sur l'annuel pendant la période. Remise posée d'office au paiement, sans essai gratuit ni cumul avec le tarif étudiant, jamais sur les tarifs Fondateur. Les adhérents mensuels passent à l'annuel au même tarif depuis « Mon abonnement », avec un email de lancement et une relance le dernier jour. Tout s'arrête seul le 30 à minuit. (`lib/black-friday.ts`, `docs/BLACK_FRIDAY_2026.md`)
+
+---
+
 ## [1.13.1] : 2026-10-15
 
 ### Ajouté

@@ -8,6 +8,8 @@ import { sendTransactionalEmail } from '@/lib/mailing'
 import { notifyAdmin } from '@/lib/admin-notify'
 import { subscriptionEventFor, planChangeEventFor, cancelProspectSequences } from '@/lib/automation-triggers'
 import { logCustomerEvent } from '@/lib/customer-events'
+import { BLACK_FRIDAY_LABEL } from '@/lib/black-friday'
+import { hasBlackFridayDiscount } from '@/lib/black-friday-server'
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!
 
@@ -442,6 +444,9 @@ async function handleCheckoutCompleted(session: any) {
   const tarifEtudiant = session.metadata?.student === 'true'
   if (tarifEtudiant) updateData.partner_discount_name = 'Tarif étudiant'
 
+  // 🖤 Black Friday : même traçabilité, la remise étant posée par le checkout.
+  if (session.metadata?.black_friday === 'true') updateData.partner_discount_name = BLACK_FRIDAY_LABEL
+
   const { data: updatedProfile, error: updateError } = await supabaseAdmin
     .from('profiles')
     .update(updateData)
@@ -699,7 +704,7 @@ async function handleSubscriptionUpdated(subscription: any) {
   // Trouver l'utilisateur par son stripe_customer_id
   const { data: profile, error: profileError } = await supabaseAdmin
     .from('profiles')
-    .select('id, role, plan, subscription_status, email, full_name')
+    .select('id, role, plan, subscription_status, email, full_name, billing_interval')
     .eq('stripe_customer_id', customerId)
     .single()
 
@@ -716,6 +721,24 @@ async function handleSubscriptionUpdated(subscription: any) {
   // Suit un passage mensuel ↔ annuel fait depuis le portail client.
   const rythme = billingIntervalFromSubscription(subscription)
   if (rythme) updateData.billing_interval = rythme
+
+  // 🖤 Passage mensuel → annuel avec la remise Black Friday (bouton de
+  // /settings/subscription). Les discounts de l'événement ne sont que des
+  // identifiants : on relit l'abonnement, seulement lors d'un passage à
+  // l'annuel, pour ne pas ajouter un appel Stripe à chaque événement.
+  const passageAnnuel = rythme === 'year' && profile.billing_interval !== 'year'
+  let blackFridayBascule = false
+  if (passageAnnuel) {
+    try {
+      const complet = await stripe.subscriptions.retrieve(subscription.id, {
+        expand: ['discounts.source.coupon']
+      } as any)
+      blackFridayBascule = hasBlackFridayDiscount(complet)
+    } catch {
+      console.error('Error fetching subscription discounts for Black Friday detection')
+    }
+    if (blackFridayBascule) updateData.partner_discount_name = BLACK_FRIDAY_LABEL
+  }
 
   if (subscription.status !== 'trialing') {
     updateData.trial_ends_at = null
@@ -748,6 +771,18 @@ async function handleSubscriptionUpdated(subscription: any) {
     .from('profiles')
     .update(updateData)
     .eq('id', profile.id)
+
+  if (blackFridayBascule) {
+    try {
+      await notifyAdmin(
+        'other',
+        'Black Friday : passage à l\'annuel',
+        `${profile.full_name || profile.email} est passé(e) à l'annuel ${planLabel(planFromSubscription(subscription))} avec la remise Black Friday.`
+      )
+    } catch {
+      console.error('Error notifying admin of Black Friday switch')
+    }
+  }
 
   // Changement d'offre effectif (upgrade ou downgrade). On le trace : un
   // downgrade silencieux qui n'aurait pas retiré les droits serait invisible.

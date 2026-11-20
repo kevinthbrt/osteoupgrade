@@ -26,6 +26,7 @@ import {
 import { ClinicalStory, ColorFlow, CountUp, EnvelopeReveal, HeroFilm, HeroShowcase, PhoneStory, PhoneUnlock, ScrollCascade, ScrollProgressBar, StaggerChips, useScrollStoryEnabled, type StoryStep } from '@/components/landing/ScrollStory'
 import { ObjectivesCard, PayCard } from '@/components/landing/PilotageCards'
 import { OFFERS, formatAmount, BUNDLE_SAVING, annualSavingOf, studentFirstYearAmount, STUDENT_DISCOUNT_PERCENT } from '@/lib/offers'
+import { BLACK_FRIDAY_PERCENT, BLACK_FRIDAY_END_LABEL, BLACK_FRIDAY_FROM_AMOUNT, blackFridayFirstYearAmount, useBlackFridayActive } from '@/lib/black-friday'
 
 /*
  * Page d'accueil OsteoUpgrade × MyOsteoflow.
@@ -355,6 +356,13 @@ export default function LandingPage() {
   const router = useRouter()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [tarifAnnuel, setTarifAnnuel] = useState(false)
+  // Black Friday : bandeau en tête de page et grille ouverte sur l'annuel.
+  const blackFriday = useBlackFridayActive()
+  useEffect(() => {
+    if (blackFriday) setTarifAnnuel(true)
+  }, [blackFriday])
+  /** Prix Black Friday affichés : période en cours et grille en annuel. */
+  const prixBlackFriday = blackFriday && tarifAnnuel
   const [ouTab, setOuTab] = useState(0)
   const [openGroup, setOpenGroup] = useState(0)
 
@@ -400,7 +408,20 @@ export default function LandingPage() {
 
       {/* ─── NAVIGATION ─── */}
       <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-xl border-b border-slate-200/50">
-        {/* Bandeau offre étudiant : visible sur toute la page, la barre étant fixe. */}
+        {/* Bandeau de l'offre du moment : visible sur toute la page, la barre
+            étant fixe. Black Friday pendant la période, offre étudiant sinon. */}
+        {blackFriday ? (
+          <button
+            type="button"
+            onClick={() => { setTarifAnnuel(true); scrollTo('pricing') }}
+            className="block w-full bg-slate-950 hover:bg-black transition-colors text-white text-xs sm:text-sm font-semibold px-4 py-2 text-center"
+          >
+            <span className="inline-block rounded bg-amber-400 text-slate-950 px-1.5 py-0.5 mr-2 text-[11px] sm:text-xs font-extrabold uppercase tracking-wider">Black Friday</span>
+            -{BLACK_FRIDAY_PERCENT}&nbsp;% la premi&egrave;re ann&eacute;e sur tous les abonnements annuels, d&egrave;s {formatAmount(BLACK_FRIDAY_FROM_AMOUNT)}
+            <span className="hidden sm:inline text-slate-400"> &middot; jusqu&apos;au {BLACK_FRIDAY_END_LABEL}</span>
+            <span className="underline underline-offset-2 ml-2 text-amber-300">En profiter</span>
+          </button>
+        ) : (
         <button
           type="button"
           onClick={() => { setTarifAnnuel(true); scrollTo('etudiants') }}
@@ -410,6 +431,7 @@ export default function LandingPage() {
           &Eacute;tudiants et jeunes dipl&ocirc;m&eacute;s : -{STUDENT_DISCOUNT_PERCENT}&nbsp;% la premi&egrave;re ann&eacute;e sur l&apos;abonnement annuel
           <span className="underline underline-offset-2 ml-2">En profiter</span>
         </button>
+        )}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16 lg:h-18">
             <BrandLockup className="text-base sm:text-lg" />
@@ -927,7 +949,9 @@ export default function LandingPage() {
               Prenez ce dont vous avez besoin.
               <br />
               <span className="bg-gradient-to-r from-sky-500 to-blue-600 bg-clip-text text-transparent">
-                {tarifAnnuel
+                {prixBlackFriday
+                  ? <>Black Friday : -{BLACK_FRIDAY_PERCENT}&nbsp;% sur votre premi&egrave;re ann&eacute;e.</>
+                  : tarifAnnuel
                   ? <>&Agrave; partir de {formatAmount(Math.min(...OFFERS.map((o) => o.annualAmount)))}/an, deux mois offerts.</>
                   : <>&Agrave; partir de {formatAmount(2999)}/mois, sans engagement.</>}
               </span>
@@ -956,10 +980,25 @@ export default function LandingPage() {
                   onClick={() => setTarifAnnuel(true)}
                   className={`px-5 py-2 rounded-lg text-sm font-semibold transition ${tarifAnnuel ? 'bg-slate-900 text-white' : 'text-slate-600 hover:text-slate-900'}`}
                 >
-                  Annuel <span className={tarifAnnuel ? 'text-emerald-300' : 'text-emerald-600'}>2 mois offerts</span>
+                  Annuel{' '}
+                  {blackFriday
+                    ? <span className={tarifAnnuel ? 'text-amber-300' : 'text-amber-600'}>-{BLACK_FRIDAY_PERCENT}&nbsp;% Black Friday</span>
+                    : <span className={tarifAnnuel ? 'text-emerald-300' : 'text-emerald-600'}>2 mois offerts</span>}
                 </button>
               </div>
             </div>
+
+            {/* Black Friday : rappel de l'échéance et de ce qui se passe ensuite */}
+            {blackFriday && (
+              <div className="mb-6 rounded-2xl bg-slate-950 text-white px-6 py-4 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6">
+                <span className="self-start sm:self-center rounded bg-amber-400 text-slate-950 px-2 py-1 text-xs font-extrabold uppercase tracking-wider">Black Friday</span>
+                <p className="text-sm text-slate-300 flex-1">
+                  <strong className="text-white">-{BLACK_FRIDAY_PERCENT}&nbsp;% sur la premi&egrave;re ann&eacute;e</strong> des trois offres en facturation annuelle,
+                  jusqu&apos;au {BLACK_FRIDAY_END_LABEL}. D&eacute;j&agrave; abonn&eacute; au mois&nbsp;? Passez &agrave; l&apos;annuel au m&ecirc;me tarif depuis votre espace Abonnement.
+                  Renouvellement ensuite au tarif annuel habituel.
+                </p>
+              </div>
+            )}
 
             {/* Offre étudiant */}
             <div id="etudiants" className="scroll-mt-32 mb-10 rounded-2xl bg-indigo-600 text-white p-6 sm:p-8 shadow-xl shadow-indigo-600/20">
@@ -1022,13 +1061,20 @@ export default function LandingPage() {
                     <div className={`text-sm font-semibold uppercase tracking-wider mb-2 ${offer.highlighted ? 'text-sky-600' : 'text-slate-500'}`}>
                       {offer.name}
                     </div>
-                    <div className="flex items-baseline gap-1 mb-1">
-                      <span className="text-4xl font-bold text-slate-900">
-                        {formatAmount(tarifAnnuel ? offer.annualAmount : offer.monthlyAmount)}
+                    <div className="flex flex-wrap items-baseline gap-x-1 mb-1">
+                      <span className="text-4xl font-bold text-slate-900 whitespace-nowrap">
+                        {formatAmount(prixBlackFriday ? blackFridayFirstYearAmount(offer) : tarifAnnuel ? offer.annualAmount : offer.monthlyAmount)}
                       </span>
-                      <span className="text-slate-400 text-sm">{tarifAnnuel ? '/an' : '/mois'}</span>
+                      {prixBlackFriday && (
+                        <span className="text-slate-400 text-lg line-through ml-1 whitespace-nowrap">{formatAmount(offer.annualAmount)}</span>
+                      )}
+                      <span className="text-slate-400 text-sm whitespace-nowrap">{prixBlackFriday ? 'la 1re année' : tarifAnnuel ? '/an' : '/mois'}</span>
                     </div>
-                    {tarifAnnuel ? (
+                    {prixBlackFriday ? (
+                      <p className="text-xs text-amber-700 font-semibold">
+                        Black Friday -{BLACK_FRIDAY_PERCENT}&nbsp;% &middot; puis {formatAmount(offer.annualAmount)}/an
+                      </p>
+                    ) : tarifAnnuel ? (
                       <p className="text-xs text-emerald-600 font-semibold">
                         {annualSavingOf(offer).freeMonths} mois offerts &middot; au lieu de {formatAmount(annualSavingOf(offer).twelveMonthsAmount)}/an
                       </p>
@@ -1081,7 +1127,9 @@ export default function LandingPage() {
                 <div>
                   <p className="font-bold text-slate-900 text-sm">7 jours d&apos;essai gratuit</p>
                   <p className="text-sm text-slate-500 mt-0.5">
-                    Sur l&apos;offre de votre choix, avec un acc&egrave;s complet. Carte requise, annulable avant la fin de l&apos;essai.
+                    {blackFriday
+                      ? <>Sur les offres mensuelles, avec un acc&egrave;s complet. Les abonnements annuels Black Friday d&eacute;marrent directement, sans essai.</>
+                      : <>Sur l&apos;offre de votre choix, avec un acc&egrave;s complet. Carte requise, annulable avant la fin de l&apos;essai.</>}
                   </p>
                 </div>
               </div>

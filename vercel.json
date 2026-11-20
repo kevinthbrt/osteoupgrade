@@ -3,6 +3,10 @@
     {
       "path": "/api/subscriptions/check-renewals",
       "schedule": "0 9 * * *"
+    },
+    {
+      "path": "/api/promo/black-friday/emails",
+      "schedule": "0 8 23-30 11 *"
     }
   ]
 }

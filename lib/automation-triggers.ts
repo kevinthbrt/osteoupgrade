@@ -44,6 +44,8 @@ export type TriggerEvent =
   | 'Offre augmentée'
   | 'Offre réduite'
   | 'Offre échangée'
+  | 'Black Friday 2026 - Lancement'
+  | 'Black Friday 2026 - Dernier jour'
 
 /**
  * Événement de bienvenue correspondant à l'offre souscrite.

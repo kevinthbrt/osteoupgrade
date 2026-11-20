@@ -21,6 +21,13 @@ import {
   type Offer,
   type BillingInterval,
 } from '@/lib/offers'
+import {
+  BLACK_FRIDAY_PERCENT,
+  BLACK_FRIDAY_END_LABEL,
+  blackFridayFirstYearAmount,
+  canSwitchToBlackFridayAnnual,
+  useBlackFridayActive,
+} from '@/lib/black-friday'
 
 function SubscriptionContent() {
   const router = useRouter()
@@ -48,6 +55,32 @@ function SubscriptionContent() {
   /** Tarif étudiant appliqué à la grille : justificatif déposé, case cochée, annuel. */
   const tarifEtudiantActif =
     Boolean(student?.eligible) && studentSelected && billingInterval === 'year' && !profile?.is_founding_member
+  /** Black Friday : -30 % la première année sur l'annuel, hors fondateurs et tarif étudiant. */
+  const blackFriday = useBlackFridayActive()
+  const tarifBlackFridayActif =
+    blackFriday && billingInterval === 'year' && !tarifEtudiantActif && !profile?.is_founding_member
+  const [bfSwitching, setBfSwitching] = useState(false)
+  const [bfError, setBfError] = useState<string | null>(null)
+
+  // Pendant le Black Friday, la grille s'ouvre sur l'annuel.
+  useEffect(() => {
+    if (blackFriday) setBillingInterval('year')
+  }, [blackFriday])
+
+  /** Adhérent mensuel : ouvre la confirmation Stripe du passage à l'annuel remisé. */
+  const switchToBlackFridayAnnual = async () => {
+    setBfSwitching(true)
+    setBfError(null)
+    try {
+      const res = await fetch('/api/promo/black-friday/switch', { method: 'POST' })
+      const data = await res.json()
+      if (!res.ok || !data.url) throw new Error(data.error || "La bascule vers l'annuel n'a pas pu être préparée.")
+      window.location.href = data.url
+    } catch (err: any) {
+      setBfError(err.message)
+      setBfSwitching(false)
+    }
+  }
 
   // Récupérer le code de parrainage depuis l'URL si présent
   useEffect(() => {
@@ -274,6 +307,13 @@ function SubscriptionContent() {
 
   const pendingPlanSupportsReferral = pendingPlanType ? isReferralEligiblePlan(pendingPlanType) : false
   const isTrialEligible = plan === 'free' && !profile?.trial_used_at && !isFounder
+  // Pas d'essai gratuit sur une souscription annuelle Black Friday.
+  const essaiSurLaGrille = isTrialEligible && !tarifBlackFridayActif
+  // Au retour de Stripe, le webhook n'a pas toujours encore écrit
+  // `billing_interval` : on se fie au paramètre pour ne pas reproposer la bascule.
+  const basculeBlackFridayFaite = searchParams?.get('black_friday') === 'ok'
+  const peutBasculerBlackFriday =
+    blackFriday && !basculeBlackFridayFaite && canSwitchToBlackFridayAnnual({ ...profile, plan })
 
   const tarifFor = (offer: Offer) =>
     isFounder
@@ -309,7 +349,7 @@ function SubscriptionContent() {
                     ? "Avant de passer sur Stripe, renseignez votre code si vous en possédez un : vous et votre parrain bénéficierez chacun d'un mois offert. Vous pouvez aussi continuer sans code."
                     : "Vous pouvez continuer sans code de parrainage."}
                 </p>
-                {isTrialEligible && pendingPlanSupportsReferral && (
+                {isTrialEligible && pendingPlanSupportsReferral && !(blackFriday && pendingPlanType?.endsWith('_annual')) && (
                   <p className="text-sm text-blue-700 bg-blue-50 border border-blue-200 rounded-lg px-3 py-2 mt-2">
                     🎁 Votre carte sera enregistrée mais ne sera débitée qu&apos;après vos 7 jours d&apos;essai gratuit,
                     sauf si vous annulez avant. Vous avez accès à toutes les fonctionnalités de l&apos;offre pendant l&apos;essai.
@@ -415,6 +455,51 @@ function SubscriptionContent() {
           <div className="pointer-events-none absolute top-1/2 right-0 w-80 h-80 bg-sky-400/25 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '8s', animationDelay: '2s' }} />
           <div className="pointer-events-none absolute bottom-0 left-0 w-72 h-72 bg-indigo-400/20 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '7s', animationDelay: '1s' }} />
           <div className="relative space-y-6">
+
+        {/* ── Black Friday : bascule mensuel → annuel pour les adhérents ── */}
+        {basculeBlackFridayFaite && (
+          <div className="rounded-2xl border border-emerald-300 bg-emerald-50/95 p-5 flex items-start gap-3">
+            <Check className="h-5 w-5 text-emerald-700 flex-shrink-0 mt-0.5" />
+            <p className="text-sm text-emerald-900">
+              <strong>C&apos;est fait : votre abonnement est désormais annuel.</strong> La remise Black Friday
+              s&apos;applique à votre première année, et le reste de votre mois en cours a été déduit.
+            </p>
+          </div>
+        )}
+        {peutBasculerBlackFriday && currentOffer && (
+          <div className="rounded-2xl bg-slate-950 text-white shadow-xl p-6 md:p-7">
+            <div className="flex flex-col lg:flex-row lg:items-center gap-5">
+              <div className="flex-1">
+                <span className="inline-block rounded bg-amber-400 text-slate-950 px-2 py-0.5 text-xs font-extrabold uppercase tracking-wider mb-3">
+                  Black Friday · réservé aux adhérents
+                </span>
+                <h2 className="text-xl md:text-2xl font-bold mb-1">
+                  Passez à l&apos;annuel à -{BLACK_FRIDAY_PERCENT} % sur votre première année
+                </h2>
+                <p className="text-sm text-slate-300">
+                  {currentOffer.name} en facturation annuelle :{' '}
+                  <strong className="text-white">{formatAmount(blackFridayFirstYearAmount(currentOffer))}</strong> la première année
+                  au lieu de {formatAmount(currentOffer.annualAmount)} (et de {formatAmount(currentOffer.monthlyAmount * 12)} en mensuel),
+                  soit {formatAmount(currentOffer.monthlyAmount * 12 - blackFridayFirstYearAmount(currentOffer))} d&apos;économie sur douze mois.
+                  Le reste de votre mois en cours est déduit, puis l&apos;abonnement se renouvelle au tarif annuel habituel.
+                  Offre valable jusqu&apos;au {BLACK_FRIDAY_END_LABEL}.
+                </p>
+                {bfError && <p className="mt-2 text-sm text-red-300">{bfError}</p>}
+              </div>
+              <button
+                type="button"
+                onClick={switchToBlackFridayAnnual}
+                disabled={bfSwitching}
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-amber-400 px-6 py-3 text-sm font-bold text-slate-950 hover:bg-amber-300 transition disabled:opacity-60"
+              >
+                {bfSwitching ? <><Loader2 className="h-4 w-4 animate-spin" />Préparation...</> : <>Passer à l&apos;annuel<ChevronRight className="h-4 w-4" /></>}
+              </button>
+            </div>
+            <p className="mt-4 text-xs text-slate-400">
+              Vous verrez le montant exact sur la page de confirmation Stripe avant de valider. Rien ne change tant que vous n&apos;avez pas confirmé.
+            </p>
+          </div>
+        )}
 
         {/* Current Status */}
         {isSubscribed && (
@@ -686,9 +771,15 @@ function SubscriptionContent() {
                       {rythme === 'month' ? 'Mensuel' : (
                         <>
                           Annuel{' '}
-                          <span className={billingInterval === rythme ? 'text-emerald-300' : 'text-emerald-600'}>
-                            2 mois offerts
-                          </span>
+                          {blackFriday ? (
+                            <span className={billingInterval === rythme ? 'text-amber-300' : 'text-amber-600'}>
+                              -{BLACK_FRIDAY_PERCENT} % Black Friday
+                            </span>
+                          ) : (
+                            <span className={billingInterval === rythme ? 'text-emerald-300' : 'text-emerald-600'}>
+                              2 mois offerts
+                            </span>
+                          )}
                         </>
                       )}
                     </button>
@@ -789,15 +880,22 @@ function SubscriptionContent() {
                     <p className="text-sm text-gray-600 mb-4 min-h-[40px]">{offer.tagline}</p>
 
                     <div className="mb-4">
-                      <div className="flex items-baseline gap-1">
-                        <span className="text-3xl font-bold text-gray-900">
-                          {formatAmount(tarifEtudiantActif ? studentFirstYearAmount(offer) : tarif.amount)}
+                      <div className="flex flex-wrap items-baseline gap-x-1">
+                        <span className="text-3xl font-bold text-gray-900 whitespace-nowrap">
+                          {formatAmount(tarifEtudiantActif ? studentFirstYearAmount(offer) : tarifBlackFridayActif ? blackFridayFirstYearAmount(offer) : tarif.amount)}
                         </span>
-                        <span className="text-gray-500 text-sm">{tarif.suffix}</span>
+                        {tarifBlackFridayActif && (
+                          <span className="text-gray-400 text-base line-through ml-1 whitespace-nowrap">{formatAmount(offer.annualAmount)}</span>
+                        )}
+                        <span className="text-gray-500 text-sm whitespace-nowrap">{tarifBlackFridayActif ? 'la 1re année' : tarif.suffix}</span>
                       </div>
                       {tarifEtudiantActif ? (
                         <p className="text-xs text-indigo-700 font-semibold mt-1">
                           Tarif étudiant la première année, puis {formatAmount(offer.annualAmount)}/an
+                        </p>
+                      ) : tarifBlackFridayActif ? (
+                        <p className="text-xs text-amber-700 font-semibold mt-1">
+                          Black Friday -{BLACK_FRIDAY_PERCENT} % la première année, puis {formatAmount(offer.annualAmount)}/an
                         </p>
                       ) : isFounder ? (
                         <p className="text-xs text-amber-700 font-semibold mt-1">
@@ -826,7 +924,7 @@ function SubscriptionContent() {
                       ))}
                     </ul>
 
-                    {isTrialEligible && (
+                    {essaiSurLaGrille && (
                       <div className="mb-3 rounded-lg bg-blue-50 border border-blue-200 px-3 py-2 flex items-start gap-2">
                         <Gift className="h-4 w-4 text-blue-600 flex-shrink-0 mt-0.5" />
                         <p className="text-xs text-blue-800 font-medium">
@@ -846,7 +944,7 @@ function SubscriptionContent() {
                     >
                       {enCours ? (
                         <><Loader2 className="h-4 w-4 animate-spin" />Redirection...</>
-                      ) : isTrialEligible ? (
+                      ) : essaiSurLaGrille ? (
                         <><Gift className="h-4 w-4" />Essayer 7 jours</>
                       ) : (
                         <>Choisir {offer.name}</>
