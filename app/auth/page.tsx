@@ -6,7 +6,8 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { supabase } from '@/lib/supabase'
 import { OFFERS, formatAmount, pricingFor } from '@/lib/offers'
-import { BLACK_FRIDAY_PERCENT, BLACK_FRIDAY_END_LABEL, blackFridayFirstYearAmount, useBlackFridayActive } from '@/lib/black-friday'
+import { BLACK_FRIDAY_PERCENT, BLACK_FRIDAY_END_LABEL, blackFridayFirstYearAmount } from '@/lib/black-friday'
+import { useBlackFridayActive } from '@/lib/use-black-friday'
 import {
   activePromoExpiry,
   discountedAmount,

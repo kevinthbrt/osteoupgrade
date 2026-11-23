@@ -25,9 +25,9 @@ import {
   BLACK_FRIDAY_PERCENT,
   BLACK_FRIDAY_END_LABEL,
   blackFridayFirstYearAmount,
-  canSwitchToBlackFridayAnnual,
-  useBlackFridayActive,
+  canSwitchToBlackFridayAnnual
 } from '@/lib/black-friday'
+import { useBlackFridayActive } from '@/lib/use-black-friday'
 
 function SubscriptionContent() {
   const router = useRouter()

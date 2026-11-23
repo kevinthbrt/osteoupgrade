@@ -38,7 +38,8 @@ import {
 } from 'lucide-react'
 import { planOf, hasOsteoflow, hasOsteoupgrade } from '@/lib/entitlements'
 import { OFFERS, formatAmount, offerOf, BUNDLE_SAVING, billedPriceFor, upgradeSupplementFor } from '@/lib/offers'
-import { BLACK_FRIDAY_PERCENT, BLACK_FRIDAY_END_LABEL, BLACK_FRIDAY_FROM_AMOUNT, blackFridayFirstYearAmount, canSwitchToBlackFridayAnnual, useBlackFridayActive } from '@/lib/black-friday'
+import { BLACK_FRIDAY_PERCENT, BLACK_FRIDAY_END_LABEL, BLACK_FRIDAY_FROM_AMOUNT, blackFridayFirstYearAmount, canSwitchToBlackFridayAnnual } from '@/lib/black-friday'
+import { useBlackFridayActive } from '@/lib/use-black-friday'
 
 export default function Dashboard() {
   const router = useRouter()

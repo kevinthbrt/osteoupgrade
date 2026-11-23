@@ -18,7 +18,6 @@
  * renouvellement se fait au tarif annuel normal.
  */
 
-import { useEffect, useState } from 'react'
 import { OFFERS, type Offer } from '@/lib/offers'
 
 export const BLACK_FRIDAY_PERCENT = 30
@@ -81,24 +80,4 @@ export function canSwitchToBlackFridayAnnual(
     !profile.is_complimentary &&
     ['active', 'trialing'].includes(profile.subscription_status ?? '')
   )
-}
-
-/**
- * État de l'offre côté navigateur.
- *
- * La landing est rendue au build : y appeler `isBlackFridayActive()` figerait
- * l'état du jour du déploiement (bandeau absent si l'on déploie avant le 23,
- * resté affiché après le 30). La date est donc relue après le montage, puis
- * chaque minute, pour que le bandeau disparaisse à l'heure dite sans
- * rechargement.
- */
-export function useBlackFridayActive(): boolean {
-  const [actif, setActif] = useState(false)
-  useEffect(() => {
-    const maj = () => setActif(isBlackFridayActive())
-    maj()
-    const t = setInterval(maj, 60_000)
-    return () => clearInterval(t)
-  }, [])
-  return actif
 }

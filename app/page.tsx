@@ -26,7 +26,8 @@ import {
 import { ClinicalStory, ColorFlow, CountUp, EnvelopeReveal, HeroFilm, HeroShowcase, PhoneStory, PhoneUnlock, ScrollCascade, ScrollProgressBar, StaggerChips, useScrollStoryEnabled, type StoryStep } from '@/components/landing/ScrollStory'
 import { ObjectivesCard, PayCard } from '@/components/landing/PilotageCards'
 import { OFFERS, formatAmount, BUNDLE_SAVING, annualSavingOf, studentFirstYearAmount, STUDENT_DISCOUNT_PERCENT } from '@/lib/offers'
-import { BLACK_FRIDAY_PERCENT, BLACK_FRIDAY_END_LABEL, BLACK_FRIDAY_FROM_AMOUNT, blackFridayFirstYearAmount, useBlackFridayActive } from '@/lib/black-friday'
+import { BLACK_FRIDAY_PERCENT, BLACK_FRIDAY_END_LABEL, BLACK_FRIDAY_FROM_AMOUNT, blackFridayFirstYearAmount } from '@/lib/black-friday'
+import { useBlackFridayActive } from '@/lib/use-black-friday'
 
 /*
  * Page d'accueil OsteoUpgrade × MyOsteoflow.
