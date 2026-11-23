@@ -6,6 +6,8 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { supabase } from '@/lib/supabase'
 import { OFFERS, formatAmount, pricingFor } from '@/lib/offers'
+import { BLACK_FRIDAY_PERCENT, BLACK_FRIDAY_END_LABEL, blackFridayFirstYearAmount } from '@/lib/black-friday'
+import { useBlackFridayActive } from '@/lib/use-black-friday'
 import {
   activePromoExpiry,
   discountedAmount,
@@ -180,6 +182,9 @@ export default function AuthPage() {
   // `redirectAfterAuth` relit après l'inscription, et un rechargement de page
   // retrouve ainsi le bon choix.
   const offreAnnuelle = OFFERS.some((o) => o.annualPlanType === offre)
+  // Black Friday : -30 % la première année sur l'annuel, sans essai gratuit.
+  const blackFriday = useBlackFridayActive()
+  const prixBlackFriday = blackFriday && offreAnnuelle
 
   const choisirOffre = (planType: string) => {
     setOffre(planType)
@@ -491,7 +496,7 @@ export default function AuthPage() {
                             actif ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-800'
                           }`}
                         >
-                          {versAnnuel ? 'Annuel · 2 mois offerts' : 'Mensuel'}
+                          {versAnnuel ? (blackFriday ? `Annuel · -${BLACK_FRIDAY_PERCENT} % Black Friday` : 'Annuel · 2 mois offerts') : 'Mensuel'}
                         </button>
                       )
                     })}
@@ -524,7 +529,14 @@ export default function AuthPage() {
                             <span className="block text-xs text-slate-500">{o.tagline}</span>
                           </span>
                           <span className="whitespace-nowrap text-right text-sm font-bold text-slate-900">
-                            {remise ? (
+                            {prixBlackFriday ? (
+                              <>
+                                <span className="mr-1 text-xs font-normal text-slate-400 line-through">
+                                  {formatAmount(o.annualAmount)}
+                                </span>
+                                {formatAmount(blackFridayFirstYearAmount(o))}
+                              </>
+                            ) : remise ? (
                               <>
                                 <span className="mr-1 text-xs font-normal text-slate-400 line-through">
                                   {formatAmount(o.monthlyAmount)}
@@ -549,7 +561,9 @@ export default function AuthPage() {
                     </p>
                   )}
                   <p className="mt-2 text-xs text-slate-500">
-                    {offreAnnuelle
+                    {prixBlackFriday
+                      ? `Black Friday : -${BLACK_FRIDAY_PERCENT} % appliqués automatiquement sur la première année, jusqu’au ${BLACK_FRIDAY_END_LABEL}. Prélevé dès la souscription (pas d’essai gratuit sur cette offre), puis renouvelé au tarif annuel habituel.`
+                      : offreAnnuelle
                       ? 'Prélevé une fois par an, 7 jours d’essai gratuit pour un premier abonnement.'
                       : 'Sans engagement, 7 jours d’essai gratuit pour un premier abonnement.'}
                     {depuisFunnel &&

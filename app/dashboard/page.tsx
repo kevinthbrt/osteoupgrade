@@ -38,10 +38,14 @@ import {
 } from 'lucide-react'
 import { planOf, hasOsteoflow, hasOsteoupgrade } from '@/lib/entitlements'
 import { OFFERS, formatAmount, offerOf, BUNDLE_SAVING, billedPriceFor, upgradeSupplementFor } from '@/lib/offers'
+import { BLACK_FRIDAY_PERCENT, BLACK_FRIDAY_END_LABEL, BLACK_FRIDAY_FROM_AMOUNT, blackFridayFirstYearAmount, canSwitchToBlackFridayAnnual } from '@/lib/black-friday'
+import { useBlackFridayActive } from '@/lib/use-black-friday'
 
 export default function Dashboard() {
   const router = useRouter()
   const [profile, setProfile] = useState<any>(null)
+  const blackFriday = useBlackFridayActive()
+  const adherentBlackFriday = blackFriday && canSwitchToBlackFridayAnnual(profile ? { ...profile, plan: planOf(profile) } : null)
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [badges, setBadges] = useState<{ id: string; name: string; icon: string | null; description?: string | null }[]>([])
@@ -268,6 +272,33 @@ export default function Dashboard() {
           <div className="pointer-events-none absolute bottom-0 left-0 w-72 h-72 bg-indigo-400/35 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '7s', animationDelay: '1s' }} />
           <div className="pointer-events-none absolute top-1/2 right-1/3 w-64 h-64 bg-cyan-300/30 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '5s', animationDelay: '3s' }} />
           <div className="pointer-events-none absolute bottom-1/3 left-1/2 w-56 h-56 bg-blue-300/25 rounded-full blur-2xl animate-pulse" style={{ animationDuration: '9s', animationDelay: '0.5s' }} />
+
+          {/* Black Friday : bascule à l'annuel pour un adhérent mensuel, ou
+              souscription annuelle remisée pour un compte gratuit. */}
+          {blackFriday && (adherentBlackFriday || (planOf(profile) === 'free' && !profile?.is_founding_member)) && (
+            <div className="relative overflow-hidden rounded-2xl bg-slate-950 p-5 shadow-lg">
+              <div className="relative flex flex-col sm:flex-row sm:items-center gap-4">
+                <span className="self-start sm:self-center flex-shrink-0 rounded bg-amber-400 px-2 py-1 text-xs font-extrabold uppercase tracking-wider text-slate-950">
+                  Black Friday
+                </span>
+                <div className="flex-1 min-w-0">
+                  <p className="font-bold text-white">
+                    {adherentBlackFriday
+                      ? `Passez à l'annuel à -${BLACK_FRIDAY_PERCENT} % sur votre première année`
+                      : `-${BLACK_FRIDAY_PERCENT} % sur la première année de tous les abonnements annuels`}
+                  </p>
+                  <p className="text-slate-300 text-sm mt-0.5">
+                    {adherentBlackFriday && offerOf(planOf(profile))
+                      ? `${offerOf(planOf(profile))!.name} à ${formatAmount(blackFridayFirstYearAmount(offerOf(planOf(profile))!))} la première année au lieu de ${formatAmount(offerOf(planOf(profile))!.annualAmount)}. Réservé aux adhérents, jusqu'au ${BLACK_FRIDAY_END_LABEL}.`
+                      : `Dès ${formatAmount(BLACK_FRIDAY_FROM_AMOUNT)} la première année, jusqu'au ${BLACK_FRIDAY_END_LABEL}.`}
+                  </p>
+                </div>
+                <button onClick={() => router.push('/settings/subscription')} className="flex-shrink-0 inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-amber-400 text-slate-950 text-sm font-bold hover:bg-amber-300 transition-colors shadow-md">
+                  {adherentBlackFriday ? "Passer à l'annuel" : 'En profiter'} <ArrowRight className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          )}
 
           {planOf(profile) === 'free' && !profile?.trial_used_at && !profile?.is_founding_member && (
             <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 p-5 shadow-lg">
