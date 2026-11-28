@@ -268,3 +268,26 @@
 }
 
 .newsletter-richtext li { margin-bottom: 0.25rem; }
+
+/* Parcours animés : les personnages respirent au repos et réagissent par une
+   animation courte (apparition, saut, tremblement) avant de revenir au repos.
+   Seuls transform et opacity sont animés, pour rester fluide sur mobile. */
+.perso-repos { animation: perso-respire 3.2s ease-in-out infinite; transform-origin: 50% 100%; }
+.perso-apparait { animation: perso-apparait 0.45s cubic-bezier(.3, 1.6, .5, 1); transform-origin: 50% 100%; }
+.perso-saute { animation: perso-saute 0.7s cubic-bezier(.3, 1.4, .5, 1); transform-origin: 50% 100%; }
+.perso-tremble { animation: perso-tremble 0.5s ease-in-out; }
+.bulle-entre { animation: bulle-entre 0.35s ease-out; }
+.etape-entre { animation: etape-entre 0.4s ease-out; }
+.fin-coche { stroke-dasharray: 40; animation: fin-coche 0.6s 0.2s ease-out both; }
+
+@keyframes perso-respire { 0%, 100% { transform: scale(1, 1); } 50% { transform: scale(1.015, 0.985) translateY(1px); } }
+@keyframes perso-apparait { 0% { transform: scale(.85, 1.12); opacity: .4; } 60% { transform: scale(1.06, .95); opacity: 1; } 100% { transform: none; } }
+@keyframes perso-saute { 0% { transform: translateY(0) scale(1.08, .9); } 35% { transform: translateY(-24px) scale(.95, 1.06); } 70% { transform: translateY(0) scale(1.06, .94); } 100% { transform: none; } }
+@keyframes perso-tremble { 0%, 100% { transform: translateX(0); } 20% { transform: translateX(-8px) rotate(-3deg); } 40% { transform: translateX(7px) rotate(2deg); } 60% { transform: translateX(-4px); } 80% { transform: translateX(3px); } }
+@keyframes bulle-entre { from { transform: translateY(6px) scale(.97); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes etape-entre { from { transform: translateY(10px); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes fin-coche { from { stroke-dashoffset: 40; } to { stroke-dashoffset: 0; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .perso-repos, .perso-apparait, .perso-saute, .perso-tremble, .bulle-entre, .etape-entre, .fin-coche { animation: none; }
+}

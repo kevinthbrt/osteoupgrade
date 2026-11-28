@@ -3,6 +3,9 @@
 import { useMemo, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import ArbreDecisionVisuel from './ArbreDecisionVisuel'
+import SceneDialogue from './anime/SceneDialogue'
+import QueDire from './anime/QueDire'
+import TrouverNiveau from './anime/TrouverNiveau'
 import {
   likelihoodRatios,
   posteriorProbability,
@@ -47,26 +50,10 @@ export default function ChapterActivities({ activities, userId, solved }: Props)
 
   const record = async (activityId: string, isCorrect: boolean) => {
     setDone((prev) => ({ ...prev, [activityId]: isCorrect }))
-    if (!userId) return
-    try {
-      await supabase
-        .from('region_activity_attempts')
-        .upsert(
-          { user_id: userId, activity_id: activityId, is_correct: isCorrect, answered_at: new Date().toISOString() },
-          { onConflict: 'user_id,activity_id' }
-        )
-    } catch (error) {
-      // L'exercice reste jouable même si l'enregistrement échoue : ne rien
-      // interrompre pour une progression non sauvegardée.
-      console.error('Progression non enregistrée:', error)
-    }
+    await enregistrerTentative(userId, activityId, isCorrect)
   }
 
-  // Le calculateur et l'arbre ne sont pas des questions à réponse juste : on
-  // les sort du compteur plutôt que de leur inventer un score.
-  const scored = activities.filter(
-    (a) => a.kind !== 'probabilite' && a.kind !== 'arbre_decision'
-  )
+  const scored = activities.filter(estNotee)
   const correct = scored.filter((a) => done[a.id]).length
 
   if (activities.length === 0) return null
@@ -98,20 +85,7 @@ export default function ChapterActivities({ activities, userId, solved }: Props)
               {activity.prompt && <p className="mt-1.5 text-sm text-slate-700">{activity.prompt}</p>}
 
               <div className="mt-4">
-                {activity.kind === 'qcm' && (
-                  <Qcm activity={activity} onResolved={(ok) => record(activity.id, ok)} />
-                )}
-                {activity.kind === 'vrai_faux' && (
-                  <VraiFaux activity={activity} onResolved={(ok) => record(activity.id, ok)} />
-                )}
-                {activity.kind === 'tri_drapeaux' && (
-                  <TriDrapeaux activity={activity} onResolved={(ok) => record(activity.id, ok)} />
-                )}
-                {activity.kind === 'cas_etape' && (
-                  <CasEtape activity={activity} onResolved={(ok) => record(activity.id, ok)} />
-                )}
-                {activity.kind === 'probabilite' && <Probabilite activity={activity} />}
-                {activity.kind === 'arbre_decision' && <Arbre activity={activity} />}
+                <ActiviteContenu activity={activity} onResolved={(ok) => record(activity.id, ok)} />
               </div>
             </div>
           </article>
@@ -119,6 +93,65 @@ export default function ChapterActivities({ activities, userId, solved }: Props)
       </div>
     </section>
   )
+}
+
+/**
+ * Enregistre le dernier état d'une activité. L'exercice reste jouable même si
+ * l'enregistrement échoue : ne rien interrompre pour une progression non
+ * sauvegardée.
+ */
+export async function enregistrerTentative(userId: string | null, activityId: string, isCorrect: boolean) {
+  if (!userId) return
+  try {
+    await supabase
+      .from('region_activity_attempts')
+      .upsert(
+        { user_id: userId, activity_id: activityId, is_correct: isCorrect, answered_at: new Date().toISOString() },
+        { onConflict: 'user_id,activity_id' }
+      )
+  } catch (error) {
+    console.error('Progression non enregistrée:', error)
+  }
+}
+
+/**
+ * Le calculateur, l'arbre et les scènes ne sont pas des questions à réponse
+ * juste : on les sort du compteur plutôt que de leur inventer un score.
+ */
+export function estNotee(activity: RegionActivity) {
+  return !['probabilite', 'arbre_decision', 'scene'].includes(activity.kind)
+}
+
+/** Le corps d'une activité, quel que soit son format. Utilisé aussi par le lecteur pas à pas. */
+export function ActiviteContenu({
+  activity,
+  onResolved,
+}: {
+  activity: RegionActivity
+  onResolved: (ok: boolean) => void
+}) {
+  switch (activity.kind) {
+    case 'qcm':
+      return <Qcm activity={activity} onResolved={onResolved} />
+    case 'vrai_faux':
+      return <VraiFaux activity={activity} onResolved={onResolved} />
+    case 'tri_drapeaux':
+      return <TriDrapeaux activity={activity} onResolved={onResolved} />
+    case 'cas_etape':
+      return <CasEtape activity={activity} onResolved={onResolved} />
+    case 'probabilite':
+      return <Probabilite activity={activity} />
+    case 'arbre_decision':
+      return <Arbre activity={activity} />
+    case 'scene':
+      return <SceneDialogue payload={activity.payload} />
+    case 'que_dire':
+      return <QueDire payload={activity.payload} onResolved={onResolved} />
+    case 'trouver_niveau':
+      return <TrouverNiveau payload={activity.payload} onResolved={onResolved} />
+    default:
+      return null
+  }
 }
 
 function Explanation({ text }: { text: string | null }) {

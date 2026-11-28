@@ -1,11 +1,12 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
 import AuthLayout from '@/components/AuthLayout'
 import FreeContentGate from '@/components/FreeContentGate'
 import ChapterActivities from '@/components/regions/ChapterActivities'
+import LecteurAnime from '@/components/regions/anime/LecteurAnime'
 import Passation from '@/components/questionnaires/Passation'
 import type { Questionnaire, QuestionnaireItem } from '@/lib/questionnaires'
 import { supabase } from '@/lib/supabase'
@@ -319,6 +320,25 @@ export default function RegionChapterPage() {
     }
   }
 
+  // Le lecteur animé marque le chapitre terminé en arrivant à l'écran de fin.
+  // Le garde évite un double enregistrement si l'écran se rend deux fois avant
+  // la fin de la requête.
+  const enCoursDeMarquage = useRef(false)
+  const marquerTermine = useCallback(async () => {
+    if (done || !userId || !chapter || enCoursDeMarquage.current) return
+    enCoursDeMarquage.current = true
+    try {
+      const { error } = await supabase
+        .from('region_chapter_progress')
+        .insert({ user_id: userId, chapter_id: chapter.id })
+      if (!error) setDone(true)
+    } catch (error) {
+      console.error('Erreur d’enregistrement de la progression:', error)
+    } finally {
+      enCoursDeMarquage.current = false
+    }
+  }, [done, userId, chapter])
+
   const toggleDone = async () => {
     if (!chapter || !userId) return
     setSaving(true)
@@ -371,6 +391,7 @@ export default function RegionChapterPage() {
   const index = siblings.findIndex((c) => c.id === chapter.id)
   const previous = index > 0 ? siblings[index - 1] : null
   const next = index >= 0 && index < siblings.length - 1 ? siblings[index + 1] : null
+  const anime = Boolean(chapter.anime)
 
   return (
     <AuthLayout>
@@ -383,6 +404,7 @@ export default function RegionChapterPage() {
           {module.title}
         </Link>
 
+        {!anime && (
         <header className="rounded-2xl border border-slate-200 bg-white p-7">
           <div className="flex flex-wrap items-center gap-2 text-xs font-medium">
             {chapter.part && (
@@ -423,10 +445,31 @@ export default function RegionChapterPage() {
             </div>
           )}
         </header>
+        )}
 
         <FreeContentGate isLocked={locked}>
           <div className="space-y-8">
-            {sections.map((section) => {
+            {anime && (
+              <LecteurAnime
+                chapter={chapter}
+                sections={sections}
+                activities={activities}
+                userId={userId}
+                solved={solvedActivities}
+                done={done}
+                onTerminer={marquerTermine}
+                suivant={next ? { href: `/regions/${module.slug}/${next.slug}`, titre: next.title } : null}
+                retourParcours={`/regions/${module.slug}`}
+              />
+            )}
+
+            {anime && (
+              <h2 className="border-t border-slate-200 pt-8 text-sm font-semibold uppercase tracking-wide text-slate-500">
+                Ressources du chapitre
+              </h2>
+            )}
+
+            {!anime && sections.map((section) => {
               const style = CALLOUT_STYLES[section.callout] || CALLOUT_STYLES.none
               const Icon = style.icon
               return (
@@ -761,13 +804,15 @@ export default function RegionChapterPage() {
               </section>
             )}
 
-            <ChapterActivities
-              activities={activities}
-              userId={userId}
-              solved={solvedActivities}
-            />
+            {!anime && (
+              <ChapterActivities
+                activities={activities}
+                userId={userId}
+                solved={solvedActivities}
+              />
+            )}
 
-            {chapter.key_points?.length > 0 && (
+            {!anime && chapter.key_points?.length > 0 && (
               <section className="rounded-2xl border border-slate-900 bg-slate-900 p-6 text-white">
                 <h2 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-sky-300">
                   <Key className="h-4 w-4" />
@@ -827,6 +872,7 @@ export default function RegionChapterPage() {
               </section>
             )}
 
+            {!anime && (
             <div className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-5 sm:flex-row sm:items-center sm:justify-between">
               <button
                 onClick={toggleDone}
@@ -866,6 +912,7 @@ export default function RegionChapterPage() {
                 )}
               </div>
             </div>
+            )}
           </div>
         </FreeContentGate>
       </div>
