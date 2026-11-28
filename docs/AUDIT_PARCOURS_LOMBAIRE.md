@@ -124,6 +124,11 @@ Place proposée : partie « Orienter », avant `imagerie`.
 
 ### C3. Des tableaux à ajouter au répertoire
 
+**État : appliqué** par
+`supabase/migrations/20261128_lombaire_18_tableaux_et_situations.sql` :
+chapitres `hanche-et-fesse` (grand trochanter, syndrome fessier profond,
+coxarthrose) et `fracture-osteoporotique`.
+
 | Tableau | Pourquoi |
 |---|---|
 | **Fracture vertébrale ostéoporotique** | Le parcours apprend à la soupçonner (drapeaux rouges), pas à prendre en charge le patient après le diagnostic, alors qu’il revient souvent au cabinet. |
@@ -132,6 +137,11 @@ Place proposée : partie « Orienter », avant `imagerie`.
 | **Coxarthrose** comme diagnostic de voisinage | Citée dans `stenose`, mais pas traitée comme un tableau à part entière, alors que c’est une source fréquente de douleur fessière et inguinale. |
 
 ### C4. Des populations à traiter explicitement
+
+**État : appliqué** (même migration) : partie « Situations particulières »,
+placée après « Traiter », avec les chapitres `lombalgie-grossesse`,
+`enfant-adolescent`, `sujet-age`, `sportif` et `travail`. Le parcours compte
+désormais 42 chapitres.
 
 | Population | Ce qui existe | Ce qui manque |
 |---|---|---|

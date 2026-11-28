@@ -7,6 +7,15 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/).
 
 ## [Non publié]
 
+### Ajouté
+
+- **Parcours lombaire, huit chapitres et des parties traitement** (`20261128_lombaire_17_*` et `_18_*`) : le parcours passe à 42 chapitres. « Ce que le médecin propose » (médicaments, infiltrations, chirurgie, et ce que chaque option change à la prise en charge), « Hanche et fesse » (grand trochanter, syndrome fessier profond, coxarthrose), « La fracture vertébrale ostéoporotique », et une partie « Situations particulières » : grossesse, enfant et adolescent, sujet âgé, sportif, travail. La radiculopathie, la douleur facettaire, la sacro-iliaque hors grossesse et trois diagnostics de voisinage reçoivent la partie « Ce qu'on fait » qui leur manquait.
+
+### Modifié
+
+- **Parcours lombaire, littérature à jour** : RESTORE (thérapie fonctionnelle cognitive), TARGET et STarT MSK (limites de la stratification), Bailey 2020 (sciatique qui dure), infiltrations épidurales (Cochrane 2020), MINT (radiofréquence), PACE (paracétamol). Chaque essai a été vérifié à la source.
+- **Nouvelle partie « Situations particulières »** dans `PART_ORDER` (`lib/region-modules.ts`), affichée après « Traiter ».
+
 ### Corrigé
 
 - **Parcours lombaire, relecture complète** : le parcours a été relu chapitre par chapitre (`docs/AUDIT_PARCOURS_LOMBAIRE.md`) et onze points corrigés (`20261128_lombaire_16_corrections_audit.sql`). Trois contredisaient l'axe du parcours lui-même : « Trois catégories » annonçait encore l'ancienne organisation par tissu, le cas 1 concluait « probablement discogénique », et le syndrome de la charnière thoraco-lombaire était présenté comme établi alors que le même chapitre exige du psoas qu'il soit démontré. Il devient une hypothèse à tester par un traitement d'épreuve. Les six cas cliniques concluent désormais par la grille en quatre lignes qu'ils étaient censés intégrer. L'histoire naturelle annonçait un tiers de douleurs résiduelles à un an, quand la revue citée en rapporte 65 %. Une référence non identifiable du chapitre discogénique est remplacée par l'essai d'O'Keeffe (2022), et la phrase proposée au patient ne nomme plus le disque.

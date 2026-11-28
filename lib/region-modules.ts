@@ -97,6 +97,7 @@ export const PART_ORDER = [
   'Classer pour décider',
   'Répertoire des tableaux cliniques',
   'Traiter',
+  'Situations particulières',
   'Déjouer les pièges',
   'Orienter',
   'Intégrer',
