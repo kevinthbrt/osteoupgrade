@@ -40,6 +40,8 @@ export type RegionChapter = {
   estimated_minutes: number | null
   order_index: number
   is_free_access: boolean
+  /** Chapitre affiché dans le lecteur pas à pas, avec personnages. */
+  anime?: boolean
 }
 
 export type SectionCallout =
@@ -52,6 +54,10 @@ export type RegionSection = {
   body_html: string
   callout: SectionCallout
   order_index: number
+  /** Personnage facultatif qui accompagne la section (voir lib/personnages.ts). */
+  personnage?: string | null
+  expression?: string | null
+  replique?: string | null
 }
 
 export type TechniqueApproach =
@@ -207,6 +213,9 @@ export type ActivityKind =
   | 'probabilite'
   | 'tri_drapeaux'
   | 'arbre_decision'
+  | 'scene'
+  | 'que_dire'
+  | 'trouver_niveau'
 
 /**
  * Arbre de décision : un dictionnaire de nœuds et la clé du premier.
@@ -245,6 +254,8 @@ export type RegionActivity = {
   payload: any
   explanation: string | null
   order_index: number
+  /** order_index de la section après laquelle l'activité s'affiche ; null : en fin de chapitre. */
+  after_section?: number | null
 }
 
 /**

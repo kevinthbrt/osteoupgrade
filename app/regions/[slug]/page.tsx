@@ -9,6 +9,7 @@ import FreeUserBanner from '@/components/FreeUserBanner'
 import { supabase } from '@/lib/supabase'
 import { fetchProfilePayload } from '@/lib/profile-client'
 import { hasOsteoupgrade } from '@/lib/entitlements'
+import { imagePersonnage, type PersonnageId } from '@/lib/personnages'
 import {
   formatDuration,
   KIND_LABELS,
@@ -28,9 +29,24 @@ import {
   Eye,
   EyeOff,
   Loader2,
+  Sparkles,
   Stethoscope,
   Target,
 } from 'lucide-react'
+
+/** Le personnage qui illustre chaque partie sur la carte de progression. */
+const VISAGES_PARTIES: Record<string, [PersonnageId, string]> = {
+  Comprendre: ['colonne', 'neutre'],
+  Trier: ['bassin', 'panique'],
+  'Interroger et examiner': ['patient', 'raconte'],
+  'Classer pour décider': ['vertebre', 'perplexe'],
+  'Répertoire des tableaux cliniques': ['disque', 'neutre'],
+  Traiter: ['disque', 'etirement'],
+  'Situations particulières': ['patient', 'neutre'],
+  'Déjouer les pièges': ['vertebre', 'stresse'],
+  Orienter: ['osteo', 'debout'],
+  Intégrer: ['bassin', 'fier'],
+}
 
 export default function RegionModulePage() {
   const router = useRouter()
@@ -150,6 +166,7 @@ export default function RegionModulePage() {
   }, [chapters])
 
   const unlocked = hasOsteoupgrade(profile)
+  const partieCourante = grouped.find(({ items }) => items.some((c) => !completed.has(c.id)))?.part
   const isAdmin = profile?.role === 'admin'
   const nextChapter = chapters.find((c) => !completed.has(c.id)) || chapters[0]
   const totalMinutes = chapters.reduce((sum, c) => sum + (c.estimated_minutes || 0), 0)
@@ -326,11 +343,48 @@ export default function RegionModulePage() {
               </section>
             )}
 
-            {grouped.map(({ part, items }) => (
-              <section key={part}>
-                <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">
-                  {part}
-                </h2>
+            <div className="relative space-y-8">
+              <div
+                aria-hidden="true"
+                className="absolute bottom-8 left-7 top-8 hidden w-1 rounded-full bg-slate-200 sm:block"
+              />
+            {grouped.map(({ part, items }) => {
+              const faits = items.filter((c) => completed.has(c.id)).length
+              const etat = faits === items.length ? 'fait' : part === partieCourante ? 'courant' : 'avenir'
+              const visage = VISAGES_PARTIES[part]
+              return (
+              <section key={part} className="relative sm:pl-20">
+                <span
+                  aria-hidden="true"
+                  className={`absolute left-0 top-0 hidden h-14 w-14 items-center justify-center overflow-hidden rounded-full border-[3px] bg-violet-50 sm:flex ${
+                    etat === 'avenir' ? 'border-slate-200' : 'border-violet-500'
+                  } ${etat === 'courant' ? 'animate-pulse' : ''}`}
+                >
+                  {visage && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={imagePersonnage(visage[0], visage[1])}
+                      alt=""
+                      className={`h-11 w-11 object-contain ${etat === 'avenir' ? 'opacity-60 grayscale' : ''}`}
+                    />
+                  )}
+                </span>
+                <div className="mb-3 flex flex-wrap items-center gap-3 sm:min-h-14">
+                  <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-700">{part}</h2>
+                  <span
+                    className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                      etat === 'fait'
+                        ? 'bg-emerald-50 text-emerald-700'
+                        : etat === 'courant'
+                          ? 'bg-violet-100 text-violet-700'
+                          : 'border border-slate-200 text-slate-500'
+                    }`}
+                  >
+                    {etat === 'fait' ? '✓ ' : ''}
+                    {faits}/{items.length}
+                    {etat === 'courant' ? ' · en cours' : ''}
+                  </span>
+                </div>
                 <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
                   {items.map((chapter, index) => {
                     const done = completed.has(chapter.id)
@@ -353,6 +407,12 @@ export default function RegionModulePage() {
                             <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-600">
                               {KIND_LABELS[chapter.kind]}
                             </span>
+                            {chapter.anime && (
+                              <span className="inline-flex items-center gap-1 rounded-full bg-violet-600 px-2 py-0.5 text-[11px] font-semibold text-white">
+                                <Sparkles className="h-3 w-3" />
+                                Animé
+                              </span>
+                            )}
                             {avecQuestionnaire.has(chapter.id) && (
                               <span className="inline-flex items-center gap-1 rounded-full bg-violet-100 px-2 py-0.5 text-[11px] font-medium text-violet-700">
                                 <ClipboardList className="h-3 w-3" />
@@ -381,7 +441,9 @@ export default function RegionModulePage() {
                   })}
                 </div>
               </section>
-            ))}
+              )
+            })}
+            </div>
           </div>
         </FreeContentGate>
       </div>

@@ -202,19 +202,59 @@ No text, no labels, no logo, no other characters. Soft studio lighting from the 
 | Série de jours d’étude, badges, certificat de parcours | Proposée | Après la refonte des chapitres. `components/certificates/` existe déjà. |
 | Révisions espacées des points clés sur le tableau de bord | Proposée | Idem. |
 
-## Côté technique (prévu)
+## Côté technique
 
-Rien n’est encore codé dans le site : la maquette est une page indépendante.
-L’intégration envisagée, à confirmer au premier chapitre :
+Le lecteur pas à pas est en place. Un chapitre l’utilise quand
+`region_chapters.anime` vaut vrai ; les autres s’affichent exactement comme
+avant.
 
-- `region_chapter_sections` : colonnes facultatives pour le personnage,
-  l’expression, la réplique et le type de scène. Une section sans personnage
-  s’affiche comme aujourd’hui, donc rien ne casse.
-- `region_chapter_activities` : nouveaux `kind`, à commencer par
-  `que_dire` (« Que dites-vous au patient ? ») et `trouver_niveau`.
-- Activités placées après une section donnée, et non plus toutes en fin de
-  chapitre.
-- Composants : `components/regions/Personnage.tsx` (image, expression,
-  animation), un composant par type de scène, et la refonte de
-  `app/regions/[slug]/[chapitre]/page.tsx` pour enchaîner les blocs.
-- Images servies depuis `public/personnages/<personnage>/<expression>.png`.
+| Élément | Emplacement |
+|---|---|
+| Schéma | `supabase/migrations/20261128_region_mode_anime.sql` |
+| Registre des personnages et expressions | `lib/personnages.ts` |
+| Images | `public/personnages/<personnage>/<expression>.webp` |
+| Personnage, bulle, scène | `components/regions/anime/Personnage.tsx` |
+| Lecteur pas à pas | `components/regions/anime/LecteurAnime.tsx` |
+| Écran de fin | `components/regions/anime/FinChapitre.tsx` |
+| Scène dialoguée | `components/regions/anime/SceneDialogue.tsx` |
+| « Que dites-vous au patient ? » | `components/regions/anime/QueDire.tsx` |
+| « Trouvez le niveau » | `components/regions/anime/TrouverNiveau.tsx` |
+| Chapitre pilote | `supabase/migrations/20261128_lombaire_19_pilote_anime.sql` |
+
+### Le contenu en base
+
+- **Section** : `personnage`, `expression` et `replique`, tous facultatifs. Le
+  personnage s’affiche à côté du texte, avec sa bulle.
+- **Activité** : `after_section` vaut l’`order_index` de la section après
+  laquelle elle s’affiche. `-1` la place en ouverture, avant la première
+  section. `NULL` la laisse en fin de chapitre.
+- **Nouveaux formats d’activité** (`kind`) :
+
+| `kind` | Forme du `payload` | Noté |
+|---|---|---|
+| `scene` | `{repliques:[{personnage, expression, texte}]}` | Non |
+| `que_dire` | `{personnage, expression, question, options:[{label, correct, expression, reaction, feedback}]}` | Oui, à la première réponse |
+| `trouver_niveau` | `{cibles:[{label, y, correct, feedback}]}`, `y` en % de la hauteur de l’image de la colonne | Oui, à la première réponse |
+
+Les positions des disques sur l’image de la colonne sont dans
+`DISQUES_COLONNE` (`TrouverNiveau.tsx`). Elles sont à reprendre si l’image
+change.
+
+### Le parcours d’un chapitre animé
+
+Intro (guide, objectifs), ouverture, puis chaque section suivie de ses
+activités, les activités restantes, les points clés, et l’écran de fin. La
+barre de progression distingue le cours (violet) des exercices (ambre). Les
+flèches du clavier font avancer. La position est retenue dans le navigateur,
+pour reprendre où l’on s’était arrêté. Arriver à l’écran de fin marque le
+chapitre comme terminé.
+
+Les ressources du chapitre (questionnaires, tests, techniques, sources)
+restent affichées sous le lecteur, comme avant.
+
+### La page du parcours
+
+Le sommaire devient une carte de progression : chaque partie a son
+personnage (`VISAGES_PARTIES` dans `app/regions/[slug]/page.tsx`), son
+avancement, et la partie en cours est mise en avant. Les chapitres animés
+portent un badge « Animé ».

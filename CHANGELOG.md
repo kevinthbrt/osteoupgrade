@@ -9,6 +9,7 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/).
 
 ### Ajouté
 
+- **Lecteur de chapitre animé** : un chapitre marqué `anime` se lit pas à pas, une étape par écran, avec les personnages, une scène d'ouverture, les exercices placés juste après la notion qu'ils vérifient, les points clés et un écran de fin qui marque le chapitre terminé. Deux nouveaux exercices : « Que dites-vous au patient ? », où le patient réagit à la formulation choisie, et « Trouvez le niveau » sur la colonne. Les autres chapitres ne changent pas. Le sommaire d'un parcours devient une carte de progression. Voir `docs/PARCOURS_ANIMES.md`.
 - **Parcours lombaire, huit chapitres et des parties traitement** (`20261128_lombaire_17_*` et `_18_*`) : le parcours passe à 42 chapitres. « Ce que le médecin propose » (médicaments, infiltrations, chirurgie, et ce que chaque option change à la prise en charge), « Hanche et fesse » (grand trochanter, syndrome fessier profond, coxarthrose), « La fracture vertébrale ostéoporotique », et une partie « Situations particulières » : grossesse, enfant et adolescent, sujet âgé, sportif, travail. La radiculopathie, la douleur facettaire, la sacro-iliaque hors grossesse et trois diagnostics de voisinage reçoivent la partie « Ce qu'on fait » qui leur manquait.
 
 ### Modifié
