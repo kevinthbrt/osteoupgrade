@@ -64,12 +64,16 @@ al., Eur J Pain 2022.
 
 ## B. Mises à jour de la littérature
 
-À vérifier à la source avant intégration.
+**État : appliqué le 28 novembre 2026** par
+`supabase/migrations/20261128_lombaire_17_mises_a_jour_et_traitements.sql`,
+après vérification de chaque essai à la source. Les infiltrations, la
+chirurgie et les médicaments sont repris en détail dans le nouveau chapitre
+`traitements-medicaux` (C2).
 
 | Sujet | Ce qui manque | Chapitres concernés |
 |---|---|---|
 | Thérapie fonctionnelle cognitive | Essai RESTORE (Kent et al., Lancet 2023) : la CFT, délivrée par des kinésithérapeutes, fait nettement mieux que les soins usuels sur l’incapacité à un an dans la lombalgie chronique. Le parcours cite O’Sullivan 2018 mais pas cet essai. C’est d’autant plus important que le retrait des recommandations NICE 1.2.13 et 1.2.14 laisse un vide sur la prise en charge du patient à risque élevé. | `education-matching`, `exercice-mckenzie`, `principes-traitement`, `drapeaux-jaunes` |
-| Stratification du risque | Les essais STarT MSK (Hill et al., Lancet Rheumatol 2022) et TARGET (Delitto et al., PLoS Med 2021) n’ont pas reproduit le bénéfice de l’essai STarT Back de 2011. Le chapitre présente la stratification sans cette nuance. | `drapeaux-jaunes`, `croiser-les-axes` |
+| Stratification du risque | Les essais STarT MSK (Hill et al., Lancet Rheumatol 2022) et TARGET (Delitto et al., EClinicalMedicine 2021) n’ont pas reproduit le bénéfice de l’essai STarT Back de 2011. Le chapitre présente la stratification sans cette nuance. | `drapeaux-jaunes`, `croiser-les-axes` |
 | Médicaments | Essai OPAL (Jones et al., Lancet 2023) : opioïdes pas meilleurs que le placebo dans la lombalgie aiguë, avec plus d’effets indésirables. Essai PRECISE (Mathieson et al., NEJM 2017) : prégabaline inefficace dans la sciatique. Essai PACE (Williams et al., Lancet 2014) sur le paracétamol : cité dans le texte mais absent de la bibliographie. | Nouveau chapitre (voir C2), `principes-traitement` |
 | Chirurgie de la sciatique | Bailey et al., NEJM 2020 : dans la sciatique persistante de 4 à 12 mois, la microdiscectomie fait mieux que le conservateur à 6 mois. Le chapitre s’appuie sur Peul 2007 (résultats comparables à un an) sans cette nuance. | `radiculopathie`, `reorientation` |
 | Infiltrations | Revue Cochrane d’Oliveira et al. (2020) sur les infiltrations épidurales dans la radiculalgie : effet faible et à court terme. Le parcours propose d’adresser « pour discussion d’une infiltration » sans dire ce qu’on peut en attendre. | `radiculopathie`, `reorientation`, nouveau chapitre C2 |
@@ -83,6 +87,10 @@ des études fondatrices).
 ## C. Ce qui manque pour « tout savoir et adapter le traitement »
 
 ### C1. La partie « que faire » des tableaux cliniques
+
+**État : appliqué** (même migration que B) pour la radiculopathie, la
+douleur facettaire, la sacro-iliaque hors grossesse et les trois diagnostics
+de voisinage.
 
 Le répertoire des tableaux décrit très bien comment **reconnaître**. Il est
 inégal sur ce qu’on **fait ensuite**, alors que c’est le cœur de l’objectif.
@@ -100,6 +108,9 @@ ce qu’on évite, quand ça ne marche pas », avec les techniques et exercices
 reliés.
 
 ### C2. Un chapitre manquant : ce que le médecin propose
+
+**État : appliqué.** Chapitre `traitements-medicaux`, partie « Orienter »,
+avant `imagerie`.
 
 Le patient arrive avec des médicaments, une infiltration prévue, un avis
 chirurgical. Le thérapeute doit savoir ce que valent ces options pour en
