@@ -40,6 +40,14 @@ contrôlée à sa source avant d’entrer dans une migration.
 
 ## A. Corrections (erreurs et incohérences)
 
+**État : appliqué le 28 novembre 2026** par
+`supabase/migrations/20261128_lombaire_16_corrections_audit.sql`, après essai
+dans une transaction annulée. Seul A10 (les DOI) reste à faire. Les chiffres
+de A5 et la référence de A6 ont été vérifiés à la source avant correction :
+Itz 2013 rapporte 65 % de patients encore douloureux à un an, da Silva 2019
+69 % de récidives dans l’année, et l’étude retenue pour A6 est O’Keeffe et
+al., Eur J Pain 2022.
+
 | # | Chapitre | Problème | Correction proposée |
 |---|---|---|---|
 | A1 | `classification`, section « Les limites du modèle » | Annonce que le parcours superpose ensuite « le sous-classement clinique par tableau (discogénique, facettaire, instabilité, ceinture pelvienne), utile pour choisir une première intention ». C’est l’ancienne architecture, abandonnée au profit des quatre décisions. | Réécrire pour annoncer les axes mécanisme, profil et risque, et présenter le répertoire des tableaux comme un complément. |
@@ -52,6 +60,7 @@ contrôlée à sa source avant d’entrer dans une migration.
 | A8 | `radiculopathie`, « Faire converger les trois plans » | « Deux plans sur trois rendent le diagnostic probable » : règle pédagogique présentée comme un critère. | Préciser que c’est une règle de raisonnement, pas un cluster validé. |
 | A9 | `classification`, `principes-traitement`, `reorientation` | La NG59 est datée de 2020 dans ces bibliographies, alors que le parcours enseigne la mise à jour de juillet 2026. | Harmoniser la référence NICE partout. |
 | A10 | Toutes | 117 références sur 137 n’ont pas d’URL ni de DOI. | Ajouter les DOI. Utile aussi pour la relecture future. |
+| A11 | `discogenique`, « Les mots employés devant le patient » | La phrase proposée au patient commençait par « votre disque est sensibilisé », alors que la section précédente démontre qu’on ne peut pas désigner le disque. Repéré pendant la correction. | « Votre dos est sensibilisé… ». La phrase ne désigne plus aucun tissu. |
 
 ## B. Mises à jour de la littérature
 

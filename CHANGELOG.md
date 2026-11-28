@@ -5,6 +5,18 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/).
 
 ---
 
+## [Non publié]
+
+### Corrigé
+
+- **Parcours lombaire, relecture complète** : le parcours a été relu chapitre par chapitre (`docs/AUDIT_PARCOURS_LOMBAIRE.md`) et onze points corrigés (`20261128_lombaire_16_corrections_audit.sql`). Trois contredisaient l'axe du parcours lui-même : « Trois catégories » annonçait encore l'ancienne organisation par tissu, le cas 1 concluait « probablement discogénique », et le syndrome de la charnière thoraco-lombaire était présenté comme établi alors que le même chapitre exige du psoas qu'il soit démontré. Il devient une hypothèse à tester par un traitement d'épreuve. Les six cas cliniques concluent désormais par la grille en quatre lignes qu'ils étaient censés intégrer. L'histoire naturelle annonçait un tiers de douleurs résiduelles à un an, quand la revue citée en rapporte 65 %. Une référence non identifiable du chapitre discogénique est remplacée par l'essai d'O'Keeffe (2022), et la phrase proposée au patient ne nomme plus le disque.
+
+### Documentation
+
+- **Parcours animés** (`docs/PARCOURS_ANIMES.md`) : méthode retenue pour animer les parcours avec les personnages, catalogue de scènes, règles des images, et idées refusées ou en attente.
+
+---
+
 ## [1.14.0] : 2026-11-20
 
 ### Ajouté
